@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -47,6 +48,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     private static final Random RANDOM = new Random();
 
+    private static final long MIN_BACKOFF = 100;
+
     /** The underlying store to which this branch belongs */
     protected final S store;
 
@@ -54,6 +57,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
     protected final ChangeDispatcher dispatcher;
 
     protected final long maximumBackoff;
+
+    /** Lock for coordinating concurrent merge operations */
+    private final Lock mergeLock;
 
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted}
@@ -64,18 +70,22 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     public AbstractNodeStoreBranch(S kernelNodeStore,
                                    ChangeDispatcher dispatcher,
+                                   Lock mergeLock,
                                    N base) {
-        this(kernelNodeStore, dispatcher, base, MILLISECONDS.convert(10, SECONDS));
+        this(kernelNodeStore, dispatcher, mergeLock, base,
+                MILLISECONDS.convert(10, SECONDS));
     }
 
     public AbstractNodeStoreBranch(S kernelNodeStore,
                                    ChangeDispatcher dispatcher,
+                                   Lock mergeLock,
                                    N base,
                                    long maximumBackoff) {
         this.store = checkNotNull(kernelNodeStore);
         this.dispatcher = dispatcher;
+        this.mergeLock = checkNotNull(mergeLock);
         branchState = new Unmodified(checkNotNull(base));
-        this.maximumBackoff = maximumBackoff;
+        this.maximumBackoff = Math.max(maximumBackoff, MIN_BACKOFF);
     }
 
     /**
@@ -261,15 +271,19 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
         CommitFailedException ex = null;
-        for (long backoff = 100; backoff < maximumBackoff; backoff *= 2) {
+        long time = System.currentTimeMillis();
+        int numRetries = 0;
+        for (long backoff = MIN_BACKOFF; backoff <= maximumBackoff; backoff *= 2) {
             if (ex != null) {
                 try {
-                    Thread.sleep(backoff, RANDOM.nextInt(1000000));
-                } catch (InterruptedException ie) {
-                    // ignore
-                    Thread.interrupted();
+                    numRetries++;
+                    Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                } catch (InterruptedException e) {
+                    throw new CommitFailedException(
+                            MERGE, 3, "Merge interrupted", e);
                 }
             }
+            mergeLock.lock();
             try {
                 return branchState.merge(checkNotNull(hook), checkNotNull(info));
             } catch (CommitFailedException e) {
@@ -280,10 +294,15 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                 if (!e.isOfType(MERGE)) {
                     throw e;
                 }
+            } finally {
+                mergeLock.unlock();
             }
         }
         // if we get here retrying failed
-        throw ex;
+        time = System.currentTimeMillis() - time;
+        String msg = ex.getMessage() + " (retries " + numRetries + ", " + time + " ms)";
+        throw new CommitFailedException(ex.getSource(), ex.getType(),
+                ex.getCode(), msg, ex.getCause());
     }
 
     @Override

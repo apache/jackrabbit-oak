@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,7 +96,7 @@ public class ConcurrentAddNodesClusterIT {
                 new HashMap<String, Exception>());
         for (int i = 0; i < mks.size(); i++) {
             DocumentMK mk = mks.get(i);
-            Repository repo = new Jcr(mk).createRepository();
+            Repository repo = new Jcr(mk.getNodeStore()).createRepository();
             repos.add(repo);
             workers.add(new Thread(new Worker(repo, exceptions), "Worker-" + (i + 1)));
         }
@@ -124,9 +123,9 @@ public class ConcurrentAddNodesClusterIT {
         }
         final DocumentMK mk1 = mks.get(0);
         final DocumentMK mk2 = mks.get(1);
-        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r1 = new Jcr(mk1.getNodeStore()).createRepository();
         repos.add(r1);
-        Repository r2 = new Jcr(mk2).createRepository();
+        Repository r2 = new Jcr(mk2.getNodeStore()).createRepository();
         repos.add(r2);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -159,11 +158,11 @@ public class ConcurrentAddNodesClusterIT {
         final DocumentMK mk1 = mks.get(0);
         final DocumentMK mk2 = mks.get(1);
         final DocumentMK mk3 = mks.get(2);
-        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r1 = new Jcr(mk1.getNodeStore()).createRepository();
         repos.add(r1);
-        Repository r2 = new Jcr(mk2).createRepository();
+        Repository r2 = new Jcr(mk2.getNodeStore()).createRepository();
         repos.add(r2);
-        Repository r3 = new Jcr(mk3).createRepository();
+        Repository r3 = new Jcr(mk3.getNodeStore()).createRepository();
         repos.add(r3);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -233,9 +232,9 @@ public class ConcurrentAddNodesClusterIT {
         }
         final DocumentMK mk1 = mks.get(0);
         final DocumentMK mk2 = mks.get(1);
-        Repository r1 = new Jcr(mk1).createRepository();
+        Repository r1 = new Jcr(mk1.getNodeStore()).createRepository();
         repos.add(r1);
-        Repository r2 = new Jcr(mk2).createRepository();
+        Repository r2 = new Jcr(mk2.getNodeStore()).createRepository();
         repos.add(r2);
 
         Session s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
@@ -295,7 +294,7 @@ public class ConcurrentAddNodesClusterIT {
         DocumentMK mk = new DocumentMK.Builder()
                 .setMongoDB(con.getDB())
                 .setClusterId(1).open();
-        Session session = new Jcr(mk).createRepository().login(
+        Session session = new Jcr(mk.getNodeStore()).createRepository().login(
                 new SimpleCredentials("admin", "admin".toCharArray()));
         session.logout();
         mk.dispose(); // closes connection as well
@@ -324,9 +323,7 @@ public class ConcurrentAddNodesClusterIT {
     }
 
     private static void runBackgroundOps(DocumentMK mk) throws Exception {
-        Method m = DocumentMK.class.getDeclaredMethod("runBackgroundOperations");
-        m.setAccessible(true);
-        m.invoke(mk);
+        mk.getNodeStore().runBackgroundOperations();
     }
 
     private final class Worker implements Runnable {

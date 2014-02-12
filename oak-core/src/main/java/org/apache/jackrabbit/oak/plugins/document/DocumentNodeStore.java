@@ -193,6 +193,15 @@ public final class DocumentNodeStore
     private final ReadWriteLock backgroundOperationLock = new ReentrantReadWriteLock();
 
     /**
+     * Read/Write lock to coordinate merges. In most cases merges acquire a
+     * shared read lock and can proceed concurrently. An exclusive write lock
+     * is acquired when the merge fails even after some retries and a final
+     * retry cycle is done.
+     * See {@link DocumentNodeStoreBranch#merge(CommitHook, CommitInfo)}.
+     */
+    private final ReadWriteLock mergeLock = new ReentrantReadWriteLock();
+
+    /**
      * Enable using simple revisions (just a counter). This feature is useful
      * for testing.
      */
@@ -874,7 +883,7 @@ public final class DocumentNodeStore
 
     @Nonnull
     DocumentNodeStoreBranch createBranch(DocumentNodeState base) {
-        return new DocumentNodeStoreBranch(this, base);
+        return new DocumentNodeStoreBranch(this, base, mergeLock);
     }
 
     @Nonnull

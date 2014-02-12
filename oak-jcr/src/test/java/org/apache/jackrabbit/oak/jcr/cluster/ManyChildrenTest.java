@@ -38,8 +38,8 @@ import static org.junit.Assert.assertEquals;
  */
 public class ManyChildrenTest {
 
-    NodeStoreFixture fixture = NodeStoreFixture.MONGO_NS;
-//    NodeStoreFixture fixture = NodeStoreFixture.MONGO_MK;
+    NodeStoreFixture fixture = NodeStoreFixture.DOCUMENT_NS;
+//    NodeStoreFixture fixture = NodeStoreFixture.DOCUMENT_MK;
 //    NodeStoreFixture fixture = NodeStoreFixture.SEGMENT_MK;
     
     Repository repository;

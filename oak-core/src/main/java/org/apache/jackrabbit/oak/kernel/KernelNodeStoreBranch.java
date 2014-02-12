@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -32,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 
 /**
@@ -42,9 +40,6 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
  */
 public class KernelNodeStoreBranch extends
         AbstractNodeStoreBranch<KernelNodeStore, KernelNodeState> {
-
-    /** Lock for coordinating concurrent merge operations */
-    private final Lock mergeLock;
 
     private final BlobSerializer blobs = new BlobSerializer() {
         @Override
@@ -67,8 +62,7 @@ public class KernelNodeStoreBranch extends
                                  ChangeDispatcher dispatcher,
                                  Lock mergeLock,
                                  KernelNodeState base) {
-        super(kernelNodeStore, dispatcher, base);
-        this.mergeLock = checkNotNull(mergeLock);
+        super(kernelNodeStore, dispatcher, mergeLock, base);
     }
 
     //----------------------< AbstractNodeStoreBranch >-------------------------
@@ -137,14 +131,11 @@ public class KernelNodeStoreBranch extends
     @Override
     public NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
             throws CommitFailedException {
-        mergeLock.lock();
         try {
             return super.merge(hook, info);
         } catch (MicroKernelException e) {
             throw new CommitFailedException(MERGE, 1,
                     "Failed to merge changes to the underlying MicroKernel", e);
-        } finally {
-            mergeLock.unlock();
         }
     }
 }

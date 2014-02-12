@@ -44,7 +44,7 @@ public class AbstractClusterTest {
     protected Session s1, s2;
     
     protected NodeStoreFixture getFixture() {
-        return NodeStoreFixture.MONGO_NS;
+        return NodeStoreFixture.DOCUMENT_NS;
     }
     
     @After
