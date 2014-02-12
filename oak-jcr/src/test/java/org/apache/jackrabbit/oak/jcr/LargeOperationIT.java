@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -63,23 +64,20 @@ import org.slf4j.LoggerFactory;
 public class LargeOperationIT {
     private static final Logger LOG = LoggerFactory.getLogger(LargeOperationIT.class);
 
-    /** Maximum quotient of non linearity allowed */
-    private static final double MAX_QUOTIENT = 1.2;
-
-    /** Scales for running the tests against */
-    private static final int[] SEGMENT_SCALES = new int[] {
-            1024, 4096, 16384, 65536, 262144, 1048576};
-    private static final int[] MONGO_SCALES = new int[] {
-            128, 512, 2048, 8192, 32768, 131072};
+    /** Scales defining the input sizes against which the tests run */
+    private static final Iterable<Integer> SEGMENT_SCALES = Lists.newArrayList(
+            1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576);
+    private static final Iterable<Integer> MONGO_SCALES = Lists.newArrayList(
+            128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072);
 
     private final NodeStoreFixture fixture;
-    private final int[] scales;
+    private final Iterable<Integer> scales;
 
     private NodeStore nodeStore;
     private Repository repository;
     private Session session;
 
-    public LargeOperationIT(NodeStoreFixture fixture, int[] scales) {
+    public LargeOperationIT(NodeStoreFixture fixture, Iterable<Integer> scales) {
         this.fixture = fixture;
         this.scales = scales;
     }
@@ -121,23 +119,49 @@ public class LargeOperationIT {
         fixture.dispose(nodeStore);
     }
 
-    private static List<Double> quotients(Iterable<Long> sequence) {
+    /**
+     * Calculate the quotients of subsequent elements of an input {@code sequence}
+     * @param sequence  input sequence
+     * @return  sequence of quotients of {@code sequence}
+     */
+    private static Iterable<Double> quotients(Iterable<Double> sequence) {
         Double prev = null;
         List<Double> quotients = Lists.newArrayList();
-        for (long current : sequence) {
+        for (double current : sequence) {
             if (prev != null) {
                 quotients.add(current / prev);
             }
-            prev = (double) current;
+            prev = current;
         }
         return quotients;
     }
 
-    private static void assertMaxQuotient(String message, Iterable<Double> quotients) {
-        for (double value : quotients) {
-            if (value >= MAX_QUOTIENT) {
-                fail(message + " The quotients between subsequent operations " +
-                        "should all be below " + MAX_QUOTIENT + ". Quotients: " + quotients);
+    /**
+     * Calculate the logarithmic bound for the given {@code scales} applying an
+     * {@code offset} to account for errors.
+     */
+    private static Iterable<Double> getLogarithmicBound(Iterable<Integer> scales, int offset) {
+        Double prev = null;
+        List<Double> bound = Lists.newArrayList();
+        for (double current : scales) {
+            if (prev != null) {
+                bound.add(Math.log(current * offset) / Math.log(prev));
+            }
+            prev = current;
+        }
+        return bound;
+    }
+
+    /**
+     * Assert that {@code sequence} is bounded by {@code bound}
+     */
+    private static void assertBounded(String message,
+            Iterable<Double> sequence, Iterable<Double> bound) {
+        Iterator<Double> max = bound.iterator();
+        for (double value : sequence) {
+            if (value > max.next()) {
+                fail(message + " The sequence exceeds its bound. " +
+                        "Expected " + sequence + " <= " + bound);
             }
         }
     }
@@ -152,7 +176,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-commit", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator();
 
-        ArrayList<Long> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = Lists.newArrayList();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -165,13 +189,14 @@ public class LargeOperationIT {
                     session.save();
                 }
             };
-            long t = test.run();
+            double t = test.run();
             executionTimes.add(t);
             LOG.info("Committing {} node took {} ns/node", scale, t);
         }
-        List<Double> quotients = quotients(executionTimes);
+        Iterable<Double> quotients = quotients(executionTimes);
         LOG.info("Scaling quotients: {}", quotients);
-        assertMaxQuotient("Commit does not scale linearly.", quotients);
+        Iterable<Double> bound = getLogarithmicBound(scales, 10);
+        assertBounded("Commit does not scale logarithmically.", quotients, bound);
     }
 
     /**
@@ -184,7 +209,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-copy", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Long> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = Lists.newArrayList();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -198,13 +223,14 @@ public class LargeOperationIT {
                     session.getWorkspace().copy("/large-copy/s" + scale, "/large-copy/t" + scale);
                 }
             };
-            long t = test.run();
+            double t = test.run();
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        List<Double> quotients = quotients(executionTimes);
+        Iterable<Double> quotients = quotients(executionTimes);
         LOG.info("Scaling quotients: {}", quotients);
-        assertMaxQuotient("Copy does not scale linearly.", quotients);
+        Iterable<Double> bound = getLogarithmicBound(scales, 10);
+        assertBounded("Copy does not scale logarithmically.", quotients, bound);
     }
 
     /**
@@ -217,7 +243,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("large-move", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Long> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = Lists.newArrayList();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -231,13 +257,14 @@ public class LargeOperationIT {
                     session.getWorkspace().move("/large-move/s" + scale, "/large-move/t" + scale);
                 }
             };
-            long t = test.run();
+            double t = test.run();
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        List<Double> quotients = quotients(executionTimes);
+        Iterable<Double> quotients = quotients(executionTimes);
         LOG.info("Scaling quotients: {}", quotients);
-        assertMaxQuotient("Move does not scale linearly.", quotients);
+        Iterable<Double> bound = getLogarithmicBound(scales, 10);
+        assertBounded("Move does not scale logarithmically.", quotients, bound);
     }
 
     /**
@@ -249,7 +276,7 @@ public class LargeOperationIT {
     public void manySiblings() throws RepositoryException, InterruptedException {
         final Node n = session.getRootNode().addNode("many-siblings", "oak:Unstructured");
 
-        ArrayList<Long> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = Lists.newArrayList();
         for (int scale : scales) {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
@@ -266,13 +293,14 @@ public class LargeOperationIT {
                     session.save();
                 }
             };
-            long t = test.run();
+            double t = test.run();
             executionTimes.add(t);
             LOG.info("Adding {} siblings took {} ns/node", scale, t);
         }
-        List<Double> quotients = quotients(executionTimes);
+        Iterable<Double> quotients = quotients(executionTimes);
         LOG.info("Scaling quotients: {}", quotients);
-        assertMaxQuotient("Adding siblings does not scale linearly.", quotients);
+        Iterable<Double> bound = getLogarithmicBound(scales, 10);
+        assertBounded("Adding siblings does not scale logarithmically.", quotients, bound);
     }
 
     /**
@@ -286,7 +314,7 @@ public class LargeOperationIT {
         final Node n = session.getRootNode().addNode("pending-events", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
-        ArrayList<Long> executionTimes = Lists.newArrayList();
+        ArrayList<Double> executionTimes = Lists.newArrayList();
         for (int scale : scales) {
             final Observer observer = new Observer(scale, 100);
             try {
@@ -301,7 +329,7 @@ public class LargeOperationIT {
                         observer.waitForEvents(scale);
                     }
                 };
-                long t = test.run();
+                double t = test.run();
                 executionTimes.add(t);
                 LOG.info("{} pending events took {} ns/event to process", scale, t);
             } finally {
@@ -310,9 +338,10 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        List<Double> quotients = quotients(executionTimes);
+        Iterable<Double> quotients = quotients(executionTimes);
         LOG.info("Scaling quotients: {}", quotients);
-        assertMaxQuotient("Processing pending events does not scale linearly.", quotients);
+        Iterable<Double> bound = getLogarithmicBound(scales, 10);
+        assertBounded("Processing pending events does not scale logarithmically.", quotients, bound);
     }
 
     //------------------------------------------------------------< ContentGenerator >---
@@ -433,7 +462,7 @@ public class LargeOperationIT {
             try {
                 start.await();
                 while (events.hasNext()) {
-                    events.nextEvent().getPath();
+                    events.nextEvent();
                     done.countDown();
                 }
             } catch (Exception e) {
