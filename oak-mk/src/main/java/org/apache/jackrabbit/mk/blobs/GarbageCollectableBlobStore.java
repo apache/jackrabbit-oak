@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.blobs;
 
 import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * A blob store that support garbage collection.
@@ -70,4 +71,34 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      */
     long getBlockSizeMin();
 
+    /**
+     * Gets all the identifiers.
+     * 
+     * @param maxLastModifiedTime
+     *            the max last modified time to consider for retrieval
+     * @return the identifiers
+     * @throws Exception
+     *             the exception
+     */
+    Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception;
+
+    /**
+     * Delete the blob with the given id.
+     * 
+     * @param chunkId the chunk id
+     * @return true, if successful
+     * @throws Exception
+     *             the exception
+     */
+    boolean deleteChunk(String chunkId) throws Exception;
+
+    /**
+     * Resolve chunks from the given Id.
+     * 
+     * @param blobId the blob id
+     * @return the iterator
+     * @throws IOException
+     *             Signals that an I/O exception has occurred.
+     */
+    Iterator<String> resolveChunks(String blobId) throws IOException;
 }

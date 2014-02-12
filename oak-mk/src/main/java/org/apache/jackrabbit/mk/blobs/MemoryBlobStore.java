@@ -18,6 +18,12 @@ package org.apache.jackrabbit.mk.blobs;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
+
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Maps;
+
+import org.apache.jackrabbit.mk.util.StringUtils;
 
 /**
  * A memory blob store. Useful for testing.
@@ -72,6 +78,41 @@ public class MemoryBlobStore extends AbstractBlobStore {
         old.clear();
         mark = false;
         return count;
+    }
+
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
+        if (map.containsKey(id)) {
+            map.remove(id);
+        } else if (old.containsKey(id)) {
+            old.remove(id);
+        }
+        return true;
+    }
+
+    /**
+     * Ignores the maxlastModifiedTime
+     */
+    @Override
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        HashMap<BlockId, byte[]> combinedMap = Maps.newHashMap();
+        combinedMap.putAll(map);
+        combinedMap.putAll(old);
+        final Iterator<BlockId> iter = combinedMap.keySet().iterator();
+
+        return new AbstractIterator<String>() {
+            @Override
+            protected String computeNext() {
+                if (iter.hasNext()) {
+                    BlockId blockId = iter.next();
+                    if (blockId != null) {
+                        return StringUtils.convertBytesToHex(blockId.getDigest());
+                    }
+                }
+                return endOfData();
+            }
+        };
     }
 
 }
