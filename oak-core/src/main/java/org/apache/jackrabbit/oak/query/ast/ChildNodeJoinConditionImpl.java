@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -96,6 +98,11 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
     @Override
     public boolean isParent(SourceImpl source) {
         return source == parentSelector;
+    }
+ 
+    @Override
+    public boolean canEvaluate(Set<SourceImpl> available) {
+        return available.contains(childSelector) && available.contains(parentSelector);
     }
 
 }

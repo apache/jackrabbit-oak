@@ -123,7 +123,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        if (s.outerJoinRightHandSide) {
+        if (s.isOuterJoinRightHandSide()) {
             // we need to be careful with "property IS NULL"
             // because this might cause an index
             // to ignore the join condition "property = x"

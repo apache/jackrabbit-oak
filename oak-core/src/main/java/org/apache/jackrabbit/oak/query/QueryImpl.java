@@ -17,8 +17,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -38,6 +40,9 @@ import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
 import org.apache.jackrabbit.oak.query.ast.InImpl;
+import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.JoinImpl;
+import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LengthImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.LowerCaseImpl;
@@ -87,7 +92,7 @@ public class QueryImpl implements Query {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
 
-    final SourceImpl source;
+    SourceImpl source;
     final String statement;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
@@ -438,7 +443,57 @@ public class QueryImpl implements Query {
             return;
         }
         prepared = true;
-        estimatedCost = source.prepare();
+        List<SourceImpl> sources = source.getInnerJoinSelectors();
+        List<JoinConditionImpl> conditions = source.getInnerJoinConditions();
+
+//        if (sources.size() <= 1) {
+            // simple case (no join)
+            estimatedCost = source.prepare();
+//            return;
+//        }
+        
+//        if (sources.size() < 6) {
+//            // TODO iterate over all permutations
+//        }
+//        
+//        // use a greedy algorithm
+//        SourceImpl result = null;
+//        Set<SourceImpl> available = new HashSet<SourceImpl>();
+//        while (sources.size() > 0) {
+//            int bestIndex = 0;
+//            double bestCost = Double.POSITIVE_INFINITY;
+//            for (int i = 0; i < sources.size(); i++) {
+//                SourceImpl source = buildJoin(result, sources.get(i).createClone(), conditions);
+//                double cost = source.prepare();
+//                if (cost <= bestCost) {
+//                    bestCost = cost;
+//                    bestIndex = i;
+//                }
+//            }
+//            SourceImpl s = sources.get(bestIndex).createClone();
+//            available.add(s);
+//            sources.remove(bestIndex);
+//            result = buildJoin(result, s, conditions);
+//        }
+//        source = result;
+                
+    }
+    
+    private static SourceImpl buildJoin(SourceImpl result, SourceImpl last, List<JoinConditionImpl> conditions) {
+        if (result == null) {
+            return last;
+        }
+        Set<SourceImpl> available = new HashSet<SourceImpl>();
+        available.addAll(result.getInnerJoinSelectors());
+        available.add(last);
+        for (JoinConditionImpl j : conditions) {
+            if (j.canEvaluate(available)) {
+                JoinImpl join = new JoinImpl(result, last, JoinType.INNER, j);
+                return join;
+            }
+        }
+        // this is an internal error
+        throw new IllegalArgumentException("No join condition was found");
     }
  
     /**

@@ -60,12 +60,26 @@ import com.google.common.collect.Iterables;
  * A selector within a query.
  */
 public class SelectorImpl extends SourceImpl {
-
+    
     // TODO possibly support using multiple indexes (using index intersection / index merge)
-    protected SelectorExecutionPlan plan;
+    private SelectorExecutionPlan plan;
+    
+    /**
+     * The WHERE clause of the query.
+     */
+    private ConstraintImpl queryConstraint;
+    
+    /**
+     * The join condition of this selector that can be evaluated at execution
+     * time. For the query "select * from nt:base as a inner join nt:base as b
+     * on a.x = b.x", the join condition "a.x = b.x" is only set for the
+     * selector b, as selector a can't evaluate it if it is executed first
+     * (until b is executed).
+     */
+    private JoinConditionImpl joinCondition;
 
     /**
-     * the node type associated with the {@link #nodeTypeName}
+     * The node type associated with the {@link #nodeTypeName}
      */
     private final NodeState nodeType;
 
@@ -92,13 +106,34 @@ public class SelectorImpl extends SourceImpl {
      * flag is set
      */
     private final Set<String> mixinTypes;
-
-    private Cursor cursor;
-    private IndexRow currentRow;
-    private int scanCount;
     
-    private Tree lastTree;
-    private String lastPath;
+    /**
+     * Whether this selector is the parent of a descendent or parent-child join.
+     * Access rights don't need to be checked in such selectors (unless there
+     * are conditions on the selector).
+     */
+    private boolean isParent;  
+    
+    /**
+     * Whether this selector is the left hand side of a left outer join.
+     * Right outer joins are converted to left outer join.
+     */
+    private boolean outerJoinLeftHandSide;
+
+    /**
+     * Whether this selector is the right hand side of a left outer join.
+     * Right outer joins are converted to left outer join.
+     */
+    private boolean outerJoinRightHandSide;
+    
+    /**
+     * The list of all join conditions this selector is involved. For the query
+     * "select * from nt:base as a inner join nt:base as b on a.x =
+     * b.x", the join condition "a.x = b.x" is set for both selectors a and b,
+     * so both can check if the property x is set.
+     */
+    private ArrayList<JoinConditionImpl> allJoinConditions =
+            new ArrayList<JoinConditionImpl>();
 
     /**
      * The selector condition can be evaluated when the given selector is
@@ -106,8 +141,16 @@ public class SelectorImpl extends SourceImpl {
      * "select * from nt:base a inner join nt:base b where a.x = 1 and b.y = 2",
      * the condition "a.x = 1" can be evaluated when evaluating selector a. The
      * other part of the condition can't be evaluated until b is available.
+     * This field is set during the prepare phase.
      */
     private ConstraintImpl selectorCondition;
+
+    private Cursor cursor;
+    private IndexRow currentRow;
+    private int scanCount;
+    
+    private Tree lastTree;
+    private String lastPath;
 
     public SelectorImpl(NodeState nodeType, String selectorName) {
         this.nodeType = checkNotNull(nodeType);
@@ -133,6 +176,41 @@ public class SelectorImpl extends SourceImpl {
             this.primaryTypes = ImmutableSet.of();
             this.mixinTypes = ImmutableSet.of();
         }
+    }
+    
+    private SelectorImpl(SelectorImpl clone) {
+        this.nodeType = clone.nodeType;
+        this.selectorName = clone.selectorName;
+        this.nodeTypeName = clone.nodeTypeName;
+        this.matchesAllTypes = clone.matchesAllTypes;
+        this.supertypes = clone.supertypes;
+        this.primaryTypes = clone.primaryTypes;
+        this.mixinTypes = clone.mixinTypes;
+        this.query = clone.query;
+        this.isParent = clone.isParent;
+        this.outerJoinLeftHandSide = clone.outerJoinLeftHandSide;
+        this.outerJoinRightHandSide = clone.outerJoinRightHandSide;
+        this.allJoinConditions = clone.allJoinConditions;
+    }
+    
+
+//   queryConstraint;
+//   protected JoinConditionImpl joinCondition;
+//   protected ArrayList<JoinConditionImpl> allJoinConditions =
+//           new ArrayList<JoinConditionImpl>();
+//   protected boolean join;
+//   protected boolean outerJoinLeftHandSide;
+//   protected boolean outerJoinRightHandSide;
+//   protected boolean isParent;    
+    
+    /**
+     * Create a shallow clone of this instance.
+     * 
+     * @return the clone
+     */
+    @Override
+    public SelectorImpl createClone() {
+        return new SelectorImpl(this);
     }
 
     public String getSelectorName() {
@@ -200,6 +278,25 @@ public class SelectorImpl extends SourceImpl {
         }
         plan = query.getBestSelectorExecutionPlan(createFilter(true));
         return plan.estimatedCost;
+    }
+    
+    @Override
+    public void setQueryConstraint(ConstraintImpl queryConstraint) {
+        this.queryConstraint = queryConstraint;
+    }    
+    
+    @Override
+    public void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide) {
+        this.outerJoinLeftHandSide = outerJoinLeftHandSide;
+        this.outerJoinRightHandSide = outerJoinRightHandSide;
+    }    
+    
+    @Override
+    public void addJoinCondition(JoinConditionImpl joinCondition, boolean forThisSelector) {
+        if (forThisSelector) {
+            this.joinCondition = joinCondition;
+        }
+        allJoinConditions.add(joinCondition);
     }
 
     @Override
@@ -566,6 +663,18 @@ public class SelectorImpl extends SourceImpl {
 
     QueryIndex getIndex() {
         return plan == null ? null : plan.index;
+    }
+
+    @Override
+    public ArrayList<SourceImpl> getInnerJoinSelectors() {
+        ArrayList<SourceImpl> list = new ArrayList<SourceImpl>();
+        list.add(this);
+        return list;
+    }
+
+    @Override
+    public boolean isOuterJoinRightHandSide() {
+        return this.outerJoinRightHandSide;
     }
 
 }
