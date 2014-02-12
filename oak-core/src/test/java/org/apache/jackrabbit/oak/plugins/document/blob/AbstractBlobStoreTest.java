@@ -30,8 +30,12 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
@@ -116,6 +120,7 @@ public abstract class AbstractBlobStoreTest {
             public void close() {
                 closed.set(true);
             }
+
             @Override
             public int read() throws IOException {
                 return -1;
@@ -133,6 +138,7 @@ public abstract class AbstractBlobStoreTest {
             public void close() {
                 closed.set(true);
             }
+
             @Override
             public int read() throws IOException {
                 throw new RuntimeException("abc");
@@ -361,4 +367,52 @@ public abstract class AbstractBlobStoreTest {
         list.add(file.getAbsolutePath());
     }
     
+    @Test
+    public void list() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        while (iter.hasNext()) {
+            ids.remove(iter.next());
+}
+
+        assertTrue(ids.isEmpty());
+    }
+
+    @Test
+    public void delete() throws Exception {
+        Set<String> ids = createArtifacts();
+
+        for (String id : ids) {
+            store.deleteChunk(id);
+        }
+
+        Iterator<String> iter = store.getAllChunkIds(0);
+        Set<String> ret = Sets.newHashSet();
+        while (iter.hasNext()) {
+            ret.add(iter.next());
+        }
+
+        assertTrue(ret.isEmpty());
+    }
+
+    private Set<String> createArtifacts() throws Exception {
+        Set<String> ids = Sets.newHashSet();
+        int number = 10;
+        for (int i = 0; i < number; i++) {
+            String id = store.writeBlob(randomStream(i, 2080));
+            Iterator<String> iter = store.resolveChunks(id.toString());
+            while (iter.hasNext()) {
+                ids.add(iter.next());
+            }
+        }
+        return ids;
+    }
+
+    static InputStream randomStream(int seed, int size) {
+        Random r = new Random(seed);
+        byte[] data = new byte[size];
+        r.nextBytes(data);
+        return new ByteArrayInputStream(data);
+    }
 }

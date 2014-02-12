@@ -21,6 +21,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.core.data.CachingDataStore;
@@ -28,7 +30,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.mk.blobs.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.mk.util.Cache;
 import org.apache.jackrabbit.mk.util.IOUtils;
@@ -42,6 +44,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Lists;
 
 /**
  * A {@link BlobStore} implementation which is a compatibility wrapper for
@@ -507,5 +510,51 @@ public class DataStoreBlobStore implements GarbageCollectableBlobStore,
     public long getBlockSizeMin() {
         // no-op
         return 0;
+    }
+
+    /**
+     * Ignores the maxLastModifiedTime currently.
+     */
+    @Override
+    public Iterator<String> getAllChunkIds(
+            long maxLastModifiedTime) throws Exception {
+        return new DataStoreIterator(dataStore.getAllIdentifiers());
+    }
+
+    @Override
+    public boolean deleteChunk(String blobId) throws Exception {
+        ((MultiDataStoreAware) dataStore).deleteRecord(new DataIdentifier(blobId));
+        return true;
+    }
+
+    @Override
+    public Iterator<String> resolveChunks(String blobId) throws IOException {
+        return Lists.newArrayList(blobId).iterator();
+    }
+
+    class DataStoreIterator implements Iterator<String> {
+        Iterator<DataIdentifier> backingIterator;
+
+        public DataStoreIterator(Iterator<DataIdentifier> backingIterator) {
+            this.backingIterator = backingIterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return backingIterator.hasNext();
+        }
+
+        @Override
+        public String next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements");
+            }
+            return backingIterator.next().toString();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

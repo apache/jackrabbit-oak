@@ -16,29 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
+import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResults;
 import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
 import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;
+import org.jclouds.blobstore.domain.PageSet;
+import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.io.Payload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-
 /**
  * Implementation of the {@link BlobStore} to store blobs in a cloud blob store.
  * <p>
- * Extends {@link AbstractBlobStore} and breaks the the binary to chunks for
- * easier management.
+ * Extends {@link AbstractBlobStore} and breaks the the binary to chunks for easier management.
  */
 public class CloudBlobStore extends AbstractBlobStore {
     /**
@@ -111,9 +116,9 @@ public class CloudBlobStore extends AbstractBlobStore {
                             .buildView(BlobStoreContext.class);
             context.getBlobStore().createContainerInLocation(null, cloudContainer);
 
-            LOG.info("Using bucket: " + cloudContainer);
+            LOG.info("Using container : " + cloudContainer);
         } catch (Exception e) {
-            LOG.error("Error creating S3BlobStore : ", e);
+            LOG.error("Error creating CloudBlobStore : ", e);
             throw e;
         }
     }
@@ -211,5 +216,89 @@ public class CloudBlobStore extends AbstractBlobStore {
     @Override
     protected boolean isMarkEnabled() {
         return false;
+    }
+
+    @Override
+    public Iterator<String> getAllChunkIds(
+            long maxLastModifiedTime) throws Exception {
+        Preconditions.checkNotNull(context);
+
+        final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
+        return new CloudStoreIterator(blobStore, maxLastModifiedTime);
+}
+
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        Preconditions.checkNotNull(context);
+
+        final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
+        blobStore.removeBlob(cloudContainer, chunkId);
+
+        return true;
+    }
+
+    class CloudStoreIterator implements Iterator<String> {
+        static final int BATCH = 1000;
+
+        org.jclouds.blobstore.BlobStore store;
+        long maxLastModifiedTime;
+
+        PageSet<? extends StorageMetadata> set;
+        ArrayDeque<String> queue;
+
+        public CloudStoreIterator(org.jclouds.blobstore.BlobStore store,
+                long maxLastModifiedTime) {
+            this.store = store;
+            this.maxLastModifiedTime = maxLastModifiedTime;
+            this.queue = new ArrayDeque<String>(BATCH);
+        }
+
+        @Override
+        public boolean hasNext() {
+            if ((set == null) || (queue == null)) {
+                set = store.list(cloudContainer, maxResults(1000));
+                loadElements(set);
+            }
+
+            if (!queue.isEmpty()) {
+                return true;
+            } else if (set.getNextMarker() != null) {
+                set = store.list(cloudContainer,
+                        maxResults(BATCH).afterMarker(set.getNextMarker()));
+                loadElements(set);
+
+                if (!queue.isEmpty()) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void loadElements(PageSet<? extends StorageMetadata> set) {
+            Iterator<? extends StorageMetadata> iter = set.iterator();
+            while (iter.hasNext()) {
+                StorageMetadata metadata = iter.next();
+                if ((maxLastModifiedTime == 0 || maxLastModifiedTime == -1) ||
+                        (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+                    queue.add(metadata.getName());
+                } else {
+                    queue.add(metadata.getName());
+                }
+            }
+        }
+
+        @Override
+        public String next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements");
+            }
+            return queue.poll();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

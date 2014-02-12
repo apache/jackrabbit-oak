@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
  * appropriate {@link DataStore}.
  */
 public class DataStoreUtils extends AbstractMongoConnectionTest {
-    public final static String PATH = "./target/repository/";
+    public static final String PATH = "./target/repository/";
 
     /**
      * Gets the blob store.
@@ -36,7 +36,7 @@ public class DataStoreUtils extends AbstractMongoConnectionTest {
      * @throws Exception
      *             the exception
      */
-    protected static DataStoreBlobStore getBlobStore() throws Exception {
+    public static DataStoreBlobStore getBlobStore() throws Exception {
         BlobStoreConfiguration config =
                 BlobStoreConfiguration.newInstance().loadFromSystemProps();
         config.addProperty(
