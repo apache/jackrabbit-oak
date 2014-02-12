@@ -17,20 +17,24 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.IOException;
+import java.util.Iterator;
 
-import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
-import org.apache.jackrabbit.mk.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
+import com.mongodb.Bytes;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
+
+import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
+import org.apache.jackrabbit.mk.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of blob store for the MongoDB extending from
@@ -187,4 +191,46 @@ public class MongoBlobStore extends AbstractBlobStore {
         return queryBuilder.get();
     }
     
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        DBCollection collection = getBlobCollection();
+        BasicDBObject removeObj = new BasicDBObject();
+        removeObj.append(MongoBlob.KEY_ID, chunkId);
+
+        WriteResult result = collection.remove(removeObj);
+        if (result.getN() == 1) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        DBCollection collection = getBlobCollection();
+
+        DBObject fields = new BasicDBObject();
+        fields.put(MongoBlob.KEY_ID, 1);
+
+        QueryBuilder builder = new QueryBuilder();
+        if (maxLastModifiedTime != 0 && maxLastModifiedTime != -1) {
+            builder.and(MongoBlob.KEY_LAST_MOD).lessThanEquals(maxLastModifiedTime);
+        }
+
+        final DBCursor cur =
+                collection.find(builder.get(), fields).hint(fields)
+                        .addOption(Bytes.QUERYOPTION_SLAVEOK);
+
+        return new AbstractIterator<String>() {
+            protected String computeNext() {
+                if (cur.hasNext()) {
+                    MongoBlob blob = (MongoBlob) cur.next();
+                    if (blob != null) {
+                        return blob.getId();
+                    }
+                }
+                return endOfData();
+            }
+        };
+    }
 }

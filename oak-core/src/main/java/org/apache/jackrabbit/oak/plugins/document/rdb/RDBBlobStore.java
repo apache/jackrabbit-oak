@@ -25,8 +25,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Iterator;
 
 import javax.sql.DataSource;
+
+import com.google.common.collect.AbstractIterator;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
@@ -35,7 +38,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RDBBlobStore extends AbstractBlobStore implements Closeable {
-
     /**
      * Creates a {@linkplain RDBBlobStore} instance using an embedded H2
      * database in in-memory mode.
@@ -281,5 +283,63 @@ public class RDBBlobStore extends AbstractBlobStore implements Closeable {
         } finally {
             connection.commit();
         }
+    }
+
+    @Override
+    public boolean deleteChunk(String chunkId) throws Exception {
+        try {
+            PreparedStatement prep = connection.prepareStatement(
+                    "delete from datastore_meta where id = ?");
+            PreparedStatement prepData = connection.prepareStatement(
+                    "delete from datastore_data where id = ?");
+            prep.setString(1, chunkId);
+            prep.execute();
+            prepData.setString(1, chunkId);
+            prepData.execute();
+
+            prep.close();
+            prepData.close();
+        } finally {
+            connection.commit();
+}
+
+        return true;
+    }
+
+    @Override
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        PreparedStatement prep = null;
+
+        if ((maxLastModifiedTime != 0) && (maxLastModifiedTime != -1)) {
+            prep = connection.prepareStatement(
+                    "select id from datastore_meta where lastMod <= ?");
+            prep.setLong(1, maxLastModifiedTime);
+        } else {
+            prep = connection.prepareStatement(
+                    "select id from datastore_meta");
+        }
+
+        final ResultSet rs = prep.executeQuery();
+
+        return new AbstractIterator<String>() {
+            protected String computeNext() {
+                try {
+                    if (rs.next()) {
+                        return rs.getString(1);
+                    } else {
+                        rs.close();
+                    }
+                } catch (SQLException e) {
+                    try {
+                        if ((rs != null) && !rs.isClosed()) {
+                            rs.close();
+                        }
+                    } catch (Exception e2) {
+                    }
+                    throw new RuntimeException(e);
+                }
+                return endOfData();
+            }
+        };
     }
 }

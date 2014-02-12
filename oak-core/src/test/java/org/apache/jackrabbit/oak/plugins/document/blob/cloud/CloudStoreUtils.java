@@ -33,7 +33,7 @@ public class CloudStoreUtils {
      * @throws Exception
      *             the exception
      */
-    protected static AbstractBlobStore getBlobStore() throws Exception {
+    public static AbstractBlobStore getBlobStore() throws Exception {
         BlobStoreConfiguration config =
                 BlobStoreConfiguration.newInstance().loadFromSystemProps();
         config.addProperty(

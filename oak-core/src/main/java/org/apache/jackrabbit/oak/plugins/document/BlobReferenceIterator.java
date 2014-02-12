@@ -110,7 +110,9 @@ public class BlobReferenceIterator implements Iterator<Blob> {
                 }
                 Map<Revision, String> valueMap = doc.getLocalMap(key);
                 for (String v : valueMap.values()) {
-                    loadValue(v);
+                    if (v != null) {
+                        loadValue(v);
+                    }
                 }
             }
         }
