@@ -77,7 +77,10 @@ public class SolrQueryIndex implements QueryIndex {
 
         StringBuilder queryBuilder = new StringBuilder();
 
-        // TODO : handle node type restriction
+        for (String pt : filter.getPrimaryTypes()) {
+            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt));
+        }
+
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
         if (pathRestriction != null) {
             String path = purgePath(filter);
@@ -100,7 +103,7 @@ public class SolrQueryIndex implements QueryIndex {
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
                 if (pr.propertyName.contains("/")) {
-                    // lucene cannot handle child-level property restrictions
+                    // cannot handle child-level property restrictions
                     continue;
                 }
                 String first = null;
@@ -153,8 +156,8 @@ public class SolrQueryIndex implements QueryIndex {
         solrQuery.setQuery(escapedQuery);
 
         if (log.isDebugEnabled()) {
-            log.debug(new StringBuilder("JCR query: \n" + filter.getQueryStatement() + " \nhas been converted to Solr query: \n").
-                    append(solrQuery.toString()).toString());
+            log.debug("JCR query {} has been converted to Solr query {}",
+                    filter.getQueryStatement(), solrQuery.toString());
         }
 
         return solrQuery;
