@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.commons.JcrUtils.in;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,14 +30,9 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import com.google.common.collect.Iterators;
 import org.junit.Assume;
 import org.junit.Test;
-
-import com.google.common.collect.Iterators;
-
-import static org.apache.jackrabbit.commons.JcrUtils.in;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
@@ -83,7 +82,8 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         // use nt:unstructured to force conflicts on :childOrder property
-        Node test = getAdminSession().getRootNode().addNode("test", "nt:unstructured");
+        // FIXME OAK-1420 revert to nt:unstructured
+        Node test = getAdminSession().getRootNode().addNode("test", "oak:Unstructured");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
             worker.add(new Thread(new Worker(
