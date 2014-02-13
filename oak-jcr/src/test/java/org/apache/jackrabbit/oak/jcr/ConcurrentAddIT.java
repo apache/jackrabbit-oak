@@ -79,11 +79,12 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
     public void addNodesSameParent() throws Exception {
         // takes too long with RDBDocumentStore
         Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
+        // FIXME enable again once OAK-1420 is fixed
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_NS);
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         // use nt:unstructured to force conflicts on :childOrder property
-        // FIXME OAK-1420 revert to nt:unstructured
-        Node test = getAdminSession().getRootNode().addNode("test", "oak:Unstructured");
+        Node test = getAdminSession().getRootNode().addNode("test", "nt:unstructured");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
             worker.add(new Thread(new Worker(
