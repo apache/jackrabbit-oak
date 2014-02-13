@@ -16,16 +16,27 @@
  */
 package org.apache.jackrabbit.mk.blobs;
 
+import java.io.File;
+
+import org.apache.commons.io.FileUtils;
+
 /**
  * Tests the FileBlobStore implementation.
  */
 public class FileBlobStoreTest extends AbstractBlobStoreTest {
 
-    public void setUp() throws Exception {
+    @Override
+    public void setUp() {
         FileBlobStore store = new FileBlobStore("target/temp");
         store.setBlockSize(128);
         store.setBlockSizeMin(48);
         this.store = store;
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        store = null;
+        FileUtils.deleteDirectory(new File("target/temp"));
     }
 
 }

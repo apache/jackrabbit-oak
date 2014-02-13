@@ -28,6 +28,7 @@ public class DbBlobStoreTest extends AbstractBlobStoreTest {
     private Connection sentinel;
     private JdbcConnectionPool cp;
 
+    @Override
     public void setUp() throws Exception {
         Class.forName("org.h2.Driver");
         cp = JdbcConnectionPool.create("jdbc:h2:mem:", "", "");
@@ -39,6 +40,7 @@ public class DbBlobStoreTest extends AbstractBlobStoreTest {
         this.store = blobStore;
     }
 
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
         if (sentinel != null) {
