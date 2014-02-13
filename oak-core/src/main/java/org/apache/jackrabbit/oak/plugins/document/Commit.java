@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
 
 /**
@@ -243,7 +245,7 @@ public class Commit {
         try {
             if (newNodes.size() > 0) {
                 // set commit root on new nodes
-                if (!store.create(Collection.NODES, newNodes)) {
+                if (!store.create(NODES, newNodes)) {
                     // some of the documents already exist:
                     // try to apply all changes one by one
                     for (UpdateOp op : newNodes) {
@@ -276,14 +278,41 @@ public class Commit {
             if (changedNodes.size() > 0 || !commitRoot.isNew()) {
                 NodeDocument.setRevision(commitRoot, revision, commitValue);
                 opLog.add(commitRoot);
-                createOrUpdateNode(store, commitRoot);
+                if (baseBranchRevision == null) {
+                    // create a clone of the commitRoot in order
+                    // to set isNew to false. If we get here the
+                    // commitRoot document already exists and
+                    // only needs an update
+                    UpdateOp commit = commitRoot.clone(commitRoot.getId());
+                    commit.setNew(false);
+                    // only set revision on commit root when there is
+                    // no collision for this commit revision
+                    commit.containsMapEntry(COLLISIONS, revision, false);
+                    NodeDocument before = store.findAndUpdate(NODES, commit);
+                    if (before == null) {
+                        String msg = "Conflicting concurrent change. " +
+                                "Update operation failed: " + commitRoot;
+                        throw new MicroKernelException(msg);
+                    } else {
+                        // if we get here the commit was successful and
+                        // the commit revision is set on the commitRoot
+                        // document for this commit.
+                        // now check for conflicts/collisions by other commits.
+                        // use original commitRoot operation with
+                        // correct isNew flag.
+                        checkConflicts(commitRoot, before);
+                        checkSplitCandidate(before);
+                    }
+                } else {
+                    // this is a branch commit, do not fail on collisions now
+                    // trying to merge the branch will fail later
+                    createOrUpdateNode(store, commitRoot);
+                }
                 operations.put(commitRootPath, commitRoot);
             }
         } catch (MicroKernelException e) {
-            rollback(newNodes, opLog);
-            String msg = "Exception committing " + diff.toString();
-            LOG.debug(msg, e);
-            throw new MicroKernelException(msg, e);
+            rollback(newNodes, opLog, commitRoot);
+            throw e;
         }
     }
 
@@ -309,14 +338,14 @@ public class Commit {
                 if (op.isNew()) {
                     NodeDocument.setChildrenFlag(op, true);
                 } else {
-                    NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
+                    NodeDocument nd = store.getIfCached(NODES, Utils.getIdFromPath(parentPath));
                     if (nd != null && nd.hasChildren()) {
                         continue;
                     }
                     NodeDocument.setChildrenFlag(op, true);
                 }
             } else {
-                NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(parentPath));
+                NodeDocument nd = store.getIfCached(NODES, Utils.getIdFromPath(parentPath));
                 if (nd != null && nd.hasChildren()) {
                     //Flag already set to true. Nothing to do
                     continue;
@@ -328,15 +357,20 @@ public class Commit {
         }
     }
     
-    private void rollback(ArrayList<UpdateOp> newDocuments, ArrayList<UpdateOp> changed) {
+    private void rollback(List<UpdateOp> newDocuments,
+                          List<UpdateOp> changed,
+                          UpdateOp commitRoot) {
         DocumentStore store = nodeStore.getDocumentStore();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
-            store.createOrUpdate(Collection.NODES, reverse);
+            store.createOrUpdate(NODES, reverse);
         }
         for (UpdateOp op : newDocuments) {
-            store.remove(Collection.NODES, op.id);
+            store.remove(NODES, op.id);
         }
+        UpdateOp removeCollision = new UpdateOp(commitRoot.getId(), false);
+        NodeDocument.removeCollision(removeCollision, revision);
+        store.createOrUpdate(NODES, removeCollision);
     }
 
     /**
@@ -346,13 +380,35 @@ public class Commit {
      * @param store the store
      * @param op the operation
      */
-    public void createOrUpdateNode(DocumentStore store, UpdateOp op) {
+    private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
+        NodeDocument doc = store.createOrUpdate(NODES, op);
+        checkConflicts(op, doc);
+        checkSplitCandidate(doc);
+    }
+
+    private void checkSplitCandidate(@Nullable NodeDocument doc) {
+        if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
+            nodeStore.addSplitCandidate(doc.getId());
+        }
+    }
+
+    /**
+     * Checks if the update operation introduced any conflicts on the given
+     * document. The document shows the state right before the operation was
+     * applied.
+     *
+     * @param op the update operation.
+     * @param before how the document looked before the update was applied or
+     *               {@code null} if it didn't exist before.
+     */
+    private void checkConflicts(@Nonnull UpdateOp op,
+                                @Nullable NodeDocument before) {
+        DocumentStore store = nodeStore.getDocumentStore();
         collisions.clear();
-        NodeDocument doc = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
             Revision newestRev = null;
-            if (doc != null) {
-                newestRev = doc.getNewestRevision(nodeStore, revision,
+            if (before != null) {
+                newestRev = before.getNewestRevision(nodeStore, revision,
                         new CollisionHandler() {
                             @Override
                             void concurrentModification(Revision other) {
@@ -363,19 +419,19 @@ public class Commit {
             String conflictMessage = null;
             if (newestRev == null) {
                 if (op.isDelete() || !op.isNew()) {
-                    conflictMessage = "The node " + 
+                    conflictMessage = "The node " +
                             op.getId() + " does not exist or is already deleted";
                 }
             } else {
                 if (op.isNew()) {
-                    conflictMessage = "The node " + 
+                    conflictMessage = "The node " +
                             op.getId() + " was already added in revision\n" +
                             newestRev;
                 } else if (nodeStore.isRevisionNewer(newestRev, baseRevision)
-                        && (op.isDelete() || isConflicting(doc, op))) {
-                    conflictMessage = "The node " + 
+                        && (op.isDelete() || isConflicting(before, op))) {
+                    conflictMessage = "The node " +
                             op.getId() + " was changed in revision\n" + newestRev +
-                            ", which was applied after the base revision\n" + 
+                            ", which was applied after the base revision\n" +
                             baseRevision;
                 }
             }
@@ -384,10 +440,10 @@ public class Commit {
                 // -> check for collisions and conflict (concurrent updates
                 // on a node are possible if property updates do not overlap)
                 // TODO: unify above conflict detection and isConflicting()
-                if (!collisions.isEmpty() && isConflicting(doc, op)) {
+                if (!collisions.isEmpty() && isConflicting(before, op)) {
                     for (Revision r : collisions) {
                         // mark collisions on commit root
-                        Collision c = new Collision(doc, r, op, revision, nodeStore);
+                        Collision c = new Collision(before, r, op, revision, nodeStore);
                         if (c.mark(store).equals(revision)) {
                             // our revision was marked
                             if (baseRevision.isBranch()) {
@@ -405,15 +461,11 @@ public class Commit {
                 }
             }
             if (conflictMessage != null) {
-                conflictMessage += ", before\n" + revision + 
-                        "; document:\n" + (doc == null ? "" : doc.format()) +
+                conflictMessage += ", before\n" + revision +
+                        "; document:\n" + (before == null ? "" : before.format()) +
                         ",\nrevision order:\n" + nodeStore.getRevisionComparator();
                 throw new MicroKernelException(conflictMessage);
             }
-        }
-
-        if (doc != null && doc.getMemory() > SPLIT_CANDIDATE_THRESHOLD) {
-            nodeStore.addSplitCandidate(doc.getId());
         }
     }
 

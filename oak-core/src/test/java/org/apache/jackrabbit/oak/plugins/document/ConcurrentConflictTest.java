@@ -39,7 +39,8 @@ import org.slf4j.LoggerFactory;
 import static org.junit.Assert.assertEquals;
 
 /**
- * <code>ConcurrentConflictTest</code>...
+ * Updates multiple nodes in the same commit with multiple threads and verifies
+ * the commit is atomic.
  */
 public class ConcurrentConflictTest extends BaseDocumentMKTest {
 
@@ -47,7 +48,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
     private static final Logger LOG = LoggerFactory.getLogger(ConcurrentConflictTest.class);
     private static final int NUM_WRITERS = 3;
     private static final int NUM_NODES = 10;
-    private static final int NUM_TRANSFERS_PER_THREAD = 10;
+    private static final int NUM_TRANSFERS_PER_THREAD = 100;
     private DocumentStore store;
     private List<DocumentMK> kernels = new ArrayList<DocumentMK>();
     private final StringBuilder logBuffer = new StringBuilder();
@@ -77,7 +78,6 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         concurrentUpdates(true);
     }
 
-    @Ignore
     @Test
     public void concurrentUpdates() throws Exception {
         concurrentUpdates(false);
@@ -114,7 +114,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                     } catch (Exception e) {
                         exceptions.add(e);
                     }
-                    log("conflicts: " + conflictSet);
+                    log("conflicts (" + conflictSet.cardinality() + "): " + conflictSet);
                 }
 
                 private boolean transfer() throws Exception {
