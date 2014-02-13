@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.blobs;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 
@@ -26,17 +27,18 @@ import org.apache.commons.io.FileUtils;
 public class FileBlobStoreTest extends AbstractBlobStoreTest {
 
     @Override
-    public void setUp() {
-        FileBlobStore store = new FileBlobStore("target/temp");
+    public void setUp() throws IOException {
+        FileUtils.deleteDirectory(new File("target/tempFileBlobStoreTest"));
+        FileBlobStore store = new FileBlobStore("target/tempFileBlobStoreTest");
         store.setBlockSize(128);
         store.setBlockSizeMin(48);
         this.store = store;
     }
 
     @Override
-    public void tearDown() throws Exception {
+    public void tearDown() throws IOException {
         store = null;
-        FileUtils.deleteDirectory(new File("target/temp"));
+        FileUtils.deleteDirectory(new File("target/tempFileBlobStoreTest"));
     }
 
 }
