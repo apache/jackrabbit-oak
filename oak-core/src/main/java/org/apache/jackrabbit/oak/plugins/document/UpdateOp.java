@@ -74,6 +74,10 @@ public final class UpdateOp {
     public boolean isNew() {
         return isNew;
     }
+
+    public void setNew(boolean isNew) {
+        this.isNew = isNew;
+    }
     
     void setDelete(boolean isDelete) {
         this.isDelete = isDelete;
