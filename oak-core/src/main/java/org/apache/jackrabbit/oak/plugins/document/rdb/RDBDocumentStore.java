@@ -38,6 +38,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -96,6 +97,16 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String id, int maxCacheAge) {
+        if (collection == Collection.NODES && id.equals(ROOT)) {
+            synchronized(this) {
+                if (this.root != null) {
+                    long age = System.currentTimeMillis() - rootWritten;
+                    if (age < maxCacheAge) {
+                        return (T)this.root;
+                    }
+                }
+            }
+        }
         // TODO handle maxCacheAge
         return readDocument(collection, id);
     }
@@ -138,12 +149,14 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public void invalidateCache() {
-        // TODO
+        this.root = null;
     }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String id) {
-        // TODO
+        if (collection == Collection.NODES && ROOT.equals(id)) {
+            this.root = null;
+        }
     }
 
     @Override
@@ -158,7 +171,11 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection, String id) {
-        return null;
+        if (collection == Collection.NODES && ROOT.equals(id)) {
+            return (T) this.root;
+        } else {
+            return null;
+        }
     }
 
     // implementation
@@ -203,6 +220,7 @@ public class RDBDocumentStore implements DocumentStore {
                 update.increment(MODCOUNT, 1);
                 UpdateUtils.applyChanges(doc, update, comparator);
                 insertDocument(collection, doc);
+                updateCache(collection, doc);
             }
             return true;
         } catch (MicroKernelException ex) {
@@ -227,6 +245,7 @@ public class RDBDocumentStore implements DocumentStore {
             UpdateUtils.applyChanges(doc, update, comparator);
             doc.seal();
             insertDocument(collection, doc);
+            updateCache(collection, doc);
         } else {
             T doc = applyChanges(collection, oldDoc, update, checkConditions);
             if (doc == null) {
@@ -246,6 +265,9 @@ public class RDBDocumentStore implements DocumentStore {
                     if (doc == null) {
                         return null;
                     }
+                }
+                else {
+                    updateCache(collection, doc);
                 }
             }
 
@@ -536,4 +558,15 @@ public class RDBDocumentStore implements DocumentStore {
         // ignored
     }
 
+    // very poor man's cache
+    private NodeDocument root;
+    private long rootWritten;
+    private static final String ROOT = "0:/";
+
+    private synchronized void updateCache(Collection collection, Document doc) {
+        if (collection == Collection.NODES && doc.getId().equals(ROOT)) {
+            this.root = (NodeDocument)doc;
+            this.rootWritten = System.currentTimeMillis();
+        }
+    }
 }
