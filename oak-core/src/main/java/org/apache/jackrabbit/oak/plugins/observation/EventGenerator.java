@@ -76,7 +76,7 @@ public class EventGenerator {
     public EventGenerator(
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull EventHandler handler) {
-        continuations.add(new Continuation(handler, before, after, 0));
+        continuations.addFirst(new Continuation(handler, before, after, 0));
     }
 
     /**
@@ -286,7 +286,7 @@ public class EventGenerator {
                 String name, NodeState before, NodeState after) {
             EventHandler h = handler.getChildHandler(name, before, after);
             if (h != null) {
-                continuations.add(new Continuation(h, before, after, 0));
+                continuations.addFirst(new Continuation(h, before, after, 0));
             }
         }
 
@@ -309,7 +309,7 @@ public class EventGenerator {
         private boolean fullQueue() {
             if (counter > skip // must have processed at least one event
                     && continuations.size() >= MAX_QUEUED_CONTINUATIONS) {
-                continuations.add(new Continuation(
+                continuations.addFirst(new Continuation(
                         handler, this.before, this.after, counter));
                 return true;
             } else {
@@ -325,7 +325,7 @@ public class EventGenerator {
          */
         private boolean afterEvent() {
             if (counter >= skip + MAX_CHANGES_PER_CONTINUATION) {
-                continuations.add(
+                continuations.addFirst(
                         new Continuation(handler, before, after, counter));
                 return false;
             } else {
