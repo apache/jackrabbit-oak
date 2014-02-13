@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import java.io.File;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -34,13 +33,14 @@ import org.apache.solr.core.CoreContainer;
 public class TestUtils
         implements SolrServerProvider, OakSolrConfigurationProvider {
 
-    static final String SOLR_HOME_PATH = "target/test-classes/solr";
-    static final String SOLRCONFIG_PATH = "target/test-classes/solr/solr.xml";
+    static final String SOLR_HOME_PATH = "/solr";
+    static final String SOLRCONFIG_PATH = "/solr/solr.xml";
 
     public static SolrServer createSolrServer() {
-        CoreContainer coreContainer = new CoreContainer(SOLR_HOME_PATH);
+        String homePath = SolrServerProvider.class.getResource(SOLR_HOME_PATH).getFile();
+        CoreContainer coreContainer = new CoreContainer(homePath);
         try {
-            coreContainer.load(SOLR_HOME_PATH, new File(SOLRCONFIG_PATH));
+            coreContainer.load(homePath, new File(SolrServerProvider.class.getResource(SOLRCONFIG_PATH).getFile()));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

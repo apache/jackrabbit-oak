@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * Index editor for keeping a Solr index up to date.
