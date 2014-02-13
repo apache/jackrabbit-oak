@@ -21,6 +21,7 @@ package org.apache.jackrabbit.mk.blobs;
  */
 public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
 
+    @Override
     public void setUp() throws Exception {
         store = new MemoryBlobStore();
         store.setBlockSize(128);
