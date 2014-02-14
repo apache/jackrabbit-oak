@@ -97,18 +97,13 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String id, int maxCacheAge) {
-        if (collection == Collection.NODES && id.equals(ROOT)) {
-            synchronized(this) {
-                if (this.root != null) {
-                    long age = System.currentTimeMillis() - rootWritten;
-                    if (age < maxCacheAge) {
-                        return (T)this.root;
-                    }
-                }
-            }
+        T fromCache = getFromCache(collection, id, maxCacheAge);
+        if (fromCache != null) {
+            return fromCache;
         }
-        // TODO handle maxCacheAge
-        return readDocument(collection, id);
+        else {
+            return readDocument(collection, id);
+        }
     }
 
     @Override
@@ -172,7 +167,7 @@ public class RDBDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection, String id) {
         if (collection == Collection.NODES && ROOT.equals(id)) {
-            return (T) this.root;
+            return castAsT(this.root);
         } else {
             return null;
         }
@@ -563,10 +558,31 @@ public class RDBDocumentStore implements DocumentStore {
     private long rootWritten;
     private static final String ROOT = "0:/";
 
-    private synchronized void updateCache(Collection collection, Document doc) {
+    private <T extends Document> void updateCache(Collection<T> collection, Document doc) {
         if (collection == Collection.NODES && doc.getId().equals(ROOT)) {
-            this.root = (NodeDocument)doc;
-            this.rootWritten = System.currentTimeMillis();
+            synchronized (this) {
+                this.root = (NodeDocument) doc;
+                this.rootWritten = System.currentTimeMillis();
+            }
         }
+    }
+
+    private <T extends Document> T getFromCache(Collection<T> collection, String id, long maxCacheAge) {
+        if (collection == Collection.NODES && id.equals(ROOT)) {
+            synchronized (this) {
+                if (this.root != null) {
+                    long age = System.currentTimeMillis() - rootWritten;
+                    if (age < maxCacheAge) {
+                        return castAsT(this.root);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Document> T castAsT(NodeDocument doc) {
+        return (T) doc;
     }
 }
