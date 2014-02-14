@@ -50,7 +50,7 @@ public interface DocumentStore {
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
-     * @param maxCacheAge the maximum age of the cached document
+     * @param maxCacheAge the maximum age of the cached document (in ms)
      * @return the document, or null if not found
      */
     @CheckForNull
