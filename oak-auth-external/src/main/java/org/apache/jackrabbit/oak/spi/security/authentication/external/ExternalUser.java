@@ -16,19 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
-import javax.annotation.CheckForNull;
-
 /**
  * ExternalUser defines a user provided by an external system.
  */
 public interface ExternalUser extends ExternalIdentity {
 
-    /**
-     * Returns the plaintext password of this user if available. This is usually only the case when the
-     * external user is accessible during a login call.
-     *
-     * @return the password.
-     */
-    @CheckForNull
-    String getPassword();
 }

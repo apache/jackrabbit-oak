@@ -91,6 +91,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
     /**
      * Default constructor for the OSGIi LoginModuleFactory case and the default non-OSGi JAAS case.
      */
+    @SuppressWarnings("UnusedDeclaration")
     public ExternalLoginModule() {
     }
 

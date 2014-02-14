@@ -178,11 +178,10 @@ public class DefaultSyncHandler implements SyncHandler {
         @CheckForNull
         private User createUser(ExternalUser externalUser)
                 throws RepositoryException, SyncException, ExternalIdentityException {
-            String password = externalUser.getPassword(); // todo: make configurable
             Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
             User user = userManager.createUser(
                     externalUser.getId(),
-                    password,
+                    null,
                     principal,
                     concatPaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
             );
@@ -209,7 +208,7 @@ public class DefaultSyncHandler implements SyncHandler {
 
         private void syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable)
                 throws RepositoryException, SyncException, ExternalIdentityException {
-            for (ExternalIdentityRef externalGroupRef : externalUser.getGroups()) {
+            for (ExternalIdentityRef externalGroupRef : externalUser.getDeclaredGroups()) {
                 ExternalIdentity id = idp.getIdentity(externalGroupRef);
                 if (id instanceof ExternalGroup) {
                     ExternalGroup externalGroup = (ExternalGroup) id;

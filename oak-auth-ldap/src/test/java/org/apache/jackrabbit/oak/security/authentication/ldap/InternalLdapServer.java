@@ -17,12 +17,21 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.io.File;
+import java.io.InputStream;
+
+import javax.naming.NamingException;
 import javax.naming.directory.BasicAttributes;
 import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapContext;
 
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.exception.LdapInvalidDnException;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.server.constants.ServerDNConstants;
+import org.apache.directory.server.core.entry.ServerEntry;
 import org.apache.directory.server.unit.AbstractServerTest;
+import org.apache.directory.shared.ldap.name.LdapDN;
 
 class InternalLdapServer extends AbstractServerTest {
 
@@ -87,6 +96,10 @@ class InternalLdapServer extends AbstractServerTest {
         BasicAttributes attrs = new BasicAttributes();
         attrs.put("member", memberDN);
         ctxt.modifyAttributes(groupDN, DirContext.REMOVE_ATTRIBUTE, attrs);
+    }
+
+    public void loadLdif(InputStream in) throws Exception {
+        super.loadLdif(in, false);
     }
 
     private static String buildDn(String name, boolean isGroup) {
