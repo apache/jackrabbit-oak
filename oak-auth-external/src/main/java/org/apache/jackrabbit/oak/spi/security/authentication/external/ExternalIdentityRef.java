@@ -102,18 +102,22 @@ public class ExternalIdentityRef {
         return sb.toString();
     }
 
+    /**
+     * Tests if the given object is an external identity reference and if it's getString() is equal to this.
+     */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ExternalIdentityRef that = (ExternalIdentityRef) o;
-
-        if (!string.equals(that.string)) return false;
-
-        return true;
+        try {
+            // assuming that we never compare other types of classes
+            return this == o || string.equals(((ExternalIdentityRef) o).string);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
+    /**
+     * @return same as {@code this.getString().hashCode()}
+     */
     @Override
     public int hashCode() {
         return string.hashCode();

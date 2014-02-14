@@ -313,7 +313,7 @@ public class LdapProviderConfig {
     /**
      * Defines the configuration of an identity (user or group).
      */
-    public static class Identity {
+    public class Identity {
 
         private String baseDN;
 
@@ -368,6 +368,7 @@ public class LdapProviderConfig {
         public Identity setObjectClasses(@Nonnull String ... objectClasses) {
             this.objectClasses = objectClasses;
             filterTemplate = null;
+            memberOfFilterTemplate = null;
             return this;
         }
 
@@ -393,6 +394,7 @@ public class LdapProviderConfig {
         public Identity setIdAttribute(@Nonnull String idAttribute) {
             this.idAttribute = idAttribute;
             filterTemplate = null;
+            memberOfFilterTemplate = null;
             return this;
         }
 
@@ -417,6 +419,7 @@ public class LdapProviderConfig {
         public Identity setExtraFilter(@Nullable String extraFilter) {
             this.extraFilter = extraFilter;
             filterTemplate = null;
+            memberOfFilterTemplate = null;
             return this;
         }
 
@@ -473,55 +476,6 @@ public class LdapProviderConfig {
             }
             return String.format(filterTemplate, encodeFilterValue(id));
         }
-
-        /**
-         * Copied from org.apache.directory.api.ldap.model.filter.FilterEncoder#encodeFilterValue(java.lang.String)
-         * in order to keep this configuration LDAP client independent.
-         *
-         * Handles encoding of special characters in LDAP search filter assertion values using the
-         * &lt;valueencoding&gt; rule as described in <a href="http://www.ietf.org/rfc/rfc4515.txt">RFC 4515</a>.
-         *
-         * @param value Right hand side of "attrId=value" assertion occurring in an LDAP search filter.
-         * @return Escaped version of <code>value</code>
-         */
-        private static String encodeFilterValue(String value) {
-            StringBuilder sb = null;
-            for (int i = 0; i < value.length(); i++) {
-                char ch = value.charAt(i);
-                String replace = null;
-                switch (ch) {
-                    case '*':
-                        replace = "\\2A";
-                        break;
-
-                    case '(':
-                        replace = "\\28";
-                        break;
-
-                    case ')':
-                        replace = "\\29";
-                        break;
-
-                    case '\\':
-                        replace = "\\5C";
-                        break;
-
-                    case '\0':
-                        replace = "\\00";
-                        break;
-                }
-                if (replace != null) {
-                    if (sb == null) {
-                        sb = new StringBuilder(value.length() * 2);
-                        sb.append(value.substring(0, i));
-                    }
-                    sb.append(replace);
-                } else if (sb != null) {
-                    sb.append(ch);
-                }
-            }
-            return (sb == null ? value : sb.toString());
-        }
     }
 
     /**
@@ -572,6 +526,8 @@ public class LdapProviderConfig {
     private int searchTimeout = PARAM_SEARCH_TIMEOUT_DEFAULT;
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
+
+    private String memberOfFilterTemplate;
 
     private final Identity userConfig = new Identity()
             .setBaseDN(PARAM_USER_BASE_DN_DEFAULT)
@@ -766,6 +722,39 @@ public class LdapProviderConfig {
     }
 
     /**
+     * Returns the LDAP filter that is used when searching for groups where an identity is member of.
+     * The filter is based on the configuration and has the following format:
+     *
+     * <pre>
+     *     (&(${memberAttribute}=${dn})(objectclass=${objectclass})${extraFilter})
+     * </pre>
+     *
+     * Note that the objectclass part is repeated according to the specified objectclasses in
+     * {@link Identity#getObjectClasses()} of the group configuration.
+     *
+     * @param dn the dn of the identity to search for
+     * @return the search filter
+     */
+    public String getMemberOfSearchFilter(@Nonnull String dn) {
+        if (memberOfFilterTemplate == null) {
+            StringBuilder filter = new StringBuilder("(&(")
+                    .append(groupMemberAttribute)
+                    .append("=%s)");
+            for (String objectClass: groupConfig.objectClasses) {
+                filter.append("(objectclass=")
+                        .append(encodeFilterValue(objectClass))
+                        .append(')');
+            }
+            if (groupConfig.extraFilter != null && groupConfig.extraFilter.length() > 0) {
+                filter.append(groupConfig.extraFilter);
+            }
+            filter.append(')');
+            memberOfFilterTemplate = filter.toString();
+        }
+        return String.format(memberOfFilterTemplate, encodeFilterValue(dn));
+    }
+
+    /**
      * Returns the user specific configuration.
      * @return the user config.
      */
@@ -781,5 +770,54 @@ public class LdapProviderConfig {
     @Nonnull
     public Identity getGroupConfig() {
         return groupConfig;
+    }
+
+    /**
+     * Copied from org.apache.directory.api.ldap.model.filter.FilterEncoder#encodeFilterValue(java.lang.String)
+     * in order to keep this configuration LDAP client independent.
+     *
+     * Handles encoding of special characters in LDAP search filter assertion values using the
+     * &lt;valueencoding&gt; rule as described in <a href="http://www.ietf.org/rfc/rfc4515.txt">RFC 4515</a>.
+     *
+     * @param value Right hand side of "attrId=value" assertion occurring in an LDAP search filter.
+     * @return Escaped version of <code>value</code>
+     */
+    private static String encodeFilterValue(String value) {
+        StringBuilder sb = null;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            String replace = null;
+            switch (ch) {
+                case '*':
+                    replace = "\\2A";
+                    break;
+
+                case '(':
+                    replace = "\\28";
+                    break;
+
+                case ')':
+                    replace = "\\29";
+                    break;
+
+                case '\\':
+                    replace = "\\5C";
+                    break;
+
+                case '\0':
+                    replace = "\\00";
+                    break;
+            }
+            if (replace != null) {
+                if (sb == null) {
+                    sb = new StringBuilder(value.length() * 2);
+                    sb.append(value.substring(0, i));
+                }
+                sb.append(replace);
+            } else if (sb != null) {
+                sb.append(ch);
+            }
+        }
+        return (sb == null ? value : sb.toString());
     }
 }

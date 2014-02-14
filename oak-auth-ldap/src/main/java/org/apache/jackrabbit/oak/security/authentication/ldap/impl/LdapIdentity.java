@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 
 /**
@@ -31,18 +32,23 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalId
  */
 public abstract class LdapIdentity implements ExternalIdentity {
 
-    private final LdapIdentityProvider provider;
+    protected final LdapIdentityProvider provider;
 
-    private final ExternalIdentityRef ref;
+    protected final ExternalIdentityRef ref;
 
-    private final String id;
+    protected final String id;
+
+    protected final String path;
+
+    private Map<String, ExternalIdentityRef> groups;
 
     private final Map<String, Object> properties = new HashMap<String, Object>();
 
-    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id) {
+    protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
         this.provider = provider;
         this.ref = ref;
         this.id = id;
+        this.path = path;
     }
 
     /**
@@ -78,7 +84,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
      */
     @Override
     public String getIntermediatePath() {
-        return null;
+        return path;
     }
 
     /**
@@ -86,8 +92,11 @@ public abstract class LdapIdentity implements ExternalIdentity {
      */
     @Nonnull
     @Override
-    public Iterable<? extends ExternalIdentityRef> getGroups() {
-        return Collections.emptyList();
+    public Iterable<ExternalIdentityRef> getDeclaredGroups() throws ExternalIdentityException {
+        if (groups == null) {
+            groups = provider.getDeclaredGroupRefs(ref);
+        }
+        return groups.values();
     }
 
     /**

@@ -79,7 +79,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             return null;
         }
         SimpleCredentials creds = (SimpleCredentials) credentials;
-        ExternalUser user = getUser(creds.getUserID());
+        TestUser user = (TestUser) getUser(creds.getUserID());
         if (user != null) {
             if (!new String(creds.getPassword()).equals(user.getPassword())) {
                 throw new LoginException("Invalid User/Password");
@@ -128,7 +128,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
         }
 
         @Override
-        public Iterable<ExternalIdentityRef> getGroups() {
+        public Iterable<ExternalIdentityRef> getDeclaredGroups() {
             return groups;
         }
 
@@ -156,7 +156,6 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             super(userId);
         }
 
-        @Override
         public String getPassword() {
             return "";
         }
@@ -169,5 +168,10 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
             super(userId);
         }
 
+        @Nonnull
+        @Override
+        public Iterable<ExternalIdentityRef> getDeclaredMembers() throws ExternalIdentityException {
+            return null;
+        }
     }
 }

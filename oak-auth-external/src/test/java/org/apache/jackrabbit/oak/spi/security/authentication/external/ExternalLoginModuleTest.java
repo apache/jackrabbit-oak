@@ -121,7 +121,7 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         // create user upfront in order to test update mode
         UserManager userManager = getUserManager(root);
         ExternalUser externalUser = idp.getUser(userId);
-        Authorizable user = userManager.createUser(externalUser.getId(), externalUser.getPassword());
+        Authorizable user = userManager.createUser(externalUser.getId(), null);
         root.commit();
 
         ContentSession cs = null;
