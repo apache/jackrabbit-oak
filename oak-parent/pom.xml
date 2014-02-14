@@ -436,5 +436,15 @@
         </plugins>
       </build>
     </profile>
+    <profile>
+      <id>rdb-postgres</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <version>9.3-1100-jdbc4</version>
+        </dependency>
+      </dependencies>
+    </profile>
   </profiles>
 </project>
