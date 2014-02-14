@@ -473,7 +473,8 @@ public class DocumentMK implements MicroKernel {
         }
 
         /**
-         * Sets a JDBC connection URL to use for the RDB document store.
+         * Sets a JDBC connection URL to use for the RDB document and blob
+         * stores.
          * 
          * @return this
          */
@@ -486,15 +487,39 @@ public class DocumentMK implements MicroKernel {
         }
 
         /**
-         * Sets a {@link DataSource} to use for the RDB document store.
+         * Sets a JDBC connection URLs to use for the RDB document and blob
+         * stores.
+         * 
+         * @return this
+         */
+        public Builder setRDBConnection(String dsjdbcurl, String dsusername, String dspassword, String bsjdbcurl,
+                String bsusername, String bspassword) {
+            this.documentStore = new RDBDocumentStore(dsjdbcurl, dsusername, dspassword);
+            this.blobStore = new RDBBlobStore(bsjdbcurl, bsusername, bspassword);
+            return this;
+        }
+
+        /**
+         * Sets a {@link DataSource} to use for the RDB document and blob
+         * stores.
          * 
          * @return this
          */
         public Builder setRDBConnection(DataSource ds) {
-            // TODO maybe we need different connections for document store and
-            // node store
             this.documentStore = new RDBDocumentStore(ds);
             this.blobStore = new RDBBlobStore(ds);
+            return this;
+        }
+
+        /**
+         * Sets a {@link DataSource}s to use for the RDB document and blob
+         * stores.
+         * 
+         * @return this
+         */
+        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
+            this.documentStore = new RDBDocumentStore(documentStoreDataSource);
+            this.blobStore = new RDBBlobStore(blobStoreDataSource);
             return this;
         }
 
