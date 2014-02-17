@@ -49,8 +49,8 @@
     <module>oak-solr-core</module>
     <module>oak-solr-remote</module>
     <module>oak-solr-embedded</module>
-    <!--<module>oak-auth-external</module>
-    <module>oak-auth-ldap</module>-->
+    <module>oak-auth-external</module>
+    <module>oak-auth-ldap</module>
     <module>oak-run</module>
     <module>oak-it</module>
     <!-- <module>oak-mk-perf</module> -->
