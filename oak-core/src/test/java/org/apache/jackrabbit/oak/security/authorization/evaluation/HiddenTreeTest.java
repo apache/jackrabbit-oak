@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -96,5 +97,17 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
     @Test
     public void testGetHiddenChildrenCount() {
         assertEquals(0, parent.getChildrenCount(1));
+    }
+
+    @Ignore("OAK-1424") // FIXME : OAK-1424
+    @Test
+    public void testCreateHiddenChild() {
+        try {
+            Tree hidden = parent.addChild(":hiddenChild");
+            root.commit();
+            fail();
+        } catch (Exception e) {
+            // success
+        }
     }
 }
