@@ -231,12 +231,15 @@ public class ContentRepositoryImpl implements ContentRepository {
                 .put(OPTION_UPDATE_MIXIN_NODE_TYPES_SUPPORTED, trueValue, true, true)
                 .put(OPTION_UPDATE_PRIMARY_NODE_TYPE_SUPPORTED, trueValue, true, true)
                 .put(OPTION_VERSIONING_SUPPORTED, trueValue, true, true)
-                .put(OPTION_WORKSPACE_MANAGEMENT_SUPPORTED, trueValue, true, true)
+                // TODO OAK-118
+                .put(OPTION_WORKSPACE_MANAGEMENT_SUPPORTED, falseValue, true, true)
                 // xml export support added via JCR layer
                 .put(OPTION_XML_EXPORT_SUPPORTED, falseValue, true, true)
                 // xml import support added via JCR layer
                 .put(OPTION_XML_IMPORT_SUPPORTED, falseValue, true, true)
+                // TODO OAK-827
                 .put(OPTION_ACTIVITIES_SUPPORTED, falseValue, true, true)
+                // TODO OAK-1403
                 .put(OPTION_BASELINES_SUPPORTED, falseValue, true, true)
                 .put(QUERY_FULL_TEXT_SEARCH_SUPPORTED, falseValue, true, true)
                 .put(QUERY_JOINS, valueFactory.createValue(QUERY_JOINS_NONE), true, true)
