@@ -475,7 +475,8 @@ class TokenProviderImpl implements TokenProvider {
                         log.debug("Successfully reset token expiration time.");
                         return true;
                     } catch (CommitFailedException e) {
-                        log.warn("Error while resetting token expiration", e.getMessage());
+                        log.debug("Failed to reset token expiration", e.getMessage());
+                        root.refresh();
                     }
                 }
             }
