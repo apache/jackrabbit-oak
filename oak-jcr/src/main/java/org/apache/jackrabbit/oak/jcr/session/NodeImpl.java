@@ -16,24 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Sets.newLinkedHashSet;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
-
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -81,6 +69,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
 import org.apache.jackrabbit.oak.jcr.lock.LockOperation;
+import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
@@ -91,6 +80,17 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
 /**
  * TODO document
@@ -1003,26 +1003,41 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     @Nonnull
-    public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
-        // TODO: use perform()
-        checkValidWorkspace(workspaceName);
-        throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
+    public String getCorrespondingNodePath(final String workspaceName) throws RepositoryException {
+        return toJcrPath(perform(new ItemOperation<String>(dlg) {
+            @Override
+            public String perform() throws RepositoryException {
+                checkValidWorkspace(workspaceName);
+                if (workspaceName.equals(sessionDelegate.getWorkspaceName())) {
+                    return item.getPath();
+                } else {
+                    throw new UnsupportedRepositoryOperationException("OAK-118: Node.getCorrespondingNodePath");
+                }
+            }
+        }));
     }
 
 
     @Override
-    public void update(String srcWorkspace) throws RepositoryException {
-        // TODO: use perform()
-        checkValidWorkspace(srcWorkspace);
+    public void update(final String srcWorkspace) throws RepositoryException {
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                checkValidWorkspace(srcWorkspace);
 
-        // check for pending changes
-        if (sessionDelegate.hasPendingChanges()) {
-            String msg = "Unable to perform operation. Session has pending changes.";
-            log.debug(msg);
-            throw new InvalidItemStateException(msg);
-        }
+                // check for pending changes
+                if (sessionDelegate.hasPendingChanges()) {
+                    String msg = "Unable to perform operation. Session has pending changes.";
+                    log.debug(msg);
+                    throw new InvalidItemStateException(msg);
+                }
 
-        // TODO
+                if (!srcWorkspace.equals(sessionDelegate.getWorkspaceName())) {
+                    throw new UnsupportedRepositoryOperationException("OAK-118: Node.update");
+                }
+                return null;
+            }
+        });
     }
 
     /**
