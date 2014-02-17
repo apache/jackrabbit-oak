@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.util;
+package org.apache.jackrabbit.oak.core;
 
 /**
  * An instances of this class represents a lazy value of type {@code T}.
@@ -24,7 +24,7 @@ package org.apache.jackrabbit.oak.util;
  * <p>
  * {@code LazyValue} instances are thread safe.
  */
-public abstract class LazyValue<T> {
+abstract class LazyValue<T> {
     private volatile T value;
 
     /**
