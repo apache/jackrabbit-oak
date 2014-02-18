@@ -24,6 +24,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -252,6 +253,8 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getUserContext().definesTree(tree)
                 && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
+        } else if (isIndexDefinition(tree)) {
+            perm = Permissions.INDEX_DEFINITION_MANAGEMENT;
         } else {
             perm = defaultPermission;
         }
@@ -297,6 +300,8 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getUserContext().definesProperty(parent, propertyState)
                  && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
             perm = Permissions.USER_MANAGEMENT;
+        } else if (isIndexDefinition(parent)) {
+            perm = Permissions.INDEX_DEFINITION_MANAGEMENT;
         } else {
             perm = defaultPermission;
         }
@@ -344,5 +349,9 @@ class PermissionValidator extends DefaultValidator {
             }
         }
         return (ImmutableTree) versionHistory;
+    }
+
+    private boolean isIndexDefinition(@Nonnull Tree tree) {
+        return tree.getPath().contains(IndexConstants.INDEX_DEFINITIONS_NAME);
     }
 }

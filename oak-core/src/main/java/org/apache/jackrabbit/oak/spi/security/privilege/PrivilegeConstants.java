@@ -216,4 +216,11 @@ public interface PrivilegeConstants {
      * @since OAK 1.0
      */
     String REP_REMOVE_PROPERTIES = "rep:removeProperties";
+
+    /**
+     * Internal (oak) name of the rep:indexDefinitionManagement privilege
+     *
+     * @since OAK 1.0
+     */
+    String REP_INDEX_DEFINITION_MANAGEMENT = "rep:indexDefinitionManagement";
 }

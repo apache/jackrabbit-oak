@@ -24,22 +24,21 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * Permission evaluation tests related to {@link #REP_PRIVILEGE_MANAGEMENT} privilege.
+ * Permission evaluation tests related to {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants#REP_PRIVILEGE_MANAGEMENT} privilege.
  */
 public class PrivilegeManagementTest extends AbstractEvaluationTest {
-
-    private static final String REP_PRIVILEGE_MANAGEMENT = "rep:privilegeManagement";
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
 
         // test user must not be allowed
-        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasRepoPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, false);
     }
 
     @Override
@@ -85,21 +84,21 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testModifyPrivilegeMgtPrivilege() throws Exception {
-        modify(null, REP_PRIVILEGE_MANAGEMENT, true);
-        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, true);
+        modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, true);
+        assertHasRepoPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, true);
 
-        modify(null, REP_PRIVILEGE_MANAGEMENT, false);
-        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, false);
+        modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasRepoPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, false);
     }
 
     @Test
     public void testRegisterPrivilegeWithPrivilege() throws Exception {
-        modify(null, REP_PRIVILEGE_MANAGEMENT, true);
+        modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, true);
         try {
             Workspace testWsp = testSession.getWorkspace();
             ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);
         } finally {
-            modify(null, REP_PRIVILEGE_MANAGEMENT, false);
+            modify(null, PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT, false);
         }
     }
 }
