@@ -16,32 +16,62 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.observation.EventIterator;
+import javax.jcr.observation.EventListener;
+
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_MOVED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PERSIST;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 
 public class ConcurrentCreateNodesTest extends AbstractTest {
 
+    public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
+            PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
     private static final int WORKER_COUNT = 20;
+    private static final int LISTENER_COUNT = Integer.getInteger("listenerCount", 0);
     private static final int NODE_COUNT_LEVEL2 = 50;
+    private static final String NODE_TYPE = System.getProperty("nodeType", "nt:unstructured");
+    private static final boolean DISABLE_INDEX = Boolean.getBoolean("disableIndex");
+    private static final boolean VERBOSE = Boolean.getBoolean("verbose");
     private Writer writer;
+    private final AtomicInteger NODE_COUNT = new AtomicInteger();
 
     @Override
     protected void beforeSuite() throws Exception {
         Session session = loginWriter();
+        if (DISABLE_INDEX) {
+            disableNodeTypeIndex(session);
+        }
         Node rootNode = session.getRootNode();
         if (rootNode.hasNode(ROOT_NODE_NAME)) {
             Node root = rootNode.getNode(ROOT_NODE_NAME);
             root.remove();
         }
-        rootNode = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:unstructured");
+        rootNode = session.getRootNode().addNode(ROOT_NODE_NAME, NODE_TYPE);
         for (int i = 0; i < WORKER_COUNT; i++) {
             rootNode.addNode("node" + i);
         }
         session.save();
         for (int i = 1; i < WORKER_COUNT; i++) {
             addBackgroundJob(new Writer(rootNode.getPath() + "/node" + i));
+        }
+        for (int i = 0; i < LISTENER_COUNT; i++) {
+            Session s = loginWriter();
+            s.getWorkspace().getObservationManager().addEventListener(
+                    new Listener(), EVENT_TYPES, "/", true, null, null, false);
         }
         writer = new Writer(rootNode.getPath() + "/node" + 0);
     }
@@ -59,6 +89,8 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
         @Override
         public void run() {
             try {
+                int numNodes = NODE_COUNT.get();
+                long time = System.currentTimeMillis();
                 session.refresh(false);
 
                 Node root = session.getNode(path);
@@ -66,6 +98,13 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
                 for (int j = 0; j < NODE_COUNT_LEVEL2; j++) {
                     node.addNode("node" + j);
                     session.save();
+                    NODE_COUNT.incrementAndGet();
+                }
+                numNodes = NODE_COUNT.get() - numNodes;
+                time = System.currentTimeMillis() - time;
+                if (this == writer && VERBOSE) {
+                    long perSecond = numNodes * 1000 / time;
+                    System.out.println("Created " + numNodes + " in " + time + " ms. (" + perSecond + " nodes/sec)");
                 }
             } catch (RepositoryException e) {
                 e.printStackTrace();
@@ -74,9 +113,34 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
         }
 
     }
+
+    private class Listener implements EventListener {
+
+        @Override
+        public void onEvent(EventIterator events) {
+            try {
+                while (events.hasNext()) {
+                    events.nextEvent().getPath();
+                }
+            } catch (RepositoryException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        }
+    }
     
     @Override
     public void runTest() throws Exception {
         writer.run();
+    }
+
+    private void disableNodeTypeIndex(Session session) throws RepositoryException {
+        if (!session.nodeExists("/oak:index/nodetype")) {
+            return;
+        }
+        Node ntIndex = session.getNode("/oak:index/nodetype");
+        ntIndex.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        ntIndex.setProperty(IndexConstants.DECLARING_NODE_TYPES, new String[0], PropertyType.NAME);
+        session.save();
     }
 }
