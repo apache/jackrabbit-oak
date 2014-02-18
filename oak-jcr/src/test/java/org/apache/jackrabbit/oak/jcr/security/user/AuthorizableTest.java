@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -139,7 +138,7 @@ public class AuthorizableTest extends AbstractUserTest {
                 return user.removeProperty(name);
             }
 
-            public String getPath() throws UnsupportedRepositoryOperationException, RepositoryException {
+            public String getPath() throws RepositoryException {
                 return user.getPath();
             }
         };

@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator that excludes a subtree from the validation process and delegates
@@ -42,10 +41,6 @@ public class SubtreeExcludingValidator extends DefaultValidator {
     private final String head;
 
     private final List<String> tail;
-
-    public SubtreeExcludingValidator(Validator validator, String... path) {
-        this(validator, Arrays.asList(path));
-    }
 
     protected SubtreeExcludingValidator(Validator validator, List<String> path) {
         this.validator = checkNotNull(validator);

@@ -182,28 +182,12 @@ public abstract class TargetImportHandler extends DefaultHandler {
             return docPrefix;
         }
 
-        String getRepoPrefix() {
-            return repoPrefix;
-        }
-
-        String getDocQualifiedName() {
-            if (docPrefix == null || docPrefix.isEmpty()) {
-                return localName;
-            } else {
-                return docPrefix + ':' + localName;
-            }
-        }
-
         String getRepoQualifiedName() {
             if (repoPrefix == null || repoPrefix.isEmpty()) {
                 return localName;
             } else {
                 return repoPrefix + ':' + localName;
             }
-        }
-
-        String getExpandedName() {
-            return '{' + namespaceUri + '}' + localName;
         }
     }
 }

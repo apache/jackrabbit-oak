@@ -112,7 +112,7 @@ public class MongoStore extends AbstractStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         segments.remove(new BasicDBObject("_id", segmentId.toString()));
-        super.deleteSegment(segmentId);;
+        super.deleteSegment(segmentId);
     }
 
 }
