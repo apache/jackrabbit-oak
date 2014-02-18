@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.http;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
@@ -55,10 +56,25 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     @Property(value = DEFAULT_PATH_FIELD, label = "field for path search")
     private static final String PATH_EXACT_FIELD = "path.exact.field";
 
+    @Property(options = {
+            @PropertyOption(name = "HARD",
+                    value = "Hard commit"
+            ),
+            @PropertyOption(name = "SOFT",
+                    value = "Soft commit"
+            ),
+            @PropertyOption(name = "AUTO",
+                    value = "Auto commit"
+            )},
+            value = "SOFT"
+    )
+    private static final String COMMIT_POLICY = "commit.policy";
+
     private String pathChildrenFieldName;
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
+    private CommitPolicy commitPolicy;
 
     private OakSolrConfiguration oakSolrConfiguration;
 
@@ -67,14 +83,16 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         this.pathDescendantsFieldName = DEFAULT_DESC_FIELD;
         this.pathExactFieldName = DEFAULT_PATH_FIELD;
         this.pathParentFieldName = DEFAULT_PARENT_FIELD;
+        this.commitPolicy = CommitPolicy.SOFT;
     }
 
     public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,
-                                           String pathDescendantsFieldName, String pathExactFieldName) {
+                                           String pathDescendantsFieldName, String pathExactFieldName, CommitPolicy commitPolicy) {
         this.pathChildrenFieldName = pathChildrenFieldName;
         this.pathParentFieldName = pathParentFieldName;
         this.pathDescendantsFieldName = pathDescendantsFieldName;
         this.pathExactFieldName = pathExactFieldName;
+        this.commitPolicy = commitPolicy;
     }
 
     protected void activate(ComponentContext componentContext) throws Exception {
@@ -82,6 +100,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
+        commitPolicy = CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
     }
 
     @Override
@@ -138,7 +157,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
 
                 @Override
                 public CommitPolicy getCommitPolicy() {
-                    return CommitPolicy.SOFT;
+                    return commitPolicy;
                 }
 
             };
