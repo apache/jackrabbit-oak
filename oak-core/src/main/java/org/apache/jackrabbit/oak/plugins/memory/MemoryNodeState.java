@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
@@ -85,19 +83,17 @@ class MemoryNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
         return nodes.containsKey(name);
     }
 
     @Override
     public NodeState getChildNode(String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
         NodeState state = nodes.get(name);
-        if (state != null) {
-            return state;
-        } else {
-            return MISSING_NODE;
+        if (state == null) {
+            checkValidName(name);
+            state = MISSING_NODE;
         }
+        return state;
     }
 
     @Override

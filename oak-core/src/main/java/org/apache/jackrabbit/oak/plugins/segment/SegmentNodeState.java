@@ -46,6 +46,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 public class SegmentNodeState extends Record implements NodeState {
 
@@ -317,7 +318,6 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
         String childName = getTemplate().getChildName();
         if (childName == Template.ZERO_CHILD_NODES) {
             return false;
@@ -330,26 +330,20 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nonnull
     public NodeState getChildNode(String name) {
-        // checkArgument(!checkNotNull(name).isEmpty()); // TODO
         String childName = getTemplate().getChildName();
-        if (childName == Template.ZERO_CHILD_NODES) {
-            return MISSING_NODE;
-        } else if (childName == Template.MANY_CHILD_NODES) {
+        if (childName == Template.MANY_CHILD_NODES) {
             MapEntry child = getChildNodeMap().getEntry(name);
             if (child != null) {
                 return child.getNodeState();
-            } else {
-                return MISSING_NODE;
             }
-        } else {
-            if (childName.equals(name)) {
-                Segment segment = getSegment();
-                RecordId childNodeId = segment.readRecordId(getOffset(0, 1));
-                return new SegmentNodeState(segment, childNodeId);
-            } else {
-                return MISSING_NODE;
-            }
+        } else if (childName != Template.ZERO_CHILD_NODES
+                && childName.equals(name)) {
+            Segment segment = getSegment();
+            RecordId childNodeId = segment.readRecordId(getOffset(0, 1));
+            return new SegmentNodeState(segment, childNodeId);
         }
+        checkValidName(name);
+        return MISSING_NODE;
     }
 
     @Override @Nonnull

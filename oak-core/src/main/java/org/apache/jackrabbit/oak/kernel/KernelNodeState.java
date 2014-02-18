@@ -75,7 +75,7 @@ public final class KernelNodeState extends AbstractNodeState {
     /**
      * Maximum number of child nodes kept in memory.
      */
-    public static final int MAX_CHILD_NODE_NAMES = 100;
+    public static final int MAX_CHILD_NAMES = 100;
 
     /**
      * Number of child nodes beyond which {@link MicroKernel#diff(String, String, String, int)}
@@ -166,7 +166,7 @@ public final class KernelNodeState extends AbstractNodeState {
         synchronized (this) {
             if (properties == null) {
                 String json = kernel.getNodes(
-                        path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
+                        path, revision, 0, 0, MAX_CHILD_NAMES,
                         "{\"properties\":[\"*\",\":hash\",\":id\"]}");
 
                 checkNotNull(json,"No node found at path [%s] for revision [%s]",path,revision);
@@ -304,38 +304,41 @@ public final class KernelNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        checkNotNull(name);
         init();
-        return childNames.contains(name)
-                || (getChildNodeCount(MAX_CHILD_NODE_NAMES) > MAX_CHILD_NODE_NAMES
-                        && getChildNode(name).exists());
+        if (childNames.contains(name)) {
+            return true; // the named child node exits for sure
+        } else if (getChildNodeCount(MAX_CHILD_NAMES) <= MAX_CHILD_NAMES) {
+            return false; // all child node names are cached, and none match
+        } else {
+            return isValidName(name) && getChildNode(name).exists();
+        }
     }
 
     @Override
     public NodeState getChildNode(String name) {
-        // checkArgument(!checkNotNull(name).isEmpty()); // TODO: check in higher level
         init();
         String childPath = null;
         if (childNames.contains(name)) {
-            childPath = getChildPath(name);
-        }
-        if (childPath == null && getChildNodeCount(MAX_CHILD_NODE_NAMES) > MAX_CHILD_NODE_NAMES) {
-            String path = getChildPath(name);
+            childPath = PathUtils.concat(path, name);
+        } else if (!isValidName(name)) {
+            throw new IllegalArgumentException("Invalid name: " + name);
+        } else if (getChildNodeCount(MAX_CHILD_NAMES) <= MAX_CHILD_NAMES) {
+            return MISSING_NODE;
+        } else {
+            childPath = PathUtils.concat(path, name);
             // OAK-506: Avoid the nodeExists() call when already cached
-            NodeState state = cache.getIfPresent(revision + path);
-            if (state != null) {
-                return state == NULL ? MISSING_NODE : state;                
+            NodeState state = cache.getIfPresent(revision + childPath);
+            if (state == NULL) {
+                return MISSING_NODE;
+            } else if (state != null) {
+                return state;
             }
             // not able to tell from cache if node exists
             // need to ask MicroKernel
-            if (kernel.nodeExists(path, revision)) {
-                childPath = path;
-            } else {
-                cache.put(revision + path, NULL);
+            if (!kernel.nodeExists(childPath, revision)) {
+                cache.put(revision + childPath, NULL);
+                return MISSING_NODE;
             }
-        }
-        if (childPath == null) {
-            return MISSING_NODE;
         }
         try {
             return cache.get(revision + childPath);
@@ -347,7 +350,7 @@ public final class KernelNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         init();
-        if (childNodeCount <= MAX_CHILD_NODE_NAMES && childNodeCount <= childNames.size()) {
+        if (childNodeCount <= MAX_CHILD_NAMES && childNodeCount <= childNames.size()) {
             return iterable(childNames);
         }
         List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
@@ -370,9 +373,9 @@ public final class KernelNodeState extends AbstractNodeState {
 
                     private void fetchEntries() {
                         List<ChildNodeEntry> entries = Lists
-                                .newArrayListWithCapacity(MAX_CHILD_NODE_NAMES);
+                                .newArrayListWithCapacity(MAX_CHILD_NAMES);
                         String json = kernel.getNodes(path, revision, 0,
-                                currentOffset, MAX_CHILD_NODE_NAMES, null);
+                                currentOffset, MAX_CHILD_NAMES, null);
                         JsopReader reader = new JsopTokenizer(json);
                         reader.read('{');
                         do {
@@ -697,14 +700,6 @@ public final class KernelNodeState extends AbstractNodeState {
         return continueComparison;
     }
 
-    private String getChildPath(String name) {
-        if ("/".equals(path)) {
-            return '/' + name;
-        } else {
-            return path + '/' + name;
-        }
-    }
-
     private Iterable<ChildNodeEntry> iterable(
             Iterable<String> names) {
         return Iterables.transform(
@@ -738,7 +733,7 @@ public final class KernelNodeState extends AbstractNodeState {
         @Override
         public NodeState getNodeState() {
             try {
-                return cache.get(revision + getChildPath(name));
+                return cache.get(revision + PathUtils.concat(path, name));
             } catch (ExecutionException e) {
                 throw new MicroKernelException(e);
             }

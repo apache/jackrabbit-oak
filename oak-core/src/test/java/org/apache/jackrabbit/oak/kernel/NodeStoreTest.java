@@ -218,7 +218,7 @@ public class NodeStoreTest {
     public void manyChildNodes() throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder parent = root.child("parent");
-        for (int i = 0; i <= KernelNodeState.MAX_CHILD_NODE_NAMES; i++) {
+        for (int i = 0; i <= KernelNodeState.MAX_CHILD_NAMES; i++) {
             parent.child("child-" + i);
         }
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -445,7 +445,7 @@ public class NodeStoreTest {
 
     @Test
     public void compareAgainstBaseState100() throws CommitFailedException {
-        compareAgainstBaseState(KernelNodeState.MAX_CHILD_NODE_NAMES);
+        compareAgainstBaseState(KernelNodeState.MAX_CHILD_NAMES);
     }
 
     @Test // OAK-1320

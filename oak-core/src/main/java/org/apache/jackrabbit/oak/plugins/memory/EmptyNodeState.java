@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -107,13 +106,12 @@ public final class EmptyNodeState implements NodeState {
 
     @Override
     public boolean hasChildNode(@Nonnull String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
         return false;
     }
 
     @Override @Nonnull
     public NodeState getChildNode(@Nonnull String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
+        checkValidName(name);
         return MISSING_NODE;
     }
 

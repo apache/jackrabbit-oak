@@ -311,8 +311,17 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasChildNode(String name) {
+        NodeState child = nodes.get(name);
+        if (child != null) {
+            return child.exists();
+        } else {
+            return base.hasChildNode(name);
+        }
+    }
+
+    @Override
     public NodeState getChildNode(String name) {
-        // checkArgument(!checkNotNull(name).isEmpty());  // TODO: should be caught earlier
         NodeState child = nodes.get(name);
         if (child == null) {
             child = base.getChildNode(name);
