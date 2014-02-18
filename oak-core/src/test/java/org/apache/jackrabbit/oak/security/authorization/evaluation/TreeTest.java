@@ -31,13 +31,11 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TreeTest extends AbstractOakCoreTest {
-
-    // TODO: add tests for acls withs restrictions
-    // TODO: add tests with READ_PROPERTIES and READ_NODES privileges
 
     private Root testRoot;
 
@@ -137,12 +135,20 @@ public class TreeTest extends AbstractOakCoreTest {
 
     @Test
     public void testHasProperty() throws Exception {
-        // TODO
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        testRoot.refresh();
+        Tree a = testRoot.getTree("/a");
+        assertFalse(a.hasProperty("aProp"));
     }
 
     @Test
     public void testGetProperty() throws Exception {
-        // TODO
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        testRoot.refresh();
+        Tree a = testRoot.getTree("/a");
+        assertNull(a.getProperty("aProp"));
     }
 
     @Test
@@ -161,11 +167,20 @@ public class TreeTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetPropertyCount() throws Exception {
-        // TODO
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        testRoot.refresh();
+        Tree a = testRoot.getTree("/a");
+        assertEquals(0, a.getPropertyCount());
     }
 
     @Test
     public void testGetProperties() throws Exception {
-        // TODO
+        setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        testRoot.refresh();
+        Tree a = testRoot.getTree("/a");
+        Iterable<? extends PropertyState> props = a.getProperties();
+        assertFalse(props.iterator().hasNext());
     }
 }
