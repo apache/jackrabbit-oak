@@ -560,6 +560,7 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
         simple.put(provider.getBits(REP_ADD_PROPERTIES), Permissions.ADD_PROPERTY);
         simple.put(provider.getBits(REP_ALTER_PROPERTIES), Permissions.MODIFY_PROPERTY);
         simple.put(provider.getBits(REP_REMOVE_PROPERTIES), Permissions.REMOVE_PROPERTY);
+        simple.put(provider.getBits(REP_INDEX_DEFINITION_MANAGEMENT), Permissions.INDEX_DEFINITION_MANAGEMENT);
         for (PrivilegeBits pb : simple.keySet()) {
             long expected = simple.get(pb).longValue();
             assertTrue(expected == PrivilegeBits.calculatePermissions(pb, PrivilegeBits.EMPTY, true));

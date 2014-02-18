@@ -57,6 +57,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     private static final long NAMESPACE_MNGMT = NODE_TYPE_DEF_MNGMT << 1;
     private static final long PRIVILEGE_MNGMT = NAMESPACE_MNGMT << 1;
     private static final long USER_MNGMT = PRIVILEGE_MNGMT << 1;
+    private static final long INDEX_DEFINITION_MNGMT = USER_MNGMT << 1;
 
     private static final long READ = READ_NODES | READ_PROPERTIES;
     private static final long MODIFY_PROPERTIES = ADD_PROPERTIES | ALTER_PROPERTIES | REMOVE_PROPERTIES;
@@ -87,6 +88,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         BUILT_IN.put(JCR_NAMESPACE_MANAGEMENT, getInstance(NAMESPACE_MNGMT));
         BUILT_IN.put(REP_PRIVILEGE_MANAGEMENT, getInstance(PRIVILEGE_MNGMT));
         BUILT_IN.put(REP_USER_MANAGEMENT, getInstance(USER_MNGMT));
+        BUILT_IN.put(REP_INDEX_DEFINITION_MANAGEMENT, getInstance(INDEX_DEFINITION_MNGMT));
 
         BUILT_IN.put(JCR_READ, PrivilegeBits.getInstance(READ));
         BUILT_IN.put(JCR_MODIFY_PROPERTIES, PrivilegeBits.getInstance(MODIFY_PROPERTIES));
@@ -95,7 +97,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     public static PrivilegeBits NEXT_AFTER_BUILT_INS =
-            getInstance(USER_MNGMT).nextBits();
+            getInstance(INDEX_DEFINITION_MNGMT).nextBits();
 
     private final Data d;
 
@@ -314,6 +316,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
         }
         if ((privs & USER_MNGMT) == USER_MNGMT) {
             perm |= Permissions.USER_MANAGEMENT;
+        }
+        if ((privs & INDEX_DEFINITION_MNGMT) == INDEX_DEFINITION_MNGMT) {
+            perm |= Permissions.INDEX_DEFINITION_MANAGEMENT;
         }
         return perm;
     }
