@@ -258,6 +258,7 @@ public class LargeOperationIT {
      */
     @Test
     public void largeCopy() throws RepositoryException, InterruptedException {
+        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1414
         final Node n = session.getRootNode().addNode("large-copy", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
@@ -289,6 +290,7 @@ public class LargeOperationIT {
      */
     @Test
     public void largeMove() throws RepositoryException, InterruptedException {
+        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1415
         final Node n = session.getRootNode().addNode("large-move", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
@@ -320,6 +322,7 @@ public class LargeOperationIT {
      */
     @Test
     public void manySiblings() throws RepositoryException, InterruptedException {
+        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1416
         final Node n = session.getRootNode().addNode("many-siblings", "oak:Unstructured");
 
         ArrayList<Double> executionTimes = Lists.newArrayList();
@@ -386,6 +389,7 @@ public class LargeOperationIT {
 
     @Test
     public void slowListener() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1429
         Node n = session.getRootNode().addNode("slow-events", "oak:Unstructured");
         final DelayedEventHandling delayedEventHandling = new DelayedEventHandling(n, 100, 10);
         Future<Void> result = delayedEventHandling.start();
