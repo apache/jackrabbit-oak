@@ -97,6 +97,7 @@ class MutableNodeState extends AbstractNodeState {
 
         MutableNodeState child = nodes.get(name);
         if (child == null) {
+            checkValidName(name);
             child = new MutableNodeState(state);
             nodes.put(name, child);
         } else {
@@ -190,7 +191,9 @@ class MutableNodeState extends AbstractNodeState {
      * Set the value of a property
      */
     void setProperty(PropertyState property) {
-        properties.put(property.getName(), property);
+        String name = property.getName();
+        checkValidName(name);
+        properties.put(name, property);
     }
 
     @Override
@@ -251,8 +254,6 @@ class MutableNodeState extends AbstractNodeState {
     @Override
     public boolean hasChildNode(String name) {
         assert base != null;
-        checkNotNull(name);
-        // checkArgument(!name.isEmpty()); TODO: should be caught earlier
         NodeState child = nodes.get(name);
         if (child != null) {
             return child.exists();

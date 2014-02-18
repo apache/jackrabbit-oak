@@ -31,10 +31,10 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -50,6 +50,17 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
+
+    public static boolean isValidName(String name) {
+        return name != null && !name.isEmpty() && name.indexOf('/') == -1;
+    }
+
+    public static void checkValidName(String name)
+            throws IllegalArgumentException {
+        if (!isValidName(name)) {
+            throw new IllegalArgumentException("Invalid name: " + name);
+        }
+    }
 
     public static boolean getBoolean(NodeState state, String name) {
         PropertyState property = state.getProperty(name);
@@ -253,11 +264,6 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public long getPropertyCount() {
         return count(getProperties());
-    }
-
-    @Override
-    public boolean hasChildNode(String name) {
-        return getChildNode(name).exists();
     }
 
     @Override

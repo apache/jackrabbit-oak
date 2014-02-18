@@ -103,8 +103,20 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasChildNode(@Nonnull String name) {
+        if (!state.hasChildNode(name)) {
+            return false;
+        } else if (treePermission.canReadAll()) {
+            return true;
+        } else {
+            NodeState child = state.getChildNode(name);
+            return treePermission.getChildPermission(name, child).canRead();
+        }
+    }
+
+    @Override
     public NodeState getChildNode(@Nonnull String name) {
-        NodeState child = state.getChildNode(checkNotNull(name));
+        NodeState child = state.getChildNode(name);
         if (child.exists() && !treePermission.canReadAll()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
             return new WrapChildEntryFunction().apply(entry).getNodeState();

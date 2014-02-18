@@ -151,15 +151,27 @@ final class DocumentNodeState extends AbstractNodeState {
         });
     }
 
+    @Override
+    public boolean hasChildNode(String name) {
+        if (node.hasNoChildren() || !isValidName(name)) {
+            return false;
+        } else {
+            String p = PathUtils.concat(getPath(), name);
+            return store.getNode(p, node.getLastRevision()) != null;
+        }
+    }
+
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
         if (node.hasNoChildren()) {
+            checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         }
         String p = PathUtils.concat(getPath(), name);
         Node child = store.getNode(p, node.getLastRevision());
         if (child == null) {
+            checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         } else {
             return new DocumentNodeState(store, child);
@@ -401,4 +413,5 @@ final class DocumentNodeState extends AbstractNodeState {
             }
         }
     }
+
 }

@@ -36,7 +36,7 @@ import org.junit.Test;
 
 public class LargeKernelNodeStateTest {
 
-    private static final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
+    private static final int N = KernelNodeState.MAX_CHILD_NAMES;
 
     private NodeState state;
 

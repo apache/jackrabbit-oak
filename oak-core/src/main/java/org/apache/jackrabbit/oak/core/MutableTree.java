@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -77,7 +78,8 @@ class MutableTree extends AbstractTree {
     //-----------------------------------------------------< AbstractTree >---
 
     @Override
-    protected MutableTree createChild(String name) {
+    protected MutableTree createChild(String name)
+            throws IllegalArgumentException {
         return new MutableTree(root, this, name, pendingMoves);
     }
 

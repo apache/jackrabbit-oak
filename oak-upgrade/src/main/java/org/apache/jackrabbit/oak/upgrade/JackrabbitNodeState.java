@@ -121,12 +121,23 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasChildNode(String name) {
+        for (MemoryChildNodeEntry entry : getChildNodeEntries()) {
+            if (name.equals(entry.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
     public org.apache.jackrabbit.oak.spi.state.NodeState getChildNode(String name) {
         for (MemoryChildNodeEntry entry : getChildNodeEntries()) {
             if (name.equals(entry.getName())) {
                 return entry.getNodeState();
             }
         }
+        checkValidName(name);
         return EmptyNodeState.MISSING_NODE;
     }
 

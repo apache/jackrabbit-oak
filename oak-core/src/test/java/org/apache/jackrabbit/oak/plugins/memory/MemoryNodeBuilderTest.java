@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -507,12 +508,18 @@ public class MemoryNodeBuilderTest {
                 return ImmutableSet.of();
             }
 
+            @Override
+            public boolean hasChildNode(String name) {
+                return "c".equals(name);
+            }
+
             @Nonnull
             @Override
             public NodeState getChildNode(@Nonnull String name) {
                 if ("c".equals(name)) {
                     return C;
                 } else {
+                    checkValidName(name);
                     return EmptyNodeState.MISSING_NODE;
                 }
             }

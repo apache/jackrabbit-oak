@@ -200,9 +200,11 @@ public interface Tree {
      * Get a possibly non existing child of this {@code Tree}.
      * @param name The name of the child to retrieve.
      * @return The child with the given {@code name}.
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    Tree getChild(@Nonnull String name);
+    Tree getChild(@Nonnull String name) throws IllegalArgumentException;
 
     /**
      * Determine if a child of this {@code Tree} instance exists. If no child

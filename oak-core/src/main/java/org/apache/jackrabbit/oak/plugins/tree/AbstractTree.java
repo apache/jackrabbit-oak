@@ -90,10 +90,13 @@ public abstract class AbstractTree implements Tree {
     /**
      * Factory method for creating child trees
      * @param name  name of the child tree
-     * @return  child tree of this tree with the given {@code name}
+     * @return child tree of this tree with the given {@code name}
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    protected abstract AbstractTree createChild(@Nonnull String name);
+    protected abstract AbstractTree createChild(@Nonnull String name)
+            throws IllegalArgumentException;
 
     /**
      * @return  {@code true} iff {@code getStatus() == Status.NEW}
@@ -198,7 +201,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public boolean exists() {
-        return !isHidden(name) && nodeBuilder.exists();
+        return nodeBuilder.exists() && !isHidden(name);
     }
 
     @Override
@@ -247,7 +250,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public boolean hasChild(String name) {
-        return createChild(checkNotNull(name)).exists();
+        return nodeBuilder.hasChildNode(name) && !isHidden(name);
     }
 
     @Override
