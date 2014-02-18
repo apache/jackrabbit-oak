@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -77,7 +78,7 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         // TODO improve: avoid calculating the 'before' permissions in case the current parent permissions already point to the correct tree.
         ImmutableTree parent = moveCtx.rootBefore.getTree("/");
         TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
-        for (String n : source.getPath().split("/")) {
+        for (String n : PathUtils.elements(source.getPath())) {
             tp = tp.getChildPermission(n, parent.getChild(n).getNodeState());
         }
         Validator validator = createValidator(source, dest, tp, this);
