@@ -18,13 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
@@ -37,16 +33,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Osgi Service that provides Solr based {@link org.apache.jackrabbit.oak.spi.query.QueryIndex}es
  * 
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
- * @see QueryIndexProviderr
+ * @see QueryIndexProvider
  */
 @Component(metatype = false, immediate = true)
 @Service(value = QueryIndexProvider.class)
 public class SolrQueryIndexProviderService implements QueryIndexProvider {
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    @Reference
     private SolrServerProvider solrServerProvider;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    @Reference
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     private SolrQueryIndexProvider solrQueryIndexProvider;

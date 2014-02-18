@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SolrQueryIndex implements QueryIndex {
 
-    private static final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
+    private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
     public static final String TYPE = "solr";
 
     private final String name;
@@ -175,12 +175,7 @@ public class SolrQueryIndex implements QueryIndex {
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
         // TODO : handle inclusion / exclusion of bounds
-        StringBuilder rangeQueryBuilder = new StringBuilder("[");
-        rangeQueryBuilder.append(first != null ? first : "*");
-        rangeQueryBuilder.append(" TO ");
-        rangeQueryBuilder.append(last != null ? last : "*");
-        rangeQueryBuilder.append("]");
-        return rangeQueryBuilder.toString();
+        return "[" + (first != null ? first : "*") + " TO " + (last != null ? last : "*") + "]";
     }
 
     private static String purgePath(Filter filter) {
@@ -209,6 +204,9 @@ public class SolrQueryIndex implements QueryIndex {
         Cursor cursor;
         try {
             SolrQuery query = getQuery(filter);
+            if (log.isDebugEnabled()) {
+                log.info("sending query {}", query);
+            }
             QueryResponse queryResponse = solrServer.query(query);
             cursor = new SolrCursor(queryResponse);
         } catch (Exception e) {
