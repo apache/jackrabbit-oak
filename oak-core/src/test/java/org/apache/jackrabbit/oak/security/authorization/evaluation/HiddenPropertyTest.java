@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -23,17 +31,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.state.MoveDetector;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Test for the hidden {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} property
@@ -47,9 +50,9 @@ public class HiddenPropertyTest extends AbstractOakCoreTest {
         super.before();
 
         Tree a = root.getTree("/a");
-        a.setProperty(":hiddenProp", "val", Type.STRING);
+        a.setProperty(":hiddenProp", "val", STRING);
         a.setProperty(MoveDetector.SOURCE_PATH, "/some/path", Type.PATH);
-        a.setProperty(VersionConstants.HIDDEN_COPY_SOURCE, "abc", Type.STRING);
+        a.setProperty(VersionConstants.HIDDEN_COPY_SOURCE, "abc", STRING);
         root.commit();
     }
 
@@ -100,6 +103,36 @@ public class HiddenPropertyTest extends AbstractOakCoreTest {
         Tree a = root.getTree("/a");
         try {
             a.setProperty(":hiddenProperty", "val");
+            root.commit();
+            fail();
+        } catch (Exception e) {
+            // success
+        }
+    }
+
+    @Ignore("OAK-1424") // FIXME : OAK-1424
+    @Test
+    public void testCreateHiddenProperty2() {
+        Tree a = root.getTree("/a");
+        try {
+            a.setProperty(":hiddenProperty", "val", NAME);
+            root.commit();
+            fail();
+        } catch (Exception e) {
+            // success
+        }
+    }
+
+    @Ignore("OAK-1424") // FIXME : OAK-1424
+    @Test
+    public void testCreateHiddenProperty3() {
+        Tree a = root.getTree("/a");
+        try {
+            PropertyState propertyState = PropertyBuilder.scalar(STRING)
+                    .setName(":hiddenProperty")
+                    .setValue("val")
+                    .getPropertyState();
+            a.setProperty(propertyState);
             root.commit();
             fail();
         } catch (Exception e) {
