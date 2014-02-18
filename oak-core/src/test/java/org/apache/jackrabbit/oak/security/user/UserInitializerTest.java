@@ -133,9 +133,6 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertArrayEquals(
                 new String[]{UserConstants.NT_REP_AUTHORIZABLE},
                 Iterables.toArray(declaringNtNames, String.class));
-
-        Tree members = oakIndex.getChild("members");
-        assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
     }
 
     /**
