@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.lang.Math.log;
+import static java.lang.Math.pow;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static javax.jcr.observation.Event.NODE_ADDED;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +51,13 @@ import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.math3.distribution.BinomialDistribution;
+import org.apache.commons.math3.exception.MathIllegalArgumentException;
+import org.apache.commons.math3.exception.MathInternalError;
+import org.apache.commons.math3.exception.NotPositiveException;
+import org.apache.commons.math3.exception.NullArgumentException;
+import org.apache.commons.math3.exception.OutOfRangeException;
+import org.apache.commons.math3.exception.util.LocalizedFormats;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DocumentFixture;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.SegmentFixture;
@@ -56,7 +66,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,19 +73,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Scalability test asserting certain operations scale linearly in the
- * size of their input.
+ * Scalability test asserting certain operations scale not worse than {@code O(n log n)}
+ * in the size of their input.
+ *
+ * These tests are disabled by default due to their long running time. On the command line
+ * specify {@code -DLargeOperationIT=true} to enable them.
  */
-@Ignore("WIP OAK-1413")
 @RunWith(Parameterized.class)
 public class LargeOperationIT {
     private static final Logger LOG = LoggerFactory.getLogger(LargeOperationIT.class);
+    private static final boolean enabled = Boolean.getBoolean(LargeOperationIT.class.getSimpleName());
+
+    /**
+     * Significance level for the binomial test being performed to establish
+     * the {@code O(n log n)} performance bound.
+     * @see #assertOnLgn(String, Iterable, java.util.List)
+     */
+    public static final double ALPHA = 0.05;
 
     /** Scales defining the input sizes against which the tests run */
-    private static final Iterable<Integer> SEGMENT_SCALES = Lists.newArrayList(
-            1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576);
-    private static final Iterable<Integer> MONGO_SCALES = Lists.newArrayList(
-            128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072);
+    private static final Iterable<Integer> SEGMENT_SCALES = createSequence(1024, 1048576, 20);
+    private static final Iterable<Integer> MONGO_SCALES = createSequence(128, 131072, 20);
 
     private final NodeStoreFixture fixture;
     private final Iterable<Integer> scales;
@@ -86,8 +103,29 @@ public class LargeOperationIT {
     private Session session;
 
     public LargeOperationIT(NodeStoreFixture fixture, Iterable<Integer> scales) {
+        assumeTrue(enabled);
         this.fixture = fixture;
         this.scales = scales;
+    }
+
+    /**
+     * Create a geometrically increasing sequence of values
+     * @param from    first value. Must be > 0
+     * @param to      last value. Must be > {@code from}
+     * @param count   number of values
+     * @return  geometrically increasing sequence of {@code count} values
+     * between {@code from} and {@code to}
+     */
+    private static List<Integer> createSequence(int from, int to, int count) {
+        double slope = pow(to / (double) from, 1 / ((double) count - 1));
+        List<Integer> seq = Lists.newArrayList();
+        int c = 0;
+        int v = from;
+        do {
+            seq.add(v);
+            v = (int) (slope * v);
+        } while (++c < count);
+        return seq;
     }
 
     @Parameterized.Parameters
@@ -98,7 +136,7 @@ public class LargeOperationIT {
         List<Object[]> fixtures = Lists.newArrayList();
         SegmentFixture segmentFixture = new SegmentFixture(segmentStore);
         if (segmentFixture.isAvailable()) {
-            fixtures.add(new Object[]{segmentFixture, SEGMENT_SCALES});
+            fixtures.add(new Object[] {segmentFixture, SEGMENT_SCALES});
         }
         DocumentFixture documentFixture = new DocumentFixture();
         if (documentFixture.isAvailable()) {
@@ -111,6 +149,12 @@ public class LargeOperationIT {
         return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
+    private static void safeLogout(Session session) {
+        try {
+            session.logout();
+        } catch (Exception ignore) {}
+    }
+
     @Before
     public void setup() throws RepositoryException {
         nodeStore = fixture.createNodeStore();
@@ -120,7 +164,7 @@ public class LargeOperationIT {
 
     @After
     public void tearDown() {
-        session.logout();
+        safeLogout(session);
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
@@ -128,50 +172,53 @@ public class LargeOperationIT {
     }
 
     /**
-     * Calculate the quotients of subsequent elements of an input {@code sequence}
-     * @param sequence  input sequence
-     * @return  sequence of quotients of {@code sequence}
+     * Assert that the actual runtime performance is bounded by {@code O(n log n)} where
+     * {@code n} is the size of the input.
+     * <p>
+     * This is done by comparing the slope of the measured running times against the
+     * slope of {@code n log n}  (i.e. {@code d/dn n log n = 1 + log n}) for the respective
+     * input size. The number of values for which the measured running time does not exceed that
+     * bound is used as a test statistic for the subsequent
+     * <a href="http://en.wikipedia.org/wiki/Binomial_test">binomial test</a>. The test passes
+     * if the binomial test with a significance level of {@link #ALPHA} passes and fails otherwise.
+     *
+     * @param name    name of the test
+     * @param scales  the sizes of the inputs
+     * @param executionTimes  the execution times corresponding to the {@code scales}
      */
-    private static Iterable<Double> quotients(Iterable<Double> sequence) {
-        Double prev = null;
-        List<Double> quotients = Lists.newArrayList();
-        for (double current : sequence) {
-            if (prev != null) {
-                quotients.add(current / prev);
+    private static void assertOnLgn(String name, Iterable<Integer> scales, List<Double> executionTimes) {
+        Double n0 = null;
+        Double t0 = null;
+        int successes = 0;
+        Iterator<Integer> ns = scales.iterator();
+        for (double t : executionTimes) {
+            double n = ns.next();
+            if (n0 != null) {
+                double dt = (t - t0) / (n - n0);  // slope of the measured running times
+                double bound = 1 + log(n);        // bound of the slope for the respective input size
+                if (dt < bound) {
+                    successes++;
+                }
             }
-            prev = current;
+            n0 = n;
+            t0 = t;
         }
-        return quotients;
-    }
 
-    /**
-     * Calculate the logarithmic bound for the given {@code scales} applying an
-     * {@code offset} to account for errors.
-     */
-    private static Iterable<Double> getLogarithmicBound(Iterable<Integer> scales, int offset) {
-        Double prev = null;
-        List<Double> bound = Lists.newArrayList();
-        for (double current : scales) {
-            if (prev != null) {
-                bound.add(Math.log(current * offset) / Math.log(prev));
-            }
-            prev = current;
-        }
-        return bound;
-    }
+        // number of trials is one less due to the numeric differentiation
+        int trials = executionTimes.size() - 1;
+        double p = new BinomialTest().binomialTest(
+                trials, successes, 0.5, BinomialTest.AlternativeHypothesis.GREATER_THAN);
 
-    /**
-     * Assert that {@code sequence} is bounded by {@code bound}
-     */
-    private static void assertBounded(String message,
-            Iterable<Double> sequence, Iterable<Double> bound) {
-        Iterator<Double> max = bound.iterator();
-        for (double value : sequence) {
-            if (value > max.next()) {
-                fail(message + " The sequence exceeds its bound. " +
-                        "Expected " + sequence + " <= " + bound);
-            }
+        boolean pass = p <= ALPHA;
+        if (pass) {
+            LOG.info("{} scales O(n lg n). p-value={} <= " + ALPHA, name, p);
+        } else {
+            LOG.error("{} does not scale O(n lg n). p-value={} > " + ALPHA, name, p);
         }
+        LOG.info("Number of trials={}, Number of successes={}", trials, successes);
+        LOG.info("scales={}", scales);
+        LOG.info("executionTimes={}", executionTimes);
+        assertTrue(name + "does not scale O(n lg n). p-value=" + p + " > " + ALPHA, pass);
     }
 
     /**
@@ -201,10 +248,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Committing {} node took {} ns/node", scale, t);
         }
-        Iterable<Double> quotients = quotients(executionTimes);
-        LOG.info("Scaling quotients: {}", quotients);
-        Iterable<Double> bound = getLogarithmicBound(scales, 10);
-        assertBounded("Commit does not scale logarithmically.", quotients, bound);
+        assertOnLgn("large commit", scales, executionTimes);
     }
 
     /**
@@ -235,10 +279,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        Iterable<Double> quotients = quotients(executionTimes);
-        LOG.info("Scaling quotients: {}", quotients);
-        Iterable<Double> bound = getLogarithmicBound(scales, 10);
-        assertBounded("Copy does not scale logarithmically.", quotients, bound);
+        assertOnLgn("large copy", scales, executionTimes);
     }
 
     /**
@@ -269,10 +310,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        Iterable<Double> quotients = quotients(executionTimes);
-        LOG.info("Scaling quotients: {}", quotients);
-        Iterable<Double> bound = getLogarithmicBound(scales, 10);
-        assertBounded("Move does not scale logarithmically.", quotients, bound);
+        assertOnLgn("large move", scales, executionTimes);
     }
 
     /**
@@ -305,10 +343,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Adding {} siblings took {} ns/node", scale, t);
         }
-        Iterable<Double> quotients = quotients(executionTimes);
-        LOG.info("Scaling quotients: {}", quotients);
-        Iterable<Double> bound = getLogarithmicBound(scales, 10);
-        assertBounded("Adding siblings does not scale logarithmically.", quotients, bound);
+        assertOnLgn("many siblings", scales, executionTimes);
     }
 
     /**
@@ -346,10 +381,7 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        Iterable<Double> quotients = quotients(executionTimes);
-        LOG.info("Scaling quotients: {}", quotients);
-        Iterable<Double> bound = getLogarithmicBound(scales, 10);
-        assertBounded("Processing pending events does not scale logarithmically.", quotients, bound);
+        assertOnLgn("large number of pending moves", scales, executionTimes);
     }
 
     @Test
@@ -371,11 +403,7 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            Iterable<Double> quotients = quotients(executionTimes);
-            LOG.info("Scaling quotients: {}", quotients);
-            Iterable<Double> bound = getLogarithmicBound(scales, 10);
-            assertBounded("Adding nodes does not scale logarithmically in the face of slow " +
-                    "observation listeners.", quotients, bound);
+            assertOnLgn("slow listeners", scales, executionTimes);
         } finally {
             delayedEventHandling.stop();
             result.get();
@@ -491,7 +519,7 @@ public class LargeOperationIT {
 
         public void dispose() {
             for (Session session : sessions) {
-                session.logout();
+                safeLogout(session);
             }
         }
 
@@ -528,7 +556,7 @@ public class LargeOperationIT {
             this.saveInterval = saveInterval;
         }
 
-        public Future<Void> start() throws RepositoryException {
+        public Future<Void> start() {
             return executor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -561,7 +589,7 @@ public class LargeOperationIT {
                         contentGenerator.addNodes(node, Integer.MAX_VALUE);
                     } finally {
                         for (Session session : sessions) {
-                            session.logout();
+                            safeLogout(session);
                         }
                     }
                     return null;
@@ -594,5 +622,167 @@ public class LargeOperationIT {
             }
         }
 
+    }
+
+    //------------------------------------------------------------< BinomialTest >---
+    // FIXME this class is copied from commons-math3:3.3-SNAPSHOT. Remove once 3.3 is released
+
+    /**
+     * Implements binomial test statistics.
+     * <p>
+     * Exact test for the statistical significance of deviations from a
+     * theoretically expected distribution of observations into two categories.
+     *
+     * @see <a href="http://en.wikipedia.org/wiki/Binomial_test">Binomial test (Wikipedia)</a>
+     * @version $Id: BinomialTest.java 1532638 2013-10-16 04:29:31Z psteitz $
+     * @since 3.3
+     */
+    private static class BinomialTest {
+
+        /**
+         * Represents an alternative hypothesis for a hypothesis test.
+         *
+         * @version $Id: AlternativeHypothesis.java 1531128 2013-10-10 22:09:25Z tn $
+         * @since 3.3
+         */
+        public enum AlternativeHypothesis {
+
+            /**
+             * Represents a two-sided test. H0: p=p0, H1: p &ne; p0
+             */
+            TWO_SIDED,
+
+            /**
+             * Represents a right-sided test. H0: p &le; p0, H1: p &gt; p0.
+             */
+            GREATER_THAN,
+
+            /**
+             * Represents a left-sided test. H0: p &ge; p0, H1: p &lt; p0.
+             */
+            LESS_THAN
+        }
+
+        /**
+         * Returns whether the null hypothesis can be rejected with the given confidence level.
+         * <p>
+         * <strong>Preconditions</strong>:
+         * <ul>
+         * <li>Number of trials must be &ge; 0.</li>
+         * <li>Number of successes must be &ge; 0.</li>
+         * <li>Number of successes must be &le; number of trials.</li>
+         * <li>Probability must be &ge; 0 and &le; 1.</li>
+         * </ul>
+         *
+         * @param numberOfTrials number of trials performed
+         * @param numberOfSuccesses number of successes observed
+         * @param probability assumed probability of a single trial under the null hypothesis
+         * @param alternativeHypothesis type of hypothesis being evaluated (one- or two-sided)
+         * @param alpha significance level of the test
+         * @return true if the null hypothesis can be rejected with confidence {@code 1 - alpha}
+         * @throws org.apache.commons.math3.exception.NotPositiveException if {@code numberOfTrials} or {@code numberOfSuccesses} is negative
+         * @throws org.apache.commons.math3.exception.OutOfRangeException if {@code probability} is not between 0 and 1
+         * @throws org.apache.commons.math3.exception.MathIllegalArgumentException if {@code numberOfTrials} &lt; {@code numberOfSuccesses} or
+         * if {@code alternateHypothesis} is null.
+         * @see org.apache.jackrabbit.oak.jcr.LargeOperationIT.BinomialTest.AlternativeHypothesis
+         */
+        public boolean binomialTest(int numberOfTrials, int numberOfSuccesses, double probability,
+                AlternativeHypothesis alternativeHypothesis, double alpha) {
+            double pValue = binomialTest(numberOfTrials, numberOfSuccesses, probability, alternativeHypothesis);
+            return pValue < alpha;
+        }
+
+        /**
+         * Returns the <i>observed significance level</i>, or
+         * <a href="http://www.cas.lancs.ac.uk/glossary_v1.1/hyptest.html#pvalue">p-value</a>,
+         * associated with a <a href="http://en.wikipedia.org/wiki/Binomial_test"> Binomial test</a>.
+         * <p>
+         * The number returned is the smallest significance level at which one can reject the null hypothesis.
+         * The form of the hypothesis depends on {@code alternativeHypothesis}.</p>
+         * <p>
+         * The p-Value represents the likelihood of getting a result at least as extreme as the sample,
+         * given the provided {@code probability} of success on a single trial. For single-sided tests,
+         * this value can be directly derived from the Binomial distribution. For the two-sided test,
+         * the implementation works as follows: we start by looking at the most extreme cases
+         * (0 success and n success where n is the number of trials from the sample) and determine their likelihood.
+         * The lower value is added to the p-Value (if both values are equal, both are added). Then we continue with
+         * the next extreme value, until we added the value for the actual observed sample.</p>
+         * <p>
+         * <strong>Preconditions</strong>:
+         * <ul>
+         * <li>Number of trials must be &ge; 0.</li>
+         * <li>Number of successes must be &ge; 0.</li>
+         * <li>Number of successes must be &le; number of trials.</li>
+         * <li>Probability must be &ge; 0 and &le; 1.</li>
+         * </ul></p>
+         *
+         * @param numberOfTrials number of trials performed
+         * @param numberOfSuccesses number of successes observed
+         * @param probability assumed probability of a single trial under the null hypothesis
+         * @param alternativeHypothesis type of hypothesis being evaluated (one- or two-sided)
+         * @return p-value
+         * @throws org.apache.commons.math3.exception.NotPositiveException if {@code numberOfTrials} or {@code numberOfSuccesses} is negative
+         * @throws org.apache.commons.math3.exception.OutOfRangeException if {@code probability} is not between 0 and 1
+         * @throws org.apache.commons.math3.exception.MathIllegalArgumentException if {@code numberOfTrials} &lt; {@code numberOfSuccesses} or
+         * if {@code alternateHypothesis} is null.
+         * @see org.apache.jackrabbit.oak.jcr.LargeOperationIT.BinomialTest.AlternativeHypothesis
+         */
+        public double binomialTest(int numberOfTrials, int numberOfSuccesses, double probability,
+                AlternativeHypothesis alternativeHypothesis) {
+            if (numberOfTrials < 0) {
+                throw new NotPositiveException(numberOfTrials);
+            }
+            if (numberOfSuccesses < 0) {
+                throw new NotPositiveException(numberOfSuccesses);
+            }
+            if (probability < 0 || probability > 1) {
+                throw new OutOfRangeException(probability, 0, 1);
+            }
+            if (numberOfTrials < numberOfSuccesses) {
+                throw new MathIllegalArgumentException(
+                        LocalizedFormats.BINOMIAL_INVALID_PARAMETERS_ORDER,
+                        numberOfTrials, numberOfSuccesses);
+            }
+            if (alternativeHypothesis == null) {
+                throw new NullArgumentException();
+            }
+
+            final BinomialDistribution distribution = new BinomialDistribution(numberOfTrials, probability);
+            switch (alternativeHypothesis) {
+                case GREATER_THAN:
+                    return 1 - distribution.cumulativeProbability(numberOfSuccesses - 1);
+                case LESS_THAN:
+                    return distribution.cumulativeProbability(numberOfSuccesses);
+                case TWO_SIDED:
+                    int criticalValueLow = 0;
+                    int criticalValueHigh = numberOfTrials;
+                    double pTotal = 0;
+
+                    while (true) {
+                        double pLow = distribution.probability(criticalValueLow);
+                        double pHigh = distribution.probability(criticalValueHigh);
+
+                        if (pLow == pHigh) {
+                            pTotal += 2 * pLow;
+                            criticalValueLow++;
+                            criticalValueHigh--;
+                        } else if (pLow < pHigh) {
+                            pTotal += pLow;
+                            criticalValueLow++;
+                        } else {
+                            pTotal += pHigh;
+                            criticalValueHigh--;
+                        }
+
+                        if (criticalValueLow > numberOfSuccesses || criticalValueHigh < numberOfSuccesses) {
+                            break;
+                        }
+                    }
+                    return pTotal;
+                default:
+                    throw new MathInternalError(LocalizedFormats. OUT_OF_RANGE_SIMPLE, alternativeHypothesis,
+                            AlternativeHypothesis.TWO_SIDED, AlternativeHypothesis.LESS_THAN);
+            }
+        }
     }
 }
