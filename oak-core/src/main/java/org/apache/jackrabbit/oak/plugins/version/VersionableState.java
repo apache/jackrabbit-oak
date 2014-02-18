@@ -18,6 +18,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.version.OnParentVersionAction;
+
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.version.OnParentVersionAction.ABORT;
 import static javax.jcr.version.OnParentVersionAction.COMPUTE;
@@ -44,32 +70,6 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONEDCHILD;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.version.OnParentVersionAction;
-
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TODO;
-
 /**
  * {@code VersionableState} provides methods to create a versionable state
  * for a version based on a versionable node.
@@ -81,6 +81,8 @@ import org.apache.jackrabbit.oak.util.TODO;
  * </p>
  */
 class VersionableState {
+
+    private static final Logger log = LoggerFactory.getLogger(VersionableState.class);
 
     private static final String JCR_CHILDVERSIONHISTORY = "jcr:childVersionHistory";
     private static final Set<String> BASIC_PROPERTIES = new HashSet<String>();
@@ -287,15 +289,16 @@ class VersionableState {
             }
         }
         for (PropertyState p : dest.getProperties()) {
-            if (BASIC_PROPERTIES.contains(p.getName())) {
+            String propName = p.getName();
+            if (BASIC_PROPERTIES.contains(propName)) {
                 continue;
             }
-            if (frozen.hasProperty(p.getName())) {
+            if (frozen.hasProperty(propName)) {
                 continue;
             }
             int action = getOPV(dest, p);
             if (action == COPY || action == VERSION || action == ABORT) {
-                dest.removeProperty(p.getName());
+                dest.removeProperty(propName);
             } else if (action == IGNORE) {
                 // no action
             } else if (action == INITIALIZE) {
@@ -304,6 +307,9 @@ class VersionableState {
                 // only COMPUTE property definitions currently are
                 // jcr:primaryType and jcr:mixinTypes
                 // do nothing for now
+                if (!(JCR_PRIMARYTYPE.equals(propName) || JCR_MIXINTYPES.equals(propName))) {
+                    log.warn("OPV.COMPUTE not implemented for restoring property: " + propName);
+                }
             }
         }
         restoreChildren(frozen, dest, selector);
@@ -403,10 +409,11 @@ class VersionableState {
             } else if (action == IGNORE) {
                 // no action
             } else if (action == INITIALIZE) {
-                TODO.unimplemented().doNothing();
+                log.warn("OPV.INITIALIZE not implemented for restoring child nodes.");
             } else if (action == COMPUTE) {
                 // there are currently no child node definitions
                 // with OPV compute
+                log.warn("OPV.COMPUTE not implemented for restoring child nodes: ");
             }
         }
     }
