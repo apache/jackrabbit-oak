@@ -34,7 +34,7 @@ import org.osgi.service.component.ComponentContext;
  * the default behavior that properties are indexed by name.
  * Possible extensions of this class may trigger type based property indexing / search.
  */
-@Component(metatype = true)
+@Component(metatype = true, immediate = true, label = "Remote Solr Configuration Provider")
 @Service(OakSolrConfigurationProvider.class)
 public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProvider {
 

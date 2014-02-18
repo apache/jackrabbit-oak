@@ -44,7 +44,11 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.index.solr.http
             </Export-Package>
-            <Embed-Dependency>solr-solrj</Embed-Dependency>
+              <Import-Package>
+                  !org.apache.solr.cloud.*,
+                  *
+              </Import-Package>
+              <DynamicImport-Package>*</DynamicImport-Package>
           </instructions>
         </configuration>
       </plugin>
