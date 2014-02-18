@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -26,15 +29,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-
-import com.google.common.base.Objects;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Implementation of {@link Value} based on {@code PropertyState}.
@@ -211,7 +210,7 @@ public class ValueImpl implements Value {
             }
         }
         catch (IllegalArgumentException e) {
-            throw new ValueFormatException("Error converting value to double", e);
+            throw new ValueFormatException("Error converting value to long", e);
         }
     }
 
