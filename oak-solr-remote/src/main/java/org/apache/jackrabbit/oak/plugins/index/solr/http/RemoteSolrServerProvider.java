@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.http;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -41,7 +40,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link SolrServerProvider} for remote Solr installations.
  */
-@Component(metatype = true, immediate = true)
+@Component(metatype = true, immediate = true, label = "Remote Solr Server Provider")
 @Service(SolrServerProvider.class)
 public class RemoteSolrServerProvider implements SolrServerProvider {
 
@@ -162,7 +161,13 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
 
         // create specified collection if it doesn't exists
-        createCollectionIfNeeded(cloudSolrServer);
+        try {
+            createCollectionIfNeeded(cloudSolrServer);
+        } catch (Throwable t) {
+            if (log.isWarnEnabled()) {
+                log.warn("could not create the collection on {}, {}", solrZkHost, t);
+            }
+        }
 
         cloudSolrServer.setDefaultCollection(solrCollection);
 
@@ -175,8 +180,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
             } catch (Exception e) {
                 // wait a bit
                 try {
-                    if (log.isWarnEnabled()) {
-                        log.warn("wait a bit", e);
+                    if (log.isDebugEnabled()) {
+                        log.debug("server is not alive yet, wait a bit", e);
                     }
                     Thread.sleep(3000);
                 } catch (InterruptedException e1) {
