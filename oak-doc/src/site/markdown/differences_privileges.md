@@ -71,6 +71,7 @@ different to Jackrabbit 2.x in the following aspects:
     - rep:addProperties
     - rep:alterProperties
     - rep:removeProperties
+    - rep:indexDefinitionManagement
 
 
 Note the following differences with respect to Jackrabbit 2.x definitions:
