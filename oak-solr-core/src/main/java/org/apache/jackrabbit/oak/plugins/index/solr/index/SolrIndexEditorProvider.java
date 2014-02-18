@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -32,7 +33,6 @@ import org.slf4j.LoggerFactory;
  * Solr based {@link IndexEditorProvider}
  *
  * @see SolrIndexEditor
- *
  */
 public class SolrIndexEditorProvider implements IndexEditorProvider {
 
@@ -51,7 +51,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
 
     @Override
     public Editor getIndexEditor(
-            String type, NodeBuilder definition, NodeState root, IndexUpdateCallback callback)
+            @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
 
         if (SolrQueryIndex.TYPE.equals(type)
