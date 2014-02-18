@@ -38,6 +38,7 @@ The set of permissions supported by Oak are listed in [Permissions]. The followi
 - `MODIFY_PROPERTY`: permission to change an existing property
 - `REMOVE`: aggregation of `REMOVE_NODE` and `REMOVE_PROPERTY`
 - `USER_MANAGEMENT`: permission to execute user management related tasks such as e.g. creating or removing user/group, changing user password and editing group membership.
+- `INDEX_DEFINITION_MANAGEMENT`: permission to create, modify and remove the oak:index node and it's subtree which is expected to contain the index definitions.
 
 The following permissions are now an aggregation of new permissions:
 
@@ -112,6 +113,13 @@ For backwards compatibility with Jackrabbit 2.x this behavior can be turned off 
 ##### Version Management
 Reading and writing items in the version store does not follow the regular permission evaluation but depends on access rights present on the corresponding versionable node. In case the version information does no longer have a versionable node in this workspace that original path is used to evaluate the effective permissions that would apply to that node if the version was restored.
 Note, that as in Jackrabbit VERSION_MANAGEMENT permission instead of the regular JCR write permissions is required in order to execute version operations and thus modify the version store. These changes are covered by [OAK-444] and address the concerns summarized in [JCR-2963].
+
+##### Query Index Definitions
+Writing query index definitions requires the specific index definition management
+which is enforce on nodes named "oak:index" and the subtree defined by them.
+Note that the corresponding items are not protected in the JCR sense. Consequently
+any other modification in these subtrees like e.g. changing the primary type
+or adding mixin types is governed by the corresponding privileges.
 
 #### 3. Administrative Principals
 The following principals always have full access to the whole content repository irrespective of the access control content:
