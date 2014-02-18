@@ -24,12 +24,12 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.util.OakSolrUtils;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.cloud.ZkController;
 import org.apache.solr.common.cloud.SolrZkClient;
 import org.apache.solr.common.cloud.ZkStateReader;
@@ -124,20 +124,22 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     @Override
     public SolrServer getSolrServer() throws Exception {
-        if (solrServer == null) {
+        if (solrServer == null && solrZkHost != null) {
             try {
                 solrServer = initializeWithCloudSolrServer();
             } catch (Exception e) {
-                log.warn("unable to initialize SolrCloud client", e);
-                try {
-                    solrServer = initializeWithExistingHttpServer();
-                } catch (Exception e1) {
-                    log.warn("unable to initialize Solr HTTP client", e1);
-                }
+                log.warn("unable to initialize SolrCloud client for {}", solrZkHost, e);
             }
-            if (solrServer == null) {
-                throw new IOException("could not connect to any HTTP Solr server");
+        }
+        if (solrServer == null && solrHttpUrl != null) {
+            try {
+                solrServer = initializeWithExistingHttpServer();
+            } catch (Exception e1) {
+                log.warn("unable to initialize Solr HTTP client for {}", solrHttpUrl, e1);
             }
+        }
+        if (solrServer == null) {
+            throw new IOException("could not connect to any HTTP Solr server");
         }
         return solrServer;
     }
@@ -145,8 +147,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private SolrServer initializeWithExistingHttpServer() throws IOException, SolrServerException {
         // try basic Solr HTTP client
         HttpSolrServer httpSolrServer = new HttpSolrServer(solrHttpUrl);
-        if (OakSolrUtils.checkServerAlive(httpSolrServer)) {
-            // TODO : check if the oak core exists, otherwise create it
+        SolrPingResponse ping = httpSolrServer.ping();
+        if (ping != null && 0 == ping.getStatus()) {
             return httpSolrServer;
         } else {
             throw new IOException("the found HTTP Solr server is not alive");
@@ -175,8 +177,12 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         int i = 0;
         while (i < 3) {
             try {
-                OakSolrUtils.checkServerAlive(cloudSolrServer);
-                return cloudSolrServer;
+                SolrPingResponse ping = cloudSolrServer.ping();
+                if (ping != null && 0 == ping.getStatus()) {
+                    return cloudSolrServer;
+                } else {
+                    throw new IOException("the found HTTP Solr server is not alive");
+                }
             } catch (Exception e) {
                 // wait a bit
                 try {
