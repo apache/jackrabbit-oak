@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.16
+Release Notes -- Apache Jackrabbit Oak -- Version 0.17
 
 Introduction
 ------------
@@ -10,64 +10,58 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.16 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.17 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.16
+Changes in Oak 0.17
 -------------------
 
 New Features
 
-  [OAK-541] Pluggable AccessControl
-  [OAK-754] Pluggable Security Setup
-  [OAK-1278] "stupid" SQL persistence of DocumentStore
-  [OAK-1279] "stupid" SQL persistence of BlobStore
+  [OAK-1157] DS implementation for S3-based DSs
+  [OAK-1337] Implement RepositoryStatistics from Jackrabbit API
+  [OAK-1338] Implement QueryStat from Jackrabbit API
+  [OAK-1387] Pass CommitInfo to commit hooks, editors and validators
+  [OAK-1395] Automatically cancel long running queries
 
 Improvements
 
-  [OAK-246] MicroKernelService should set metatype to true to easier configuration
-  [OAK-710] PermissionValidator: Backwards compatible permission evaluation for moving/renaming nodes
-  [OAK-834] Efficient copying of binaries across repositories
-  [OAK-891] Use DirectMemory as Level 2/Offheap cache
-  [OAK-924] Optimize namespace lookups
-  [OAK-1099] node creation noticeably slower with mongoMk compared to tarMk
-  [OAK-1275] Efficient MongoNodeState.getChildNodeEntries() for many child nodes
-  [OAK-1332] Large number of changes to the same node can fill observation queue
-  [OAK-1336] Query: use "union" for complex XPath queries that use "or"
-  [OAK-1352] Remove synchronization on MongoMK.diffImpl()
-  [OAK-1360] Rename o.a.j.o.plugins.mongomk to o.a.j.o.plugins.document
-  [OAK-1361] DocumentNodeState#compareAgainstBaseState too slow
-  [OAK-1366] Implement DocumentNodeState.getChildNodeCount(long)
-  [OAK-1367] Benchmark ObservationTest should register more than a single listener
-  [OAK-1373] Capture heap dump on OOME during tests
-  [OAK-1376] Upgrade Maven plugins
-  [OAK-1380] Restore from backup utility class
-  [OAK-1381] Avoid dependency to AbstractTree outside of oak.core package
-  [OAK-1386] Move tree type to permission implementation
+  [OAK-917] Container: Issues with Workspace#copy and Root#copy
+  [OAK-918] Copying nodes does not create independant version histories
+  [OAK-919] Proper handling of locks present on copied nodes
+  [OAK-920] Proper permission handling upon Workspace#copy
+  [OAK-931] Importer: review usage of write-root and objects obtained from the sessioncontext
+  [OAK-1331] MicroKernel API: clarify semantics of `read` method
+  [OAK-1347] Remove 'members' property index
+  [OAK-1392] SegmentBlob.equals() optimization
+  [OAK-1393] Upgrade Jackrabbit dependency to include JCR-3720 and JCR-3723
+  [OAK-1398] Restore and OPV INITIALIZE/CALCULATE
+  [OAK-1400] Move PropertyBuilder from o.a.j.o.util to o.a.j.o.plugins.memory
+  [OAK-1401] Move AbstractLazyIterator to o.a.j.commons.iterator (jackrabbit/jcr-commons)
+  [OAK-1407] Remove oak-sling module
+  [OAK-1412] Make Whiteboard available to LoginModules via Callback
+  [OAK-1419] Improve concurrent merge handling
+  [OAK-1421] Add support for primary type filter to Solr index
+  [OAK-1428] Change Oak-Mongo fixture to DocumentNodeStore
+  [OAK-1430] Let oak-solr-remote have an optional dependency on solr-core
+  [OAK-1435] Expose commit policy options in RemoteSolrConfigurationProvider
+  [OAK-1436] RemoteSolrServerProvider servers initialization has to be bound to related properties
+  [OAK-1437] Use default references options for Oak Solr Index(Editor)Providers
 
 Bugs
 
-  [OAK-825] Unnecessary performance overhead in MongoMK's calculation of keys for the nodeCache, nodeChildrenCache
-  [OAK-1215] Wildcards in relative property paths don't work in search expressions
-  [OAK-1285] QueryEngine#executeQuery takes NamePathMapper which is not part of oak-api
-  [OAK-1348] ACE merging not behaving correctly if not using managed principals
-  [OAK-1350] Inconsistent Principal Validation between API and Import behavior
-  [OAK-1354] Valid Query for mixin Type in JCR 2.x fails in Oak
-  [OAK-1358] Oak should only create one default executor
-  [OAK-1359] BlobStore implementation improvements
-  [OAK-1362] Add package-info.java files instead of using the project version for the package exports
-  [OAK-1363] TokenLoginModule does not set userId on auth info
-  [OAK-1364] CacheLIRS concurrency issue
-  [OAK-1365] RevisionTest.difference() fails occasionally
-  [OAK-1369] XPath queries: compatibility for missing @ in front of property names
-  [OAK-1371] SolrServerProvider OSGi properties should use label instead of name
-  [OAK-1374] Async indexer fails on the SegmentMK
-  [OAK-1377] Consolidate OsgiSecurityProvider and SecurityProviderImpl
-  [OAK-1382] Tests in oak-core and oak-jcr may run out of memory
-  [OAK-1383] Reduce memory usage of the cache
-  [OAK-1384] Background write does not update all _lastRev
+  [OAK-842] Incorrect interaction of orderable child nodes with permission evaluation
+  [OAK-1175] Security Concerns wrt Index Definitions
+  [OAK-1389] Query: an index is used even where traversing is faster
+  [OAK-1394] Event generation too slow with DocumentNodeStore
+  [OAK-1405] OR of different constraints broken
+  [OAK-1408] Descriptors: wrong value for OPTION_WORKSPACE_MANAGEMENT_SUPPORTED
+  [OAK-1417] Processing pending observation events does not scale linearly with the number of events
+  [OAK-1420] ConcurrentAddIT fails on buildbot
+  [OAK-1422] Large number of queued EventGenerator.Continuation on big transactions
+  [OAK-1433] Typo in org.apache.jackrabbit.oak.plugins.value.ValueImpl#getLong
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.15 release.
+all the changes included up to the Apache Jackrabbit Oak 0.16 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
