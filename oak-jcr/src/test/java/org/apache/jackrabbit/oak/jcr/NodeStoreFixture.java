@@ -211,7 +211,7 @@ public abstract class NodeStoreFixture {
             if (inMemory) {
                 return new DocumentMK.Builder().getNodeStore();
             } else {
-                return createNodeStore(uri);
+                return createNodeStore(uri + '-' + System.nanoTime());
             }
         }
 
