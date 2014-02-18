@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -86,7 +85,6 @@ public class MultipleSessionsACLStabilityTest extends AbstractOakCoreTest {
         assertFalse(rootTree2.hasChild("a/bb"));
     }
 
-    @Ignore("OAK-1197") // FIXME OAK-1197
     @Test
     public void testAllowChild3() throws Exception {
         Tree rootTree1 = testRoot1.getTree("/");
@@ -106,6 +104,5 @@ public class MultipleSessionsACLStabilityTest extends AbstractOakCoreTest {
         ContentSession session3 = login(new SimpleCredentials(uid, uid.toCharArray()));
         Tree rootTree3 = session3.getLatestRoot().getTree("/");
         assertFalse(rootTree3.hasChild("a"));
-
     }
 }
