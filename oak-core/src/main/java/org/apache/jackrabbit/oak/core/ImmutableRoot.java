@@ -18,11 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 import java.io.InputStream;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -35,6 +31,9 @@ import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -80,10 +79,6 @@ public final class ImmutableRoot implements Root {
 
     @Override
     public boolean move(String sourcePath, String destPath) {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean copy(String sourcePath, String destPath) {
         throw new UnsupportedOperationException();
     }
 

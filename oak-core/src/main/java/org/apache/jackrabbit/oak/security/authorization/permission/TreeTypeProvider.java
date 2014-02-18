@@ -44,8 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  */
 public final class TreeTypeProvider {
 
-    public static final int TYPE_NONE = 0;
-
     // regular trees
     public static final int TYPE_DEFAULT = 1;
     // version store(s) content

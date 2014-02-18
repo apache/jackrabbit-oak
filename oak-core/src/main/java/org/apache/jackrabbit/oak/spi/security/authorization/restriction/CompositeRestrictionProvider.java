@@ -72,13 +72,13 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws AccessControlException, RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value value) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, value);
     }
 
     @Nonnull
     @Override
-    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws AccessControlException, RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String oakName, @Nonnull Value... values) throws RepositoryException {
         return getProvider(oakPath, oakName).createRestriction(oakPath, oakName, values);
     }
 
@@ -101,7 +101,7 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
     }
 
     @Override
-    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException, RepositoryException {
+    public void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws RepositoryException {
         Map<String,RestrictionDefinition> supported = getSupported(oakPath);
         Set<String> rNames = new HashSet<String>();
         for (Restriction r : readRestrictions(oakPath, aceTree)) {

@@ -38,9 +38,8 @@ public final class SystemSubject {
     private SystemSubject() {}
 
     private static Subject createSystemSubject() {
-        // TODO: workaround for OAK-1404
         Set<? extends Principal> principals = Collections.singleton(SystemPrincipal.INSTANCE);
-        AuthInfo info = new AuthInfoImpl("system", null, principals);
+        AuthInfo info = new AuthInfoImpl(SystemPrincipal.INSTANCE.getName(), null, principals);
         return new Subject(true, principals, Collections.singleton(info), Collections.<Object>emptySet());
     }
 }

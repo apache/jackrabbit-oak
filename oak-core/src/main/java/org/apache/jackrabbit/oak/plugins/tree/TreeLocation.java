@@ -52,14 +52,6 @@ public abstract class TreeLocation {
     }
 
     /**
-     * Create a new {@code TreeLocation} instance for the specified {@code tree}
-     * and {@code property}.
-     */
-    public static TreeLocation create(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        return new PropertyLocation(tree, property.getName());
-    }
-
-    /**
      * Create a new {@code TreeLocation} instance for the item
      * at the given {@code path} in {@code root}.
      */

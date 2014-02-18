@@ -659,24 +659,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
             bits = new long[]{NO_PRIVILEGE};
         }
 
-        private ModifiableData(Data base) {
-            long[] b = base.longValues();
-            switch (b.length) {
-                case 0:
-                    // empty
-                    bits = new long[]{NO_PRIVILEGE};
-                    break;
-                case 1:
-                    // single long
-                    bits = new long[]{b[0]};
-                    break;
-                default:
-                    // copy
-                    bits = new long[b.length];
-                    System.arraycopy(b, 0, bits, 0, b.length);
-            }
-        }
-
         @Override
         boolean isEmpty() {
             return bits.length == 1 && bits[0] == NO_PRIVILEGE;

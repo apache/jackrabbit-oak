@@ -116,9 +116,5 @@ public class MoveTracker {
             parentSourcePaths.add(Text.getRelativeParent(sourcePath, 1));
             parentDestPaths.add(Text.getRelativeParent(destPath, 1));
         }
-
-        private void updateDestPath(@Nonnull String destPath) {
-            this.destPath = destPath;
-        }
     }
 }

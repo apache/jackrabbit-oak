@@ -227,11 +227,6 @@ public class UserImportWithActionsTest extends AbstractUserTest {
         superuser.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
     }
 
-    private void doImport(String parentPath, String xml, int importUUIDBehavior) throws IOException, RepositoryException {
-        InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-        superuser.importXML(parentPath, in, importUUIDBehavior);
-    }
-
     private final class TestAction implements AuthorizableAction {
         private String id;
         private String pw;

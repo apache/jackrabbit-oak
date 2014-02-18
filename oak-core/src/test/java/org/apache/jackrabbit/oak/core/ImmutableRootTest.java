@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
-
 import java.io.ByteArrayInputStream;
 
 import org.apache.jackrabbit.oak.NodeStoreFixture;
@@ -29,6 +26,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 public class ImmutableRootTest extends OakBaseTest {
 
@@ -94,13 +94,6 @@ public class ImmutableRootTest extends OakBaseTest {
 
         try {
             root.move("/x", "/b");
-            fail();
-        } catch (UnsupportedOperationException e) {
-            // success
-        }
-
-        try {
-            root.copy("/x", "/b");
             fail();
         } catch (UnsupportedOperationException e) {
             // success

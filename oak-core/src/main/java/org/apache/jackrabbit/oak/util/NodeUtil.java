@@ -18,17 +18,14 @@ package org.apache.jackrabbit.oak.util;
 
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -83,10 +80,6 @@ public class NodeUtil {
     @CheckForNull
     public NodeUtil getParent() {
         return new NodeUtil(tree.getParent(), mapper);
-    }
-
-    public boolean isRoot() {
-        return tree.isRoot();
     }
 
     public boolean hasChild(String name) {
@@ -185,21 +178,6 @@ public class NodeUtil {
         tree.removeProperty(name);
     }
 
-    /**
-     * Returns the boolean representation of the property with the specified
-     * {@code propertyName}. If the property does not exist or
-     * {@link org.apache.jackrabbit.oak.api.PropertyState#isArray() is an array}
-     * this method returns {@code false}.
-     *
-     * @param name The name of the property.
-     * @return the boolean representation of the property state with the given
-     *         name. This utility returns {@code false} if the property does not exist
-     *         or is an multivalued property.
-     */
-    public boolean getBoolean(String name) {
-        return TreeUtil.getBoolean(tree, name);
-    }
-
     public void setBoolean(String name, boolean value) {
         tree.setProperty(name, value);
     }
@@ -214,18 +192,8 @@ public class NodeUtil {
         tree.setProperty(name, value);
     }
 
-    @CheckForNull
-    public Iterable<String> getStrings(String name) {
-        return TreeUtil.getStrings(tree, name);
-    }
-
     public void setStrings(String name, String... values) {
         tree.setProperty(name, Arrays.asList(values), STRINGS);
-    }
-
-    @CheckForNull
-    public String getName(String name) {
-        return getName(name, null);
     }
 
     @CheckForNull
@@ -241,18 +209,6 @@ public class NodeUtil {
     public void setName(String propertyName, String value) {
         String oakName = getOakName(value);
         tree.setProperty(propertyName, oakName, NAME);
-    }
-
-    @CheckForNull
-    public Iterable<String> getNames(String propertyName) {
-        return Iterables.transform(
-                TreeUtil.getNames(tree, propertyName),
-                new Function<String, String>() {
-                    @Override
-                    public String apply(String input) {
-                        return mapper.getJcrName(input);
-                    }
-                });
     }
 
     public void setNames(String propertyName, String... values) {
@@ -279,41 +235,11 @@ public class NodeUtil {
         }
     }
 
-    @Nonnull
-    public List<NodeUtil> getNodes(String namePrefix) {
-        List<NodeUtil> nodes = Lists.newArrayList();
-        for (Tree child : tree.getChildren()) {
-            if (child.getName().startsWith(namePrefix)) {
-                nodes.add(new NodeUtil(child, mapper));
-            }
-        }
-        return nodes;
-    }
-
     public void setValues(String name, Value[] values) {
         try {
             tree.setProperty(PropertyStates.createProperty(name, Arrays.asList(values)));
         } catch (RepositoryException e) {
             log.warn("Unable to convert values", e);
-        }
-    }
-
-    @CheckForNull
-    public Value[] getValues(String name, ValueFactory vf) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null) {
-            int type = property.getType().tag();
-            List<Value> values = Lists.newArrayList();
-            for (String value : property.getValue(STRINGS)) {
-                try {
-                    values.add(vf.createValue(value, type));
-                } catch (RepositoryException e) {
-                    log.warn("Unable to convert a default value", e);
-                }
-            }
-            return values.toArray(new Value[values.size()]);
-        } else {
-            return null;
         }
     }
 

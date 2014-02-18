@@ -54,12 +54,6 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     private User user;
 
     @Override
-    public void before() throws Exception {
-        // TODO
-        super.before();
-    }
-
-    @Override
     public void after() throws Exception {
         if (user != null) {
             user.remove();

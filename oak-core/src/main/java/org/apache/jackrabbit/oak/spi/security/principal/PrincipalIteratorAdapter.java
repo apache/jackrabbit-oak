@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import javax.jcr.RangeIterator;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -38,15 +37,6 @@ public class PrincipalIteratorAdapter extends RangeIteratorDecorator implements 
     @SuppressWarnings("unchecked")
     public static final PrincipalIteratorAdapter EMPTY =
             new PrincipalIteratorAdapter((Iterator<? extends Principal>) RangeIteratorAdapter.EMPTY);
-
-    /**
-     * Creates an adapter for the given {@link javax.jcr.RangeIterator}.
-     *
-     * @param iterator iterator of {@link java.security.Principal}s
-     */
-    public PrincipalIteratorAdapter(RangeIterator iterator) {
-        super(iterator);
-    }
 
     /**
      * Creates an adapter for the given {@link java.util.Iterator} of principals.

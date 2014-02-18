@@ -18,9 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code ReadOnlyVersionManager} provides implementations for read-only
@@ -89,17 +88,6 @@ public abstract class ReadOnlyVersionManager {
             // otherwise return checkedOut status of parent
             return isCheckedOut(tree.getParent());
         }
-    }
-
-    /**
-     * Returns {@code true} if the tree at the given absolute Oak path is
-     * checked out; otherwise {@code false}.
-     *
-     * @param absOakPath an absolute path.
-     * @return whether the tree at the given path is checked out or not.
-     */
-    public boolean isCheckedOut(@Nonnull String absOakPath) {
-        return isCheckedOut(getWorkspaceRoot().getTree(checkNotNull(absOakPath)));
     }
 
     /**
