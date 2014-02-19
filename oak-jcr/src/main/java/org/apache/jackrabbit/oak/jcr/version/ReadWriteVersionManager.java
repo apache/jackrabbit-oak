@@ -26,6 +26,7 @@ import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -35,10 +36,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.test.ISO8601;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
@@ -118,6 +121,15 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         if (isCheckedOut(versionable)) {
             versionable.setProperty(JCR_ISCHECKEDOUT,
                     Boolean.FALSE, Type.BOOLEAN);
+            Tree baseVersion = getBaseVersion(versionable);
+            PropertyState created = baseVersion.getProperty(JCR_CREATED);
+            if (created != null) {
+                long c = ISO8601.parse(created.getValue(Type.DATE)).getTimeInMillis();
+                while (System.currentTimeMillis() == c) {
+                    // busy-wait for System.currentTimeMillis to change
+                    // so that the new version has a distinct timestamp
+                }
+            }
             try {
                 sessionDelegate.commit();
                 refresh();
