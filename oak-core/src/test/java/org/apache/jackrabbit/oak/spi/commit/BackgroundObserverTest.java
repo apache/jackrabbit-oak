@@ -41,8 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class BackgroundObserverTest {
-    private static final CommitInfo COMMIT_INFO =
-            new CommitInfo("no-session", null, (String)null);
+    private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
 
     private final List<List<Runnable>> assertionLists = Lists.newArrayList();
     private CountDownLatch doneCounter;

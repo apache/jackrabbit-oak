@@ -42,7 +42,7 @@ public final class OakInitializer {
             NodeBuilder builder = store.getRoot().builder();
             initializer.initialize(builder);
             CommitHook hook = new EditorHook(new IndexUpdateProvider(indexEditor));
-            CommitInfo info = new CommitInfo("OakInitializer", null, (String)null);
+            CommitInfo info = new CommitInfo("OakInitializer", null);
             store.merge(builder, hook, info);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
@@ -61,7 +61,7 @@ public final class OakInitializer {
         }
         try {
             CommitHook hook = new EditorHook(new IndexUpdateProvider(indexEditor));
-            CommitInfo info = new CommitInfo("OakInitializer", null, (String)null);
+            CommitInfo info = new CommitInfo("OakInitializer", null);
             store.merge(builder, hook, info);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);

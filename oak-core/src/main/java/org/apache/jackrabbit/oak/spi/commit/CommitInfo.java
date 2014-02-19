@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -43,7 +42,7 @@ public final class CommitInfo {
      * metadata is known (or needed) about a commit.
      */
     public static final CommitInfo EMPTY =
-            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, "/");
+            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN);
 
     private final String sessionId;
 
@@ -60,17 +59,9 @@ public final class CommitInfo {
      * @param userId The user id.
      */
     public CommitInfo(
-            @Nonnull String sessionId, @Nullable String userId,
-            @Nullable String message) {
-        this(sessionId, userId, message, "/");
-    }
-
-    public CommitInfo(
-            @Nonnull String sessionId, @Nullable String userId,
-            @Nullable String message, @Nonnull String path) {
+            @Nonnull String sessionId, @Nullable String userId) {
         this(sessionId, userId, ImmutableMap.<String, Object>of(
-                Root.COMMIT_PATH, checkNotNull(path),
-                "message", String.valueOf(message)
+            Root.COMMIT_PATH, "/"
         ));
     }
 
@@ -101,15 +92,6 @@ public final class CommitInfo {
     @Nonnull
     public String getUserId() {
         return userId;
-    }
-
-    /**
-     * @return message attached to this commit
-     */
-    @CheckForNull
-    public String getMessage() {
-        Object message = info.get("message");
-        return message instanceof String ? (String) message : null;
     }
 
     /**

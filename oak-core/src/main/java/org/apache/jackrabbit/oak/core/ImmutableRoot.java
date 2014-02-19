@@ -100,13 +100,13 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit(String message, String path) {
+    public void commit(String path) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void commit() {
-        commit(null, null);
+        throw new UnsupportedOperationException();
     }
 
     @Override
