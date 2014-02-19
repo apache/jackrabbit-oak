@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,7 +50,6 @@ class MemoryNodeState extends AbstractNodeState {
     public MemoryNodeState(
             Map<String, PropertyState> properties,
             Map<String, NodeState> nodes) {
-        assert Collections.disjoint(properties.keySet(), nodes.keySet());
         this.properties = properties;
         this.nodes = nodes;
     }
