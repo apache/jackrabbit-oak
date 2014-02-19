@@ -83,6 +83,8 @@ public class DateVersionSelector implements VersionSelector {
             if (c > latestDate && c <= timestamp) {
                 latestDate = c;
                 latestVersion = v;
+            } else if (c == latestDate) {
+                throw new RepositoryException("two versions share the same jcr:created timestamp in history:" + history);
             }
         }
         return latestVersion;

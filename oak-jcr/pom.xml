@@ -92,8 +92,6 @@
       org.apache.jackrabbit.test.api.version.MergeShallowTest
       org.apache.jackrabbit.test.api.version.MergeNonVersionableSubNodeTest
       org.apache.jackrabbit.test.api.version.MergeSubNodeTest
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreName                             <!-- OAK-1335 -->
-      org.apache.jackrabbit.test.api.version.RestoreTest#testRestoreNameJcr2                         <!-- OAK-1335 -->
 
       <!-- Permission Evaluation -->
 
