@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -26,56 +27,42 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
  * Tests the TraversingCursor.
  */
 public class TraversingIndexTest {
-    private final MicroKernel mk = new MicroKernelImpl();
-    private final KernelNodeStore store = new KernelNodeStore(mk);
-
-    private final LoadingCache<String, KernelNodeState> cache =
-            CacheBuilder.newBuilder().build(new CacheLoader<String, KernelNodeState>() {
-                @Override
-                public KernelNodeState load(String key) throws Exception {
-                    int slash = key.indexOf('/');
-                    String revision = key.substring(0, slash);
-                    String path = key.substring(slash);
-                    // this method is strictly called _after_ the cache is initialized,
-                    // when the fields are set
-                    return new KernelNodeState(store, path, revision, getCache());
-                }
-            });
-
-    LoadingCache<String, KernelNodeState> getCache() {
-        return cache;
-    }
 
     @Test
     public void traverse() throws Exception {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        NodeBuilder parents = builder.child("parents");
+        parents.child("p0").setProperty("id", 0);
+        parents.child("p1").setProperty("id", 1);
+        parents.child("p2").setProperty("id", 2);
+        NodeBuilder children = builder.child("children");
+        children.child("c1").setProperty("p", "1");
+        children.child("c2").setProperty("p", "1");
+        children.child("c3").setProperty("p", "2");
+        children.child("c4").setProperty("p", "3");
+        NodeState root = builder.getNodeState();
+
         TraversingIndex t = new TraversingIndex();
 
-        String head = mk.getHeadRevision();
-        head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
-        head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
         FilterImpl f = new FilterImpl();
 
         f.setPath("/");
+        Cursor c = t.query(f, root);
         List<String> paths = new ArrayList<String>();
-        Cursor c = t.query(f, new KernelNodeState(store, "/", head, cache));
         while (c.hasNext()) {
             paths.add(c.next().getPath());
         }
         Collections.sort(paths);
+
         assertEquals(Arrays.asList(
                 "/", "/children", "/children/c1", "/children/c2",
                 "/children/c3", "/children/c4", "/parents",
@@ -86,7 +73,7 @@ public class TraversingIndexTest {
         assertFalse(c.hasNext());
 
         f.setPath("/nowhere");
-        c = t.query(f, new KernelNodeState(store, "/", head, cache));
+        c = t.query(f, root);
         assertFalse(c.hasNext());
         // endure it stays false
         assertFalse(c.hasNext());

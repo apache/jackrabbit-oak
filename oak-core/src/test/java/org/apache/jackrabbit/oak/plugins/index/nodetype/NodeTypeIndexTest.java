@@ -29,15 +29,13 @@ import java.util.Set;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -48,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,12 +55,10 @@ import org.junit.Test;
  */
 public class NodeTypeIndexTest {
 
-    private KernelNodeStore store;
+    private NodeStore store = new MemoryNodeStore();
 
     @Before
     public void setup() {
-        MicroKernel mk = new MicroKernelImpl();
-        store = new KernelNodeStore(mk);
         // initialize node types & index definitions
         OakInitializer.initialize(store, new InitialContent(),
                 CompositeIndexEditorProvider
