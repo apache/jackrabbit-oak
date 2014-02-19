@@ -41,7 +41,8 @@ import com.google.common.collect.ImmutableMap;
  * the event info maps to as late as possible to avoid the memory overhead
  * of keeping track of pre-computed values.
  */
-class EventFactory {
+public class EventFactory {
+    public static final String USER_DATA = "user-data";
 
     private final NamePathMapper mapper;
 
@@ -53,12 +54,13 @@ class EventFactory {
 
     private final boolean external;
 
-    EventFactory(NamePathMapper mapper, CommitInfo info) {
+    EventFactory(NamePathMapper mapper, CommitInfo commitInfo) {
         this.mapper = mapper;
-        if (info != null) {
-            this.userID = info.getUserId();
-            this.userData = info.getMessage();
-            this.date = info.getDate();
+        if (commitInfo != null) {
+            this.userID = commitInfo.getUserId();
+            Object userData = commitInfo.getInfo().get(USER_DATA);
+            this.userData = userData instanceof String ? (String) userData : null;
+            this.date = commitInfo.getDate();
             this.external = false;
         } else {
             this.userID = CommitInfo.OAK_UNKNOWN;
