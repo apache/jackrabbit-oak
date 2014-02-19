@@ -32,6 +32,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -64,8 +65,14 @@ public class FilterImpl implements Filter {
      *  The path, or "/" (the root node, meaning no filter) if not set.
      */
     private String path = "/";
-
+    
     private PathRestriction pathRestriction = PathRestriction.NO_RESTRICTION;
+
+    /**
+     * Additional path restrictions whose values are known only at runtime,
+     * for example paths set by other (join-) selectors.
+     */
+    private String pathPlan;
 
     /**
      * The fulltext search conditions, if any.
@@ -93,6 +100,12 @@ public class FilterImpl implements Filter {
         this(null, null);
     }
 
+    /**
+     * Create a filter.
+     * 
+     * @param selector the selector for the given filter
+     * @param queryStatement the query statement
+     */
     public FilterImpl(SelectorImpl selector, String queryStatement) {
         this.selector = selector;
         this.queryStatement = queryStatement;
@@ -122,6 +135,18 @@ public class FilterImpl implements Filter {
     public boolean isPreparing() {
         return preparing;
     }
+    
+    /**
+     * Whether the given selector is already prepared during the prepare phase
+     * of a join. That means, check whether the passed selector can already
+     * provide data.
+     * 
+     * @param selector the selector to test
+     * @return true if it is already prepared
+     */
+    public boolean isPrepared(SelectorImpl selector) {
+        return selector.isPrepared();
+    }
 
     /**
      * Get the path.
@@ -136,6 +161,20 @@ public class FilterImpl implements Filter {
     @Override
     public PathRestriction getPathRestriction() {
         return pathRestriction;
+    }
+    
+    @Override
+    public String getPathPlan() {
+        StringBuilder buff = new StringBuilder();
+        String p = path;
+        if (PathUtils.denotesRoot(path)) {
+            p = "";
+        }
+        buff.append(p).append(pathRestriction);
+        if (pathPlan != null) {
+            buff.append(" && ").append(pathPlan);
+        }
+        return buff.toString();
     }
 
     public void setPath(String path) {
@@ -354,7 +393,7 @@ public class FilterImpl implements Filter {
         if (fullTextConstraint != null) {
             buff.append("fullText=").append(fullTextConstraint);
         }
-        buff.append(", path=").append(path).append(pathRestriction);
+        buff.append(", path=").append(getPathPlan());
         if (!propertyRestrictions.isEmpty()) {
             buff.append(", property=[");
             Iterator<Entry<String, PropertyRestriction>> iterator = propertyRestrictions
@@ -377,6 +416,18 @@ public class FilterImpl implements Filter {
             // currently unknown (prepare time)
             addedPath = "/";
         }
+        if (addedPath.startsWith(JoinConditionImpl.SPECIAL_PATH_PREFIX)) {
+            // not a real path, that means we only adapt the plan 
+            // and that's it
+            if (pathPlan == null) {
+                pathPlan = "";
+            } else {
+                pathPlan += " && ";
+            }
+            pathPlan += addedPath + addedPathRestriction;
+            return;
+        }
+        
         // calculating the intersection of path restrictions
         // this is ugly code, but I don't currently see a radically simpler method
         switch (addedPathRestriction) {

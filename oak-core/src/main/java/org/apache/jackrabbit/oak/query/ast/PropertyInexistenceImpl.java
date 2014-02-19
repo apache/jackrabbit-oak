@@ -134,7 +134,7 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
             // because that would alter the result
             return;
         }
-        if (s == selector) {
+        if (s.equals(selector)) {
             s.restrictSelector(this);
         }
     }

@@ -29,6 +29,21 @@ import java.util.Set;
  * What query languages are supported depends on the registered query parsers.
  */
 public interface QueryEngine {
+    
+    /**
+     * Empty set of variables bindings. Useful as an argument to
+     * {@link #executeQuery(String, String, long, long, Map, Map)} when
+     * there are no variables in a query.
+     */
+    Map<String, PropertyValue> NO_BINDINGS = emptyMap();
+
+    /**
+     * Empty set of namespace prefix mappings. Useful as an argument to
+     * {@link #getBindVariableNames(String, String, Map)} and
+     * {@link #executeQuery(String, String, long, long, Map, Map)} when
+     * there are no local namespace mappings.
+     */
+    Map<String, String> NO_MAPPINGS = emptyMap();
 
     /**
      * Get the set of supported query languages.
@@ -67,20 +82,5 @@ public interface QueryEngine {
             String statement, String language, long limit, long offset,
             Map<String, ? extends PropertyValue> bindings,
             Map<String, String> mappings) throws ParseException;
-
-    /**
-     * Empty set of variables bindings. Useful as an argument to
-     * {@link #executeQuery(String, String, long, long, Map, Map)} when
-     * there are no variables in a query.
-     */
-    Map<String, PropertyValue> NO_BINDINGS = emptyMap();
-
-    /**
-     * Empty set of namespace prefix mappings. Useful as an argument to
-     * {@link #getBindVariableNames(String, String, Map)} and
-     * {@link #executeQuery(String, String, long, long, Map, Map)} when
-     * there are no local namespace mappings.
-     */
-    Map<String, String> NO_MAPPINGS = emptyMap();
 
 }

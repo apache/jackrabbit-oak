@@ -100,7 +100,7 @@ public class NodeNameImpl extends DynamicOperandImpl {
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
-        return s == selector;
+        return s.equals(selector);
     }
 
     /**

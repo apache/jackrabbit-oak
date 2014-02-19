@@ -14,26 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.query;
-
-import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+package org.apache.jackrabbit.oak.query.plan;
 
 /**
- * An execution plan for one selector in a query. The conditions of the given
- * selectors are compiled into a filter, and the execution plan for the selector
- * is to use a certain query index, which will result in an estimated cost to
- * use that index to retrieve nodes for this index.
+ * An execution plan for a join or a selector.
  */
-public class SelectorExecutionPlan {
-    
-    public SelectorImpl selector;
-    
-    public Filter filter;
-    
-    public double estimatedCost;
-    
-    public QueryIndex index;
+public interface ExecutionPlan {
 
+    double getEstimatedCost();
+    
 }

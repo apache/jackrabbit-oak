@@ -126,7 +126,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        if (s != selector) {
+        if (!s.equals(selector)) {
             return null;
         }
         PropertyValue v = fullTextSearchExpression.currentValue();
@@ -230,7 +230,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (propertyName != null) {
-            if (f.getSelector() == selector) {
+            if (f.getSelector().equals(selector)) {
                 String pn = normalizePropertyName(propertyName);
                 f.restrictProperty(pn, Operator.NOT_EQUAL, null);
             }
@@ -240,7 +240,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        if (s == selector) {
+        if (s.equals(selector)) {
             selector.restrictSelector(this);
         }
     }

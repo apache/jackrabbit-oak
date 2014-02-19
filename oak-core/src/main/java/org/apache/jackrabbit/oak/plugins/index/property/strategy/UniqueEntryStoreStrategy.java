@@ -150,7 +150,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             if (ec != null) {
                 return ec.getValue(Type.LONG);
             }
-            count = index.getChildNodeCount(max);
+            count = 1 + index.getChildNodeCount(max);
             // "is not null" queries typically read more data
             count *= 10;
         } else if (values.size() == 1) {

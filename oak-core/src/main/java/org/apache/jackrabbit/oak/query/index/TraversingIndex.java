@@ -46,6 +46,8 @@ public class TraversingIndex implements QueryIndex {
             return 0;
         }
         double nodeCount = 10000000;
+        // if the path is from a join, then the depth is not correct
+        // (the path might be the root node), but that's OK
         String path = filter.getPath();
         PathRestriction restriction = filter.getPathRestriction();
         switch (restriction) {
@@ -81,12 +83,7 @@ public class TraversingIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState rootState) {
-        String p = filter.getPath();
-        String r = filter.getPathRestriction().toString();
-        if (PathUtils.denotesRoot(p)) {
-            p = "";
-        }
-        return "traverse \"" + p + r + '"';
+        return "traverse \"" + filter.getPathPlan() + '"';
     }
 
     @Override
