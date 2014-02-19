@@ -163,7 +163,6 @@
       <artifactId>org.osgi.compendium</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <dependency>
       <groupId>biz.aQute.bnd</groupId>
       <artifactId>bndlib</artifactId>
@@ -175,6 +174,7 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- Dependencies to other Oak components -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-api</artifactId>
@@ -193,6 +193,7 @@
       <version>${project.version}</version>
     </dependency>
 
+    <!-- General utility libraries -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
@@ -202,15 +203,15 @@
       <artifactId>commons-codec</artifactId>
       <version>1.5</version>
     </dependency>
-      <dependency>
-          <groupId>commons-io</groupId>
-          <artifactId>commons-io</artifactId>
-          <version>2.4</version>
-      </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
+    </dependency>
     <dependency>
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
-      <version>1.9.1</version>    
+      <version>1.9.1</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -225,13 +226,27 @@
       <optional>true</optional>
     </dependency>
 
-  <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->
+    <!--  Optional dependency for jclouds s3 to enable s3 cloud store -->
     <dependency>
       <groupId>org.apache.jclouds.provider</groupId>
       <artifactId>aws-s3</artifactId>
-      <optional>true</optional>      
+      <optional>true</optional>
     </dependency>
-    
+
+    <!-- Required for OffHeap storage and serialization-->
+    <dependency>
+      <groupId>com.esotericsoftware.kryo</groupId>
+      <artifactId>kryo</artifactId>
+      <version>2.22</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.directmemory</groupId>
+      <artifactId>directmemory-cache</artifactId>
+      <version>0.2</version>
+      <optional>true</optional>
+    </dependency>
+
     <!-- JCR and Jackrabbit dependencies -->
     <dependency>
       <groupId>javax.jcr</groupId>
@@ -254,6 +269,7 @@
       <version>${jackrabbit.version}</version>
       <optional>true</optional>
     </dependency>
+
     <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -266,20 +282,6 @@
       <artifactId>jsr305</artifactId>
       <version>2.0.0</version>
       <scope>provided</scope>
-    </dependency>
-
-    <!-- Required for OffHeap storage and serialization-->
-    <dependency>
-      <groupId>com.esotericsoftware.kryo</groupId>
-      <artifactId>kryo</artifactId>
-      <version>2.22</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.directmemory</groupId>
-      <artifactId>directmemory-cache</artifactId>
-      <version>0.2</version>
-      <optional>true</optional>
     </dependency>
 
     <!-- Test Dependencies -->
