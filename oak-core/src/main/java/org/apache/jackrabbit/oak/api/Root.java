@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.api;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -41,6 +42,7 @@ import javax.annotation.Nullable;
  * @see Tree Existence and iterability of trees
  */
 public interface Root {
+    String COMMIT_PATH = "path";
 
     /**
      * Move the child located at {@code sourcePath} to a child at {@code destPath}.
@@ -85,6 +87,8 @@ public interface Root {
      * may become non existing.
      */
     void refresh();
+
+    void commit(Map<String, Object> info) throws CommitFailedException;
 
     /**
      * Atomically persists all changes made to the tree attached to this root

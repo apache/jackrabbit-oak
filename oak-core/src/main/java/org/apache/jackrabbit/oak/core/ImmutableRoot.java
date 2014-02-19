@@ -18,7 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import java.io.InputStream;
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -31,9 +36,6 @@ import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -93,13 +95,18 @@ public final class ImmutableRoot implements Root {
     }
 
     @Override
-    public void commit() {
-        commit(null, null);
+    public void commit(Map<String, Object> info) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void commit(String message, String path) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void commit() {
+        commit(null, null);
     }
 
     @Override
