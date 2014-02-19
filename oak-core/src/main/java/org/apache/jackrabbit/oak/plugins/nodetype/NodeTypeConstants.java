@@ -43,7 +43,7 @@ public interface NodeTypeConstants extends JcrConstants {
      */
     String NT_REP_UNSTRUCTURED = "rep:Unstructured";
     /**
-     * @singe oak 1.0
+     * @since oak 1.0
      */
     String NT_OAK_UNSTRUCTURED = "oak:Unstructured";
 
