@@ -81,6 +81,8 @@ class TarFile {
 
             if (name.isEmpty() && size == 0) {
                 break; // no more entries in this file
+            } else if (position + BLOCK_SIZE + size > len) {
+                break; // invalid entry, truncate the file at this point
             }
 
             try {
