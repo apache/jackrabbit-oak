@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
@@ -62,8 +63,8 @@ import static org.junit.Assert.assertTrue;
 
 public class ClusterPermissionsTest {
 
-    private DocumentMK mk1;
-    private DocumentMK mk2;
+    private DocumentNodeStore ns1;
+    private DocumentNodeStore ns2;
     private ContentRepository contentRepository1;
     private ContentRepository contentRepository2;
     private UserManager userManager1;
@@ -87,12 +88,12 @@ public class ClusterPermissionsTest {
 
         builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        mk1 = builder.setClusterId(1).open();
+        ns1 = builder.setClusterId(1).getNodeStore();
         builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
-        mk2 = builder.setClusterId(2).open();
+        ns2 = builder.setClusterId(2).getNodeStore();
 
-        Oak oak = new Oak(mk1)
+        Oak oak = new Oak(ns1)
                 .with(new InitialContent())
                 .with(new ReferenceEditorProvider())
                 .with(new ReferenceIndexProvider())
@@ -106,7 +107,7 @@ public class ClusterPermissionsTest {
         userManager1 = securityProvider1.getConfiguration(UserConfiguration.class).getUserManager(root1, namePathMapper);
         aclMgr1 = securityProvider1.getConfiguration(AuthorizationConfiguration.class).getAccessControlManager(root1, namePathMapper);
 
-        oak = new Oak(mk2)
+        oak = new Oak(ns2)
                 .with(new InitialContent())
                 .with(new ReferenceEditorProvider())
                 .with(new ReferenceIndexProvider())
@@ -124,8 +125,8 @@ public class ClusterPermissionsTest {
 
     @After
     public void after() {
-        mk1.dispose();
-        mk2.dispose();
+        ns1.dispose();
+        ns2.dispose();
     }
 
     protected ConfigurationParameters getSecurityConfigParameters() {

@@ -45,19 +45,17 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.io.Closer;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -280,14 +278,9 @@ public class Oak {
         this.store = checkNotNull(store);
     }
 
-    public Oak(MicroKernel kernel) {
-        this(new KernelNodeStore(checkNotNull(kernel)));
-    }
-
     public Oak() {
-        this(new MicroKernelImpl());
+        this(new MemoryNodeStore());
         // this(new DocumentMK.Builder().open());
-        // this(new LogWrapper(new MicroKernelImpl()));
         // this(new LogWrapper(new DocumentMK.Builder().open()));
     }
 

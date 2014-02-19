@@ -24,7 +24,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -84,10 +83,6 @@ public class Jcr {
 
     public Jcr() {
         this(new Oak());
-    }
-
-    public Jcr(MicroKernel kernel) {
-        this(new Oak(kernel));
     }
 
     public Jcr(NodeStore store) {
