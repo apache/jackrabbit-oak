@@ -90,9 +90,13 @@ class MutableNodeState extends AbstractNodeState {
      *   child.reset(state);
      *   return child;
      * </pre>
+     *
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    MutableNodeState setChildNode(String name, NodeState state) {
+    MutableNodeState setChildNode(String name, NodeState state)
+            throws IllegalArgumentException {
         assert base != null;
 
         MutableNodeState child = nodes.get(name);

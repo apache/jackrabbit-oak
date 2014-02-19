@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 /**
  * This class refines move and copy operations by delegating
@@ -74,7 +75,7 @@ public class KernelNodeBuilder extends MemoryNodeBuilder implements FastMove {
     public boolean moveTo(NodeBuilder newParent, String newName) {
         if (newParent instanceof FastMove) {
             checkNotNull(newParent);
-            checkNotNull(newName);
+            checkValidName(newName);
             annotateSourcePath();
             boolean success = !isRoot() && exists() && !newParent.hasChildNode(newName) &&
                     ((FastMove) newParent).moveFrom(this, newName);

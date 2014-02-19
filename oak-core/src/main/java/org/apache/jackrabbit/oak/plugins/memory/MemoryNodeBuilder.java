@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -36,6 +38,7 @@ import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 /**
  * In-memory node state builder.
@@ -306,18 +309,19 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder getChildNode(String name) {
-        return createChildBuilder(checkNotNull(name));
+        checkValidName(name);
+        return createChildBuilder(name);
     }
 
     @Override
     public NodeBuilder setChildNode(String name) {
-        return setChildNode(checkNotNull(name), EMPTY_NODE);
+        return setChildNode(name, EMPTY_NODE);
     }
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState state) {
         checkState(exists(), "This builder does not exist: " + this.name);
-        head().getMutableNodeState().setChildNode(checkNotNull(name), checkNotNull(state));
+        head().getMutableNodeState().setChildNode(name, checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();
         return builder;
@@ -348,11 +352,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @param newParent  builder for the new parent.
      * @param newName  name of this child at the new parent
      * @return  {@code true} on success, {@code false} otherwise
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Override
-    public boolean moveTo(NodeBuilder newParent, String newName) {
+    public boolean moveTo(NodeBuilder newParent, String newName)
+            throws IllegalArgumentException {
         checkNotNull(newParent);
-        checkNotNull(newName);
+        checkValidName(newName);
         if (isRoot() || !exists() || newParent.hasChildNode(newName)) {
             return false;
         } else {

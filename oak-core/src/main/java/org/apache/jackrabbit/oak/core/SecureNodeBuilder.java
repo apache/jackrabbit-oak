@@ -326,7 +326,7 @@ class SecureNodeBuilder implements NodeBuilder, FastMove {
 
     @Override
     public NodeBuilder getChildNode(@Nonnull String name) {
-        return new SecureNodeBuilder(this, checkNotNull(name));
+        return new SecureNodeBuilder(this, name);
     }
 
     @Override
