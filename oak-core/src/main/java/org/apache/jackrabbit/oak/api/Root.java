@@ -42,6 +42,10 @@ import javax.annotation.Nullable;
  * @see Tree Existence and iterability of trees
  */
 public interface Root {
+    /**
+     * Name of the entry of the commit path in the {@code info}
+     * map in {@link #commit(java.util.Map)}
+     */
     String COMMIT_PATH = "path";
 
     /**
@@ -88,18 +92,18 @@ public interface Root {
      */
     void refresh();
 
-    void commit(Map<String, Object> info) throws CommitFailedException;
-
     /**
-     * Atomically persists all changes made to the tree attached to this root
-     * at the given {@code path}. An implementations may throw a
+     * Atomically persists all changes made to the tree attached to this root.
+     * <p>
+     * If {@code info} contains a mapping for {@link #COMMIT_PATH} and the
+     * associated value is a string, implementations may throw a
      * {@code CommitFailedException} if there are changes outside of the subtree
-     * designated by {@code path} and the implementation does not support
+     * designated by that path and the implementation does not support
      * such partial commits. However all implementation must handler the
      * case where a {@code path} designates a subtree that contains all
      * unpersisted changes.
      * <p>
-     * The message string (if given) is passed to the underlying storage
+     * The {@code info} map is passed to the underlying storage
      * as a part of the internal commit information attached to this commit.
      * The commit information will be made available to local observers but
      * will not be visible to observers on other cluster nodes.
@@ -107,8 +111,22 @@ public interface Root {
      * After a successful operation the root is automatically
      * {@link #refresh() refreshed}, such that trees previously obtained
      * through {@link #getTree(String)} may become non existing.
+     */
+    void commit(Map<String, Object> info) throws CommitFailedException;
+
+    /**
+     * Atomically persists all changes made to the tree attached to this root
+     * at the given {@code path}. An implementation may throw a
+     * {@code CommitFailedException} if there are changes outside of the subtree
+     * designated by {@code path} and the implementation does not support
+     * such partial commits. However all implementation must handler the
+     * case where a {@code path} designates a subtree that contains all
+     * unpersisted changes.
+     * <p>
+     * After a successful operation the root is automatically
+     * {@link #refresh() refreshed}, such that trees previously obtained
+     * through {@link #getTree(String)} may become non existing.
      *
-     * @param message custom message to be associated with this commit
      * @param path of the subtree to commit
      * @throws CommitFailedException if the commit failed
      */
@@ -117,8 +135,7 @@ public interface Root {
     /**
      * Atomically persists all changes made to the tree attached to this root.
      * Calling this method is equivalent to calling the
-     * {@link #commit(String, String)} method with {@code null} parameters for
-     * {@code message} and {@code path}.
+     * {@link #commit(String)} method with a {@code null} argument {@code path}.
      *
      * @throws CommitFailedException if the commit failed
      */
