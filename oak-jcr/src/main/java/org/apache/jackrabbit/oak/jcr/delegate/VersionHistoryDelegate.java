@@ -22,10 +22,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -33,15 +33,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.util.ISO8601;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 /**
  * {@code VersionHistoryDelegate}...
@@ -131,22 +130,17 @@ public class VersionHistoryDelegate extends NodeDelegate {
     }
 
     @Nonnull
-    public Iterator<VersionDelegate> getAllVersions()
-            throws RepositoryException {
-        SortedMap<Long, String> versions = new TreeMap<Long, String>();
-        for (Iterator<NodeDelegate> it = getChildren(); it.hasNext(); ) {
+    public Iterator<VersionDelegate> getAllVersions() throws RepositoryException {
+        Set<String> versions = new HashSet<String>();
+        for (Iterator<NodeDelegate> it = getChildren(); it.hasNext();) {
             NodeDelegate n = it.next();
             String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
-                PropertyDelegate created = n.getPropertyOrNull(JcrConstants.JCR_CREATED);
-                if (created != null) {
-                    Long cal = ISO8601.parse(created.getDate()).getTimeInMillis();
-                    versions.put(cal, n.getName());
-                }
+                versions.add(n.getName());
             }
         }
         final Tree thisTree = getTree();
-        return Iterators.transform(versions.values().iterator(), new Function<String, VersionDelegate>() {
+        return Iterators.transform(versions.iterator(), new Function<String, VersionDelegate>() {
             @Override
             public VersionDelegate apply(String name) {
                 return VersionDelegate.create(sessionDelegate, thisTree.getChild(name));
