@@ -42,6 +42,11 @@ public interface NodeTypeConstants extends JcrConstants {
      * @since oak 1.0
      */
     String NT_REP_UNSTRUCTURED = "rep:Unstructured";
+    /**
+     * @singe oak 1.0
+     */
+    String NT_OAK_UNSTRUCTURED = "oak:Unstructured";
+
     String NT_REP_NODE_TYPE = "rep:NodeType";
     String NT_REP_NAMED_PROPERTY_DEFINITIONS = "rep:NamedPropertyDefinitions";
     String NT_REP_PROPERTY_DEFINITIONS = "rep:PropertyDefinitions";
