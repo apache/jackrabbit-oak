@@ -26,9 +26,11 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 
 /**
  * A property expression.
@@ -114,22 +116,28 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     @Override
     public void restrict(FilterImpl f, Operator operator, PropertyValue v) {
-        if (f.getSelector() == selector) {
+        if (f.getSelector().equals(selector)) {
             if (operator == Operator.NOT_EQUAL && v != null) {
                 // not supported
                 return;
             }
-            String pn = normalizePropertyName(propertyName);            
-            f.restrictProperty(pn, operator, v);
-            if (propertyType != PropertyType.UNDEFINED) {
-                f.restrictPropertyType(pn, operator, propertyType);
+            String pn = normalizePropertyName(propertyName);
+            if (pn.equals(QueryImpl.JCR_PATH)) {
+                if (operator == Operator.EQUAL) {
+                    f.restrictPath(v.getValue(Type.STRING), PathRestriction.EXACT);
+                }
+            } else {
+                f.restrictProperty(pn, operator, v);
+                if (propertyType != PropertyType.UNDEFINED) {
+                    f.restrictPropertyType(pn, operator, propertyType);
+                }
             }
         }
     }
     
     @Override
     public void restrictList(FilterImpl f, List<PropertyValue> list) {
-        if (f.getSelector() == selector) {
+        if (f.getSelector().equals(selector)) {
             String pn = normalizePropertyName(propertyName);            
             f.restrictPropertyAsList(pn, list);
         }
@@ -137,7 +145,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
-        return s == selector;
+        return s.equals(selector);
     }
     
     @Override

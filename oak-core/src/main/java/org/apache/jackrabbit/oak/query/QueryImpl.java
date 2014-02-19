@@ -61,6 +61,8 @@ import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
+import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -317,7 +319,6 @@ public class QueryImpl implements Query {
             constraint = constraint.simplify();
         }
         source.setQueryConstraint(constraint);
-        source.init(this);
         for (ColumnImpl column : columns) {
             column.bindSelector(source);
         }
@@ -446,36 +447,42 @@ public class QueryImpl implements Query {
         List<SourceImpl> sources = source.getInnerJoinSelectors();
         List<JoinConditionImpl> conditions = source.getInnerJoinConditions();
 
-//        if (sources.size() <= 1) {
+        if (sources.size() <= 1) {
             // simple case (no join)
-            estimatedCost = source.prepare();
-//            return;
-//        }
-        
-//        if (sources.size() < 6) {
-//            // TODO iterate over all permutations
-//        }
-//        
-//        // use a greedy algorithm
-//        SourceImpl result = null;
-//        Set<SourceImpl> available = new HashSet<SourceImpl>();
-//        while (sources.size() > 0) {
-//            int bestIndex = 0;
-//            double bestCost = Double.POSITIVE_INFINITY;
-//            for (int i = 0; i < sources.size(); i++) {
-//                SourceImpl source = buildJoin(result, sources.get(i).createClone(), conditions);
-//                double cost = source.prepare();
-//                if (cost <= bestCost) {
-//                    bestCost = cost;
-//                    bestIndex = i;
-//                }
-//            }
-//            SourceImpl s = sources.get(bestIndex).createClone();
-//            available.add(s);
-//            sources.remove(bestIndex);
-//            result = buildJoin(result, s, conditions);
-//        }
-//        source = result;
+            estimatedCost = source.prepare().getEstimatedCost();
+            return;
+        }
+
+        // use a greedy algorithm
+        SourceImpl result = null;
+        Set<SourceImpl> available = new HashSet<SourceImpl>();
+        while (sources.size() > 0) {
+            int bestIndex = 0;
+            double bestCost = Double.POSITIVE_INFINITY;
+            ExecutionPlan bestPlan = null;
+            SourceImpl best = null;
+            for (int i = 0; i < sources.size(); i++) {
+                SourceImpl test = buildJoin(result, sources.get(i), conditions);
+                if (test == null) {
+                    // no join condition
+                    continue;
+                }
+                ExecutionPlan testPlan = test.prepare();
+                double cost = testPlan.getEstimatedCost();
+                if (best == null || cost < bestCost) {
+                    bestPlan = testPlan;
+                    bestCost = cost;
+                    bestIndex = i;
+                    best = test;
+                }
+                test.unprepare();
+            }
+            available.add(sources.remove(bestIndex));
+            result = best;
+            best.prepare(bestPlan);
+        }
+        estimatedCost = result.prepare().getEstimatedCost();
+        source = result;
                 
     }
     
@@ -483,17 +490,22 @@ public class QueryImpl implements Query {
         if (result == null) {
             return last;
         }
-        Set<SourceImpl> available = new HashSet<SourceImpl>();
-        available.addAll(result.getInnerJoinSelectors());
-        available.add(last);
+        List<SourceImpl> selectors = result.getInnerJoinSelectors();
+        Set<SourceImpl> oldSelectors = new HashSet<SourceImpl>();
+        oldSelectors.addAll(selectors);
+        Set<SourceImpl> newSelectors = new HashSet<SourceImpl>();
+        newSelectors.addAll(selectors);
+        newSelectors.add(last);
         for (JoinConditionImpl j : conditions) {
-            if (j.canEvaluate(available)) {
+            // only join conditions can now be evaluated,
+            // but couldn't be evaluated before
+            if (!j.canEvaluate(oldSelectors) && j.canEvaluate(newSelectors)) {
                 JoinImpl join = new JoinImpl(result, last, JoinType.INNER, j);
                 return join;
             }
         }
-        // this is an internal error
-        throw new IllegalArgumentException("No join condition was found");
+        // no join condition was found
+        return null;
     }
  
     /**
@@ -681,7 +693,6 @@ public class QueryImpl implements Query {
             }
         }
 
-
         if (traversalEnabled) {
             QueryIndex traversal = new TraversingIndex();
             double cost = traversal.getCost(filter, rootState);
@@ -690,12 +701,7 @@ public class QueryImpl implements Query {
                 best = traversal;
             }
         }
-        SelectorExecutionPlan plan = new SelectorExecutionPlan();
-        plan.filter = filter;
-        plan.estimatedCost = bestCost;
-        plan.index = best;
-        plan.selector = filter.getSelector();
-        return plan;
+        return new SelectorExecutionPlan(filter.getSelector(), best, bestCost);
     }
 
     @Override

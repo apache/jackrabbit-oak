@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.query.ast;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.query.QueryImpl;
+import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -55,14 +55,6 @@ public abstract class SourceImpl extends AstElement {
     public abstract void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide);
 
     /**
-     * Initialize the query. This will 'wire' the selectors with the
-     * constraints.
-     *
-     * @param query the query
-     */
-    public abstract void init(QueryImpl query);
-
-    /**
      * Get the selector with the given name, or null if not found.
      *
      * @param selectorName the selector name
@@ -93,12 +85,25 @@ public abstract class SourceImpl extends AstElement {
     public abstract String getPlan(NodeState rootState);
 
     /**
-     * Prepare executing the query (recursively). This method will decide which
-     * index to use.
+     * Prepare executing the query (recursively). This will 'wire' the
+     * selectors with the join constraints, and decide which index to use.
      * 
-     * @return the estimated cost
+     * @return the execution plan
      */
-    public abstract double prepare();
+    public abstract ExecutionPlan prepare();
+    
+    /**
+     * Undo a prepare.
+     */
+    public abstract void unprepare();
+
+    /**
+     * Re-apply a previously prepared plan. This will also 're-wire' the
+     * selectors with the join constraints
+     * 
+     * @param p the plan to use
+     */
+    public abstract void prepare(ExecutionPlan p);
     
     /**
      * Execute the query. The current node is set to before the first row.
@@ -114,15 +119,6 @@ public abstract class SourceImpl extends AstElement {
      * @return true if there is a next row
      */
     public abstract boolean next();
-    
-    /**
-     * Create a shallow clone of this instance.
-     * 
-     * @return the clone
-     */
-    public abstract SourceImpl createClone();
-
-    abstract void setParent(JoinConditionImpl joinCondition);
 
     /**
      * <b>!Test purpose only! <b>
@@ -156,5 +152,5 @@ public abstract class SourceImpl extends AstElement {
      * @return true if there is any
      */
     public abstract boolean isOuterJoinRightHandSide();
-    
+
 }

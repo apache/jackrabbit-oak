@@ -80,7 +80,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        if (f.getSelector() == selector) {
+        if (f.getSelector().equals(selector)) {
             String pn = normalizePropertyName(propertyName);
             f.restrictProperty(pn, Operator.NOT_EQUAL, null);
         }
@@ -88,7 +88,7 @@ public class PropertyExistenceImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        if (s == selector) {
+        if (s.equals(selector)) {
             s.restrictSelector(this);
         }
     }

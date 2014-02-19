@@ -23,8 +23,11 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
-explain select e.[jcr:path] from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) inner join [nt:base] as c on ischildnode(c, b) inner join [nt:base] as d on ischildnode(d, c) inner join [nt:base] as e on ischildnode(e, d) where name(a) = 'a' and isdescendantnode(a, '/b') and name(b) = 'c' and name(c) = 'd' and name(d) = 'e' and (e.[type] = '1' or e.[type] = '2' or e.[type] = '3' or e.[type] = '4')
-[nt:base] as [a] /* traverse "/b//*" where (name([a]) = cast('a' as string)) and (isdescendantnode([a], [/b])) */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where name([b]) = cast('c' as string) */ on ischildnode([b], [a]) inner join [nt:base] as [c] /* traverse "/path/from/the/join/selector/*" where name([c]) = cast('d' as string) */ on ischildnode([c], [b]) inner join [nt:base] as [d] /* traverse "/path/from/the/join/selector/*" where name([d]) = cast('e' as string) */ on ischildnode([d], [c]) inner join [nt:base] as [e] /* traverse "/path/from/the/join/selector/*" where ([e].[type] is not null) and ([e].[type] in(cast('1' as string), cast('2' as string), cast('3' as string), cast('4' as string))) */ on ischildnode([e], [d])
+explain select e.[jcr:path] from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) inner join [nt:base] as c on ischildnode(c, b) inner join [nt:base] as d on ischildnode(d, c) inner join [nt:base] as e on ischildnode(e, d) where name(a) = 'a' and isdescendantnode(a, '/b') and name(b) = 'c' and name(c) = 'd' and name(d) = 'e' and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
+[nt:base] as [e] /* property jcr:uuid where ([e].[jcr:uuid] is not null) and ([e].[jcr:uuid] in(cast('1' as string), cast('2' as string), cast('3' as string), cast('4' as string))) */ inner join [nt:base] as [d] /* traverse "* && //parent/of/join" where name([d]) = cast('e' as string) */ on ischildnode([e], [d]) inner join [nt:base] as [c] /* traverse "* && //parent/of/join" where name([c]) = cast('d' as string) */ on ischildnode([d], [c]) inner join [nt:base] as [b] /* traverse "* && //parent/of/join" where name([b]) = cast('c' as string) */ on ischildnode([c], [b]) inner join [nt:base] as [a] /* traverse "/b//* && //parent/of/join" where (name([a]) = cast('a' as string)) and (isdescendantnode([a], [/b])) */ on ischildnode([b], [a])
+
+explain select e.[jcr:path] from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) inner join [nt:base] as c on ischildnode(c, b) inner join [nt:base] as d on ischildnode(d, c) inner join [nt:base] as e on ischildnode(e, d) where name(a) = 'a' and isdescendantnode(a, '/b') and name(b) = 'c' and name(c) = 'd' and name(d) = 'e' and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
+[nt:base] as [e] /* property jcr:uuid where ([e].[jcr:uuid] is not null) and ([e].[jcr:uuid] in(cast('1' as string), cast('2' as string), cast('3' as string), cast('4' as string))) */ inner join [nt:base] as [d] /* traverse "* && //parent/of/join" where name([d]) = cast('e' as string) */ on ischildnode([e], [d]) inner join [nt:base] as [c] /* traverse "* && //parent/of/join" where name([c]) = cast('d' as string) */ on ischildnode([d], [c]) inner join [nt:base] as [b] /* traverse "* && //parent/of/join" where name([b]) = cast('c' as string) */ on ischildnode([c], [b]) inner join [nt:base] as [a] /* traverse "/b//* && //parent/of/join" where (name([a]) = cast('a' as string)) and (isdescendantnode([a], [/b])) */ on ischildnode([b], [a])
 
 explain select excerpt(.) from [nt:resource] where contains(*, 'jackrabbit')
 [nt:resource] as [nt:resource] /* traverse "*" where contains([nt:resource].[*], cast('jackrabbit' as string)) */
@@ -37,6 +40,9 @@ explain select excerpt(.) from [nt:resource] where (contains(*, 'jackrabbit') or
 
 explain select * from [nt:base] where [jcr:uuid]=1 or [b]=2
 [nt:base] as [nt:base] /* traverse "*" */
+
+explain select b.[jcr:uuid] from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
+[nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as string), cast('2' as string))) */ inner join [nt:base] as [b] /* traverse "* && //path/from/join//*" */ on isdescendantnode([b], [a])
 
 explain select b.[jcr:uuid] from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2') and b.[jcr:uuid] is not null
 [nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as string), cast('2' as string))) */ inner join [nt:base] as [b] /* property jcr:uuid where [b].[jcr:uuid] is not null */ on isdescendantnode([b], [a])
@@ -66,7 +72,7 @@ explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantno
 [nt:base] as [a] /* property jcr:uuid where ([a].[jcr:uuid] is not null) and ([a].[jcr:uuid] in(cast('1' as long), cast('2' as long))) */ inner join [nt:base] as [b] /* property jcr:uuid where ([b].[jcr:uuid] is not null) and ([b].[jcr:uuid] in(cast('3' as long), cast('4' as long))) */ on isdescendantnode([b], [a])
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[x] is not null
-[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector//*" where [b].[x] is not null */ on isdescendantnode([b], [a])
+[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "* && //path/from/join//*" where [b].[x] is not null */ on isdescendantnode([b], [a])
 
 explain select [rep:excerpt] from [nt:base] where [jcr:uuid] is not null
 [nt:base] as [nt:base] /* property jcr:uuid (rep:excerpt) where [nt:base].[jcr:uuid] is not null */

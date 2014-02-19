@@ -66,25 +66,23 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        if (f.getSelector() == parentSelector) {
+        if (f.getSelector().equals(parentSelector)) {
             String c = childSelector.currentPath();
-            if (c == null && f.isPreparing() && childSelector.isPrepared()) {
+            if (c == null && f.isPreparing() && f.isPrepared(childSelector)) {
                 // during the prepare phase, if the selector is already
                 // prepared, then we would know the value
-                c = KNOWN_PATH;
-            }
-            if (c != null) {
+                f.restrictPath(KNOWN_PARENT_PATH, Filter.PathRestriction.EXACT);
+            } else if (c != null) {
                 f.restrictPath(PathUtils.getParentPath(c), Filter.PathRestriction.EXACT);
             }
         }
-        if (f.getSelector() == childSelector) {
+        if (f.getSelector().equals(childSelector)) {
             String p = parentSelector.currentPath();
-            if (p == null && f.isPreparing() && parentSelector.isPrepared()) {
+            if (p == null && f.isPreparing() && f.isPrepared(parentSelector)) {
                 // during the prepare phase, if the selector is already
                 // prepared, then we would know the value
-                p = KNOWN_PATH;
-            }
-            if (p != null) {
+                f.restrictPath(KNOWN_PATH, Filter.PathRestriction.DIRECT_CHILDREN);
+            } else if (p != null) {
                 f.restrictPath(p, Filter.PathRestriction.DIRECT_CHILDREN);
             }
         }
@@ -97,7 +95,7 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public boolean isParent(SourceImpl source) {
-        return source == parentSelector;
+        return source.equals(parentSelector);
     }
  
     @Override

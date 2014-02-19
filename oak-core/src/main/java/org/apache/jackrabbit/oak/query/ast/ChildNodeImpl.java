@@ -88,7 +88,7 @@ public class ChildNodeImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        if (selector == f.getSelector()) {
+        if (selector.equals(f.getSelector())) {
             String path = normalizePath(parentPath);
             f.restrictPath(path, Filter.PathRestriction.DIRECT_CHILDREN);
         }
@@ -96,7 +96,7 @@ public class ChildNodeImpl extends ConstraintImpl {
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        if (s == selector) {
+        if (s.equals(selector)) {
             s.restrictSelector(this);
         }
     }

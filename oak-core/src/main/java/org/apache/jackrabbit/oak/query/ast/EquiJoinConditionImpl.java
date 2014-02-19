@@ -93,9 +93,9 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        if (f.getSelector() == selector1) {
+        if (f.getSelector().equals(selector1)) {
             PropertyValue p2 = selector2.currentProperty(property2Name);
-            if (p2 == null && f.isPreparing() && selector2.isPrepared()) {
+            if (p2 == null && f.isPreparing() && f.isPrepared(selector2)) {
                 // during the prepare phase, if the selector is already
                 // prepared, then we would know the value
                 p2 = PropertyValues.newString(KNOWN_VALUE);
@@ -110,9 +110,9 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
             String p1n = normalizePropertyName(property1Name);
             f.restrictProperty(p1n, Operator.EQUAL, p2);
         }
-        if (f.getSelector() == selector2) {
+        if (f.getSelector().equals(selector2)) {
             PropertyValue p1 = selector1.currentProperty(property1Name);
-            if (p1 == null && f.isPreparing() && selector1.isPrepared()) {
+            if (p1 == null && f.isPreparing() && f.isPrepared(selector1)) {
                 // during the prepare phase, if the selector is already
                 // prepared, then we would know the value
                 p1 = PropertyValues.newString(KNOWN_VALUE);
@@ -132,11 +132,11 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     @Override
     public void restrictPushDown(SelectorImpl s) {
         // both properties may not be null
-        if (s == selector1) {
+        if (s.equals(selector1)) {
             PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property1Name);
             ex.bindSelector(s);
             s.restrictSelector(ex);
-        } else if (s == selector2) {
+        } else if (s.equals(selector2)) {
             PropertyExistenceImpl ex = new PropertyExistenceImpl(s.getSelectorName(), property2Name);
             ex.bindSelector(s);
             s.restrictSelector(ex);

@@ -210,7 +210,7 @@ public class OrImpl extends ConstraintImpl {
         } else {
             // exactly one selector: check if it's the right one
             SelectorImpl s2 = set.iterator().next();
-            if (s2 != s) {
+            if (!s2.equals(s)) {
                 // a different selector
                 return false;
             }

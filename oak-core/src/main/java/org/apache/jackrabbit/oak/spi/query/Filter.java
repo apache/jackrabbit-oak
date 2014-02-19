@@ -85,6 +85,13 @@ public interface Filter {
      * @return the path
      */
     String getPath();
+    
+    /**
+     * Get the plan for the path.
+     * 
+     * @return the plan
+     */
+    String getPathPlan();
 
     /**
      * Checks whether nodes of all types can match this filter.

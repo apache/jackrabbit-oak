@@ -23,10 +23,20 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
 public abstract class JoinConditionImpl extends AstElement {
     
     /**
-     * A path with 6 elements, which is the expected average for a join.
+     * The prefix for known paths.
      */
-    protected static final String KNOWN_PATH = "/path/from/the/join/selector";
+    public static final String SPECIAL_PATH_PREFIX = "//";
+    
+    /**
+     * A path for a join.
+     */
+    protected static final String KNOWN_PATH = "//path/from/join";
 
+    /**
+     * The parent path of the joined selector
+     */
+    protected static final String KNOWN_PARENT_PATH = "//parent/of/join";
+    
     protected static final String KNOWN_VALUE = "valueFromTheJoinSelector";
 
     /**

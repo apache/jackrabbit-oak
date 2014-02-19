@@ -43,9 +43,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.query.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.query.plan.ExecutionPlan;
+import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -131,6 +132,7 @@ public class SelectorImpl extends SourceImpl {
      * "select * from nt:base as a inner join nt:base as b on a.x =
      * b.x", the join condition "a.x = b.x" is set for both selectors a and b,
      * so both can check if the property x is set.
+     * The join conditions are added during the init phase.
      */
     private ArrayList<JoinConditionImpl> allJoinConditions =
             new ArrayList<JoinConditionImpl>();
@@ -176,41 +178,6 @@ public class SelectorImpl extends SourceImpl {
             this.primaryTypes = ImmutableSet.of();
             this.mixinTypes = ImmutableSet.of();
         }
-    }
-    
-    private SelectorImpl(SelectorImpl clone) {
-        this.nodeType = clone.nodeType;
-        this.selectorName = clone.selectorName;
-        this.nodeTypeName = clone.nodeTypeName;
-        this.matchesAllTypes = clone.matchesAllTypes;
-        this.supertypes = clone.supertypes;
-        this.primaryTypes = clone.primaryTypes;
-        this.mixinTypes = clone.mixinTypes;
-        this.query = clone.query;
-        this.isParent = clone.isParent;
-        this.outerJoinLeftHandSide = clone.outerJoinLeftHandSide;
-        this.outerJoinRightHandSide = clone.outerJoinRightHandSide;
-        this.allJoinConditions = clone.allJoinConditions;
-    }
-    
-
-//   queryConstraint;
-//   protected JoinConditionImpl joinCondition;
-//   protected ArrayList<JoinConditionImpl> allJoinConditions =
-//           new ArrayList<JoinConditionImpl>();
-//   protected boolean join;
-//   protected boolean outerJoinLeftHandSide;
-//   protected boolean outerJoinRightHandSide;
-//   protected boolean isParent;    
-    
-    /**
-     * Create a shallow clone of this instance.
-     * 
-     * @return the clone
-     */
-    @Override
-    public SelectorImpl createClone() {
-        return new SelectorImpl(this);
     }
 
     public String getSelectorName() {
@@ -265,9 +232,30 @@ public class SelectorImpl extends SourceImpl {
     public boolean isPrepared() {
         return plan != null;
     }
-
+    
     @Override
-    public double prepare() {
+    public void unprepare() {
+        plan = null;
+        selectorCondition = null;
+        isParent = false;
+        joinCondition = null;
+        allJoinConditions.clear();
+    }
+    
+    @Override
+    public void prepare(ExecutionPlan p) {
+        if (!(p instanceof SelectorExecutionPlan)) {
+            throw new IllegalArgumentException("Not a selector plan");
+        }
+        SelectorExecutionPlan selectorPlan = (SelectorExecutionPlan) p;
+        if (selectorPlan.getSelector() != this) {
+            throw new IllegalArgumentException("Not a plan for this selector");
+        }
+        pushDown();
+        this.plan = selectorPlan;
+    }
+    
+    private void pushDown() {
         if (queryConstraint != null) {
             queryConstraint.restrictPushDown(this);
         }
@@ -276,8 +264,16 @@ public class SelectorImpl extends SourceImpl {
                 c.restrictPushDown(this);
             }
         }
+    }
+
+    @Override
+    public ExecutionPlan prepare() {
+        if (plan != null) {
+            return plan;
+        }
+        pushDown();
         plan = query.getBestSelectorExecutionPlan(createFilter(true));
-        return plan.estimatedCost;
+        return plan;
     }
     
     @Override
@@ -297,12 +293,15 @@ public class SelectorImpl extends SourceImpl {
             this.joinCondition = joinCondition;
         }
         allJoinConditions.add(joinCondition);
+        if (joinCondition.isParent(this)) {
+            isParent = true;
+        }
     }
 
     @Override
     public void execute(NodeState rootState) {
-        if (plan.index != null) {
-            cursor = plan.index.query(createFilter(false), rootState);
+        if (plan.getIndex() != null) {
+            cursor = plan.getIndex().query(createFilter(false), rootState);
         } else {
             cursor = Cursors.newPathCursor(new ArrayList<String>());
         }
@@ -342,7 +341,7 @@ public class SelectorImpl extends SourceImpl {
         // "rep:excerpt is not null" to let the index know that
         // we will need the excerpt
         for (ColumnImpl c : query.getColumns()) {
-            if (c.getSelector() == this) {
+            if (c.getSelector().equals(this)) {
                 if (c.getColumnName().equals("rep:excerpt")) {
                     f.restrictProperty("rep:excerpt", Operator.NOT_EQUAL, null);
                 }
@@ -615,11 +614,6 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public void init(QueryImpl query) {
-        // nothing to do
-    }
-
-    @Override
     public SelectorImpl getSelector(String selectorName) {
         if (selectorName.equals(this.selectorName)) {
             return this;
@@ -654,15 +648,8 @@ public class SelectorImpl extends SourceImpl {
         return selectorName.hashCode();
     }
 
-    @Override
-    protected void setParent(JoinConditionImpl joinCondition) {
-        if (joinCondition.isParent(this)) {
-            isParent = true;
-        }
-    }
-
     QueryIndex getIndex() {
-        return plan == null ? null : plan.index;
+        return plan == null ? null : plan.getIndex();
     }
 
     @Override

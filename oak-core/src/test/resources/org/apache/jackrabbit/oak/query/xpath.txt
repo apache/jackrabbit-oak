@@ -23,6 +23,10 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# "or" problem (OAK-1432)
+# xpath2sql /jcr:root/content/dam//element(*, nt:unstructured)[((@sling:resourceType = 'dam/smartcollection' or @sling:resourceType = 'dam/collection') or @sling:resourceSuperType = 'dam/collection')]
+# select
+
 # property names with missing @
 
 xpath2sql /jcr:root/testroot//b/c/d/*[@jcr:uuid='1' or @jcr:uuid='2']
