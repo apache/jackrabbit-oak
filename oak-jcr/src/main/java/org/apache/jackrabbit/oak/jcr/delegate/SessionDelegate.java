@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
@@ -34,6 +35,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
@@ -250,7 +253,9 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit(Root root) throws CommitFailedException {
-        root.commit(userData, "/");
+        Map<String, Object> info = Maps.newHashMap();
+        info.put(EventFactory.USER_DATA, userData);
+        root.commit(info);
     }
 
     public void checkProtectedNode(String path) throws RepositoryException {
