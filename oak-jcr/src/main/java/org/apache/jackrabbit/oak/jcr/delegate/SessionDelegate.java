@@ -484,7 +484,7 @@ public class SessionDelegate {
             String desc = ops.description();
             if(desc != null){
                 Marker sessionMarker = MarkerFactory.getMarker(this.toString());
-                operationLogger.debug(sessionMarker,desc);
+                operationLogger.debug(sessionMarker,String.format("[%s] %s",toString(),desc));
             }
         }
     }
