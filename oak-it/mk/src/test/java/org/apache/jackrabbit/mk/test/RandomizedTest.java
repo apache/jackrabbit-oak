@@ -30,7 +30,6 @@ import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.junit.Test;
 
 import com.mongodb.DB;
