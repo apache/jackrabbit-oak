@@ -18,14 +18,23 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -53,12 +62,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 abstract class AbstractRoot implements Root {
 
@@ -106,7 +109,7 @@ abstract class AbstractRoot implements Root {
      * may no longer be detected as changes in the commit hook due to way the
      * diff is compiled.
      */
-    private MoveTracker moveTracker = new MoveTracker();
+    private final MoveTracker moveTracker = new MoveTracker();
 
     /**
      * Number of {@link #updated} occurred.
@@ -223,25 +226,34 @@ abstract class AbstractRoot implements Root {
     }
 
     @Override
-    public void commit() throws CommitFailedException {
-        commit(null, "/");
-    }
-
-    @Override
-    public void commit(@Nullable String message, @Nonnull String path)
-            throws CommitFailedException {
+    public void commit(Map<String, Object> info) throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
-        CommitInfo info = new CommitInfo(
-                session.toString(), session.getAuthInfo().getUserID(),
-                message, path);
-        store.merge(builder, getCommitHook(), info);
+        Object path = info.get(COMMIT_PATH);
+        CommitInfo commitInfo = new CommitInfo(
+                session.toString(), session.getAuthInfo().getUserID(), (String) info.get("message"),
+                path instanceof String ? (String) path : "/");
+        store.merge(builder, getCommitHook(), commitInfo);
         secureBuilder.baseChanged();
         modCount = 0;
         if (permissionProvider.hasValue()) {
             permissionProvider.get().refresh();
         }
         moveTracker.clear();
+    }
+
+    @Override
+    public void commit(@Nullable String message, @Nullable String path)
+            throws CommitFailedException {
+        Map<String, Object> info = Maps.newHashMap();
+        info.put("message", message);
+        info.put(COMMIT_PATH, path);
+        commit(info);
+    }
+
+    @Override
+    public void commit() throws CommitFailedException {
+        commit(null, null);
     }
 
     /**
