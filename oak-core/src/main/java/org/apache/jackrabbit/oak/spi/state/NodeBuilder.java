@@ -190,9 +190,11 @@ public interface NodeBuilder {
      * @since Oak 0.6
      * @param name name of the child node
      * @return child builder
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    NodeBuilder child(@Nonnull String name);
+    NodeBuilder child(@Nonnull String name) throws IllegalArgumentException;
 
     /**
      * Returns a builder for constructing changes to the named child node.
@@ -203,9 +205,12 @@ public interface NodeBuilder {
      * @since Oak 0.7
      * @param name name of the child node
      * @return child builder, possibly non-existent
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    NodeBuilder getChildNode(@Nonnull String name);
+    NodeBuilder getChildNode(@Nonnull String name)
+            throws IllegalArgumentException;
 
     /**
      * Adds the named child node and returns a builder for modifying it.
@@ -214,9 +219,12 @@ public interface NodeBuilder {
      * @since Oak 0.7
      * @param name name of the child node
      * @return child builder
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    NodeBuilder setChildNode(@Nonnull String name);
+    NodeBuilder setChildNode(@Nonnull String name)
+            throws IllegalArgumentException;
 
     /**
      * Adds or replaces a subtree.
@@ -224,9 +232,12 @@ public interface NodeBuilder {
      * @param name name of the child node containing the new subtree
      * @param nodeState subtree
      * @return child builder
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState);
+    NodeBuilder setChildNode(@Nonnull String name, @Nonnull NodeState nodeState)
+            throws IllegalArgumentException;
 
     /**
      * Remove this child node from its parent.
@@ -253,8 +264,11 @@ public interface NodeBuilder {
      * @param newParent  builder for the new parent.
      * @param newName  name of this child at the new parent
      * @return  {@code true} on success, {@code false} otherwise
+     * @throws IllegalArgumentException if the given name string is empty
+     *                                  or contains the forward slash character
      */
-    boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName);
+    boolean moveTo(@Nonnull NodeBuilder newParent, @Nonnull String newName)
+            throws IllegalArgumentException;
 
     /**
      * Returns the current number of properties.
@@ -365,9 +379,12 @@ public interface NodeBuilder {
      * Set a property state
      * @param property  The property state to set
      * @return this builder
+     * @throws IllegalArgumentException if the property name is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    NodeBuilder setProperty(@Nonnull PropertyState property);
+    NodeBuilder setProperty(@Nonnull PropertyState property)
+            throws IllegalArgumentException;
 
     /**
      * Set a property state
@@ -378,9 +395,12 @@ public interface NodeBuilder {
      *
      * @param name  name of the property
      * @return this builder
+     * @throws IllegalArgumentException if the property name is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    <T> NodeBuilder setProperty(String name, @Nonnull T value);
+    <T> NodeBuilder setProperty(String name, @Nonnull T value)
+            throws IllegalArgumentException;
 
     /**
      * Set a property state
@@ -388,9 +408,12 @@ public interface NodeBuilder {
      * @param value  The value of this property
      * @param <T>  The type of this property.
      * @return this builder
+     * @throws IllegalArgumentException if the property name is empty
+     *                                  or contains the forward slash character
      */
     @Nonnull
-    <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type);
+    <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type)
+            throws IllegalArgumentException;
 
     /**
     * Remove the named property. This method has no effect if a
