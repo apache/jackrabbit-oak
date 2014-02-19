@@ -200,8 +200,7 @@ public interface Tree {
      * Get a possibly non existing child of this {@code Tree}.
      * @param name The name of the child to retrieve.
      * @return The child with the given {@code name}.
-     * @throws IllegalArgumentException if the given name string is empty
-     *                                  or contains the forward slash character
+     * @throws IllegalArgumentException if the given name is invalid
      */
     @Nonnull
     Tree getChild(@Nonnull String name) throws IllegalArgumentException;
@@ -254,9 +253,10 @@ public interface Tree {
      *
      * @param name name of the child
      * @return the {@code Tree} instance of the child with the given {@code name}.
+     * @throws IllegalArgumentException if the given name is invalid
      */
     @Nonnull
-    Tree addChild(@Nonnull String name);
+    Tree addChild(@Nonnull String name) throws IllegalArgumentException;
 
     /**
      * Changes the nature of this tree such that the order of the children
@@ -296,6 +296,7 @@ public interface Tree {
      * @return {@code false} if there is no sibling with the given
      *         {@code name} or no reordering was performed;
      *         {@code true} otherwise.
+     * @throws IllegalArgumentException if the given name is invalid
      */
     boolean orderBefore(@Nullable String name);
 
@@ -303,6 +304,7 @@ public interface Tree {
      * Set a property state
      *
      * @param property The property state to set
+     * @throws IllegalArgumentException if the property name is invalid
      */
     void setProperty(@Nonnull PropertyState property);
 
@@ -312,9 +314,11 @@ public interface Tree {
      * @param name  The name of this property
      * @param value The value of this property
      * @param <T>   The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
-     * @throws IllegalArgumentException if {@code T} is not one of the above types.
+     * @throws IllegalArgumentException if {@code T} is not one of the above types,
+     *                                  or if the given name is invalid
      */
-    <T> void setProperty(@Nonnull String name, @Nonnull T value);
+    <T> void setProperty(@Nonnull String name, @Nonnull T value)
+            throws IllegalArgumentException;
 
     /**
      * Set a property state
@@ -323,8 +327,10 @@ public interface Tree {
      * @param value The value of this property
      * @param type  The type of this property.
      * @param <T>   The type of this property.
+     * @throws IllegalArgumentException if the given name is invalid
      */
-    <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type);
+    <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type)
+            throws IllegalArgumentException;
 
     /**
      * Remove the property with the given name. This method has no effect if a
