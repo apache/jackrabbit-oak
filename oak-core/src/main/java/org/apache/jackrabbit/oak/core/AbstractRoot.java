@@ -229,10 +229,8 @@ abstract class AbstractRoot implements Root {
     public void commit(Map<String, Object> info) throws CommitFailedException {
         checkLive();
         ContentSession session = getContentSession();
-        Object path = info.get(COMMIT_PATH);
         CommitInfo commitInfo = new CommitInfo(
-                session.toString(), session.getAuthInfo().getUserID(), (String) info.get("message"),
-                path instanceof String ? (String) path : "/");
+                session.toString(), session.getAuthInfo().getUserID(), info);
         store.merge(builder, getCommitHook(), commitInfo);
         secureBuilder.baseChanged();
         modCount = 0;
