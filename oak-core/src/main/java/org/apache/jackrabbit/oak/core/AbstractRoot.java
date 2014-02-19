@@ -241,17 +241,15 @@ abstract class AbstractRoot implements Root {
     }
 
     @Override
-    public void commit(@Nullable String message, @Nullable String path)
-            throws CommitFailedException {
+    public void commit(@Nullable String path) throws CommitFailedException {
         Map<String, Object> info = Maps.newHashMap();
-        info.put("message", message);
         info.put(COMMIT_PATH, path);
         commit(info);
     }
 
     @Override
     public void commit() throws CommitFailedException {
-        commit(null, null);
+        commit((String) null);
     }
 
     /**

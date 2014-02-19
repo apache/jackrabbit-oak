@@ -112,8 +112,7 @@ public interface Root {
      * @param path of the subtree to commit
      * @throws CommitFailedException if the commit failed
      */
-    void commit(@Nullable String message, @Nullable String path)
-            throws CommitFailedException;
+    void commit(@Nullable String path) throws CommitFailedException;
 
     /**
      * Atomically persists all changes made to the tree attached to this root.

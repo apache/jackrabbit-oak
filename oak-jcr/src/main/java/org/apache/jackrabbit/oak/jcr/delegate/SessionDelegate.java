@@ -388,7 +388,7 @@ public class SessionDelegate {
             save();
         } else {
             try {
-                root.commit(null, path);
+                root.commit(path);
             } catch (CommitFailedException e) {
                 RepositoryException repositoryException = newRepositoryException(e);
                 sessionStats.failedSave(repositoryException);

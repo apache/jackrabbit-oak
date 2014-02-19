@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Maps.newConcurrentMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
@@ -32,7 +39,6 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -52,13 +58,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newLinkedList;
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 /**
  * This is a simple {@link NodeStore}-based {@link MicroKernel} implementation.
@@ -474,7 +473,7 @@ public class NodeStoreKernel implements MicroKernel {
         } else {
             try {
                 CommitInfo info =
-                        new CommitInfo(CommitInfo.OAK_UNKNOWN, null, message);
+                        new CommitInfo(CommitInfo.OAK_UNKNOWN, null);
                 NodeState newRoot = store.merge(builder, CONFLICT_HOOK, info);
                 if (!newRoot.equals(head.root)) {
                     revision = new Revision(head, newRoot, message);
@@ -511,7 +510,7 @@ public class NodeStoreKernel implements MicroKernel {
 
         try {
             CommitInfo info =
-                    new CommitInfo(CommitInfo.OAK_UNKNOWN, null, message);
+                    new CommitInfo(CommitInfo.OAK_UNKNOWN, null);
             NodeState newRoot =
                     store.merge(revision.branch, CONFLICT_HOOK, info);
             if (!newRoot.equals(head.root)) {
