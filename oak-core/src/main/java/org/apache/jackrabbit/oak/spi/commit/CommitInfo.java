@@ -21,11 +21,15 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.api.Root;
 
 /**
  * Commit info instances associate some meta data with a commit.
@@ -39,24 +43,21 @@ public final class CommitInfo {
      * metadata is known (or needed) about a commit.
      */
     public static final CommitInfo EMPTY =
-            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, null);
+            new CommitInfo(OAK_UNKNOWN, OAK_UNKNOWN, "/");
 
     private final String sessionId;
 
     private final String userId;
 
-    private final String message;
-
     private final long date = System.currentTimeMillis();
 
-    private final String path;
+    private final Map<String, Object> info;
 
     /**
      * Creates a commit info for the given session and user.
      *
      * @param sessionId session identifier
      * @param userId The user id.
-     * @param message message attached to this commit, or {@code null}
      */
     public CommitInfo(
             @Nonnull String sessionId, @Nullable String userId,
@@ -67,10 +68,23 @@ public final class CommitInfo {
     public CommitInfo(
             @Nonnull String sessionId, @Nullable String userId,
             @Nullable String message, @Nonnull String path) {
+        this(sessionId, userId, ImmutableMap.<String, Object>of(
+                Root.COMMIT_PATH, checkNotNull(path),
+                "message", String.valueOf(message)
+        ));
+    }
+
+    /**
+     * Creates a commit info for the given session and user and info map.
+     *
+     * @param sessionId session identifier
+     * @param userId The user id.
+     * @param info info map
+     */
+    public CommitInfo(@Nonnull String sessionId, @Nullable String userId, Map<String, Object> info) {
         this.sessionId = checkNotNull(sessionId);
         this.userId = (userId == null) ? OAK_UNKNOWN : userId;
-        this.message = message;
-        this.path = checkNotNull(path);
+        this.info = checkNotNull(info);
     }
 
     /**
@@ -94,7 +108,8 @@ public final class CommitInfo {
      */
     @CheckForNull
     public String getMessage() {
-        return message;
+        Object message = info.get("message");
+        return message instanceof String ? (String) message : null;
     }
 
     /**
@@ -116,7 +131,16 @@ public final class CommitInfo {
      * @return base path of this commit
      */
     public String getPath() {
-        return path;
+        Object path = info.get(Root.COMMIT_PATH);
+        return path instanceof String ? (String) path : "/";
+    }
+
+    /**
+     * Return the info map
+     * @return  info map
+     */
+    public Map<String, Object> getInfo() {
+        return info;
     }
 
     //------------------------------------------------------------< Object >--
@@ -129,9 +153,8 @@ public final class CommitInfo {
             CommitInfo that = (CommitInfo) object;
             return sessionId.equals(that.sessionId)
                     && userId.equals(that.userId)
-                    && Objects.equal(this.message, that.message)
                     && this.date == that.date
-                    && path.equals(that.path);
+                    && info.equals(that.info);
         } else {
             return false;
         }
@@ -139,7 +162,7 @@ public final class CommitInfo {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(sessionId, userId, message, date, path);
+        return Objects.hashCode(sessionId, userId, date, info);
     }
 
     @Override
@@ -147,9 +170,8 @@ public final class CommitInfo {
         return toStringHelper(this).omitNullValues()
                 .add("sessionId", sessionId)
                 .add("userId", userId)
-                .add("userData", message)
                 .add("date", date)
-                .add("path", path)
+                .add("info", info)
                 .toString();
     }
 
