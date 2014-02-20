@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -156,6 +157,33 @@ public abstract class AbstractTree implements Tree {
         } else {
             return nodeBuilder.getChildNodeNames();
         }
+    }
+
+    //------------------------------------------------------------< Object >---
+
+    @Override
+    public String toString() {
+        return getPath() + ": " + toString(getNodeState());
+    }
+
+    protected String toString(NodeState nodeState) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        for (PropertyState p : nodeState.getProperties()) {
+            if (!isHidden(p.getName())) {
+                sb.append(' ').append(p).append(',');
+            }
+        }
+        for (ChildNodeEntry n : nodeState.getChildNodeEntries()) {
+                if(!isHidden(n.getName())) {
+                    sb.append(' ').append(n.getName()).append( " = { ... },");
+                }
+        }
+        if (sb.length() > 1) {
+            sb.deleteCharAt(sb.length() - 1);
+        }
+        sb.append('}');
+        return sb.toString();
     }
 
     //---------------------------------------------------------------< Tree >---

@@ -207,7 +207,7 @@ public final class ImmutableTree extends AbstractTree {
 
     @Override
     public String toString() {
-        return "ImmutableTree '" + getName() + "':" + state.toString();
+        return "ImmutableTree '" + getName() + "':" + toString(state);
     }
 
     //--------------------------------------------------------------------------

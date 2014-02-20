@@ -47,6 +47,15 @@ public class HiddenTree implements Tree {
         this.name = name;
     }
 
+    //------------------------------------------------------------< Object >---
+
+    @Override
+    public String toString() {
+        return getPath() + ": {}";
+    }
+
+    //------------------------------------------------------------< Tree >---
+
     @Nonnull
     @Override
     public String getName() {

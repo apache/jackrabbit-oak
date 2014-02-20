@@ -298,13 +298,6 @@ class MutableTree extends AbstractTree {
         root.updated();
     }
 
-    //-----------------------------------------------------------< Object >---
-
-    @Override
-    public String toString() {
-        return getPathInternal() + ": " + getNodeState();
-    }
-
     //---------------------------------------------------------< internal >---
     /**
      * Set the parent and name of this tree.
