@@ -234,7 +234,11 @@ public abstract class AbstractQueryTest {
         try {
             Result result = executeQuery(query, language, NO_BINDINGS);
             for (ResultRow row : result.getRows()) {
-                lines.add(readRow(row, pathsOnly));
+                String r = readRow(row, pathsOnly);
+                if (query.startsWith("explain ")) {
+                    r = formatPlan(r);
+                }
+                lines.add(r);
             }
             if (!query.contains("order by")) {
                 Collections.sort(lines);
@@ -471,6 +475,14 @@ public abstract class AbstractQueryTest {
         sql = sql.replaceAll(" or ", "\n  or ");
         sql = sql.replaceAll(" order by ", "\n  order by ");
         return sql;
+    }
+    
+    static String formatPlan(String plan) {
+        plan = plan.replaceAll(" where ", "\n  where ");
+        plan = plan.replaceAll(" inner join ", "\n  inner join ");
+        plan = plan.replaceAll(" on ", "\n  on ");
+        plan = plan.replaceAll(" and ", "\n  and ");
+        return plan;
     }
     
     /**
