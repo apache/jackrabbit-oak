@@ -26,9 +26,6 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-/**
- * ExternalLoginModuleImpl... TODO
- */
 public class TestIdentityProvider implements ExternalIdentityProvider {
 
     private final Map<String, TestGroup> externalGroups = new HashMap<String, TestGroup>();

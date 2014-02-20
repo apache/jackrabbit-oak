@@ -17,19 +17,20 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
 /**
- * SyncException... TODO
+ * Exception thrown by methods defined on the {@code SyncHandler}
+ * interface indicating that user or group synchronization failed.
  */
 public class SyncException extends Exception {
 
-    public SyncException(String s) {
-        super(s);
+    public SyncException(String message) {
+        super(message);
     }
 
     public SyncException(Throwable throwable) {
         super(throwable);
     }
 
-    public SyncException(String s, Throwable throwable) {
-        super(s, throwable);
+    public SyncException(String message, Throwable throwable) {
+        super(message, throwable);
     }
 }

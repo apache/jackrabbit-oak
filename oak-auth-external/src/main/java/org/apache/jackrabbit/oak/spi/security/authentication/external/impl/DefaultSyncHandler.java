@@ -145,7 +145,7 @@ public class DefaultSyncHandler implements SyncHandler {
                     }
                     return true;
                 } else if (identity instanceof ExternalGroup) {
-                    // todo
+                    // TODO
                     return false;
 
                 } else {
