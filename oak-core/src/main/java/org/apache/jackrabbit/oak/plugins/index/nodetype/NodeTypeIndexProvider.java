@@ -22,6 +22,8 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -32,6 +34,8 @@ import com.google.common.collect.ImmutableList;
  * <code>NodeTypeIndexProvider</code> is a {@link QueryIndexProvider} for
  * {@link NodeTypeIndex} instances.
  */
+@Component
+@Service(QueryIndexProvider.class)
 public class NodeTypeIndexProvider implements QueryIndexProvider {
 
     @Nonnull
