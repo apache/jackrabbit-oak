@@ -52,7 +52,6 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
     }
 
     @Test
-    @Ignore("OAK-1441")  // FIXME OAK-1441
     public void testGetHiddenTree() {
         Tree hidden = parent.getChild(hiddenName);
         assertNotNull(hidden);
