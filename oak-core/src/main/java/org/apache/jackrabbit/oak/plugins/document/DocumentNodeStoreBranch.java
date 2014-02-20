@@ -169,7 +169,7 @@ public class DocumentNodeStoreBranch
                 // finally clause cancel the commit
                 return base;
             }
-            rev = store.apply(c);
+            rev = c.apply();
             success = true;
         } finally {
             if (success) {

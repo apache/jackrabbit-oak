@@ -848,6 +848,10 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         checkNotNull(op).unsetMapEntry(REVISIONS, checkNotNull(revision));
     }
 
+    public static boolean isRevisionsEntry(String name) {
+        return REVISIONS.equals(name);
+    }
+
     public static void removeRevision(@Nonnull UpdateOp op,
                                       @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));

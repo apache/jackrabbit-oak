@@ -40,7 +40,7 @@ public class ConcurrentCreateNodesTest extends AbstractTest {
     public static final int EVENT_TYPES = NODE_ADDED | NODE_REMOVED | NODE_MOVED |
             PROPERTY_ADDED | PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
-    private static final int WORKER_COUNT = 20;
+    private static final int WORKER_COUNT = Integer.getInteger("workerCount", 20);
     private static final int LISTENER_COUNT = Integer.getInteger("listenerCount", 0);
     private static final int NODE_COUNT_LEVEL2 = 50;
     private static final String NODE_TYPE = System.getProperty("nodeType", "nt:unstructured");

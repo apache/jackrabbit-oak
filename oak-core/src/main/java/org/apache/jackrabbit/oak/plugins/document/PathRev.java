@@ -64,4 +64,9 @@ final public class PathRev implements CacheValue {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return path + "@" + revision;
+    }
 }
