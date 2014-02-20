@@ -42,7 +42,7 @@ abstract class Expression {
         } else if (add == null) {
             return old;
         }
-        return new Expression.Condition(old, "and", add, Expression.PRECEDENCE_AND);
+        return new Expression.AndCondition(old, add);
     }
     
     /**
@@ -52,6 +52,15 @@ abstract class Expression {
      */
     boolean isCondition() {
         return false;
+    }
+    
+    /**
+     * Pull an OR condition up to the right hand side of an AND condition.
+     * 
+     * @return the (possibly rotated) expression
+     */
+    Expression pullOrRight() {
+        return this;
     }
     
     /**
@@ -253,6 +262,27 @@ abstract class Expression {
 
         AndCondition(Expression left, Expression right) {
             super(left, "and", right, Expression.PRECEDENCE_AND);
+        }
+        
+        @Override
+        AndCondition pullOrRight() {
+            if (right instanceof OrCondition) {
+                return this;
+            } else if (left instanceof OrCondition) {
+                return new AndCondition(right, left);
+            }
+            if (right instanceof AndCondition) {
+                // pull up x:
+                // a and (b and (x)) -> (a and b) and (x)
+                AndCondition r2 = (AndCondition) right;
+                r2 = r2.pullOrRight();
+                AndCondition l2 = new AndCondition(left, r2.left);
+                l2 = l2.pullOrRight();
+                return new AndCondition(l2, r2.right);
+            } else if (left instanceof AndCondition) {
+                return new AndCondition(right, left).pullOrRight();
+            }
+            return this;
         }
         
     }
