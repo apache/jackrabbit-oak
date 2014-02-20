@@ -28,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -116,7 +117,7 @@ public abstract class AbstractQueryTest {
 
     protected void test(String file) throws Exception {
         InputStream in = AbstractQueryTest.class.getResourceAsStream(file);
-        LineNumberReader r = new LineNumberReader(new InputStreamReader(in));
+        ContinueLineReader r = new ContinueLineReader(new LineNumberReader(new InputStreamReader(in)));
         String className = getClass().getName();
         String shortClassName = className.replaceAll("org.apache.jackrabbit.oak.plugins.index.", "oajopi.");
         PrintWriter w = new PrintWriter(new OutputStreamWriter(
@@ -146,12 +147,13 @@ public abstract class AbstractQueryTest {
                         // e.printStackTrace();
                         got = "error: " + e.toString().replace('\n', ' ');
                     }
+                    String formatted = formatSQL(got);
                     if (!knownQueries.add(line)) {
                         got = "duplicate xpath2sql query";
                     }
                     line = r.readLine().trim();
-                    w.println(got);
-                    if (!line.equals(got)) {
+                    w.println(formatted);
+                    if (!line.equals(got) && !line.equals(formatted)) {
                         errors = true;
                     }
                 } else if (line.startsWith("select")
@@ -453,6 +455,55 @@ public abstract class AbstractQueryTest {
             reader.matches(',');
         }
         return createProperty(name, values, Type.fromTag(type, true));
+    }
+    
+    static String formatSQL(String sql) {
+        // the "(?s)" is enabling the "dot all" flag
+        // keep /* xpath ... */ to ensure the xpath comment
+        // is really there (and at the right position)
+        sql = sql.replaceAll("(?s) /\\* .* \\*/", "\n  /* xpath ... */").trim();
+        sql = sql.replaceAll(" union select ", "\n  union select ");
+        sql = sql.replaceAll(" from ", "\n  from ");
+        sql = sql.replaceAll(" where ", "\n  where ");
+        sql = sql.replaceAll(" inner join ", "\n  inner join ");
+        sql = sql.replaceAll(" on ", "\n  on ");
+        sql = sql.replaceAll(" and ", "\n  and ");
+        sql = sql.replaceAll(" or ", "\n  or ");
+        sql = sql.replaceAll(" order by ", "\n  order by ");
+        return sql;
+    }
+    
+    /**
+     * A line reader that supports multi-line statements, where lines that start
+     * with a space belong to the previous line.
+     */
+    class ContinueLineReader {
+        
+        private final LineNumberReader reader;
+        
+        ContinueLineReader(LineNumberReader reader) {
+            this.reader = reader;
+        }
+        
+        public void close() throws IOException {
+            reader.close();
+        }
+        
+        public String readLine() throws IOException {
+            String line = reader.readLine();
+            if (line == null || line.trim().length() == 0) {
+                return line;
+            }
+            while (true) {
+                reader.mark(4096);
+                String next = reader.readLine();
+                if (next == null || !next.startsWith(" ")) {
+                    reader.reset();
+                    return line;
+                }
+                line = (line.trim() + "\n" + next).trim();
+            }
+        }
     }
 
 }
