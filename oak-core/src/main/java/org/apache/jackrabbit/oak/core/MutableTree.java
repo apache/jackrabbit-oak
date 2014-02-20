@@ -78,8 +78,7 @@ class MutableTree extends AbstractTree {
     //-----------------------------------------------------< AbstractTree >---
 
     @Override
-    protected MutableTree createChild(String name)
-            throws IllegalArgumentException {
+    protected MutableTree createChild(String name) throws IllegalArgumentException {
         return new MutableTree(root, this, name, pendingMoves);
     }
 
@@ -149,7 +148,11 @@ class MutableTree extends AbstractTree {
     @Override
     public Tree getChild(String name) {
         beforeRead();
-        return createChild(name);
+        if (super.hasChild(name)) {
+            return createChild(name);
+        } else {
+            return new HiddenTree(this, name);
+        }
     }
 
     @Override

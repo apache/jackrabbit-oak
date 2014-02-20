@@ -114,7 +114,7 @@ public final class ImmutableTree extends AbstractTree {
 
     @Override
     public Status getStatus() {
-        return Status.EXISTING;
+        return Status.UNCHANGED;
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class ImmutableTree extends AbstractTree {
     @Override
     public Status getPropertyStatus(String name) {
         if (hasProperty(name)) {
-            return Status.EXISTING;
+            return Status.UNCHANGED;
         } else {
             return null;
         }

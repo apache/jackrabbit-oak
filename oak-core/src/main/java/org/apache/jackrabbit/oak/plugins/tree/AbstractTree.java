@@ -24,7 +24,7 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Tree.Status.EXISTING;
+import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -195,7 +195,7 @@ public abstract class AbstractTree implements Tree {
         } else if (nodeBuilder.isModified()) {
             return MODIFIED;
         } else {
-            return EXISTING;
+            return UNCHANGED;
         }
     }
 
@@ -233,7 +233,7 @@ public abstract class AbstractTree implements Tree {
         } else if (nodeBuilder.isReplaced(name)) {
             return MODIFIED;
         } else {
-            return EXISTING;
+            return UNCHANGED;
         }
     }
 
