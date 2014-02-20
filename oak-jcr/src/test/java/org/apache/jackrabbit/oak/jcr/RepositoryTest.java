@@ -75,6 +75,7 @@ import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -1708,7 +1709,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void renameNonOrderable() throws RepositoryException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
-        Node parent = root.addNode("parent", "oak:Unstructured");
+        Node parent = root.addNode("parent", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
         parent.addNode("fo");
         Node foo = parent.addNode("foo");
         session.save();

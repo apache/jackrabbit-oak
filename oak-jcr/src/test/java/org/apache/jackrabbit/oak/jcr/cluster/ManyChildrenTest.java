@@ -24,6 +24,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.h2.util.Profiler;
 import org.junit.After;
@@ -85,7 +86,7 @@ public class ManyChildrenTest {
         int count = 10;
         
         Profiler prof = null;
-        String nodeType = "oak:Unstructured";
+        String nodeType = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
         if (session.getRootNode().hasNode("many")) {
             session.getRootNode().getNode("many").remove();
             session.save();
