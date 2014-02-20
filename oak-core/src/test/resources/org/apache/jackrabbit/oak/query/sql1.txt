@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # Syntax:
+# * lines that start with spaces belong to the previous line
 # * lines starting with "#" are remarks.
 # * lines starting with "select" are queries, followed by expected results and an empty line
 # * lines starting with "explain" are followed by expected query plan and an empty line
@@ -29,14 +30,21 @@ sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 as
 
 sql1 select excerpt(.) from nt:resource where contains(., 'jackrabbit')
 
-sql1 select * from nt:base where jcr:path like '/testroot/%' and birth > timestamp '1976-01-01T00:00:00.000+01:00'
+sql1 select * from nt:base 
+  where jcr:path like '/testroot/%' 
+  and birth > timestamp '1976-01-01T00:00:00.000+01:00'
 
-sql1 select * from nt:base where jcr:path like '/testroot/%' and value like 'foo\_bar' escape '\'
+sql1 select * from nt:base 
+  where jcr:path like '/testroot/%' 
+  and value like 'foo\_bar' escape '\'
 
-sql1 select * from nt:unstructured where "jcr:path" = '/testroot/foo' and contains(., 'fox')
+sql1 select * from nt:unstructured 
+  where "jcr:path" = '/testroot/foo' and contains(., 'fox')
 
-sql1 select * from nt:unstructured where "jcr:path" like '/testroot/%' and contains(., 'fox test')
+sql1 select * from nt:unstructured 
+  where "jcr:path" like '/testroot/%' and contains(., 'fox test')
 
 # not supported currently
-# sql1 select [jcr:path], [jcr:score], * from [nt:base] where (0 is not null) and isdescendantnode('/testroot')
+# sql1 select [jcr:path], [jcr:score], * from [nt:base] 
+#   where (0 is not null) and isdescendantnode('/testroot')
 
