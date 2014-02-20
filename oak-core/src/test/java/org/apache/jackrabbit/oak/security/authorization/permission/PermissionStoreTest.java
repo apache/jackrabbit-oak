@@ -40,9 +40,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-/**
- * PermissionStoreTest... TODO
- */
 public class PermissionStoreTest extends AbstractSecurityTest {
 
     private AuthorizationConfiguration acConfig;

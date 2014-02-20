@@ -30,14 +30,14 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 
-/**
- * {@code PermissionEntryProviderImpl} ...  TODO
- */
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
-    private static final long MAX_SIZE = 250; // TODO define size or make configurable
+    public static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
+
+    private static final long DEFAULT_SIZE = 250;
 
     private final Set<String> principalNames;
 
@@ -49,11 +49,14 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private final PermissionEntryCache.Local cache;
 
+    private final long maxSize;
+
     PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache.Local cache,
-                                @Nonnull Set<String> principalNames) {
+                                @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
         this.store = store;
         this.cache = cache;
         this.principalNames = Collections.unmodifiableSet(principalNames);
+        this.maxSize = options.getConfigValue(EAGER_CACHE_SIZE_PARAM, DEFAULT_SIZE);
         init();
     }
 
@@ -61,7 +64,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         long cnt = 0;
         existingNames.clear();
         for (String name: principalNames) {
-            if (cnt > MAX_SIZE) {
+            if (cnt > maxSize) {
                 if (cache.hasEntries(store, name)) {
                     existingNames.add(name);
                 }
@@ -73,7 +76,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
                 }
             }
         }
-        if (cnt < MAX_SIZE) {
+        if (cnt < maxSize) {
             // cache all entries of all principals
             pathEntryMap = new HashMap<String, Collection<PermissionEntry>>();
             for (String name: principalNames) {

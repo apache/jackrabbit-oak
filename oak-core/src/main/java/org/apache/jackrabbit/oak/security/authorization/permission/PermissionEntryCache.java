@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
  * Every newly loaded principal permission set can be pushed down to the base
  * cache if it does not exist there yet, or if it's newer.
  *
- * Todo:
+ * TODO:
  * - currently only the entries of 'everyone' are globally cached. this should be improved to dynamically cache those
  *   principals that are used often
  * - report cache usage metrics

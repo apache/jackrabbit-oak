@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -59,10 +60,6 @@ import static com.google.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.ALL;
 import static org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission.EMPTY;
 
-/**
- * TODO: WIP
- * FIXME: decide on where to filter out hidden items (OAK-753)
- */
 final class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(CompiledPermissionImpl.class);
@@ -111,8 +108,9 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
             }
         }
 
-        userStore = new PermissionEntryProviderImpl(store, cache, userNames);
-        groupStore = new PermissionEntryProviderImpl(store, cache, groupNames);
+        ConfigurationParameters options = acConfig.getParameters();
+        userStore = new PermissionEntryProviderImpl(store, cache, userNames, options);
+        groupStore = new PermissionEntryProviderImpl(store, cache, groupNames, options);
 
         typeProvider = new TreeTypeProvider(acConfig.getContext());
     }
@@ -158,7 +156,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         int type = typeProvider.getType(tree, parentType);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
-                // TODO: OAK-753 decide on where to filter out hidden items.
                 return ALL;
             case TreeTypeProvider.TYPE_VERSION:
                 String ntName = TreeUtil.getPrimaryTypeName(tree);
@@ -173,10 +170,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                         log.warn("Cannot retrieve versionable node for " + tree.getPath());
                         return EMPTY;
                     } else {
-                        // TODO: may return wrong results in case of restrictions
-                        // TODO that would match the path of the versionable node
-                        // TODO (or item in the subtree) but that item no longer exists
-                        // TODO -> evaluation by path would be more accurate (-> see #isGranted)
+                        /**
+                         * NOTE: may return wrong results in case of restrictions
+                         * that would match the path of the versionable node
+                         * (or item in the subtree) but that item no longer exists
+                         * -> evaluation by path might be more accurate (-> see #isGranted)
+                         */
                         while (!versionableTree.exists()) {
                             versionableTree = versionableTree.getParent();
                         }
@@ -212,7 +211,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         int type = typeProvider.getType(tree);
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
-                // TODO: OAK-753 decide on where to filter out hidden items.
                 return true;
             case TreeTypeProvider.TYPE_VERSION:
                 Tree versionableTree = getVersionableTree(tree);
@@ -336,7 +334,6 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
                 Tree versionableTree = getVersionableTree(tree);
                 if (versionableTree == null || !versionableTree.exists()) {
                     // unable to determine the location of the versionable item -> deny access.
-                    // TODO : add proper handling for cases where the versionable node does not exist (anymore)
                     return PrivilegeBits.EMPTY;
                 }  else {
                     return getPrivilegeBits(versionableTree);
@@ -513,13 +510,11 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
         @Override
         public boolean canReadAll() {
-            // TODO: best effort approach to detect full read-access within a given tree.
             return readStatus != null && readStatus.allowsAll();
         }
 
         @Override
         public boolean canReadProperties() {
-                // TODO: best effort approach to detect full read-property permission
             return readStatus != null && readStatus.allowsProperties();
         }
 

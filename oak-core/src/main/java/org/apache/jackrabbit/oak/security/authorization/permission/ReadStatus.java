@@ -21,9 +21,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
-/**
- * ReadStatus... TODO
- */
 final class ReadStatus {
 
     private static final int THIS = 1;
@@ -80,6 +77,7 @@ final class ReadStatus {
     }
 
     boolean allowsAll() {
-        return false; // TODO: calculation of allows-all requires knowledge of permissions defined in the subtree
+        // NOTE: calculation of allows-all requires knowledge of permissions defined in the subtree
+        return false;
     }
 }
