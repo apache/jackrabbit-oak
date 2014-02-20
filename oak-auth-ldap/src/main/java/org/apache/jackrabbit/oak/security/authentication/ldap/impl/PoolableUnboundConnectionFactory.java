@@ -19,22 +19,16 @@ package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
 
 import org.apache.commons.pool.PoolableObjectFactory;
+import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
  * A factory for creating unbound LdapConnection objects managed by LdapConnectionPool.
  */
 public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<LdapConnection> {
-
-    /**
-     * the logger
-     */
-    private static final Logger log = LoggerFactory.getLogger(PoolableUnboundConnectionFactory.class);
 
     /**
      * configuration object for the connection
@@ -55,7 +49,6 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public void activateObject(LdapConnection connection) throws Exception {
-        log.debug("Activating {}", connection);
     }
 
 
@@ -63,7 +56,6 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public void destroyObject(LdapConnection connection) throws Exception {
-        log.debug("Destroying {}", connection);
         connection.close();
     }
 
@@ -72,8 +64,9 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public LdapConnection makeObject() throws Exception {
-        log.debug("Creating a LDAP connection");
-        LdapNetworkConnection connection = new LdapNetworkConnection(config);
+        LdapNetworkConnection connection = config.isUseTls()
+                ? new TlsGuardingConnection(config)
+                : new LdapNetworkConnection(config);
         connection.connect();
         return connection;
     }
@@ -83,7 +76,6 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public void passivateObject(LdapConnection connection) throws Exception {
-        log.debug("Passivating {}", connection);
     }
 
 
@@ -91,7 +83,30 @@ public class PoolableUnboundConnectionFactory implements PoolableObjectFactory<L
      * {@inheritDoc}
      */
     public boolean validateObject(LdapConnection connection) {
-        log.debug("Validating {}", connection);
         return connection.isConnected();
+    }
+
+    /**
+     * internal helper class that guards the original ldap connection from starting TLS if already started..
+     * this is to ensure that pooled connections can be 'bind()' several times.
+     *
+     * @see org.apache.directory.ldap.client.api.LdapNetworkConnection#bindAsync(org.apache.directory.api.ldap.model.message.BindRequest)
+     */
+    private static class TlsGuardingConnection extends LdapNetworkConnection {
+
+        private boolean tlsStarted;
+
+        private TlsGuardingConnection(LdapConnectionConfig config) {
+            super(config);
+        }
+
+        @Override
+        public void startTls() throws LdapException {
+            if (tlsStarted) {
+                return;
+            }
+            super.startTls();
+            tlsStarted = true;
+        }
     }
 }

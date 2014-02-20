@@ -44,10 +44,12 @@ public class DebugTimer {
         if (timestamps.isEmpty()) {
             return "";
         }
-        StringBuilder b = new StringBuilder("(");
+        StringBuilder b = new StringBuilder();
         for (TimeStamp t: timestamps) {
             if (b.length() > 0) {
                 b.append(", ");
+            } else {
+                b.append("(");
             }
             int u = 0;
             double time = t.time;
@@ -55,7 +57,7 @@ public class DebugTimer {
                 time = time / 1000;
                 u++;
             }
-            b.append(String.format("%s=%f.2%s", t.msg, time, units[u]));
+            b.append(String.format("%s=%.2f%s", t.msg, time, units[u]));
         }
         return b.append(')').toString();
     }

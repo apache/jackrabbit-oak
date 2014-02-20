@@ -46,6 +46,8 @@ import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapConnectionPool;
+import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
 import org.apache.directory.ldap.client.api.PoolableLdapConnectionFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -133,27 +135,41 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         }
 
         // setup admin connection pool
-        LdapConnectionConfig cc = new LdapConnectionConfig();
-        cc.setLdapHost(config.getHostname());
-        cc.setLdapPort(config.getPort());
+        LdapConnectionConfig cc = createConnectionConfig();
         if (!config.getBindDN().isEmpty()) {
             cc.setName(config.getBindDN());
             cc.setCredentials(config.getBindPassword());
         }
-        cc.setUseSsl(config.useSSL());
+
         PoolableLdapConnectionFactory factory = new PoolableLdapConnectionFactory(cc);
         adminPool = new LdapConnectionPool(factory);
         adminPool.setTestOnBorrow(true);
         adminPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_GROW);
 
         // setup unbound connection pool. let's create a new version of the config
-        cc = new LdapConnectionConfig();
-        cc.setLdapHost(config.getHostname());
-        cc.setLdapPort(config.getPort());
-        cc.setUseSsl(config.useSSL());
+        cc = createConnectionConfig();
         userPool = new UnboundLdapConnectionPool(new PoolableUnboundConnectionFactory(cc));
         userPool.setTestOnBorrow(true);
         userPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_GROW);
+    }
+
+    /**
+     * Creates a new connection config based on the config.
+     * @return the connection config.
+     */
+    @Nonnull
+    private LdapConnectionConfig createConnectionConfig() {
+        LdapConnectionConfig cc = new LdapConnectionConfig();
+        cc.setLdapHost(config.getHostname());
+        cc.setLdapPort(config.getPort());
+        cc.setUseSsl(config.useSSL());
+        cc.setUseTls(config.useTLS());
+
+        // todo: implement better trustmanager/keystore management (via sling/felix)
+        if (config.noCertCheck()) {
+            cc.setTrustManagers(new NoVerificationTrustManager());
+        }
+        return cc;
     }
 
     /**

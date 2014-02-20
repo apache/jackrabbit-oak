@@ -91,10 +91,40 @@ public class LdapProviderConfig {
      */
     @Property(
             label = "Use SSL",
-            description = "Indicates if an SSL connection should be used.",
+            description = "Indicates if an SSL (LDAPs) connection should be used.",
             boolValue = PARAM_USE_SSL_DEFAULT
     )
     public static final String PARAM_USE_SSL = "host.ssl";
+
+    /**
+     * @see #useTLS()
+     */
+    public static final boolean PARAM_USE_TLS_DEFAULT = false;
+
+    /**
+     * @see #useTLS()
+     */
+    @Property(
+            label = "Use TLS",
+            description = "Indicates if TLS should be started on connections.",
+            boolValue = PARAM_USE_TLS_DEFAULT
+    )
+    public static final String PARAM_USE_TLS = "host.tls";
+
+    /**
+     * @see #noCertCheck()
+     */
+    public static final boolean PARAM_NO_CERT_CHECK_DEFAULT = false;
+
+    /**
+     * @see #noCertCheck()
+     */
+    @Property(
+            label = "Disable certificate checking",
+            description = "Indicates if server certificate validation should be disabled.",
+            boolValue = PARAM_NO_CERT_CHECK_DEFAULT
+    )
+    public static final String PARAM_NO_CERT_CHECK = "host.noCertCheck";
 
     /**
      * @see #getBindDN()
@@ -489,6 +519,8 @@ public class LdapProviderConfig {
                 .setHostname(params.getConfigValue(PARAM_LDAP_HOST, PARAM_LDAP_HOST_DEFAULT))
                 .setPort(params.getConfigValue(PARAM_LDAP_PORT, PARAM_LDAP_PORT_DEFAULT))
                 .setUseSSL(params.getConfigValue(PARAM_USE_SSL, PARAM_USE_SSL_DEFAULT))
+                .setUseTLS(params.getConfigValue(PARAM_USE_TLS, PARAM_USE_TLS_DEFAULT))
+                .setNoCertCheck(params.getConfigValue(PARAM_NO_CERT_CHECK, PARAM_NO_CERT_CHECK_DEFAULT))
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
                 .setSearchTimeout(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT))
@@ -518,6 +550,10 @@ public class LdapProviderConfig {
     private int port = PARAM_LDAP_PORT_DEFAULT;
 
     private boolean useSSL = PARAM_USE_SSL_DEFAULT;
+
+    private boolean useTLS = PARAM_USE_TLS_DEFAULT;
+
+    private boolean noCertCheck = PARAM_NO_CERT_CHECK_DEFAULT;
 
     private String bindDN = PARAM_BIND_DN_DEFAULT;
 
@@ -630,6 +666,50 @@ public class LdapProviderConfig {
     @Nonnull
     public LdapProviderConfig setUseSSL(boolean useSSL) {
         this.useSSL = useSSL;
+        return this;
+    }
+
+    /**
+     * Configures whether TLS connections should be used.
+     * The default is {@value #PARAM_USE_TLS_DEFAULT}.
+     *
+     * @return {@code true} if TLS should be used.
+     */
+    public boolean useTLS() {
+        return useTLS;
+    }
+
+    /**
+     * Enables TLS connections.
+     * @param useTLS {@code true} to enable TLS
+     * @return {@code this}
+     * @see #useTLS()
+     */
+    @Nonnull
+    public LdapProviderConfig setUseTLS(boolean useTLS) {
+        this.useTLS = useTLS;
+        return this;
+    }
+
+    /**
+     * Configures whether certificates on SSL/TLS connections should be validated.
+     * The default is {@value #PARAM_NO_CERT_CHECK_DEFAULT}.
+     *
+     * @return {@code true} if certificates should not be validated
+     */
+    public boolean noCertCheck() {
+        return noCertCheck;
+    }
+
+    /**
+     * Disables certificate validation.
+     * @param noCertCheck {@code true} to disable certificate validation
+     * @return {@code this}
+     * @see #noCertCheck()
+     */
+    @Nonnull
+    public LdapProviderConfig setNoCertCheck(boolean noCertCheck) {
+        this.noCertCheck = noCertCheck;
         return this;
     }
 
