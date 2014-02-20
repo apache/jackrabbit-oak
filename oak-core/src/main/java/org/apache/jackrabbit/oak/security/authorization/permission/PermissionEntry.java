@@ -35,9 +35,6 @@ import org.apache.jackrabbit.util.Text;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
-/**
- * PermissionEntry... TODO
- */
 final class PermissionEntry implements Comparable<PermissionEntry>, PermissionConstants {
 
     /**

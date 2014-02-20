@@ -35,9 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
-/**
- * MoveAwarePermissionValidator... TODO
- */
 public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;
@@ -125,7 +122,6 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
 
         private boolean processAdd(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
-            // FIXME: respect and properly handle move-operations in the subtree
             String sourcePath = moveTracker.getSourcePath(child.getPath());
             if (sourcePath != null) {
                 ImmutableTree source = rootBefore.getTree(sourcePath);
@@ -140,7 +136,6 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
 
         private boolean processDelete(ImmutableTree child, MoveAwarePermissionValidator validator) throws CommitFailedException {
-            // FIXME: respect and properly handle move-operations in the subtree
             String destPath = moveTracker.getDestPath(child.getPath());
             if (destPath != null) {
                 ImmutableTree dest = rootAfter.getTree(destPath);

@@ -40,9 +40,6 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 
-/**
- * PermissionProviderImpl... TODO
- */
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants {
 
     private final Root root;
