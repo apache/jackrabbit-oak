@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * Input stream that reads and decodes HTTP chunks, assuming that no chunk

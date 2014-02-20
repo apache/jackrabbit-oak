@@ -23,7 +23,7 @@ import java.util.Iterator;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Maps;
 
-import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 
 /**
  * A memory blob store. Useful for testing.

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.util;
 
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 
 import java.util.ArrayList;
 import java.util.List;

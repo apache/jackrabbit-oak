@@ -26,9 +26,9 @@ import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.json.JsonObject;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.junit.Test;
 

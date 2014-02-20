@@ -25,9 +25,9 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * Servlet handling requests directed at a {@code MicroKernel} instance.

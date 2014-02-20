@@ -21,7 +21,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 
 /**
  * Utility class for deciding which nodes and properties to serialize.

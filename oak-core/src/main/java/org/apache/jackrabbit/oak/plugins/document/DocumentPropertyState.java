@@ -21,8 +21,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.mk.json.JsopReader;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.StringCache;

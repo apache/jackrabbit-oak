@@ -26,7 +26,7 @@ import java.util.Map;
 
 import javax.net.SocketFactory;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * Contains the details of a request to some remote {@code MicroKernel}

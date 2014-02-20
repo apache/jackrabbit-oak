@@ -27,7 +27,7 @@ import java.util.Iterator;
 
 import com.google.common.collect.AbstractIterator;
 
-import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
 
 /**

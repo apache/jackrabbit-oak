@@ -23,7 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.Random;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 public class BoundaryInputStreamTest extends TestCase {
 

@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * File servlet that will deliver static resources.

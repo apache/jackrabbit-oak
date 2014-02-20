@@ -26,7 +26,7 @@ import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.store;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -21,7 +21,7 @@ import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
 import org.apache.jackrabbit.mk.model.StoredNode;
 import org.apache.jackrabbit.mk.store.NotFoundException;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

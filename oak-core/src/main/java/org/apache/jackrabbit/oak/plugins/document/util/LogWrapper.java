@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

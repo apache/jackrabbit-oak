@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

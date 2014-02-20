@@ -32,7 +32,7 @@ import org.apache.jackrabbit.mk.persistence.InMemPersistence;
 import org.apache.jackrabbit.mk.store.DefaultRevisionStore;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
