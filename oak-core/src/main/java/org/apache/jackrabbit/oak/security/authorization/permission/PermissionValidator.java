@@ -320,7 +320,9 @@ class PermissionValidator extends DefaultValidator {
     }
 
     private boolean isImmutableProperty(String name) {
-        // TODO: review; cant' rely on autocreated/protected definition as this doesn't reveal if a given property is expected to be never modified after creation
+        // NOTE: we cannot rely on autocreated/protected definition as this
+        // doesn't reveal if a given property is expected to be never modified
+        // after creation.
         if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentAfter.getNodeState())) {
             return true;
         } else if ((JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
