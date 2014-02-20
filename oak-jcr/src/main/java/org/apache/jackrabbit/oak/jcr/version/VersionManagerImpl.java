@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,15 +42,13 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class VersionManagerImpl implements VersionManager {
 
@@ -226,6 +226,7 @@ public class VersionManagerImpl implements VersionManager {
             String absPath, String srcWorkspace,
             boolean bestEffort, boolean isShallow)
             throws RepositoryException {
+        // TODO mind OAK-1370 when implementing this
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
@@ -233,11 +234,13 @@ public class VersionManagerImpl implements VersionManager {
     public NodeIterator merge(
             String absPath, String srcWorkspace, boolean bestEffort)
             throws RepositoryException {
+        // TODO mind OAK-1370 when implementing this
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
     @Override
     public NodeIterator merge(Node activityNode) throws RepositoryException {
+        // TODO mind OAK-1370 when implementing this
         throw new UnsupportedRepositoryOperationException("OAK-1402: Merge not implemented.");
     }
 
