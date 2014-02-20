@@ -29,8 +29,8 @@ import com.mongodb.DB;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;

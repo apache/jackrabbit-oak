@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.CheckForNull;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;

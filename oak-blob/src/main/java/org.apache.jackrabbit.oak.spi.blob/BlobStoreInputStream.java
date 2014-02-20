@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
-
-import org.apache.jackrabbit.oak.commons.IOUtils;
+package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * An input stream to simplify reading from a store.

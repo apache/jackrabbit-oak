@@ -14,39 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
-
-import org.h2.jdbcx.JdbcConnectionPool;
-
-import java.sql.Connection;
+package org.apache.jackrabbit.oak.spi.blob;
 
 /**
- * Tests the DbBlobStore implementation.
+ * Tests the MemoryBlobStore implementation.
  */
-public class DbBlobStoreTest extends AbstractBlobStoreTest {
-
-    private Connection sentinel;
-    private JdbcConnectionPool cp;
+public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
 
     @Override
     public void setUp() throws Exception {
-        Class.forName("org.h2.Driver");
-        cp = JdbcConnectionPool.create("jdbc:h2:mem:", "", "");
-        sentinel = cp.getConnection();
-        DbBlobStore blobStore = new DbBlobStore();
-        blobStore.setConnectionPool(cp);
-        blobStore.setBlockSize(128);
-        blobStore.setBlockSizeMin(48);
-        this.store = blobStore;
-    }
-
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-        if (sentinel != null) {
-            sentinel.close();
-        }
-        cp.dispose();
-    }
+        store = new MemoryBlobStore();
+        store.setBlockSize(128);
+        store.setBlockSizeMin(48);
+    }    
 
 }

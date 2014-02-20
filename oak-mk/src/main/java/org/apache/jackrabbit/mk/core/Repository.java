@@ -19,9 +19,9 @@ package org.apache.jackrabbit.mk.core;
 import java.io.Closeable;
 import java.io.File;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.FileBlobStore;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;

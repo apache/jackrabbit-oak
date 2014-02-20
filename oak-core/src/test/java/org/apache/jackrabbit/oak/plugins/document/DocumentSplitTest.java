@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;

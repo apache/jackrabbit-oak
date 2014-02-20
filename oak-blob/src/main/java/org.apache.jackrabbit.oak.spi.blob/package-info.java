@@ -14,18 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
+@Version("0.16")
+@Export(optional = "provide:=true")
+package org.apache.jackrabbit.oak.spi.blob;
 
-/**
- * Tests the MemoryBlobStore implementation.
- */
-public class MemoryBlobStoreTest extends AbstractBlobStoreTest {
-
-    @Override
-    public void setUp() throws Exception {
-        store = new MemoryBlobStore();
-        store.setBlockSize(128);
-        store.setBlockSizeMin(48);
-    }    
-
-}
+import aQute.bnd.annotation.Version;
+import aQute.bnd.annotation.Export;

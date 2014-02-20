@@ -26,7 +26,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.core.data.MultiDataStore;
 import org.apache.jackrabbit.core.data.db.DbDataStore;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 

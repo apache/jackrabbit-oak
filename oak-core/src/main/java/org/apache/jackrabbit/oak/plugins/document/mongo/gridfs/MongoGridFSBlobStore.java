@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo.gridfs;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import com.mongodb.DB;
 import com.mongodb.gridfs.GridFS;

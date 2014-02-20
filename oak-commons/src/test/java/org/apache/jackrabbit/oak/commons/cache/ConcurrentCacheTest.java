@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.concurrent;
-
-import junit.framework.Assert;
-import org.apache.jackrabbit.mk.util.Cache;
-import org.junit.Test;
+package org.apache.jackrabbit.oak.commons.cache;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import junit.framework.Assert;
+import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
+import org.junit.Test;
 
 /**
  * Tests the cache implementation.

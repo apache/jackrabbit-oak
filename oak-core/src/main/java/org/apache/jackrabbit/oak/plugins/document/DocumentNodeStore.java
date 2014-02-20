@@ -52,7 +52,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.api.Blob;

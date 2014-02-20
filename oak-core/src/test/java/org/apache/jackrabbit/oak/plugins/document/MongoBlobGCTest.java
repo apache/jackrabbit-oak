@@ -31,7 +31,7 @@ import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 
-import org.apache.jackrabbit.mk.blobs.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;

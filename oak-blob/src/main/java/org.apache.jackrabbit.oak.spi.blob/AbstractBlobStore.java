@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
+package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,7 +35,7 @@ import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.jackrabbit.mk.util.Cache;
+import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 

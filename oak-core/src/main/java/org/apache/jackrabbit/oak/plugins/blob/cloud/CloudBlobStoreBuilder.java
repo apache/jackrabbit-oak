@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
 import org.apache.commons.beanutils.BeanUtils;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 
