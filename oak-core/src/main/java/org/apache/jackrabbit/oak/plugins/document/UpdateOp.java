@@ -24,6 +24,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Maps;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -55,6 +57,14 @@ public final class UpdateOp {
         this.isNew = isNew;
         this.isDelete = isDelete;
         this.changes = changes;
+    }
+
+    static UpdateOp combine(String id, Iterable<UpdateOp> ops) {
+        Map<Key, Operation> changes = Maps.newHashMap();
+        for (UpdateOp op : ops) {
+            changes.putAll(op.getChanges());
+        }
+        return new UpdateOp(id, false, false, changes);
     }
 
     /**

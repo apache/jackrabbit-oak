@@ -19,8 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -116,6 +119,11 @@ public final class DocumentNodeStore
      * The commit queue to coordinate the commits.
      */
     protected final CommitQueue commitQueue;
+
+    /**
+     * Commit queue for batch updates.
+     */
+    protected final BatchCommitQueue batchCommitQueue;
 
     /**
      * The change dispatcher for this node store.
@@ -336,6 +344,7 @@ public final class DocumentNodeStore
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
         dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
+        batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
                 "DocumentNodeStore background thread");
@@ -866,6 +875,59 @@ public final class DocumentNodeStore
     }
 
     /**
+     * Updates a commit root document.
+     *
+     * @param commit the updates to apply on the commit root document.
+     * @return the document before the update was applied or <code>null</code>
+     *          if the update failed because of a collision.
+     * @throws MicroKernelException if the update fails with an error.
+     */
+    @CheckForNull
+    NodeDocument updateCommitRoot(UpdateOp commit) throws MicroKernelException {
+        // use batch commit when there are only revision and modified updates
+        // and collision checks
+        boolean batch = true;
+        for (Map.Entry<Key, Operation> op : commit.getChanges().entrySet()) {
+            String name = op.getKey().getName();
+            if (NodeDocument.isRevisionsEntry(name)
+                    || NodeDocument.MODIFIED.equals(name)
+                    || NodeDocument.COLLISIONS.equals(name)) {
+                continue;
+            }
+            batch = false;
+            break;
+        }
+        if (batch) {
+            return batchUpdateCommitRoot(commit);
+        } else {
+            return store.findAndUpdate(NODES, commit);
+        }
+    }
+
+    private NodeDocument batchUpdateCommitRoot(UpdateOp commit)
+            throws MicroKernelException {
+        try {
+            return batchCommitQueue.updateDocument(commit).call();
+        } catch (InterruptedException e) {
+            throw new MicroKernelException("Interrupted while updating commit root document");
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof MicroKernelException) {
+                throw (MicroKernelException) e.getCause();
+            } else {
+                String msg = "Update of commit root document failed";
+                throw new MicroKernelException(msg, e.getCause());
+            }
+        } catch (Exception e) {
+            if (e instanceof MicroKernelException) {
+                throw (MicroKernelException) e;
+            } else {
+                String msg = "Update of commit root document failed";
+                throw new MicroKernelException(msg, e);
+            }
+        }
+    }
+
+    /**
      * Returns the root node state at the given revision.
      *
      * @param revision a revision.
@@ -1018,49 +1080,6 @@ public final class DocumentNodeStore
             }
         }
         return commit.getRevision();
-    }
-
-    /**
-     * Applies a commit to the store and updates the caches accordingly.
-     *
-     * @param commit the commit to apply.
-     * @return the commit revision.
-     * @throws MicroKernelException if the commit cannot be applied.
-     *              TODO: use non-MK exception type
-     */
-    @Nonnull
-    Revision apply(@Nonnull Commit commit) throws MicroKernelException {
-        checkNotNull(commit);
-        boolean success = false;
-        Revision baseRev = commit.getBaseRevision();
-        boolean isBranch = baseRev != null && baseRev.isBranch();
-        Revision rev = commit.getRevision();
-        if (isBranch) {
-            rev = rev.asBranchRevision();
-            // remember branch commit
-            Branch b = getBranches().getBranch(baseRev);
-            if (b == null) {
-                // baseRev is marker for new branch
-                b = getBranches().create(baseRev.asTrunkRevision(), rev);
-            } else {
-                b.addCommit(rev);
-            }
-            try {
-                // prepare commit
-                commit.prepare(baseRev);
-                success = true;
-            } finally {
-                if (!success) {
-                    b.removeCommit(rev);
-                    if (!b.hasCommits()) {
-                        getBranches().remove(b);
-                    }
-                }
-            }
-        } else {
-            commit.apply();
-        }
-        return rev;
     }
 
     /**

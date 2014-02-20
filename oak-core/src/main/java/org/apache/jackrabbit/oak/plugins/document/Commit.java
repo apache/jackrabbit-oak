@@ -149,16 +149,57 @@ public class Commit {
     }
 
     /**
+     * Applies this commit to the store.
+     *
+     * @return the commit revision.
+     * @throws MicroKernelException if the commit cannot be applied.
+     *              TODO: use non-MK exception type
+     */
+    @Nonnull
+    Revision apply() throws MicroKernelException {
+        boolean success = false;
+        Revision baseRev = getBaseRevision();
+        boolean isBranch = baseRev != null && baseRev.isBranch();
+        Revision rev = getRevision();
+        if (isBranch) {
+            rev = rev.asBranchRevision();
+            // remember branch commit
+            Branch b = nodeStore.getBranches().getBranch(baseRev);
+            if (b == null) {
+                // baseRev is marker for new branch
+                b = nodeStore.getBranches().create(baseRev.asTrunkRevision(), rev);
+            } else {
+                b.addCommit(rev);
+            }
+            try {
+                // prepare commit
+                prepare(baseRev);
+                success = true;
+            } finally {
+                if (!success) {
+                    b.removeCommit(rev);
+                    if (!b.hasCommits()) {
+                        nodeStore.getBranches().remove(b);
+                    }
+                }
+            }
+        } else {
+            applyInternal();
+        }
+        return rev;
+    }
+
+    /**
      * Apply the changes to the document store and the cache.
      */
-    void apply() {
+    private void applyInternal() {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             applyToDocumentStore();
         }
     }
 
-    void prepare(Revision baseRevision) {
+    private void prepare(Revision baseRevision) {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             applyToDocumentStore(baseRevision);
@@ -178,7 +219,7 @@ public class Commit {
      * @param baseBranchRevision the base revision of this commit. Currently only
      *                     used for branch commits.
      */
-    void applyToDocumentStore(Revision baseBranchRevision) {
+    private void applyToDocumentStore(Revision baseBranchRevision) {
         // the value in _revisions.<revision> property of the commit root node
         // regular commits use "c", which makes the commit visible to
         // other readers. branch commits use the base revision to indicate
@@ -288,7 +329,7 @@ public class Commit {
                     // only set revision on commit root when there is
                     // no collision for this commit revision
                     commit.containsMapEntry(COLLISIONS, revision, false);
-                    NodeDocument before = store.findAndUpdate(NODES, commit);
+                    NodeDocument before = nodeStore.updateCommitRoot(commit);
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
                                 "Update operation failed: " + commitRoot;
