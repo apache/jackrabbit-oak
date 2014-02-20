@@ -26,8 +26,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.lock.LockConstants;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -52,21 +53,25 @@ class VersionEditor implements Editor {
     private NodeState before;
     private NodeState after;
     private boolean isReadOnly;
+    private CommitInfo commitInfo;
 
     public VersionEditor(@Nonnull NodeBuilder versionStore,
-                         @Nonnull NodeBuilder workspaceRoot) {
+                         @Nonnull NodeBuilder workspaceRoot,
+                         @Nonnull CommitInfo commitInfo) {
         this(null, new ReadWriteVersionManager(checkNotNull(versionStore),
-                checkNotNull(workspaceRoot)), workspaceRoot, "");
+                checkNotNull(workspaceRoot)), workspaceRoot, "", commitInfo);
     }
 
     VersionEditor(@Nullable VersionEditor parent,
                   @Nonnull ReadWriteVersionManager vMgr,
                   @Nonnull NodeBuilder node,
-                  @Nonnull String name) {
+                  @Nonnull String name,
+                  @Nonnull CommitInfo commitInfo) {
         this.parent = parent;
         this.vMgr = checkNotNull(vMgr);
         this.node = checkNotNull(node);
         this.name = checkNotNull(name);
+        this.commitInfo = commitInfo;
     }
 
     @Override
@@ -75,7 +80,7 @@ class VersionEditor implements Editor {
         this.before = before;
         this.after = after;
         if (isVersionable()) {
-            vMgr.getOrCreateVersionHistory(node);
+            vMgr.getOrCreateVersionHistory(node, commitInfo.getInfo());
         }
         // calculate isReadOnly state
         if (after.exists() || isVersionable()) {
@@ -167,12 +172,12 @@ class VersionEditor implements Editor {
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) {
-        return new VersionEditor(this, vMgr, node.child(name), name);
+        return new VersionEditor(this, vMgr, node.child(name), name, commitInfo);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return new VersionEditor(this, vMgr, MISSING_NODE.builder(), name);
+        return new VersionEditor(this, vMgr, MISSING_NODE.builder(), name, commitInfo);
     }
 
     /**

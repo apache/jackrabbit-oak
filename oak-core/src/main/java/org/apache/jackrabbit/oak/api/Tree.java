@@ -251,9 +251,10 @@ public interface Tree {
      * Add a child with the given {@code name}. Does nothing if such a child
      * already exists.
      *
-     * @param name name of the child
+     * @param name name of the child. A valid name does not start with a colon,
+     *             is not empty and does not contain a forward slash.
      * @return the {@code Tree} instance of the child with the given {@code name}.
-     * @throws IllegalArgumentException if the given name is invalid
+     * @throws IllegalArgumentException if {@code name} is not valid.
      */
     @Nonnull
     Tree addChild(@Nonnull String name) throws IllegalArgumentException;
@@ -304,18 +305,20 @@ public interface Tree {
      * Set a property state
      *
      * @param property The property state to set
-     * @throws IllegalArgumentException if the property name is invalid
+     * @throws IllegalArgumentException if {@code property} has a non valid name. A valid name
+     *         does not start with a colon, is not empty and does not contain a forward slash.
      */
     void setProperty(@Nonnull PropertyState property);
 
     /**
      * Set a property state
      *
-     * @param name  The name of this property
+     * @param name  The name of this property. A valid name does not start with a colon,
+     *              is not empty and does not contain a forward slash.
      * @param value The value of this property
      * @param <T>   The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
-     * @throws IllegalArgumentException if {@code T} is not one of the above types,
-     *                                  or if the given name is invalid
+     * @throws IllegalArgumentException if {@code T} is not one of the above types or
+     *         if {@code name} is not valid.
      */
     <T> void setProperty(@Nonnull String name, @Nonnull T value)
             throws IllegalArgumentException;
@@ -323,11 +326,12 @@ public interface Tree {
     /**
      * Set a property state
      *
-     * @param name  The name of this property
+     * @param name  The name of this property. A valid name does not start with a colon,
+     *              is not empty and does not contain a forward slash.
      * @param value The value of this property
      * @param type  The type of this property.
      * @param <T>   The type of this property.
-     * @throws IllegalArgumentException if the given name is invalid
+     * @throws IllegalArgumentException if {@code name} is not valid.
      */
     <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type)
             throws IllegalArgumentException;

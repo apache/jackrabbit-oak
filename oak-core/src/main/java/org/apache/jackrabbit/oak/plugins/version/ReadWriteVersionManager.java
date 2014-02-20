@@ -22,15 +22,14 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -38,10 +37,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
 
@@ -109,12 +108,13 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
      * {@code versionable} node.
      *
      * @param versionable the versionable node.
+     * @param infoMap The additional information as provided by {@link org.apache.jackrabbit.oak.spi.commit.CommitInfo#getInfo()}
      * @return the version history node.
      * @throws IllegalArgumentException if the given node does not have a
      *                                  {@code jcr:uuid} property.
      */
     @Nonnull
-    NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable)
+    NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable, @Nonnull Map<String, Object> infoMap)
             throws CommitFailedException {
         checkNotNull(versionable);
         String vUUID = uuidFromNode(versionable);
@@ -134,9 +134,9 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 node.setProperty(JCR_PRIMARYTYPE, nt, Type.NAME);
             }
         }
-        PropertyState copiedFrom = versionable.getProperty(VersionConstants.HIDDEN_COPY_SOURCE);
+        Object copiedFrom = infoMap.get(JCR_COPIED_FROM);
         if (copiedFrom != null) {
-            node.setProperty(JCR_COPIED_FROM, copiedFrom.getValue(Type.STRING), Type.WEAKREFERENCE);
+            node.setProperty(JCR_COPIED_FROM, copiedFrom.toString(), Type.WEAKREFERENCE);
         }
 
         // use jcr:rootVersion node to detect if we need to initialize the
@@ -171,7 +171,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     public void checkin(@Nonnull NodeBuilder versionable)
             throws CommitFailedException {
-        NodeBuilder history = getOrCreateVersionHistory(versionable);
+        NodeBuilder history = getOrCreateVersionHistory(versionable, Collections.EMPTY_MAP);
         createVersion(history, versionable);
     }
 
@@ -180,7 +180,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                         @Nullable VersionSelector selector)
             throws CommitFailedException {
         String versionPath = getIdentifierManager().getPath(versionUUID);
-        NodeBuilder history = getOrCreateVersionHistory(versionable);
+        NodeBuilder history = getOrCreateVersionHistory(versionable, Collections.EMPTY_MAP);
         NodeBuilder version = null;
         if (versionPath != null) {
             String versionName = PathUtils.getName(versionPath);

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
@@ -25,6 +26,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -93,45 +95,46 @@ public class WorkspaceDelegate {
 
         accessManager.checkPermissions(destPath, Permissions.getString(Permissions.NODE_TYPE_MANAGEMENT));
 
-        try {
-            Tree typeRoot = root.getTree(NODE_TYPES_PATH);
-            new WorkspaceCopy(src, destParent, Text.getName(destPath), typeRoot, sessionDelegate.getAuthInfo().getUserID()).perform();
-            context.getSessionDelegate().commit(root);
-            sessionDelegate.refresh(true);
-        } catch (CommitFailedException e) {
-            throw e.asRepositoryException();
-        }
+        String userId = sessionDelegate.getAuthInfo().getUserID();
+        new WorkspaceCopy(src, destParent, Text.getName(destPath)).perform(root, userId);
+        sessionDelegate.refresh(true);
     }
 
     //---------------------------< internal >-----------------------------------
 
     private static final class WorkspaceCopy {
-
         private final Map<String, String> translated = Maps.newHashMap();
 
-        private final Tree src;
+        private final Tree source;
         private final Tree destParent;
         private final String destName;
 
-        private final Tree typeRoot;
-        private final String userId;
-
-        public WorkspaceCopy(@Nonnull Tree src, @Nonnull Tree destParent,
-                             @Nonnull String destName, @Nonnull Tree typeRoot,
-                             @Nonnull String userId) {
-            this.src = src;
+        public WorkspaceCopy(@Nonnull Tree source, @Nonnull Tree destParent, @Nonnull String destName) {
+            this.source = source;
             this.destParent = destParent;
             this.destName = destName;
-            this.typeRoot = typeRoot;
-            this.userId = userId;
         }
 
-        public void perform() throws RepositoryException {
-            copy(src, destParent, destName);
-            updateReferences(src, destParent.getChild(destName));
+        public void perform(@Nonnull Root root, @Nonnull String userId) throws RepositoryException {
+            try {
+                Tree typeRoot = root.getTree(NODE_TYPES_PATH);
+                copy(source, destParent, destName, typeRoot, userId);
+                updateReferences(source, destParent.getChild(destName));
+
+                Map<String, String> copyInfo = new HashMap<String, String>();
+                copyInfo.put("copy-source", source.getPath());
+                if (TreeUtil.isNodeType(source, JcrConstants.MIX_VERSIONABLE, typeRoot)) {
+                    String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION).getValue(Type.STRING);
+                    copyInfo.put(VersionConstants.JCR_COPIED_FROM, sourceBaseVersionId);
+                }
+                root.commit(ImmutableMap.<String, Object>copyOf(copyInfo));
+            } catch (CommitFailedException e) {
+                throw e.asRepositoryException();
+            }
         }
 
-        private void copy(@Nonnull Tree source, @Nonnull Tree destParent, @Nonnull String destName) throws RepositoryException {
+        private void copy(Tree source, Tree destParent, String destName, Tree typeRoot, String userId)
+                throws RepositoryException {
             String primaryType = TreeUtil.getPrimaryTypeName(source);
             if (primaryType == null) {
                 primaryType = TreeUtil.getDefaultChildType(typeRoot, destParent, destName);
@@ -159,12 +162,8 @@ public class WorkspaceDelegate {
                     dest.setProperty(property);
                 }
             }
-            if (TreeUtil.isNodeType(source, JcrConstants.MIX_VERSIONABLE, typeRoot)) {
-                String sourceBaseVersionId = source.getProperty(JcrConstants.JCR_BASEVERSION).getValue(Type.STRING);
-                dest.setProperty(VersionConstants.HIDDEN_COPY_SOURCE, sourceBaseVersionId, Type.PATH);
-            }
             for (Tree child : source.getChildren()) {
-                copy(child, dest, child.getName());
+                copy(child, dest, child.getName(), typeRoot, userId);
             }
         }
 

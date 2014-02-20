@@ -18,6 +18,24 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.util.Collections;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
+import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -26,26 +44,7 @@ import static com.google.common.collect.Iterables.indexOf;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-
-import java.util.Collections;
-import java.util.Set;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
-import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
-import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 class MutableTree extends AbstractTree {
 
@@ -194,6 +193,7 @@ class MutableTree extends AbstractTree {
 
     @Override
     public Tree addChild(String name) {
+        checkArgument(!isHidden(name));
         beforeWrite();
         if (!super.hasChild(name)) {
             nodeBuilder.setChildNode(name);
@@ -269,6 +269,7 @@ class MutableTree extends AbstractTree {
 
     @Override
     public void setProperty(PropertyState property) {
+        checkArgument(!isHidden(property.getName()));
         beforeWrite();
         nodeBuilder.setProperty(property);
         root.updated();
@@ -276,6 +277,7 @@ class MutableTree extends AbstractTree {
 
     @Override
     public <T> void setProperty(String name, T value) {
+        checkArgument(!isHidden(name));
         beforeWrite();
         nodeBuilder.setProperty(name, value);
         root.updated();
@@ -283,6 +285,7 @@ class MutableTree extends AbstractTree {
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
+        checkArgument(!isHidden(name));
         beforeWrite();
         nodeBuilder.setProperty(name, value, type);
         root.updated();
