@@ -160,10 +160,4 @@ public interface VersionConstants extends JcrConstants {
             VersionConstants.REP_ACTIVITIES,
             VersionConstants.REP_CONFIGURATIONS
     );
-
-    /**
-     * Name of the hidden property that indicates the ID of the base version
-     * of a versionable node that has been copied.
-     */
-    String HIDDEN_COPY_SOURCE = ":copySource";
 }

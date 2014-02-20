@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -111,7 +112,7 @@ public class VersionablePathHook implements CommitHook {
             if (JcrConstants.JCR_VERSIONHISTORY.equals(after.getName()) && nodeAfter.isVersionable(versionManager)) {
                 NodeBuilder vhBuilder;
                 try {
-                    vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
+                    vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder, Collections.EMPTY_MAP);
                 } catch (CommitFailedException e) {
                     exceptions.add(e);
                     // stop further comparison
