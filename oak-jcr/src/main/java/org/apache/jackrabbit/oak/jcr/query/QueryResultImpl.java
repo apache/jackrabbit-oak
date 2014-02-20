@@ -135,7 +135,7 @@ public class QueryResultImpl implements QueryResult {
 
         };
         final PrefetchIterator<RowImpl> prefIt = new  PrefetchIterator<RowImpl>(
-                rowIterator, 
+                sessionDelegate.sync(rowIterator),
                 PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
                 result.getSize());
         return new RowIteratorAdapter(prefIt) {
@@ -216,8 +216,8 @@ public class QueryResultImpl implements QueryResult {
 
         };
         final PrefetchIterator<NodeImpl<? extends NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<? extends NodeDelegate>>(
-                nodeIterator, 
-                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
+                sessionDelegate.sync(nodeIterator),
+                PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX,
                 result.getSize());
         return new NodeIteratorAdapter(prefIt) {
             @Override

@@ -16,7 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
+
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -44,15 +54,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.contains;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
