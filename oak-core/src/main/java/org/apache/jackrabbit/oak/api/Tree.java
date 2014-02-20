@@ -92,9 +92,9 @@ public interface Tree {
      */
     enum Status {
         /**
-         * Item is persisted
+         * Item is unchanged
          */
-        EXISTING,
+        UNCHANGED,
 
         /**
          * Item is new

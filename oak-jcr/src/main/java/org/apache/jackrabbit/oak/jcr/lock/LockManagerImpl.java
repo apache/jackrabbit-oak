@@ -143,7 +143,7 @@ public class LockManagerImpl implements LockManager {
                     @Override
                     protected NodeDelegate perform(NodeDelegate node)
                             throws RepositoryException {
-                        if (node.getStatus() != Status.EXISTING) {
+                        if (node.getStatus() != Status.UNCHANGED) {
                             throw new InvalidItemStateException(
                                     "Unable to lock a node with pending changes");
                         }

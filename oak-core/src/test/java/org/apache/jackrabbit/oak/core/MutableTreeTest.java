@@ -290,18 +290,18 @@ public class MutableTreeTest extends OakBaseTest {
         assertEquals(Tree.Status.NEW, tree.getChild("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.UNCHANGED, tree.getChild("new").getStatus());
         Tree added = tree.getChild("new");
         added.addChild("another");
         assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.UNCHANGED, tree.getChild("new").getStatus());
         tree.getChild("new").getChild("another").remove();
         assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.UNCHANGED, tree.getChild("new").getStatus());
         assertFalse(tree.getChild("new").getChild("another").exists());
 
         Tree x = root.getTree("/x");
@@ -331,12 +331,12 @@ public class MutableTreeTest extends OakBaseTest {
         assertEquals(Tree.Status.NEW, tree.getPropertyStatus("new"));
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
+        assertEquals(Tree.Status.UNCHANGED, tree.getPropertyStatus("new"));
         tree.setProperty("new", "value2");
         assertEquals(Tree.Status.MODIFIED, tree.getPropertyStatus("new"));
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
+        assertEquals(Tree.Status.UNCHANGED, tree.getPropertyStatus("new"));
         tree.removeProperty("new");
         assertNull(tree.getPropertyStatus("new"));
         root.commit();
@@ -355,7 +355,7 @@ public class MutableTreeTest extends OakBaseTest {
         root.commit();
 
         tree.getChild("one").getChild("two").addChild("three");
-        assertEquals(Tree.Status.EXISTING, tree.getChild("one").getStatus());
+        assertEquals(Tree.Status.UNCHANGED, tree.getChild("one").getStatus());
         assertEquals(Tree.Status.MODIFIED, tree.getChild("one").getChild("two").getStatus());
     }
 
@@ -430,7 +430,7 @@ public class MutableTreeTest extends OakBaseTest {
 
         root.refresh();
 
-        assertEquals(Status.EXISTING, x.getStatus());
+        assertEquals(Status.UNCHANGED, x.getStatus());
         assertNull(x.getPropertyStatus("p"));
         assertFalse(xx.exists());
     }

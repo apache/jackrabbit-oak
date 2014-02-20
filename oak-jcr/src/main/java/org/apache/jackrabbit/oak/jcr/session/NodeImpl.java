@@ -1207,7 +1207,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         perform(new LockOperation<Void>(sessionDelegate, dlg) {
             @Override
             public Void perform(NodeDelegate node) throws RepositoryException {
-                if (node.getStatus() != Status.EXISTING) {
+                if (node.getStatus() != Status.UNCHANGED) {
                     throw new LockException(
                             "Unable to lock a node with pending changes");
                 }
