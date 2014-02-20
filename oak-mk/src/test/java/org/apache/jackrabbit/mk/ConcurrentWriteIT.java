@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.mk;
 
+import java.util.Random;
+
 import junit.framework.TestCase;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-
-import java.util.Random;
 
 public class ConcurrentWriteIT extends TestCase {
 
@@ -58,6 +58,11 @@ public class ConcurrentWriteIT extends TestCase {
         for (TestThread t : threads) {
             if (t != null) {
                 t.start();
+            }
+        }
+
+        for (TestThread t : threads) {
+            if (t != null) {
                 t.join();
             }
         }
