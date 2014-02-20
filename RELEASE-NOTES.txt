@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.17
+Release Notes -- Apache Jackrabbit Oak -- Version 0.17a
 
 Introduction
 ------------
@@ -10,21 +10,24 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.17 is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.17a is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.17
+Changes in Oak 0.17a
 -------------------
 
 New Features
 
+  [OAK-907] Query timeout
   [OAK-1157] DS implementation for S3-based DSs
   [OAK-1337] Implement RepositoryStatistics from Jackrabbit API
   [OAK-1338] Implement QueryStat from Jackrabbit API
   [OAK-1387] Pass CommitInfo to commit hooks, editors and validators
   [OAK-1395] Automatically cancel long running queries
+  [OAK-1413] Add scalability tests for large operations
 
 Improvements
 
+  [OAK-668] Make cache size / limits configurable
   [OAK-917] Container: Issues with Workspace#copy and Root#copy
   [OAK-918] Copying nodes does not create independant version histories
   [OAK-919] Proper handling of locks present on copied nodes
@@ -32,6 +35,7 @@ Improvements
   [OAK-931] Importer: review usage of write-root and objects obtained from the sessioncontext
   [OAK-1331] MicroKernel API: clarify semantics of `read` method
   [OAK-1347] Remove 'members' property index
+  [OAK-1372] XPath queries with both path and property restrictions are slow
   [OAK-1392] SegmentBlob.equals() optimization
   [OAK-1393] Upgrade Jackrabbit dependency to include JCR-3720 and JCR-3723
   [OAK-1398] Restore and OPV INITIALIZE/CALCULATE
@@ -43,22 +47,31 @@ Improvements
   [OAK-1421] Add support for primary type filter to Solr index
   [OAK-1428] Change Oak-Mongo fixture to DocumentNodeStore
   [OAK-1430] Let oak-solr-remote have an optional dependency on solr-core
+  [OAK-1431] Handling of empty or invalid names
   [OAK-1435] Expose commit policy options in RemoteSolrConfigurationProvider
   [OAK-1436] RemoteSolrServerProvider servers initialization has to be bound to related properties
   [OAK-1437] Use default references options for Oak Solr Index(Editor)Providers
+  [OAK-1438] Generalise Root.commit(String) to Root.commit(Map)
 
 Bugs
 
   [OAK-842] Incorrect interaction of orderable child nodes with permission evaluation
   [OAK-1175] Security Concerns wrt Index Definitions
+  [OAK-1335] version history related test failures
   [OAK-1389] Query: an index is used even where traversing is faster
   [OAK-1394] Event generation too slow with DocumentNodeStore
   [OAK-1405] OR of different constraints broken
   [OAK-1408] Descriptors: wrong value for OPTION_WORKSPACE_MANAGEMENT_SUPPORTED
+  [OAK-1409] After crash, segment persistence is broken with failures in java.nio classes
   [OAK-1417] Processing pending observation events does not scale linearly with the number of events
   [OAK-1420] ConcurrentAddIT fails on buildbot
   [OAK-1422] Large number of queued EventGenerator.Continuation on big transactions
+  [OAK-1424] Oak API allows to create hidden tree and properties
+  [OAK-1432] Query: use "union" for complex XPath queries that use multiple "or"
   [OAK-1433] Typo in org.apache.jackrabbit.oak.plugins.value.ValueImpl#getLong
+  [OAK-1440] o.a.j.o.api.Tree.toString hits hidden nodes
+  [OAK-1441] o.a.j.o.api.Tree/Root allows access to hidden nodes
+  [OAK-1445] NodeTypeIndex is missing osgi annotations
 
 In addition to the above-mentioned changes, this release contains
 all the changes included up to the Apache Jackrabbit Oak 0.16 release.
