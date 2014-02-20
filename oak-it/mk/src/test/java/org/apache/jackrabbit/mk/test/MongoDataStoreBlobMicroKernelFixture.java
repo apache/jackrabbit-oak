@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStoreBuilder;

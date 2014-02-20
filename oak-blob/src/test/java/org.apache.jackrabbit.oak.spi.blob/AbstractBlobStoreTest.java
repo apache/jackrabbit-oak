@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
+package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -32,30 +32,34 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.Sets;
-import junit.framework.TestCase;
-import org.apache.jackrabbit.oak.commons.IOUtilsTest;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests a BlobStore implementation.
  */
-public abstract class AbstractBlobStoreTest extends TestCase {
+public abstract class AbstractBlobStoreTest {
 
     public AbstractBlobStore store;
 
     /**
      * Should be overridden by subclasses to set the {@link #store} variable.
      */
-    @Override
+    @Before
     public abstract void setUp() throws Exception;
 
-    @Override
+    @After
     public void tearDown() throws Exception {
         store = null;
     }
 
+    @Test
     public void testWriteFile() throws Exception {
         store.setBlockSize(1024 * 1024);
         byte[] data = new byte[4 * 1024 * 1024];
@@ -68,34 +72,37 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         out.write(data);
         out.close();
         String s = store.writeBlob(tempFileName);
-        assertEquals(data.length, store.getBlobLength(s));
+        Assert.assertEquals(data.length, store.getBlobLength(s));
         byte[] buff = new byte[1];
         for (int i = 0; i < data.length; i += 1024) {
             store.readBlob(s, i, buff, 0, 1);
-            assertEquals(data[i], buff[0]);
+            Assert.assertEquals(data[i], buff[0]);
         }
         try {
             store.writeBlob(tempFileName + "_wrong");
-            fail();
+            Assert.fail();
         } catch (Exception e) {
             // expected
         }
     }
 
+    @Test
     public void testCombinedIdentifier() throws Exception {
         String id = store.writeBlob(new ByteArrayInputStream(new byte[2]));
-        assertEquals(2, store.getBlobLength(id));
+        Assert.assertEquals(2, store.getBlobLength(id));
         String combinedId = id + id;
-        assertEquals(4, store.getBlobLength(combinedId));
+        Assert.assertEquals(4, store.getBlobLength(combinedId));
         doTestRead(new byte[4], 4, combinedId);
     }
 
+    @Test
     public void testEmptyIdentifier() throws Exception {
         byte[] data = new byte[1];
-        assertEquals(-1, store.readBlob("", 0, data, 0, 1));
-        assertEquals(0, store.getBlobLength(""));
+        Assert.assertEquals(-1, store.readBlob("", 0, data, 0, 1));
+        Assert.assertEquals(0, store.getBlobLength(""));
     }
 
+    @Test
     public void testCloseStream() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
@@ -109,9 +116,10 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             }
         };
         store.writeBlob(in);
-        assertTrue(closed.get());
+        Assert.assertTrue(closed.get());
     }
 
+    @Test
     public void testExceptionWhileReading() throws Exception {
         final AtomicBoolean closed = new AtomicBoolean();
         InputStream in = new InputStream() {
@@ -128,46 +136,50 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             store.writeBlob(in);
         } catch (Exception e) {
             String msg = e.getMessage();
-            assertTrue(msg, msg.indexOf("abc") >= 0);
+            Assert.assertTrue(msg, msg.indexOf("abc") >= 0);
         }
-        assertTrue(closed.get());
+        Assert.assertTrue(closed.get());
     }
 
-
+    @Test
     public void testIllegalIdentifier() throws Exception {
         byte[] data = new byte[1];
         try {
             store.readBlob("ff", 0, data, 0, 1);
-            fail();
+            Assert.fail();
         } catch (Exception e) {
             // expected
         }
         try {
             store.getBlobLength("ff");
-            fail();
+            Assert.fail();
         } catch (Exception e) {
             // expected
         }
         try {
             store.mark("ff");
-            fail();
+            Assert.fail();
         } catch (Exception e) {
             // expected
         }
     }
 
+    @Test
     public void testSmall() throws Exception {
         doTest(10, 300);
     }
 
+    @Test
     public void testMedium() throws Exception {
         doTest(100, 100);
     }
 
+    @Test
     public void testLarge() throws Exception {
         doTest(1000, 10);
     }
 
+    @Test
     public void testGarbageCollection() throws Exception {
         HashMap<String, byte[]> map = new HashMap<String, byte[]>();
         ArrayList<String> mem = new ArrayList<String>();
@@ -190,7 +202,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         store.sweep();
         for (String id : map.keySet()) {
             byte[] test = readFully(id);
-            assertTrue(Arrays.equals(map.get(id), test));
+            Assert.assertTrue(Arrays.equals(map.get(id), test));
         }
 
         mem.clear();
@@ -219,18 +231,18 @@ public abstract class AbstractBlobStoreTest extends TestCase {
 
         store.startMark();
         count = store.sweep();
-        assertTrue("count: " + count, count > 0);
+        Assert.assertTrue("count: " + count, count > 0);
         int failedCount = 0;
         for (String id : map.keySet()) {
             long length = store.getBlobLength(id);
             try {
                 readFully(id);
             } catch (Exception e) {
-                assertTrue(id + ":" + length, length > store.getBlockSizeMin());
+                Assert.assertTrue(id + ":" + length, length > store.getBlockSizeMin());
                 failedCount++;
             }
         }
-        assertTrue("failedCount: " + failedCount, failedCount > 0);
+        Assert.assertTrue("failedCount: " + failedCount, failedCount > 0);
     }
 
     private void doTest(int maxLength, int count) throws Exception {
@@ -247,7 +259,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             int expectedLen = r.nextInt(maxLength);
             byte[] expectedData = new byte[expectedLen];
             r.nextBytes(expectedData);
-            assertEquals(expectedLen, store.getBlobLength(s[i++]));
+            Assert.assertEquals(expectedLen, store.getBlobLength(s[i++]));
 
             String id = s[i++];
             doTestRead(expectedData, expectedLen, id);
@@ -257,7 +269,10 @@ public abstract class AbstractBlobStoreTest extends TestCase {
     private void doTestRead(byte[] expectedData, int expectedLen, String id) throws Exception {
         byte[] got = readFully(id);
         assertEquals(expectedLen, got.length);
-        IOUtilsTest.assertEquals(expectedData, got);
+        assertEquals(expectedData.length, got.length);
+        for (int i = 0; i < got.length; i++) {
+            assertEquals(expectedData[i], got[i]);
+        }
     }
 
     public byte[] readFully(String id) throws Exception {
@@ -271,16 +286,12 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         } else {
             data = BlobStoreInputStream.readFully(store, id);
         }
-        assertEquals(len, data.length);
+        Assert.assertEquals(len, data.length);
         return data;
     }
 
     public static void main(String... args) throws Exception {
         FileBlobStore store = new FileBlobStore("target/temp");
-
-//        DbBlobStore store = new DbBlobStore();
-//        store.setConnectionPool(JdbcConnectionPool.create("jdbc:h2:target/test;log=0;undo_log=0", "", ""));
-
         String id = addFiles(store, "~/temp/ds");
         extractFiles(store, id, "target/test");
 
@@ -354,7 +365,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             ids.remove(iter.next());
         }
 
-        assertTrue(ids.isEmpty());
+        Assert.assertTrue(ids.isEmpty());
     }
 
     @Test
@@ -371,7 +382,7 @@ public abstract class AbstractBlobStoreTest extends TestCase {
             ret.add(iter.next());
         }
 
-        assertTrue(ret.isEmpty());
+        Assert.assertTrue(ret.isEmpty());
     }
 
     private Set<String> createArtifacts() throws Exception {

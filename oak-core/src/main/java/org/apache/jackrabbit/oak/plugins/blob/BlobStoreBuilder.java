@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import com.google.common.base.Optional;
 

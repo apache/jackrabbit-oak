@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.concurrent;
-
-import junit.framework.Assert;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.junit.Before;
-import org.junit.Test;
+package org.apache.jackrabbit.oak.spi.blob;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import junit.framework.Assert;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Test concurrent access to the blob store.

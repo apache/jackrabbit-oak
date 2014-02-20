@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob.cloud;
 
-import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;

@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
-import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResults;
-import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
-
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Iterator;
@@ -28,9 +25,8 @@ import java.util.NoSuchElementException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
-
-import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;
@@ -39,6 +35,9 @@ import org.jclouds.blobstore.domain.StorageMetadata;
 import org.jclouds.io.Payload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResults;
+import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
 
 /**
  * Implementation of the {@link BlobStore} to store blobs in a cloud blob store.

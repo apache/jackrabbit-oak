@@ -32,7 +32,7 @@ import javax.sql.DataSource;
 import com.google.common.collect.AbstractIterator;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

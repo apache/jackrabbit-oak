@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,19 +32,22 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
-import org.apache.jackrabbit.mk.blobs.FileBlobStore;
-import org.apache.jackrabbit.mk.blobs.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 /**
- * A copy of the class org.apache.jackrabbit.mk.blobs.AbstractBlobStoreTest,
+ * A copy of the class org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest,
  * converted to JUnit 4. The class in oak-mk is not re-used because it is not
  * visible here.
  */

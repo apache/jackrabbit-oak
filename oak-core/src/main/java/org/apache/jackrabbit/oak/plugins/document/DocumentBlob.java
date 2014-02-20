@@ -21,8 +21,8 @@ import java.io.InputStream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 import org.apache.jackrabbit.oak.api.Blob;
 
 /**
