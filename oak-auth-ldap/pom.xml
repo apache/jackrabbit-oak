@@ -39,14 +39,14 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            !antlr.*,
                             !org.dom4j.*,
                             !org.xmlpull.v1,
                             *
                         </Import-Package>
                         <Embed-Dependency>
-                            api-all,commons-pool,commons-lang,mina-core
+                            api-all,commons-pool,commons-lang,mina-core,antlr
                         </Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
                     </instructions>
                 </configuration>
             </plugin>
@@ -92,6 +92,12 @@
             <groupId>org.apache.mina</groupId>
             <artifactId>mina-core</artifactId>
             <version>2.0.7</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>antlr</groupId>
+            <artifactId>antlr</artifactId>
+            <version>2.7.7</version>
             <scope>provided</scope>
         </dependency>
 
