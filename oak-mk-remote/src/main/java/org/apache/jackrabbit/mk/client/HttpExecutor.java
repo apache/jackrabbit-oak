@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mk.client;
 
 import org.apache.jackrabbit.mk.remote.util.BoundedInputStream;
 import org.apache.jackrabbit.mk.remote.util.ChunkedInputStream;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

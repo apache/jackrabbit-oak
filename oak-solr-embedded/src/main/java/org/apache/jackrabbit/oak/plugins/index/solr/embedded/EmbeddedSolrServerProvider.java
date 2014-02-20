@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mk.concurrent;
 
 import junit.framework.Assert;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 

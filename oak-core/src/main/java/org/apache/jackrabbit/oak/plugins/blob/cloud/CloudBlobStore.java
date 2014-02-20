@@ -30,7 +30,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
-import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;

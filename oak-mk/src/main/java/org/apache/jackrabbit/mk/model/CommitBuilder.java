@@ -19,8 +19,8 @@ package org.apache.jackrabbit.mk.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.json.JsonObject;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;

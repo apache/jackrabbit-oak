@@ -19,7 +19,7 @@
 
 @Version("0.1")
 @Export(optional = "provide:=true")
-package org.apache.jackrabbit.mk.json;
+package org.apache.jackrabbit.oak.commons.json;
 
 import aQute.bnd.annotation.Export;
 import aQute.bnd.annotation.Version;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.model;
 
-import org.apache.jackrabbit.mk.util.StringUtils;
+import org.apache.jackrabbit.oak.commons.StringUtils;
 
 import java.util.Arrays;
 

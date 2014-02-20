@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.json;
+package org.apache.jackrabbit.oak.commons.json;
 
 /**
  * A builder for Json and Json diff strings. It knows when a comma is needed. A

@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo.gridfs;
 
 import java.io.InputStream;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;

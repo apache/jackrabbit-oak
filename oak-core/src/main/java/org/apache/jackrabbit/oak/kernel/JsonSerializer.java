@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

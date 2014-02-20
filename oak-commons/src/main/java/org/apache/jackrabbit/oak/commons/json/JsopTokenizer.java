@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.json;
+package org.apache.jackrabbit.oak.commons.json;
 
 /**
  * A tokenizer for Json and Jsop strings.
@@ -411,7 +411,7 @@ public class JsopTokenizer implements JsopReader {
                         }
                     } else if (matches('[')) {
                         level++;
-                    } else if (matches(JsopReader.END)) {
+                    } else if (matches(END)) {
                         throw getFormatException(jsop, pos, "value");
                     } else {
                         read();

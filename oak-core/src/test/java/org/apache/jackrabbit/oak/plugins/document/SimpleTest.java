@@ -26,7 +26,7 @@ import static org.junit.Assert.fail;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Node.Children;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;

@@ -22,7 +22,7 @@ import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 import static org.apache.jackrabbit.mk.remote.util.ChunkedInputStream.MAX_CHUNK_SIZE;
 

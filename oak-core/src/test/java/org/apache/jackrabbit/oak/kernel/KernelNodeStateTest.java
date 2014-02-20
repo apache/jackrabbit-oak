@@ -18,18 +18,11 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNull;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -42,14 +35,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class KernelNodeStateTest {
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+
+public class KernelNodeStateTest extends AbstractKernelTest {
 
     private NodeState state;
 
     @Before
     public void setUp() throws CommitFailedException {
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
-
+        NodeStore store = createNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1);
         builder.setProperty("b", 2);

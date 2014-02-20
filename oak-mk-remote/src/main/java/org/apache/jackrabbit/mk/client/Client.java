@@ -28,7 +28,7 @@ import javax.net.SocketFactory;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.util.IOUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 
 /**
  * Client exposing a {@code MicroKernel} interface, that "remotes" commands

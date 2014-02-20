@@ -31,13 +31,11 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import junit.framework.TestCase;
-
 import com.google.common.collect.Sets;
-
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.util.IOUtilsTest;
+import junit.framework.TestCase;
+import org.apache.jackrabbit.oak.commons.IOUtilsTest;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.junit.Test;
 
 /**

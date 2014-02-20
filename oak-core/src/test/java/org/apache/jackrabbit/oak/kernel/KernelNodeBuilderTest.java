@@ -19,11 +19,6 @@
 
 package org.apache.jackrabbit.oak.kernel;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -33,11 +28,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
-public class KernelNodeBuilderTest {
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+
+public class KernelNodeBuilderTest extends AbstractKernelTest {
 
     @Test
     public void deletesKernelNodeStore() throws CommitFailedException {
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeStore store = createNodeStore();
         init(store);
         run(store);
     }
@@ -51,7 +50,7 @@ public class KernelNodeBuilderTest {
 
     @Test
     public void rebasePreservesNew() {
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
         assertTrue(root.hasChildNode("added"));
@@ -64,7 +63,7 @@ public class KernelNodeBuilderTest {
 
     @Test
     public void rebaseInvariant() {
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
         NodeState base = root.getBaseState();
@@ -74,7 +73,7 @@ public class KernelNodeBuilderTest {
 
     @Test
     public void rebase() throws CommitFailedException {
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         modify(store);
         store.rebase(root);

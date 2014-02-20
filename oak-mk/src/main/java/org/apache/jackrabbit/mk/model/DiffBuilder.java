@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.model;
 
-import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
