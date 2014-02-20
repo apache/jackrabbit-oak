@@ -198,13 +198,11 @@ public class ExternalLoginModule extends AbstractLoginModule {
     }
 
     /**
-     * {@inheritDoc}
-     *
      * @return An immutable set containing only the {@link SimpleCredentials} class.
      */
     @Override
     protected Set<Class> getSupportedCredentials() {
-        // todo: maybe delegate getSupportedCredentials to IDP
+        // TODO: maybe delegate getSupportedCredentials to IDP
         Class scClass = SimpleCredentials.class;
         return Collections.singleton(scClass);
     }
