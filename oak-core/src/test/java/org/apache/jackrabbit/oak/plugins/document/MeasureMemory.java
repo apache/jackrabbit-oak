@@ -36,6 +36,9 @@ public class MeasureMemory {
     static final int TEST_COUNT = 10000;
     static final int OVERHEAD = 24;
 
+    static final DocumentNodeStore STORE = new DocumentMK.Builder()
+            .setAsyncDelay(0).getNodeStore();
+
     @Test
     public void overhead() throws Exception {
         measureMemory(new Callable<Object[]>() {
@@ -150,9 +153,10 @@ public class MeasureMemory {
     }
     
     static Node generateNode(int propertyCount) {
-        Node n = new Node(new String("/hello/world"), new Revision(1, 2, 3));
+        Node n = new DocumentNodeState(STORE, new String("/hello/world"),
+                new Revision(1, 2, 3));
         for (int i = 0; i < propertyCount; i++) {
-            n.setProperty("property" + i, "values " + i);
+            n.setProperty("property" + i, "\"values " + i + "\"");
         }
         n.setLastRevision(new Revision(1, 2, 3));
         return n;

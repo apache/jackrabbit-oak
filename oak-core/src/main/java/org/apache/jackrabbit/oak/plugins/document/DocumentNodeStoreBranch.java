@@ -86,7 +86,7 @@ public class DocumentNodeStoreBranch
             @Override
             public void with(Commit c) {
                 toPersist.compareAgainstBaseState(base,
-                        new CommitDiff(c, store.getBlobSerializer()));
+                        new CommitDiff(store, c, store.getBlobSerializer()));
             }
         }, base, info);
         if (base.isBranch()) {

@@ -36,6 +36,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
  */
 class CommitDiff implements NodeStateDiff {
 
+    private final DocumentNodeStore store;
+
     private final Commit commit;
 
     private final String path;
@@ -44,12 +46,15 @@ class CommitDiff implements NodeStateDiff {
 
     private final BlobSerializer blobs;
 
-    CommitDiff(@Nonnull Commit commit, @Nonnull BlobSerializer blobs) {
-        this(checkNotNull(commit), "/", new JsopBuilder(), checkNotNull(blobs));
+    CommitDiff(@Nonnull DocumentNodeStore store, @Nonnull Commit commit,
+               @Nonnull BlobSerializer blobs) {
+        this(checkNotNull(store), checkNotNull(commit), "/",
+                new JsopBuilder(), checkNotNull(blobs));
     }
 
-    private CommitDiff(Commit commit, String path,
+    private CommitDiff(DocumentNodeStore store, Commit commit, String path,
                JsopBuilder builder, BlobSerializer blobs) {
+        this.store = store;
         this.commit = commit;
         this.path = path;
         this.builder = builder;
@@ -77,9 +82,9 @@ class CommitDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         String p = PathUtils.concat(path, name);
-        commit.addNode(new Node(p, commit.getRevision()));
+        commit.addNode(new DocumentNodeState(store, p, commit.getRevision()));
         return after.compareAgainstBaseState(EMPTY_NODE,
-                new CommitDiff(commit, p, builder, blobs));
+                new CommitDiff(store, commit, p, builder, blobs));
     }
 
     @Override
@@ -88,7 +93,7 @@ class CommitDiff implements NodeStateDiff {
                                     NodeState after) {
         String p = PathUtils.concat(path, name);
         return after.compareAgainstBaseState(before,
-                new CommitDiff(commit, p, builder, blobs));
+                new CommitDiff(store, commit, p, builder, blobs));
     }
 
     @Override
@@ -96,7 +101,7 @@ class CommitDiff implements NodeStateDiff {
         String p = PathUtils.concat(path, name);
         commit.removeNode(p);
         return MISSING_NODE.compareAgainstBaseState(before,
-                new CommitDiff(commit, p, builder, blobs));
+                new CommitDiff(store, commit, p, builder, blobs));
     }
 
     //----------------------------< internal >----------------------------------

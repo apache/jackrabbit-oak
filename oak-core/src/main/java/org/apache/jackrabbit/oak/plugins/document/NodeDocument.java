@@ -451,9 +451,10 @@ public class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
-     * Returns a {@link Node} as seen at the given <code>readRevision</code>.
+     * Returns a {@link DocumentNodeState} as seen at the given
+     * <code>readRevision</code>.
      *
-     * @param context      the revision context.
+     * @param nodeStore    the node store.
      * @param readRevision the read revision.
      * @param lastModified the revision when this node was last modified, but
      *                     the value is potentially not yet reflected in this
@@ -463,35 +464,35 @@ public class NodeDocument extends Document implements CachedNodeDocument{
      *         given read revision.
      */
     @CheckForNull
-    public Node getNodeAtRevision(@Nonnull RevisionContext context,
-                                  @Nonnull Revision readRevision,
-                                  @Nullable Revision lastModified) {
+    public DocumentNodeState getNodeAtRevision(@Nonnull DocumentNodeStore nodeStore,
+                                               @Nonnull Revision readRevision,
+                                               @Nullable Revision lastModified) {
         Set<Revision> validRevisions = new HashSet<Revision>();
-        Revision min = getLiveRevision(context, readRevision, validRevisions);
+        Revision min = getLiveRevision(nodeStore, readRevision, validRevisions);
         if (min == null) {
             // deleted
             return null;
         }
         String path = Utils.getPathFromId(getId());
-        Node n = new Node(path, readRevision, hasChildren());
+        DocumentNodeState n = new DocumentNodeState(nodeStore, path, readRevision, hasChildren());
         Revision lastRevision = min;
         for (String key : keySet()) {
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
             // first check local map, which contains most recent values
-            Value value = getLatestValue(context, getLocalMap(key),
+            Value value = getLatestValue(nodeStore, getLocalMap(key),
                     min, readRevision, validRevisions);
             if (value == null && !getPreviousRanges().isEmpty()) {
                 // check complete revision history
-                value = getLatestValue(context, getValueMap(key),
+                value = getLatestValue(nodeStore, getValueMap(key),
                         min, readRevision, validRevisions);
             }
             String propertyName = Utils.unescapePropertyName(key);
             String v = value != null ? value.value : null;
             n.setProperty(propertyName, v);
             // keep track of when this node was last modified
-            if (value != null && isRevisionNewer(context, value.revision, lastRevision)) {
+            if (value != null && isRevisionNewer(nodeStore, value.revision, lastRevision)) {
                 lastRevision = value.revision;
             }
         }
@@ -502,11 +503,11 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         // _lastRev.
 
         // when was this node last modified?
-        Branch branch = context.getBranches().getBranch(readRevision);
+        Branch branch = nodeStore.getBranches().getBranch(readRevision);
         Map<Integer, Revision> lastRevs = Maps.newHashMap(getLastRev());
         // overlay with unsaved last modified from this instance
         if (lastModified != null) {
-            lastRevs.put(context.getClusterId(), lastModified);
+            lastRevs.put(nodeStore.getClusterId(), lastModified);
         }
         Revision branchBase = null;
         if (branch != null) {
@@ -514,7 +515,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         }
         for (Revision r : lastRevs.values()) {
             // ignore if newer than readRevision
-            if (isRevisionNewer(context, r, readRevision)) {
+            if (isRevisionNewer(nodeStore, r, readRevision)) {
                 // the node has a _lastRev which is newer than readRevision
                 // this means we don't know when this node was
                 // modified by an operation on a descendant node between
@@ -522,7 +523,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
                 // to stay on the safe side and use readRevision
                 lastRevision = readRevision;
                 continue;
-            } else if (branchBase != null && isRevisionNewer(context, r, branchBase)) {
+            } else if (branchBase != null && isRevisionNewer(nodeStore, r, branchBase)) {
                 // readRevision is on a branch and the node has a
                 // _lastRev which is newer than the base of the branch
                 // we cannot use this _lastRev because it is not visible
@@ -530,7 +531,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
                 // changes is the base of the branch
                 r = branchBase;
             }
-            if (isRevisionNewer(context, r, lastRevision)) {
+            if (isRevisionNewer(nodeStore, r, lastRevision)) {
                 lastRevision = r;
             }
         }

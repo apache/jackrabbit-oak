@@ -416,8 +416,8 @@ public class DocumentMK implements MicroKernel {
         }
     }
 
-    private static void parseAddNode(Commit commit, JsopReader t, String path) {
-        Node n = new Node(path, commit.getRevision());
+    private void parseAddNode(Commit commit, JsopReader t, String path) {
+        Node n = new DocumentNodeState(nodeStore, path, commit.getRevision());
         if (!t.matches('}')) {
             do {
                 String key = t.readString();
