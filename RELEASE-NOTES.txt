@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 0.17a
+Release Notes -- Apache Jackrabbit Oak -- Version 0.17.1
 
 Introduction
 ------------
@@ -10,10 +10,10 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.17a is to alpha-level software. Use at your own risk.
+Jackrabbit Oak 0.17.1 is to alpha-level software. Use at your own risk.
 
-Changes in Oak 0.17a
--------------------
+Changes in Oak 0.17.1
+---------------------
 
 New Features
 
@@ -35,6 +35,7 @@ Improvements
   [OAK-931] Importer: review usage of write-root and objects obtained from the sessioncontext
   [OAK-1331] MicroKernel API: clarify semantics of `read` method
   [OAK-1347] Remove 'members' property index
+  [OAK-1370] Guard against concurrent read access through the same session
   [OAK-1372] XPath queries with both path and property restrictions are slow
   [OAK-1392] SegmentBlob.equals() optimization
   [OAK-1393] Upgrade Jackrabbit dependency to include JCR-3720 and JCR-3723
@@ -52,12 +53,14 @@ Improvements
   [OAK-1436] RemoteSolrServerProvider servers initialization has to be bound to related properties
   [OAK-1437] Use default references options for Oak Solr Index(Editor)Providers
   [OAK-1438] Generalise Root.commit(String) to Root.commit(Map)
+  [OAK-1442] Let oak-lucene export its embedded Lucene dependencies
 
 Bugs
 
   [OAK-842] Incorrect interaction of orderable child nodes with permission evaluation
   [OAK-1175] Security Concerns wrt Index Definitions
   [OAK-1335] version history related test failures
+  [OAK-1353] Test org.apache.jackrabbit.mk.ConcurrentWriteIT execute in single thread.
   [OAK-1389] Query: an index is used even where traversing is faster
   [OAK-1394] Event generation too slow with DocumentNodeStore
   [OAK-1405] OR of different constraints broken
