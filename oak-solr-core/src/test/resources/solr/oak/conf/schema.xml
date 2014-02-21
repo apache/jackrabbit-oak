@@ -28,22 +28,26 @@
         </fieldType>
         <fieldType name="children_path" class="solr.TextField">
             <analyzer type="index">
-                <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="/" skip="1" reverse="true" />
-                <filter class="solr.PatternReplaceFilterFactory" pattern="/" replacement="" replace="all"/>
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
+                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.LengthFilterFactory" min="2" max="2147483647"/>
+                <filter class="solr.PatternReplaceFilterFactory" pattern="([^\/]+)(\/)" replacement="$2" replace="first"/>
+                <filter class="solr.PatternReplaceFilterFactory" pattern="(\/)(.+)" replacement="$2" replace="first"/>
+                <filter class="solr.ReverseStringFilterFactory" />
             </analyzer>
             <analyzer type="query">
                 <tokenizer class="solr.KeywordTokenizerFactory" />
-                <filter class="solr.PatternReplaceFilterFactory" pattern="/" replacement="" replace="all"/>
             </analyzer>
         </fieldType>
         <fieldType name="parent_path" class="solr.TextField">
             <analyzer type="index">
                 <tokenizer class="solr.KeywordTokenizerFactory" />
-                <filter class="solr.PatternReplaceFilterFactory" pattern="/" replacement="" replace="all"/>
             </analyzer>
             <analyzer type="query">
-                <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="/" skip="1" reverse="true"/>
-                <filter class="solr.PatternReplaceFilterFactory" pattern="/" replacement="" replace="all"/>
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
+                <filter class="solr.ReverseStringFilterFactory" />
+                <filter class="solr.PatternReplaceFilterFactory" pattern="[^\/]+\/" replacement="" replace="first"/>
+                <filter class="solr.ReverseStringFilterFactory" />
             </analyzer>
         </fieldType>
         <fieldType name="text_keepcase" class="solr.TextField" positionIncrementGap="100">
@@ -96,13 +100,14 @@
                    geo="true" distErrPct="0.025" maxDistErr="0.000009" units="degrees" />
 
         <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD" currencyConfig="currency.xml" />
-
+        <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
     </types>
     <fields>
         <field name="path_exact" type="string" indexed="true" stored="true"/>
-        <field name="path_child" type="children_path" indexed="true" stored="false"/>
+        <field name="path_child" type="children_path" indexed="true" stored="true"/>
         <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
         <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
+        <field name="ignored" type="ignored" multiValued="true"/>
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
 

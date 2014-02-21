@@ -85,8 +85,8 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
     @Test
     public void descendantTest() throws Exception {
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a");
-        test.addChild("b");
+        test.addChild("a").addChild("c");
+        test.addChild("b").addChild("d");
         root.commit();
 
         Iterator<String> result = executeQuery(
@@ -94,14 +94,19 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/a/c", result.next());
+        assertTrue(result.hasNext());
         assertEquals("/test/b", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b/d", result.next());
         assertFalse(result.hasNext());
     }
 
     @Test
     public void descendantTest2() throws Exception {
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("name", asList("Hello", "World"), STRINGS);
+        test.addChild("a").addChild("c").setProperty("name", asList("Hello", "World"), STRINGS);
         test.addChild("b").setProperty("name", "Hello");
         root.commit();
 
@@ -109,7 +114,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
                 "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
-        assertEquals("/test/a", result.next());
+        assertEquals("/test/a/c", result.next());
         assertFalse(result.hasNext());
     }
 
@@ -132,9 +137,29 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/, /children", result.next());
+        assertTrue(result.hasNext());
         assertEquals("/, /jcr:system", result.next());
+        assertTrue(result.hasNext());
         assertEquals("/, /oak:index", result.next());
+        assertTrue(result.hasNext());
         assertEquals("/, /parents", result.next());
         assertFalse(result.hasNext());
+
+    }
+
+    @Test
+    public void ischildnodeTest2() throws Exception {
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        test.addChild("jcr:resource").addChild("x");
+        test.addChild("resource");
+        root.commit();
+
+        Iterator<String> strings = executeQuery("select [jcr:path] from [nt:base] as b where ischildnode(b, '/test')", "JCR-SQL2").iterator();
+        assertTrue(strings.hasNext());
+        assertEquals("/test/jcr:resource", strings.next());
+        assertTrue(strings.hasNext());
+        assertEquals("/test/resource", strings.next());
+        assertFalse(strings.hasNext());
     }
 }

@@ -46,7 +46,41 @@
               org.apache.jackrabbit.oak.plugins.index.solr.server,
               org.apache.jackrabbit.oak.plugins.index.solr.util
             </Export-Package>
-            <Embed-Dependency>solr-solrj</Embed-Dependency>
+              <_exportcontents>
+                  org.apache.solr.*;version=${solr.version},
+              </_exportcontents>
+              <Import-Package>
+                  org.slf4j.impl;resolution:=optional,
+                  com.ibm.icu.*;resolution:=optional,
+                  org.apache.log4j.jmx;resolution:=optional,
+                  org.apache.log4j.spi;resolution:=optional,
+                  org.jboss.netty.*;resolution:=optional,
+                  jline.*;resolution:=optional,
+                  org.eclipse.jetty.*;resolution:=optional,
+                  javax.servlet.*; version="[2.5.0,4.0.0)",
+                  org.tartarus.snowball;resolution:=optional,
+                  org.restlet;resolution:=optional,
+                  org.restlet.*;resolution:=optional,
+                  org.apache.hadoop.*;resolution:=optional,
+                  com.carrotsearch.hppc.*;resolution:=optional,
+                  com.googlecode.concurrentlinkedhashmap.*;resolution:=optional,
+                  com.spatial4j.core.*;resolution:=optional,
+                  org.apache.log4j.*;resolution:=optional,
+                  org.apache.zookeeper.server.quorum.flexible.*;resolution:=optional,
+                  org.joda.time.*;resolution:=optional,
+                  org.apache.lucene.queries.*;resolution:=optional,
+                  org.apache.lucene.queryparser.*;resolution:=optional,
+                  org.apache.lucene.search.grouping.*;resolution:=optional,
+                  org.apache.lucene.search.highlight.*;resolution:=optional,
+                  org.apache.lucene.search.postingshighlight.*;resolution:=optional,
+                  org.apache.lucene.search.spell.*;resolution:=optional,
+                  org.apache.lucene.search.suggest.*;resolution:=optional,
+                  org.apache.lucene.search.vectorhighlight.*;resolution:=optional,
+                  org.apache.lucene.spatial.*;resolution:=optional,
+                  *
+              </Import-Package>
+              <DynamicImport-Package>*</DynamicImport-Package>
+              <Embed-Dependency>solr-solrj,solr-core,org.noggit</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
@@ -95,12 +129,29 @@
       <scope>provided</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-solrj</artifactId>
-      <version>${solr.version}</version>
-      <scope>provided</scope>
-    </dependency>
+      <dependency>
+          <groupId>org.apache.solr</groupId>
+          <artifactId>solr-core</artifactId>
+          <version>${solr.version}</version>
+          <scope>runtime</scope>
+          <exclusions>
+              <exclusion>
+                  <groupId>org.slf4j</groupId>
+                  <artifactId>slf4j-jdk14</artifactId>
+              </exclusion>
+          </exclusions>
+      </dependency>
+      <dependency>
+          <groupId>org.apache.solr</groupId>
+          <artifactId>solr-solrj</artifactId>
+          <version>${solr.version}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.noggit</groupId>
+          <artifactId>noggit</artifactId>
+          <version>0.5</version>
+          <scope>runtime</scope>
+      </dependency>
 
     <!-- sorlj dependencies needed for OSGi deployments -->
     <dependency>
@@ -137,7 +188,7 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.1.3</version>
+      <version>4.2.6</version>
       <scope>runtime</scope>
       <optional>true</optional>
       <exclusions>
@@ -150,7 +201,7 @@
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpmime</artifactId>
-      <version>4.1.3</version>
+      <version>4.2.6</version>
       <scope>runtime</scope>
       <optional>true</optional>
       <exclusions>
@@ -184,27 +235,15 @@
       <classifier>tests</classifier>
     </dependency>
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mk</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.solr</groupId>
-      <artifactId>solr-core</artifactId>
-      <version>${solr.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-jdk14</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
       <version>2.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -228,7 +267,20 @@
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <version>1.9.5</version>
+      <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-test-framework</artifactId>
+      <version>${solr.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>${solr.version}</version>
+    </dependency>
+
   </dependencies>
 
 </project>

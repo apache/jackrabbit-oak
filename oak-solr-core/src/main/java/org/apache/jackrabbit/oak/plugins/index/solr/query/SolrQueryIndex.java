@@ -89,13 +89,6 @@ public class SolrQueryIndex implements QueryIndex {
                 queryBuilder.append(fieldName);
                 queryBuilder.append(':');
                 queryBuilder.append(path);
-                if (!path.equals("\\/")) {
-                    queryBuilder.append("\\/");
-                }
-                // TODO: Also handle other path restriction types
-                if (pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
-                    queryBuilder.append("*");
-                }
                 queryBuilder.append(" ");
             }
         }
@@ -122,9 +115,6 @@ public class SolrQueryIndex implements QueryIndex {
                     queryBuilder.append(configuration.getPathField());
                     queryBuilder.append(':');
                     queryBuilder.append(first);
-                    if (first!= null && !"\\/".equals(first)) {
-                        queryBuilder.append("\\/");
-                    }
                 } else {
                     queryBuilder.append(fieldName).append(':');
                     if (pr.first != null && pr.last != null && pr.first.equals(pr.last)) {
@@ -205,7 +195,7 @@ public class SolrQueryIndex implements QueryIndex {
         try {
             SolrQuery query = getQuery(filter);
             if (log.isDebugEnabled()) {
-                log.info("sending query {}", query);
+                log.debug("sending query {}", query);
             }
             QueryResponse queryResponse = solrServer.query(query);
             cursor = new SolrCursor(queryResponse);
@@ -244,13 +234,8 @@ public class SolrQueryIndex implements QueryIndex {
                 return new IndexRow() {
                     @Override
                     public String getPath() {
-                        String path = String.valueOf(doc.getFieldValue(
+                        return String.valueOf(doc.getFieldValue(
                                 configuration.getPathField()));
-                        if ("/".equals(path)) {
-                            return "/";
-                        } else {
-                            return path.substring(0, path.length() - 1);
-                        }
                     }
 
                     @Override

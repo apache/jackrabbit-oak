@@ -58,7 +58,7 @@ public class SolrCommitHookIT extends SolrBaseTest {
 
         // check the node is not in Solr anymore
         SolrQuery query = new SolrQuery();
-        query.setQuery("path_exact:\\/testRemoveNode\\/");
+        query.setQuery("path_exact:\\/testRemoveNode");
         assertTrue("item with id:testRemoveNode was not found in the index",
                 server.query(query).getResults().size() > 0);
 
