@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.plugins.document.Node.Children;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
@@ -54,7 +54,7 @@ public class MeasureMemory {
         measureMemory(new Callable<Object[]>() {
             @Override
             public Object[] call() {
-                Node n = generateNode(5);
+                DocumentNodeState n = generateNode(5);
                 return new Object[]{n, n.getMemory() + OVERHEAD};
             }
         });
@@ -65,7 +65,7 @@ public class MeasureMemory {
         measureMemory(new Callable<Object[]>() {
             @Override
             public Object[] call() {
-                Node n = generateNode(0);
+                DocumentNodeState n = generateNode(0);
                 return new Object[]{n, n.getMemory() + OVERHEAD};
             }
         });
@@ -152,8 +152,8 @@ public class MeasureMemory {
         list.clear();
     }
     
-    static Node generateNode(int propertyCount) {
-        Node n = new DocumentNodeState(STORE, new String("/hello/world"),
+    static DocumentNodeState generateNode(int propertyCount) {
+        DocumentNodeState n = new DocumentNodeState(STORE, new String("/hello/world"),
                 new Revision(1, 2, 3));
         for (int i = 0; i < propertyCount; i++) {
             n.setProperty("property" + i, "\"values " + i + "\"");
