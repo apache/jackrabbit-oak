@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.Node.Children;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -171,7 +171,7 @@ public class DocumentMK implements MicroKernel {
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
-        Node n = nodeStore.getNode(path, rev);
+        DocumentNodeState n = nodeStore.getNode(path, rev);
         return n != null;
     }
 
@@ -191,7 +191,7 @@ public class DocumentMK implements MicroKernel {
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
-        Node n = nodeStore.getNode(path, rev);
+        DocumentNodeState n = nodeStore.getNode(path, rev);
         if (n == null) {
             return null;
         }
@@ -355,7 +355,7 @@ public class DocumentMK implements MicroKernel {
                     parseAddNode(commit, t, path);
                     break;
                 case '-':
-                    Node toRemove = nodeStore.getNode(path, commit.getBaseRevision());
+                    DocumentNodeState toRemove = nodeStore.getNode(path, commit.getBaseRevision());
                     if (toRemove == null) {
                         throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
                     }
@@ -383,7 +383,7 @@ public class DocumentMK implements MicroKernel {
                     if (!PathUtils.isAbsolute(targetPath)) {
                         targetPath = PathUtils.concat(rootPath, targetPath);
                     }
-                    Node source = nodeStore.getNode(path, baseRev);
+                    DocumentNodeState source = nodeStore.getNode(path, baseRev);
                     if (source == null) {
                         throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
@@ -400,7 +400,7 @@ public class DocumentMK implements MicroKernel {
                     if (!PathUtils.isAbsolute(targetPath)) {
                         targetPath = PathUtils.concat(rootPath, targetPath);
                     }
-                    Node source = nodeStore.getNode(path, baseRev);
+                    DocumentNodeState source = nodeStore.getNode(path, baseRev);
                     if (source == null) {
                         throw new MicroKernelException("Node not found: " + path + " in revision " + baseRevId);
                     } else if (nodeExists(targetPath, baseRevId)) {
@@ -417,7 +417,7 @@ public class DocumentMK implements MicroKernel {
     }
 
     private void parseAddNode(Commit commit, JsopReader t, String path) {
-        Node n = new DocumentNodeState(nodeStore, path, commit.getRevision());
+        DocumentNodeState n = new DocumentNodeState(nodeStore, path, commit.getRevision());
         if (!t.matches('}')) {
             do {
                 String key = t.readString();

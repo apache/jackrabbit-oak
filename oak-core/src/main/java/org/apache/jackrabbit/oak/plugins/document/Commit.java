@@ -109,7 +109,7 @@ public class Commit {
         return baseRevision;
     }
     
-    void addNodeDiff(Node n) {
+    void addNodeDiff(DocumentNodeState n) {
         diff.tag('+').key(n.getPath());
         diff.object();
         n.append(diff, false);
@@ -134,7 +134,7 @@ public class Commit {
         op.setMapEntry(key, revision, value);
     }
 
-    void addNode(Node n) {
+    void addNode(DocumentNodeState n) {
         String path = n.getPath();
         if (operations.containsKey(path)) {
             String msg = "Node already added: " + path;

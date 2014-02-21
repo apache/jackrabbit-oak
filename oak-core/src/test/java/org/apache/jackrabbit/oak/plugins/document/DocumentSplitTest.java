@@ -104,7 +104,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                     || doc.getCommitRootPath(rev) != null);
             assertTrue(doc.isCommitted(rev));
         }
-        Node node = ns.getNode("/foo", Revision.fromString(head));
+        DocumentNodeState node = ns.getNode("/foo", Revision.fromString(head));
         // check status of node
         if (create) {
             assertNull(node);
@@ -260,7 +260,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             assertNotNull(doc);
             Revision head = ns.getHeadRevision();
             Revision lastRev = ns.getPendingModifications().get("/test");
-            Node n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
+            DocumentNodeState n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
             assertNotNull(n);
             String value = n.getPropertyAsString(name);
             // set or increment

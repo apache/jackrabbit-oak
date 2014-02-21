@@ -234,7 +234,7 @@ public final class DocumentNodeStore
      *
      * Key: PathRev, value: Children
      */
-    private final Cache<CacheValue, Node.Children> nodeChildrenCache;
+    private final Cache<CacheValue, DocumentNodeState.Children> nodeChildrenCache;
     private final CacheStats nodeChildrenCacheStats;
 
     /**
@@ -315,19 +315,19 @@ public final class DocumentNodeStore
         //TODO Make stats collection configurable as it add slight overhead
 
         nodeCache = builder.buildCache(builder.getNodeCacheSize());
-        nodeCacheStats = new CacheStats(nodeCache, "DocumentMk-Node",
+        nodeCacheStats = new CacheStats(nodeCache, "Document-NodeState",
                 builder.getWeigher(), builder.getNodeCacheSize());
 
         nodeChildrenCache = builder.buildCache(builder.getChildrenCacheSize());
-        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "DocumentMk-NodeChildren",
+        nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
         docChildrenCache = builder.buildCache(builder.getDocChildrenCacheSize());
-        docChildrenCacheStats = new CacheStats(docChildrenCache, "DocumentMk-DocChildren",
+        docChildrenCacheStats = new CacheStats(docChildrenCache, "Document-DocChildren",
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         diffCache = builder.buildCache(builder.getDiffCacheSize());
-        diffCacheStats = new CacheStats(diffCache, "DocumentMk-DiffCache",
+        diffCacheStats = new CacheStats(diffCache, "Document-Diff",
                 builder.getWeigher(), builder.getDiffCacheSize());
 
         // check if root node exists
@@ -335,7 +335,7 @@ public final class DocumentNodeStore
             // root node is missing: repository is not initialized
             Revision head = newRevision();
             Commit commit = new Commit(this, null, head);
-            Node n = new DocumentNodeState(this, "/", head);
+            DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
             // use dummy Revision as before
@@ -552,21 +552,21 @@ public final class DocumentNodeStore
         splitCandidates.put(id, id);
     }
 
-    void copyNode(Node source, String targetPath, Commit commit) {
+    void copyNode(DocumentNodeState source, String targetPath, Commit commit) {
         moveOrCopyNode(false, source, targetPath, commit);
     }
 
-    void moveNode(Node source, String targetPath, Commit commit) {
+    void moveNode(DocumentNodeState source, String targetPath, Commit commit) {
         moveOrCopyNode(true, source, targetPath, commit);
     }
 
-    void markAsDeleted(Node node, Commit commit, boolean subTreeAlso) {
+    void markAsDeleted(DocumentNodeState node, Commit commit, boolean subTreeAlso) {
         commit.removeNode(node.getPath());
 
         if (subTreeAlso) {
             // recurse down the tree
             // TODO causes issue with large number of children
-            for (Node child : getChildNodes(node, null, Integer.MAX_VALUE)) {
+            for (DocumentNodeState child : getChildNodes(node, null, Integer.MAX_VALUE)) {
                 markAsDeleted(child, commit, true);
             }
         }
@@ -602,22 +602,22 @@ public final class DocumentNodeStore
         }
     }
 
-    Node.Children getChildren(@Nonnull final Node parent,
+    DocumentNodeState.Children getChildren(@Nonnull final DocumentNodeState parent,
                               @Nullable final String name,
                               final int limit)
             throws MicroKernelException {
         if (checkNotNull(parent).hasNoChildren()) {
-            return Node.NO_CHILDREN;
+            return DocumentNodeState.NO_CHILDREN;
         }
         final String path = checkNotNull(parent).getPath();
         final Revision readRevision = parent.getLastRevision();
         PathRev key = childNodeCacheKey(path, readRevision, name);
-        Node.Children children;
+        DocumentNodeState.Children children;
         for (;;) {
             try {
-                children = nodeChildrenCache.get(key, new Callable<Node.Children>() {
+                children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
                     @Override
-                    public Node.Children call() throws Exception {
+                    public DocumentNodeState.Children call() throws Exception {
                         return readChildren(parent, name, limit);
                     }
                 });
@@ -639,14 +639,14 @@ public final class DocumentNodeStore
         return children;
     }
 
-    Node.Children readChildren(Node parent, String name, int limit) {
+    DocumentNodeState.Children readChildren(DocumentNodeState parent, String name, int limit) {
         // TODO use offset, to avoid O(n^2) and running out of memory
         // to do that, use the *name* of the last entry of the previous batch of children
         // as the starting point
         String path = parent.getPath();
         Revision rev = parent.getLastRevision();
         Iterable<NodeDocument> docs;
-        Node.Children c = new Node.Children();
+        DocumentNodeState.Children c = new DocumentNodeState.Children();
         // add one to the requested limit for the raw limit
         // this gives us a chance to detect whether there are more
         // child nodes than requested.
@@ -659,7 +659,7 @@ public final class DocumentNodeStore
                 numReturned++;
                 // filter out deleted children
                 String p = Utils.getPathFromId(doc.getId());
-                Node child = getNode(p, rev);
+                DocumentNodeState child = getNode(p, rev);
                 if (child == null) {
                     continue;
                 }
@@ -767,7 +767,7 @@ public final class DocumentNodeStore
      * @return the child nodes.
      */
     @Nonnull
-    Iterable<DocumentNodeState> getChildNodes(final @Nonnull Node parent,
+    Iterable<DocumentNodeState> getChildNodes(final @Nonnull DocumentNodeState parent,
                                               final @Nullable String name,
                                               final int limit) {
         // Preemptive check. If we know there are no children then
@@ -827,7 +827,7 @@ public final class DocumentNodeStore
         }
         if (isNew) {
             CacheValue key = childNodeCacheKey(path, rev, null);
-            Node.Children c = new Node.Children();
+            DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet(added);
             set.removeAll(removed);
             for (String p : added) {
@@ -1424,7 +1424,7 @@ public final class DocumentNodeStore
         // TODO this does not work well for large child node lists
         // use a document store index instead
         int max = MANY_CHILDREN_THRESHOLD;
-        Node.Children fromChildren, toChildren;
+        DocumentNodeState.Children fromChildren, toChildren;
         fromChildren = getChildren(from, null, max);
         toChildren = getChildren(to, null, max);
         if (!fromChildren.hasMore && !toChildren.hasMore) {
@@ -1467,8 +1467,8 @@ public final class DocumentNodeStore
             }
         }
         for (String p : paths) {
-            Node fromNode = getNode(p, fromRev);
-            Node toNode = getNode(p, toRev);
+            DocumentNodeState fromNode = getNode(p, fromRev);
+            DocumentNodeState toNode = getNode(p, toRev);
             if (fromNode != null) {
                 // exists in fromRev
                 if (toNode != null) {
@@ -1509,14 +1509,14 @@ public final class DocumentNodeStore
         }
     }
 
-    private void diffFewChildren(JsopWriter w, Node.Children fromChildren, Revision fromRev, Node.Children toChildren, Revision toRev) {
+    private void diffFewChildren(JsopWriter w, DocumentNodeState.Children fromChildren, Revision fromRev, DocumentNodeState.Children toChildren, Revision toRev) {
         Set<String> childrenSet = Sets.newHashSet(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n).newline();
             } else {
-                Node n1 = getNode(n, fromRev);
-                Node n2 = getNode(n, toRev);
+                DocumentNodeState n1 = getNode(n, fromRev);
+                DocumentNodeState n2 = getNode(n, toRev);
                 // this is not fully correct:
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
@@ -1558,7 +1558,7 @@ public final class DocumentNodeStore
     }
 
     private void moveOrCopyNode(boolean move,
-                                Node source,
+                                DocumentNodeState source,
                                 String targetPath,
                                 Commit commit) {
         // TODO Optimize - Move logic would not work well with very move of very large subtrees
@@ -1569,14 +1569,14 @@ public final class DocumentNodeStore
         // of this commit i.e. transient nodes. If its required it would need to be looked
         // into
 
-        Node newNode = new DocumentNodeState(this, targetPath, commit.getRevision());
+        DocumentNodeState newNode = new DocumentNodeState(this, targetPath, commit.getRevision());
         source.copyTo(newNode);
 
         commit.addNode(newNode);
         if (move) {
             markAsDeleted(source, commit, false);
         }
-        for (Node child : getChildNodes(source, null, Integer.MAX_VALUE)) {
+        for (DocumentNodeState child : getChildNodes(source, null, Integer.MAX_VALUE)) {
             String childName = PathUtils.getName(child.getPath());
             String destChildPath = PathUtils.concat(targetPath, childName);
             moveOrCopyNode(move, child, destChildPath, commit);

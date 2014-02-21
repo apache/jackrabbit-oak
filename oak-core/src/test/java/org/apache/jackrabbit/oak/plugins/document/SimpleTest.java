@@ -29,7 +29,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.document.Node.Children;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
@@ -249,7 +249,7 @@ public class SimpleTest {
         String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
-        Node n = ns.getNode("/", Revision.fromString(r0));
+        DocumentNodeState n = ns.getNode("/", Revision.fromString(r0));
         assertNotNull(n);
         Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals("[/test]", c.toString());
@@ -276,7 +276,7 @@ public class SimpleTest {
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        Node n = ns.getNode("/testDel", Revision.fromString(r1));
+        DocumentNodeState n = ns.getNode("/testDel", Revision.fromString(r1));
         assertNotNull(n);
         Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
         assertEquals(3, c.children.size());

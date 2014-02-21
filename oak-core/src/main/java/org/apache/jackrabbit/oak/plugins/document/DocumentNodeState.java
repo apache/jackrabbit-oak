@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -26,6 +27,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -55,7 +57,9 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 /**
  * A {@link NodeState} implementation for the {@link DocumentNodeStore}.
  */
-class DocumentNodeState extends AbstractNodeState implements Node {
+class DocumentNodeState extends AbstractNodeState implements CacheValue {
+
+    public static final Children NO_CHILDREN = new Children();
 
     /**
      * The number of child nodes to fetch initially.
@@ -193,7 +197,7 @@ class DocumentNodeState extends AbstractNodeState implements Node {
             // count all
             return Iterators.size(new ChildNodeEntryIterator());
         }
-        Node.Children c = store.getChildren(this, null, (int) max);
+        Children c = store.getChildren(this, null, (int) max);
         if (c.hasMore) {
             return Long.MAX_VALUE;
         } else {
@@ -253,10 +257,7 @@ class DocumentNodeState extends AbstractNodeState implements Node {
         return super.compareAgainstBaseState(base, diff);
     }
 
-    //----------------------------< Node >--------------------------------------
-
-    @Override
-    public void setProperty(String propertyName, String value) {
+    void setProperty(String propertyName, String value) {
         if (value == null) {
             properties.remove(propertyName);
         } else {
@@ -265,13 +266,11 @@ class DocumentNodeState extends AbstractNodeState implements Node {
         }
     }
 
-    @Override
-    public void setProperty(PropertyState property) {
+    void setProperty(PropertyState property) {
         properties.put(property.getName(), property);
     }
 
-    @Override
-    public String getPropertyAsString(String propertyName) {
+    String getPropertyAsString(String propertyName) {
         PropertyState prop = properties.get(propertyName);
         if (prop == null) {
             return null;
@@ -281,20 +280,15 @@ class DocumentNodeState extends AbstractNodeState implements Node {
         return builder.toString();
     }
 
-    @Override
-    public Set<String> getPropertyNames() {
+    Set<String> getPropertyNames() {
         return properties.keySet();
     }
 
-    @Override
-    public void copyTo(Node newNode) {
-        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
-            newNode.setProperty(entry.getValue());
-        }
+    void copyTo(DocumentNodeState newNode) {
+        newNode.properties.putAll(properties);
     }
 
-    @Override
-    public boolean hasNoChildren() {
+    boolean hasNoChildren() {
         return !hasChildren;
     }
 
@@ -311,8 +305,7 @@ class DocumentNodeState extends AbstractNodeState implements Node {
     /**
      * Create an add node operation for this node.
      */
-    @Override
-    public UpdateOp asOperation(boolean isNew) {
+    UpdateOp asOperation(boolean isNew) {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, isNew);
         op.set(Document.ID, id);
@@ -325,18 +318,15 @@ class DocumentNodeState extends AbstractNodeState implements Node {
         return op;
     }
 
-    @Override
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
-    @Override
-    public String getId() {
+    String getId() {
         return path + "@" + lastRevision;
     }
 
-    @Override
-    public void append(JsopWriter json, boolean includeId) {
+    void append(JsopWriter json, boolean includeId) {
         if (includeId) {
             json.key(":id").value(getId());
         }
@@ -345,13 +335,11 @@ class DocumentNodeState extends AbstractNodeState implements Node {
         }
     }
 
-    @Override
-    public void setLastRevision(Revision lastRevision) {
+    void setLastRevision(Revision lastRevision) {
         this.lastRevision = lastRevision;
     }
 
-    @Override
-    public Revision getLastRevision() {
+    Revision getLastRevision() {
         return lastRevision;
     }
 
@@ -488,6 +476,29 @@ class DocumentNodeState extends AbstractNodeState implements Node {
                 };
             }
         });
+    }
+
+    /**
+     * A list of children for a node.
+     */
+    public static class Children implements CacheValue {
+
+        final ArrayList<String> children = new ArrayList<String>();
+        boolean hasMore;
+
+        @Override
+        public int getMemory() {
+            int size = 114;
+            for (String c : children) {
+                size += c.length() * 2 + 56;
+            }
+            return size;
+        }
+
+        @Override
+        public String toString() {
+            return children.toString();
+        }
     }
 
     private class ChildNodeEntryIterator implements Iterator<ChildNodeEntry> {
