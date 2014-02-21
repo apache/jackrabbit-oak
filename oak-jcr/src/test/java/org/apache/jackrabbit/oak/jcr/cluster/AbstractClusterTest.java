@@ -27,6 +27,7 @@ import junit.framework.Assert;
 
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -74,6 +75,11 @@ public class AbstractClusterTest {
             return;
         }
         r1  = new Jcr(ns1).createRepository();
+        if (ns1 instanceof DocumentNodeStore) {
+            // make sure initial repository data is visible to
+            // other cluster nodes initialized later
+            ((DocumentNodeStore) ns1).runBackgroundOperations();
+        }
         s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         ns2 = fixture.createNodeStore(2);
         r2  = new Jcr(ns2).createRepository();
