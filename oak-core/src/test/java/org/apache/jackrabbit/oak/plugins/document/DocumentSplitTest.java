@@ -262,7 +262,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             Revision lastRev = ns.getPendingModifications().get("/test");
             Node n = doc.getNodeAtRevision(mk.getNodeStore(), head, lastRev);
             assertNotNull(n);
-            String value = n.getProperty(name);
+            String value = n.getPropertyAsString(name);
             // set or increment
             if (value == null) {
                 value = String.valueOf(0);

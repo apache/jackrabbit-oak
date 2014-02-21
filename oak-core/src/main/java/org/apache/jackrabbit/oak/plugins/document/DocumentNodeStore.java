@@ -55,6 +55,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -84,7 +85,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class DocumentNodeStore
         implements NodeStore, RevisionContext, Observable {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
 
     /**
@@ -114,6 +115,11 @@ public final class DocumentNodeStore
      * The document store (might be used by multiple node stores).
      */
     protected final DocumentStore store;
+
+    /**
+     * Marker node, indicating a node does not exist at a given revision.
+     */
+    protected final DocumentNodeState missing;
 
     /**
      * The commit queue to coordinate the commits.
@@ -218,9 +224,9 @@ public final class DocumentNodeStore
     /**
      * The node cache.
      *
-     * Key: PathRev, value: Node
+     * Key: PathRev, value: DocumentNodeState
      */
-    private final Cache<CacheValue, Node> nodeCache;
+    private final Cache<CacheValue, DocumentNodeState> nodeCache;
     private final CacheStats nodeCacheStats;
 
     /**
@@ -299,6 +305,12 @@ public final class DocumentNodeStore
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
         this.asyncDelay = builder.getAsyncDelay();
+        this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
+            @Override
+            public int getMemory() {
+                return 8;
+            }
+        };
 
         //TODO Make stats collection configurable as it add slight overhead
 
@@ -323,7 +335,7 @@ public final class DocumentNodeStore
             // root node is missing: repository is not initialized
             Revision head = newRevision();
             Commit commit = new Commit(this, null, head);
-            Node n = new Node("/", head);
+            Node n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
             // use dummy Revision as before
@@ -570,21 +582,21 @@ public final class DocumentNodeStore
      *          given revision.
      */
     @CheckForNull
-    Node getNode(@Nonnull final String path, @Nonnull final Revision rev) {
+    DocumentNodeState getNode(@Nonnull final String path, @Nonnull final Revision rev) {
         checkRevisionAge(checkNotNull(rev), checkNotNull(path));
         try {
             PathRev key = new PathRev(path, rev);
-            Node node = nodeCache.get(key, new Callable<Node>() {
+            DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
                 @Override
-                public Node call() throws Exception {
-                    Node n = readNode(path, rev);
+                public DocumentNodeState call() throws Exception {
+                    DocumentNodeState n = readNode(path, rev);
                     if (n == null) {
-                        n = Node.MISSING;
+                        n = missing;
                     }
                     return n;
                 }
             });
-            return node == Node.MISSING ? null : node;
+            return node == missing ? null : node;
         } catch (ExecutionException e) {
             throw new MicroKernelException(e);
         }
@@ -755,9 +767,9 @@ public final class DocumentNodeStore
      * @return the child nodes.
      */
     @Nonnull
-    Iterable<Node> getChildNodes(final @Nonnull Node parent,
-                                 final @Nullable String name,
-                                 final int limit) {
+    Iterable<DocumentNodeState> getChildNodes(final @Nonnull Node parent,
+                                              final @Nullable String name,
+                                              final int limit) {
         // Preemptive check. If we know there are no children then
         // return straight away
         if (checkNotNull(parent).hasNoChildren()) {
@@ -766,16 +778,16 @@ public final class DocumentNodeStore
 
         final Revision readRevision = parent.getLastRevision();
         return Iterables.transform(getChildren(parent, name, limit).children,
-                new Function<String, Node>() {
+                new Function<String, DocumentNodeState>() {
             @Override
-            public Node apply(String input) {
+            public DocumentNodeState apply(String input) {
                 return getNode(input, readRevision);
             }
         });
     }
 
     @CheckForNull
-    Node readNode(String path, Revision readRevision) {
+    DocumentNodeState readNode(String path, Revision readRevision) {
         String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
@@ -935,12 +947,12 @@ public final class DocumentNodeStore
      */
     @Nonnull
     DocumentNodeState getRoot(@Nonnull Revision revision) {
-        Node root = getNode("/", revision);
+        DocumentNodeState root = getNode("/", revision);
         if (root == null) {
             throw new IllegalStateException(
                     "root node does not exist at revision " + revision);
         }
-        return new DocumentNodeState(this, root);
+        return root;
     }
 
     @Nonnull
@@ -1091,7 +1103,8 @@ public final class DocumentNodeStore
      * @param base the base node to compare against.
      * @return the json diff.
      */
-    String diffChildren(final @Nonnull Node node, final @Nonnull Node base) {
+    String diffChildren(final @Nonnull DocumentNodeState node,
+                        final @Nonnull DocumentNodeState base) {
         PathRev key = diffCacheKey(node.getPath(),
                 base.getLastRevision(), node.getLastRevision());
         try {
@@ -1118,8 +1131,8 @@ public final class DocumentNodeStore
         }
         Revision fromRev = Revision.fromString(fromRevisionId);
         Revision toRev = Revision.fromString(toRevisionId);
-        final Node from = getNode(path, fromRev);
-        final Node to = getNode(path, toRev);
+        final DocumentNodeState from = getNode(path, fromRev);
+        final DocumentNodeState to = getNode(path, toRev);
         if (from == null || to == null) {
             // TODO implement correct behavior if the node does't/didn't exist
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
@@ -1379,30 +1392,32 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
-    private static void diffProperties(Node from, Node to, JsopWriter w) {
-        for (String name : from.getPropertyNames()) {
+    private static void diffProperties(DocumentNodeState from,
+                                       DocumentNodeState to,
+                                       JsopWriter w) {
+        for (PropertyState fromValue : from.getProperties()) {
+            String name = fromValue.getName();
             // changed or removed properties
-            String fromValue = from.getProperty(name);
-            String toValue = to.getProperty(name);
+            PropertyState toValue = to.getProperty(name);
             if (!fromValue.equals(toValue)) {
                 w.tag('^').key(PathUtils.concat(from.getPath(), name));
                 if (toValue == null) {
                     w.value(null);
                 } else {
-                    w.encodedValue(toValue).newline();
+                    w.encodedValue(to.getPropertyAsString(name)).newline();
                 }
             }
         }
         for (String name : to.getPropertyNames()) {
             // added properties
-            if (from.getProperty(name) == null) {
+            if (!from.hasProperty(name)) {
                 w.tag('^').key(PathUtils.concat(from.getPath(), name))
-                        .encodedValue(to.getProperty(name)).newline();
+                        .encodedValue(to.getPropertyAsString(name)).newline();
             }
         }
     }
 
-    private String diffImpl(Node from, Node to)
+    private String diffImpl(DocumentNodeState from, DocumentNodeState to)
             throws MicroKernelException {
         JsopWriter w = new JsopStream();
         diffProperties(from, to, w);
@@ -1554,7 +1569,7 @@ public final class DocumentNodeStore
         // of this commit i.e. transient nodes. If its required it would need to be looked
         // into
 
-        Node newNode = new Node(targetPath, commit.getRevision());
+        Node newNode = new DocumentNodeState(this, targetPath, commit.getRevision());
         source.copyTo(newNode);
 
         commit.addNode(newNode);

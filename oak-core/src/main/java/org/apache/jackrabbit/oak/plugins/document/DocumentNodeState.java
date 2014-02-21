@@ -18,15 +18,22 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.kernel.JsonSerializer;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
@@ -40,15 +47,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * A {@link NodeState} implementation for the {@link DocumentNodeStore}.
- * TODO: merge DocumentNodeState with Node
  */
-final class DocumentNodeState extends AbstractNodeState {
+class DocumentNodeState extends AbstractNodeState implements Node {
 
     /**
      * The number of child nodes to fetch initially.
@@ -68,24 +75,32 @@ final class DocumentNodeState extends AbstractNodeState {
 
     private final DocumentNodeStore store;
 
-    private final Node node;
+    final String path;
+    final Revision rev;
+    final Map<String, PropertyState> properties = Maps.newHashMap();
+    Revision lastRevision;
+    final boolean hasChildren;
 
     /**
      * TODO: OAK-1056
      */
     private boolean isBranch;
 
-    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull Node node) {
-        this.store = checkNotNull(store);
-        this.node = checkNotNull(node);
+    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
+                      @Nonnull Revision rev) {
+        this(store, path, rev, false);
     }
 
-    String getPath() {
-        return node.getPath();
+    DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
+                      @Nonnull Revision rev, boolean hasChildren) {
+        this.store = checkNotNull(store);
+        this.path = checkNotNull(path);
+        this.rev = checkNotNull(rev);
+        this.hasChildren = hasChildren;
     }
 
     Revision getRevision() {
-        return node.getReadRevision();
+        return rev;
     }
 
     DocumentNodeState setBranch() {
@@ -106,7 +121,7 @@ final class DocumentNodeState extends AbstractNodeState {
         } else if (that instanceof DocumentNodeState) {
             DocumentNodeState other = (DocumentNodeState) that;
             if (getPath().equals(other.getPath())) {
-                return node.getLastRevision().equals(other.node.getLastRevision());
+                return lastRevision.equals(other.lastRevision);
             }
         } else if (that instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) that;
@@ -128,66 +143,57 @@ final class DocumentNodeState extends AbstractNodeState {
 
     @Override
     public PropertyState getProperty(String name) {
-        String value = node.getProperty(name);
-        if (value == null) {
-            return null;
-        }
-        return new DocumentPropertyState(store, name, value);
+        return properties.get(name);
     }
 
     @Override
     public boolean hasProperty(String name) {
-        return node.getPropertyNames().contains(name);
+        return properties.containsKey(name);
     }
 
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.transform(node.getPropertyNames(), new Function<String, PropertyState>() {
-            @Override
-            public PropertyState apply(String name) {
-                return getProperty(name);
-            }
-        });
+        return properties.values();
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        if (node.hasNoChildren() || !isValidName(name)) {
+        if (!hasChildren || !isValidName(name)) {
             return false;
         } else {
             String p = PathUtils.concat(getPath(), name);
-            return store.getNode(p, node.getLastRevision()) != null;
+            return store.getNode(p, lastRevision) != null;
         }
     }
 
     @Nonnull
     @Override
     public NodeState getChildNode(@Nonnull String name) {
-        if (node.hasNoChildren()) {
+        if (!hasChildren) {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         }
         String p = PathUtils.concat(getPath(), name);
-        Node child = store.getNode(p, node.getLastRevision());
+        DocumentNodeState child = store.getNode(p, lastRevision);
         if (child == null) {
             checkValidName(name);
             return EmptyNodeState.MISSING_NODE;
         } else {
-            return new DocumentNodeState(store, child);
+            return child;
         }
     }
 
     @Override
     public long getChildNodeCount(long max) {
-        if (node.hasNoChildren()) {
+        if (!hasChildren) {
             return 0;
         }
         if (max > DocumentNodeStore.NUM_CHILDREN_CACHE_LIMIT) {
             // count all
             return Iterators.size(new ChildNodeEntryIterator());
         }
-        Node.Children c = store.getChildren(node, null, (int) max);
+        Node.Children c = store.getChildren(this, null, (int) max);
         if (c.hasMore) {
             return Long.MAX_VALUE;
         } else {
@@ -199,7 +205,7 @@ final class DocumentNodeState extends AbstractNodeState {
     @Nonnull
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        if (node.hasNoChildren()) {
+        if (!hasChildren) {
             return Collections.emptyList();
         }
         return new Iterable<ChildNodeEntry>() {
@@ -233,18 +239,143 @@ final class DocumentNodeState extends AbstractNodeState {
             DocumentNodeState mBase = (DocumentNodeState) base;
             if (store == mBase.store) {
                 if (getPath().equals(mBase.getPath())) {
-                    if (node.getLastRevision().equals(mBase.node.getLastRevision())) {
+                    if (lastRevision.equals(mBase.lastRevision)) {
                         // no differences
                         return true;
                     } else if (getChildNodeCount(LOCAL_DIFF_THRESHOLD) > LOCAL_DIFF_THRESHOLD) {
                         // use DocumentNodeStore compare when there are many children
-                        return dispatch(store.diffChildren(this.node, mBase.node), mBase, diff);
+                        return dispatch(store.diffChildren(this, mBase), mBase, diff);
                     }
                 }
             }
         }
         // fall back to the generic node state diff algorithm
         return super.compareAgainstBaseState(base, diff);
+    }
+
+    //----------------------------< Node >--------------------------------------
+
+    @Override
+    public void setProperty(String propertyName, String value) {
+        if (value == null) {
+            properties.remove(propertyName);
+        } else {
+            properties.put(propertyName,
+                    new DocumentPropertyState(store, propertyName, value));
+        }
+    }
+
+    @Override
+    public void setProperty(PropertyState property) {
+        properties.put(property.getName(), property);
+    }
+
+    @Override
+    public String getPropertyAsString(String propertyName) {
+        PropertyState prop = properties.get(propertyName);
+        if (prop == null) {
+            return null;
+        }
+        JsopBuilder builder = new JsopBuilder();
+        new JsonSerializer(builder, store.getBlobSerializer()).serialize(prop);
+        return builder.toString();
+    }
+
+    @Override
+    public Set<String> getPropertyNames() {
+        return properties.keySet();
+    }
+
+    @Override
+    public void copyTo(Node newNode) {
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            newNode.setProperty(entry.getValue());
+        }
+    }
+
+    @Override
+    public boolean hasNoChildren() {
+        return !hasChildren;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("path: ").append(path).append('\n');
+        buff.append("rev: ").append(rev).append('\n');
+        buff.append(properties);
+        buff.append('\n');
+        return buff.toString();
+    }
+
+    /**
+     * Create an add node operation for this node.
+     */
+    @Override
+    public UpdateOp asOperation(boolean isNew) {
+        String id = Utils.getIdFromPath(path);
+        UpdateOp op = new UpdateOp(id, isNew);
+        op.set(Document.ID, id);
+        NodeDocument.setModified(op, rev);
+        NodeDocument.setDeleted(op, rev, false);
+        for (String p : properties.keySet()) {
+            String key = Utils.escapePropertyName(p);
+            op.setMapEntry(key, rev, getPropertyAsString(p));
+        }
+        return op;
+    }
+
+    @Override
+    public String getPath() {
+        return path;
+    }
+
+    @Override
+    public String getId() {
+        return path + "@" + lastRevision;
+    }
+
+    @Override
+    public void append(JsopWriter json, boolean includeId) {
+        if (includeId) {
+            json.key(":id").value(getId());
+        }
+        for (String p : properties.keySet()) {
+            json.key(p).encodedValue(getPropertyAsString(p));
+        }
+    }
+
+    @Override
+    public void setLastRevision(Revision lastRevision) {
+        this.lastRevision = lastRevision;
+    }
+
+    @Override
+    public Revision getLastRevision() {
+        return lastRevision;
+    }
+
+    @Override
+    public int getMemory() {
+        int size = 180 + path.length() * 2;
+        // rough approximation for properties
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            // name
+            size += 48 + entry.getKey().length() * 2;
+            PropertyState propState = entry.getValue();
+            if (propState.getType() != Type.BINARY
+                    && propState.getType() != Type.BINARIES) {
+                // assume binaries go into blob store
+                for (int i = 0; i < propState.count(); i++) {
+                    // size() returns length of string
+                    // overhead:
+                    // - 8 bytes per reference in values list
+                    // - 48 bytes per string
+                    size += 56 + propState.size(i) * 2;
+                }
+            }
+        }
+        return size;
     }
 
     //------------------------------< internal >--------------------------------
@@ -338,21 +469,21 @@ final class DocumentNodeState extends AbstractNodeState {
     @Nonnull
     private Iterable<ChildNodeEntry> getChildNodeEntries(@Nullable String name,
                                                          int limit) {
-        Iterable<Node> children = store.getChildNodes(node, name, limit);
-        return Iterables.transform(children, new Function<Node, ChildNodeEntry>() {
+        Iterable<DocumentNodeState> children = store.getChildNodes(this, name, limit);
+        return Iterables.transform(children, new Function<DocumentNodeState, ChildNodeEntry>() {
             @Override
-            public ChildNodeEntry apply(final Node input) {
+            public ChildNodeEntry apply(final DocumentNodeState input) {
                 return new AbstractChildNodeEntry() {
                     @Nonnull
                     @Override
                     public String getName() {
-                        return PathUtils.getName(input.path);
+                        return PathUtils.getName(input.getPath());
                     }
 
                     @Nonnull
                     @Override
                     public NodeState getNodeState() {
-                        return new DocumentNodeState(store, input);
+                        return input;
                     }
                 };
             }

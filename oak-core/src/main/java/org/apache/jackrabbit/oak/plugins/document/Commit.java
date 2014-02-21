@@ -110,7 +110,7 @@ public class Commit {
     }
     
     void addNodeDiff(Node n) {
-        diff.tag('+').key(n.path);
+        diff.tag('+').key(n.getPath());
         diff.object();
         n.append(diff, false);
         diff.endObject();
@@ -135,13 +135,14 @@ public class Commit {
     }
 
     void addNode(Node n) {
-        if (operations.containsKey(n.path)) {
-            String msg = "Node already added: " + n.path;
+        String path = n.getPath();
+        if (operations.containsKey(path)) {
+            String msg = "Node already added: " + path;
             LOG.error(msg);
             throw new MicroKernelException(msg);
         }
-        operations.put(n.path, n.asOperation(true));
-        addedNodes.add(n.path);
+        operations.put(path, n.asOperation(true));
+        addedNodes.add(path);
     }
 
     boolean isEmpty() {

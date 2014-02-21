@@ -17,138 +17,47 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Set;
-import java.util.Map.Entry;
 
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 
 /**
  * Represents a node held in memory (in the cache for example).
  */
-public class Node implements CacheValue {
-    /**
-     * A node, which does not exist at a given revision.
-     */
-    static final Node MISSING = new Node(null, null) {
-        @Override
-        public int getMemory() {
-            return 8;
-        }
-    };
+public interface Node extends CacheValue {
 
-    final String path;
-    final Revision rev;
-    final Map<String, String> properties = Utils.newMap();
-    Revision lastRevision;
-    final boolean hasChildren;
-    
-    Node(String path, Revision rev) {
-        this(path, rev, false);
-    }
+    Children NO_CHILDREN = new Children();
 
-    Node(String path, Revision rev, boolean hasChildren) {
-        this.path = path;
-        this.rev = rev;
-        this.hasChildren = hasChildren;
-    }
-    
-    void setProperty(String propertyName, String value) {
-        if (value == null) {
-            properties.remove(propertyName);
-        } else {
-            properties.put(propertyName, value);
-        }
-    }
-    
-    public String getProperty(String propertyName) {
-        return properties.get(propertyName);
-    }
-    
-    public Set<String> getPropertyNames() {
-        return properties.keySet();
-    }
+    String getPropertyAsString(String propertyName);
 
-    public void copyTo(Node newNode) {
-        newNode.properties.putAll(properties);
-    }
+    void setProperty(String propertyName, String value);
 
-    public boolean hasNoChildren() {
-        return !hasChildren;
-    }
+    void setProperty(PropertyState property);
 
-    @Override
-    public String toString() {
-        StringBuilder buff = new StringBuilder();
-        buff.append("path: ").append(path).append('\n');
-        buff.append("rev: ").append(rev).append('\n');
-        buff.append(properties);
-        buff.append('\n');
-        return buff.toString();
-    }
-    
-    /**
-     * Create an add node operation for this node.
-     */
-    UpdateOp asOperation(boolean isNew) {
-        String id = Utils.getIdFromPath(path);
-        UpdateOp op = new UpdateOp(id, isNew);
-        op.set(Document.ID, id);
-        NodeDocument.setModified(op, rev);
-        NodeDocument.setDeleted(op, rev, false);
-        for (String p : properties.keySet()) {
-            String key = Utils.escapePropertyName(p);
-            op.setMapEntry(key, rev, properties.get(p));
-        }
-        return op;
-    }
+    Set<String> getPropertyNames();
 
-    String getPath() {
-        return path;
-    }
+    void copyTo(Node newNode);
 
-    Revision getReadRevision() {
-        return rev;
-    }
+    boolean hasNoChildren();
 
-    public String getId() {
-        return path + "@" + lastRevision;        
-    }
+    String getId();
 
-    public void append(JsopWriter json, boolean includeId) {
-        if (includeId) {
-            json.key(":id").value(getId());
-        }
-        for (String p : properties.keySet()) {
-            json.key(p).encodedValue(properties.get(p));
-        }
-    }
+    void append(JsopWriter json, boolean includeId);
 
-    public void setLastRevision(Revision lastRevision) {
-        this.lastRevision = lastRevision;
-    }
+    void setLastRevision(Revision lastRevision);
 
-    public Revision getLastRevision() {
-        return lastRevision;
-    }
-    
-    @Override
-    public int getMemory() {
-        int size = 180 + path.length() * 2;
-        for (Entry<String, String> e : properties.entrySet()) {
-            size += 136 + e.getKey().length() * 2 + e.getValue().length() * 2;
-        }
-        return size;
-    }
+    Revision getLastRevision();
 
-    static final Children NO_CHILDREN = new Children();
+    String getPath();
+
+    UpdateOp asOperation(boolean isNew);
 
     /**
      * A list of children for a node.
      */
-    static class Children implements CacheValue {
+    public static class Children implements CacheValue {
 
         final ArrayList<String> children = new ArrayList<String>();
         boolean hasMore;
@@ -166,7 +75,5 @@ public class Node implements CacheValue {
         public String toString() {
             return children.toString();
         }
-        
     }
-
 }

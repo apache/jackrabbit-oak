@@ -26,6 +26,8 @@ import static org.junit.Assert.fail;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Node.Children;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -71,17 +73,20 @@ public class SimpleTest {
     @Test
     public void addNodeGetNode() {
         DocumentMK mk = new DocumentMK.Builder().open();
+        DocumentStore s = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
         Revision rev = Revision.fromString(mk.getHeadRevision());
-        Node n = new Node("/test", rev);
-        n.setProperty("name", "Hello");
+        DocumentNodeState n = new DocumentNodeState(ns, "/test", rev);
+        n.setProperty("name", "\"Hello\"");
         UpdateOp op = n.asOperation(true);
         // mark as commit root
         NodeDocument.setRevision(op, rev, "c");
-        DocumentStore s = mk.getDocumentStore();
-        DocumentNodeStore ns = mk.getNodeStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
-        Node n2 = ns.getNode("/test", rev);
-        assertEquals("Hello", n2.getProperty("name"));
+        DocumentNodeState n2 = ns.getNode("/test", rev);
+        assertNotNull(n2);
+        PropertyState p = n2.getProperty("name");
+        assertNotNull(p);
+        assertEquals("Hello", p.getValue(Type.STRING));
         mk.dispose();
     }
     

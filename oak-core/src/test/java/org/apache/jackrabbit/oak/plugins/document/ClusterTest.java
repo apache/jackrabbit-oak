@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,8 +111,12 @@ public class ClusterTest {
 
         String r1b = mk1.getHeadRevision();
         String n1b = mk1.getNodes("/test", r1b, 0, 0, 10, null);
+        JSONParser parser = new JSONParser();
+        JSONObject obj = (JSONObject) parser.parse(n1b);
         // mk1 now sees both changes
-        assertEquals("{\"x\":1,\"y\":2,\":childNodeCount\":0}", n1b);
+        assertEquals(1L, obj.get("x"));
+        assertEquals(2L, obj.get("y"));
+        assertEquals(0L, obj.get(":childNodeCount"));
 
         mk1.dispose();
         mk2.dispose();
