@@ -23,8 +23,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.Oak;
@@ -402,6 +404,49 @@ public class TreeTest extends OakBaseTest {
                 t1 = s1.getLatestRoot().getTree("/");
                 assertSequence(
                         t1.getChildren(), "node1", "node2", "node3", "node4");
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+
+    }
+
+    @Test
+    public void concurrentAddChildMakeOrderable() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            r1.commit();
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1 = r1.getTree("/");
+                // node3 from s1
+                t1.addChild("node3").orderBefore(null);
+                r1.commit();
+
+                // get current sequence of child names
+                List<String> names = Lists.newArrayList();
+                for (Tree t : r1.getTree("/").getChildren()) {
+                    names.add(t.getName());
+                }
+
+                // node4 from s2
+                t2.addChild("node4").orderBefore(null);
+                r2.commit();
+
+                names.add("node4");
+
+                t1 = s1.getLatestRoot().getTree("/");
+                assertSequence(
+                        t1.getChildren(), names.toArray(new String[names.size()]));
             } finally {
                 s2.close();
             }
