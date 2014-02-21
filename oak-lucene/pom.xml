@@ -34,7 +34,7 @@
 
   <properties>
     <tika.version>1.3</tika.version>
-    <lucene.version>4.3.0</lucene.version>
+    <lucene.version>4.6.1</lucene.version>
     <known.issues>
       <!-- Jackrabbit query tests -->
       org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
@@ -105,6 +105,10 @@
               org.apache.jackrabbit.oak.plugins.index.lucene,
               org.apache.jackrabbit.oak.plugins.index.lucene.util
             </Export-Package>
+            <_exportcontents>
+                org.apache.lucene.*;version=${lucene.version};-split-package:=merge-first,
+                org.tartarus.snowball.*;version=${lucene.version};-split-package:=merge-first
+            </_exportcontents>
             <Embed-Dependency>lucene-*;inline=true</Embed-Dependency>
           </instructions>
         </configuration>

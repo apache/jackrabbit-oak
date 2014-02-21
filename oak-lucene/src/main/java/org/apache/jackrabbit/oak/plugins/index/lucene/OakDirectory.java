@@ -16,6 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
+import java.io.ByteArrayInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.List;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.Lock;
+import org.apache.lucene.store.LockFactory;
+import org.apache.lucene.store.NoLockFactory;
+
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
@@ -25,25 +44,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collection;
-import java.util.List;
-
-import com.google.common.collect.Iterables;
-import com.google.common.io.ByteStreams;
-
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
-import org.apache.lucene.store.IndexOutput;
-import org.apache.lucene.store.NoLockFactory;
-
 /**
  * Implementation of the Lucene {@link Directory} (a flat list of files)
  * based on an Oak {@link NodeBuilder}.
@@ -51,6 +51,7 @@ import org.apache.lucene.store.NoLockFactory;
 class OakDirectory extends Directory {
 
     protected final NodeBuilder directoryBuilder;
+    private LockFactory lockFactory;
 
     public OakDirectory(NodeBuilder directoryBuilder) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
@@ -103,6 +104,16 @@ class OakDirectory extends Directory {
     }
 
     @Override
+    public Lock makeLock(String name) {
+        return lockFactory.makeLock(name);
+    }
+
+    @Override
+    public void clearLock(String name) throws IOException {
+        lockFactory.clearLock(name);
+    }
+
+    @Override
     public void sync(Collection<String> names) throws IOException {
         // ?
     }
@@ -110,6 +121,16 @@ class OakDirectory extends Directory {
     @Override
     public void close() throws IOException {
         // do nothing
+    }
+
+    @Override
+    public void setLockFactory(LockFactory lockFactory) throws IOException {
+        this.lockFactory = lockFactory;
+    }
+
+    @Override
+    public LockFactory getLockFactory() {
+        return lockFactory;
     }
 
     private static final int BLOB_SIZE = 32 * 1024; // > blob inline limit
