@@ -157,7 +157,7 @@ public class SolrIndexEditor implements IndexEditor {
 
         try {
             solrServer.deleteByQuery(String.format(
-                    "%s:%s\\/*", configuration.getPathField(), path));
+                    "%s:%s*", configuration.getPathField(), path));
             updateCallback.indexUpdate();
         } catch (SolrServerException e) {
             throw new CommitFailedException(
@@ -173,9 +173,6 @@ public class SolrIndexEditor implements IndexEditor {
     private SolrInputDocument docFromState(NodeState state) {
         SolrInputDocument inputDocument = new SolrInputDocument();
         String path = getPath();
-        if (!path.endsWith("/")) {
-            path = path + "/";
-        }
         inputDocument.addField(configuration.getPathField(), path);
         for (PropertyState property : state.getProperties()) {
             // try to get the field to use for this property from configuration

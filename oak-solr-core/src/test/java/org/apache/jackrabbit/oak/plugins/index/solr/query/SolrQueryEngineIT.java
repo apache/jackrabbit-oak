@@ -103,13 +103,13 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         Cursor cursor = index.query(filter, store.getRoot());
         assertNotNull(cursor);
         assertTrue(cursor.hasNext());
-        assertEquals("/somenode/child1", cursor.next().getPath());
+        assertEquals("/somenode", cursor.next().getPath());
         assertTrue(cursor.hasNext());
-        assertEquals("/somenode/child2/descendant", cursor.next().getPath());
+        assertEquals("/somenode/child1", cursor.next().getPath());
         assertTrue(cursor.hasNext());
         assertEquals("/somenode/child2", cursor.next().getPath());
         assertTrue(cursor.hasNext());
-        assertEquals("/somenode", cursor.next().getPath());
+        assertEquals("/somenode/child2/descendant", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 
