@@ -54,35 +54,81 @@ its properties and closest child nodes. Some segments might also be used
 to store commonly occurring property values or other shared data. Segments
 can be to up to 256KiB in size.
 
-Segments come in two types: data and bulk segments. A data segment can
-contain any types of records, may refer to content in other segments and
-comes with a segment header that guides the parsing of the segment.
-Bulk segments on the other hand only contain raw binary data, interpreted
-as a sequence of block records. Bulk segments are only used for storing
-large binary values, and are handled separately from data segments to
-prevent large binaries from disrupting the compactness of the rest of
-the stored tree data.
+Segments come in two types: data and bulk segments. The type of a segment
+is encoded in its UUID and can thus be determined already before reading
+the segment. The following bit patterns are used (each `x` represents four
+random bits):
 
-The type of a segment is encoded in its UUID and can thus be determined
-already before reading the segment. The following bit patterns are used
-(each `x` represents 4 random bits):
+  * `xxxxxxxx-xxxx-4xxx-Axxx-xxxxxxxxxxxx` data segment UUID
+  * `xxxxxxxx-xxxx-4xxx-Bxxx-xxxxxxxxxxxx` bulk segment UUID
 
-  * `xxxxxxxx-xxxx-4xxx-Axxx-xxxxxxxxxxxx`: data segment UUID
-  * `xxxxxxxx-xxxx-4xxx-Bxxx-xxxxxxxxxxxx`: bulk segment UUID
+(This encoding makes segment UUIDs appear as syntactically valid version 4
+random UUIDs specified in RFC 4122.)
 
-This encoding makes segment UUIDs appear as syntactically valid version 4
-random UUIDs specified in RFC 4122.
+Bulk segments
+-------------
 
-Content within a data segment can contain references to content within
-other segments. Each segment keeps a list of the UUIDs of all other segments
-it references. This list of segment references can be used to optimize
-both internal storage (as seen below) and garbage collection. Segments
-that are no longer referenced can be efficiently identified by
-traversing the graph of segment-level references without having to
-parse or even fetch the contents of each segment.
+Bulk segments contain raw binary data, interpreted simply as a sequence
+of block records with no headers or other extra metadata:
 
-The internal record structure of nodes is described in a moment once
-we first cover journal documents.
+    [block 1] [block 2] ... [block N]
+
+A bulk segment whose length is `n` bytes consists of `n div 4096` block
+records of 4KiB each followed possibly a block record of `n mod 4096` bytes,
+if there still are remaining bytes in the segment. The structure of a
+bulk segment can thus be parsed based only on the segment length.
+
+Data segments
+-------------
+
+A data segment can contain any types of records, may refer to content in
+other segments, and comes with a segment header that guides the parsing
+of the segment. The overall structure of a data segment is:
+
+    [segment header] [record 1] [record 2] ... [record N] [checksum]
+
+The header and each record is zero-padded to make their size a multiple of
+four bytes and to align the next record at a four-byte boundary. The last
+four bytes of a segment contain the Adler-32 checksum of all the preceding
+bytes.
+
+The segment header consists of the following fields:
+
+    +--------+--------+--------+--------+--------+--------+--------+--------+
+    | magic bytes: "0aK\n" in ASCII     |version |idcount |rootcount        |
+    +--------+--------+--------+--------+--------+--------+--------+--------+
+    | nanosecond timestamp/counter (8 bytes)                                |
+    +--------+--------+--------+--------+--------+--------+--------+--------+
+    | Referenced segment identifiers  (idcount x 16 bytes)                  |
+    |                                                                       |
+    |                            ......                                     |
+    |                                                                       |
+    +--------+--------+--------+--------+--------+--------+--------+--------+
+    | Root record references  (rootcount x 3 bytes)                         |
+    |                                                                       |
+    |                            ......          +--------+--------+--------+
+    |                                            |
+    +--------+--------+--------+--------+--------+
+
+The first four bytes of a segment always contain the ASCII string "0aK\n",
+which is intended to make the binary segment data format easily detectable.
+The next byte indicates the version of segment format, and is set to zero
+for all segments that follow the format described here.
+
+The `idcount` byte indicates how many other segments are referenced by
+records within this segment. The identifiers of those segments are listed
+starting at offset 16 of the segment header. This lookup table of up to
+255 segment identifiers is used to optimize garbage collection and to avoid
+having to repeat the 16-byte UUIDs whenever references to records in other
+segments are made.
+
+The 16-bit `rootcount` field indicates the number of root record references
+that follow after the segment identifier lookup table. The root record
+references are a debugging and recovery aid, that are not needed during
+normal operation. They identify the types and locations of those records
+within this segment that are not accessible by following references in
+other records within this segment. These root references give enough context
+for parsing all records within a segment without any external information.
 
 Journals
 ========
