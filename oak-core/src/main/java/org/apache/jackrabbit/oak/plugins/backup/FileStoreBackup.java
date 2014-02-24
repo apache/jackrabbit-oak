@@ -69,7 +69,7 @@ public class FileStoreBackup {
             } else {
                 // 3.2 try to retrieve the previously backed up checkpoint
                 NodeState before = store.retrieve(beforeCheckpoint);
-                if (before != null) {
+                if (before == null) {
                     // the previous checkpoint is no longer available,
                     // so use the backed up state as the basis of the
                     // incremental backup diff
