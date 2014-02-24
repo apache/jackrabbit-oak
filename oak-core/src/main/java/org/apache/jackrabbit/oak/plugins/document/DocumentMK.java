@@ -487,7 +487,7 @@ public class DocumentMK implements MicroKernel {
         public Builder setRDBConnection(String jdbcurl, String username, String password) {
             // TODO maybe we need different connections for document store and
             // node store
-            this.documentStore = new RDBDocumentStore(jdbcurl, username, password);
+            this.documentStore = new RDBDocumentStore(jdbcurl, username, password, this);
             this.blobStore = new RDBBlobStore(jdbcurl, username, password);
             return this;
         }
@@ -500,7 +500,7 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setRDBConnection(String dsjdbcurl, String dsusername, String dspassword, String bsjdbcurl,
                 String bsusername, String bspassword) {
-            this.documentStore = new RDBDocumentStore(dsjdbcurl, dsusername, dspassword);
+            this.documentStore = new RDBDocumentStore(dsjdbcurl, dsusername, dspassword, this);
             this.blobStore = new RDBBlobStore(bsjdbcurl, bsusername, bspassword);
             return this;
         }
@@ -512,7 +512,7 @@ public class DocumentMK implements MicroKernel {
          * @return this
          */
         public Builder setRDBConnection(DataSource ds) {
-            this.documentStore = new RDBDocumentStore(ds);
+            this.documentStore = new RDBDocumentStore(ds, this);
             this.blobStore = new RDBBlobStore(ds);
             return this;
         }
@@ -524,7 +524,7 @@ public class DocumentMK implements MicroKernel {
          * @return this
          */
         public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStore = new RDBDocumentStore(documentStoreDataSource);
+            this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
             this.blobStore = new RDBBlobStore(blobStoreDataSource);
             return this;
         }
