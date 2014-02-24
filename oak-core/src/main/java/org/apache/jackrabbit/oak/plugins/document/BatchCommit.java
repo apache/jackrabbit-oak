@@ -113,21 +113,26 @@ final class BatchCommit {
 
     Future<NodeDocument> execute(int idx) {
         if (idx == 0) {
-            UpdateOp combined = UpdateOp.combine(id, ops);
             NodeDocument before = null;
             try {
+                UpdateOp combined = UpdateOp.combine(id, ops);
+                LOG.debug("Batch committing {} updates", ops.size());
                 before = queue.getStore().findAndUpdate(NODES, combined);
             } catch (Throwable t) {
                 LOG.warn("BatchCommit failed, will retry individually. " + t.getMessage());
+            } finally {
+                queue.finished(this);
             }
-            if (before == null) {
-                // batch commit unsuccessful, execute individually
-                executeIndividually();
-            } else {
-                populateResults(before);
+            try {
+                if (before == null) {
+                    // batch commit unsuccessful, execute individually
+                    executeIndividually();
+                } else {
+                    populateResults(before);
+                }
+            } finally {
+                finished.countDown();
             }
-            queue.finished(this);
-            finished.countDown();
         } else {
             try {
                 finished.await();

@@ -638,7 +638,7 @@ public class DocumentMK implements MicroKernel {
         }
 
         public Builder memoryCacheSize(long memoryCacheSize) {
-            this.nodeCacheSize = memoryCacheSize * 20 / 100;
+            this.nodeCacheSize = memoryCacheSize * 25 / 100;
             this.childrenCacheSize = memoryCacheSize * 10 / 100;
             this.diffCacheSize = memoryCacheSize * 2 / 100;
             this.docChildrenCacheSize = memoryCacheSize * 3 / 100;
