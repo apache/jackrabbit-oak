@@ -94,7 +94,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
         DocumentNodeStore s = mk.getNodeStore();
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-        gc.init(s, "./target", 2048, true, 2);
+        gc.init(s, "./target", 2048, true, 2, 0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();

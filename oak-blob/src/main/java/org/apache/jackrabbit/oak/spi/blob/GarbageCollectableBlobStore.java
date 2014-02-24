@@ -86,11 +86,13 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * Delete the blob with the given id.
      * 
      * @param chunkId the chunk id
+     * @param maxLastModifiedTime
+     *            the max last modified time to consider for retrieval 
      * @return true, if successful
      * @throws Exception
      *             the exception
      */
-    boolean deleteChunk(String chunkId) throws Exception;
+    boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception;
 
     /**
      * Resolve chunks from the given Id.

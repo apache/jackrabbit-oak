@@ -522,9 +522,17 @@ public class DataStoreBlobStore implements GarbageCollectableBlobStore,
     }
 
     @Override
-    public boolean deleteChunk(String blobId) throws Exception {
-        ((MultiDataStoreAware) dataStore).deleteRecord(new DataIdentifier(blobId));
-        return true;
+    public boolean deleteChunk(String blobId, long maxLastModifiedTime) throws Exception {
+        if (dataStore instanceof MultiDataStoreAware) {
+            DataIdentifier identifier = new DataIdentifier(blobId);
+            DataRecord dataRecord = dataStore.getRecord(identifier);
+            if ((maxLastModifiedTime <= 0) 
+                    || dataRecord.getLastModified() <= maxLastModifiedTime) {
+                ((MultiDataStoreAware) dataStore).deleteRecord(identifier);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

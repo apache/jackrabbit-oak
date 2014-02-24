@@ -227,23 +227,27 @@ public class CloudBlobStore extends AbstractBlobStore {
 }
 
     @Override
-    public boolean deleteChunk(String chunkId) throws Exception {
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         Preconditions.checkNotNull(context);
 
         final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
-        blobStore.removeBlob(cloudContainer, chunkId);
-
+        StorageMetadata metadata = blobStore.blobMetadata(cloudContainer, chunkId);
+        if ((maxLastModifiedTime <= 0) 
+                || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+            blobStore.removeBlob(cloudContainer, chunkId);
+            return true;
+        }
         return true;
     }
 
     class CloudStoreIterator implements Iterator<String> {
-        static final int BATCH = 1000;
+        private static final int BATCH = 1000;
 
-        org.jclouds.blobstore.BlobStore store;
-        long maxLastModifiedTime;
+        private org.jclouds.blobstore.BlobStore store;
+        private long maxLastModifiedTime;
 
-        PageSet<? extends StorageMetadata> set;
-        ArrayDeque<String> queue;
+        private PageSet<? extends StorageMetadata> set;
+        private ArrayDeque<String> queue;
 
         public CloudStoreIterator(org.jclouds.blobstore.BlobStore store,
                 long maxLastModifiedTime) {
@@ -255,7 +259,7 @@ public class CloudBlobStore extends AbstractBlobStore {
         @Override
         public boolean hasNext() {
             if ((set == null) || (queue == null)) {
-                set = store.list(cloudContainer, maxResults(1000));
+                set = store.list(cloudContainer, maxResults(BATCH));
                 loadElements(set);
             }
 
@@ -278,8 +282,8 @@ public class CloudBlobStore extends AbstractBlobStore {
             Iterator<? extends StorageMetadata> iter = set.iterator();
             while (iter.hasNext()) {
                 StorageMetadata metadata = iter.next();
-                if ((maxLastModifiedTime == 0 || maxLastModifiedTime == -1) ||
-                        (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+                if ((maxLastModifiedTime <= 0)
+                        || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
                     queue.add(metadata.getName());
                 } else {
                     queue.add(metadata.getName());

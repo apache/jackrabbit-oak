@@ -192,12 +192,10 @@ public class MongoBlobStore extends AbstractBlobStore {
     }
     
     @Override
-    public boolean deleteChunk(String chunkId) throws Exception {
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();
-        BasicDBObject removeObj = new BasicDBObject();
-        removeObj.append(MongoBlob.KEY_ID, chunkId);
+        WriteResult result = collection.remove(getBlobQuery(chunkId, maxLastModifiedTime));
 
-        WriteResult result = collection.remove(removeObj);
         if (result.getN() == 1) {
             return true;
         }
@@ -222,6 +220,7 @@ public class MongoBlobStore extends AbstractBlobStore {
                         .addOption(Bytes.QUERYOPTION_SLAVEOK);
 
         return new AbstractIterator<String>() {
+            @Override
             protected String computeNext() {
                 if (cur.hasNext()) {
                     MongoBlob blob = (MongoBlob) cur.next();

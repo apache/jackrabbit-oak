@@ -80,8 +80,11 @@ public class MemoryBlobStore extends AbstractBlobStore {
         return count;
     }
 
+    /**
+     * Ignores the maxlastModifiedTime
+     */
     @Override
-    public boolean deleteChunk(String chunkId) throws Exception {
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
         if (map.containsKey(id)) {
             map.remove(id);

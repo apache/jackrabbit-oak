@@ -53,12 +53,16 @@ import java.util.zip.GZIPOutputStream;
  * You can change the default maximal number of temporary files with the -t flag: java
  * org/apache/oak/commons/sort/ExternalSort somefile.txt out.txt -t 3
  * 
- * For very large files, you might want to use an appropriate flag to allocate more memory to the
- * Java VM: java -Xms2G org/apache/oak/commons/sort/ExternalSort somefile.txt out.txt
+ * You can change the default maximum memory available with the -m flag: java
+ * org/apache/oak/commons/sort/ExternalSort somefile.txt out.txt -m 8192
  * 
- * By (in alphabetical order) Philippe Beaudoin, Eleftherios Chetzakis, Jon Elsas, Christan Grant,
- * Daniel Haran, Daniel Lemire, Sugumaran Harikrishnan, Jerry Yang, First published: April 2010
- * originally posted at http://lemire.me/blog/archives/2010/04/01/external-memory-sorting-in-java/
+ * For very large files, you might want to use an appropriate flag to allocate more memory to
+ * the Java VM: java -Xms2G org/apache/oak/commons/sort/ExternalSort somefile.txt out.txt
+ * 
+ * By (in alphabetical order) Philippe Beaudoin, Eleftherios Chetzakis, Jon Elsas, Christan
+ * Grant, Daniel Haran, Daniel Lemire, Sugumaran Harikrishnan, Jerry Yang, First published:
+ * April 2010 originally posted at
+ * http://lemire.me/blog/archives/2010/04/01/external-memory-sorting-in-java/
  */
 public class ExternalSort {
 
@@ -74,12 +78,17 @@ public class ExternalSort {
     }
 
     static int DEFAULTMAXTEMPFILES = 1024;
-
+    
+    /**
+    * Defines the default maximum memory to be used while sorting (8 MB)
+    */
+    static long DEFAULT_MAX_MEM_BYTES = 8388608L;
+    
     // we divide the file into small blocks. If the blocks
     // are too small, we shall create too many temporary files.
     // If they are too big, we shall be using too much memory.
     public static long estimateBestSizeOfBlocks(File filetobesorted,
-            int maxtmpfiles) {
+            int maxtmpfiles, long maxMemory) {
         long sizeoffile = filetobesorted.length() * 2;
         /**
          * We multiply by two because later on someone insisted on counting the memory usage as 2
@@ -93,11 +102,11 @@ public class ExternalSort {
 
         // on the other hand, we don't want to create many temporary
         // files
-        // for naught. If blocksize is smaller than half the free
-        // memory, grow it.
-        long freemem = Runtime.getRuntime().freeMemory();
-        if (blocksize < freemem / 2) {
-            blocksize = freemem / 2;
+        // for naught. If blocksize is less than maximum allowed memory,
+        // scale the blocksize to be equal to the maxMemory parameter
+
+        if (blocksize < maxMemory) {
+            blocksize = maxMemory;
         }
         return blocksize;
     }
@@ -114,7 +123,7 @@ public class ExternalSort {
      */
     public static List<File> sortInBatch(File file)
             throws IOException {
-        return sortInBatch(file, defaultcomparator, DEFAULTMAXTEMPFILES,
+        return sortInBatch(file, defaultcomparator, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(), null, false);
     }
 
@@ -130,7 +139,7 @@ public class ExternalSort {
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp)
             throws IOException {
-        return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES,
+        return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(), null, false);
     }
 
@@ -148,7 +157,7 @@ public class ExternalSort {
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
             boolean distinct) throws IOException {
-        return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES,
+        return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
                 Charset.defaultCharset(), null, distinct);
     }
 
@@ -175,14 +184,14 @@ public class ExternalSort {
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
-            int maxtmpfiles, Charset cs, File tmpdirectory,
+            int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
             boolean distinct, int numHeader, boolean usegzip)
             throws IOException {
         List<File> files = new ArrayList<File>();
         BufferedReader fbr = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), cs));
-        long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles);// in
-                                                                     // bytes
+        long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);// in
+                                                                                // bytes
 
         try {
             List<String> tmplist = new ArrayList<String>();
@@ -243,9 +252,9 @@ public class ExternalSort {
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
-            int maxtmpfiles, Charset cs, File tmpdirectory, boolean distinct)
+            int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory, boolean distinct)
             throws IOException {
-        return sortInBatch(file, cmp, maxtmpfiles, cs, tmpdirectory,
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory,
                 distinct, 0, false);
     }
 
@@ -520,6 +529,8 @@ public class ExternalSort {
         System.out
                 .println("-t or --maxtmpfiles (followed by an integer): specify an upper bound on the number of temporary files");
         System.out
+                .println("-m or --maxmembytes (followed by a long): specify an upper bound on the memory");
+        System.out
                 .println("-c or --charset (followed by a charset code): specify the character set to use (for sorting)");
         System.out
                 .println("-z or --gzip: use compression for the temporary files");
@@ -534,6 +545,7 @@ public class ExternalSort {
         boolean verbose = false;
         boolean distinct = false;
         int maxtmpfiles = DEFAULTMAXTEMPFILES;
+        long maxMemory = DEFAULT_MAX_MEM_BYTES;        
         Charset cs = Charset.defaultCharset();
         String inputfile = null, outputfile = null;
         File tempFileStore = null;
@@ -559,6 +571,15 @@ public class ExternalSort {
                     System.err
                             .println("maxtmpfiles should be positive");
                 }
+            } else if ((args[param].equals("-m") || args[param]
+                        .equals("--maxmembytes"))
+                        && args.length > param + 1) {
+                    param++;
+                    maxMemory = Long.parseLong(args[param]);
+                    if (headersize < 0) {
+                        System.err
+                            .println("maxmembytes should be positive");
+                    }
             } else if ((args[param].equals("-c") || args[param]
                     .equals("--charset"))
                     && args.length > param + 1) {
@@ -597,7 +618,7 @@ public class ExternalSort {
         }
         Comparator<String> comparator = defaultcomparator;
         List<File> l = sortInBatch(new File(inputfile), comparator,
-                maxtmpfiles, cs, tempFileStore, distinct, headersize,
+                maxtmpfiles, maxMemory, cs, tempFileStore, distinct, headersize,
                 usegzip);
         if (verbose)
             System.out
