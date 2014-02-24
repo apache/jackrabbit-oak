@@ -70,17 +70,20 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final int DEFAULT_BATCH_COUNT = 2048;
 
+    /** The max last modified time of blobs to consider for garbage collection. */
+    private long maxLastModifiedTime;
+
     /** Run concurrently when possible. */
-    boolean runConcurrently = true;
+    private boolean runConcurrently = true;
 
     /** The number of sweeper threads to use. */
-    int numSweepers = 1;
+    private int numSweepers = 1;
 
     /** The node store. */
-    DocumentNodeStore nodeStore;
+    private DocumentNodeStore nodeStore;
     
     /** The garbage collector file state */
-    GarbageCollectorFileState fs;
+    private GarbageCollectorFileState fs;
 
     /** The configured root to store gc process files. */
     private String root = TEMP_DIR;
@@ -88,6 +91,24 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /** The batch count. */
     private int batchCount = DEFAULT_BATCH_COUNT;
 
+    /**
+     * Gets the max last modified time considered for garbage collection.
+     * 
+     * @return the max last modified time
+     */
+    protected long getMaxLastModifiedTime() {
+        return maxLastModifiedTime;
+    }
+
+    /**
+     * Sets the max last modified time considered for garbage collection.
+     * 
+     * @param maxLastModifiedTime the new max last modified time
+     */
+    protected void setMaxLastModifiedTime(long maxLastModifiedTime) {
+        this.maxLastModifiedTime = maxLastModifiedTime;
+    }
+    
     /**
      * Gets the root.
      * 
@@ -125,32 +146,27 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     }
 
     /**
-     * Instantiates a new blob garbage collector.
-     * 
-     * @param nodeStore
-     *            the node store
-     * @param root
-     *            the root
-     * @param batchCount
-     *            the batch count
-     * @param runBackendConcurrently
-     *            - run the backend iterate concurrently
-     * @param maxSweeperThreads
-     *            the max sweeper threads
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
+     * @param nodeStore the node store
+     * @param root the root
+     * @param batchCount the batch count
+     * @param runBackendConcurrently - run the backend iterate concurrently
+     * @param maxSweeperThreads the max sweeper threads
+     * @param maxLastModifiedTime the max last modified time
+     * @throws IOException Signals that an I/O exception has occurred.
      */
     public void init(
             NodeStore nodeStore,
             String root,
             int batchCount,
             boolean runBackendConcurrently,
-            int maxSweeperThreads)
+            int maxSweeperThreads,
+            long maxLastModifiedTime)
             throws IOException {
         this.batchCount = batchCount;
         this.root = root;
         this.runConcurrently = runBackendConcurrently;
         this.numSweepers = maxSweeperThreads;
+        this.maxLastModifiedTime = maxLastModifiedTime;        
         init(nodeStore);
     }
 
@@ -356,10 +372,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     class Sweeper implements Runnable {
 
         /** The exception queue. */
-        ConcurrentLinkedQueue<String> exceptionQueue;
+        private ConcurrentLinkedQueue<String> exceptionQueue;
 
         /** The ids to sweep. */
-        List<String> ids;
+        private List<String> ids;
 
         /**
          * Instantiates a new sweeper.
@@ -379,7 +395,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             for (String id : ids) {
                 try {
                     boolean deleted = ((GarbageCollectableBlobStore) nodeStore.getBlobStore())
-                            .deleteChunk(id);
+                            .deleteChunk(id, maxLastModifiedTime);
                     if (!deleted) {
                         exceptionQueue.add(id);
                     }
@@ -394,8 +410,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Iterates the complete node tree.
      * 
-     * @param writer
-     *            the writer
      * @return the list
      * @throws Exception
      *             the exception
@@ -446,9 +460,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * BlobIdRetriever class to retrieve all blob ids.
      */
     class BlobIdRetriever implements Runnable {
-
-        boolean finished;
-
         @Override
         public void run() {
             retrieve();
@@ -465,7 +476,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 bufferWriter = new BufferedWriter(
                         new FileWriter(fs.getAvailableRefs()));
                 Iterator<String> idsIter = ((GarbageCollectableBlobStore) nodeStore.getBlobStore())
-                        .getAllChunkIds(0);
+                        .getAllChunkIds(maxLastModifiedTime);
                 List<String> ids = Lists.newArrayList();
                 int blobsCount = 0;
                 while (idsIter.hasNext()) {
@@ -483,8 +494,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 // sort the file
                 fs.sort(fs.getAvailableRefs());
-
-                finished = true;
                 LOG.debug("Ending retrieve of all blobs : " + blobsCount);
             } catch (Exception e) {
                 e.printStackTrace();

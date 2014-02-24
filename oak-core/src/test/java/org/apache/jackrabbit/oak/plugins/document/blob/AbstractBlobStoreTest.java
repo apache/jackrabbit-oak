@@ -383,7 +383,7 @@ public abstract class AbstractBlobStoreTest {
         Set<String> ids = createArtifacts();
 
         for (String id : ids) {
-            store.deleteChunk(id);
+            store.deleteChunk(id, 0);
         }
 
         Iterator<String> iter = store.getAllChunkIds(0);

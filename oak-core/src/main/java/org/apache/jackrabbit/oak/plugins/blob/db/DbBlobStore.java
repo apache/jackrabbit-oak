@@ -215,16 +215,27 @@ public class DbBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public boolean deleteChunk(String chunkId) throws Exception {
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         Connection conn = cp.getConnection();
         try {
-            PreparedStatement prep = conn
-                    .prepareStatement("delete from datastore_meta where id = ?");
-            ;;;
-            // TODO  and lastMod <= ?
-            ;;;
-            PreparedStatement prepData = conn
-                    .prepareStatement("delete from datastore_data where id = ?");
+            PreparedStatement prep = null;
+            PreparedStatement prepData = null;
+
+            if (maxLastModifiedTime > 0) {
+                prep = conn.prepareStatement(
+                        "delete from datastore_meta where id = ? and lastMod <= ?");
+                prep.setLong(2, maxLastModifiedTime);
+
+                prepData = conn.prepareStatement(
+                        "delete from datastore_data where id = ? and lastMod <= ?");
+                prepData.setLong(2, maxLastModifiedTime);
+            } else {
+                prep = conn.prepareStatement(
+                        "delete from datastore_meta where id = ?");
+
+                prepData = conn.prepareStatement(
+                        "delete from datastore_data where id = ?");
+            }
             prep.setString(1, chunkId);
             prep.execute();
             prepData.setString(1, chunkId);
@@ -245,7 +256,7 @@ public class DbBlobStore extends AbstractBlobStore {
         final Connection conn = cp.getConnection();
         PreparedStatement prep = null;
 
-        if ((maxLastModifiedTime != 0) && (maxLastModifiedTime != -1)) {
+        if (maxLastModifiedTime > 0) {
             prep = conn.prepareStatement(
                     "select id from datastore_meta where lastMod <= ?");
             prep.setLong(1, maxLastModifiedTime);

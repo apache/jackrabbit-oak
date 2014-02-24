@@ -219,7 +219,7 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public boolean deleteChunk(String chunkId) throws Exception {
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         byte[] digest = StringUtils.convertHexToBytes(chunkId);
         File f = getFile(digest, false);
         if (!f.exists()) {
@@ -228,8 +228,11 @@ public class FileBlobStore extends AbstractBlobStore {
             old.renameTo(f);
             f = getFile(digest, false);
         }
-        f.delete();
-        return mark;
+        if ((maxLastModifiedTime <= 0) 
+                || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
+            return f.delete();
+        }
+        return false;
     }
 
     @Override
@@ -241,8 +244,8 @@ public class FileBlobStore extends AbstractBlobStore {
                     @Override
                     public boolean apply(@Nullable File input) {
                         if (!input.isDirectory() && (
-                                (maxLastModifiedTime == 0 || maxLastModifiedTime == -1) ||
-                                FileUtils.isFileOlder(input, maxLastModifiedTime))) {
+                                (maxLastModifiedTime <= 0)
+                                    || FileUtils.isFileOlder(input, maxLastModifiedTime))) {
                             return true;
                         }
                         return false;
