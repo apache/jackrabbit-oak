@@ -87,6 +87,6 @@ public class FileStoreBackup {
             backup.close();
         }
 
-        log.debug("Backup done in {} ms.", System.currentTimeMillis() - s);
+        log.debug("Backup finished in {} ms.", System.currentTimeMillis() - s);
     }
 }
