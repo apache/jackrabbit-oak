@@ -37,7 +37,6 @@ import javax.annotation.Nonnull;
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
@@ -56,7 +55,7 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private String basePath = "/";
-    private Condition condition;
+    private Condition condition = includeAll();
 
     public interface Condition {
         @Nonnull
@@ -243,6 +242,16 @@ public final class FilterBuilder {
         return new UniversalCondition(checkNotNull(selector), checkNotNull(predicate));
     }
 
+    /**
+     * A condition that holds for fat sub trees. That is, for child nodes
+     * of added nodes or removed nodes.
+     * @return fat tree condition
+     */
+    @Nonnull
+    public Condition fatTree() {
+        return new FatTreeCondition();
+    }
+
     //------------------------------------------------------------< Compound conditions >---
 
     /**
@@ -405,6 +414,15 @@ public final class FilterBuilder {
                     getChildNode(before, basePath),
                     getChildNode(after, basePath),
                     selector, predicate);
+        }
+    }
+
+    protected static class FatTreeCondition implements Condition {
+        @Nonnull
+        @Override
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
+                String basePath) {
+            return FatTreeFilter.getInstance();
         }
     }
 

@@ -594,6 +594,36 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
+    @Test
+    public void fatTreeFilter() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        FilterBuilder builder = new FilterBuilder();
+
+        // Only generate events for the root of added or removed sub trees
+        builder.condition(builder.fatTree());
+        oManager.addEventListener(listener, builder.build());
+
+        Node testNode = getNode(TEST_PATH);
+        Node a = listener.expectAdd(testNode.addNode("a"));
+        a.addNode("c");
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+
+        listener.expectRemove(a).remove();
+        testNode.getSession().save();
+
+        missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {
