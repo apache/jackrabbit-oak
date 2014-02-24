@@ -58,7 +58,7 @@ public class AggregateIndex implements FulltextQueryIndex {
         if (baseIndex == null) {
             return Double.POSITIVE_INFINITY;
         }
-        return baseIndex.getCost(filter, rootState);
+        return baseIndex.getCost(filter, rootState) - 0.05;
     }
 
     @Override
