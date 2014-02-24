@@ -18,8 +18,19 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.indexOf;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
+
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -35,16 +46,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.indexOf;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 class MutableTree extends AbstractTree {
 
@@ -370,7 +371,8 @@ class MutableTree extends AbstractTree {
         }
     }
 
-    private void buildPath(StringBuilder sb) {
+    @Override
+    protected void buildPath(StringBuilder sb) {
         if (parent != null) {
             parent.buildPath(sb);
             sb.append('/').append(name);

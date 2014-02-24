@@ -24,9 +24,9 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
-import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
@@ -40,7 +40,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -163,26 +162,21 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public String toString() {
-        return getPath() + ": " + toString(getNodeState());
-    }
-
-    protected String toString(NodeState nodeState) {
         StringBuilder sb = new StringBuilder();
+        sb.append(getPath()).append(": ");
+
         sb.append('{');
-        for (PropertyState p : nodeState.getProperties()) {
-            if (!isHidden(p.getName())) {
-                sb.append(' ').append(p).append(',');
-            }
+        for (PropertyState p : getProperties()) {
+            sb.append(' ').append(p).append(',');
         }
-        for (ChildNodeEntry n : nodeState.getChildNodeEntries()) {
-                if(!isHidden(n.getName())) {
-                    sb.append(' ').append(n.getName()).append( " = { ... },");
-                }
+        for (String n : this.getChildNames()) {
+            sb.append(' ').append(n).append( " = { ... },");
         }
-        if (sb.length() > 1) {
+        if (sb.charAt(sb.length() - 1) == ',') {
             sb.deleteCharAt(sb.length() - 1);
         }
         sb.append('}');
+
         return sb.toString();
     }
 
@@ -209,7 +203,7 @@ public abstract class AbstractTree implements Tree {
         }
     }
 
-    private void buildPath(StringBuilder sb) {
+    protected void buildPath(StringBuilder sb) {
         if (!isRoot()) {
             getParent().buildPath(sb);
             sb.append('/').append(name);

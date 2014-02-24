@@ -205,11 +205,6 @@ public final class ImmutableTree extends AbstractTree {
         return false;
     }
 
-    @Override
-    public String toString() {
-        return "ImmutableTree '" + getName() + "':" + toString(state);
-    }
-
     //--------------------------------------------------------------------------
 
     public interface ParentProvider {
