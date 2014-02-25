@@ -485,8 +485,6 @@ public class DocumentMK implements MicroKernel {
          * @return this
          */
         public Builder setRDBConnection(String jdbcurl, String username, String password) {
-            // TODO maybe we need different connections for document store and
-            // node store
             this.documentStore = new RDBDocumentStore(jdbcurl, username, password, this);
             this.blobStore = new RDBBlobStore(jdbcurl, username, password);
             return this;
