@@ -368,6 +368,8 @@ public class MongoDocumentStore implements DocumentStore {
                                                  boolean upsert,
                                                  boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
+        // make sure we don't modify the original updateOp
+        updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
 
         Lock lock = getAndLock(updateOp.getId());
@@ -453,7 +455,6 @@ public class MongoDocumentStore implements DocumentStore {
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
             UpdateOp update = updateOps.get(i);
-            update.increment(Document.MOD_COUNT, 1);
             T target = collection.newDocument(this);
             UpdateUtils.applyChanges(target, update, comparator);
             docs.add(target);
@@ -483,6 +484,10 @@ public class MongoDocumentStore implements DocumentStore {
                         // no effect
                         break;
                 }
+            }
+            if (!inserts[i].containsField(Document.MOD_COUNT)) {
+                inserts[i].put(Document.MOD_COUNT, 1L);
+                target.put(Document.MOD_COUNT, 1L);
             }
         }
 
@@ -519,6 +524,8 @@ public class MongoDocumentStore implements DocumentStore {
                                             UpdateOp updateOp) {
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
+        // make sure we don't modify the original updateOp
+        updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
         long start = start();
         try {
@@ -543,7 +550,7 @@ public class MongoDocumentStore implements DocumentStore {
                             nodesCache.invalidate(new StringValue(entry.getKey()));
                         } else {
                             applyToCache(Collection.NODES, entry.getValue(),
-                                    updateOp.clone(entry.getKey()));
+                                    updateOp.shallowCopy(entry.getKey()));
                         }
                     } finally {
                         lock.unlock();
@@ -559,7 +566,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @CheckForNull
     <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
-                                                       @Nullable DBObject n) {
+                                               @Nullable DBObject n) {
         T copy = null;
         if (n != null) {
             copy = collection.newDocument(this);

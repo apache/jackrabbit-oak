@@ -242,7 +242,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (!map.containsKey(key)) {
                     continue;
                 }
-                internalCreateOrUpdate(collection, updateOp.clone(key), true);
+                internalCreateOrUpdate(collection, updateOp.shallowCopy(key), true);
             }
         } finally {
             lock.unlock();

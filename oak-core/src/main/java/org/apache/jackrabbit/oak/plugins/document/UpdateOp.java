@@ -73,8 +73,19 @@ public final class UpdateOp {
      *
      * @param id the primary key.
      */
-    public UpdateOp clone(String id) {
+    public UpdateOp shallowCopy(String id) {
         return new UpdateOp(id, isNew, isDelete, changes);
+    }
+
+    /**
+     * Creates a deep copy of this update operation. Changes to the returned
+     * {@code UpdateOp} do not affect this object.
+     *
+     * @return a copy of this operation.
+     */
+    public UpdateOp copy() {
+        return new UpdateOp(id, isNew, isDelete,
+                new HashMap<Key, Operation>(changes));
     }
     
     public String getId() {

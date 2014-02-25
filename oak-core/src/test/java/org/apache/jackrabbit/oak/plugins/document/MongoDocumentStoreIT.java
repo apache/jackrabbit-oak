@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
@@ -30,6 +31,9 @@ import com.google.common.collect.Maps;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
  * Tests {@code MongoDocumentStore} with concurrent updates.
@@ -55,7 +59,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
                     for (int i = 0; i < UPDATES_PER_THREAD; i++) {
                         UpdateOp update = new UpdateOp(id, false);
                         update.setMapEntry("prop", r, String.valueOf(i));
-                        docStore.createOrUpdate(Collection.NODES, update);
+                        docStore.createOrUpdate(NODES, update);
                     }
                 }
             }));
@@ -68,7 +72,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
                 try {
                     Map<Revision, Integer> previous = Maps.newHashMap();
                     while (running.get()) {
-                        NodeDocument doc = docStore.find(Collection.NODES, id);
+                        NodeDocument doc = docStore.find(NODES, id);
                         if (doc == null) {
                             throw new Exception("document is null");
                         }
@@ -105,7 +109,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         for (Exception e : exceptions) {
             throw e;
         }
-        NodeDocument doc = docStore.find(Collection.NODES, id);
+        NodeDocument doc = docStore.find(NODES, id);
         assertNotNull(doc);
         Map<Revision, String> values = doc.getLocalMap("prop");
         assertNotNull(values);
@@ -129,8 +133,33 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
     public void negativeCache() throws Exception {
         String id = Utils.getIdFromPath("/test");
         DocumentStore docStore = mk.getDocumentStore();
-        assertNull(docStore.find(Collection.NODES, id));
+        assertNull(docStore.find(NODES, id));
         mk.commit("/", "+\"test\":{}", null, null);
-        assertNotNull(docStore.find(Collection.NODES, id));
+        assertNotNull(docStore.find(NODES, id));
+    }
+
+    @Test
+    public void modCount() throws Exception {
+        DocumentStore docStore = mk.getDocumentStore();
+        String head = mk.commit("/", "+\"test\":{}", null, null);
+        mk.commit("/test", "^\"prop\":\"v1\"", head, null);
+        // make sure _lastRev is persisted and _modCount updated accordingly
+        mk.runBackgroundOperations();
+
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+        Number mc1 = doc.getModCount();
+        assertNotNull(mc1);
+        try {
+            mk.commit("/test", "^\"prop\":\"v2\"", head, null);
+            fail();
+        } catch (MicroKernelException e) {
+            // expected
+        }
+        doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+        Number mc2 = doc.getModCount();
+        assertNotNull(mc2);
+        assertTrue(mc2.longValue() > mc1.longValue());
     }
 }
