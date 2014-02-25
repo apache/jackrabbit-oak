@@ -243,13 +243,19 @@ public final class FilterBuilder {
     }
 
     /**
-     * A condition that holds for fat sub trees. That is, for child nodes
-     * of added nodes or removed nodes.
-     * @return fat tree condition
+     * @return a condition that holds for children of added nodes.
      */
     @Nonnull
-    public Condition fatTree() {
-        return new FatTreeCondition();
+    public Condition addSubtree() {
+        return new AddSubtreeTreeCondition();
+    }
+
+    /**
+     * @return a condition that holds for children of deleted nodes.
+     */
+    @Nonnull
+    public Condition deleteSubtree() {
+        return new DeleteSubtreeTreeCondition();
     }
 
     //------------------------------------------------------------< Compound conditions >---
@@ -417,12 +423,21 @@ public final class FilterBuilder {
         }
     }
 
-    protected static class FatTreeCondition implements Condition {
+    protected static class AddSubtreeTreeCondition implements Condition {
         @Nonnull
         @Override
         public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
                 String basePath) {
-            return FatTreeFilter.getInstance();
+            return AddSubtreeFilter.getInstance();
+        }
+    }
+
+    protected static class DeleteSubtreeTreeCondition implements Condition {
+        @Nonnull
+        @Override
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
+                String basePath) {
+            return DeleteSubtreeFilter.getInstance();
         }
     }
 

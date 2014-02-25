@@ -465,7 +465,7 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         ExpectationListener listener = new ExpectationListener();
         observationManager.addEventListener(listener, NODE_MOVED, "/", true, null, null, false);
-        listener.expect(new Expectation("orderBefore"){
+        listener.expect(new Expectation("orderBefore") {
             @Override
             public boolean onEvent(Event event) throws Exception {
                 if (event.getType() != NODE_MOVED || event.getInfo() == null) {
@@ -475,10 +475,10 @@ public class ObservationTest extends AbstractRepositoryTest {
                 Map<?, ?> info = event.getInfo();
                 if (PathUtils.concat(TEST_PATH, "a").equals(event.getPath())) {
                     return "a".equals(info.get("srcChildRelPath")) &&
-                           "b".equals(info.get("destChildRelPath"));
+                            "b".equals(info.get("destChildRelPath"));
                 } else if (PathUtils.concat(TEST_PATH, "b").equals(event.getPath())) {
                     return "b".equals(info.get("srcChildRelPath")) &&
-                           "a".equals(info.get("destChildRelPath"));
+                            "a".equals(info.get("destChildRelPath"));
                 } else {
                     return false;
                 }
@@ -595,14 +595,14 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
-    public void fatTreeFilter() throws RepositoryException, ExecutionException, InterruptedException {
+    public void addSubtreeFilter() throws RepositoryException, ExecutionException, InterruptedException {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
         ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
         ExpectationListener listener = new ExpectationListener();
         FilterBuilder builder = new FilterBuilder();
 
-        // Only generate events for the root of added or removed sub trees
-        builder.condition(builder.fatTree());
+        // Only generate events for the root of added sub trees
+        builder.condition(builder.addSubtree());
         oManager.addEventListener(listener, builder.build());
 
         Node testNode = getNode(TEST_PATH);
@@ -614,13 +614,30 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
 
-        listener.expectRemove(a).remove();
+    @Test
+    public void removeSubtreeFilter() throws RepositoryException, ExecutionException, InterruptedException {
+        assumeTrue(observationManager instanceof ObservationManagerImpl);
+
+        Node testNode = getNode(TEST_PATH);
+        testNode.addNode("a").addNode("c");
         testNode.getSession().save();
 
-        missing = listener.getMissing(2, TimeUnit.SECONDS);
+        ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        FilterBuilder builder = new FilterBuilder();
+
+        // Only generate events for the root of deleted sub trees
+        builder.condition(builder.deleteSubtree());
+        oManager.addEventListener(listener, builder.build());
+
+        listener.expectRemove(testNode.getNode("a")).remove();
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
-        unexpected = listener.getUnexpected();
+        List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
