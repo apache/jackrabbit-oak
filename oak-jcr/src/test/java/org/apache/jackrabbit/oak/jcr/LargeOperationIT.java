@@ -87,7 +87,7 @@ public class LargeOperationIT {
     /**
      * Significance level for the binomial test being performed to establish
      * the {@code O(n log n)} performance bound.
-     * @see #assertOnLgn(String, Iterable, java.util.List)
+     * @see #assertOnLgn(String, Iterable, java.util.List, boolean)
      */
     public static final double ALPHA = 0.05;
 
@@ -185,8 +185,10 @@ public class LargeOperationIT {
      * @param name    name of the test
      * @param scales  the sizes of the inputs
      * @param executionTimes  the execution times corresponding to the {@code scales}
+     * @param knownIssue  log when the assertion doesn't hold but don't throw {@link AssertionError}
      */
-    private static void assertOnLgn(String name, Iterable<Integer> scales, List<Double> executionTimes) {
+    private static void assertOnLgn(String name, Iterable<Integer> scales,
+            List<Double> executionTimes, boolean knownIssue) {
         Double n0 = null;
         Double t0 = null;
         int successes = 0;
@@ -218,7 +220,7 @@ public class LargeOperationIT {
         LOG.info("Number of trials={}, Number of successes={}", trials, successes);
         LOG.info("scales={}", scales);
         LOG.info("executionTimes={}", executionTimes);
-        assertTrue(name + "does not scale O(n lg n). p-value=" + p + " > " + ALPHA, pass);
+        assertTrue(name + "does not scale O(n lg n). p-value=" + p + " > " + ALPHA, knownIssue || pass);
     }
 
     /**
@@ -248,7 +250,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Committing {} node took {} ns/node", scale, t);
         }
-        assertOnLgn("large commit", scales, executionTimes);
+        assertOnLgn("large commit", scales, executionTimes, false);
     }
 
     /**
@@ -258,7 +260,6 @@ public class LargeOperationIT {
      */
     @Test
     public void largeCopy() throws RepositoryException, InterruptedException {
-        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1414
         final Node n = session.getRootNode().addNode("large-copy", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
@@ -280,7 +281,8 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        assertOnLgn("large copy", scales, executionTimes);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1414
+        assertOnLgn("large copy", scales, executionTimes, knownIssue);
     }
 
     /**
@@ -290,7 +292,6 @@ public class LargeOperationIT {
      */
     @Test
     public void largeMove() throws RepositoryException, InterruptedException {
-        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1415
         final Node n = session.getRootNode().addNode("large-move", "oak:Unstructured");
         final ContentGenerator contentGenerator = new ContentGenerator(1000);
 
@@ -312,7 +313,8 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        assertOnLgn("large move", scales, executionTimes);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1415
+        assertOnLgn("large move", scales, executionTimes, knownIssue);
     }
 
     /**
@@ -322,7 +324,6 @@ public class LargeOperationIT {
      */
     @Test
     public void manySiblings() throws RepositoryException, InterruptedException {
-        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1416
         final Node n = session.getRootNode().addNode("many-siblings", "oak:Unstructured");
 
         ArrayList<Double> executionTimes = Lists.newArrayList();
@@ -346,7 +347,8 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Adding {} siblings took {} ns/node", scale, t);
         }
-        assertOnLgn("many siblings", scales, executionTimes);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1416
+        assertOnLgn("many siblings", scales, executionTimes, knownIssue);
     }
 
     /**
@@ -384,12 +386,11 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        assertOnLgn("large number of pending moves", scales, executionTimes);
+        assertOnLgn("large number of pending moves", scales, executionTimes, false);
     }
 
     @Test
     public void slowListener() throws RepositoryException, ExecutionException, InterruptedException {
-        assumeTrue(fixture.getClass() != DocumentFixture.class);  // FIXME OAK-1429
         Node n = session.getRootNode().addNode("slow-events", "oak:Unstructured");
         final DelayedEventHandling delayedEventHandling = new DelayedEventHandling(n, 100, 10);
         Future<Void> result = delayedEventHandling.start();
@@ -407,7 +408,8 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            assertOnLgn("slow listeners", scales, executionTimes);
+            boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1429
+            assertOnLgn("slow listeners", scales, executionTimes, knownIssue);
         } finally {
             delayedEventHandling.stop();
             result.get();
