@@ -17,7 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
@@ -25,20 +28,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class DocumentNodeStoreTest {
@@ -163,5 +170,70 @@ public class DocumentNodeStoreTest {
         assertEquals(0, counter.get());
 
         store.dispose();
+    }
+
+    @Ignore("OAK-1467")
+    @Test
+    public void rollback() throws Exception {
+        final Map<Thread, Semaphore> locks = Collections.synchronizedMap(
+                new HashMap<Thread, Semaphore>());
+        final Semaphore created = new Semaphore(0);
+        DocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> boolean create(Collection<T> collection,
+                                                       List<UpdateOp> updateOps) {
+                Semaphore semaphore = locks.get(Thread.currentThread());
+                boolean result = super.create(collection, updateOps);
+                if (semaphore != null) {
+                    created.release();
+                    semaphore.acquireUninterruptibly();
+                }
+                return result;
+            }
+        };
+        final List<Exception> exceptions = new ArrayList<Exception>();
+        final DocumentMK mk = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setAsyncDelay(0).open();
+        final DocumentNodeStore store = mk.getNodeStore();
+        final String head = mk.commit("/", "+\"foo\":{}+\"bar\":{}", null, null);
+        Thread writer = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Revision r = store.newRevision();
+                    Commit c = new Commit(store, Revision.fromString(head), r);
+                    c.addNode(new DocumentNodeState(store, "/foo/node", r));
+                    c.addNode(new DocumentNodeState(store, "/bar/node", r));
+                    c.apply();
+                } catch (MicroKernelException e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        final Semaphore s = new Semaphore(0);
+        locks.put(writer, s);
+        // will block in DocumentStore.create()
+        writer.start();
+        // wait for writer to create nodes
+        created.acquireUninterruptibly();
+        // commit will succeed and add collision marker to writer commit
+        Revision r = store.newRevision();
+        Commit c = new Commit(store, Revision.fromString(head), r);
+        c.addNode(new DocumentNodeState(store, "/foo/node", r));
+        c.addNode(new DocumentNodeState(store, "/bar/node", r));
+        c.apply();
+        // allow writer to continue
+        s.release();
+        writer.join();
+        assertEquals("expected exception", 1, exceptions.size());
+
+        String id = Utils.getIdFromPath("/foo/node");
+        NodeDocument doc = docStore.find(Collection.NODES, id);
+        assertNotNull("document with id " + id + " does not exist", doc);
+        id = Utils.getIdFromPath("/bar/node");
+        doc = docStore.find(Collection.NODES, id);
+        assertNotNull("document with id " + id + " does not exist", doc);
+
+        mk.dispose();
     }
 }
