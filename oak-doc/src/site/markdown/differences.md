@@ -155,6 +155,10 @@ Observation
   See [OAK-1290](https://issues.apache.org/jira/browse/OAK-1290) and
   [JSR_333-74](https://java.net/jira/browse/JSR_333-74) for further information.
 
+* See [OAK-1459](https://issues.apache.org/jira/browse/OAK-1459) for a
+  [comparison](https://issues.apache.org/jira/browse/OAK-1459?focusedCommentId=13911484&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-13911484)
+  of events being generated on Jackrabbit 2 vs. on Oak.
+
 Binary streams
 --------------
 
