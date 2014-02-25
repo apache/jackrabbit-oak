@@ -92,8 +92,8 @@ public class LargeOperationIT {
     public static final double ALPHA = 0.05;
 
     /** Scales defining the input sizes against which the tests run */
-    private static final Iterable<Integer> SEGMENT_SCALES = createSequence(1024, 1048576, 20);
-    private static final Iterable<Integer> MONGO_SCALES = createSequence(128, 131072, 20);
+    private static final Iterable<Integer> SEGMENT_SCALES = createSequence(1024, 1048576, 40);
+    private static final Iterable<Integer> MONGO_SCALES = createSequence(128, 131072, 40);
 
     private final NodeStoreFixture fixture;
     private final Iterable<Integer> scales;
