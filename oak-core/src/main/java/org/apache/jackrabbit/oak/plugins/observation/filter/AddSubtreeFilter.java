@@ -25,21 +25,20 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This {@code EventFilter} implementation excludes fat sub trees.
- * That is, it excludes events for child nodes of added or removed
- * nodes.
+ * This {@code EventFilter} implementation excludes events for child nodes
+ * of added nodes.
  */
-public class FatTreeFilter implements EventFilter {
-    private static final FatTreeFilter INCLUDE = new FatTreeFilter(true);
-    private static final FatTreeFilter EXCLUDE = new FatTreeFilter(false);
+public class AddSubtreeFilter implements EventFilter {
+    private static final AddSubtreeFilter INCLUDE_ADD = new AddSubtreeFilter(true);
+    private static final AddSubtreeFilter EXCLUDE_ADD = new AddSubtreeFilter(false);
 
     private final boolean include;
 
     public static EventFilter getInstance() {
-        return INCLUDE;
+        return INCLUDE_ADD;
     }
 
-    private FatTreeFilter(boolean include) {
+    private AddSubtreeFilter(boolean include) {
         this.include = include;
     }
 
@@ -65,7 +64,7 @@ public class FatTreeFilter implements EventFilter {
 
     @Override
     public boolean includeDelete(String name, NodeState before) {
-        return include;
+        return true;
     }
 
     @Override
@@ -80,12 +79,12 @@ public class FatTreeFilter implements EventFilter {
 
     @Override
     public EventFilter create(String name, NodeState before, NodeState after) {
-        if (this == EXCLUDE) {
+        if (this == EXCLUDE_ADD) {
             return null;
-        } else if (before == MISSING_NODE || after == MISSING_NODE) {
-            return EXCLUDE;
+        } else if (before == MISSING_NODE) {
+            return EXCLUDE_ADD;
         } else {
-            return INCLUDE;
+            return INCLUDE_ADD;
         }
     }
 }
