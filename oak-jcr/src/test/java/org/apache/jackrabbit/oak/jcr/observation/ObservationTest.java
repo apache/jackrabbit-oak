@@ -495,6 +495,63 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void addSubtree() throws RepositoryException, ExecutionException, InterruptedException {
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
+
+        Node n = getNode(TEST_PATH);
+        Node a = listener.expectAdd(n.addNode("a"));
+        Node b = listener.expectAdd(a.addNode("b"));
+        listener.expectAdd(b.addNode("c"));
+        getAdminSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void removeSubtree() throws RepositoryException, ExecutionException, InterruptedException {
+        Node n = getNode(TEST_PATH);
+        n.addNode("a").addNode("b").addNode("c");
+        getAdminSession().save();
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
+
+        listener.expectRemove(n.getNode("a")).remove();
+        getAdminSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void moveSubtree() throws RepositoryException, ExecutionException, InterruptedException {
+        Node n = getNode(TEST_PATH);
+        n.addNode("a").addNode("b").addNode("c");
+        getAdminSession().save();
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
+
+        getAdminSession().move(TEST_PATH + "/a", TEST_PATH + "/t");
+        listener.expect(TEST_PATH + "/t", NODE_MOVED);
+        listener.expect(TEST_PATH + "/a", NODE_REMOVED);
+        listener.expect(TEST_PATH + "/a/jcr:primaryType", PROPERTY_REMOVED);
+        listener.expect(TEST_PATH + "/t", NODE_ADDED);
+        getAdminSession().save();
+
+        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
     public void filterDisjunctPaths()
             throws ExecutionException, InterruptedException, RepositoryException {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
