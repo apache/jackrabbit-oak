@@ -283,6 +283,7 @@
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
       <version>${solr.version}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
