@@ -58,7 +58,7 @@ select [jcr:path], [jcr:score], *
   and [jcr:primaryType] = 'nt:folder'
   /* xpath ... */
 
-# property names with missing @
+# use the optimal join order (OAK-1372)
 
 xpath2sql /jcr:root/testroot//b/c/d/*
   [@jcr:uuid='1' or @jcr:uuid='2']
@@ -77,6 +77,8 @@ select d.[jcr:path] as [jcr:path], d.[jcr:score] as [jcr:score], d.*
   and (d.[jcr:uuid] = '1'
   or d.[jcr:uuid] = '2')
   /* xpath ... */
+
+# property names with missing @
 
 xpath2sql /jcr:root/test/*[@a='1' and b='2'
   and jcr:contains(c, '3')
