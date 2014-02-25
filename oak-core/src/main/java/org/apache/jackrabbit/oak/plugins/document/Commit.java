@@ -408,7 +408,9 @@ public class Commit {
             store.createOrUpdate(NODES, reverse);
         }
         for (UpdateOp op : newDocuments) {
-            store.remove(NODES, op.id);
+            UpdateOp reverse = op.getReverseOperation();
+            NodeDocument.unsetLastRev(reverse, revision.getClusterId());
+            store.createOrUpdate(NODES, reverse);
         }
         UpdateOp removeCollision = new UpdateOp(commitRoot.getId(), false);
         NodeDocument.removeCollision(removeCollision, revision);

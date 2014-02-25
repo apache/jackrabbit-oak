@@ -172,7 +172,6 @@ public class DocumentNodeStoreTest {
         store.dispose();
     }
 
-    @Ignore("OAK-1467")
     @Test
     public void rollback() throws Exception {
         final Map<Thread, Semaphore> locks = Collections.synchronizedMap(
@@ -230,9 +229,11 @@ public class DocumentNodeStoreTest {
         String id = Utils.getIdFromPath("/foo/node");
         NodeDocument doc = docStore.find(Collection.NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
+        assertTrue(!doc.getLastRev().isEmpty());
         id = Utils.getIdFromPath("/bar/node");
         doc = docStore.find(Collection.NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
+        assertTrue(!doc.getLastRev().isEmpty());
 
         mk.dispose();
     }
