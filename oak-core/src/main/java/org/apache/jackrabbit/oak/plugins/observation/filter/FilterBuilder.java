@@ -258,6 +258,14 @@ public final class FilterBuilder {
         return new DeleteSubtreeTreeCondition();
     }
 
+    /**
+     * @return a condition that holds for children of the target of a moved node
+     */
+    @Nonnull
+    public Condition moveSubtree() {
+        return new MoveCondition();
+    }
+
     //------------------------------------------------------------< Compound conditions >---
 
     /**
@@ -438,6 +446,15 @@ public final class FilterBuilder {
         public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
                 String basePath) {
             return DeleteSubtreeFilter.getInstance();
+        }
+    }
+
+    protected static class MoveCondition implements Condition {
+        @Nonnull
+        @Override
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
+                String basePath) {
+            return new MoveFilter();
         }
     }
 

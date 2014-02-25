@@ -174,6 +174,8 @@ public class ObservationManagerImpl implements ObservationManager {
             .includeSessionLocal(!noLocal)
             .includeClusterExternal(!(listener instanceof ExcludeExternal))
             .condition(filterBuilder.all(
+                filterBuilder.deleteSubtree(),
+                filterBuilder.moveSubtree(),
                 filterBuilder.path(isDeep ? STAR_STAR : STAR),
                 filterBuilder.eventType(eventTypes),
                 filterBuilder.uuid(Selectors.PARENT, uuids),
