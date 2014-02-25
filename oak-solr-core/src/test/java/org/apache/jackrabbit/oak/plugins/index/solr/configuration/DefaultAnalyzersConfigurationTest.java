@@ -30,7 +30,6 @@ import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
 import org.apache.lucene.util.Version;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -38,7 +37,6 @@ import org.junit.Test;
  *
  * Note that default Solr analyzers for Oak should be equivalent to the ones programmtically defined here.
  */
-@Ignore("OAK-1444")  // FIXME OAK-1444
 public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
 
     private Analyzer parentPathIndexingAnalyzer;
