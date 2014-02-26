@@ -73,7 +73,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    @Ignore("OAK-1137")
+    @Ignore("OAK-1472") // FIXME OAK-1472
     public void addReferences() throws Exception {
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");
