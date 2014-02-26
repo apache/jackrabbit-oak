@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 /**
  * RepositoryPermission... TODO
+ *
+ * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getRepositoryPermission()
  */
 public interface RepositoryPermission {
 
@@ -38,6 +40,9 @@ public interface RepositoryPermission {
      */
     boolean isGranted(long repositoryPermissions);
 
+    /**
+     * {@code RepositoryPermission} instance that always returns {@code false}.
+     */
     RepositoryPermission EMPTY = new RepositoryPermission() {
         @Override
         public boolean isGranted(long repositoryPermissions) {
@@ -45,6 +50,9 @@ public interface RepositoryPermission {
         }
     };
 
+    /**
+     * {@code RepositoryPermission} instance that always returns {@code true}.
+     */
     RepositoryPermission ALL = new RepositoryPermission() {
         @Override
         public boolean isGranted(long repositoryPermissions) {

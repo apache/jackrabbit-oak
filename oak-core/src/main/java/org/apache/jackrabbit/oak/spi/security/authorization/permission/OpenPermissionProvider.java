@@ -66,7 +66,7 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         return true;
     }
 

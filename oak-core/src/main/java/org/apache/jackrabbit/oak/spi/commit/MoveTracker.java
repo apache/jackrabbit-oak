@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * MoveTracker... TODO
+ * Utility to keep track of the move operations that are performed between two
+ * calls to {@link org.apache.jackrabbit.oak.api.Root#commit}.
  */
 public class MoveTracker {
 
