@@ -17,7 +17,10 @@
 package org.apache.jackrabbit.oak.jcr.version;
 
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 
@@ -46,6 +49,10 @@ public class RestoreTest extends AbstractJCRTest {
         assertTrue(superuser.nodeExists(path));
         n = superuser.getNode(path);
         assertEquals("Property not restored", "a", n.getProperty("prop").getString());
+        Property vhProp = n.getProperty(jcrVersionHistory);
+        assertEquals(PropertyType.REFERENCE, vhProp.getType());
+        PropertyDefinition def = vhProp.getDefinition();
+        assertEquals(PropertyType.REFERENCE, def.getRequiredType());
     }
 
     public void testRestoreReferenceableChild() throws RepositoryException {

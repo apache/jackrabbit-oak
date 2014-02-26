@@ -425,7 +425,8 @@ class VersionableState {
                                     @Nonnull NodeBuilder version) {
         checkNotNull(versionable).setProperty(JCR_ISCHECKEDOUT,
                 false, Type.BOOLEAN);
-        versionable.setProperty(JCR_VERSIONHISTORY, uuidFromNode(history));
+        versionable.setProperty(JCR_VERSIONHISTORY,
+                uuidFromNode(history), Type.REFERENCE);
         versionable.setProperty(JCR_BASEVERSION,
                 uuidFromNode(version), Type.REFERENCE);
         versionable.setProperty(JCR_PREDECESSORS,
