@@ -170,6 +170,7 @@ public class BenchmarkRunner {
             ReadManyTest.uniform("UniformReadNodes", 1, ReadManyTest.NODES),
             new ConcurrentCreateNodesTest(),
             new SequentialCreateNodesTest(),
+            new GetPoliciesTest(),
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
