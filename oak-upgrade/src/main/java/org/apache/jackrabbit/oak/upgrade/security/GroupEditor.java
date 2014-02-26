@@ -86,10 +86,10 @@ class GroupEditor extends DefaultEditor {
             return null;
         }
 
-        PropertyState primaryType = after.getProperty(JCR_PRIMARYTYPE);
-        String nt = primaryType == null ? null : primaryType.getValue(Type.NAME);
+        String nt = after.getName(JCR_PRIMARYTYPE);
         if (nt == null) {
-            throw new CommitFailedException(CONSTRAINT, 34, JCR_PRIMARYTYPE + " missing at " + state.path);
+            throw new CommitFailedException(
+                    CONSTRAINT, 34, JCR_PRIMARYTYPE + " missing at " + state.path);
         }
 
         if (UserConstants.NT_REP_GROUP.equals(nt)) {

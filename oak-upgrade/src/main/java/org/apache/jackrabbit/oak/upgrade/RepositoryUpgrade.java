@@ -140,85 +140,6 @@ public class RepositoryUpgrade {
     private final NodeStore target;
 
     /**
-     * the set of oak built-in nodetypes
-     * todo: load from file or from repo
-     */
-    private static final Set<String> BUILT_IN_NODE_TYPES = ImmutableSet.of(
-            "mix:created",
-            "mix:etag",
-            "mix:language",
-            "mix:lastModified",
-            "mix:lifecycle",
-            "mix:lockable",
-            "mix:mimeType",
-            "mix:referenceable",
-            "mix:shareable",
-            "mix:simpleVersionable",
-            "mix:title",
-            "mix:versionable",
-            "nt:activity",
-            "nt:address",
-            "nt:base",
-            "nt:childNodeDefinition",
-            "nt:configuration",
-            "nt:file",
-            "nt:folder",
-            "nt:frozenNode",
-            "nt:hierarchyNode",
-            "nt:linkedFile",
-            "nt:nodeType",
-            "nt:propertyDefinition",
-            "nt:query",
-            "nt:resource",
-            "nt:unstructured",
-            "nt:version",
-            "nt:versionHistory",
-            "nt:versionLabels",
-            "nt:versionedChild",
-            "rep:ChildNodeDefinition",
-            "rep:ChildNodeDefinitions",
-            "rep:NamedChildNodeDefinitions",
-            "rep:NamedPropertyDefinitions",
-            "rep:NodeType",
-            "rep:PropertyDefinition",
-            "rep:PropertyDefinitions",
-            "oak:QueryIndexDefinition",
-            "oak:Unstructured",
-            "rep:ACE",
-            "rep:ACL",
-            "rep:AccessControl",
-            "rep:AccessControllable",
-            "rep:Activities",
-            "rep:Authorizable",
-            "rep:AuthorizableFolder",
-            "rep:Configurations",
-            "rep:DenyACE",
-            "rep:GrantACE",
-            "rep:Group",
-            "rep:Impersonatable",
-            "rep:MemberReferences",
-            "rep:MemberReferencesList",
-            "rep:Members",
-            "rep:MergeConflict",
-            "rep:PermissionStore",
-            "rep:Permissions",
-            "rep:Policy",
-            "rep:PrincipalAccessControl",
-            "rep:Privilege",
-            "rep:Privileges",
-            "rep:RepoAccessControllable",
-            "rep:Restrictions",
-            "rep:RetentionManageable",
-            "rep:Token",
-            "rep:User",
-            "rep:VersionReference",
-            "rep:nodeTypes",
-            "rep:root",
-            "rep:system",
-            "rep:versionStorage"
-    );
-
-    /**
      * Copies the contents of the repository in the given source directory
      * to the given target node store.
      *
@@ -460,15 +381,13 @@ public class RepositoryUpgrade {
 
         logger.info("Copying registered node types");
         for (Name name : sourceRegistry.getRegisteredNodeTypes()) {
-            // skip built-in nodetypes (OAK-1235)
             String oakName = getOakName(name);
-            if (BUILT_IN_NODE_TYPES.contains(oakName)) {
-                logger.info("skipping built-on nodetype: {}", name);
-                continue;
+            // skip built-in nodetypes (OAK-1235)
+            if (!types.hasChildNode(oakName)) {
+                QNodeTypeDefinition def = sourceRegistry.getNodeTypeDef(name);
+                NodeBuilder type = types.child(oakName);
+                copyNodeType(def, type);
             }
-            QNodeTypeDefinition def = sourceRegistry.getNodeTypeDef(name);
-            NodeBuilder type = types.child(oakName);
-            copyNodeType(def, type);
         }
     }
 
@@ -506,14 +425,14 @@ public class RepositoryUpgrade {
         // + jcr:propertyDefinition (nt:propertyDefinition) = nt:propertyDefinition protected sns
         QPropertyDefinition[] properties = def.getPropertyDefs();
         for (int i = 0; i < properties.length; i++) {
-            String name = JCR_PROPERTYDEFINITION + '[' + i + ']';
+            String name = JCR_PROPERTYDEFINITION + '[' + (i + 1) + ']';
             copyPropertyDefinition(properties[i], builder.child(name));
         }
 
         // + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
         QNodeDefinition[] childNodes = def.getChildNodeDefs();
         for (int i = 0; i < childNodes.length; i++) {
-            String name = JCR_CHILDNODEDEFINITION + '[' + i + ']';
+            String name = JCR_CHILDNODEDEFINITION + '[' + (i + 1) + ']';
             copyChildNodeDefinition(childNodes[i], builder.child(name));
         }
     }
