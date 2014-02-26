@@ -36,7 +36,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore
+@Ignore // FIXME
 public class RandomizedReadTest extends AbstractRandomizedTest {
 
     private static final int depth = 4;
