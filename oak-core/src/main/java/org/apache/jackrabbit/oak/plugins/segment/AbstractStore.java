@@ -23,9 +23,10 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 
 import com.google.common.cache.Cache;
@@ -173,9 +174,8 @@ public abstract class AbstractStore implements SegmentStore {
         return type.isInstance(object) && ((Record) object).getStore() == this;
     }
 
-    @Nullable
-    @Override
-    public ExternalBlob readBlob(String reference) {
+    @Override @CheckForNull
+    public Blob readBlob(String reference) {
         return null;
     }
 }

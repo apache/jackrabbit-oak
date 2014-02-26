@@ -20,6 +20,8 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.api.Blob;
+
 public interface SegmentStore {
 
     SegmentWriter getWriter();
@@ -73,5 +75,6 @@ public interface SegmentStore {
      * @param reference blob reference
      * @return external blob
      */
-    ExternalBlob readBlob(String reference);
+    Blob readBlob(String reference);
+
 }
