@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -237,14 +237,14 @@ public class DocumentNodeStoreService {
         );
 
         DocumentStore ds = store.getDocumentStore();
-        if (ds instanceof MongoDocumentStore) {
-            MongoDocumentStore mds = (MongoDocumentStore) ds;
+        if (ds instanceof CachingDocumentStore) {
+            CachingDocumentStore cds = (CachingDocumentStore) ds;
             registrations.add(
                     registerMBean(wb,
                             CacheStatsMBean.class,
-                            mds.getCacheStats(),
+                            cds.getCacheStats(),
                             CacheStatsMBean.TYPE,
-                            mds.getCacheStats().getName())
+                            cds.getCacheStats().getName())
             );
         }
 
