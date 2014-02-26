@@ -746,7 +746,11 @@ public final class DocumentNodeStore
             @Override
             public NodeDocument apply(String name) {
                 String p = PathUtils.concat(path, name);
-                return store.find(Collection.NODES, Utils.getIdFromPath(p));
+                NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
+                if (doc == null) {
+                    throw new NullPointerException("Document " + p + " not found");
+                }
+                return doc;
             }
         });
         if (c.childNames.size() > limit * 2) {
