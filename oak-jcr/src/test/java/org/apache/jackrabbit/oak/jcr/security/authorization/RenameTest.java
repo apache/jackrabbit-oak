@@ -21,13 +21,11 @@ import javax.jcr.Node;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitNode;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Permission evaluation tests related to {@link JackrabbitNode#rename(String)}.
  */
-@Ignore("OAK-770 : NodeImpl doesn't implement JackrabbitNode#rename")
 public class RenameTest extends AbstractEvaluationTest {
 
     @Test
@@ -40,10 +38,15 @@ public class RenameTest extends AbstractEvaluationTest {
         } catch (AccessDeniedException e) {
             // success.
         }
+    }
 
+    @Test
+    public void testRename2() throws Exception {
         // give 'add_child_nodes' and 'nt-management' privilege
         // -> not sufficient privileges for a renaming of the child
         allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+
+        Node child = testSession.getNode(childNPath);
         try {
             ((JackrabbitNode) child).rename("rename");
             testSession.save();
@@ -51,10 +54,20 @@ public class RenameTest extends AbstractEvaluationTest {
         } catch (AccessDeniedException e) {
             // success.
         }
+    }
 
-        // add 'remove_child_nodes' at 'path
+    /**
+     * @since OAK 1.0 : Renaming a node requires the same permission as moving it
+     * around. This behavior differs from Jackrabbit 2.x where renaming just
+     * required the ability to change the child collection of the parent.
+     */
+    @Test
+    public void testRename3() throws Exception {
+        // grant 'add_child_nodes', 'nt-management' and remove_child_nodes' at 'path
         // -> rename of child must now succeed
-        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT, Privilege.JCR_REMOVE_CHILD_NODES, Privilege.JCR_REMOVE_NODE}));
+
+        Node child = testSession.getNode(childNPath);
         ((JackrabbitNode) child).rename("rename");
         testSession.save();
     }
