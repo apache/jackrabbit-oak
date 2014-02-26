@@ -16,17 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.user;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import javax.jcr.ImportUUIDBehavior;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -34,44 +37,46 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
-import org.junit.Ignore;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
+import org.junit.Test;
 
-/**
- * UserImportTest...
- */
-@Ignore("OAK-414") // TODO: OAK-414
-public class UserImportWithActionsTest extends AbstractUserTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-    private static final String USERPATH = UserConstants.DEFAULT_USER_PATH;
-    private static final String GROUPPATH = UserConstants.DEFAULT_GROUP_PATH;
+public class UserImportWithActionsTest extends AbstractImportTest {
 
-    private JackrabbitSession jrSession;
+    private final TestActionProvider actionProvider = new TestActionProvider();
 
     @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        // avoid collision with testing a-folders that may have been created
-        // with another test (but not removed as user/groups got removed)
-        String path = USERPATH + "/t";
-        if (superuser.nodeExists(path)) {
-            superuser.getNode(path).remove();
-        }
-        path = GROUPPATH + "/g";
-        if (superuser.nodeExists(path)) {
-            superuser.getNode(path).remove();
-        }
-        superuser.save();
-        jrSession = (JackrabbitSession) superuser;
+    protected String getImportBehavior() {
+        return ImportBehavior.NAME_BESTEFFORT;
+    }
+
+    @Override
+    protected String getTargetPath() {
+        throw new UnsupportedOperationException();
     }
 
     private void setAuthorizableActions(AuthorizableAction action) {
-        // TODO clarify how to test AuthorizableActions in Oak
-        // userMgr.setAuthorizableActions(new AuthorizableAction[] {testAction});
+        actionProvider.addAction(action);
     }
 
+    @Override
+    protected ConfigurationParameters getConfigurationParameters() {
+        Map<String, Object> userParams = new HashMap<String, Object>();
+        userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
+        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+    }
+
+    @Test
     public void testActionExecutionForUser() throws Exception {
         TestAction testAction = new TestAction();
         setAuthorizableActions(testAction);
@@ -85,15 +90,12 @@ public class UserImportWithActionsTest extends AbstractUserTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrincipal</sv:value></sv:property>" +
                 "</sv:node>";
 
-        try {
-            doImport(USERPATH, xml);
-            assertEquals(testAction.id, "t");
-            assertEquals(testAction.pw, "pw");
-        } finally {
-            jrSession.refresh(false);
-        }
+        doImport(USERPATH, xml);
+        assertEquals(testAction.id, "t");
+        assertEquals(testAction.pw, "pw");
     }
 
+    @Test
     public void testActionExecutionForGroup() throws Exception {
         TestAction testAction = new TestAction();
         setAuthorizableActions(testAction);
@@ -106,18 +108,15 @@ public class UserImportWithActionsTest extends AbstractUserTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>gPrincipal</sv:value></sv:property>" +
                 "</sv:node>";
 
-        try {
-            doImport(GROUPPATH, xml);
-            assertEquals(testAction.id, "g");
-            assertNull(testAction.pw);
-        } finally {
-            jrSession.refresh(false);
-        }
+        doImport(GROUPPATH, xml);
+        assertEquals(testAction.id, "g");
+        assertNull(testAction.pw);
     }
 
+    @Test
     public void testAccessControlActionExecutionForUser() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        //a1.setUserPrivilegeNames(Privilege.JCR_ALL);
+        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL})));
 
         setAuthorizableActions(a1);
 
@@ -129,32 +128,27 @@ public class UserImportWithActionsTest extends AbstractUserTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrincipal</sv:value></sv:property>" +
                 "</sv:node>";
 
-        try {
-            doImport(USERPATH, xml);
+        doImport(USERPATH, xml);
 
-            Authorizable a = userMgr.getAuthorizable("t");
-            assertNotNull(a);
-            assertFalse(a.isGroup());
+        Authorizable a = userMgr.getAuthorizable("t");
+        assertNotNull(a);
+        assertFalse(a.isGroup());
 
-            AccessControlManager acMgr = jrSession.getAccessControlManager();
-            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-            assertNotNull(policies);
-            assertEquals(1, policies.length);
-            assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof AccessControlList);
 
-            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-            assertEquals(1, aces.length);
-            assertEquals("tPrincipal", aces[0].getPrincipal().getName());
-
-        } finally {
-            jrSession.refresh(false);
-        }
+        AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
+        assertEquals(1, aces.length);
+        assertEquals("tPrincipal", aces[0].getPrincipal().getName());
     }
 
+    @Test
     public void testAccessControlActionExecutionForUser2() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        //a1.setUserPrivilegeNames(Privilege.JCR_ALL);
-
+        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.USER_PRIVILEGE_NAMES, new String[] {Privilege.JCR_ALL})));
         setAuthorizableActions(a1);
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -165,32 +159,27 @@ public class UserImportWithActionsTest extends AbstractUserTest {
                 "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
                 "</sv:node>";
 
-        try {
-            doImport(USERPATH, xml);
+        doImport(USERPATH, xml);
 
-            Authorizable a = userMgr.getAuthorizable("t");
-            assertNotNull(a);
-            assertFalse(a.isGroup());
+        Authorizable a = userMgr.getAuthorizable("t");
+        assertNotNull(a);
+        assertFalse(a.isGroup());
 
-            AccessControlManager acMgr = jrSession.getAccessControlManager();
-            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-            assertNotNull(policies);
-            assertEquals(1, policies.length);
-            assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof AccessControlList);
 
-            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-            assertEquals(1, aces.length);
-            assertEquals("tPrincipal", aces[0].getPrincipal().getName());
-
-        } finally {
-            jrSession.refresh(false);
-        }
+        AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
+        assertEquals(1, aces.length);
+        assertEquals("tPrincipal", aces[0].getPrincipal().getName());
     }
 
+    @Test
     public void testAccessControlActionExecutionForGroup() throws Exception {
         AccessControlAction a1 = new AccessControlAction();
-        //a1.setGroupPrivilegeNames(Privilege.JCR_READ);
-
+        a1.init(securityProvider, ConfigurationParameters.of(Collections.singletonMap(AccessControlAction.GROUP_PRIVILEGE_NAMES, new String[] {Privilege.JCR_READ})));
         setAuthorizableActions(a1);
 
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -200,31 +189,34 @@ public class UserImportWithActionsTest extends AbstractUserTest {
                 "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>gPrincipal</sv:value></sv:property>" +
                 "</sv:node>";
 
-        try {
-            doImport(GROUPPATH, xml);
+        doImport(GROUPPATH, xml);
 
-            Authorizable a = userMgr.getAuthorizable("g");
-            assertNotNull(a);
-            assertTrue(a.isGroup());
+        Authorizable a = userMgr.getAuthorizable("g");
+        assertNotNull(a);
+        assertTrue(a.isGroup());
 
-            AccessControlManager acMgr = jrSession.getAccessControlManager();
-            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-            assertNotNull(policies);
-            assertEquals(1, policies.length);
-            assertTrue(policies[0] instanceof AccessControlList);
+        AccessControlManager acMgr = adminSession.getAccessControlManager();
+        AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+        assertTrue(policies[0] instanceof AccessControlList);
 
-            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-            assertEquals(1, aces.length);
-            assertEquals("gPrincipal", aces[0].getPrincipal().getName());
-
-        } finally {
-            jrSession.refresh(false);
-        }
+        AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
+        assertEquals(1, aces.length);
+        assertEquals("gPrincipal", aces[0].getPrincipal().getName());
     }
 
-    private void doImport(String parentPath, String xml) throws IOException, RepositoryException {
-        InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-        superuser.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
+    private final class TestActionProvider implements AuthorizableActionProvider {
+
+        private final List<AuthorizableAction> actions = new ArrayList();
+
+        private void addAction(AuthorizableAction action) {
+            actions.add(action);
+        }
+        @Override
+        public List<? extends AuthorizableAction> getAuthorizableActions(@Nonnull SecurityProvider securityProvider) {
+            return actions;
+        }
     }
 
     private final class TestAction implements AuthorizableAction {

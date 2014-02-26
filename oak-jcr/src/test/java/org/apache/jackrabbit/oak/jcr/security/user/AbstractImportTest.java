@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -65,6 +66,9 @@ public abstract class AbstractImportTest {
     protected static final String GROUPPATH = "/rep:security/rep:authorizables/rep:groups";
 
     private Repository repo;
+
+    protected SecurityProvider securityProvider;
+
     protected Session adminSession;
     protected UserManager userMgr;
 
@@ -72,13 +76,8 @@ public abstract class AbstractImportTest {
 
     @Before
     public void before() throws Exception {
-        String importBehavior = getImportBehavior();
-        SecurityProvider securityProvider;
-        if (importBehavior != null) {
-            Map<String, String> userParams = new HashMap<String, String>();
-            userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            ConfigurationParameters config = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
-
+        ConfigurationParameters config = getConfigurationParameters();
+        if (config != null) {
             securityProvider = new SecurityProviderImpl(config);
         } else {
             securityProvider = new SecurityProviderImpl();
@@ -140,6 +139,18 @@ public abstract class AbstractImportTest {
                 adminSession.logout();
                 repo = dispose(repo);
             }
+        }
+    }
+
+    @CheckForNull
+    protected ConfigurationParameters getConfigurationParameters() {
+        String importBehavior = getImportBehavior();
+        if (importBehavior != null) {
+            Map<String, String> userParams = new HashMap<String, String>();
+            userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
+            return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+        } else {
+            return null;
         }
     }
 
