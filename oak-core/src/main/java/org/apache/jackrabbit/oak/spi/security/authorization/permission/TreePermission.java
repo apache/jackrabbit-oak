@@ -24,23 +24,90 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * TreePermission... TODO
+ *
+ * @see PermissionProvider#getTreePermission(org.apache.jackrabbit.oak.api.Tree, TreePermission)
  */
 public interface TreePermission {
 
+    /**
+     * Retrieve the {@code TreePermission} for the tree identified by the specified
+     * {@code childName} and {@code childState}, which is a child of the tree
+     * associated with this instanceof {@code TreePermission}.
+     *
+     * @param childName The oak name of the child.
+     * @param childState The child state.
+     * @return The tree permission for the child tree identified by {@code childName}
+     * and {@code childState}.
+     */
     TreePermission getChildPermission(String childName, NodeState childState);
 
+    /**
+     * Return if read access is granted for the {@code Tree} associated with
+     * this {@code TreePermission} instance.
+     *
+     * @return {@code true} if the tree associated with this instance can be
+     * read; {@code false} otherwise.
+     */
     boolean canRead();
 
+    /**
+     * Return if read access is granted for the property of the {@code Tree} for
+     * which this {@code TreePermission} instance has been created.
+     *
+     * @param property The property to be tested for read access.
+     * @return {@code true} If the specified property can be read; {@code false} otherwise.
+     */
     boolean canRead(@Nonnull PropertyState property);
 
+    /**
+     * Returns {@code true} if read access is granted to the {@code Tree} associated
+     * with this instance and the whole subtree defined by it including all
+     * properties. Note, that this includes access to items which require
+     * specific read permissions such as e.g. {@link Permissions#READ_ACCESS_CONTROL}.
+     *
+     * @return {@code true} if the {@code Tree} associated with this instance as
+     * well as its properties and the whole subtree can be read; {@code false} otherwise.
+     */
     boolean canReadAll();
 
+    /**
+     * Returns {@code true} if all properties of the {@code Tree} associated with
+     * this instance can be read.
+     *
+     * @return {@code true} if all properties of the {@code Tree} associated with
+     * this instance can be read; {@code false} otherwise.
+     */
     boolean canReadProperties();
 
+    /**
+     * Returns {@code true} if all specified permissions are granted on the
+     * {@code Tree} associated with this {@code TreePermission} instance;
+     * {@code false} otherwise.
+     *
+     * @param permissions The permissions to be tested. Note, that the implementation
+     * may restrict the set of valid permissions to those that can be set and
+     * evaluated for trees.
+     * @return {@code true} if all permissions are granted; {@code false} otherwise.
+     */
     boolean isGranted(long permissions);
 
+    /**
+     * Returns {@code true} if all specified permissions are granted on the
+     * {@code PropertyState} associated with this {@code TreePermission} instance;
+     * {@code false} otherwise.
+     *
+     * @param permissions The permissions to be tested. Note, that the implementation
+     * may restrict the set of valid permissions to those that can be set and
+     * evaluated for properties.
+     * @param property The property state for which the permissions must be granted.
+     * @return {@code true} if all permissions are granted; {@code false} otherwise.
+     */
     boolean isGranted(long permissions, @Nonnull PropertyState property);
 
+    /**
+     * {@code TreePermission} which always returns {@code false} not granting
+     * any permissions.
+     */
     TreePermission EMPTY = new TreePermission() {
         @Override
         public TreePermission getChildPermission(String childName, NodeState childState) {
@@ -78,6 +145,10 @@ public interface TreePermission {
         }
     };
 
+    /**
+     * {@code TreePermission} which always returns {@code true} and thus grants
+     * all permissions.
+     */
     TreePermission ALL = new TreePermission() {
         @Override
         public TreePermission getChildPermission(String childName, NodeState childState) {

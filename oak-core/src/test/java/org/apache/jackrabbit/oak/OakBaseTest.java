@@ -28,9 +28,6 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-/**
- * OakBaseTest... TODO
- */
 @RunWith(Parameterized.class)
 public abstract class OakBaseTest {
 
