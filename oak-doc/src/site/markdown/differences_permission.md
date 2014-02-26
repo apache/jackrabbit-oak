@@ -19,7 +19,13 @@
 #### 1. Characteristics of the Default Implementation
 
 ##### General
-_TODO_
+In general the permission evaluation related code in Oak is intended to be
+more clearly separated from the access control management such as defined by the
+JCR and Jackrabbit API. While permission evaluation is considered to be an
+internal feature of the Oak core module, the package
+`org.apache.jackrabbit.oak.spi.security.authorization.permission` provides some
+extensions points that allow to plug custom extensions or implementations of
+the permission evaluation.
 
 ##### JCR API
 ###### `Session#hasPermission` and `Session#checkPermission`
@@ -27,7 +33,31 @@ _TODO_
 Since Oak the permission related API calls not only allow to pass the action strings defined by JCR specification (see constants defined in `Session.java`) but also handles the names of the permission defined by Oak (see `Permissions#getString(long permissions)`).
 
 ##### Mapping of JCR Actions to Permissions
-_TODO_
+
+`ACTION_READ':
+
+- access control content: `Permissions.READ_ACCESS_CONTROL`
+- regular nodes: `Permissions.READ_NODE`
+- regular properties: `Permissions.READ_PROPERTY`
+- non-existing items: `Permissions.READ`
+
+`ACTION_ADD_NODE`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- regular nodes: `Permissions.ADD_NODE`
+
+`ACTION_REMOVE`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- regular nodes: `Permissions.REMOVE_NODE`
+- regular properties: `Permissions.REMOVE_PROPERTY`
+- non-existing nodes: `Permissions.REMOVE`
+
+`ACTION_SET_PROPERTY`:
+
+- access control content: `Permissions.MODIFY_ACCESS_CONTROL`
+- regular properties: `Permissions.MODIFY_PROPERTY`
+- non-existing properties: `Permissions.ADD_PROPERTY`
 
 ##### Permissions
 The set of permissions supported by Oak are listed in [Permissions]. The following changes have been compared compared to Jackrabbit 2.x:
@@ -103,9 +133,6 @@ appear to be added, removed or modified, while a regular move operations just
 requires `REMOVE_NODE` permission on the source, `ADD_NODE` and `NODE_TYPE_MANAGEMENT`
 permissions at the destination.
 
-##### Copy
-_TODO: permission evaluation with copy is not yet implemented [OAK-920]_
-
 ##### User Management
 By default user management operations require the specific user mgt related permission to be granted for the editing subject. This permission (including a corresponding privilege) has been introduced with Oak 1.0.
 For backwards compatibility with Jackrabbit 2.x this behavior can be turned off by setting the corresponding configuration flag.
@@ -150,9 +177,9 @@ The following principals always have full access to the whole content repository
 
 org.apache.jackrabbit.oak.spi.security.authorization.permission
 
-- `PermissionProvider`: _TODO_
-- `Permissions`: _TODO_
-- `PermissionConstants`: _TODO_
+- `PermissionProvider`: Main entry point for Oak internal permission evaluation.
+- `Permissions`: The permissions defined, respected and evaluated by the repository.
+- `PermissionConstants`: Constants used throughout the permission evaluation.
 
 #### 6. Configuration
 
@@ -171,6 +198,5 @@ Since there are no permissions installed by default this flag has become superfl
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
 [OAK-792]: https://issues.apache.org/jira/browse/OAK-792
 [OAK-910]: https://issues.apache.org/jira/browse/OAK-910
-[OAK-920]: https://issues.apache.org/jira/browse/OAK-920
 [OAK-710]: https://issues.apache.org/jira/browse/OAK-710
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963
