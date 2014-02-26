@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
@@ -573,6 +574,24 @@ public class CacheTest {
 
     private static <K, V> CacheLIRS<K, V> createCache(int maxSize, int averageSize) {
         return new CacheLIRS<K, V>(null, maxSize, averageSize, 1, 0, null);
+    }
+    
+    @Test
+    public void testBadLoader() {
+        CacheLIRS<Integer, String> cache = createCache(10, 1);
+        try {
+            cache.get(1, new Callable<String>() {
+
+                @Override
+                public String call() throws Exception {
+                    return null;
+                }
+                
+            });
+            fail();
+        } catch (Exception e) {
+            // expected
+        }
     }
     
     @Test
