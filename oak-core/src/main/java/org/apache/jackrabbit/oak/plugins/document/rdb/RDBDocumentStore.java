@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -58,7 +60,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.Cache;
 import com.google.common.util.concurrent.Striped;
 
-public class RDBDocumentStore implements DocumentStore {
+public class RDBDocumentStore implements CachingDocumentStore {
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using an embedded H2
@@ -230,6 +232,11 @@ public class RDBDocumentStore implements DocumentStore {
         }
     }
 
+    @Override
+    public CacheStats getCacheStats() {
+        return this.cacheStats;
+    }
+
     // implementation
 
     private final String MODIFIED = "_modified";
@@ -257,6 +264,7 @@ public class RDBDocumentStore implements DocumentStore {
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.nodesCache = builder.buildCache(builder.getDocumentCacheSize());
+        this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
     }
 
     @Override
@@ -620,6 +628,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     // Memory Cache
     private Cache<CacheValue, NodeDocument> nodesCache;
+    private CacheStats cacheStats;
     private final Striped<Lock> locks = Striped.lock(64);
 
     private Lock getAndLock(String key) {
