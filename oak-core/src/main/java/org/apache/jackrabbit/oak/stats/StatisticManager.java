@@ -52,7 +52,7 @@ public class StatisticManager {
         repoStats = new RepositoryStatisticsImpl(executor);
         registration = new CompositeRegistration(
             registerMBean(whiteboard, QueryStatManagerMBean.class, new QueryStatManager(queryStat),
-                    "QueryStats", "Oak Query Statistics"),
+                    "QueryStat", "Oak Query Statistics"),
             registerMBean(whiteboard, RepositoryStatsMBean.class, new RepositoryStats(repoStats),
                     RepositoryStats.TYPE, "Oak Repository Statistics"));
     }
