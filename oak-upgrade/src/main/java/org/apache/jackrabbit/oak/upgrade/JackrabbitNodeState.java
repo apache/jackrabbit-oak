@@ -27,10 +27,12 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 
+import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.id.NodeId;
 import org.apache.jackrabbit.core.id.PropertyId;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
@@ -314,6 +316,24 @@ class JackrabbitNodeState extends AbstractNodeState {
                 } catch (RepositoryException e) {
                     warn("Unable to access blob contents", e);
                     return new ByteArrayInputStream(new byte[0]);
+                }
+            }
+            @Override
+            public String getReference() {
+                try {
+                    Binary binary = value.getBinary();
+                    try {
+                        if (binary instanceof ReferenceBinary) {
+                            return ((ReferenceBinary) binary).getReference();
+                        } else {
+                            return null;
+                        }
+                    } finally {
+                        binary.dispose();
+                    }
+                } catch (RepositoryException e) {
+                    warn("Unable to get blob reference", e);
+                    return null;
                 }
             }
         };
