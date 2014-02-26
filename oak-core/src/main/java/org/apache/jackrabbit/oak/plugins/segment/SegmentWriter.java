@@ -669,18 +669,17 @@ public class SegmentWriter {
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
-        if (blob instanceof ExternalBlob) {
-            return writeBlob((ExternalBlob) blob);
-        } else if (store.isInstance(blob, SegmentBlob.class)) {
+        if (store.isInstance(blob, SegmentBlob.class)) {
             return (SegmentBlob) blob;
         } else {
-            return writeStream(blob.getNewStream());
+            String reference = blob.getReference();
+            if (reference != null) {
+                RecordId id = writeValueRecord(reference, blob.length());
+                return new SegmentBlob(dummySegment, id);
+            } else {
+                return writeStream(blob.getNewStream());
+            }
         }
-    }
-
-    private SegmentBlob writeBlob(ExternalBlob blob) {
-        RecordId id = writeValueRecord(blob.getReference(), blob.length());
-        return new SegmentBlob(dummySegment, id);
     }
 
     /**
@@ -692,17 +691,17 @@ public class SegmentWriter {
      * @throws IOException if the stream could not be read
      */
     public SegmentBlob writeStream(InputStream stream) throws IOException {
-        RecordId id = SegmentStream.getRecordIdIfAvailable(stream, store);
-        if (id == null) {
-            boolean threw = true;
-            try {
+        boolean threw = true;
+        try {
+            RecordId id = SegmentStream.getRecordIdIfAvailable(stream, store);
+            if (id == null) {
                 id = internalWriteStream(stream);
-                threw = false;
-            } finally {
-                Closeables.close(stream, threw);
             }
+            threw = false;
+            return new SegmentBlob(dummySegment, id);
+        } finally {
+            Closeables.close(stream, threw);
         }
-        return new SegmentBlob(dummySegment, id);
     }
 
     private RecordId internalWriteStream(InputStream stream)

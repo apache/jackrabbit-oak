@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import org.apache.jackrabbit.oak.plugins.segment.ExternalBlob;
+import org.apache.jackrabbit.oak.api.Blob;
 
 import javax.annotation.Nonnull;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class FileBlob implements ExternalBlob {
+public class FileBlob implements Blob {
 
     private final String path;
 
@@ -32,8 +33,9 @@ public class FileBlob implements ExternalBlob {
         this.path = path;
     }
 
+    @Override
     public String getReference() {
-        return path;
+        return path; // FIXME: should be a secure reference
     }
 
     @Nonnull
