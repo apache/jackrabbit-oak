@@ -162,30 +162,47 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        // TODO: use perform()
-        ensureIsAlive();
+        sessionDelegate.perform(new SessionOperation<Object>(true) {
 
-        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
-        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                ensureIsAlive();
+            }
 
-        // TODO
-        throw new UnsupportedRepositoryOperationException("Not implemented.");
+            @Override
+            public Object perform() throws RepositoryException {
+                sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+                sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
+                throw new UnsupportedRepositoryOperationException("Not implemented.");
+            }
+        });
     }
 
     @Override
-    public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
+    public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        // TODO: use perform()
-        ensureIsAlive();
+        sessionDelegate.perform(new SessionOperation<Object>(true) {
+            @Override
+            public void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                ensureIsAlive();
+            }
 
-        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
-        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
+            @Override
+            public Object perform() throws RepositoryException {
+                sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+                sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
-        SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
+                SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
-        sessionDelegate.move(srcOakPath, destOakPath, false);
+                sessionDelegate.move(srcOakPath, destOakPath, false);
+                return null;
+            }
+        });
+
     }
 
     @Override
@@ -239,8 +256,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public String[] getAccessibleWorkspaceNames() throws RepositoryException {
         ensureIsAlive();
-
-        // TODO -> SPI
+        // FIXME: adjust implementation once OAK-118 is being addressed.
         return new String[]{getName()};
     }
 
@@ -283,25 +299,19 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public void createWorkspace(String name) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO -> SPI
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
+        throw new UnsupportedRepositoryOperationException("OAK-118: Workspace.createWorkspace");
     }
 
     @Override
     public void createWorkspace(String name, String srcWorkspace) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO -> SPI
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
+        throw new UnsupportedRepositoryOperationException("OAK-118: Workspace.createWorkspace");
     }
 
     @Override
     public void deleteWorkspace(String name) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO -> SPI
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.deleteWorkspace");
+        throw new UnsupportedRepositoryOperationException("OAK-118: Workspace.deleteWorkspace");
     }
 
     //------------------------------------------------< JackrabbitWorkspace >---
@@ -309,9 +319,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     public void createWorkspace(String workspaceName, InputSource workspaceTemplate) throws RepositoryException {
         ensureIsAlive();
-
-        // TODO -> SPI
-        throw new UnsupportedRepositoryOperationException("TODO: Workspace.createWorkspace");
+        throw new UnsupportedRepositoryOperationException("OAK-118: Workspace.createWorkspace");
     }
 
     /**
