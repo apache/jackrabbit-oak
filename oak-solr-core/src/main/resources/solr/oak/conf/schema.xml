@@ -104,7 +104,7 @@
   </types>
   <fields>
     <field name="path_exact" type="string" indexed="true" stored="true"/>
-    <field name="path_child" type="children_path" indexed="true" stored="true"/>
+    <field name="path_child" type="children_path" indexed="true" stored="false"/>
     <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
     <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
     <field name="ignored" type="ignored" multiValued="true"/>
