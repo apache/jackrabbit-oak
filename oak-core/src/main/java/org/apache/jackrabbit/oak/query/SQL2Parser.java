@@ -513,6 +513,17 @@ public class SQL2Parser {
             } else {
                 c = factory.descendantNode(getOnlySelectorName(), name);
             }
+        } else if ("NATIVE".equalsIgnoreCase(functionName)) {
+            String selectorName;
+            if (currentTokenType == IDENTIFIER) {
+                selectorName = readName();
+                read(",");
+            } else {
+                selectorName = getOnlySelectorName();
+            }
+            String language = readString().getValue(Type.STRING);
+            read(",");
+            c = factory.nativeFunction(selectorName, language, parseStaticOperand());
         } else {
             return null;
         }

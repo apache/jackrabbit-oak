@@ -325,6 +325,40 @@ abstract class Expression {
         }
     
     }    
+    
+    /**
+     * A native call.
+     */
+    static class NativeFunction extends Expression {
+        
+        final String selector;
+        final Expression language, expression;
+    
+        NativeFunction(String selector, Expression language, Expression expression) {
+            this.selector = selector;
+            this.language = language;
+            this.expression = expression;
+        }
+    
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("native(");
+            buff.append(selector);
+            buff.append(", ").append(language).append(", ").append(expression).append(')');
+            return buff.toString();
+        }
+    
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+        
+        @Override
+        boolean isName() {
+            return false;
+        }
+    
+    }    
 
     /**
      * A function call.

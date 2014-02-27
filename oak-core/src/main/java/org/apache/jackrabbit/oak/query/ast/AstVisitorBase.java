@@ -63,6 +63,14 @@ public abstract class AstVisitorBase implements AstVisitor {
         node.getFullTextSearchExpression().accept(this);
         return true;
     }
+    
+    /**
+     * Calls accept on the static operand in the native search constraint.
+     */
+    @Override
+    public boolean visit(NativeFunctionImpl node) {
+        return true;
+    }
 
     /**
      * Calls accept on the two sources and the join condition in the join node.

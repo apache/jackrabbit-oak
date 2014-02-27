@@ -148,4 +148,8 @@ public class AstElementFactory {
         return new InImpl(left, list);
     }
 
+    public NativeFunctionImpl nativeFunction(String selectorName, String language, StaticOperandImpl expression) {
+        return new NativeFunctionImpl(selectorName, language, expression);
+    }
+
 }

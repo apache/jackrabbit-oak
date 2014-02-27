@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.query.ast.JoinType;
 import org.apache.jackrabbit.oak.query.ast.LengthImpl;
 import org.apache.jackrabbit.oak.query.ast.LiteralImpl;
 import org.apache.jackrabbit.oak.query.ast.LowerCaseImpl;
+import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeLocalNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeNameImpl;
 import org.apache.jackrabbit.oak.query.ast.NotImpl;
@@ -188,6 +189,13 @@ public class QueryImpl implements Query {
 
             @Override
             public boolean visit(FullTextSearchImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return super.visit(node);
+            }
+
+            @Override
+            public boolean visit(NativeFunctionImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return super.visit(node);
