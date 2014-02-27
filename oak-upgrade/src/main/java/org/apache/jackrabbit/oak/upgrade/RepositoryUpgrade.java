@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
@@ -68,8 +67,6 @@ import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSet;
 
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -139,6 +136,8 @@ public class RepositoryUpgrade {
      */
     private final NodeStore target;
 
+    private boolean copyBinariesByReference = false;
+
     /**
      * Copies the contents of the repository in the given source directory
      * to the given target node store.
@@ -181,6 +180,14 @@ public class RepositoryUpgrade {
     public RepositoryUpgrade(RepositoryContext source, NodeStore target) {
         this.source = source;
         this.target = target;
+    }
+
+    public boolean isCopyBinariesByReference() {
+        return copyBinariesByReference;
+    }
+
+    public void setCopyBinariesByReference(boolean copyBinariesByReference) {
+        this.copyBinariesByReference = copyBinariesByReference;
     }
 
     /**
@@ -531,9 +538,9 @@ public class RepositoryUpgrade {
 
         NodeBuilder system = root.child(JCR_SYSTEM);
         system.setChildNode(JCR_VERSIONSTORAGE, new JackrabbitNodeState(
-                pm, nr, VERSION_STORAGE_NODE_ID));
+                pm, nr, VERSION_STORAGE_NODE_ID, copyBinariesByReference));
         system.setChildNode("jcr:activities", new JackrabbitNodeState(
-                pm, nr, ACTIVITIES_NODE_ID));
+                pm, nr, ACTIVITIES_NODE_ID, copyBinariesByReference));
     }   
 
     private void copyWorkspaces(
@@ -549,7 +556,8 @@ public class RepositoryUpgrade {
                 source.getWorkspaceInfo(name).getPersistenceManager();
         NamespaceRegistryImpl nr = source.getNamespaceRegistry();
 
-        NodeState state = new JackrabbitNodeState(pm, nr, ROOT_NODE_ID);
+        NodeState state = new JackrabbitNodeState(
+                pm, nr, ROOT_NODE_ID, copyBinariesByReference);
         for (PropertyState property : state.getProperties()) {
             root.setProperty(property);
         }
