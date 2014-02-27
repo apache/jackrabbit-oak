@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Dictionary;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
@@ -49,6 +52,11 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
     @Override
     public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
         return new PrivilegeManagerImpl(root, namePathMapper);
+    }
+
+    @Activate
+    private void activate(Dictionary<String, Object> properties) {
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     //----------------------------------------------< SecurityConfiguration >---

@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.Dictionary;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -33,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -52,7 +55,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     }
 
     public UserConfigurationImpl(SecurityProvider securityProvider) {
-        super(securityProvider);
+        super(securityProvider, securityProvider.getParameters(NAME));
+    }
+
+    @Activate
+    private void activate(Dictionary<String, Object> properties) {
+        setParameters(ConfigurationParameters.of(properties));
     }
 
     //----------------------------------------------< SecurityConfiguration >---
