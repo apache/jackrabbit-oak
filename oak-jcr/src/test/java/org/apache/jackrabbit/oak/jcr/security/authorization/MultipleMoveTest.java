@@ -115,7 +115,7 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-710")
+    @Ignore("Known Limitation of OAK-710")
     @Test
     public void testMoveSubTreeBack4() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
@@ -148,7 +148,7 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-710")
+    @Ignore("Known Limitation of OAK-710")
     @Test
     public void testMoveDestParent2() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
@@ -181,7 +181,7 @@ public class MultipleMoveTest extends AbstractEvaluationTest {
         }
     }
 
-    @Ignore("OAK-710")
+    @Ignore("Known Limitation of OAK-710")
     @Test
     public void testMoveDestParent4() throws Exception {
         allow(testRootNode.getPath(), privilegesFromNames(new String[]{
