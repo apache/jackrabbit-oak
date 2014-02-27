@@ -606,6 +606,14 @@ public class XPathToSQL2Converter {
         } else if ("jcr:deref".equals(functionName)) {
              // TODO maybe support jcr:deref
              throw getSyntaxError("jcr:deref is not supported");
+        } else if ("rep:native".equals(functionName)) {
+            String selectorName = currentSelector.name;
+            Expression language = parseExpression();
+            read(",");
+            Expression expr = parseExpression();
+            read(")");
+            Expression.NativeFunction f = new Expression.NativeFunction(selectorName, language, expr);
+            return f;
         } else if ("rep:similar".equals(functionName)) {
              // TODO maybe support rep:similar
              throw getSyntaxError("rep:similar is not supported");
