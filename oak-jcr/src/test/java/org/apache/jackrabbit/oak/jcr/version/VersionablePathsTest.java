@@ -23,9 +23,6 @@ import javax.jcr.version.VersionManager;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
-/**
- * VersionablePathsTest... TODO
- */
 public class VersionablePathsTest extends AbstractJCRTest {
 
     private VersionManager getVersionManager() throws RepositoryException {

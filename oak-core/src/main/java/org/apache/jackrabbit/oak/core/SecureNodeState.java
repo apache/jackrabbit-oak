@@ -35,12 +35,6 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.emptyList;
 
-/**
- * SecureNodeState...
- *
- * TODO: clarify if HIDDEN items should be filtered by this NodeState implementation
- * TODO: clarify usage of ReadStatus in getChildNodeEntries
- */
 class SecureNodeState extends AbstractNodeState {
 
     /**
@@ -147,7 +141,7 @@ class SecureNodeState extends AbstractNodeState {
         if (treePermission.canReadAll()) {
             // everything is readable including ac-content -> no secure wrapper needed
             return state.getChildNodeEntries();
-        } else if (treePermission.canRead()) {// TODO: check DENY_CHILDREN?
+        } else if (treePermission.canRead()) {
             Iterable<ChildNodeEntry> readable = transform(
                     state.getChildNodeEntries(),
                     new WrapChildEntryFunction());
