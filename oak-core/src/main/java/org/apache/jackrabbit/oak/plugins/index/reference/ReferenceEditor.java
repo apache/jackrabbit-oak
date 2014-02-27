@@ -106,6 +106,8 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
      */
     private final Set<String> discardedIds;
 
+    private final Set<String> versionStoreIds;
+
     /**
      * set of ids that were added during this commit. we need it to reconcile
      * moves
@@ -126,6 +128,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.rmWeakRefs = newHashMap();
         this.rmIds = newHashSet();
         this.discardedIds = newHashSet();
+        this.versionStoreIds = newHashSet();
         this.newIds = newHashSet();
     }
 
@@ -142,6 +145,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         this.rmWeakRefs = parent.rmWeakRefs;
         this.rmIds = parent.rmIds;
         this.discardedIds = parent.discardedIds;
+        this.versionStoreIds = parent.versionStoreIds;
         this.newIds = parent.newIds;
     }
 
@@ -172,6 +176,10 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
                         "Unable to delete referenced node");
             }
             rmIds.addAll(discardedIds);
+
+            // remove ids that are actually deleted (that exist in the rmRefs.keySet())
+            versionStoreIds.removeAll(rmRefs.keySet());
+            rmIds.addAll(versionStoreIds);
 
             // update references
             for (Entry<String, Set<String>> ref : rmRefs.entrySet()) {
@@ -232,7 +240,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         if (before != null) {
             if (before.getType().tag() == REFERENCE) {
                 if (isVersionStorePath(getPath())) {
-                    addAll(discardedIds, before.getValue(STRINGS));
+                    addAll(versionStoreIds, before.getValue(STRINGS));
                 } else {
                     put(rmRefs, before.getValue(STRINGS),
                             concat(getPath(), before.getName()));
@@ -253,7 +261,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         if (after != null) {
             if (after.getType().tag() == REFERENCE) {
                 if (isVersionStorePath(getPath())) {
-                    addAll(discardedIds, after.getValue(STRINGS));
+                    addAll(versionStoreIds, after.getValue(STRINGS));
                 } else {
                     put(newRefs, after.getValue(STRINGS),
                             concat(getPath(), after.getName()));
