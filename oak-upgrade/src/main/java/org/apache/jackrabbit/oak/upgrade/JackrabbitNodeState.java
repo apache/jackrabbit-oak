@@ -73,16 +73,20 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final NodeState state;
 
+    private final boolean useBinaryReferences;
+
     private JackrabbitNodeState(
             PersistenceManager source, NamespaceRegistry registry,
-            NodeState state) {
+            NodeState state, boolean useBinaryReferences) {
         this.source = source;
         this.registry = registry;
         this.state = state;
+        this.useBinaryReferences = useBinaryReferences;
     }
 
     JackrabbitNodeState(
-            PersistenceManager source, NamespaceRegistry registry, NodeId id) {
+            PersistenceManager source, NamespaceRegistry registry,
+            NodeId id, boolean useBinaryReferences) {
         this.source = source;
         this.registry = registry;
         try {
@@ -90,6 +94,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
+        this.useBinaryReferences = useBinaryReferences;
     }
 
     //---------------------------------------------------------< NodeState >--
@@ -154,8 +159,9 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
 
             try {
+                NodeState childState = source.load(entry.getId());
                 JackrabbitNodeState child = new JackrabbitNodeState(
-                        source, registry, source.load(entry.getId()));
+                        source, registry, childState, useBinaryReferences);
                 entries.add(new MemoryChildNodeEntry(name, child));
             } catch (ItemStateException e) {
                 warn("Unable to access child entry " + name, e);
@@ -320,6 +326,9 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
             @Override
             public String getReference() {
+                if (!useBinaryReferences) {
+                    return null;
+                }
                 try {
                     Binary binary = value.getBinary();
                     try {
