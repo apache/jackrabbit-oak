@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
-
 import javax.annotation.CheckForNull;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -43,14 +41,16 @@ import org.slf4j.LoggerFactory;
  */
 public class SolrQueryIndex implements FulltextQueryIndex {
 
-    public static final String NATIVE_SOLR_QUERY = "native*solr";
-    private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
+    private static final String NATIVE_SOLR_QUERY = "native*solr";
+
     public static final String TYPE = "solr";
+
+    private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
 
     private final String name;
     private final SolrServer solrServer;
     private final OakSolrConfiguration configuration;
-    
+
     private final NodeAggregator aggregator;
 
     public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
@@ -101,27 +101,31 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
         StringBuilder queryBuilder = new StringBuilder();
 
-        for (String pt : filter.getPrimaryTypes()) {
-            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt));
-        }
-
-        Filter.PathRestriction pathRestriction = filter.getPathRestriction();
-        if (pathRestriction != null) {
-            String path = purgePath(filter);
-            String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
-            if (fieldName != null) {
-                queryBuilder.append(fieldName);
-                queryBuilder.append(':');
-                queryBuilder.append(path);
-                queryBuilder.append(" ");
-            }
-        }
         Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
                 // native query support
                 if (NATIVE_SOLR_QUERY.equals(pr.propertyName)) {
-                    queryBuilder.append(String.valueOf(pr.first.getValue(pr.first.getType())));
+                    String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
+                    if (isHttpRequest(nativeQueryString)) {
+                        // pass through the native HTTP Solr request
+                        String requestHandlerString = nativeQueryString.substring(0, nativeQueryString.indexOf('?'));
+                        if (!"select".equals(requestHandlerString)) {
+                            solrQuery.setRequestHandler(requestHandlerString);
+                        }
+                        String parameterString = nativeQueryString.substring(nativeQueryString.indexOf('?') + 1);
+                        for (String param : parameterString.split("&")) {
+                            String[] kv = param.split("=");
+                            if (kv.length != 2) {
+                                throw new RuntimeException("Unparsable native HTTP Solr query");
+                            } else {
+                                solrQuery.setParam(kv[0], kv[1]);
+                            }
+                        }
+                        return solrQuery; // every other restriction is not considered
+                    } else {
+                        queryBuilder.append(nativeQueryString);
+                    }
                 } else {
                     if (pr.propertyName.contains("/")) {
                         // cannot handle child-level property restrictions
@@ -164,6 +168,23 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
         }
 
+        for (String pt : filter.getPrimaryTypes()) {
+            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt));
+        }
+
+
+        Filter.PathRestriction pathRestriction = filter.getPathRestriction();
+        if (pathRestriction != null) {
+            String path = purgePath(filter);
+            String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
+            if (fieldName != null) {
+                queryBuilder.append(fieldName);
+                queryBuilder.append(':');
+                queryBuilder.append(path);
+                queryBuilder.append(" ");
+            }
+        }
+
         Collection<String> fulltextConditions = filter.getFulltextConditions();
         for (String fulltextCondition : fulltextConditions) {
             queryBuilder.append(fulltextCondition).append(" ");
@@ -180,6 +201,10 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         }
 
         return solrQuery;
+    }
+
+    private boolean isHttpRequest(String nativeQueryString) {
+        return nativeQueryString.matches("\\w+\\?.*"); // the query string starts with ${handler.selector}?
     }
 
     private void setDefaults(SolrQuery solrQuery) {
@@ -289,5 +314,5 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     public NodeAggregator getNodeAggregator() {
         return aggregator;
     }
-    
+
 }
