@@ -109,6 +109,10 @@
                 org.apache.lucene.*;version=${lucene.version};-split-package:=merge-first,
                 org.tartarus.snowball.*;version=${lucene.version};-split-package:=merge-first
             </_exportcontents>
+            <Import-Package>
+                org.apache.lucene.sandbox.*;resolution:=optional,
+                *
+            </Import-Package>
             <Embed-Dependency>lucene-*;inline=true</Embed-Dependency>
           </instructions>
         </configuration>
@@ -187,6 +191,12 @@
       <version>${lucene.version}</version>
       <scope>provided</scope>
     </dependency>    
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-queries</artifactId>
+      <version>${lucene.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Logging -->
     <dependency>
