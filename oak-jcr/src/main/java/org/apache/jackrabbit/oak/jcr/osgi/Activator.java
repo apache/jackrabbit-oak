@@ -69,7 +69,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private final WhiteboardExecutor executor = new WhiteboardExecutor();
 
-    // TODO should not be hardcoded
+    // FIXME OAK-1476 : SecurityProvider implementation should not be hardcoded
     private final SecurityProvider securityProvider =
             new SecurityProviderImpl(buildSecurityConfig());
 
