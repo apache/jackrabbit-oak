@@ -35,6 +35,12 @@ select [jcr:path] from [nt:base]
 /test/a
 /test/b
 
+# same as above but streamlined via direct http call to the request handler
+select [jcr:path] from [nt:base]
+  where native('solr', 'select?q=Hello OR World')
+/test/a
+/test/b
+
 select [jcr:path] from [nt:base] as a
   where native(a, 'solr', 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
 /test/a
