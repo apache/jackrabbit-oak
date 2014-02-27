@@ -155,8 +155,33 @@ Observation
   See [OAK-1290](https://issues.apache.org/jira/browse/OAK-1290) and
   [JSR_333-74](https://java.net/jira/browse/JSR_333-74) for further information.
 
-* See [OAK-1459](https://issues.apache.org/jira/browse/OAK-1459) for a comparison
-  of events being generated on Jackrabbit 2 vs. on Oak.
+* See [OAK-1459](https://issues.apache.org/jira/browse/OAK-1459) introduced some differences
+  in what events are dispatch for bulk operations (moving and deleting sub-trees):
+
+<table>
+<tr>
+<th>Operation</th>
+<th>Jackrabbit 2</th>
+<th>Oak</th>
+</tr>
+<tr>
+<td>add sub-tree</td>
+<td>NODE_ADDED event for every node in the sub-tree</td>
+<td>NODE_ADDED event for every node in the sub-tree</td>
+</tr>
+<tr>
+<td>remove sub-tree</td>
+<td>NODE_REMOVED event for every node in the sub-tree</td>
+<td>NODE_REMOVED event for the root of the sub-tree only</td>
+</tr>
+<tr>
+<td>move sub-tree</td>
+<td>NODE_MOVED event, NODE_ADDED event for the root of the sub-tree only,
+    NODE_REMOVED event for every node in the sub-tree</td>
+<td>NODE_MOVED event, NODE_ADDED event for the root of the sub-tree only,
+    NODE_REMOVED event for the root of the sub-tree only</td>
+</tr>
+</table>
 
 Binary streams
 --------------
