@@ -43,7 +43,7 @@ class GroupEditor extends DefaultEditor {
      */
     private static final Logger log = LoggerFactory.getLogger(GroupEditor.class);
 
-    // todo: /home/groups/* subtree might be configured differently
+    // todo: OAK-1480 wrong default. must be retrieved from configuration.
     private final static String[] ROOTS = {"home", "groups"};
 
     private State state;
