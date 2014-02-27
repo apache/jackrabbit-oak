@@ -95,9 +95,9 @@
       org.apache.jackrabbit.test.api.version.MergeSubNodeTest
 
       <!-- Permission Evaluation -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveSubTreeBack4     <!-- OAK-710 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent2      <!-- OAK-710 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent4      <!-- OAK-710 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveSubTreeBack4     <!-- Known Limitation of OAK-710 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent2      <!-- Known Limitation of OAK-710 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.MultipleMoveTest#testMoveDestParent4      <!-- Known Limitation of OAK-710 -->
 
       <!-- Query -->
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
