@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -210,31 +211,36 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     }
 
     protected void bindAuthorizationConfiguration(@Nonnull ServiceReference reference) {
-        // also add authorization config specific default parameters for OSGi environments
-        // todo: the config class should track the 'restrictionProvider' itself.
+        // also initialize authorization config specific default parameters or OSGi environments
         Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
         );
-        authorizationConfiguration =
-                (AuthorizationConfiguration) initConfiguration(reference, ConfigurationParameters.of(authorizMap));
+        Map<String, Object> newConfig = new HashMap<String, Object>(configuration);
+        newConfig.put(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap));
+        configuration = ConfigurationParameters.of(newConfig);
+
+        authorizationConfiguration = (AuthorizationConfiguration) initConfiguration(reference);
     }
 
     protected void bindAuthenticationConfiguration(@Nonnull ServiceReference reference) {
-        authenticationConfiguration =
-                (AuthenticationConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY);
+        authenticationConfiguration = (AuthenticationConfiguration) initConfiguration(reference);
     }
 
     protected void bindUserConfiguration(@Nonnull ServiceReference reference) {
-        // also initialize user config specific default parameters for OSGi environments
-        // todo: the config class should track the 'providers' itself.
+        // also initialize user config specific default parameters or OSGi environments
         Map<String, Object> userMap = ImmutableMap.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
                 UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName);
-        userConfiguration = (UserConfiguration) initConfiguration(reference, ConfigurationParameters.of(userMap));
+
+        Map<String, Object> newConfig = new HashMap<String, Object>(configuration);
+        newConfig.put(UserConfiguration.NAME, ConfigurationParameters.of(userMap));
+        configuration = ConfigurationParameters.of(newConfig);
+
+        userConfiguration = (UserConfiguration) initConfiguration(reference);
     }
 
     protected void bindPrivilegeConfiguration(@Nonnull ServiceReference reference) {
-        privilegeConfiguration = (PrivilegeConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY);
+        privilegeConfiguration = (PrivilegeConfiguration) initConfiguration(reference);
     }
 
     protected void bindPrincipalConfiguration(@Nonnull ServiceReference reference) {
@@ -243,7 +249,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             principalConfiguration = new CompositePrincipalConfiguration(this);
         }
         ((CompositePrincipalConfiguration) principalConfiguration).addConfiguration(
-                (PrincipalConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY));
+                (PrincipalConfiguration) initConfiguration(reference));
     }
 
     protected void unbindPrincipalConfiguration(@Nonnull ServiceReference reference) {
@@ -261,7 +267,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             tokenConfiguration = new CompositeTokenConfiguration(this);
         }
         ((CompositeTokenConfiguration) tokenConfiguration).addConfiguration(
-                (TokenConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY));
+                (TokenConfiguration) initConfiguration(reference));
     }
 
     protected void unbindTokenConfiguration(@Nonnull ServiceReference reference) {
@@ -280,12 +286,10 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         }
     }
 
-    private Object initConfiguration(@Nonnull ServiceReference reference, @Nonnull ConfigurationParameters params) {
+    private Object initConfiguration(@Nonnull ServiceReference reference) {
         Object service = reference.getBundle().getBundleContext().getService(reference);
         if (service instanceof ConfigurationBase) {
-            ConfigurationBase cfg = (ConfigurationBase) service;
-            cfg.setSecurityProvider(this);
-            cfg.setParameters(ConfigurationParameters.of(params, cfg.getParameters()));
+            ((ConfigurationBase) service).setSecurityProvider(this);
         }
         return service;
     }

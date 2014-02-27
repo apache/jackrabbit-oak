@@ -18,27 +18,25 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.osgi.service.component.ComponentContext;
+
 /**
  * Abstract base implementation for the various security configurations.
  */
+@Component(componentAbstract = true)
 public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
     private SecurityProvider securityProvider;
-
     private ConfigurationParameters config = ConfigurationParameters.EMPTY;
 
-    /**
-     * osgi constructor
-     */
     public ConfigurationBase() {
     }
 
-    /**
-     * non-osgi constructor
-     */
-    public ConfigurationBase(@Nonnull SecurityProvider securityProvider, @Nonnull ConfigurationParameters config) {
+    public ConfigurationBase(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        this.config = config;
+        this.config = securityProvider.getParameters(getName());
     }
 
     @Nonnull
@@ -51,10 +49,7 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
 
     public void setSecurityProvider(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-    }
-
-    public void setParameters(@Nonnull ConfigurationParameters config) {
-        this.config = config;
+        config = ConfigurationParameters.of(securityProvider.getParameters(getName()), config);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -64,4 +59,9 @@ public abstract class ConfigurationBase extends SecurityConfiguration.Default {
         return config;
     }
 
+    //----------------------------------------------------< SCR Integration >---
+    @Activate
+    protected void activate(ComponentContext context) {
+        config = ConfigurationParameters.of(context.getProperties());
+    }
 }
