@@ -16,18 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.util.Dictionary;
-
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -47,14 +43,8 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
     }
 
     public PrincipalConfigurationImpl(SecurityProvider securityProvider) {
-        super(securityProvider, securityProvider.getParameters(NAME));
+        super(securityProvider);
     }
-
-    @Activate
-    private void activate(Dictionary<String, Object> properties) {
-        setParameters(ConfigurationParameters.of(properties));
-    }
-
 
     //---------------------------------------------< PrincipalConfiguration >---
     @Nonnull

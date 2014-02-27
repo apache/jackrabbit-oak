@@ -18,14 +18,12 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.Dictionary;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
-import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
@@ -45,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -70,14 +67,8 @@ public class AuthorizationConfigurationImpl extends ConfigurationBase implements
         super();
     }
 
-    @Activate
-    private void activate(Dictionary<String, Object> properties) {
-        setParameters(ConfigurationParameters.of(properties));
-    }
-
-
     public AuthorizationConfigurationImpl(SecurityProvider securityProvider) {
-        super(securityProvider, securityProvider.getParameters(NAME));
+        super(securityProvider);
     }
 
     //----------------------------------------------< SecurityConfiguration >---

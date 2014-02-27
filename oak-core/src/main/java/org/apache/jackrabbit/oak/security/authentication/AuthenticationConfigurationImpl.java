@@ -16,17 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.util.Dictionary;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
-import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
@@ -62,17 +58,12 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         super();
     }
 
-    @Activate
-    private void activate(Dictionary<String, Object> properties) {
-        setParameters(ConfigurationParameters.of(properties));
-    }
-
     /**
      * Constructor for non-OSGi
      * @param securityProvider
      */
     public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
-        super(securityProvider, securityProvider.getParameters(NAME));
+        super(securityProvider);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
