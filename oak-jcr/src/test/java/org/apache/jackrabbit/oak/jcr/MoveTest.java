@@ -25,9 +25,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Test;
 
-/**
- * MoveTest... TODO
- */
 public class MoveTest extends AbstractJCRTest {
 
     private void move(String src, String dest, boolean save) throws Exception {
