@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
@@ -26,9 +26,10 @@ import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Default implementation of the {@link AuthorizableActionProvider} interface
@@ -83,7 +84,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
 
     //----------------------------------------------------< SCR Integration >---
     @Activate
-    protected void activate(ComponentContext context) {
-        config = ConfigurationParameters.of(context.getProperties());
+    private void activate(Map<String, Object> properties) {
+        config = ConfigurationParameters.of(properties);
     }
 }

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.util.Dictionary;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -51,7 +51,7 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
     }
 
     @Activate
-    private void activate(Dictionary<String, Object> properties) {
+    private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 

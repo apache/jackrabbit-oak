@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import java.util.Dictionary;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -48,7 +48,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     }
 
     @Activate
-    private void activate(Dictionary<String, Object> properties) {
+    private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 
