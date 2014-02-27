@@ -18,9 +18,19 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static javax.jcr.observation.Event.NODE_ADDED;
+import static javax.jcr.observation.Event.NODE_MOVED;
+import static javax.jcr.observation.Event.NODE_REMOVED;
+import static javax.jcr.observation.Event.PERSIST;
+import static javax.jcr.observation.Event.PROPERTY_ADDED;
+import static javax.jcr.observation.Event.PROPERTY_CHANGED;
+import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -42,16 +52,8 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import static javax.jcr.observation.Event.NODE_ADDED;
-import static javax.jcr.observation.Event.NODE_MOVED;
-import static javax.jcr.observation.Event.NODE_REMOVED;
-import static javax.jcr.observation.Event.PERSIST;
-import static javax.jcr.observation.Event.PROPERTY_ADDED;
-import static javax.jcr.observation.Event.PROPERTY_CHANGED;
-import static javax.jcr.observation.Event.PROPERTY_REMOVED;
-import static org.junit.Assert.assertEquals;
 
 public class ObservationRefreshTest extends AbstractRepositoryTest {
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
@@ -99,6 +101,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-1267")  // FIXME OAK-1267
     public void observation() throws RepositoryException, InterruptedException, ExecutionException {
         final MyListener listener = new MyListener();
         observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
