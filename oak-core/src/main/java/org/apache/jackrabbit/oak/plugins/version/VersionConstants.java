@@ -68,6 +68,11 @@ public interface VersionConstants extends JcrConstants {
     String REP_REMOVE_VERSION_LABELS = "rep:removeVersionLabels";
 
     /**
+     * Version operation property name to remove version(s).
+     */
+    String REP_REMOVE_VERSION = "rep:removeVersion";
+
+    /**
      * Prefix of the jcr:baseVersion value for a restore.
      */
     String RESTORE_PREFIX = "restore-";

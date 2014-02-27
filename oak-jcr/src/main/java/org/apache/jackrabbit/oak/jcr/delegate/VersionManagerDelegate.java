@@ -16,17 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -41,6 +30,17 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 import org.apache.jackrabbit.oak.jcr.version.VersionStorage;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.RESTORE_PREFIX;
 
 /**
  * {@code VersionManagerDelegate}...
@@ -205,6 +205,24 @@ public class VersionManagerDelegate {
                 checkNotNull(versionHistory).getPath());
         versionManager.removeVersionLabel(storage, vhRelPath,
                 checkNotNull(oakVersionLabel));
+    }
+
+    /**
+     * Removes a version from the given history.
+     *
+     * @param versionHistory the version history delegate.
+     * @param oakVersionName the version name
+     * @throws RepositoryException if an error occurs.
+     */
+    public void removeVersion(@Nonnull VersionHistoryDelegate versionHistory,
+                              @Nonnull String oakVersionName) throws RepositoryException {
+        // perform operation on fresh storage to not interfere
+        // with pending changes in the workspace.
+        Root fresh = sessionDelegate.getContentSession().getLatestRoot();
+        VersionStorage storage = new VersionStorage(fresh);
+        String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
+                checkNotNull(versionHistory).getPath());
+        versionManager.removeVersion(storage, vhRelPath, oakVersionName);
     }
 
     //----------------------------< internal >----------------------------------

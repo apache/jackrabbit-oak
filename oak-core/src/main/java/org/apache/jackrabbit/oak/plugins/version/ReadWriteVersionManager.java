@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -39,10 +41,12 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -159,6 +163,52 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                     uuidFromNode(node), versionable);
         }
         return node;
+    }
+
+    void removeVersion(String versionRelPath) throws CommitFailedException {
+        String historyRelPath = PathUtils.getAncestorPath(versionRelPath, 1);
+        String versionName = Text.getName(versionRelPath);
+
+        NodeBuilder vh = resolve(versionStorageNode, historyRelPath);
+
+        if (JCR_ROOTVERSION.equals(versionName)) {
+            String msg = "Removal of root version not allowed.";
+            throw new CommitFailedException(CommitFailedException.VERSION, VersionExceptionCode.ROOT_VERSION_REMOVAL.ordinal(), msg);
+        }
+
+        NodeBuilder versionNode = vh.getChildNode(versionName);
+        String versionId = versionNode.getProperty(JCR_UUID).getValue(Type.STRING);
+        // unregister from labels
+        for (String label : getVersionLabels(versionRelPath, versionId)) {
+            removeVersionLabel(historyRelPath, label);
+        }
+        // reconnected predecessors and successors of the version being removed
+        PropertyState successorIds = versionNode.getProperty(JCR_SUCCESSORS);
+        PropertyState predecessorIds = versionNode.getProperty(JCR_PREDECESSORS);
+
+        for (String succId :  successorIds.getValue(Type.REFERENCES)) {
+            NodeBuilder successor = getVersionById(vh, succId);
+
+            PropertyBuilder pb = new PropertyBuilder(Type.REFERENCE).setArray();
+            pb.setName(JCR_PREDECESSORS).setValues(successor.getProperty(JCR_PREDECESSORS).getValue(Type.REFERENCES));
+
+            pb.removeValue(versionId);
+            pb.setValues(predecessorIds.getValue(Type.REFERENCES));
+
+            successor.setProperty(pb.getPropertyState());
+        }
+
+        for (String predId :  predecessorIds.getValue(Type.REFERENCES)) {
+            NodeBuilder predecessor = getVersionById(vh, predId);
+            PropertyBuilder pb = new PropertyBuilder(Type.REFERENCE).setArray();
+            pb.setName(JCR_SUCCESSORS).setValues(predecessor.getProperty(JCR_SUCCESSORS).getValue(Type.REFERENCES));
+
+            pb.removeValue(versionId);
+            pb.setValues(successorIds.getValue(Type.REFERENCES));
+
+            predecessor.setProperty(pb.getPropertyState());
+        }
+        versionNode.remove();
     }
 
     public void checkout(NodeBuilder versionable) {
@@ -516,4 +566,29 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         return history.child(JCR_VERSIONLABELS);
     }
 
+    @Nonnull
+    private Iterable<String> getVersionLabels(@Nonnull String historyRelPath, @Nonnull String versionId) throws CommitFailedException {
+        List<String> labels = new ArrayList<String>();
+        NodeBuilder labelNode = getVersionLabelsFor(historyRelPath);
+        for (PropertyState ps : labelNode.getProperties()) {
+            if (Type.REFERENCE == ps.getType()) {
+                if (versionId.equals(ps.getValue(Type.REFERENCE))) {
+                    labels.add(ps.getName());
+                }
+            }
+        }
+        return labels;
+    }
+
+    @CheckForNull
+    private NodeBuilder getVersionById(@Nonnull NodeBuilder vhBuilder, @Nonnull String versionId) {
+        for (String childName : vhBuilder.getChildNodeNames()) {
+            NodeBuilder nb = vhBuilder.getChildNode(childName);
+            PropertyState uuid = nb.getProperty(JCR_UUID);
+            if (uuid != null && versionId.equals(uuid.getValue(Type.STRING))) {
+                return nb;
+            }
+        }
+        return null;
+    }
 }

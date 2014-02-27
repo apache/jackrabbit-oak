@@ -30,7 +30,8 @@ public enum VersionExceptionCode {
     OPV_ABORT_ITEM_PRESENT("Item with OPV ABORT action present"),
     NO_VERSION_TO_RESTORE("No suitable version to restore"),
     LABEL_EXISTS("Version label already exists"),
-    NO_SUCH_VERSION_LABEL("No such version label");
+    NO_SUCH_VERSION_LABEL("No such version label"),
+    ROOT_VERSION_REMOVAL("Attempt to remove root version");
 
     private final String desc;
 

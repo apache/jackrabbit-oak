@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -26,21 +23,22 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.LabelExistsVersionException;
 import javax.jcr.version.VersionException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 
 /**
  * {@code VersionHistoryDelegate}...
@@ -180,6 +178,11 @@ public class VersionHistoryDelegate extends NodeDelegate {
             throws VersionException, RepositoryException {
         VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
         vMgr.removeVersionLabel(this, oakVersionLabel);
+    }
+
+    public void removeVersion(@Nonnull String oakVersionName) throws RepositoryException {
+        VersionManagerDelegate vMgr = VersionManagerDelegate.create(sessionDelegate);
+        vMgr.removeVersion(this, oakVersionName);
     }
 
     //-----------------------------< internal >---------------------------------

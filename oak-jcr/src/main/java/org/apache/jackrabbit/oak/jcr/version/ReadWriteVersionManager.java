@@ -46,6 +46,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION_LABELS;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -226,6 +227,29 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 JCR_VERSIONLABELS, oakVersionLabel, "dummy");
         versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
                 Collections.singleton(labelPath), Type.PATHS);
+        try {
+            sessionDelegate.commit(versionStorage.getRoot());
+            refresh();
+        } catch (CommitFailedException e) {
+            versionStorage.refresh();
+            throw e.asRepositoryException();
+        }
+    }
+
+    public void removeVersion(@Nonnull VersionStorage versionStorage,
+                              @Nonnull String versionHistoryOakRelPath,
+                              @Nonnull String oakVersionName)
+            throws RepositoryException {
+        Tree versionHistory = TreeUtil.getTree(versionStorage.getTree(), versionHistoryOakRelPath);
+        if (!versionHistory.exists()) {
+            throw new VersionException("Version history " + versionHistoryOakRelPath + " does not exist on this version storage");
+        }
+        Tree version = versionHistory.getChild(oakVersionName);
+        if (!version.exists()) {
+            throw new VersionException("Version " + oakVersionName + " does not exist on this version history");
+        }
+        String versionPath = PathUtils.concat(versionHistoryOakRelPath, oakVersionName);
+        versionStorage.getTree().setProperty(REP_REMOVE_VERSION, Collections.singleton(versionPath), Type.PATHS);
         try {
             sessionDelegate.commit(versionStorage.getRoot());
             refresh();

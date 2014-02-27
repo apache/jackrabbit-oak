@@ -116,7 +116,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -127,6 +126,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Node testNode = trn.getNode(n.getName());
         Version v = testNode.checkin();
         testNode.checkout();
+        testNode.checkin();
 
         // removing a version must be allowed
         testNode.getVersionHistory().removeVersion(v.getName());
@@ -135,7 +135,6 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion2() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -146,6 +145,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Node testNode = trn.getNode(n.getName());
         Version v = testNode.checkin();
         testNode.checkout();
+        testNode.checkin();
 
         // remove ability to edit version information
         // -> VersionHistory.removeVersion must not be allowed.
@@ -161,12 +161,12 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
-    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion3() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
         Version v = n.checkin();
         n.checkout();
+        n.checkin();
 
         testSession.refresh(false);
         assertFalse(testAcMgr.hasPrivileges(n.getPath(), versionPrivileges));
