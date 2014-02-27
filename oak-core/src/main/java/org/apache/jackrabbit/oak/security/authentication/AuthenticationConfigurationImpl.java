@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.util.Dictionary;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
@@ -63,7 +63,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     }
 
     @Activate
-    private void activate(Dictionary<String, Object> properties) {
+    private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 

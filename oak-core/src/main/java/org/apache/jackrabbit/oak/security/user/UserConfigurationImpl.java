@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.Dictionary;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -59,7 +59,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     }
 
     @Activate
-    private void activate(Dictionary<String, Object> properties) {
+    private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
     }
 
