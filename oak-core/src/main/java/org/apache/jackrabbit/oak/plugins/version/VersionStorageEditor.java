@@ -40,6 +40,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION_LABELS;
 
 /**
@@ -53,21 +54,28 @@ import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REM
  * <li>{@link VersionConstants#REP_ADD_VERSION_LABELS}: adds version labels to
  * existing version histories. The property is multi-valued and each value is a
  * PATH, which looks like this:
- * <code>&lt;version-history-path>/jcr:versionLabels/&lt;version-label>/&lt;version-name></code>.
- * The <code>version-history-path</code> is a relative path to the version
+ * {@code &lt;version-history-path>/jcr:versionLabels/&lt;version-label>/&lt;version-name>}.
+ * The {@code version-history-path} is a relative path to the version
  * history node starting at the /jcr:system/jcr:versionStorage node.
  * An attempt to add a version label that already exists will result in a
  * {@link CommitFailedException}. </li>
  * <li>{@link VersionConstants#REP_REMOVE_VERSION_LABELS}: removes version labels from
  * existing version histories. The property is multi-valued and each value is a
  * PATH, which looks like this:
- * <code>&lt;version-history-path>/jcr:versionLabels/&lt;version-label>/&lt;version-name></code>.
- * The <code>version-history-path</code> is a relative path to the version
+ * {@code &lt;version-history-path>/jcr:versionLabels/&lt;version-label>/&lt;version-name>}.
+ * The {@code version-history-path} is a relative path to the version
  * history node starting at the /jcr:system/jcr:versionStorage node. The
- * <code>&lt;version-name></code> part is ignored when labels are removed and
+ * {@code &lt;version-name>} part is ignored when labels are removed and
  * can be anything, though it must be a valid JCR/Oak name.
  * An attempt to remove a version label, which does not exist, will result in a
  * {@link CommitFailedException}. </li>
+ * <li>{@link VersionConstants#REP_REMOVE_VERSION}: : removes a version from
+ * existing version histories, the associated labels and fixes the version tree.
+ * The property is multi-valued and each value is a
+ * PATH, which looks like this:
+ * {@code &lt;version-history-path>/&lt;version-name>}.
+ * The {@code version-history-path} is a relative path to the version
+ * history node starting at the /jcr:system/jcr:versionStorage node.</li>
  * </ul>
  */
 class VersionStorageEditor extends DefaultEditor {
@@ -112,14 +120,16 @@ class VersionStorageEditor extends DefaultEditor {
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
-        if (after.getName().equals(REP_REMOVE_VERSION_LABELS)) {
-            operations.put(1,
-                    new RemoveVersionLabels(after.getValue(Type.PATHS)));
-            versionStorageNode.removeProperty(after.getName());
-        } else if (after.getName().equals(REP_ADD_VERSION_LABELS)) {
-            operations.put(2,
-                    new AddVersionLabels(after.getValue(Type.PATHS)));
-            versionStorageNode.removeProperty(after.getName());
+        String name = after.getName();
+        if (REP_REMOVE_VERSION_LABELS.equals(name)) {
+            operations.put(1, new RemoveVersionLabels(after.getValue(Type.PATHS)));
+            versionStorageNode.removeProperty(name);
+        } else if (REP_ADD_VERSION_LABELS.equals(name)) {
+            operations.put(2, new AddVersionLabels(after.getValue(Type.PATHS)));
+            versionStorageNode.removeProperty(name);
+        } else if (REP_REMOVE_VERSION.equals(name)) {
+            operations.put(3, new RemoveVersion(after.getValue(Type.PATHS)));
+            versionStorageNode.removeProperty(name);
         }
     }
 
@@ -175,6 +185,22 @@ class VersionStorageEditor extends DefaultEditor {
             for (String s : labelPaths) {
                 VersionLabel label = new VersionLabel(s);
                 getVersionManager().removeVersionLabel(label.versionHistoryPath, label.label);
+            }
+        }
+    }
+
+    private class RemoveVersion implements Operation {
+
+        private final Iterable<String> versionPaths;
+
+        private RemoveVersion(@Nonnull Iterable<String> versionPaths) {
+            this.versionPaths = versionPaths;
+        }
+
+        @Override
+        public void perform() throws CommitFailedException {
+            for (String path : versionPaths) {
+                getVersionManager().removeVersion(path);
             }
         }
     }

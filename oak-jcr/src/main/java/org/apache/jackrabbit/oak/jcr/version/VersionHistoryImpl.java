@@ -222,10 +222,18 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     }
 
     @Override
-    public void removeVersion(String versionName)
+    public void removeVersion(final String versionName)
             throws ReferentialIntegrityException, AccessDeniedException,
             UnsupportedRepositoryOperationException, VersionException,
             RepositoryException {
-        TODO.unimplemented().doNothing();
+
+        perform(new SessionOperation<Void>(true) {
+            @Override
+            public Void perform() throws RepositoryException {
+                String oakName = sessionContext.getOakName(versionName);
+                dlg.removeVersion(oakName);
+                return null;
+            }
+        });
     }
 }
