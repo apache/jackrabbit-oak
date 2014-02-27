@@ -184,25 +184,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        sessionDelegate.perform(new SessionOperation<Object>(true) {
-            @Override
-            public void checkPreconditions() throws RepositoryException {
-                super.checkPreconditions();
-                ensureIsAlive();
-            }
+        ensureIsAlive();
+        sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
+        sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
-            @Override
-            public Object perform() throws RepositoryException {
-                sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
-                sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
-
-                SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
-
-                sessionDelegate.move(srcOakPath, destOakPath, false);
-                return null;
-            }
-        });
-
+        SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
+        sessionDelegate.move(srcOakPath, destOakPath, false);
     }
 
     @Override
