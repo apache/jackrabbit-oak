@@ -51,10 +51,13 @@ import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ObservationRefreshTest extends AbstractRepositoryTest {
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
@@ -101,8 +104,8 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-1267")  // FIXME OAK-1267
     public void observation() throws RepositoryException, InterruptedException, ExecutionException {
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME too slow. See OAK-1477
         final MyListener listener = new MyListener();
         observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
         try {
@@ -216,7 +219,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
     private class MyListener implements EventListener {
 
-        private String error = "";
+        private volatile String error = "";
 
         private volatile int numAdded = 0;
 
