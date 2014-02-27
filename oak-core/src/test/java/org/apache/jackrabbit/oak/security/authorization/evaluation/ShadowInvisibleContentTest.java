@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -107,7 +106,6 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         assertFalse(a.hasProperty("aProp"));
     }
 
-    @Test @Ignore("OAK-1247")
     public void testAddNodeCollidingWithInvisibleNode() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_ALL);
         setupPermission("/a/b", testPrincipal, false, PrivilegeConstants.JCR_READ);
