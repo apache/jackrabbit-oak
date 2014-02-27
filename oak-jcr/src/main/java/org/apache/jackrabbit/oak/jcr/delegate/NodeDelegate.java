@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static com.google.common.base.Objects.toStringHelper;
@@ -237,7 +236,6 @@ public class NodeDelegate extends ItemDelegate {
      * @return number of properties of the node
      */
     public long getPropertyCount() throws InvalidItemStateException {
-        // TODO: Exclude "invisible" internal properties (OAK-182)
         return getTree().getPropertyCount();
     }
 
@@ -286,13 +284,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
-        return transform(filter(getTree().getProperties().iterator(), new Predicate<PropertyState>() {
-                @Override
-                public boolean apply(PropertyState property) {
-                    // FIXME clarify handling of hidden items (OAK-753)
-                    return !NodeStateUtils.isHidden(property.getName());
-                }
-                }),
+        return transform(getTree().getProperties().iterator(),
                 new Function<PropertyState, PropertyDelegate>() {
                     @Override
                     public PropertyDelegate apply(PropertyState propertyState) {
@@ -313,7 +305,6 @@ public class NodeDelegate extends ItemDelegate {
      * @return number of child nodes of the node
      */
     public long getChildCount(long max) throws InvalidItemStateException {
-        // TODO: Exclude "invisible" internal child nodes (OAK-182)
         return getTree().getChildrenCount(max);
     }
 
