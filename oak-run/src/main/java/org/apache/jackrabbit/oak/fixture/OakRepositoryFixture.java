@@ -37,9 +37,6 @@ import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
-
-import com.mongodb.MongoClient;
 
 public abstract class OakRepositoryFixture implements RepositoryFixture {
 
@@ -178,35 +175,6 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                         throw new RuntimeException(e);
                     }
                 }
-            }
-        };
-    }
-
-    public static RepositoryFixture getSegment(
-            final String host, final int port, final int cacheSizeMB) {
-        return new OakRepositoryFixture("Oak-Segment") {
-            private SegmentStore[] stores;
-            private MongoClient mongo;
-            @Override
-            protected Repository[] internalSetUpCluster(int n) throws Exception {
-                Repository[] cluster = new Repository[n];
-                stores = new SegmentStore[cluster.length];
-                mongo = new MongoClient(host, port);
-                for (int i = 0; i < cluster.length; i++) {
-                    stores[i] = new MongoStore(mongo.getDB(unique), cacheSizeMB);
-                    Oak oak = new Oak(new SegmentNodeStore(stores[i]));
-                    cluster[i] = new Jcr(oak).createRepository();
-                }
-                return cluster;
-            }
-            @Override
-            public void tearDownCluster() {
-                super.tearDownCluster();
-                for (SegmentStore store : stores) {
-                    store.close();
-                }
-                mongo.getDB(unique).dropDatabase();
-                mongo.close();
             }
         };
     }

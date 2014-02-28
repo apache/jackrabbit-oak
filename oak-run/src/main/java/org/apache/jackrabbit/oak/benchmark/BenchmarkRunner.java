@@ -93,8 +93,6 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
-                OakRepositoryFixture.getSegment(
-                        host.value(options), port.value(options), cacheSize),
                 OakRepositoryFixture.getTar(
                         base.value(options), 256, cacheSize, mmap.value(options))
         };

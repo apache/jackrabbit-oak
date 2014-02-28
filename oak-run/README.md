@@ -112,8 +112,7 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-Memory  | Oak with the default MK using in-memory storage       |
 | Oak-Default | Oak with the default MK using embedded H2 database    |
 | Oak-Mongo   | Oak with the new MongoMK                              |
-| Oak-Segment | Oak with MongoDB-based SegmentMK                      |
-| Oak-Tar     | Oak with Tar file -based SegmentMK                    |
+| Oak-Tar     | Oak with the TarMK                                    |
 
 Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the
