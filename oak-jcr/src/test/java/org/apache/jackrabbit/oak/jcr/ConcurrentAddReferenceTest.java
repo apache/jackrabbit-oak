@@ -28,6 +28,7 @@ import javax.jcr.nodetype.NodeType;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterators;
@@ -72,6 +73,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
 
     @SuppressWarnings("unchecked")
     @Test
+    @Ignore
     public void addReferences() throws Exception {
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");
