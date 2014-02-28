@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.api.util.Text;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,7 +104,6 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
     @Test
     public void observation() throws RepositoryException, InterruptedException, ExecutionException {
-        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME too slow. See OAK-1477
         final MyListener listener = new MyListener();
         observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
         try {
