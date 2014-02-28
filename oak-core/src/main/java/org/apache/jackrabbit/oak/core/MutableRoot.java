@@ -63,7 +63,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-abstract class AbstractRoot implements Root {
+class MutableRoot implements Root {
 
     /**
      * The underlying store to which this root belongs
@@ -79,6 +79,8 @@ abstract class AbstractRoot implements Root {
     private final SecurityProvider securityProvider;
 
     private final QueryIndexProvider indexProvider;
+
+    private final ContentSessionImpl session;
 
     /**
      * Current root {@code Tree}
@@ -120,7 +122,7 @@ abstract class AbstractRoot implements Root {
         @Override
         protected PermissionProvider createValue() {
             return getAcConfig().getPermissionProvider(
-                    AbstractRoot.this,
+                    MutableRoot.this,
                     getContentSession().getWorkspaceName(),
                     subject.getPrincipals());
         }
@@ -136,35 +138,42 @@ abstract class AbstractRoot implements Root {
      * @param securityProvider the security configuration.
      * @param indexProvider    the query index provider.
      */
-    AbstractRoot(NodeStore store,
+    MutableRoot(NodeStore store,
                  CommitHook hook,
                  String workspaceName,
                  Subject subject,
                  SecurityProvider securityProvider,
-                 QueryIndexProvider indexProvider) {
+                 QueryIndexProvider indexProvider,
+                 ContentSessionImpl session) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
         this.workspaceName = checkNotNull(workspaceName);
         this.subject = checkNotNull(subject);
         this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider;
+        this.session = checkNotNull(session);
 
         builder = store.getRoot().builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider, getAcContext());
         rootTree = new MutableTree(this, secureBuilder, lastMove);
     }
- 
+
     /**
      * Called whenever a method on this instance or on any {@code Tree} instance
-     * obtained from this {@code Root} is called. This default implementation
-     * does nothing. Sub classes may override this method and throw an exception
-     * indicating that this {@code Root} instance is not live anymore (e.g. because
-     * the session has been logged out already).
+     * obtained from this {@code Root} is called. Throws an exception if this
+     * {@code Root} instance is not live anymore (e.g. because the session has
+     * been logged out already).
      */
-    protected void checkLive() {
+    void checkLive() {
+        session.checkLive();
     }
 
     //---------------------------------------------------------------< Root >---
+
+    @Override
+    public ContentSession getContentSession() {
+        return session;
+    }
 
     @Override
     public boolean move(String sourcePath, String destPath) {
@@ -302,7 +311,7 @@ abstract class AbstractRoot implements Root {
                             provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(), AbstractRoot.this, provider);
+                        getBaseState(), MutableRoot.this, provider);
             }
         };
     }

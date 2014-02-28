@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import javax.security.auth.Subject;
+
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -26,45 +26,50 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- *  Internal extension of the {@link AbstractRoot} to be used
+ *  Internal extension of the {@link MutableRoot} to be used
  *  when an usage of the system internal subject is needed.
  */
-public class SystemRoot extends AbstractRoot {
-    private final ContentSession contentSession;
+public class SystemRoot extends MutableRoot {
+
+    private static final LoginContext LOGIN_CONTEXT = new LoginContext() {
+        @Override
+        public Subject getSubject() {
+            return SystemSubject.INSTANCE;
+        }
+        @Override
+        public void login() {
+        }
+        @Override
+        public void logout() {
+        }
+    };
+
+    private SystemRoot(
+            NodeStore store, CommitHook hook, String workspaceName,
+            SecurityProvider securityProvider, QueryIndexProvider indexProvider,
+            ContentSessionImpl session) {
+        super(store, hook, workspaceName, SystemSubject.INSTANCE,
+                securityProvider, indexProvider, session);
+    }
 
     public SystemRoot(final NodeStore store, final CommitHook hook, final String workspaceName,
             final SecurityProvider securityProvider, final QueryIndexProvider indexProvider) {
-
-        super(store, hook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
-
-        contentSession = new ContentSession() {
-            private final AuthInfoImpl authInfo = new AuthInfoImpl(
-                    null, null, SystemSubject.INSTANCE.getPrincipals());
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public String getWorkspaceName() {
-                return workspaceName;
-            }
-
-            @Override
-            public Root getLatestRoot() {
-                return new SystemRoot(store, hook, workspaceName, securityProvider, indexProvider);
-            }
-
-            @Override
-            public AuthInfo getAuthInfo() {
-                return authInfo;
-            }
-        };
+        this(store, hook, workspaceName, securityProvider, indexProvider,
+                new ContentSessionImpl(
+                        LOGIN_CONTEXT, securityProvider, workspaceName,
+                        store, hook, indexProvider) {
+                    @Override
+                    public Root getLatestRoot() {
+                        return new SystemRoot(
+                                store, hook, workspaceName, securityProvider,
+                                indexProvider, this);
+                    }
+                });
     }
 
     public SystemRoot(NodeStore store) {
@@ -75,11 +80,6 @@ public class SystemRoot extends AbstractRoot {
         // FIXME: define proper default or pass workspace name with the constructor
         this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, new OpenSecurityProvider(),
                 new CompositeQueryIndexProvider());
-    }
-
-    @Override
-    public ContentSession getContentSession() {
-        return contentSession;
     }
 
 }
