@@ -36,10 +36,9 @@ import com.google.common.collect.Iterables;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
- *
+ * 
  * <p>
- * To define a property index on a subtree you have to add an <code>oak:index</code> node.
- * <br>
+ * To define a property index on a subtree you have to add an <code>oak:index</code> node. <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
@@ -49,15 +48,17 @@ import com.google.common.collect.Iterables;
  * </p>
  * <p>
  * Optionally you can specify
- * <ul> 
- * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
- * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
+ * <ul>
+ * <li>a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
+ * <li>that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code>
+ * property</li>
  * </ul>
  * </p>
  * <p>
  * Notes:
  * <ul>
- * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
+ * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name
+ * will be used as a property name reference value</li>
  * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
  * </ul>
  * </p>
@@ -113,11 +114,21 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-    //--------------------------------------------------------< QueryIndex >--
+    // --------------------------------------------------------< QueryIndex >--
 
     @Override
     public String getIndexName() {
         return "property";
+    }
+
+    /**
+     * return the proper implementation of the Lookup
+     * 
+     * @param root
+     * @return
+     */
+    PropertyIndexLookup getLookup(NodeState root) {
+        return new PropertyIndexLookup(root);
     }
 
     @Override
@@ -127,14 +138,13 @@ class PropertyIndex implements QueryIndex {
             return Double.POSITIVE_INFINITY;
         }
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     return lookup.getCost(filter, propertyName, pr.first);
                 } else if (pr.list != null) {
@@ -157,7 +167,7 @@ class PropertyIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState root) {
         Iterable<String> paths = null;
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         int depth = 1;
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
@@ -166,8 +176,7 @@ class PropertyIndex implements QueryIndex {
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
                 // equality
-                if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
                     break;
@@ -189,7 +198,8 @@ class PropertyIndex implements QueryIndex {
             }
         }
         if (paths == null) {
-            throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
+            throw new IllegalStateException("Property index is used even when no index is available for filter "
+                + filter);
         }
         Cursor c = Cursors.newPathCursor(paths);
         if (depth > 1) {
@@ -197,19 +207,18 @@ class PropertyIndex implements QueryIndex {
         }
         return c;
     }
-    
+
     @Override
     public String getPlan(Filter filter, NodeState root) {
         StringBuilder buff = new StringBuilder("property");
         StringBuilder notIndexed = new StringBuilder();
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
                     buff.append(' ').append(propertyName).append('=').append(pr.first);
                 } else {
                     buff.append(' ').append(propertyName);

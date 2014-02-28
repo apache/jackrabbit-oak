@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.enc
 
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -56,7 +57,6 @@ import com.google.common.base.Predicate;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor {
-
     /** Index storage strategy */
     private static final IndexStoreStrategy MIRROR =
             new ContentMirrorStoreStrategy();
@@ -79,7 +79,7 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final Set<String> propertyNames;
 
-    /** Type predicate, or {@code null} if there are no type restrictions */
+   /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
 
     /**
@@ -111,6 +111,8 @@ class PropertyIndexEditor implements IndexEditor {
         this.path = "/";
         this.definition = definition;
 
+        //initPropertyNames(definition);
+
         // get property names
         PropertyState names = definition.getProperty(PROPERTY_NAMES);
         if (names.count() == 1) { 
@@ -119,7 +121,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
-
+        
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
         if (definition.hasProperty(DECLARING_NODE_TYPES)) {
@@ -137,16 +139,25 @@ class PropertyIndexEditor implements IndexEditor {
         }
         this.updateCallback = updateCallback;
     }
-
-    private PropertyIndexEditor(PropertyIndexEditor parent, String name) {
+    
+    PropertyIndexEditor(PropertyIndexEditor parent, String name) {
         this.parent = parent;
         this.name = name;
         this.path = null;
         this.definition = parent.definition;
-        this.propertyNames = parent.propertyNames;
+        this.propertyNames = parent.getPropertyNames();
         this.typePredicate = parent.typePredicate;
         this.keysToCheckForUniqueness = parent.keysToCheckForUniqueness;
         this.updateCallback = parent.updateCallback;
+    }
+    
+    /**
+     * commodity method for allowing extensions
+     * 
+     * @return
+     */
+    Set<String> getPropertyNames() {
+       return propertyNames;
     }
 
     /**
@@ -193,7 +204,7 @@ class PropertyIndexEditor implements IndexEditor {
         return keys;
     }
 
-    private static IndexStoreStrategy getStrategy(boolean unique) {
+    IndexStoreStrategy getStrategy(boolean unique) {
         return unique ? UNIQUE : MIRROR;
     }
 
@@ -214,8 +225,8 @@ class PropertyIndexEditor implements IndexEditor {
             if (typeChanged) {
                 // possible type change, so ignore diff results and
                 // just load all matching values from both states
-                beforeKeys = getMatchingKeys(before, propertyNames);
-                afterKeys = getMatchingKeys(after, propertyNames);
+                beforeKeys = getMatchingKeys(before, getPropertyNames());
+                afterKeys = getMatchingKeys(after, getPropertyNames());
             }
             if (beforeKeys != null && !typePredicate.apply(before)) {
                 // the before state doesn't match the type, so clear its values
@@ -282,7 +293,7 @@ class PropertyIndexEditor implements IndexEditor {
     public void propertyAdded(PropertyState after) {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
-        if (propertyNames.contains(name)) {
+        if (getPropertyNames().contains(name)) {
             afterKeys = addValueKeys(afterKeys, after);
         }
     }
@@ -291,7 +302,7 @@ class PropertyIndexEditor implements IndexEditor {
     public void propertyChanged(PropertyState before, PropertyState after) {
         String name = after.getName();
         typeChanged = typeChanged || isTypeProperty(name);
-        if (propertyNames.contains(name)) {
+        if (getPropertyNames().contains(name)) {
             beforeKeys = addValueKeys(beforeKeys, before);
             afterKeys = addValueKeys(afterKeys, after);
         }
@@ -301,25 +312,35 @@ class PropertyIndexEditor implements IndexEditor {
     public void propertyDeleted(PropertyState before) {
         String name = before.getName();
         typeChanged = typeChanged || isTypeProperty(name);
-        if (propertyNames.contains(name)) {
+        if (getPropertyNames().contains(name)) {
             beforeKeys = addValueKeys(beforeKeys, before);
         }
     }
 
+    /**
+     * Retrieve a new index editor associated with the child node to process
+     * 
+     * @param parent the index editor related to the parent node
+     * @param name the name of the child node
+     * @return an instance of the PropertyIndexEditor
+     */
+    PropertyIndexEditor getChildIndexEditor(@Nonnull PropertyIndexEditor parent, @Nonnull String name){
+       return new PropertyIndexEditor(parent, name);
+    }
+    
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new PropertyIndexEditor(this, name);
+        return getChildIndexEditor(this, name);
     }
 
     @Override
-    public Editor childNodeChanged(
-            String name, NodeState before, NodeState after) {
-        return new PropertyIndexEditor(this, name);
+    public Editor childNodeChanged(String name, NodeState before, NodeState after) {
+        return getChildIndexEditor(this, name);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before) {
-        return new PropertyIndexEditor(this, name);
+        return getChildIndexEditor(this, name);
     }
 
 }

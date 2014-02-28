@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.benchmark.util;
 
 import java.util.Arrays;
 
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyType;
@@ -87,16 +88,22 @@ public class OakIndexUtils {
          * definition matches. If no such index exists, a new one is created.
          * 
          * @param session the session to use for creating the index
+         * @return the index node
          * @throws RepositoryException if writing to the repository failed, the
          *             index definition is incorrect, or if such an index exists
          *             but is not compatible with this definition (for example,
          *             a different property is indexed)
          */
-        public void create(Session session) throws RepositoryException {
-            if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
+        public @Nullable Node create(Session session) throws RepositoryException {
+           return create(session,PropertyIndexEditorProvider.TYPE);
+        }
+        
+        public @Nullable Node create(Session session,String indexType) throws RepositoryException {
+           Node index = null;
+           if (!session.getWorkspace().getNodeTypeManager().hasNodeType(
                         "oak:QueryIndexDefinition")) {
                 // not an Oak repository
-                return;
+                return index;
             }
             if (session.hasPendingChanges()) {
                 throw new RepositoryException("The session has pending changes");
@@ -117,7 +124,7 @@ public class OakIndexUtils {
                 }
             }
             Node root = session.getRootNode();
-            Node indexDef;
+            Node indexDef = null;
             if (!root.hasNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
                 indexDef = root.addNode(IndexConstants.INDEX_DEFINITIONS_NAME, 
                         JcrConstants.NT_UNSTRUCTURED);
@@ -125,7 +132,7 @@ public class OakIndexUtils {
             } else {
                 indexDef = root.getNode(IndexConstants.INDEX_DEFINITIONS_NAME);
             }
-            Node index;
+
             if (indexDef.hasNode(indexName)) {
                 // verify the index matches
                 index = indexDef.getNode(indexName);
@@ -138,7 +145,7 @@ public class OakIndexUtils {
                 }
                 String type = index.getProperty(
                         IndexConstants.TYPE_PROPERTY_NAME).getString();
-                if (!type.equals(PropertyIndexEditorProvider.TYPE)) {
+                if (!type.equals(indexType)) {
                     throw new RepositoryException(
                             "Index already exists, but is of type " + type);
                 }
@@ -171,11 +178,10 @@ public class OakIndexUtils {
                             "Index already exists, but without node type restriction");
                 }
                 // matches
-                return;
+                return index;
             }
             index = indexDef.addNode(indexName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
-            index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, 
-                    PropertyIndexEditorProvider.TYPE);
+            index.setProperty(IndexConstants.TYPE_PROPERTY_NAME, indexType);
             index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, 
                     true);
             index.setProperty(IndexConstants.PROPERTY_NAMES, 
@@ -185,8 +191,8 @@ public class OakIndexUtils {
                         nodeTypeNames);
             }
             session.save();
+            return index;
         }
-        
     }
 
 }
