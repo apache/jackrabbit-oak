@@ -40,7 +40,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.AbstractRoot.Move;
+import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
@@ -52,7 +52,7 @@ class MutableTree extends AbstractTree {
     /**
      * Underlying {@code Root} of this {@code Tree} instance
      */
-    private final AbstractRoot root;
+    private final MutableRoot root;
 
     /**
      * Parent of this tree. Null for the root.
@@ -62,13 +62,13 @@ class MutableTree extends AbstractTree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    MutableTree(AbstractRoot root, NodeBuilder builder, Move pendingMoves) {
+    MutableTree(MutableRoot root, NodeBuilder builder, Move pendingMoves) {
         super("", builder);
         this.root = checkNotNull(root);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
-    private MutableTree(AbstractRoot root, MutableTree parent, String name, Move pendingMoves) {
+    private MutableTree(MutableRoot root, MutableTree parent, String name, Move pendingMoves) {
         super(name, parent.nodeBuilder.getChildNode(name));
         this.root = checkNotNull(root);
         this.parent = checkNotNull(parent);
