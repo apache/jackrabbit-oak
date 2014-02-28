@@ -34,19 +34,6 @@ class TarFile {
 
     private static final byte[] ZERO_BYTES = new byte[BLOCK_SIZE];
 
-    private static class Location {
-
-        int offset;
-
-        int size;
-
-        Location(int offset, int size) {
-            this.offset = offset;
-            this.size = size;
-        }
-
-    }
-
     private final File file;
 
     private final FileAccess access;
@@ -55,7 +42,7 @@ class TarFile {
 
     private final int maxFileSize;
 
-    private final Map<UUID, Location> entries = newConcurrentMap();
+    private final Map<UUID, TarEntry> entries = newConcurrentMap();
 
     TarFile(File file, int maxFileSize, boolean memoryMapping)
             throws IOException {
@@ -96,7 +83,7 @@ class TarFile {
 
             try {
                 UUID id = UUID.fromString(name);
-                entries.put(id, new Location(position + BLOCK_SIZE, size));
+                entries.put(id, new TarEntry(position + BLOCK_SIZE, size));
             } catch (IllegalArgumentException e) {
                 throw new IOException("Unexpected tar entry: " + name);
             }
@@ -110,9 +97,9 @@ class TarFile {
     }
 
     ByteBuffer readEntry(UUID id) throws IOException {
-        Location location = entries.get(id);
-        if (location != null) {
-            return access.read(location.offset, location.size);
+        TarEntry entry = entries.get(id);
+        if (entry != null) {
+            return entry.read(access);
         } else {
             return null;
         }
@@ -178,7 +165,7 @@ class TarFile {
         position += BLOCK_SIZE;
 
         access.write(position, b, offset, size);
-        entries.put(id, new Location(position, size));
+        entries.put(id, new TarEntry(position, size));
         position += size;
 
         int padding = BLOCK_SIZE - position % BLOCK_SIZE;
