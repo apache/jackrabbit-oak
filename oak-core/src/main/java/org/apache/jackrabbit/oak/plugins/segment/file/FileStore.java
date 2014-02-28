@@ -20,7 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -63,9 +62,9 @@ public class FileStore extends AbstractStore {
 
     private final boolean memoryMapping;
 
-    private final LinkedList<TarFile> bulkFiles = newLinkedList();
+    private final List<TarFile> bulkFiles = newCopyOnWriteArrayList();
 
-    private final LinkedList<TarFile> dataFiles = newLinkedList();
+    private final List<TarFile> dataFiles = newCopyOnWriteArrayList();
 
     private final RandomAccessFile journalFile;
 
@@ -277,7 +276,7 @@ public class FileStore extends AbstractStore {
 
     @Override @Nonnull
     protected Segment loadSegment(UUID id) {
-        LinkedList<TarFile> files = dataFiles;
+        List<TarFile> files = dataFiles;
         if (isBulkSegmentId(id)) {
             files = bulkFiles;
         }
@@ -301,7 +300,7 @@ public class FileStore extends AbstractStore {
     public synchronized void writeSegment(
             UUID segmentId, byte[] data, int offset, int length) {
         // select whether to write a data or a bulk segment
-        LinkedList<TarFile> files = dataFiles;
+        List<TarFile> files = dataFiles;
         String base = "data";
         if (isBulkSegmentId(segmentId)) {
             files = bulkFiles;
@@ -309,7 +308,7 @@ public class FileStore extends AbstractStore {
         }
 
         try {
-            if (files.isEmpty() || !files.getLast().writeEntry(
+            if (files.isEmpty() || !files.get(files.size() - 1).writeEntry(
                     segmentId, data, offset, length)) {
                 String name = String.format(FILE_NAME_FORMAT, base, files.size());
                 File file = new File(directory, name);
