@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -32,11 +31,13 @@ import javax.jcr.version.OnParentVersionAction;
 import org.apache.jackrabbit.core.NamespaceRegistryImpl;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.core.config.UserManagerConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
+import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -205,9 +207,9 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy() throws RepositoryException {
+        RepositoryConfig config = source.getRepositoryConfig();
         logger.info(
-                "Copying repository content from {} to Oak",
-                source.getRepositoryConfig().getHomeDir());
+                "Copying repository content from {} to Oak", config.getHomeDir());
         try {
             NodeBuilder builder = target.getRoot().builder();
 
@@ -220,9 +222,16 @@ public class RepositoryUpgrade {
             copyVersionStore(builder, idxToPrefix);
             copyWorkspaces(builder, idxToPrefix);
 
+            String groupsPath;
+            UserManagerConfig userConfig = config.getSecurityConfig().getSecurityManagerConfig().getUserManagerConfig();
+            if (userConfig != null) {
+                groupsPath = userConfig.getParameters().getProperty(UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.DEFAULT_GROUP_PATH);
+            } else {
+                groupsPath = UserConstants.DEFAULT_GROUP_PATH;
+            }
             // TODO: default hooks?
             CommitHook hook = new CompositeHook(
-                    new EditorHook(new GroupEditorProvider()),
+                    new EditorHook(new GroupEditorProvider(groupsPath)),
                     new EditorHook(new CompositeEditorProvider(
                             new TypeEditorProvider(),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(

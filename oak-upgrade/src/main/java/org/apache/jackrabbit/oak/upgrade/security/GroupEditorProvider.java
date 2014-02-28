@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade.security;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -26,10 +28,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class GroupEditorProvider implements EditorProvider {
 
+    private final String groupsPath;
+
+    public GroupEditorProvider(@Nonnull String groupsPath) {
+        this.groupsPath = groupsPath;
+
+    }
+
     @Override
     public Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
-        return new GroupEditor(builder);
+        return new GroupEditor(builder, groupsPath);
     }
 }
