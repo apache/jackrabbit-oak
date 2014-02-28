@@ -69,6 +69,15 @@ class TarFile {
         } else {
             this.access = new RandomAccess(file);
         }
+        if (len == 0) {
+            // allocate the full file by writing the last two blocks
+            access.write(
+                    maxFileSize - ZERO_BYTES.length * 2,
+                    ZERO_BYTES, 0, ZERO_BYTES.length);
+            access.write(
+                    maxFileSize - ZERO_BYTES.length,
+                    ZERO_BYTES, 0, ZERO_BYTES.length);
+        }
 
         this.position = 0;
         while (position + BLOCK_SIZE <= len) {
