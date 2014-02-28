@@ -26,9 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import javax.jcr.Binary;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
@@ -67,28 +67,26 @@ class JackrabbitNodeState extends AbstractNodeState {
     private final PersistenceManager source;
 
     /**
-     * Source namespace registry.
+     * Source namespace mappings (URI -&lt; prefix).
      */
-    private final NamespaceRegistry registry;
+    private final Map<String, String> uriToPrefix;
 
     private final NodeState state;
 
     private final boolean useBinaryReferences;
 
-    private JackrabbitNodeState(
-            PersistenceManager source, NamespaceRegistry registry,
-            NodeState state, boolean useBinaryReferences) {
-        this.source = source;
-        this.registry = registry;
+    private JackrabbitNodeState(JackrabbitNodeState parent, NodeState state) {
+        this.source = parent.source;
+        this.uriToPrefix = parent.uriToPrefix;
         this.state = state;
-        this.useBinaryReferences = useBinaryReferences;
+        this.useBinaryReferences = parent.useBinaryReferences;
     }
 
     JackrabbitNodeState(
-            PersistenceManager source, NamespaceRegistry registry,
+            PersistenceManager source, Map<String, String> uriToPrefix,
             NodeId id, boolean useBinaryReferences) {
         this.source = source;
-        this.registry = registry;
+        this.uriToPrefix = uriToPrefix;
         try {
             this.state = source.load(id);
         } catch (ItemStateException e) {
@@ -160,8 +158,8 @@ class JackrabbitNodeState extends AbstractNodeState {
 
             try {
                 NodeState childState = source.load(entry.getId());
-                JackrabbitNodeState child = new JackrabbitNodeState(
-                        source, registry, childState, useBinaryReferences);
+                JackrabbitNodeState child =
+                        new JackrabbitNodeState(this, childState);
                 entries.add(new MemoryChildNodeEntry(name, child));
             } catch (ItemStateException e) {
                 warn("Unable to access child entry " + name, e);
@@ -354,10 +352,11 @@ class JackrabbitNodeState extends AbstractNodeState {
         if (uri == null || uri.isEmpty()) {
             return local;
         } else {
-            try {
-                return registry.getPrefix(uri) + ":" + local;
-            } catch (RepositoryException e) {
-                warn("Unable to create Oak name from " + name, e);
+            String prefix = uriToPrefix.get(uri);
+            if (prefix != null) {
+                return prefix + ":" + local;
+            } else {
+                warn("No prefix mapping found for " + name);
                 return "{" + uri + "}" + local;
             }
         }
