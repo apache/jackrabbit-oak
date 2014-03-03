@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -116,8 +118,7 @@ public class DocumentNodeStoreService {
         int offHeapCache = PropertiesUtil.toInteger(prop(config, PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = PropertiesUtil.toInteger(prop(config, PROP_CACHE), DEFAULT_CACHE);
         boolean useMK = PropertiesUtil.toBoolean(config.get(PROP_USE_MK), false);
-        String blobStoreType = PropertiesUtil.toString(config.get(BlobStoreConfiguration.PROP_BLOB_STORE_PROVIDER),
-                BlobStoreConfiguration.DEFAULT_BLOB_STORE_PROVIDER);
+
 
         MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
         MongoClientURI mongoURI = new MongoClientURI(uri, builder);
@@ -136,22 +137,20 @@ public class DocumentNodeStoreService {
 
         // Check if any valid external BlobStore is defined.
         // If not then use the default which is MongoBlobStore
-        BlobStore blobStore = null;
-        if (Strings.isNullOrEmpty(blobStoreType)) {
-            blobStore = BlobStoreHelper.create(
-                    BlobStoreConfiguration.newInstance().
-                            loadFromContextOrMap(config, context))
-                    .orNull();
-        }
+        BlobStore blobStore = createBlobStore(config);
 
         DocumentMK.Builder mkBuilder = 
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
-                offHeapCacheSize(offHeapCache * MB).
-                setMongoDB(mongoDB);
+                offHeapCacheSize(offHeapCache * MB);
+
+        //Set blobstore before setting the DB
         if (blobStore != null) {
             mkBuilder.setBlobStore(blobStore);
         }
+
+        mkBuilder.setMongoDB(mongoDB);
+
         mk = mkBuilder.open();
 
         logger.info("Connected to database {}", mongoDB);
@@ -171,6 +170,23 @@ public class DocumentNodeStoreService {
 
         observerTracker.start(context);
         reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+    }
+
+    @CheckForNull
+    private BlobStore createBlobStore(Map<String, ?> config) throws Exception {
+        String blobStoreType = PropertiesUtil.toString(
+                prop(config, BlobStoreConfiguration.PROP_BLOB_STORE_PROVIDER),
+                BlobStoreConfiguration.DEFAULT_BLOB_STORE_PROVIDER);
+
+        BlobStore blobStore = null;
+        if (!Strings.isNullOrEmpty(blobStoreType)) {
+            blobStore = BlobStoreHelper.create(
+                    BlobStoreConfiguration.newInstance().
+                            loadFromContextOrMap(config, bundleContext))
+                    .orNull();
+            logger.info("BlobStore Configured {}", blobStore);
+        }
+        return blobStore;
     }
 
     private Object prop(Map<String, ?> config, String propName){

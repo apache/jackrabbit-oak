@@ -472,8 +472,13 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setMongoDB(DB db) {
             if (db != null) {
-                this.documentStore = new MongoDocumentStore(db, this);
-                this.blobStore = new MongoBlobStore(db);
+                if(this.documentStore == null){
+                    this.documentStore = new MongoDocumentStore(db, this);
+                }
+
+                if(this.blobStore == null){
+                    this.blobStore = new MongoBlobStore(db);
+                }
             }
             return this;
         }
