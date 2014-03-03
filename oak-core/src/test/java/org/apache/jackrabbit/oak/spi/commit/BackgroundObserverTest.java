@@ -59,7 +59,7 @@ public class BackgroundObserverTest {
         }
         done(observer);
 
-        assertTrue(doneCounter.await(5, TimeUnit.SECONDS));
+        assertTrue(doneCounter.await(5, TimeUnit.MINUTES));
 
         for (Runnable assertion : concat(assertionLists)) {
             assertion.run();
