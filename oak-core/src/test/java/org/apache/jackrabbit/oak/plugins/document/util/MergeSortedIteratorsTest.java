@@ -21,15 +21,12 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.collect.Ordering;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import static com.mongodb.util.MyAsserts.assertTrue;
 import static junit.framework.Assert.assertEquals;
 
 /**
@@ -49,9 +46,11 @@ public class MergeSortedIteratorsTest {
         assertEquals(list(1, 2, 3, 4, 5, 6), sort(list(1, 5), list(2, 4), list(3, 6)));
     }
 
-    @Ignore("OAK-1479")
-    @Test
-    public void testData(){
+    /**
+     * See OAK-1233 and OAK-1479
+     */
+    @Test(expected = IllegalStateException.class)
+    public void testData() {
         List<Iterator<Revision>> iterators = prepareData();
         final Iterator<Iterator<Revision>> it = iterators.iterator();
         final Comparator<Revision> comp = StableRevisionComparator.REVERSE;
@@ -61,11 +60,9 @@ public class MergeSortedIteratorsTest {
                 return it.hasNext() ? it.next() : null;
             }
         };
-        List<Revision> sorted = new ArrayList<Revision>();
         while (sort.hasNext()) {
-            sorted.add(sort.next());
+            sort.next();
         }
-        assertTrue(Ordering.from(comp).reverse().isOrdered(sorted));
     }
 
     private List<Integer> sort(List<Integer>... lists) {
