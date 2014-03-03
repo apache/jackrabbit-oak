@@ -50,15 +50,13 @@ import com.google.common.collect.Iterables;
  * Optionally you can specify
  * <ul>
  * <li>a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
- * <li>that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code>
- * property</li>
+ * <li>that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
  * </ul>
  * </p>
  * <p>
  * Notes:
  * <ul>
- * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name
- * will be used as a property name reference value</li>
+ * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
  * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
  * </ul>
  * </p>
@@ -114,7 +112,7 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-    // --------------------------------------------------------< QueryIndex >--
+    //--------------------------------------------------------< QueryIndex >--
 
     @Override
     public String getIndexName() {
@@ -198,8 +196,7 @@ class PropertyIndex implements QueryIndex {
             }
         }
         if (paths == null) {
-            throw new IllegalStateException("Property index is used even when no index is available for filter "
-                + filter);
+            throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
         Cursor c = Cursors.newPathCursor(paths);
         if (depth > 1) {

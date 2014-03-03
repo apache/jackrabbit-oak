@@ -78,7 +78,10 @@ public class IndexUtils {
                                                     boolean unique, 
                                                     @Nonnull Collection<String> propertyNames, 
                                                     @Nullable Collection<String> declaringNodeTypeNames) {
-        NodeBuilder entry = index.child(indexDefName).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME).setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE).setProperty(REINDEX_PROPERTY_NAME, reindex);
+        NodeBuilder entry = index.child(indexDefName)
+                        .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                        .setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE)
+                        .setProperty(REINDEX_PROPERTY_NAME, reindex);
         if (unique) {
             entry.setProperty(UNIQUE_PROPERTY_NAME, unique);
         }
@@ -136,14 +139,16 @@ public class IndexUtils {
         entry.setNames(PROPERTY_NAMES, propertyNames);
     }
 
-    public static void createReferenceIndex(@Nonnull
-    NodeBuilder index) {
-        index.child(NodeReferenceConstants.NAME).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME).setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
+    public static void createReferenceIndex(@Nonnull NodeBuilder index) {
+        index.child(NodeReferenceConstants.NAME)
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
     }
 
     public static boolean isIndexNodeType(NodeState state) {
         PropertyState ps = state.getProperty(JCR_PRIMARYTYPE);
-        return ps != null && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
+        return ps != null 
+                && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
     public static boolean isIndexNodeType(NodeState state, String typeIn) {
@@ -151,7 +156,8 @@ public class IndexUtils {
             return false;
         }
         PropertyState type = state.getProperty(TYPE_PROPERTY_NAME);
-        return type != null && !type.isArray() && type.getValue(Type.STRING).equals(typeIn);
+        return type != null && !type.isArray() 
+                && type.getValue(Type.STRING).equals(typeIn);
     }
 
 }
