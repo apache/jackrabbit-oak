@@ -16,35 +16,51 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import static com.google.common.collect.ImmutableSet.of;
+import static com.google.common.collect.Sets.newHashSet;
+import static javax.jcr.PropertyType.TYPENAME_BINARY;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.GROUP_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.USER_PROPERTY_NAMES;
 
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-import com.google.common.collect.ImmutableSet;
-
 public class LuceneIndexHelper {
 
-    public static final Set<String> JR_PROPERTY_INCLUDES = ImmutableSet.of(
-            PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY);
+    public static final Set<String> JR_PROPERTY_INCLUDES = of(TYPENAME_STRING,
+            TYPENAME_BINARY);
+
+    /**
+     * Nodes that represent content that shold not be tokenized (like UUIDs,
+     * etc)
+     * 
+     */
+    private final static Set<String> NOT_TOKENIZED = newHashSet(JCR_UUID);
+
+    static {
+        NOT_TOKENIZED.addAll(USER_PROPERTY_NAMES);
+        NOT_TOKENIZED.addAll(GROUP_PROPERTY_NAMES);
+    }
 
     private LuceneIndexHelper() {
     }
@@ -113,5 +129,13 @@ public class LuceneIndexHelper {
                     STRINGS));
         }
         return index;
+    }
+
+    /**
+     * Nodes that represent UUIDs and shold not be tokenized
+     * 
+     */
+    public static boolean skipTokenization(String name) {
+        return NOT_TOKENIZED.contains(name);
     }
 }

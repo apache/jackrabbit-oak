@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.FieldInfo.IndexOptions;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
@@ -32,6 +34,26 @@ import static org.apache.lucene.document.Field.Store.YES;
 public final class FieldFactory {
 
     /**
+     * StringField#TYPE_NOT_STORED but tokenized
+     */
+    private static final FieldType OAK_TYPE = new FieldType();
+
+    static {
+        OAK_TYPE.setIndexed(true);
+        OAK_TYPE.setOmitNorms(true);
+        OAK_TYPE.setIndexOptions(IndexOptions.DOCS_ONLY);
+        OAK_TYPE.setTokenized(true);
+        OAK_TYPE.freeze();
+    }
+
+    private final static class OakTextField extends Field {
+
+        public OakTextField(String name, String value) {
+            super(name, value, OAK_TYPE);
+        }
+    }
+
+    /**
      * Private constructor.
      */
     private FieldFactory() {
@@ -41,9 +63,11 @@ public final class FieldFactory {
         return new StringField(PATH, path, YES);
     }
 
-    public static Field newPropertyField(String name, String value) {
-        // TODO do we need norms info on the indexed fields ? TextField:StringField
-        // return new TextField(name, value, NO);
+    public static Field newPropertyField(String name, String value,
+            boolean tokenized) {
+        if (tokenized) {
+            return new OakTextField(name, value);
+        }
         return new StringField(name, value, NO);
     }
 
