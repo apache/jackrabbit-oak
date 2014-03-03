@@ -260,7 +260,9 @@ public class BackgroundObserver implements Observer, Closeable {
          */
         public void onComplete(Runnable task) {
             this.task = task;
-            run(task);
+            if (isDone()) {
+                run(task);
+            }
         }
 
         @Override
