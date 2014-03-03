@@ -64,28 +64,21 @@ public class IndexUtils {
     /**
      * Create a new property index definition below the given {@code indexNode}.
      * 
-     * @param index
-     *            The oak:index node builder
-     * @param indexDefName
-     *            The name of the new property index.
-     * @param reindex
-     *            {@code true} if the the reindex flag should be turned on.
-     * @param unique
-     *            {@code true} if the index is expected the assert property uniqueness.
-     * @param propertyNames
-     *            The property names that should be indexed.
-     * @param declaringNodeTypeNames
-     *            The declaring node type names or {@code null}.
+     * @param index The oak:index node builder
+     * @param indexDefName The name of the new property index.
+     * @param reindex {@code true} if the the reindex flag should be turned on.
+     * @param unique {@code true} if the index is expected the assert property uniqueness.
+     * @param propertyNames The property names that should be indexed.
+     * @param declaringNodeTypeNames The declaring node type names or {@code null}.
      * @return the NodeBuilder of the new index definition.
      */
-    public static NodeBuilder createIndexDefinition(@Nonnull
-    NodeBuilder index, @Nonnull
-    String indexDefName, boolean reindex, boolean unique, @Nonnull
-    Collection<String> propertyNames, @Nullable
-    Collection<String> declaringNodeTypeNames) {
-        NodeBuilder entry = index.child(indexDefName).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-            .setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE)
-            .setProperty(REINDEX_PROPERTY_NAME, reindex);
+    public static NodeBuilder createIndexDefinition(@Nonnull NodeBuilder index, 
+                                                    @Nonnull String indexDefName, 
+                                                    boolean reindex, 
+                                                    boolean unique, 
+                                                    @Nonnull Collection<String> propertyNames, 
+                                                    @Nullable Collection<String> declaringNodeTypeNames) {
+        NodeBuilder entry = index.child(indexDefName).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME).setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE).setProperty(REINDEX_PROPERTY_NAME, reindex);
         if (unique) {
             entry.setProperty(UNIQUE_PROPERTY_NAME, unique);
         }
@@ -105,19 +98,17 @@ public class IndexUtils {
      * @param propertyNames
      * @param declaringNodeTypeNames
      */
-    public static void createIndexDefinition(@Nonnull
-    NodeUtil indexNode, @Nonnull
-    String indexDefName, boolean unique, @Nonnull
-    String[] propertyNames, @Nullable
-    String[] declaringNodeTypeNames) throws RepositoryException {
+    public static void createIndexDefinition(@Nonnull NodeUtil indexNode, 
+                                             @Nonnull String indexDefName, 
+                                             boolean unique, 
+                                             @Nonnull String[] propertyNames, 
+                                             @Nullable String[] declaringNodeTypeNames) throws RepositoryException {
 
-        createIndexDefinition(indexNode, indexDefName, unique, propertyNames, declaringNodeTypeNames,
-            PropertyIndexEditorProvider.TYPE);
+        createIndexDefinition(indexNode, indexDefName, unique, propertyNames, declaringNodeTypeNames, PropertyIndexEditorProvider.TYPE);
     }
 
     /**
-     * Create a new property index definition below the given {@code indexNode} of the provided
-     * {@code propertyIndexType}.
+     * Create a new property index definition below the given {@code indexNode} of the provided {@code propertyIndexType}.
      * 
      * @param indexNode
      * @param indexDefName
@@ -127,12 +118,12 @@ public class IndexUtils {
      * @param propertyIndexType
      * @throws RepositoryException
      */
-    public static void createIndexDefinition(@Nonnull
-    NodeUtil indexNode, @Nonnull
-    String indexDefName, boolean unique, @Nonnull
-    String[] propertyNames, @Nullable
-    String[] declaringNodeTypeNames, @Nonnull
-    String propertyIndexType) throws RepositoryException {
+    public static void createIndexDefinition(@Nonnull NodeUtil indexNode, 
+                                             @Nonnull String indexDefName, 
+                                             boolean unique, 
+                                             @Nonnull String[] propertyNames, 
+                                             @Nullable String[] declaringNodeTypeNames, 
+                                             @Nonnull String propertyIndexType) throws RepositoryException {
         NodeUtil entry = indexNode.getOrAddChild(indexDefName, INDEX_DEFINITIONS_NODE_TYPE);
         entry.setString(TYPE_PROPERTY_NAME, propertyIndexType);
         entry.setBoolean(REINDEX_PROPERTY_NAME, true);
@@ -147,8 +138,7 @@ public class IndexUtils {
 
     public static void createReferenceIndex(@Nonnull
     NodeBuilder index) {
-        index.child(NodeReferenceConstants.NAME).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-            .setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
+        index.child(NodeReferenceConstants.NAME).setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME).setProperty(TYPE_PROPERTY_NAME, NodeReferenceConstants.TYPE);
     }
 
     public static boolean isIndexNodeType(NodeState state) {
