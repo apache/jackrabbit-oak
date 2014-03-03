@@ -1381,17 +1381,7 @@ public final class DocumentNodeStore
     }
 
     void backgroundWrite() {
-        if (unsavedLastRevisions.getPaths().isEmpty()) {
-            return;
-        }
-        // write back the pending _lastRevs with an exclusive lock to
-        // ensure consistency
-        backgroundOperationLock.writeLock().lock();
-        try {
-            unsavedLastRevisions.persist(this);
-        } finally {
-            backgroundOperationLock.writeLock().unlock();
-        }
+        unsavedLastRevisions.persist(this, backgroundOperationLock.writeLock());
     }
 
     //-----------------------------< internal >---------------------------------
