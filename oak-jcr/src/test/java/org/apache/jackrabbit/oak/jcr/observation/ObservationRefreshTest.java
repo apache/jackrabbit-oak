@@ -113,13 +113,12 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.addNode("n" + i);
                 n.getSession().save();
             }
-            assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.numAdded == 1000;
-                    }
-                }));
+            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                @Override
+                public boolean evaluate() {
+                    return listener.numAdded == 1000;
+                }
+            });
             assertEquals("", listener.error);
             assertEquals("added nodes", 1000, listener.numAdded);
 
@@ -127,13 +126,12 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getNode("n" + i).remove();
                 n.getSession().save();
             }
-            assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.numRemoved == 1000;
-                    }
-                }));
+            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                @Override
+                public boolean evaluate() {
+                    return listener.numRemoved == 1000;
+                }
+            });
             assertEquals("", listener.error);
             assertEquals("removed nodes", 1000, listener.numRemoved);
 
@@ -141,13 +139,12 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, "foo");
                 n.getSession().save();
             }
-            assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.numPropsAdded == 1100;
-                    }
-                }));
+            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                @Override
+                public boolean evaluate() {
+                    return listener.numPropsAdded == 1100;
+                }
+            });
             assertEquals("", listener.error);
             assertEquals("properties added", 1100, listener.numPropsAdded);
 
@@ -155,13 +152,12 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, i);
                 n.getSession().save();
             }
-            assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.numPropsModified == 100;
-                    }
-                }));
+            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                @Override
+                public boolean evaluate() {
+                    return listener.numPropsModified == 100;
+                }
+            });
             assertEquals("", listener.error);
             assertEquals("properties modified", 100, listener.numPropsModified);
 
@@ -191,13 +187,12 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getProperty("test" + i).remove();
                 n.getSession().save();
             }
-            assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.numPropsRemoved == 1100;
-                    }
-                }));
+            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                @Override
+                public boolean evaluate() {
+                    return listener.numPropsRemoved == 1100;
+                }
+            });
             assertEquals("", listener.error);
             assertEquals("properties removed", 1100, listener.numPropsRemoved);
         }
