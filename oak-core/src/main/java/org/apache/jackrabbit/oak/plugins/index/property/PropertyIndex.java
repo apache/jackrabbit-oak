@@ -36,9 +36,10 @@ import com.google.common.collect.Iterables;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
- * 
+ *
  * <p>
- * To define a property index on a subtree you have to add an <code>oak:index</code> node. <br>
+ * To define a property index on a subtree you have to add an <code>oak:index</code> node. 
+ * <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
@@ -123,7 +124,7 @@ class PropertyIndex implements QueryIndex {
      * return the proper implementation of the Lookup
      * 
      * @param root
-     * @return
+     * @return the lookup
      */
     PropertyIndexLookup getLookup(NodeState root) {
         return new PropertyIndexLookup(root);
@@ -174,7 +175,8 @@ class PropertyIndex implements QueryIndex {
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
                 // equality
-                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
                     break;
@@ -215,7 +217,8 @@ class PropertyIndex implements QueryIndex {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
                     buff.append(' ').append(propertyName).append('=').append(pr.first);
                 } else {
                     buff.append(' ').append(propertyName);

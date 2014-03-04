@@ -44,11 +44,13 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 /**
- * An IndexStoreStrategy implementation that saves the nodes under a hierarchy that mirrors the repository tree. <br>
- * This should minimize the chance that concurrent updates overlap on the same content node.<br>
+ * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
+ * that mirrors the repository tree. <br>
+ * This should minimize the chance that concurrent updates overlap on the same
+ * content node.<br>
  * <br>
- * For example for a node that is under {@code /test/node}, the index structure will be
- * {@code /oak:index/index/test/node}:
+ * For example for a node that is under {@code /test/node}, the index
+ * structure will be {@code /oak:index/index/test/node}:
  * 
  * <pre>
  * {@code
@@ -61,14 +63,16 @@ import com.google.common.collect.Sets;
  *         node
  * }
  * </pre>
- * 
+ *
  */
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(ContentMirrorStoreStrategy.class);
 
     @Override
-    public void update(NodeBuilder index, String path, Set<String> beforeKeys, Set<String> afterKeys) {
+    public void update(
+            NodeBuilder index, String path,
+            Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
             remove(index, key, path);
         }
@@ -90,7 +94,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 builders.addFirst(builder);
             }
 
-            // Drop the match value, if present
+            // Drop the match value,  if present
             if (builder.exists()) {
                 builder.removeProperty("match");
             }
@@ -125,21 +129,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             builder = builder.child(name);
         }
         builder.setProperty("match", true);
-    }
-
-    /**
-     * fetch from the index the <i>key</i> node
-     * 
-     * @param index
-     *            the current index root
-     * @param key
-     *            the 'key' to fetch from the repo
-     * @return the node representing the key
-     */
-    NodeBuilder fetchKeyNode(@Nonnull
-    NodeBuilder index, @Nonnull
-    String key) {
-        return index.child(key);
     }
 
     public Iterable<String> query(final Filter filter, final String indexName, final NodeState indexMeta,
@@ -183,7 +172,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return count(indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
-    public long count(NodeState indexMeta, final String indexStorageNodeName, Set<String> values, int max) {
+    public long count(NodeState indexMeta, final String indexStorageNodeName,
+            Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         int count = 0;
         if (values == null) {
@@ -205,7 +195,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             int i = 0;
             for (String p : values) {
                 if (count > max && i > 3) {
-                    // the total count is extrapolated from the the number
+                    // the total count is extrapolated from the the number 
                     // of values counted so far to the total number of values
                     count = count * size / i;
                     break;
@@ -226,17 +216,18 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      * An iterator over paths within an index node.
      */
     static class PathIterator implements Iterator<String> {
-
+        
         private final Filter filter;
         private final String indexName;
-        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators = Queues.newArrayDeque();
+        private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
+                Queues.newArrayDeque();
         private int readCount;
         private boolean init;
         private boolean closed;
         private String parentPath;
         private String currentPath;
         private boolean pathContainsValue;
-
+        
         /**
          * Keep the returned path, to avoid returning duplicate entries.
          */
@@ -298,8 +289,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     readCount++;
                     if (readCount % 1000 == 0) {
                         FilterIterators.checkReadLimit(readCount);
-                        LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter "
-                            + filter);
+                        LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter " + filter);
                     }
 
                     NodeState node = entry.getNodeState();
@@ -355,8 +345,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     /**
-     * A node visitor that counts the number of matching nodes up to a given maximum, in order to estimate the number of
-     * matches.
+     * A node visitor that counts the number of matching nodes up to a given
+     * maximum, in order to estimate the number of matches.
      */
     static class CountingNodeVisitor implements NodeVisitor {
 
@@ -376,7 +366,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         int depth;
 
         /**
-         * The sum of the depth of all matching nodes. This value is used to calculate the average depth.
+         * The sum of the depth of all matching nodes. This value is used to
+         * calculate the average depth.
          */
         long depthTotal;
 
@@ -412,8 +403,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
 
         /**
-         * The number of estimated matches. This value might be higher than the number of counted matches, if the
-         * maximum number of matches has been reached. It is based on the average depth of matches, and the average
+         * The number of estimated matches. This value might be higher than the
+         * number of counted matches, if the maximum number of matches has been
+         * reached. It is based on the average depth of matches, and the average
          * number of child nodes.
          * 
          * @return the estimated matches
@@ -431,5 +423,18 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
 
     }
-
+    
+    /**
+     * fetch from the index the <i>key</i> node
+     * 
+     * @param index
+     *            the current index root
+     * @param key
+     *            the 'key' to fetch from the repo
+     * @return the node representing the key
+     */
+    NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, 
+                             @Nonnull String key) {
+        return index.child(key);
+    }
 }

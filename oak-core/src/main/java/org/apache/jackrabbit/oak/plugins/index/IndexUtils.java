@@ -64,11 +64,11 @@ public class IndexUtils {
     /**
      * Create a new property index definition below the given {@code indexNode}.
      * 
-     * @param index The oak:index node builder
-     * @param indexDefName The name of the new property index.
-     * @param reindex {@code true} if the the reindex flag should be turned on.
-     * @param unique {@code true} if the index is expected the assert property uniqueness.
-     * @param propertyNames The property names that should be indexed.
+     * @param index                  The oak:index node builder
+     * @param indexDefName           The name of the new property index.
+     * @param reindex                {@code true} if the the reindex flag should be turned on.
+     * @param unique                 {@code true} if the index is expected the assert property uniqueness.
+     * @param propertyNames          The property names that should be indexed.
      * @param declaringNodeTypeNames The declaring node type names or {@code null}.
      * @return the NodeBuilder of the new index definition.
      */
@@ -79,9 +79,9 @@ public class IndexUtils {
                                                     @Nonnull Collection<String> propertyNames, 
                                                     @Nullable Collection<String> declaringNodeTypeNames) {
         NodeBuilder entry = index.child(indexDefName)
-                        .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                        .setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE)
-                        .setProperty(REINDEX_PROPERTY_NAME, reindex);
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE)
+                .setProperty(REINDEX_PROPERTY_NAME, reindex);
         if (unique) {
             entry.setProperty(UNIQUE_PROPERTY_NAME, unique);
         }
@@ -94,7 +94,7 @@ public class IndexUtils {
 
     /**
      * Create a new property2 index definition below the given {@code indexNode}.
-     * 
+     *
      * @param indexNode
      * @param indexDefName
      * @param unique
@@ -147,7 +147,7 @@ public class IndexUtils {
 
     public static boolean isIndexNodeType(NodeState state) {
         PropertyState ps = state.getProperty(JCR_PRIMARYTYPE);
-        return ps != null 
+        return ps != null
                 && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
@@ -156,7 +156,7 @@ public class IndexUtils {
             return false;
         }
         PropertyState type = state.getProperty(TYPE_PROPERTY_NAME);
-        return type != null && !type.isArray() 
+        return type != null && !type.isArray()
                 && type.getValue(Type.STRING).equals(typeIn);
     }
 

@@ -42,8 +42,10 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Is responsible for querying the property index content. <br>
- * This class can be used directly on a subtree where there is an index defined by supplying a {@link NodeState} root.
+ * Is responsible for querying the property index content.
+ * <br>
+ * This class can be used directly on a subtree where there is an index defined
+ * by supplying a {@link NodeState} root.
  * 
  * <pre>
  * <code>
@@ -61,17 +63,19 @@ public class PropertyIndexLookup {
      * The cost overhead to use the index in number of read operations.
      */
     private static final int COST_OVERHEAD = 2;
-
+    
     /**
      * The maximum cost when the index can be used.
      */
     private static final int MAX_COST = 100;
 
     /** Index storage strategy */
-    private static final IndexStoreStrategy MIRROR = new ContentMirrorStoreStrategy();
+    private static final IndexStoreStrategy MIRROR =
+            new ContentMirrorStoreStrategy();
 
     /** Index storage strategy */
-    private static final IndexStoreStrategy UNIQUE = new UniqueEntryStoreStrategy();
+    private static final IndexStoreStrategy UNIQUE =
+            new UniqueEntryStoreStrategy();
 
     private final NodeState root;
 
@@ -80,15 +84,13 @@ public class PropertyIndexLookup {
     }
 
     /**
-     * Checks whether the named property is indexed somewhere along the given path. Lookup starts at the current path
-     * (at the root of this object) and traverses down the path.
+     * Checks whether the named property is indexed somewhere along the given
+     * path. Lookup starts at the current path (at the root of this object) and
+     * traverses down the path.
      * 
-     * @param propertyName
-     *            property name
-     * @param path
-     *            lookup path
-     * @param filter
-     *            for the node type restriction (null if no node type restriction)
+     * @param propertyName property name
+     * @param path lookup path
+     * @param filter for the node type restriction (null if no node type restriction)
      * @return true if the property is indexed
      */
     public boolean isIndexed(String propertyName, String path, Filter filter) {
@@ -126,18 +128,20 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        return COST_OVERHEAD + getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
+        return COST_OVERHEAD +
+                getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
     }
 
     /**
-     * Get the node with the index definition for the given property, if there is an applicable index with data.
+     * Get the node with the index definition for the given property, if there
+     * is an applicable index with data.
      * 
-     * @param propertyName
-     *            the property name
-     * @param filter
-     *            the filter (which contains information of all supertypes, unless the filter matches all types)
-     * @return the node where the index definition (metadata) is stored (the parent of ":index"), or null if no index
-     *         definition or index data node was found
+     * @param propertyName the property name
+     * @param filter the filter (which contains information of all supertypes,
+     *            unless the filter matches all types)
+     * @return the node where the index definition (metadata) is stored (the
+     *         parent of ":index"), or null if no index definition or index data
+     *         node was found
      */
     @Nullable
     private NodeState getIndexNode(NodeState node, String propertyName, Filter filter) {
@@ -181,7 +185,7 @@ public class PropertyIndexLookup {
     /**
      * retrieve the type of the index
      * 
-     * @return
+     * @return the type
      */
     String getType() {
         return TYPE;

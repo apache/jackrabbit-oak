@@ -57,6 +57,7 @@ import com.google.common.base.Predicate;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor {
+
     /** Index storage strategy */
     private static final IndexStoreStrategy MIRROR =
             new ContentMirrorStoreStrategy();
@@ -79,7 +80,7 @@ class PropertyIndexEditor implements IndexEditor {
 
     private final Set<String> propertyNames;
 
-   /** Type predicate, or {@code null} if there are no type restrictions */
+    /** Type predicate, or {@code null} if there are no type restrictions */
     private final Predicate<NodeState> typePredicate;
 
     /**
@@ -121,7 +122,7 @@ class PropertyIndexEditor implements IndexEditor {
         } else {
             this.propertyNames = newHashSet(names.getValue(NAMES));
         }
-        
+
         // get declaring types, and all their subtypes
         // TODO: should we reindex when type definitions change?
         if (definition.hasProperty(DECLARING_NODE_TYPES)) {
@@ -154,7 +155,7 @@ class PropertyIndexEditor implements IndexEditor {
     /**
      * commodity method for allowing extensions
      * 
-     * @return
+     * @return the propertyNames
      */
     Set<String> getPropertyNames() {
        return propertyNames;

@@ -33,12 +33,16 @@ import com.google.common.collect.ImmutableList;
 @Service(QueryIndexProvider.class)
 public class OrderedPropertyIndexProvider implements QueryIndexProvider {
 
-   /* (non-Javadoc)
-    * @see org.apache.jackrabbit.oak.spi.query.QueryIndexProvider#getQueryIndexes(org.apache.jackrabbit.oak.spi.state.NodeState)
-    */
-   @Override
-   @Nonnull
-   public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
-      return ImmutableList.<QueryIndex>of(new OrderedPropertyIndex());
-   }
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.apache.jackrabbit.oak.spi.query.QueryIndexProvider#getQueryIndexes(org.apache.jackrabbit
+     * .oak.spi.state.NodeState)
+     */
+    @Override
+    @Nonnull
+    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+        return ImmutableList.<QueryIndex> of(new OrderedPropertyIndex());
+    }
 }

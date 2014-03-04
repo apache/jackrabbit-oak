@@ -17,12 +17,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.*;
+import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.TYPE;
 
-/**
- *
- */
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 public class OrderedPropertyIndex extends PropertyIndex {
 
     @Override
