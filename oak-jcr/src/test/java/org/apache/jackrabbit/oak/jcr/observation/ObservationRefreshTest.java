@@ -66,7 +66,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
 
-    private static final long CONDITION_TIMEOUT = 30000;
+    private static final long CONDITION_TIMEOUT = 10*60*1000;
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -128,7 +128,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getSession().save();
             }
             assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
                     @Override
                     public boolean evaluate() {
                         return listener.numRemoved == 1000;
@@ -142,7 +142,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getSession().save();
             }
             assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
                     @Override
                     public boolean evaluate() {
                         return listener.numPropsAdded == 1100;
@@ -156,7 +156,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getSession().save();
             }
             assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
                     @Override
                     public boolean evaluate() {
                         return listener.numPropsModified == 100;
@@ -192,7 +192,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getSession().save();
             }
             assertTrue("Gave up waiting for events",
-                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
                     @Override
                     public boolean evaluate() {
                         return listener.numPropsRemoved == 1100;
