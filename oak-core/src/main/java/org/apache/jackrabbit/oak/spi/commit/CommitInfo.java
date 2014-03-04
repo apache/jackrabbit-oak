@@ -21,13 +21,14 @@ package org.apache.jackrabbit.oak.spi.commit;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collections;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.Root;
 
 /**
@@ -60,9 +61,7 @@ public final class CommitInfo {
      */
     public CommitInfo(
             @Nonnull String sessionId, @Nullable String userId) {
-        this(sessionId, userId, ImmutableMap.<String, Object>of(
-            Root.COMMIT_PATH, "/"
-        ));
+        this(sessionId, userId, Collections.<String, Object>emptyMap());
     }
 
     /**

@@ -411,7 +411,7 @@ public class SessionImpl implements JackrabbitSession {
         perform(new WriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                sd.save();
+                sd.save(null);
                 return null;
             }
 
