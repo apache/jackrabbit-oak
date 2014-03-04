@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.commons.JcrUtils.in;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,16 +30,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
+import com.google.common.collect.Iterators;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Iterators;
-
-import static org.apache.jackrabbit.commons.JcrUtils.in;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * <code>ConcurrentAddReferenceTest</code> adds nodes with multiple sessions in separate
@@ -71,7 +70,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
         session.save();
     }
 
-    @SuppressWarnings("unchecked")
+//    @SuppressWarnings("unchecked")
     @Test
     public void addReferences() throws Exception {
         Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1472
