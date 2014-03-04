@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,6 +37,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -361,39 +363,32 @@ public class SessionDelegate {
         return root.hasPendingChanges();
     }
 
-    public void save() throws RepositoryException {
-        sessionStats.save();
-        try {
-            commit();
-        } catch (CommitFailedException e) {
-            RepositoryException repositoryException = newRepositoryException(e);
-            sessionStats.failedSave(repositoryException);
-            throw repositoryException;
-        }
-    }
-
     /**
-     * Save the subtree rooted at the given {@code path}.
+     * Save the subtree rooted at the given {@code path}, or the entire
+     * transient space if given the root path or {@code null}.
      * <p>
-     * This implementation only performs the save if the subtree rooted at {@code path} contains
-     * all transient changes and will throw an
+     * This implementation only performs the save if the subtree rooted
+     * at {@code path} contains all transient changes and will throw an
      * {@link javax.jcr.UnsupportedRepositoryOperationException} otherwise.
      *
      * @param path
      * @throws RepositoryException
      */
-    public void save(final String path) throws RepositoryException {
-        sessionStats.save();
-        if (denotesRoot(path)) {
-            save();
+    public void save(String path) throws RepositoryException {
+        Map<String, Object> info;
+        if (path == null || denotesRoot(path)) {
+            info = Collections.emptyMap();
         } else {
-            try {
-                root.commit(path);
-            } catch (CommitFailedException e) {
-                RepositoryException repositoryException = newRepositoryException(e);
-                sessionStats.failedSave(repositoryException);
-                throw repositoryException;
-            }
+            info = Collections.singletonMap(Root.COMMIT_PATH, (Object) path);
+        }
+
+        sessionStats.save();
+        try {
+            root.commit(info);
+        } catch (CommitFailedException e) {
+            RepositoryException repositoryException = newRepositoryException(e);
+            sessionStats.failedSave(repositoryException);
+            throw repositoryException;
         }
     }
 

@@ -27,14 +27,13 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.security.auth.Subject;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -250,15 +249,8 @@ class MutableRoot implements Root {
     }
 
     @Override
-    public void commit(@Nullable String path) throws CommitFailedException {
-        Map<String, Object> info = Maps.newHashMap();
-        info.put(COMMIT_PATH, path);
-        commit(info);
-    }
-
-    @Override
     public void commit() throws CommitFailedException {
-        commit((String) null);
+        commit(Collections.<String, Object>emptyMap());
     }
 
     /**

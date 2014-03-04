@@ -24,7 +24,6 @@ import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * A {@code Root} instance serves as a container for a {@link Tree}. It is
@@ -111,36 +110,20 @@ public interface Root {
      * After a successful operation the root is automatically
      * {@link #refresh() refreshed}, such that trees previously obtained
      * through {@link #getTree(String)} may become non existing.
-     */
-    void commit(Map<String, Object> info) throws CommitFailedException;
-
-    /**
-     * Atomically persists all changes made to the tree attached to this root
-     * at the given {@code path}. An implementation may throw a
-     * {@code CommitFailedException} if there are changes outside of the subtree
-     * designated by {@code path} and the implementation does not support
-     * such partial commits. However all implementation must handler the
-     * case where a {@code path} designates a subtree that contains all
-     * unpersisted changes.
-     * <p>
-     * After a successful operation the root is automatically
-     * {@link #refresh() refreshed}, such that trees previously obtained
-     * through {@link #getTree(String)} may become non existing.
      *
-     * @param path of the subtree to commit
+     * @param info commit information
      * @throws CommitFailedException if the commit failed
      */
-    void commit(@Nullable String path) throws CommitFailedException;
+    void commit(@Nonnull Map<String, Object> info) throws CommitFailedException;
 
     /**
      * Atomically persists all changes made to the tree attached to this root.
      * Calling this method is equivalent to calling the
-     * {@link #commit(String)} method with a {@code null} argument {@code path}.
+     * {@link #commit(Map<String, Object> info)} method with an empty info map.
      *
      * @throws CommitFailedException if the commit failed
      */
     void commit() throws CommitFailedException;
-
 
     /**
      * Determine whether there are changes on this tree
