@@ -28,17 +28,17 @@ import org.apache.lucene.analysis.miscellaneous.LengthFilter;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizer;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilter;
 import org.apache.lucene.analysis.reverse.ReverseStringFilter;
+import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.Version;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Testcase for checking default analyzers configurations behave as expected with regards to path related restrictions
  *
- * Note that default Solr analyzers for Oak should be equivalent to the ones programmtically defined here.
+ * Note that default Solr analyzers for Oak should be equivalent to the ones programmatically defined here.
  */
-@Ignore
+@LuceneTestCase.SuppressCodecs({"Lucene3x"})
 public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
 
     private Analyzer parentPathIndexingAnalyzer;
@@ -70,9 +70,9 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
             @Override
             protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
                 Tokenizer source = new KeywordTokenizer(reader);
-                TokenStream filter = new ReverseStringFilter(Version.LUCENE_41, source);
+                TokenStream filter = new ReverseStringFilter(Version.LUCENE_47, source);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("[^\\/]+\\/"), "", false);
-                filter = new ReverseStringFilter(Version.LUCENE_41, filter);
+                filter = new ReverseStringFilter(Version.LUCENE_47, filter);
                 return new TokenStreamComponents(source, filter);
             }
         };
@@ -81,11 +81,11 @@ public class DefaultAnalyzersConfigurationTest extends BaseTokenStreamTestCase {
             @Override
             protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
                 Tokenizer source = new KeywordTokenizer(reader);
-                TokenStream filter = new ReverseStringFilter(Version.LUCENE_41, source);
-                filter = new LengthFilter(false, filter, 2, Integer.MAX_VALUE);
+                TokenStream filter = new ReverseStringFilter(Version.LUCENE_47, source);
+                filter = new LengthFilter(Version.LUCENE_47, filter, 2, Integer.MAX_VALUE);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("([^\\/]+)(\\/)"), "$2", false);
                 filter = new PatternReplaceFilter(filter, Pattern.compile("(\\/)(.+)"), "$2", false);
-                filter = new ReverseStringFilter(Version.LUCENE_41, filter);
+                filter = new ReverseStringFilter(Version.LUCENE_47, filter);
                 return new TokenStreamComponents(source, filter);
             }
         };

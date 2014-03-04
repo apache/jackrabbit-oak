@@ -80,4 +80,9 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
         return CommitPolicy.SOFT;
     }
 
+    @Override
+    public String getCatchAllField() {
+        return SolrServerConfigurationDefaults.CATCHALL_FIELD;
+    }
+
 }

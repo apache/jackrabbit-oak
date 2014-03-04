@@ -34,4 +34,5 @@ public class SolrServerConfigurationDefaults {
     public static final String DESC_FIELD_NAME = "path_desc";
     public static final String ANC_FIELD_NAME = "path_anc";
 
+    public static final String CATCHALL_FIELD = "catch_all";
 }
