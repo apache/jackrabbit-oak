@@ -24,9 +24,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
@@ -36,7 +34,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -236,6 +234,17 @@ public class SessionDelegate {
         this.userData = userData;
     }
 
+    private void commit(Root root, String path) throws CommitFailedException {
+        ImmutableMap.Builder<String, Object> info = ImmutableMap.builder();
+        if (path != null && !denotesRoot(path)) {
+            info.put(Root.COMMIT_PATH, path);
+        }
+        if (userData != null) {
+            info.put(EventFactory.USER_DATA, userData);
+        }
+        root.commit(info.build());
+    }
+
     /**
      * Commits the changes currently in the transient space.
      * TODO: Consolidate with save().
@@ -243,7 +252,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit() throws CommitFailedException {
-        commit(root);
+        commit(root, null);
     }
 
     /**
@@ -255,9 +264,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit(Root root) throws CommitFailedException {
-        Map<String, Object> info = Maps.newHashMap();
-        info.put(EventFactory.USER_DATA, userData);
-        root.commit(info);
+        commit(root, null);
     }
 
     public void checkProtectedNode(String path) throws RepositoryException {
@@ -375,16 +382,9 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(String path) throws RepositoryException {
-        Map<String, Object> info;
-        if (path == null || denotesRoot(path)) {
-            info = Collections.emptyMap();
-        } else {
-            info = Collections.singletonMap(Root.COMMIT_PATH, (Object) path);
-        }
-
         sessionStats.save();
         try {
-            root.commit(info);
+            commit(root, path);
         } catch (CommitFailedException e) {
             RepositoryException repositoryException = newRepositoryException(e);
             sessionStats.failedSave(repositoryException);
