@@ -66,18 +66,18 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("found a Solr index definition {}", entry.getName());
                 }
-            }
-            try {
-                tempIndexes.add(new SolrQueryIndex(
-                        entry.getName(),
-                        solrServerProvider.getSolrServer(),
-                        oakSolrConfigurationProvider.getConfiguration()));
-            } catch (Exception e) {
-                if (log.isErrorEnabled()) {
-                    log.error("unable to create Solr query index at " + entry.getName(), e);
+
+                try {
+                    tempIndexes.add(new SolrQueryIndex(
+                            entry.getName(),
+                            solrServerProvider.getSolrServer(),
+                            oakSolrConfigurationProvider.getConfiguration()));
+                } catch (Exception e) {
+                    if (log.isErrorEnabled()) {
+                        log.error("unable to create Solr query index at " + entry.getName(), e);
+                    }
                 }
             }
-
         }
         return tempIndexes;
     }
