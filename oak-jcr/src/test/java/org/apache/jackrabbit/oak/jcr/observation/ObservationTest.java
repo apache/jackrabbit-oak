@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Objects.equal;
+import static java.util.Collections.synchronizedList;
+import static java.util.Collections.synchronizedSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -764,8 +766,10 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private static class ExpectationListener implements EventListener {
-        private final Set<Expectation> expected = Sets.newCopyOnWriteArraySet();
-        private final List<Event> unexpected = Lists.newCopyOnWriteArrayList();
+        private final Set<Expectation> expected = synchronizedSet(
+                Sets.<Expectation>newCopyOnWriteArraySet());
+        private final List<Event> unexpected = synchronizedList(
+                Lists.<Event>newCopyOnWriteArrayList());
 
         private volatile Exception failed;
 
