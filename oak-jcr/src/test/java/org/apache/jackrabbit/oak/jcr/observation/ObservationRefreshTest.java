@@ -26,6 +26,7 @@ import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -112,12 +113,13 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.addNode("n" + i);
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                @Override
-                public boolean evaluate() {
-                    return listener.numAdded == 1000;
-                }
-            });
+            assertTrue("Gave up waiting for events",
+                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                    @Override
+                    public boolean evaluate() {
+                        return listener.numAdded == 1000;
+                    }
+                }));
             assertEquals("", listener.error);
             assertEquals("added nodes", 1000, listener.numAdded);
 
@@ -125,12 +127,13 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getNode("n" + i).remove();
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
-                @Override
-                public boolean evaluate() {
-                    return listener.numRemoved == 1000;
-                }
-            });
+            assertTrue("Gave up waiting for events",
+                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                    @Override
+                    public boolean evaluate() {
+                        return listener.numRemoved == 1000;
+                    }
+                }));
             assertEquals("", listener.error);
             assertEquals("removed nodes", 1000, listener.numRemoved);
 
@@ -138,12 +141,13 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, "foo");
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
-                @Override
-                public boolean evaluate() {
-                    return listener.numPropsAdded == 1100;
-                }
-            });
+            assertTrue("Gave up waiting for events",
+                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                    @Override
+                    public boolean evaluate() {
+                        return listener.numPropsAdded == 1100;
+                    }
+                }));
             assertEquals("", listener.error);
             assertEquals("properties added", 1100, listener.numPropsAdded);
 
@@ -151,32 +155,35 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, i);
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
-                @Override
-                public boolean evaluate() {
-                    return listener.numPropsModified == 100;
-                }
-            });
+            assertTrue("Gave up waiting for events",
+                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                    @Override
+                    public boolean evaluate() {
+                        return listener.numPropsModified == 100;
+                    }
+                }));
             assertEquals("", listener.error);
             assertEquals("properties modified", 100, listener.numPropsModified);
 
             for (int i=0; i<10; i++) {
                 n.setProperty("test100", "foo");
                 n.getSession().save();
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return listener.test100Exists;
-                    }
-                });
+                assertTrue("Gave up waiting for events",
+                    Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                        @Override
+                        public boolean evaluate() {
+                            return listener.test100Exists;
+                        }
+                    }));
                 n.getProperty("test100").remove();
                 n.getSession().save();
-                Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                    @Override
-                    public boolean evaluate() {
-                        return !listener.test100Exists;
-                    }
-                });
+                assertTrue("Gave up waiting for events",
+                    Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+                        @Override
+                        public boolean evaluate() {
+                            return !listener.test100Exists;
+                        }
+                    }));
             }
             assertEquals("", listener.error);
 
@@ -184,12 +191,13 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getProperty("test" + i).remove();
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
-                @Override
-                public boolean evaluate() {
-                    return listener.numPropsRemoved == 1100;
-                }
-            });
+            assertTrue("Gave up waiting for events",
+                Timer.waitFor(CONDITION_TIMEOUT , new Condition() {
+                    @Override
+                    public boolean evaluate() {
+                        return listener.numPropsRemoved == 1100;
+                    }
+                }));
             assertEquals("", listener.error);
             assertEquals("properties removed", 1100, listener.numPropsRemoved);
         }
