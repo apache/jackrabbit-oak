@@ -48,6 +48,8 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
 
     private String refPath;
 
+    private Node testRoot;
+
     public ConcurrentAddReferenceTest(NodeStoreFixture fixture) {
         super(fixture);
     }
@@ -58,6 +60,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
         Node root = session.getRootNode();
         Node testNode = root.addNode("test_referenceable");
         testNode.addMixin(NodeType.MIX_REFERENCEABLE);
+        testRoot = getAdminSession().getRootNode().addNode("test");
         session.save();
         refPath = testNode.getPath();
     }
@@ -65,20 +68,19 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
     @After
     public void tearDown() throws RepositoryException {
         Session session = getAdminSession();
-        session.removeItem("/test");
+        testRoot.remove();
         session.removeItem(refPath);
         session.save();
     }
 
-//    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     @Test
     public void addReferences() throws Exception {
         Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1472
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
-        Node test = getAdminSession().getRootNode().addNode("test");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
-            String path = test.addNode("node" + i).getPath();
+            String path = testRoot.addNode("node" + i).getPath();
             worker.add(new Thread(new Worker(
                     createAdminSession(), path, exceptions)));
         }
@@ -93,7 +95,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
             fail(e.toString());
         }
         getAdminSession().refresh(false);
-        for (Node n : in((Iterator<Node>) test.getNodes())) {
+        for (Node n : in((Iterator<Node>) testRoot.getNodes())) {
             assertEquals(NODES_PER_WORKER, Iterators.size(n.getNodes()));
         }
     }
