@@ -89,6 +89,11 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     }
 
     @Override
+    public String getCatchAllField() {
+        return getStringValueFor(Properties.CATCHALL_FIELD, SolrServerConfigurationDefaults.CATCHALL_FIELD);
+    }
+
+    @Override
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
     }
@@ -135,6 +140,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String PARENT_FIELD = "parentField";
         public static final String CHILDREN_FIELD = "childrenField";
         public static final String DESCENDANTS_FIELD = "descendantsField";
+        public static final String CATCHALL_FIELD = "catchAllField";
         public static final String COMMIT_POLICY = "commitPolicy";
 
     }

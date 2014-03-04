@@ -207,16 +207,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     private boolean isHttpRequest(String nativeQueryString) {
-        return nativeQueryString.matches("\\w+\\?.*"); // the query string starts with ${handler.selector}?
+        // the query string starts with ${supported-handler.selector}?
+        return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
     }
 
     private void setDefaults(SolrQuery solrQuery) {
         solrQuery.setParam("q.op", "AND");
+        solrQuery.setParam("df", configuration.getCatchAllField());
 
-        // TODO : change this to be not hard coded
-        solrQuery.setParam("df", "catch_all");
-
-        // TODO : can we handle this better?
+        // TODO : can we handle this better? e.g. with deep paging support?
         solrQuery.setParam("rows", String.valueOf(Integer.MAX_VALUE));
     }
 
