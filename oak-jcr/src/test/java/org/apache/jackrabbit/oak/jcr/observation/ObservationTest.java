@@ -854,7 +854,6 @@ public class ObservationTest extends AbstractRepositoryTest {
                     for (Expectation exp : expected) {
                         if (exp.isEnabled() && exp.onEvent(event)) {
                             found = true;
-                            expected.remove(exp);
                             exp.complete(event);
                         }
                     }
