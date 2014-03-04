@@ -36,6 +36,20 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
+/**
+ * Same as for {@link ContentMirrorStoreStrategy} but the order of the keys is kept by using the
+ * following structure
+ * 
+ * <code>
+ *  :index : {
+ *      :start : { :next = n1 },
+ *      n0 : { /content/foo/bar(match=true), :next=n3 },
+ *      n1 : { /content/foo1/bar(match=true), :next=n0 },
+ *      n2 : { /content/foo2/bar(match=true), :next= }, //this is the end of the list
+ *      n3 : { /content/foo3/bar(match=true), :next=n2 }
+ *  }
+ * </code>
+ */
 public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrategy {
     private static final Logger log = LoggerFactory.getLogger(OrderedContentMirrorStoreStrategy.class);
 
@@ -59,22 +73,22 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
         log.debug("fetchKeyNode() - index: {} - key: {}", index, key);
-        NodeBuilder _key = null;
+        NodeBuilder localkey = null;
         NodeBuilder start = index.child(START);
 
         // identifying the right place for insert
         String n = start.getString(NEXT);
         if (Strings.isNullOrEmpty(n)) {
             // new/empty index
-            _key = index.child(key);
-            _key.setProperty(NEXT, "");
+            localkey = index.child(key);
+            localkey.setProperty(NEXT, "");
             start.setProperty(NEXT, key);
         } else {
             // specific use-case where the item has to be added as first of the list
             String nextKey = n;
             if (key.compareTo(nextKey) < 0) {
-                _key = index.child(key);
-                _key.setProperty(NEXT, nextKey);
+                localkey = index.child(key);
+                localkey.setProperty(NEXT, nextKey);
                 start.setProperty(NEXT, key);
             } else {
                 Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState());
@@ -83,13 +97,13 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     if (Strings.isNullOrEmpty(nextKey)) {
                         // we're at the last element, therefore our 'key' has to be appended
                         index.getChildNode(child.getName()).setProperty(NEXT, key);
-                        _key = index.child(key);
-                        _key.setProperty(NEXT, "");
+                        localkey = index.child(key);
+                        localkey.setProperty(NEXT, "");
                     } else {
                         if (key.compareTo(nextKey) < 0) {
                             index.getChildNode(child.getName()).setProperty(NEXT, key);
-                            _key = index.child(key);
-                            _key.setProperty(NEXT, nextKey);
+                            localkey = index.child(key);
+                            localkey.setProperty(NEXT, nextKey);
                             break;
                         }
                     }
@@ -97,7 +111,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             }
         }
 
-        return _key;
+        return localkey;
     }
 
     @Override
@@ -247,22 +261,12 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             this.state = state;
         }
 
-        /*
-         * (non-Javadoc)
-         * 
-         * @see org.apache.jackrabbit.oak.spi.state.ChildNodeEntry#getName()
-         */
         @Override
         @Nonnull
         public String getName() {
             return name;
         }
 
-        /*
-         * (non-Javadoc)
-         * 
-         * @see org.apache.jackrabbit.oak.spi.state.ChildNodeEntry#getNodeState()
-         */
         @Override
         @Nonnull
         public NodeState getNodeState() {

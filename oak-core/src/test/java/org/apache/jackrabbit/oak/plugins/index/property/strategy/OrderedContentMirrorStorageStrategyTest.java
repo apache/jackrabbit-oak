@@ -189,12 +189,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         Iterable<ChildNodeEntry> children = (Iterable<ChildNodeEntry>) store.getChildNodeEntries(indexState);
         assertNotNull("The iterable cannot be null", children);
-        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator())); // how
-                                                                                                // many
-                                                                                                // entries
-                                                                                                // do
-                                                                                                // we
-                                                                                                // have?
+        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator())); 
 
         // ensuring the right sequence
         ChildNodeEntry entry = null;
@@ -242,12 +237,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         Iterable<ChildNodeEntry> children = (Iterable<ChildNodeEntry>) store.getChildNodeEntries(indexState, false);
         assertNotNull("The iterable cannot be null", children);
-        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator())); // how
-                                                                                                // many
-                                                                                                // entries
-                                                                                                // do
-                                                                                                // we
-                                                                                                // have?
+        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator()));
 
         // ensuring the right sequence
         ChildNodeEntry entry = null;
@@ -296,12 +286,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         Iterable<ChildNodeEntry> children = (Iterable<ChildNodeEntry>) store.getChildNodeEntries(indexState, true);
         assertNotNull("The iterable cannot be null", children);
-        assertEquals("Expecting 3 items in the index", 3, Iterators.size(children.iterator())); // how
-                                                                                                // many
-                                                                                                // entries
-                                                                                                // do
-                                                                                                // we
-                                                                                                // have?
+        assertEquals("Expecting 3 items in the index", 3, Iterators.size(children.iterator())); 
 
         // ensuring the right sequence
         ChildNodeEntry entry = null;
