@@ -205,11 +205,11 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             cne = Collections.emptyList();
         } else {
             cne = new Iterable<ChildNodeEntry>() {
-                private NodeState _index = index;
-                private NodeState _start = ((includeStart && !start.exists()) ? EMPTY_START_NODE
+                private NodeState localIndex = index;
+                private NodeState localStart = ((includeStart && !start.exists()) ? EMPTY_START_NODE
                                                                              : start);
-                private NodeState current = _start;
-                private boolean _includeStart = includeStart;
+                private NodeState current = localStart;
+                private boolean localIncludeStart = includeStart;
 
                 @Override
                 public Iterator<ChildNodeEntry> iterator() {
@@ -217,26 +217,26 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
 
                         @Override
                         public boolean hasNext() {
-                            return ((_includeStart && _start.equals(current)) || (!_includeStart && !Strings.isNullOrEmpty(current.getString(NEXT))));
+                            return ((localIncludeStart && localStart.equals(current)) || (!localIncludeStart && !Strings.isNullOrEmpty(current.getString(NEXT))));
                         }
 
                         @Override
                         public ChildNodeEntry next() {
-                            ChildNodeEntry _cne = null;
-                            if (_includeStart && _start.equals(current)) {
-                                _cne = new OrderedChildNodeEntry(START, current);
-                                _includeStart = false; // let's set it to false. We just included
-                                                       // it.
+                            ChildNodeEntry localCNE = null;
+                            if (localIncludeStart && localStart.equals(current)) {
+                                localCNE = new OrderedChildNodeEntry(START, current);
+                                // let's set it to false. We just included it.
+                                localIncludeStart = false; 
                             } else {
                                 if (hasNext()) {
                                     final String name = current.getString(NEXT);
-                                    current = _index.getChildNode(name);
-                                    _cne = new OrderedChildNodeEntry(name, current);
+                                    current = localIndex.getChildNode(name);
+                                    localCNE = new OrderedChildNodeEntry(name, current);
                                 } else {
                                     throw new NoSuchElementException();
                                 }
                             }
-                            return _cne;
+                            return localCNE;
                         }
 
                         @Override

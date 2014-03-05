@@ -143,7 +143,8 @@ class PropertyIndex implements QueryIndex {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding && pr.first != null && pr.first.equals(pr.last)) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     return lookup.getCost(filter, propertyName, pr.first);
                 } else if (pr.list != null) {

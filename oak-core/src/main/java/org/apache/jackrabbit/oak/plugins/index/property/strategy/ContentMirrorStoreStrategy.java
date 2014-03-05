@@ -104,24 +104,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
     }
 
-    /**
-     * Physically prune a list of nodes from the index
-     * 
-     * @param index
-     *            the current index
-     * @param builders
-     *            list of nodes to prune
-     */
-    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
-        for (NodeBuilder node : builders) {
-            if (node.getBoolean("match") || node.getChildNodeCount(1) > 0) {
-                return;
-            } else if (node.exists()) {
-                node.remove();
-            }
-        }
-    }
-
     private void insert(NodeBuilder index, String key, String value) {
         // NodeBuilder builder = index.child(key);
         NodeBuilder builder = fetchKeyNode(index, key);
@@ -131,8 +113,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         builder.setProperty("match", true);
     }
 
-    public Iterable<String> query(final Filter filter, final String indexName, final NodeState indexMeta,
-        final String indexStorageNodeName, final Iterable<String> values) {
+    public Iterable<String> query(final Filter filter, final String indexName,
+            final NodeState indexMeta, final String indexStorageNodeName,
+            final Iterable<String> values) {
         final NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         return new Iterable<String>() {
             @Override
@@ -146,7 +129,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         NodeState property = index.getChildNode(p);
                         if (property.exists()) {
                             // we have an entry for this value, so use it
-                            it.enqueue(Iterators.singletonIterator(new MemoryChildNodeEntry("", property)));
+                            it.enqueue(Iterators.singletonIterator(
+                                    new MemoryChildNodeEntry("", property)));
                         }
                     }
                 }
@@ -162,8 +146,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public Iterable<String> query(final Filter filter, final String indexName, final NodeState indexMeta,
-        final Iterable<String> values) {
+    public Iterable<String> query(final Filter filter, final String indexName,
+            final NodeState indexMeta, final Iterable<String> values) {
         return query(filter, indexName, indexMeta, INDEX_CONTENT_NODE_NAME, values);
     }
 
@@ -436,5 +420,23 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, 
                              @Nonnull String key) {
         return index.child(key);
+    }
+
+    /**
+     * Physically prune a list of nodes from the index
+     * 
+     * @param index
+     *            the current index
+     * @param builders
+     *            list of nodes to prune
+     */
+    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
+        for (NodeBuilder node : builders) {
+            if (node.getBoolean("match") || node.getChildNodeCount(1) > 0) {
+                return;
+            } else if (node.exists()) {
+                node.remove();
+            }
+        }
     }
 }

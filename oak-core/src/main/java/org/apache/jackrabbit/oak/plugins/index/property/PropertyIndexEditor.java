@@ -335,7 +335,8 @@ class PropertyIndexEditor implements IndexEditor {
     }
 
     @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) {
+    public Editor childNodeChanged(
+            String name, NodeState before, NodeState after) {
         return getChildIndexEditor(this, name);
     }
 
