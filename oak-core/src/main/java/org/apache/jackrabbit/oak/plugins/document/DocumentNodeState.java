@@ -52,6 +52,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -70,12 +71,6 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
      * The maximum number of child nodes to fetch in one call. (1600).
      */
     static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
-
-    /**
-     * Number of child nodes beyond which {@link DocumentNodeStore#}
-     * is used for diffing.
-     */
-    public static final int LOCAL_DIFF_THRESHOLD = 10;
 
     private final DocumentNodeStore store;
 
@@ -246,7 +241,7 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     if (lastRevision.equals(mBase.lastRevision)) {
                         // no differences
                         return true;
-                    } else if (getChildNodeCount(LOCAL_DIFF_THRESHOLD) > LOCAL_DIFF_THRESHOLD) {
+                    } else if (getChildNodeCount(MANY_CHILDREN_THRESHOLD) > MANY_CHILDREN_THRESHOLD) {
                         // use DocumentNodeStore compare when there are many children
                         return dispatch(store.diffChildren(this, mBase), mBase, diff);
                     }
