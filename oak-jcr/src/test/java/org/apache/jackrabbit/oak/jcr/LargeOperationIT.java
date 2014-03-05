@@ -408,8 +408,7 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1429
-            assertOnLgn("slow listeners", scales, executionTimes, knownIssue);
+            assertOnLgn("slow listeners", scales, executionTimes, false);
         } finally {
             delayedEventHandling.stop();
             result.get();
