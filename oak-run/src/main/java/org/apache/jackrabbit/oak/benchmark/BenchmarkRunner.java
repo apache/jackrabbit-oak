@@ -160,6 +160,7 @@ public class BenchmarkRunner {
                     itemsToRead.value(options),
                     report.value(options),
                     randomUser.value(options)),
+            new ConcurrentWriteACLTest(),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
