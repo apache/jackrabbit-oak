@@ -43,7 +43,7 @@ public interface PermissionProvider {
      * specified {@code Tree}.
      *
      * @param tree The {@code tree} for which the privileges should be retrieved.
-     * @return
+     * @return set of privilege names
      */
     @Nonnull
     Set<String> getPrivileges(@Nullable Tree tree);
@@ -76,7 +76,7 @@ public interface PermissionProvider {
     RepositoryPermission getRepositoryPermission();
 
     /**
-     * Return the {@coe TreePermission} for the set of {@code Principal}s associated
+     * Return the {@code TreePermission} for the set of {@code Principal}s associated
      * with this provider at the specified {@code tree}.
      *
      * @param tree The tree for which the {@code TreePermission} object should be built.
