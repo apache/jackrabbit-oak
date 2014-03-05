@@ -18,8 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -125,104 +129,279 @@ public interface QueryIndex {
 
     }
 
-//    /**
-//     * Return the possible index plans for the given filter and sort order.
-//     * Please note this method is supposed to run quickly. That means it should
-//     * usually not read any data from the storage.
-//     *
-//     * @param filter the filter
-//     * @param sortOrder the sort order or null if no sorting is required
-//     * @param rootState root state of the current repository snapshot
-//     * @return the list of index plans (null if none)
-//     */
-//    List<IndexPlan> getPlans(Filter filter, List<Order> sortOrder, NodeState rootState);
-//    
-//    /**
-//     * Get the query plan description (for logging purposes).
-//     *
-//     * @param plan the index plan
-//     * @return the query plan description
-//     */
-//    String getPlanDescription(IndexPlan plan);
-//    
-//    /**
-//     * Start a query. The filter and sort order of the index plan is to be used.
-//     *
-//     * @param plan the index plan to use
-//     * @param rootState root state of the current repository snapshot
-//     * @return a cursor to iterate over the result
-//     */
-//    Cursor query(IndexPlan plan, NodeState rootState);
-//    
-//    /**
-//     * An index plan.
-//     */
-//    public static class IndexPlan {
-//        
-//        /**
-//         * The cost to execute the query once. The returned value should
-//         * approximately match the number of disk read operations plus the
-//         * number of network roundtrips (worst case).
-//         */
-//        double costPerExecution;
-//        
-//        /**
-//         * The cost to read one entry from the cursor. The returned value should
-//         * approximately match the number of disk read operations plus the
-//         * number of network roundtrips (worst case).
-//         */
-//        double costPerEntry;
-//        
-//        /**
-//         * The estimated number of entries. This value does not have to be
-//         * accurate.
-//         */
-//        long estimatedEntryCount;
-//        
-//        /**
-//         * The filter to use.
-//         */
-//        Filter filter;
-//
-//        /**
-//         * Whether the index is not always up-to-date.
-//         */
-//        boolean isDelayed;
-//        
-//        /**
-//         * Whether the fulltext part of the filter is evaluated (possibly with
-//         * an extended syntax). If set, the fulltext part of the filter is not
-//         * evaluated any more within the query engine.
-//         */
-//        boolean isFulltextIndex;
-//        
-//        /**
-//         * Whether the cursor is able to read all properties from a node.
-//         */
-//        boolean includesNodeData;
-//        
-//        /**
-//         * The sort order of the returned entries, or null if unsorted.
-//         */
-//        List<Order> sortOrder;
-//        
-//    }
-//    
-//    /**
-//     * A sort order entry.
-//     */
-//    static class Order {
-//        
-//        /**
-//         * The property name on where to sort.
-//         */
-//        String propertyName;
-//
-//        /**
-//         * True for descending, false for ascending.
-//         */
-//        boolean descending;
-//        
-//    }
+    /**
+     * An query index that may support using multiple access orders
+     * (returning the rows in a specific order), and that can provide detailed
+     * information about the cost.
+     */
+    public interface AdvancedQueryIndex {
+
+        /**
+         * Return the possible index plans for the given filter and sort order.
+         * Please note this method is supposed to run quickly. That means it
+         * should usually not read any data from the storage.
+         * 
+         * @param filter the filter
+         * @param sortOrder the sort order or null if no sorting is required
+         * @param rootState root state of the current repository snapshot
+         * @return the list of index plans (null if none)
+         */
+        List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder,
+                NodeState rootState);
+
+        /**
+         * Get the query plan description (for logging purposes).
+         * 
+         * @param plan the index plan
+         * @return the query plan description
+         */
+        String getPlanDescription(IndexPlan plan);
+
+        /**
+         * Start a query. The filter and sort order of the index plan is to be
+         * used.
+         * 
+         * @param plan the index plan to use
+         * @param rootState root state of the current repository snapshot
+         * @return a cursor to iterate over the result
+         */
+        Cursor query(IndexPlan plan, NodeState rootState);
+
+    }
+
+    /**
+     * An index plan.
+     */
+    public interface IndexPlan {
+
+        /**
+         * The cost to execute the query once. The returned value should
+         * approximately match the number of disk read operations plus the
+         * number of network roundtrips (worst case).
+         * 
+         * @return the cost per execution, in estimated number of I/O operations
+         */
+        double getCostPerExecution();
+
+        /**
+         * The cost to read one entry from the cursor. The returned value should
+         * approximately match the number of disk read operations plus the
+         * number of network roundtrips (worst case).
+         * 
+         * @return the lookup cost per entry, in estimated number of I/O operations
+         */
+        double getCostPerEntry();
+
+        /**
+         * The estimated number of entries. This value does not have to be
+         * accurate.
+         * 
+         * @return the estimated number of entries
+         */
+        long getEstimatedEntryCount();
+
+        /**
+         * The filter to use.
+         * 
+         * @return the filter
+         */
+        Filter getFilter();
+
+        /**
+         * Whether the index is not always up-to-date.
+         * 
+         * @return whether the index might be updated asynchronously
+         */
+        boolean isDelayed();
+
+        /**
+         * Whether the fulltext part of the filter is evaluated (possibly with
+         * an extended syntax). If set, the fulltext part of the filter is not
+         * evaluated any more within the query engine.
+         * 
+         * @return whether the index supports full-text extraction
+         */
+        boolean isFulltextIndex();
+
+        /**
+         * Whether the cursor is able to read all properties from a node.
+         * If yes, then the query engine will not have to read the data itself.
+         * 
+         * @return wheter node data is returned
+         */
+        boolean includesNodeData();
+
+        /**
+         * The sort order of the returned entries, or null if unsorted.
+         * 
+         * @return the sort order
+         */
+        List<OrderEntry> getSortOrder();
+        
+        /**
+         * A builder for index plans.
+         */
+        public class Builder {
+
+            protected double costPerExecution = 1.0;
+            protected double costPerEntry = 1.0;
+            protected long estimatedEntryCount = 1000000;
+            protected Filter filter;
+            protected boolean isDelayed;
+            protected boolean isFulltextIndex;
+            protected boolean includesNodeData;
+            protected List<OrderEntry> sortOrder;
+
+            public Builder setCostPerExecution(double costPerExecution) {
+                this.costPerExecution = costPerExecution;
+                return this;
+            }
+
+            public Builder setCostPerEntry(double costPerEntry) {
+                this.costPerEntry = costPerEntry;
+                return this;
+            }
+
+            public Builder setEstimatedEntryCount(long estimatedEntryCount) {
+                this.estimatedEntryCount = estimatedEntryCount;
+                return this;
+            }
+
+            public Builder setFilter(Filter filter) {
+                this.filter = filter;
+                return this;
+            }
+
+            public Builder setDelayed(boolean isDelayed) {
+                this.isDelayed = isDelayed;
+                return this;
+            }
+
+            public Builder setFulltextIndex(boolean isFulltextIndex) {
+                this.isFulltextIndex = isFulltextIndex;
+                return this;
+            }
+
+            public Builder setIncludesNodeData(boolean includesNodeData) {
+                this.includesNodeData = includesNodeData;
+                return this;
+            }
+
+            public Builder setSortOrder(List<OrderEntry> sortOrder) {
+                this.sortOrder = sortOrder;
+                return this;
+            }
+            
+            public IndexPlan build() {
+                
+                return new IndexPlan() {
+                    
+                    private final double costPerExecution = 
+                            Builder.this.costPerExecution;
+                    private final double costPerEntry = 
+                            Builder.this.costPerEntry;
+                    private final long estimatedEntryCount = 
+                            Builder.this.estimatedEntryCount;
+                    private final Filter filter = 
+                            Builder.this.filter;
+                    private final boolean isDelayed = 
+                            Builder.this.isDelayed;
+                    private final boolean isFulltextIndex = 
+                            Builder.this.isFulltextIndex;
+                    private final boolean includesNodeData = 
+                            Builder.this.includesNodeData;
+                    private final List<OrderEntry> sortOrder = 
+                            Builder.this.sortOrder == null ?
+                            null : new ArrayList<OrderEntry>(
+                                    Builder.this.sortOrder);                  
+
+                    @Override
+                    public double getCostPerExecution() {
+                        return costPerExecution;
+                    }
+
+                    @Override
+                    public double getCostPerEntry() {
+                        return costPerEntry;
+                    }
+
+                    @Override
+                    public long getEstimatedEntryCount() {
+                        return estimatedEntryCount;
+                    }
+
+                    @Override
+                    public Filter getFilter() {
+                        return filter;
+                    }
+
+                    @Override
+                    public boolean isDelayed() {
+                        return isDelayed;
+                    }
+
+                    @Override
+                    public boolean isFulltextIndex() {
+                        return isFulltextIndex;
+                    }
+
+                    @Override
+                    public boolean includesNodeData() {
+                        return includesNodeData;
+                    }
+
+                    @Override
+                    public List<OrderEntry> getSortOrder() {
+                        return sortOrder;
+                    }
+                    
+                };
+            }
+                
+        }
+
+    }
+
+    /**
+     * A sort order entry.
+     */
+    static class OrderEntry {
+
+        /**
+         * The property name on where to sort.
+         */
+        private final String propertyName;
+        
+        /**
+         * The property type. Null if not known.
+         */
+        private final Type<?> propertyType;
+        
+        /**
+         * The sort order (ascending or descending).
+         */
+        public enum Order { ASCENDING, DESCENDING };
+        
+        private final Order order;
+        
+        OrderEntry(String propertyName, Type<?> propertyType, Order order) {
+            this.propertyName = propertyName;
+            this.propertyType = propertyType;
+            this.order = order;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public Order getOrder() {
+            return order;
+        }
+
+        public Type<?> getPropertyType() {
+            return propertyType;
+        }
+
+    }
 
 }
