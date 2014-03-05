@@ -381,28 +381,25 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
             }
             switch (r) {
                 case '+': {
-                    String path = t.readString();
+                    String name = t.readString();
                     t.read(':');
                     t.read('{');
                     while (t.read() != '}') {
                         // skip properties
                     }
-                    String name = PathUtils.getName(path);
                     continueComparison = diff.childNodeAdded(name, getChildNode(name));
                     break;
                 }
                 case '-': {
-                    String path = t.readString();
-                    String name = PathUtils.getName(path);
+                    String name = t.readString();
                     continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
                     break;
                 }
                 case '^': {
-                    String path = t.readString();
+                    String name = t.readString();
                     t.read(':');
                     if (t.matches('{')) {
                         t.read('}');
-                        String name = PathUtils.getName(path);
                         continueComparison = diff.childNodeChanged(name,
                                 base.getChildNode(name), getChildNode(name));
                     } else if (t.matches('[')) {
@@ -414,21 +411,6 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
                         // ignore single valued property
                         t.read();
                     }
-                    break;
-                }
-                case '>': {
-                    String from = t.readString();
-                    t.read(':');
-                    String to = t.readString();
-                    String fromName = PathUtils.getName(from);
-                    continueComparison = diff.childNodeDeleted(
-                            fromName, base.getChildNode(fromName));
-                    if (!continueComparison) {
-                        break;
-                    }
-                    String toName = PathUtils.getName(to);
-                    continueComparison = diff.childNodeAdded(
-                            toName, getChildNode(toName));
                     break;
                 }
                 default:
@@ -478,6 +460,9 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
      */
     public static class Children implements CacheValue {
 
+        /**
+         * Ascending sorted list of names of child nodes.
+         */
         final ArrayList<String> children = new ArrayList<String>();
         boolean hasMore;
 

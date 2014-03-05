@@ -214,7 +214,7 @@ public class DocumentMK implements MicroKernel {
             if (maxChildNodes-- <= 0) {
                 break;
             }
-            String name = PathUtils.getName(c.children.get((int) i));
+            String name = c.children.get((int) i);
             json.key(name).object().endObject();
         }
         if (c.hasMore) {

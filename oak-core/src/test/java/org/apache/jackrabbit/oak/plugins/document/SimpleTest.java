@@ -252,11 +252,11 @@ public class SimpleTest {
         DocumentNodeState n = ns.getNode("/", Revision.fromString(r0));
         assertNotNull(n);
         Children c = ns.getChildren(n, null, Integer.MAX_VALUE);
-        assertEquals("[/test]", c.toString());
+        assertEquals("[test]", c.toString());
         n = ns.getNode("/test", Revision.fromString(r1));
         assertNotNull(n);
         c = ns.getChildren(n, null, Integer.MAX_VALUE);
-        assertEquals("[/test/a, /test/b]", c.toString());
+        assertEquals("[a, b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
         test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, null);
