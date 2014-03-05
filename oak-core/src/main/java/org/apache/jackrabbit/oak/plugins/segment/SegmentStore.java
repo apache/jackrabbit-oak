@@ -54,8 +54,6 @@ public interface SegmentStore {
      */
     void writeSegment(UUID segmentId, byte[] bytes, int offset, int length);
 
-    void deleteSegment(UUID segmentId);
-
     void close();
 
     /**

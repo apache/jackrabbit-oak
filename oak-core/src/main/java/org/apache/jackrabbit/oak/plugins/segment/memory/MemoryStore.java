@@ -88,11 +88,4 @@ public class MemoryStore extends AbstractStore {
         }
     }
 
-    @Override
-    public void deleteSegment(UUID segmentId) {
-        if (segments.remove(segmentId) == null) {
-            throw new IllegalStateException("Missing segment: " + segmentId);
-        }
-    }
-
 }

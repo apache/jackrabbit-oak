@@ -137,22 +137,6 @@ public abstract class AbstractStore implements SegmentStore {
     }
 
     @Override
-    public void deleteSegment(UUID segmentId) {
-        if (segments != null) {
-            synchronized (segments) {
-                while (currentlyLoading.contains(segmentId)) {
-                    try {
-                        segments.wait(); // for concurrent load to finish
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException("Interrupted", e);
-                    }
-                }
-                segments.invalidate(segmentId);
-            }
-        }
-    }
-
-    @Override
     public void close() {
         if (segments != null) {
             synchronized (segments) {

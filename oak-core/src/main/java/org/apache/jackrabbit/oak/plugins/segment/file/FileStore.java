@@ -322,12 +322,6 @@ public class FileStore extends AbstractStore {
     }
 
     @Override
-    public void deleteSegment(UUID segmentId) {
-        // TODO: implement
-        super.deleteSegment(segmentId);
-    }
-
-    @Override
     public Blob readBlob(String reference) {
         return new FileBlob(reference); // FIXME: proper reference lookup
     }
