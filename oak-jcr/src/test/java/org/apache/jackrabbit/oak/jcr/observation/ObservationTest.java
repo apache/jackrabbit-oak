@@ -80,7 +80,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
-    public static final int TIME_OUT = 2;
+    public static final int TIME_OUT = 4;
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -832,10 +832,15 @@ public class ObservationTest extends AbstractRepositoryTest {
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
             List<Expectation> missing = Lists.newArrayList();
+            long t0 = System.nanoTime();
             try {
                 Futures.allAsList(expected).get(time, timeUnit);
             }
             catch (TimeoutException e) {
+                long dt = System.nanoTime() - t0;
+                // TODO remove again once OAK-1491 is fixed
+                assertTrue("Spurious wak-up after " + 0,
+                        dt < 0.8*TimeUnit.NANOSECONDS.convert(time, timeUnit));
                 for (Expectation exp : expected) {
                     if (!exp.isDone()) {
                         missing.add(exp);
