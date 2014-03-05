@@ -55,7 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 /**
  * A document storing data about a node.
  */
-public class NodeDocument extends Document implements CachedNodeDocument{
+final public class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Marker document, which indicates the document does not exist.
@@ -361,10 +361,6 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         // check local map first
         Map<Revision, String> local = getLocalCommitRoot();
         String depth = local.get(revision);
-        if (depth == null) {
-            // check full map
-            depth = getCommitRoot().get(revision);
-        }
         if (depth != null) {
             if (depth.equals("0")) {
                 return "/";
@@ -372,9 +368,15 @@ public class NodeDocument extends Document implements CachedNodeDocument{
             String p = Utils.getPathFromId(getId());
             return PathUtils.getAncestorPath(p,
                     PathUtils.getDepth(p) - Integer.parseInt(depth));
-        } else {
-            return null;
         }
+        // check previous
+        for (NodeDocument prev : getPreviousDocs(COMMIT_ROOT, revision)) {
+            String path = prev.getCommitRootPath(revision);
+            if (path != null) {
+                return path;
+            }
+        }
+        return null;
     }
 
     /**
@@ -826,7 +828,7 @@ public class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     SortedMap<Revision, String> getLocalMap(String key) {
         @SuppressWarnings("unchecked")
-        SortedMap<Revision, String> map = (SortedMap<Revision, String>) get(key);
+        SortedMap<Revision, String> map = (SortedMap<Revision, String>) data.get(key);
         if (map == null) {
             map = ValueMap.EMPTY;
         }
@@ -1095,6 +1097,11 @@ public class NodeDocument extends Document implements CachedNodeDocument{
         Revision latestRev = null;
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision propRev = entry.getKey();
+            // ignore revisions newer than readRevision
+            // -> these are not visible anyway
+            if (isRevisionNewer(context, propRev, readRevision)) {
+                continue;
+            }
             // resolve revision
             NodeDocument commitRoot = getCommitRoot(propRev);
             if (commitRoot == null) {

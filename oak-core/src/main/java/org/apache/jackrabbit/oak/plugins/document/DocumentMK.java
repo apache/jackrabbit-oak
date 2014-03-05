@@ -55,7 +55,7 @@ public class DocumentMK implements MicroKernel {
      * The threshold where special handling for many child node starts.
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
-            "oak.documentMK.manyChildren", 50);
+            "oak.documentMK.manyChildren", 10);
     
     /**
      * Enable the LIRS cache.
