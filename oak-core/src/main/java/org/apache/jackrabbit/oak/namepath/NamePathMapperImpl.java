@@ -95,7 +95,7 @@ public class NamePathMapperImpl implements NamePathMapper {
         } else if (oakPath.isEmpty()) {
             // empty path: map to "."
             return ".";
-        } else if (getSessionLocalMappings().isEmpty()) {
+        } else if (nameMapper.getSessionLocalMappings().isEmpty()) {
             // no local namespace mappings
             return oakPath;
         }
@@ -282,7 +282,7 @@ public class NamePathMapperImpl implements NamePathMapper {
             }
         }
 
-        return colon != -1 && !getSessionLocalMappings().isEmpty();
+        return colon != -1 && !nameMapper.getSessionLocalMappings().isEmpty();
     }
 
     //------------------------------------------------------------< PathListener >---
