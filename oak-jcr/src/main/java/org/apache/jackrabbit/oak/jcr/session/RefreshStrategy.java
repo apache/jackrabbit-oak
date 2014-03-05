@@ -19,20 +19,20 @@
 
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Instances of this class determine whether a session needs to be refreshed base on
- * the current {@link SessionOperation operation} to be performed and past
- * {@link #refreshed() refreshes} and {@link #saved() saves}.
+ * Instances of this class determine whether a session needs to be refreshed
+ * before the next session operation is performed.
  * <p>
- * Before an operation is performed a session calls {@link #needsRefresh(SessionOperation)},
+ * Before an operation is performed a session calls {@link #needsRefresh(SessionDelegate)},
  * to determine whether the session needs to be refreshed first. To maintain a session strategy's
  * state sessions call {@link #refreshed()} right after each refresh operation and
  * {@link #saved()} right after each save operation.
@@ -60,28 +60,23 @@ public class RefreshStrategy {
     }
 
     /**
-     * Determine whether the session needs to refresh before {@code sessionOperation} is performed.
+     * Determine whether the given session needs to refresh before the next
+     * session operation is performed.
      * <p>
-     * This implementation return {@code false} if either {@code sessionsOperation} is an refresh
-     * operation or a save operation. Otherwise it returns {@code true} if and only if any of the
-     * individual refresh strategies passed to the constructor returns {@code true}.
-     * @param sessionOperation  operation about to be performed
+     * This implementation returns {@code true} if and only if any of the
+     * individual refresh strategies passed to the constructor returns
+     * {@code true}.
+     *
+     * @param nanosecondsSinceLastAccess nanoseconds since last access
      * @return  {@code true} if and only if the session needs to refresh.
      */
-    public boolean needsRefresh(SessionOperation<?> sessionOperation) {
-        // Don't refresh if this operation is a refresh operation itself or
-        // a save operation, which does an implicit refresh
-        if (sessionOperation.isRefresh() || sessionOperation.isSave()
-                || sessionOperation.isLogout()) {
-            return false;
-        }
-
-        boolean refresh = false;
-        // Don't shortcut here since the individual strategies rely on side effects of this call
+    public boolean needsRefresh(long nanosecondsSinceLastAccess) {
         for (RefreshStrategy r : refreshStrategies) {
-            refresh |= r.needsRefresh(sessionOperation);
+            if (r.needsRefresh(nanosecondsSinceLastAccess)) {
+                return true;
+            }
         }
-        return refresh;
+        return false;
     }
 
     /**
@@ -173,7 +168,7 @@ public class RefreshStrategy {
          * @return {@link #refresh}
          */
         @Override
-        public boolean needsRefresh(SessionOperation<?> sessionOperation) {
+        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
             return refresh;
         }
 
@@ -231,44 +226,20 @@ public class RefreshStrategy {
      * This refresh strategy refreshes after a given timeout of inactivity.
      */
     public static class Timed extends RefreshStrategy {
+
         private final long interval;
-        private long lastAccessed = System.currentTimeMillis();
 
         /**
          * @param interval  Interval in seconds after which a session should refresh if there was no
          *                  activity.
          */
         public Timed(long interval) {
-            this.interval = MILLISECONDS.convert(interval, SECONDS);
-        }
-
-        /**
-         * Called whenever {@code needsRefresh} determines that the time out interval was exceeded.
-         * This default implementation always returns {@code true}. Descendants may override this
-         * method to provide more refined behaviour.
-         * @param timeElapsed  the time that elapsed since the session was last accessed.
-         * @return {@code true}
-         */
-        protected boolean timeOut(long timeElapsed) {
-            return true;
+            this.interval = NANOSECONDS.convert(interval, SECONDS);
         }
 
         @Override
-        public boolean needsRefresh(SessionOperation<?> sessionOperation) {
-            long now = System.currentTimeMillis();
-            long timeElapsed = now - lastAccessed;
-            lastAccessed = now;
-            return timeElapsed > interval && timeOut(timeElapsed);
-        }
-
-        @Override
-        public void refreshed() {
-            lastAccessed = System.currentTimeMillis();
-        }
-
-        @Override
-        public void saved() {
-            lastAccessed = System.currentTimeMillis();
+        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
+            return nanosecondsSinceLastAccess > interval;
         }
 
         @Override
@@ -278,13 +249,15 @@ public class RefreshStrategy {
     }
 
     /**
-     * This refresh strategy never refreshed the session but logs a warning if a session has been
-     * idle for more than a given time.
+     * This refresh strategy never refreshed the session but logs
+     * a warning if a session has been idle for more than a given time.
      *
      * TODO replace logging with JMX monitoring. See OAK-941
      */
-    public static class LogOnce extends Timed {
+    public static class LogOnce extends RefreshStrategy {
         private final Exception initStackTrace = new Exception("The session was created here:");
+
+        private final long interval;
 
         private boolean warnIfIdle = true;
 
@@ -293,19 +266,20 @@ public class RefreshStrategy {
          *                  activity.
          */
         public LogOnce(long interval) {
-            super(interval);
+            this.interval = NANOSECONDS.convert(interval, SECONDS);
         }
 
         /**
          * Log once
-         * @param timeElapsed  the time that elapsed since the session was last accessed.
-         * @return  {@code false}
+         * @param nanosecondsSinceLastAccess nanoseconds since last access
+         * @return {@code false}
          */
         @Override
-        protected boolean timeOut(long timeElapsed) {
-            if (warnIfIdle) {
-                log.warn("This session has been idle for " + MINUTES.convert(
-                        timeElapsed, MILLISECONDS) + " minutes and might be out of date. " +
+        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
+            if (nanosecondsSinceLastAccess > interval && warnIfIdle) {
+                log.warn("This session has been idle for "
+                        + MINUTES.convert(nanosecondsSinceLastAccess, NANOSECONDS)
+                        + " minutes and might be out of date. " +
                         "Consider using a fresh session or explicitly refresh the session.",
                         initStackTrace);
                 warnIfIdle = false;
@@ -345,7 +319,7 @@ public class RefreshStrategy {
         }
 
         @Override
-        public boolean needsRefresh(SessionOperation<?> sessionOperation) {
+        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
             // If the threadLocal counter differs from our seen sessionSaveCount so far then
             // some other session would have done a commit. If that is the case a refresh would
             // be required

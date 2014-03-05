@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.nanoTime;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
@@ -68,6 +69,8 @@ public class SessionDelegate {
     private final IdentifierManager idManager;
     private final SessionStats sessionStats;
 
+    private volatile long lastAccessTimeNS = nanoTime();
+
     private final AtomicLong readCounter;
     private final AtomicLong readDuration;
     private final AtomicLong writeCounter;
@@ -112,6 +115,10 @@ public class SessionDelegate {
         return sessionStats;
     }
 
+    public long getNanosecondsSinceLastAccess() {
+        return nanoTime() - lastAccessTimeNS;
+    }
+
     public void refreshAtNextAccess() {
         refreshStrategy.refreshAtNextAccess();
     }
@@ -142,23 +149,30 @@ public class SessionDelegate {
     public synchronized <T> T perform(SessionOperation<T> sessionOperation)
             throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
+        long t0 = nanoTime();
         if (sessionOpCount == 0) {
-            // Refresh and precondition checks only for non re-entrant session operations
-            if (refreshStrategy.needsRefresh(sessionOperation)) {
+            // Refresh and precondition checks only for non re-entrant
+            // session operations. Don't refresh if this operation is a
+            // refresh operation itself or a save operation, which does an
+            // implicit refresh, or logout for obvious reasons.
+            if (!sessionOperation.isRefresh()
+                    && !sessionOperation.isSave()
+                    && !sessionOperation.isLogout()
+                    && refreshStrategy.needsRefresh(t0 - lastAccessTimeNS)) {
                 refresh(true);
                 refreshStrategy.refreshed();
                 updateCount++;
             }
             sessionOperation.checkPreconditions();
         }
-        long t0 = System.nanoTime();
         try {
             sessionOpCount++;
             T result =  sessionOperation.perform();
             logOperationDetails(sessionOperation);
             return result;
         } finally {
-            long dt = System.nanoTime() - t0;
+            lastAccessTimeNS = t0;
+            long dt = nanoTime() - t0;
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
                 sessionStats.write();
