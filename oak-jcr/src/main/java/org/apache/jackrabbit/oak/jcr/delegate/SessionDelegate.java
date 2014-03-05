@@ -66,6 +66,22 @@ public class SessionDelegate {
 
     private final ContentSession contentSession;
     private final RefreshStrategy refreshStrategy;
+    private boolean refreshAtNextAccess = false;
+
+    /**
+     * The repository-wide {@link ThreadLocal} that keeps track of the number
+     * of saves performed in each thread.
+     */
+    private final ThreadLocal<Long> threadSaveCount;
+
+    /**
+     * Local copy of the {@link #threadSaveCount} for the current thread.
+     * If the repository-wide counter differs from our local copy, then
+     * some other session would have done a commit or this session is
+     * being accessed from some other thread. In either case it's best to
+     * refresh this session to avoid unexpected behaviour.
+     */
+    private long sessionSaveCount;
 
     private final Root root;
     private final IdentifierManager idManager;
@@ -111,9 +127,12 @@ public class SessionDelegate {
     public SessionDelegate(
             @Nonnull ContentSession contentSession,
             @Nonnull RefreshStrategy refreshStrategy,
+            @Nonnull ThreadLocal<Long> threadSaveCount,
             @Nonnull StatisticManager statisticManager) {
         this.contentSession = checkNotNull(contentSession);
         this.refreshStrategy = checkNotNull(refreshStrategy);
+        this.threadSaveCount = checkNotNull(threadSaveCount);
+        this.sessionSaveCount = getThreadSaveCount();
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.sessionStats = new SessionStats(this);
@@ -127,6 +146,11 @@ public class SessionDelegate {
     @Nonnull
     public SessionStats getSessionStats() {
         return sessionStats;
+    }
+
+    private long getThreadSaveCount() {
+        Long c = threadSaveCount.get();
+        return c == null ? 0 : c;
     }
 
     public long getNanosecondsSinceLastAccess() {
@@ -182,8 +206,8 @@ public class SessionDelegate {
         return saveCount;
     }
 
-    public void refreshAtNextAccess() {
-        refreshStrategy.refreshAtNextAccess();
+    public synchronized void refreshAtNextAccess() {
+        refreshAtNextAccess = true;
     }
 
     /**
@@ -221,9 +245,12 @@ public class SessionDelegate {
             if (!sessionOperation.isRefresh()
                     && !sessionOperation.isSave()
                     && !sessionOperation.isLogout()
-                    && refreshStrategy.needsRefresh(t0 - lastAccessTimeNS)) {
+                    && (refreshAtNextAccess
+                        || sessionSaveCount != getThreadSaveCount()
+                        || refreshStrategy.needsRefresh(t0 - lastAccessTimeNS))) {
                 refresh(true);
-                refreshStrategy.refreshed();
+                refreshAtNextAccess = false;
+                sessionSaveCount = getThreadSaveCount();
                 updateCount++;
             }
             sessionOperation.checkPreconditions();
@@ -250,9 +277,12 @@ public class SessionDelegate {
                 readDuration.addAndGet(dt);
             }
             if (sessionOperation.isSave()) {
-                refreshStrategy.saved();
+                refreshAtNextAccess = false;
+                // Force refreshing on access through other sessions on the same thread
+                threadSaveCount.set(sessionSaveCount = (getThreadSaveCount() + 1));
             } else if (sessionOperation.isRefresh()) {
-                refreshStrategy.refreshed();
+                refreshAtNextAccess = false;
+                sessionSaveCount = getThreadSaveCount();
             }
         }
     }
