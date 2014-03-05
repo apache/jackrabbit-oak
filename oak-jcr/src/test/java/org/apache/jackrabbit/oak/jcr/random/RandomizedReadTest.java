@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.random;
 
 import java.security.Principal;
 import java.util.Random;
+
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Session;
@@ -33,10 +34,8 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore // FIXME
 public class RandomizedReadTest extends AbstractRandomizedTest {
 
     private static final int depth = 4;
@@ -54,6 +53,7 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
         tree.put(3, 3, "/n1/n3/n9");
     }
 
+    @Override
     protected void setupContent() throws Exception {
         for (JackrabbitSession session : writeSessions) {
             Node root = session.getRootNode();
@@ -77,6 +77,7 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
         }
     }
 
+    @Override
     protected void clearContent() throws Exception {
         for (JackrabbitSession session : writeSessions) {
             Node root = session.getRootNode();
@@ -129,7 +130,7 @@ public class RandomizedReadTest extends AbstractRandomizedTest {
         }
     }
 
-    private String getPath(int depth, int index) throws Exception {
+    private static String getPath(int depth, int index) throws Exception {
         if (depth == 0) {
             return "/";
         }

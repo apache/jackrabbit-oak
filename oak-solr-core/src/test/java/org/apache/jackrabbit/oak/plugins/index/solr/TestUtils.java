@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
-import java.io.File;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -34,13 +33,12 @@ public class TestUtils
         implements SolrServerProvider, OakSolrConfigurationProvider {
 
     static final String SOLR_HOME_PATH = "/solr";
-    static final String SOLRCONFIG_PATH = "/solr/solr.xml";
 
     public static SolrServer createSolrServer() {
         String homePath = SolrServerProvider.class.getResource(SOLR_HOME_PATH).getFile();
         CoreContainer coreContainer = new CoreContainer(homePath);
         try {
-            coreContainer.load(homePath, new File(SolrServerProvider.class.getResource(SOLRCONFIG_PATH).getFile()));
+            coreContainer.load();
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -97,6 +95,11 @@ public class TestUtils
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;
+            }
+
+            @Override
+            public String getCatchAllField() {
+                return "catch_all";
             }
 
         };

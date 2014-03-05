@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Objects.equal;
+import static java.util.Collections.synchronizedList;
+import static java.util.Collections.synchronizedSet;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -78,6 +80,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
+    public static final int TIME_OUT = 4;
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -127,7 +130,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectAdd(n.addNode("n2"));
             getAdminSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -141,7 +144,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectAdd(n.addNode("{4}"));
             getAdminSession().save();
 
-            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -160,7 +163,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectAdd(n.addNode("n1"));
             getAdminSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -169,7 +172,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectRemove(n.getNode("n1")).remove();
             getAdminSession().save();
 
-            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -194,7 +197,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             n1.addNode("n2");
             getAdminSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -202,7 +205,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectChange(p).setValue("v2");
             getAdminSession().save();
 
-            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -210,7 +213,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectRemove(p).remove();
             getAdminSession().save();
 
-            missing = listener.getMissing(2, TimeUnit.SECONDS);
+            missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -234,7 +237,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expect(refNode.addNode("r").getPath(), NODE_ADDED);
             getAdminSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -260,7 +263,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             n.addNode("newNode");
             getAdminSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -280,7 +283,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expectAdd(root.setProperty("prop", "value"));
             root.getSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -311,7 +314,7 @@ public class ObservationTest extends AbstractRepositoryTest {
                 }
                 root.getSession().save();
 
-                List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+                List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
                 assertTrue("Missing events: " + missing, missing.isEmpty());
                 List<Event> unexpected = listener.getUnexpected();
                 assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -339,7 +342,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             root.addNode("events").addNode("only").addNode("here").addNode("at");
             root.getSession().save();
 
-            List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
             assertTrue("Missing events: " + missing, missing.isEmpty());
             List<Event> unexpected = listener.getUnexpected();
             assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -380,7 +383,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }, 10, 10, TimeUnit.MILLISECONDS);
 
         // Make sure we see the events
-        assertNotNull(hasEvents.get(2, TimeUnit.SECONDS));
+        assertNotNull(hasEvents.get(TIME_OUT, TimeUnit.SECONDS));
 
         // Remove event listener
         Executors.newSingleThreadExecutor().submit(new Callable<Void>() {
@@ -450,7 +453,7 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         session.save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -488,7 +491,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         testNode.orderBefore(nodeA.getName(), null);
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -505,7 +508,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expectAdd(b.addNode("c"));
         getAdminSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -523,7 +526,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expectRemove(n.getNode("a")).remove();
         getAdminSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -545,7 +548,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expect(TEST_PATH + "/t", NODE_ADDED);
         getAdminSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -573,7 +576,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expect(y.getPath(), NODE_ADDED);
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -610,7 +613,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expect(a.getPath() + "/b", NODE_ADDED);
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -645,7 +648,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expect(a.getPath(), NODE_ADDED);
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -667,7 +670,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         a.addNode("c");
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -692,7 +695,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         listener.expectRemove(testNode.getNode("a")).remove();
         testNode.getSession().save();
 
-        List<Expectation> missing = listener.getMissing(2, TimeUnit.SECONDS);
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());
         List<Event> unexpected = listener.getUnexpected();
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
@@ -763,8 +766,10 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     private static class ExpectationListener implements EventListener {
-        private final Set<Expectation> expected = Sets.newCopyOnWriteArraySet();
-        private final List<Event> unexpected = Lists.newCopyOnWriteArrayList();
+        private final Set<Expectation> expected = synchronizedSet(
+                Sets.<Expectation>newCopyOnWriteArraySet());
+        private final List<Event> unexpected = synchronizedList(
+                Lists.<Event>newCopyOnWriteArrayList());
 
         private volatile Exception failed;
 
@@ -827,10 +832,15 @@ public class ObservationTest extends AbstractRepositoryTest {
         public List<Expectation> getMissing(int time, TimeUnit timeUnit)
                 throws ExecutionException, InterruptedException {
             List<Expectation> missing = Lists.newArrayList();
+            long t0 = System.nanoTime();
             try {
                 Futures.allAsList(expected).get(time, timeUnit);
             }
             catch (TimeoutException e) {
+                long dt = System.nanoTime() - t0;
+                // TODO remove again once OAK-1491 is fixed
+                assertTrue("Spurious wak-up after " + 0,
+                        dt < 0.8*TimeUnit.NANOSECONDS.convert(time, timeUnit));
                 for (Expectation exp : expected) {
                     if (!exp.isDone()) {
                         missing.add(exp);
@@ -853,7 +863,6 @@ public class ObservationTest extends AbstractRepositoryTest {
                     for (Expectation exp : expected) {
                         if (exp.isEnabled() && exp.onEvent(event)) {
                             found = true;
-                            expected.remove(exp);
                             exp.complete(event);
                         }
                     }

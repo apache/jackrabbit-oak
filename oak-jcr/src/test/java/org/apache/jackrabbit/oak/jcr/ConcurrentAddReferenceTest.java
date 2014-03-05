@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.commons.JcrUtils.in;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -26,19 +30,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
 
+import com.google.common.collect.Iterators;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.google.common.collect.Iterators;
-
-import static org.apache.jackrabbit.commons.JcrUtils.in;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 /**
- * <code>ConcurrentAddIT</code> adds nodes with multiple sessions in separate
+ * <code>ConcurrentAddReferenceTest</code> adds nodes with multiple sessions in separate
  * locations of the repository and creates references to a single node.
  */
 public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
@@ -48,6 +47,8 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
     private static final int NODES_PER_WORKER = 100;
 
     private String refPath;
+
+    private Node testRoot;
 
     public ConcurrentAddReferenceTest(NodeStoreFixture fixture) {
         super(fixture);
@@ -59,6 +60,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
         Node root = session.getRootNode();
         Node testNode = root.addNode("test_referenceable");
         testNode.addMixin(NodeType.MIX_REFERENCEABLE);
+        testRoot = getAdminSession().getRootNode().addNode("test");
         session.save();
         refPath = testNode.getPath();
     }
@@ -66,20 +68,19 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
     @After
     public void tearDown() throws RepositoryException {
         Session session = getAdminSession();
-        session.removeItem("/test");
+        testRoot.remove();
         session.removeItem(refPath);
         session.save();
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    @Ignore("OAK-1472") // FIXME OAK-1472
     public void addReferences() throws Exception {
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1472
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
-        Node test = getAdminSession().getRootNode().addNode("test");
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
-            String path = test.addNode("node" + i).getPath();
+            String path = testRoot.addNode("node" + i).getPath();
             worker.add(new Thread(new Worker(
                     createAdminSession(), path, exceptions)));
         }
@@ -94,7 +95,7 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
             fail(e.toString());
         }
         getAdminSession().refresh(false);
-        for (Node n : in((Iterator<Node>) test.getNodes())) {
+        for (Node n : in((Iterator<Node>) testRoot.getNodes())) {
             assertEquals(NODES_PER_WORKER, Iterators.size(n.getNodes()));
         }
     }

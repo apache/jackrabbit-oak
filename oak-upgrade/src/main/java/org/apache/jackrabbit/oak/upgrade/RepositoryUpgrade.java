@@ -22,21 +22,20 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.NamespaceException;
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.core.NamespaceRegistryImpl;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.core.config.UserManagerConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
+import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
@@ -53,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -205,24 +205,33 @@ public class RepositoryUpgrade {
      * @throws RepositoryException if the copy operation fails
      */
     public void copy() throws RepositoryException {
+        RepositoryConfig config = source.getRepositoryConfig();
         logger.info(
-                "Copying repository content from {} to Oak",
-                source.getRepositoryConfig().getHomeDir());
+                "Copying repository content from {} to Oak", config.getHomeDir());
         try {
             NodeBuilder builder = target.getRoot().builder();
 
             // init target repository first
             new InitialContent().initialize(builder);
 
-            Map<Integer, String> idxToPrefix = copyNamespaces(builder);
+            Map<String, String> uriToPrefix = newHashMap();
+            Map<Integer, String> idxToPrefix = newHashMap();
+            copyNamespaces(builder, uriToPrefix, idxToPrefix);
             copyNodeTypes(builder);
             copyPrivileges(builder);
-            copyVersionStore(builder, idxToPrefix);
-            copyWorkspaces(builder, idxToPrefix);
+            copyVersionStore(builder, uriToPrefix, idxToPrefix);
+            copyWorkspaces(builder, uriToPrefix, idxToPrefix);
 
+            String groupsPath;
+            UserManagerConfig userConfig = config.getSecurityConfig().getSecurityManagerConfig().getUserManagerConfig();
+            if (userConfig != null) {
+                groupsPath = userConfig.getParameters().getProperty(UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.DEFAULT_GROUP_PATH);
+            } else {
+                groupsPath = UserConstants.DEFAULT_GROUP_PATH;
+            }
             // TODO: default hooks?
             CommitHook hook = new CompositeHook(
-                    new EditorHook(new GroupEditorProvider()),
+                    new EditorHook(new GroupEditorProvider(groupsPath)),
                     new EditorHook(new CompositeEditorProvider(
                             new TypeEditorProvider(),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
@@ -249,13 +258,14 @@ public class RepositoryUpgrade {
      * the internal namespace index mapping used in bundle serialization.
      *
      * @param root root builder
-     * @return index to prefix mapping
+     * @param uriToPrefix namespace URI to prefix mapping
+     * @param idxToPrefix index to prefix mapping
      * @throws RepositoryException
      */
-    private Map<Integer, String> copyNamespaces(NodeBuilder root)
+    private void copyNamespaces(
+            NodeBuilder root,
+            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
             throws RepositoryException {
-        Map<Integer, String> idxToPrefix = newHashMap();
-
         NodeBuilder system = root.child(JCR_SYSTEM);
         NodeBuilder namespaces = system.child(NamespaceConstants.REP_NAMESPACES);
 
@@ -289,12 +299,11 @@ public class RepositoryUpgrade {
                 } while (idxToPrefix.containsKey(idx));
             }
 
+            checkState(uriToPrefix.put(uri, prefix) == null);
             checkState(idxToPrefix.put(idx, prefix) == null);
         }
 
         Namespaces.buildIndexNode(namespaces);
-
-        return idxToPrefix;
     }
 
     private Properties loadProperties(String path) throws RepositoryException {
@@ -528,23 +537,24 @@ public class RepositoryUpgrade {
     }
 
     private void copyVersionStore(
-            NodeBuilder root, Map<Integer, String> idxToPrefix)
+            NodeBuilder root,
+            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
         logger.info("Copying version histories");
 
         PersistenceManager pm =
                 source.getInternalVersionManager().getPersistenceManager();
-        NamespaceRegistry nr =source.getNamespaceRegistry();
 
         NodeBuilder system = root.child(JCR_SYSTEM);
         system.setChildNode(JCR_VERSIONSTORAGE, new JackrabbitNodeState(
-                pm, nr, VERSION_STORAGE_NODE_ID, copyBinariesByReference));
+                pm, uriToPrefix, VERSION_STORAGE_NODE_ID, copyBinariesByReference));
         system.setChildNode("jcr:activities", new JackrabbitNodeState(
-                pm, nr, ACTIVITIES_NODE_ID, copyBinariesByReference));
+                pm, uriToPrefix, ACTIVITIES_NODE_ID, copyBinariesByReference));
     }   
 
     private void copyWorkspaces(
-            NodeBuilder root, Map<Integer, String> idxToPrefix)
+            NodeBuilder root,
+            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
         logger.info("Copying default workspace");
 
@@ -554,10 +564,9 @@ public class RepositoryUpgrade {
 
         PersistenceManager pm =
                 source.getWorkspaceInfo(name).getPersistenceManager();
-        NamespaceRegistryImpl nr = source.getNamespaceRegistry();
 
         NodeState state = new JackrabbitNodeState(
-                pm, nr, ROOT_NODE_ID, copyBinariesByReference);
+                pm, uriToPrefix, ROOT_NODE_ID, copyBinariesByReference);
         for (PropertyState property : state.getProperties()) {
             root.setProperty(property);
         }

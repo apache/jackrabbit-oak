@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFul
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -201,7 +202,8 @@ public class LuceneIndexEditor implements IndexEditor {
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
                         this.context.indexUpdate();
-                        document.add(newPropertyField(pname, value));
+                        document.add(newPropertyField(pname, value,
+                                !skipTokenization(pname)));
                         document.add(newFulltextField(value));
                         dirty = true;
                     }

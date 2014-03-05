@@ -29,7 +29,9 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 public interface DocumentStore {
 
     /**
-     * Get a document.
+     * Get the document with the given {@code key}. This is a convenience method
+     * and equivalent to {@link #find(Collection, String, int)} with a
+     * {@code maxCacheAge} of {@code Integer.MAX_VALUE}.
      * <p>
      * The returned document is immutable.
      * 
@@ -42,8 +44,12 @@ public interface DocumentStore {
     <T extends Document> T find(Collection<T> collection, String key);
 
     /**
-     * Get a document, ignoring the cache if the cached entry is older than the
-     * specified time.
+     * Get the document with the {@code key}. The implementation may serve the
+     * document from a cache, but the cached document must not be older than
+     * the given {@code maxCacheAge} in milliseconds. An implementation must
+     * invalidate a cached document when it detects it is outdated. That is, a
+     * subsequent call to {@link #find(Collection, String)} must return the
+     * newer version of the document.
      * <p>
      * The returned document is immutable.
      * 

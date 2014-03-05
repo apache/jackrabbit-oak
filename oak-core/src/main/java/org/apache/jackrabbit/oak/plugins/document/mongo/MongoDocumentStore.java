@@ -420,6 +420,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
             }
             T oldDoc = convertFromDBObject(collection, oldNode);
             applyToCache(collection, oldDoc, updateOp);
+            if (oldDoc != null) {
+                oldDoc.seal();
+            }
             return oldDoc;
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -686,12 +689,19 @@ public class MongoDocumentStore implements CachingDocumentStore {
                                                    @Nonnull UpdateOp updateOp) {
         // cache the new document
         if (collection == Collection.NODES) {
+            CacheValue key = new StringValue(updateOp.getId());
             NodeDocument newDoc = (NodeDocument) collection.newDocument(this);
             if (oldDoc != null) {
+                // we can only update the cache based on the oldDoc if we
+                // still have the oldDoc in the cache, otherwise we may
+                // update the cache with an outdated document
+                NodeDocument cached = nodesCache.getIfPresent(key);
+                if (cached == null) {
+                    // cannot use oldDoc to update cache
+                    return;
+                }
                 oldDoc.deepCopy(newDoc);
-                oldDoc.seal();
             }
-            CacheValue key = new StringValue(updateOp.getId());
             UpdateUtils.applyChanges(newDoc, updateOp, comparator);
             newDoc.seal();
 

@@ -14,31 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.security;
+@Version("0.18")
+@Export(optional = "provide:=true")
+package org.apache.jackrabbit.oak.plugins.segment.http;
 
-import javax.annotation.Nonnull;
+import aQute.bnd.annotation.Export;
+import aQute.bnd.annotation.Version;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-/**
- */
-public class GroupEditorProvider implements EditorProvider {
-
-    private final String groupsPath;
-
-    public GroupEditorProvider(@Nonnull String groupsPath) {
-        this.groupsPath = groupsPath;
-
-    }
-
-    @Override
-    public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
-        return new GroupEditor(builder, groupsPath);
-    }
-}

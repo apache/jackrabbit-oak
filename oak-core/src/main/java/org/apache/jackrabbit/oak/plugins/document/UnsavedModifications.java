@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -31,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -135,17 +137,30 @@ class UnsavedModifications {
 
     /**
      * Persist the pending changes to _lastRev to the given store. This method
-     * does not guarantee consistency when there are concurrent updates on
-     * this instance through {@link #put(String, Revision)}. The caller must
-     * use proper synchronization to ensure no paths are added while this method
-     * is called.
+     * will persist a snapshot of the pending revisions by acquiring the passed
+     * lock for a short period of time.
      *
      * @param store the document node store.
+     * @param lock the lock to acquire to get a consistent snapshot of the
+     *             revisions to write back.
      */
-    public void persist(@Nonnull DocumentNodeStore store) {
+    public void persist(@Nonnull DocumentNodeStore store,
+                        @Nonnull Lock lock) {
+        if (map.isEmpty()) {
+            return;
+        }
         checkNotNull(store);
+        checkNotNull(lock);
 
-        ArrayList<String> paths = new ArrayList<String>(getPaths());
+        // get a copy of the map while holding the lock
+        lock.lock();
+        Map<String, Revision> pending;
+        try {
+            pending = Maps.newHashMap(map);
+        } finally {
+            lock.unlock();
+        }
+        ArrayList<String> paths = new ArrayList<String>(pending.keySet());
         // sort by depth (high depth first), then path
         Collections.sort(paths, PathComparator.INSTANCE);
 
@@ -154,7 +169,7 @@ class UnsavedModifications {
         List<String> ids = new ArrayList<String>();
         for (int i = 0; i < paths.size(); ) {
             String p = paths.get(i);
-            Revision r = map.get(p);
+            Revision r = pending.get(p);
             if (r == null) {
                 i++;
                 continue;
@@ -163,8 +178,8 @@ class UnsavedModifications {
             if (updateOp == null) {
                 // create UpdateOp
                 Commit commit = new Commit(store, null, r);
-                commit.touchNode(p);
                 updateOp = commit.getUpdateOperationForNode(p);
+                NodeDocument.setLastRev(updateOp, r);
                 lastRev = r;
                 ids.add(Utils.getIdFromPath(p));
                 i++;
@@ -183,7 +198,7 @@ class UnsavedModifications {
                     || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
                 store.getDocumentStore().update(NODES, ids, updateOp);
                 for (String id : ids) {
-                    map.remove(Utils.getPathFromId(id));
+                    map.remove(Utils.getPathFromId(id), lastRev);
                 }
                 ids.clear();
                 updateOp = null;

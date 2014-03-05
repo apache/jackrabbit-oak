@@ -50,6 +50,7 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
 
     @Test @SuppressWarnings("unchecked")
     public void addNodes() throws Exception {
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1488
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");

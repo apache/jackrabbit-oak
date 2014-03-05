@@ -56,7 +56,11 @@ class ContentSessionImpl implements ContentSession {
     private final QueryIndexProvider indexProvider;
     private final String sessionName;
 
-    private volatile boolean live = true;
+    /**
+     * Flag to indicate whether this session is still alive.
+     * Only accessed from synchronized methods.
+     */
+    private boolean live = true;
 
     public ContentSessionImpl(@Nonnull LoginContext loginContext,
                               @Nonnull SecurityProvider securityProvider,
@@ -73,7 +77,7 @@ class ContentSessionImpl implements ContentSession {
         this.sessionName = "session-" + SESSION_COUNTER.incrementAndGet();
     }
 
-    private void checkLive() {
+    synchronized void checkLive() {
         checkState(live, "This session has been closed");
     }
 
@@ -99,26 +103,16 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public Root getLatestRoot() {
         checkLive();
-        return new AbstractRoot(store, hook, workspaceName, loginContext.getSubject(),
-                securityProvider, indexProvider) {
-            @Override
-            protected void checkLive() {
-                ContentSessionImpl.this.checkLive();
-            }
-
-            @Override
-            public ContentSession getContentSession() {
-            	return ContentSessionImpl.this;
-            }
-        };
+        return new MutableRoot(store, hook, workspaceName, loginContext.getSubject(),
+                securityProvider, indexProvider, this);
     }
 
     //-----------------------------------------------------------< Closable >---
     @Override
     public synchronized void close() throws IOException {
+        live = false;
         try {
             loginContext.logout();
-            live = false;
         } catch (LoginException e) {
             log.error("Error during logout.", e);
         }

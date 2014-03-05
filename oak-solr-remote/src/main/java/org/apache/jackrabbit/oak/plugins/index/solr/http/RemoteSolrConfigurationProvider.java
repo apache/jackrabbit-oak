@@ -43,6 +43,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private static final String DEFAULT_CHILD_FIELD = "path_child";
     private static final String DEFAULT_PARENT_FIELD = "path_anc";
     private static final String DEFAULT_PATH_FIELD = "path_exact";
+    private static final String DEFAULT_CATCHALL_FIELD = "catch_all";
 
     @Property(value = DEFAULT_DESC_FIELD, label = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
@@ -55,6 +56,9 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
 
     @Property(value = DEFAULT_PATH_FIELD, label = "field for path search")
     private static final String PATH_EXACT_FIELD = "path.exact.field";
+
+    @Property(value = DEFAULT_CATCHALL_FIELD,label = "catch all field")
+    private static final String CATCH_ALL_FIELD = "catch.all.field";
 
     @Property(options = {
             @PropertyOption(name = "HARD",
@@ -74,6 +78,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
+    private String catchAllField;
     private CommitPolicy commitPolicy;
 
     private OakSolrConfiguration oakSolrConfiguration;
@@ -84,14 +89,17 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         this.pathExactFieldName = DEFAULT_PATH_FIELD;
         this.pathParentFieldName = DEFAULT_PARENT_FIELD;
         this.commitPolicy = CommitPolicy.SOFT;
+        this.catchAllField = DEFAULT_CATCHALL_FIELD;
     }
 
     public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,
-                                           String pathDescendantsFieldName, String pathExactFieldName, CommitPolicy commitPolicy) {
+                                           String pathDescendantsFieldName, String pathExactFieldName, String catchAllField,
+                                           CommitPolicy commitPolicy) {
         this.pathChildrenFieldName = pathChildrenFieldName;
         this.pathParentFieldName = pathParentFieldName;
         this.pathDescendantsFieldName = pathDescendantsFieldName;
         this.pathExactFieldName = pathExactFieldName;
+        this.catchAllField = catchAllField;
         this.commitPolicy = commitPolicy;
     }
 
@@ -100,6 +108,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
+        catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
         commitPolicy = CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
     }
 
@@ -158,6 +167,11 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
                 @Override
                 public CommitPolicy getCommitPolicy() {
                     return commitPolicy;
+                }
+
+                @Override
+                public String getCatchAllField() {
+                    return catchAllField;
                 }
 
             };

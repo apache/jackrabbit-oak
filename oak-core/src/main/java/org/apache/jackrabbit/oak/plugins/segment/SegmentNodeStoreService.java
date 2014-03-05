@@ -71,6 +71,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         return delegate;
     }
 
+    public SegmentStore getSegmentStore() {
+        return store;
+    }
+
     @Activate
     public synchronized void activate(ComponentContext context)
             throws IOException {

@@ -45,52 +45,65 @@ public class HttpStore extends AbstractStore {
 
     private final URL base;
 
-    protected HttpStore(URL base, int cacheSizeMB) {
+    /**
+     * @param base
+     *            make sure the url ends with a slash "/", otherwise the
+     *            requests will end up as absolute instead of relative
+     * @param cacheSizeMB
+     */
+    public HttpStore(URL base, int cacheSizeMB) {
         super(cacheSizeMB);
         this.base = base;
     }
 
-    @Override
-    public Journal getJournal(String name) {
-        try {
-            final URL url = new URL(base, "/j/" + name);
-            return new Journal() {
-                @Override
-                public RecordId getHead() {
-                    try {
-                        InputStream stream = url.openStream();
-                        try {
-                            BufferedReader reader = new BufferedReader(
-                                    new InputStreamReader(stream, UTF_8));
-                            return RecordId.fromString(reader.readLine());
-                        } finally {
-                            stream.close();
-                        }
-                    } catch (IllegalArgumentException e) {
-                        throw new IllegalStateException(e);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                @Override
-                public boolean setHead(RecordId base, RecordId head) {
-                    throw new UnsupportedOperationException();
-                }
-                @Override
-                public void merge() {
-                    throw new UnsupportedOperationException();
-                }
-            };
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        }
+    protected URLConnection get(String fragment) throws MalformedURLException,
+            IOException {
+        return new URL(base, fragment).openConnection();
     }
 
-    @Override @CheckForNull
+    @Override
+    public Journal getJournal(final String name) {
+        return new Journal() {
+            @Override
+            public RecordId getHead() {
+                try {
+                    final URLConnection connection = get("j/" + name);
+                    InputStream stream = connection.getInputStream();
+                    try {
+                        BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(stream, UTF_8));
+                        return RecordId.fromString(reader.readLine());
+                    } finally {
+                        stream.close();
+                    }
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException(e);
+                } catch (MalformedURLException e) {
+                    throw new IllegalStateException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public boolean setHead(RecordId base, RecordId head) {
+                // TODO throw new UnsupportedOperationException();
+                return true;
+            }
+
+            @Override
+            public void merge() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    @Override
+    @CheckForNull
     protected Segment loadSegment(UUID id) {
         try {
-            URL url = new URL(base, "/s/" + id);
-            InputStream stream = url.openStream();
+            final URLConnection connection = get("s/" + id);
+            InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
                 return new Segment(this, factory, id, ByteBuffer.wrap(data));
@@ -105,11 +118,10 @@ public class HttpStore extends AbstractStore {
     }
 
     @Override
-    public void writeSegment(
-            UUID segmentId, byte[] bytes, int offset, int length) {
+    public void writeSegment(UUID segmentId, byte[] bytes, int offset,
+            int length) {
         try {
-            URL url = new URL(base, "/s/" + segmentId);
-            URLConnection connection = url.openConnection();
+            URLConnection connection = get("s/" + segmentId);
             connection.setDoInput(false);
             connection.setDoOutput(true);
             OutputStream stream = connection.getOutputStream();

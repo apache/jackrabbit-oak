@@ -14,31 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.upgrade.security;
+package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+class TarEntry {
 
-/**
- */
-public class GroupEditorProvider implements EditorProvider {
+    private final int offset;
 
-    private final String groupsPath;
+    private final int size;
 
-    public GroupEditorProvider(@Nonnull String groupsPath) {
-        this.groupsPath = groupsPath;
-
+    TarEntry(int offset, int size) {
+        this.offset = offset;
+        this.size = size;
     }
 
-    @Override
-    public Editor getRootEditor(
-            NodeState before, NodeState after,
-            NodeBuilder builder, CommitInfo info) {
-        return new GroupEditor(builder, groupsPath);
+    ByteBuffer read(FileAccess access) throws IOException {
+        return access.read(offset, size);
     }
+
 }

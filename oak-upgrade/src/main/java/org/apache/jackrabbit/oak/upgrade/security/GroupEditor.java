@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.security;
 
 import java.util.Set;
 import java.util.TreeSet;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -28,23 +29,18 @@ import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
-/**
- */
 class GroupEditor extends DefaultEditor {
 
-    /**
-     * default logger
-     */
     private static final Logger log = LoggerFactory.getLogger(GroupEditor.class);
 
-    // todo: OAK-1480 wrong default. must be retrieved from configuration.
-    private final static String[] ROOTS = {"home", "groups"};
+    private final String[] groupsRoot;
 
     private State state;
 
@@ -52,13 +48,14 @@ class GroupEditor extends DefaultEditor {
 
     private final MembershipWriter writer = new MembershipWriter();
 
-    GroupEditor(NodeBuilder builder) {
+    GroupEditor(@Nonnull NodeBuilder builder, @Nonnull String groupsPath) {
         this.state = new State(builder);
+        this.groupsRoot = Text.explode(groupsPath, '/', false);
         // writer.setMembershipSizeThreshold(10); // uncomment to test different split sizes
     }
 
     private boolean descend(String name) {
-        if (state.depth < ROOTS.length && !name.equals(ROOTS[state.depth])) {
+        if (state.depth < groupsRoot.length && !name.equals(groupsRoot[state.depth])) {
             return false;
         }
         state = state.push(name);

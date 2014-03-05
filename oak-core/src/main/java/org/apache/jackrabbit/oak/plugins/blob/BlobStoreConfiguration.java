@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.Strings;
 import org.osgi.framework.BundleContext;
 
 import com.google.common.base.Predicate;
@@ -60,15 +60,12 @@ public class BlobStoreConfiguration {
         Properties props = new Properties();
         try {
             props.load(this.getClass().getResourceAsStream("blobstore.properties"));
-        } catch (IOException e) {
+        } catch (IOException ignore) {
         }
 
         // populate keys from the default set
         Map<String, String> defaultMap = Maps.fromProperties(props);
-        Iterator<String> iter = defaultMap.keySet().iterator();
-        while (iter.hasNext()) {
-            propKeys.add(iter.next());
-        }
+        propKeys.addAll(defaultMap.keySet());
 
         // Remove empty default properties from the map
         getConfigMap().putAll(
@@ -141,10 +138,9 @@ public class BlobStoreConfiguration {
     public BlobStoreConfiguration loadFromContextOrMap(Map<String, ?> map, BundleContext context) {
         loadFromMap(map);
 
-        Map<String, Object> contextMap = Maps.newHashMap();
         for (String key : getPropKeys()) {
             if (context.getProperty(key) != null) {
-                contextMap.put(key, context.getProperty(key));
+                configMap.put(key, context.getProperty(key));
             }
         }
         return this;

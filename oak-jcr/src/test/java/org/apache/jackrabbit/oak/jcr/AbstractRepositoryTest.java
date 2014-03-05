@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -50,20 +54,48 @@ public abstract class AbstractRepositoryTest {
     private Repository repository;
     private Session adminSession;
 
+    /**
+     * The system property "ns-fixtures" can be used to provide a
+     * whitespace-separated list of fixtures names for which the
+     * tests should be run (the default is to use all fixtures).
+     */
+    private static Set<String> FIXTURES;
+    static {
+        String raw = System.getProperty("ns-fixtures", "");
+        String[] fs = raw.split("\\s");
+        Set<String> tmp = new HashSet<String>();
+        for (String f : fs) {
+            String x = f.trim();
+            if (x.length() > 0) {
+                tmp.add(f.trim());
+            }
+        }
+        FIXTURES = Collections.unmodifiableSet(tmp);
+    }
+
     public AbstractRepositoryTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
     }
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
-        Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MK_IMPL},
-                {NodeStoreFixture.DOCUMENT_MK},
-                {NodeStoreFixture.DOCUMENT_NS},
-                {NodeStoreFixture.SEGMENT_MK},
-                {NodeStoreFixture.DOCUMENT_JDBC},
-        };
-        return Arrays.asList(fixtures);
+        Collection<Object[]> result = new ArrayList<Object[]>();
+        if (FIXTURES.isEmpty() || FIXTURES.contains("MK_IMPL")) {
+            result.add(new Object[] { NodeStoreFixture.MK_IMPL });
+        }
+        if (FIXTURES.isEmpty() || FIXTURES.contains("DOCUMENT_MK")) {
+            result.add(new Object[] { NodeStoreFixture.DOCUMENT_MK });
+        }
+        if (FIXTURES.isEmpty() || FIXTURES.contains("DOCUMENT_NS")) {
+            result.add(new Object[] { NodeStoreFixture.DOCUMENT_NS });
+        }
+        if (FIXTURES.isEmpty() || FIXTURES.contains("SEGMENT_MK")) {
+            result.add(new Object[] { NodeStoreFixture.SEGMENT_MK });
+        }
+        if (FIXTURES.isEmpty() || FIXTURES.contains("DOCUMENT_JDBC")) {
+            result.add(new Object[] { NodeStoreFixture.DOCUMENT_JDBC });
+        }
+        return result;
     }
 
     @After

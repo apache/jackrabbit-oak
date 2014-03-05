@@ -120,7 +120,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
                 CoreContainer coreContainer = new CoreContainer(solrHomePath);
                 try {
-                    coreContainer.load(solrHomePath, new File(solrConfigPath));
+                    coreContainer.load();
                 } finally {
                     Thread.currentThread().setContextClassLoader(classLoader);
                 }

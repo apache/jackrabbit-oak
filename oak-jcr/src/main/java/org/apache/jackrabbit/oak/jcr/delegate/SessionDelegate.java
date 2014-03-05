@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
@@ -35,7 +34,8 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -234,6 +234,17 @@ public class SessionDelegate {
         this.userData = userData;
     }
 
+    private void commit(Root root, String path) throws CommitFailedException {
+        ImmutableMap.Builder<String, Object> info = ImmutableMap.builder();
+        if (path != null && !denotesRoot(path)) {
+            info.put(Root.COMMIT_PATH, path);
+        }
+        if (userData != null) {
+            info.put(EventFactory.USER_DATA, userData);
+        }
+        root.commit(info.build());
+    }
+
     /**
      * Commits the changes currently in the transient space.
      * TODO: Consolidate with save().
@@ -241,7 +252,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit() throws CommitFailedException {
-        commit(root);
+        commit(root, null);
     }
 
     /**
@@ -253,9 +264,7 @@ public class SessionDelegate {
      * @throws CommitFailedException if the commit failed
      */
     public void commit(Root root) throws CommitFailedException {
-        Map<String, Object> info = Maps.newHashMap();
-        info.put(EventFactory.USER_DATA, userData);
-        root.commit(info);
+        commit(root, null);
     }
 
     public void checkProtectedNode(String path) throws RepositoryException {
@@ -361,39 +370,25 @@ public class SessionDelegate {
         return root.hasPendingChanges();
     }
 
-    public void save() throws RepositoryException {
-        sessionStats.save();
-        try {
-            commit();
-        } catch (CommitFailedException e) {
-            RepositoryException repositoryException = newRepositoryException(e);
-            sessionStats.failedSave(repositoryException);
-            throw repositoryException;
-        }
-    }
-
     /**
-     * Save the subtree rooted at the given {@code path}.
+     * Save the subtree rooted at the given {@code path}, or the entire
+     * transient space if given the root path or {@code null}.
      * <p>
-     * This implementation only performs the save if the subtree rooted at {@code path} contains
-     * all transient changes and will throw an
+     * This implementation only performs the save if the subtree rooted
+     * at {@code path} contains all transient changes and will throw an
      * {@link javax.jcr.UnsupportedRepositoryOperationException} otherwise.
      *
      * @param path
      * @throws RepositoryException
      */
-    public void save(final String path) throws RepositoryException {
+    public void save(String path) throws RepositoryException {
         sessionStats.save();
-        if (denotesRoot(path)) {
-            save();
-        } else {
-            try {
-                root.commit(path);
-            } catch (CommitFailedException e) {
-                RepositoryException repositoryException = newRepositoryException(e);
-                sessionStats.failedSave(repositoryException);
-                throw repositoryException;
-            }
+        try {
+            commit(root, path);
+        } catch (CommitFailedException e) {
+            RepositoryException repositoryException = newRepositoryException(e);
+            sessionStats.failedSave(repositoryException);
+            throw repositoryException;
         }
     }
 

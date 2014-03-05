@@ -68,25 +68,18 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        // TODO : estimate no of returned values and 0 is not good for no restrictions
-        return (filter.getPropertyRestrictions() != null ? filter.getPropertyRestrictions().size() * 0.1 : 0)
-                + (filter.getFulltextConditions() != null ? filter.getFulltextConditions().size() * 0.01 : 0)
-                + (filter.getPathRestriction() != null ? 0.2 : 0);
-//        
-//        FullTextExpression ft = filter.getFullTextConstraint();
-//        if (ft == null) {
-//            // TODO solr should only be triggered for full-text conditions
-//            // return Double.POSITIVE_INFINITY;
-//        }
-//        int cost = 10;
-//        Collection<PropertyRestriction> restrictions = filter.getPropertyRestrictions();
-//        if (restrictions != null) {
-//            cost /= 2;
-//        }
-//        if (filter.getPathRestriction() != null) {
-//            cost /= 2;
-//        }
-//        return cost;
+        if (filter.getFullTextConstraint() == null && filter.getFulltextConditions() == null) {
+            return Double.POSITIVE_INFINITY;
+        }
+        int cost = 10;
+        Collection<Filter.PropertyRestriction> restrictions = filter.getPropertyRestrictions();
+        if (restrictions != null) {
+            cost /= 5;
+        }
+        if (filter.getPathRestriction() != null) {
+            cost /= 2;
+        }
+        return cost;
     }
 
     @Override
@@ -168,10 +161,20 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
         }
 
-        for (String pt : filter.getPrimaryTypes()) {
-            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt));
+        String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
+        for (int i = 0; i < pts.length; i++) {
+            String pt = pts[i];
+            if (i == 0) {
+                queryBuilder.append("(");
+            }
+            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
+            if (i > 0 && i < pts.length - 1) {
+                queryBuilder.append("OR ");
+            }
+            if (i == pts.length - 1) {
+                queryBuilder.append(")");
+            }
         }
-
 
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
         if (pathRestriction != null) {
@@ -204,16 +207,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     private boolean isHttpRequest(String nativeQueryString) {
-        return nativeQueryString.matches("\\w+\\?.*"); // the query string starts with ${handler.selector}?
+        // the query string starts with ${supported-handler.selector}?
+        return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
     }
 
     private void setDefaults(SolrQuery solrQuery) {
         solrQuery.setParam("q.op", "AND");
+        solrQuery.setParam("df", configuration.getCatchAllField());
 
-        // TODO : change this to be not hard coded
-        solrQuery.setParam("df", "catch_all");
-
-        // TODO : can we handle this better?
+        // TODO : can we handle this better? e.g. with deep paging support?
         solrQuery.setParam("rows", String.valueOf(Integer.MAX_VALUE));
     }
 
@@ -245,6 +247,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
+        if (log.isDebugEnabled()) {
+            log.debug("converting filter {}", filter);
+        }
         Cursor cursor;
         try {
             SolrQuery query = getQuery(filter);

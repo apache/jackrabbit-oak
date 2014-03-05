@@ -16,6 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
+import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.Cursors.newPathCursor;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -26,9 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -36,7 +62,6 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -72,30 +97,10 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Version;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST;
-import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -222,8 +227,8 @@ public class LuceneIndex implements FulltextQueryIndex {
                     relPaths.add("");
                 } else if (p.startsWith("../") || p.startsWith("./")) {
                     throw new IllegalArgumentException("Relative parent is not supported:" + p);
-                } else if (PathUtils.getDepth(p) > 1) {
-                    String parent = PathUtils.getParentPath(p);
+                } else if (getDepth(p) > 1) {
+                    String parent = getParentPath(p);
                     relPaths.add(parent);
                 } else {
                     relPaths.add("");
@@ -339,7 +344,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         boolean nonFullTextConstraints = parent.isEmpty();
         Directory directory = newDirectory(root);
         if (directory == null) {
-            return Cursors.newPathCursor(Collections.<String> emptySet());
+            return newPathCursor(Collections.<String> emptySet());
         }
         long s = System.currentTimeMillis();
         try {
@@ -351,10 +356,9 @@ public class LuceneIndex implements FulltextQueryIndex {
                     Query query = getQuery(filter, reader,
                             nonFullTextConstraints, analyzer);
 
-//                    TODO OAK-828
-//                    HashSet<String> seenPaths = new HashSet<String>();
-//                    int parentDepth = PathUtils.getDepth(parent);
-
+                    // TODO OAK-828
+                    HashSet<String> seenPaths = new HashSet<String>();
+                    int parentDepth = getDepth(parent);
                     if (query != null) {
                         // OAK-925
                         // TODO how to best avoid loading all entries in memory?
@@ -368,22 +372,21 @@ public class LuceneIndex implements FulltextQueryIndex {
                                 if ("".equals(path)) {
                                     path = "/";
                                 }
-
-//                                TODO OAK-828
-//                                if (!parent.isEmpty()) {
-//                                    // ensure the path ends with the given
-//                                    // relative path
-//                                    if (!path.endsWith("/" + parent)) {
-//                                        continue;
-//                                    }
-//                                    // get the base path
-//                                    path = PathUtils.getAncestorPath(path, parentDepth);
-//                                    // avoid duplicate entries
-//                                    if (seenPaths.contains(path)) {
-//                                        continue;
-//                                    }
-//                                    seenPaths.add(path);
-//                                }
+                                if (!parent.isEmpty()) {
+                                    // TODO OAK-828 this breaks node aggregation
+                                    // get the base path
+                                    // ensure the path ends with the given
+                                    // relative path
+                                    // if (!path.endsWith("/" + parent)) {
+                                    // continue;
+                                    // }
+                                    path = getAncestorPath(path, parentDepth);
+                                    // avoid duplicate entries
+                                    if (seenPaths.contains(path)) {
+                                        continue;
+                                    }
+                                    seenPaths.add(path);
+                                }
 
                                 paths.add(path);
                             }
@@ -391,7 +394,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                     }
                     LOG.debug("query via {} took {} ms.", this,
                             System.currentTimeMillis() - s);
-                    return Cursors.newPathCursor(paths);
+                    return newPathCursor(paths);
                 } finally {
                     reader.close();
                 }
@@ -400,7 +403,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
         } catch (IOException e) {
             LOG.warn("query via {} failed.", this, e);
-            return Cursors.newPathCursor(Collections.<String> emptySet());
+            return newPathCursor(Collections.<String> emptySet());
         }
     }
 
@@ -428,7 +431,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
-            QueryParser queryParser = new QueryParser(Version.LUCENE_46, "", new OakAnalyzer(Version.LUCENE_46));
+            QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
             try {
                 qs.add(queryParser.parse(query));
@@ -437,7 +440,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
         }
         else if (nonFullTextConstraints) {
-            addNonFullTextConstraints(qs, filter, reader);
+            addNonFullTextConstraints(qs, filter, reader, analyzer);
         }
         if (qs.size() == 0) {
             return new MatchAllDocsQuery();
@@ -453,7 +456,7 @@ public class LuceneIndex implements FulltextQueryIndex {
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
-            Filter filter, IndexReader reader) {
+            Filter filter, IndexReader reader, Analyzer analyzer) {
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(qs, filter);
         }
@@ -479,13 +482,13 @@ public class LuceneIndex implements FulltextQueryIndex {
             qs.add(new TermQuery(newPathTerm(path)));
             break;
         case PARENT:
-            if (PathUtils.denotesRoot(path)) {
+            if (denotesRoot(path)) {
                 // there's no parent of the root node
                 // we add a path that can not possibly occur because there
                 // is no way to say "match no documents" in Lucene
                 qs.add(new TermQuery(new Term(FieldNames.PATH, "///")));
             } else {
-                qs.add(new TermQuery(newPathTerm(PathUtils.getParentPath(path))));
+                qs.add(new TermQuery(newPathTerm(getParentPath(path))));
             }
             break;
         case NO_RESTRICTION:
@@ -508,8 +511,13 @@ public class LuceneIndex implements FulltextQueryIndex {
             if ("rep:excerpt".equals(name)) {
                 continue;
             }
-            // TODO OAK-985
-            if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
+            if (JCR_PRIMARYTYPE.equals(name)) {
+                continue;
+            }
+
+            if (skipTokenization(name)) {
+                qs.add(new TermQuery(new Term(name, pr.first
+                        .getValue(STRING))));
                 continue;
             }
 
@@ -519,11 +527,11 @@ public class LuceneIndex implements FulltextQueryIndex {
 
             // TODO what to do with escaped tokens?
             if (pr.first != null) {
-                first = pr.first.getValue(Type.STRING);
+                first = pr.first.getValue(STRING);
                 first = first.replace("\\", "");
             }
             if (pr.last != null) {
-                last = pr.last.getValue(Type.STRING);
+                last = pr.last.getValue(STRING);
                 last = last.replace("\\", "");
             }
 
@@ -561,15 +569,29 @@ public class LuceneIndex implements FulltextQueryIndex {
                     if ("*".equals(name)) {
                         addReferenceConstraint(first, qs, reader);
                     } else {
-                        qs.add(new TermQuery(new Term(name, first)));
+                        for (String t : tokenize(first, analyzer)) {
+                            qs.add(new TermQuery(new Term(name, t)));
+                        }
                     }
                 }
                 continue;
             }
 
+            first = tokenizeAndPoll(first, analyzer);
+            last = tokenizeAndPoll(last, analyzer);
             qs.add(TermRangeQuery.newStringRange(name, first, last,
                     pr.firstIncluding, pr.lastIncluding));
         }
+    }
+
+    private static String tokenizeAndPoll(String token, Analyzer analyzer){
+        if (token != null) {
+            List<String> tokens = tokenize(token, analyzer);
+            if (!tokens.isEmpty()) {
+                token = tokens.get(0);
+            }
+        }
+        return token;
     }
 
     private static void addReferenceConstraint(String uuid, List<Query> qs,
@@ -640,10 +662,9 @@ public class LuceneIndex implements FulltextQueryIndex {
             public boolean visit(FullTextTerm term) {
                 String p = term.getPropertyName();
                 if (p != null && p.indexOf('/') >= 0) {
-                    // do not add constraints on child nodes properties
-                    p = "*";
+                    p = getName(p);
                 }
-                Query q = tokenToQuery(term.getText(), analyzer, reader);
+                Query q = tokenToQuery(term.getText(), p, analyzer, reader);
                 if (q == null) {
                     return false;
                 }
@@ -664,12 +685,11 @@ public class LuceneIndex implements FulltextQueryIndex {
         return result.get();
     }
 
-    static Query tokenToQuery(String text, Analyzer analyzer, IndexReader reader) {
+    static Query tokenToQuery(String text, String fieldName, Analyzer analyzer, IndexReader reader) {
         if (analyzer == null) {
             return null;
         }
-        List<String> tokens = new ArrayList<String>();
-        tokens = tokenize(text, analyzer);
+        List<String> tokens = tokenize(text, analyzer);
 
         if (tokens.isEmpty()) {
             // TODO what should be returned in the case there are no tokens?
@@ -678,9 +698,9 @@ public class LuceneIndex implements FulltextQueryIndex {
         if (tokens.size() == 1) {
             String token = tokens.iterator().next();
             if (hasFulltextToken(token)) {
-                return new WildcardQuery(newFulltextTerm(token));
+                return new WildcardQuery(newFulltextTerm(token, fieldName));
             } else {
-                return new TermQuery(newFulltextTerm(token));
+                return new TermQuery(newFulltextTerm(token, fieldName));
             }
         } else {
             if (hasFulltextToken(tokens)) {
@@ -692,14 +712,14 @@ public class LuceneIndex implements FulltextQueryIndex {
                             mpq.add(terms);
                         }
                     } else {
-                        mpq.add(newFulltextTerm(token));
+                        mpq.add(newFulltextTerm(token, fieldName));
                     }
                 }
                 return mpq;
             } else {
                 PhraseQuery pq = new PhraseQuery();
                 for (String t : tokens) {
-                    pq.add(newFulltextTerm(t));
+                    pq.add(newFulltextTerm(t, fieldName));
                 }
                 return pq;
             }

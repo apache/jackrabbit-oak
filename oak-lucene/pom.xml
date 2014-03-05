@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>0.18-SNAPSHOT</version>
+    <version>0.19-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -50,13 +50,10 @@
       org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefToVersionNode                              <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testMultipleDeref                                   <!-- OAK-321 -->
-      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeSQL                    <!-- OAK-902 -->
-      org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeXPath                  <!-- OAK-902 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex0Descendant                            <!-- OAK-322 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex1Descendant                            <!-- OAK-322 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex2Descendant                            <!-- OAK-322 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex3Descendant                            <!-- OAK-322 -->
-      org.apache.jackrabbit.core.query.SQL2QueryResultTest#testSQL2SelectColums                      <!-- OAK-874 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testGeneralComparison                         <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
       org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest#testInvalidQuery                      <!-- OAK-329 -->
@@ -89,7 +86,7 @@
       org.apache.jackrabbit.core.query.SimpleQueryTest#testLikePatternEscaped                        <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testNegativeNumber                            <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SQL2OrderByTest#testOrderByScore
-      org.apache.jackrabbit.oak.jcr.query.QueryFulltextTest#testFulltextRelativeProperty             <!-- OAK-828 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- TODO -->
     </known.issues>
   </properties>
 

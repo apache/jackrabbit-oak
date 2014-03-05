@@ -55,7 +55,7 @@ public class DocumentMK implements MicroKernel {
      * The threshold where special handling for many child node starts.
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
-            "oak.documentMK.manyChildren", 50);
+            "oak.documentMK.manyChildren", 10);
     
     /**
      * Enable the LIRS cache.
@@ -472,8 +472,13 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setMongoDB(DB db) {
             if (db != null) {
-                this.documentStore = new MongoDocumentStore(db, this);
-                this.blobStore = new MongoBlobStore(db);
+                if(this.documentStore == null){
+                    this.documentStore = new MongoDocumentStore(db, this);
+                }
+
+                if(this.blobStore == null){
+                    this.blobStore = new MongoBlobStore(db);
+                }
             }
             return this;
         }

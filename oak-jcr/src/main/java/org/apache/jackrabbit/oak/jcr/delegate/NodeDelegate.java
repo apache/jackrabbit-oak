@@ -249,8 +249,15 @@ public class NodeDelegate extends ItemDelegate {
     @CheckForNull
     public PropertyDelegate getPropertyOrNull(String relPath)
             throws RepositoryException {
-        Tree parent = getTree(PathUtils.getParentPath(relPath));
-        String name = PathUtils.getName(relPath);
+        Tree parent = tree;
+        String name = relPath;
+
+        int slash = relPath.lastIndexOf('/');
+        if (slash != -1) {
+            parent = getTree(relPath.substring(0, slash));
+            name = relPath.substring(slash + 1);
+        }
+
         if (parent != null) {
             PropertyDelegate property =
                     new PropertyDelegate(sessionDelegate, parent, name);
@@ -272,8 +279,15 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public PropertyDelegate getProperty(String relPath) throws RepositoryException {
-        Tree parent = getTree(PathUtils.getParentPath(relPath));
-        String name = PathUtils.getName(relPath);
+        Tree parent = tree;
+        String name = relPath;
+
+        int slash = relPath.lastIndexOf('/');
+        if (slash != -1) {
+            parent = getTree(relPath.substring(0, slash));
+            name = relPath.substring(slash + 1);
+        }
+
         return new PropertyDelegate(sessionDelegate, parent, name);
     }
 

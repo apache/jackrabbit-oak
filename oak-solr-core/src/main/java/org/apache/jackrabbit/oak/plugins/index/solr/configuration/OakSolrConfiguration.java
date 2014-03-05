@@ -63,4 +63,9 @@ public interface OakSolrConfiguration {
      */
     public CommitPolicy getCommitPolicy();
 
+    /**
+     * Provide a field name that is used as the default "catch all" field for searching over all the data
+     * @return a <code>String</code> representing the Solr field to be used as "catch all" field
+     */
+    public String getCatchAllField();
 }
