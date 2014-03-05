@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * A simple usage pattern would look like this:
  * <pre>
  * EventGenerator generator = new EventGenerator(before, after, handler);
- * while (generator.isDone()) {
+ * while (!generator.isDone()) {
  *     generator.generate();
  * }
  * </pre>
