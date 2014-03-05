@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,17 +67,21 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                 if (log.isDebugEnabled()) {
                     log.debug("found a Solr index definition {}", entry.getName());
                 }
-
                 try {
-                    tempIndexes.add(new SolrQueryIndex(
-                            entry.getName(),
-                            solrServerProvider.getSolrServer(),
-                            oakSolrConfigurationProvider.getConfiguration()));
+                    SolrServer solrServer = solrServerProvider.getSolrServer();
+                    // the query engine should be returned only if the serve is alive, otherwise other indexes should be used
+                    if (solrServer != null && 0 == solrServer.ping().getStatus()) {
+                        tempIndexes.add(new SolrQueryIndex(
+                                entry.getName(),
+                                solrServer,
+                                oakSolrConfigurationProvider.getConfiguration()));
+                    }
                 } catch (Exception e) {
                     if (log.isErrorEnabled()) {
                         log.error("unable to create Solr query index at " + entry.getName(), e);
                     }
                 }
+
             }
         }
         return tempIndexes;
