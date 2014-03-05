@@ -130,13 +130,10 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     if (next == null) {
                         next = "";
                     }
-                    index.getChildNode(previous.getName()).setProperty(NEXT, next); // (3) re-link
-                                                                                    // the previous
-                                                                                    // to the next
-                    node.remove(); // (4) remove the current node
-                } else {
-                    node.remove();
-                }
+                    // (3) re-link the previous to the next
+                    index.getChildNode(previous.getName()).setProperty(NEXT, next); 
+                } 
+                node.remove();
             }
         }
     }
