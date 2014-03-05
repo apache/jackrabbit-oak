@@ -38,7 +38,7 @@ import com.google.common.collect.Iterables;
  * Provides a QueryIndex that does lookups against a property index
  *
  * <p>
- * To define a property index on a subtree you have to add an <code>oak:index</code> node.
+ * To define a property index on a subtree you have to add an <code>oak:index</code> node. 
  * <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
@@ -49,9 +49,9 @@ import com.google.common.collect.Iterables;
  * </p>
  * <p>
  * Optionally you can specify
- * <ul> 
- * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
- * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
+ * <ul>
+ * <li>a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
+ * <li>that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
  * </ul>
  * </p>
  * <p>
@@ -120,6 +120,16 @@ class PropertyIndex implements QueryIndex {
         return "property";
     }
 
+    /**
+     * return the proper implementation of the Lookup
+     * 
+     * @param root
+     * @return the lookup
+     */
+    PropertyIndexLookup getLookup(NodeState root) {
+        return new PropertyIndexLookup(root);
+    }
+
     @Override
     public double getCost(Filter filter, NodeState root) {
         if (filter.getFullTextConstraint() != null) {
@@ -127,7 +137,7 @@ class PropertyIndex implements QueryIndex {
             return Double.POSITIVE_INFINITY;
         }
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
@@ -157,7 +167,7 @@ class PropertyIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState root) {
         Iterable<String> paths = null;
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         int depth = 1;
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
@@ -197,12 +207,12 @@ class PropertyIndex implements QueryIndex {
         }
         return c;
     }
-    
+
     @Override
     public String getPlan(Filter filter, NodeState root) {
         StringBuilder buff = new StringBuilder("property");
         StringBuilder notIndexed = new StringBuilder();
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        PropertyIndexLookup lookup = getLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
