@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.session;
 
 import java.io.PrintWriter;
@@ -27,7 +26,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.RepositoryException;
@@ -40,54 +38,24 @@ public class SessionStats implements SessionMBean {
     private static final long EPS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
 
     private final Exception initStackTrace = new Exception("The session was opened here:");
-    private final Date loginTimeStamp = new Date();
-    private final AtomicReference<Date> lastReadAccess = new AtomicReference<Date>();
-    private final AtomicLong readCount = new AtomicLong();
-    private final AtomicReference<Date> lastWriteAccess = new AtomicReference<Date>();
-    private final AtomicLong writeCount = new AtomicLong();
-    private final AtomicReference<Date> lastRefresh = new AtomicReference<Date>();
-    private final AtomicLong refreshCount = new AtomicLong();
-    private final AtomicReference<Date> lastSave = new AtomicReference<Date>();
-    private final AtomicLong saveCount = new AtomicLong();
+
     private final AtomicReference<RepositoryException> lastFailedSave =
             new AtomicReference<RepositoryException>();
 
+    private final SessionDelegate delegate;
     private final String sessionId;
     private final AuthInfo authInfo;
 
     private Map<String, Object> attributes = Collections.emptyMap();
 
     public SessionStats(SessionDelegate sessionDelegate) {
+        this.delegate = sessionDelegate;
         this.sessionId = sessionDelegate.toString();
         this.authInfo = sessionDelegate.getAuthInfo();
     }
 
     public void setAttributes(Map<String, Object> attributes) {
         this.attributes = attributes;
-    }
-
-    public void read() {
-        // There is a small race here and in the following methods, which might lead to
-        // a small window of inconsistency between the date and the count. Since the
-        // effect is small and the provided information is for information purposes
-        // this is preferable to synchronizing the method.
-        lastReadAccess.set(new Date());
-        readCount.incrementAndGet();
-    }
-
-    public void write() {
-        lastWriteAccess.set(new Date());
-        writeCount.incrementAndGet();
-    }
-
-    public void refresh() {
-        lastRefresh.set(new Date());
-        refreshCount.incrementAndGet();
-    }
-
-    public void save() {
-        lastSave.set(new Date());
-        saveCount.incrementAndGet();
     }
 
     public void failedSave(RepositoryException repositoryException) {
@@ -113,17 +81,17 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public String getLoginTimeStamp() {
-        return formatDate(loginTimeStamp);
+        return formatDate(delegate.getLoginTime());
     }
 
     @Override
     public String getLastReadAccess() {
-        return formatDate(lastReadAccess.get());
+        return formatDate(delegate.getReadTime());
     }
 
     @Override
     public long getReadCount() {
-        return readCount.get();
+        return delegate.getReadCount();
     }
 
     @Override
@@ -133,12 +101,12 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public String getLastWriteAccess() {
-        return formatDate(lastWriteAccess.get());
+        return formatDate(delegate.getWriteTime());
     }
 
     @Override
     public long getWriteCount() {
-        return writeCount.get();
+        return delegate.getWriteCount();
     }
 
     @Override
@@ -148,12 +116,12 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public String getLastRefresh() {
-        return formatDate(lastRefresh.get());
+        return formatDate(delegate.getRefreshTime());
     }
 
     @Override
     public long getRefreshCount() {
-        return refreshCount.get();
+        return delegate.getRefreshCount();
     }
 
     @Override
@@ -163,12 +131,12 @@ public class SessionStats implements SessionMBean {
 
     @Override
     public String getLastSave() {
-        return formatDate(lastSave.get());
+        return formatDate(delegate.getSaveTime());
     }
 
     @Override
     public long getSaveCount() {
-        return saveCount.get();
+        return delegate.getSaveCount();
     }
 
     @Override
@@ -210,7 +178,7 @@ public class SessionStats implements SessionMBean {
     }
 
     private double calculateRate(long count) {
-        double dt = System.currentTimeMillis() - loginTimeStamp.getTime();
+        double dt = delegate.getNanosecondsSinceLogin() / 1000000;
         if (dt > EPS) {
             return count / dt;
         } else {

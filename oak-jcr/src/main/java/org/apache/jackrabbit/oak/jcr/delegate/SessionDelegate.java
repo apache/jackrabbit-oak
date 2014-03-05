@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.currentTimeMillis;
 import static java.lang.System.nanoTime;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
@@ -25,6 +26,7 @@ import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -69,8 +71,20 @@ public class SessionDelegate {
     private final IdentifierManager idManager;
     private final SessionStats sessionStats;
 
-    private volatile long lastAccessTimeNS = nanoTime();
+    // access time stamps and counters for statistics about this session
+    private final long loginTimeMS = currentTimeMillis();
+    private final long loginTimeNS = nanoTime();
+    private long lastAccessTimeNS = loginTimeNS;
+    private long readTimeNS = loginTimeNS;
+    private long writeTimeNS = loginTimeNS;
+    private long refreshTimeNS = loginTimeNS;
+    private long saveTimeNS = loginTimeNS;
+    private long readCount = 0;
+    private long writeCount = 0;
+    private long refreshCount = 0;
+    private long saveCount = 0;
 
+    // repository-wide counters for statistics about all sessions
     private final AtomicLong readCounter;
     private final AtomicLong readDuration;
     private final AtomicLong writeCounter;
@@ -117,6 +131,55 @@ public class SessionDelegate {
 
     public long getNanosecondsSinceLastAccess() {
         return nanoTime() - lastAccessTimeNS;
+    }
+
+    public long getNanosecondsSinceLogin() {
+        return nanoTime() - loginTimeNS;
+    }
+
+    public Date getLoginTime() {
+        return new Date(loginTimeMS);
+    }
+
+    private Date getTime(long ns) {
+        long nsSinceStart = ns - loginTimeNS;
+        if (nsSinceStart > 0) {
+            return new Date(loginTimeMS + nsSinceStart / 1000000);
+        } else {
+            return null;
+        }
+    }
+
+    public Date getReadTime() {
+        return getTime(readTimeNS);
+    }
+
+    public Date getWriteTime() {
+        return getTime(writeTimeNS);
+    }
+
+    public Date getRefreshTime() {
+        return getTime(refreshTimeNS);
+    }
+
+    public Date getSaveTime() {
+        return getTime(saveTimeNS);
+    }
+
+    public long getReadCount() {
+        return readCount;
+    }
+
+    public long getWriteCount() {
+        return writeCount;
+    }
+
+    public long getRefreshCount() {
+        return refreshCount;
+    }
+
+    public long getSaveCount() {
+        return saveCount;
     }
 
     public void refreshAtNextAccess() {
@@ -175,12 +238,14 @@ public class SessionDelegate {
             long dt = nanoTime() - t0;
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
-                sessionStats.write();
+                writeTimeNS = t0;
+                writeCount++;
                 writeCounter.incrementAndGet();
                 writeDuration.addAndGet(dt);
                 updateCount++;
             } else {
-                sessionStats.read();
+                readTimeNS = t0;
+                readCount++;
                 readCounter.incrementAndGet();
                 readDuration.addAndGet(dt);
             }
@@ -396,7 +461,8 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(String path) throws RepositoryException {
-        sessionStats.save();
+        saveTimeNS = nanoTime();
+        saveCount++;
         try {
             commit(root, path);
         } catch (CommitFailedException e) {
@@ -407,7 +473,8 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        sessionStats.refresh();
+        refreshTimeNS = nanoTime();
+        refreshCount++;
         if (keepChanges && hasPendingChanges()) {
             root.rebase();
         } else {
@@ -459,7 +526,8 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
-                sessionStats.save();
+                saveTimeNS = nanoTime();
+                saveCount++;
                 commit(moveRoot);
                 refresh(true);
             }
