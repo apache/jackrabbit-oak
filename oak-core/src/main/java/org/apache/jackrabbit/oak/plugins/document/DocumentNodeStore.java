@@ -56,6 +56,8 @@ import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -665,7 +667,7 @@ public final class DocumentNodeStore
                 }
                 if (c.children.size() < limit) {
                     // add to children until limit is reached
-                    c.children.add(p);
+                    c.children.add(Utils.unshareString(PathUtils.getName(p)));
                 } else {
                     // enough collected and we know there are more
                     c.hasMore = true;
@@ -785,7 +787,8 @@ public final class DocumentNodeStore
                 new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
-                return getNode(input, readRevision);
+                String p = PathUtils.concat(parent.getPath(), input);
+                return getNode(p, readRevision);
             }
         });
     }
@@ -832,10 +835,9 @@ public final class DocumentNodeStore
         if (isNew) {
             CacheValue key = childNodeCacheKey(path, rev, null);
             DocumentNodeState.Children c = new DocumentNodeState.Children();
-            Set<String> set = Sets.newTreeSet(added);
-            set.removeAll(removed);
+            Set<String> set = Sets.newTreeSet();
             for (String p : added) {
-                set.add(Utils.unshareString(p));
+                set.add(Utils.unshareString(PathUtils.getName(p)));
             }
             c.children.addAll(set);
             nodeChildrenCache.put(key, c);
@@ -844,13 +846,13 @@ public final class DocumentNodeStore
             PathRev key = diffCacheKey(path, before, rev);
             JsopWriter w = new JsopStream();
             for (String p : added) {
-                w.tag('+').key(p).object().endObject().newline();
+                w.tag('+').key(PathUtils.getName(p)).object().endObject().newline();
             }
             for (String p : removed) {
-                w.tag('-').value(p).newline();
+                w.tag('-').value(PathUtils.getName(p)).newline();
             }
             for (String p : changed) {
-                w.tag('^').key(p).object().endObject().newline();
+                w.tag('^').key(PathUtils.getName(p)).object().endObject().newline();
             }
             diffCache.put(key, new StringValue(w.toString()));
         }
@@ -1148,12 +1150,35 @@ public final class DocumentNodeStore
         try {
             JsopWriter writer = new JsopStream();
             diffProperties(from, to, writer);
-            return writer.toString() + diffCache.get(key, new Callable<StringValue>() {
+            String compactDiff = diffCache.get(key, new Callable<StringValue>() {
                 @Override
                 public StringValue call() throws Exception {
                     return new StringValue(diffImpl(from, to));
                 }
-            });
+            }).toString();
+            JsopTokenizer t = new JsopTokenizer(compactDiff);
+            int r;
+            do {
+                r = t.read();
+                switch (r) {
+                    case '+':
+                    case '^': {
+                        String name = t.readString();
+                        t.read(':');
+                        t.read('{');
+                        t.read('}');
+                        writer.tag((char) r).key(PathUtils.concat(path, name));
+                        writer.object().endObject().newline();
+                        break;
+                    }
+                    case '-': {
+                        String name = t.readString();
+                        writer.tag('-').value(PathUtils.concat(path, name));
+                        writer.newline();
+                    }
+                }
+            } while (r != JsopReader.END);
+            return writer.toString();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof MicroKernelException) {
                 throw (MicroKernelException) e.getCause();
@@ -1414,7 +1439,6 @@ public final class DocumentNodeStore
     private String diffImpl(DocumentNodeState from, DocumentNodeState to)
             throws MicroKernelException {
         JsopWriter w = new JsopStream();
-        diffProperties(from, to, w);
         // TODO this does not work well for large child node lists
         // use a document store index instead
         int max = MANY_CHILDREN_THRESHOLD;
@@ -1422,8 +1446,8 @@ public final class DocumentNodeStore
         fromChildren = getChildren(from, null, max);
         toChildren = getChildren(to, null, max);
         if (!fromChildren.hasMore && !toChildren.hasMore) {
-            diffFewChildren(w, fromChildren, from.getLastRevision(),
-                    toChildren, to.getLastRevision());
+            diffFewChildren(w, from.getPath(), fromChildren,
+                    from.getLastRevision(), toChildren, to.getLastRevision());
         } else {
             if (FAST_DIFF) {
                 diffManyChildren(w, from.getPath(),
@@ -1432,8 +1456,8 @@ public final class DocumentNodeStore
                 max = Integer.MAX_VALUE;
                 fromChildren = getChildren(from, null, max);
                 toChildren = getChildren(to, null, max);
-                diffFewChildren(w, fromChildren, from.getLastRevision(),
-                        toChildren, to.getLastRevision());
+                diffFewChildren(w, from.getPath(), fromChildren,
+                        from.getLastRevision(), toChildren, to.getLastRevision());
             }
         }
         return w.toString();
@@ -1463,23 +1487,24 @@ public final class DocumentNodeStore
         for (String p : paths) {
             DocumentNodeState fromNode = getNode(p, fromRev);
             DocumentNodeState toNode = getNode(p, toRev);
+            String name = PathUtils.getName(p);
             if (fromNode != null) {
                 // exists in fromRev
                 if (toNode != null) {
                     // exists in both revisions
                     // check if different
                     if (!fromNode.getLastRevision().equals(toNode.getLastRevision())) {
-                        w.tag('^').key(p).object().endObject().newline();
+                        w.tag('^').key(name).object().endObject().newline();
                     }
                 } else {
                     // does not exist in toRev -> was removed
-                    w.tag('-').value(p).newline();
+                    w.tag('-').value(name).newline();
                 }
             } else {
                 // does not exist in fromRev
                 if (toNode != null) {
                     // exists in toRev
-                    w.tag('+').key(p).object().endObject().newline();
+                    w.tag('+').key(name).object().endObject().newline();
                 } else {
                     // does not exist in either revisions
                     // -> do nothing
@@ -1503,21 +1528,22 @@ public final class DocumentNodeStore
         }
     }
 
-    private void diffFewChildren(JsopWriter w, DocumentNodeState.Children fromChildren, Revision fromRev, DocumentNodeState.Children toChildren, Revision toRev) {
+    private void diffFewChildren(JsopWriter w, String parentPath, DocumentNodeState.Children fromChildren, Revision fromRev, DocumentNodeState.Children toChildren, Revision toRev) {
         Set<String> childrenSet = Sets.newHashSet(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n).newline();
             } else {
-                DocumentNodeState n1 = getNode(n, fromRev);
-                DocumentNodeState n2 = getNode(n, toRev);
+                String path = PathUtils.concat(parentPath, n);
+                DocumentNodeState n1 = getNode(path, fromRev);
+                DocumentNodeState n2 = getNode(path, toRev);
                 // this is not fully correct:
                 // a change is detected if the node changed recently,
                 // even if the revisions are well in the past
                 // if this is a problem it would need to be changed
-                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", n, fromRev);
-                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", n, toRev);
-                if (!n1.getId().equals(n2.getId())) {
+                checkNotNull(n1, "Node at [%s] not found for fromRev [%s]", path, fromRev);
+                checkNotNull(n2, "Node at [%s] not found for toRev [%s]", path, toRev);
+                if (!n1.getLastRevision().equals(n2.getLastRevision())) {
                     w.tag('^').key(n).object().endObject().newline();
                 }
             }
