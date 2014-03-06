@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.TYPE;
 
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class OrderedPropertyIndex extends PropertyIndex {
@@ -31,5 +32,11 @@ public class OrderedPropertyIndex extends PropertyIndex {
     @Override
     PropertyIndexLookup getLookup(NodeState root) {
         return new OrderedPropertyIndexLookup(root);
+    }
+
+    @Override
+    public double getCost(Filter filter, NodeState root) {
+        //we don't want the index to be used yet
+        return Double.POSITIVE_INFINITY;
     }
 }
