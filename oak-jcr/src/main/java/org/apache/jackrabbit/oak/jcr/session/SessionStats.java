@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.RepositoryException;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 public class SessionStats implements SessionMBean {
-    private static final long EPS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.SECONDS);
 
     private final Exception initStackTrace = new Exception("The session was opened here:");
 
@@ -178,8 +176,8 @@ public class SessionStats implements SessionMBean {
     }
 
     private double calculateRate(long count) {
-        double dt = delegate.getNanosecondsSinceLogin() / 1000000;
-        if (dt > EPS) {
+        double dt = delegate.getSecondsSinceLogin();
+        if (dt > 0) {
             return count / dt;
         } else {
             return Double.NaN;

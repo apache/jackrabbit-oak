@@ -17,8 +17,9 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.System.currentTimeMillis;
-import static java.lang.System.nanoTime;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
@@ -51,6 +52,7 @@ import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,14 +89,15 @@ public class SessionDelegate {
     private final IdentifierManager idManager;
     private final SessionStats sessionStats;
 
+    private final Clock clock;
+
     // access time stamps and counters for statistics about this session
-    private final long loginTimeMS = currentTimeMillis();
-    private final long loginTimeNS = nanoTime();
-    private long lastAccessTimeNS = loginTimeNS;
-    private long readTimeNS = loginTimeNS;
-    private long writeTimeNS = loginTimeNS;
-    private long refreshTimeNS = loginTimeNS;
-    private long saveTimeNS = loginTimeNS;
+    private final long loginTime;
+    private long accessTime;
+    private long readTime = 0;
+    private long writeTime = 0;
+    private long refreshTime = 0;
+    private long saveTime = 0;
     private long readCount = 0;
     private long writeCount = 0;
     private long refreshCount = 0;
@@ -128,7 +131,8 @@ public class SessionDelegate {
             @Nonnull ContentSession contentSession,
             @Nonnull RefreshStrategy refreshStrategy,
             @Nonnull ThreadLocal<Long> threadSaveCount,
-            @Nonnull StatisticManager statisticManager) {
+            @Nonnull StatisticManager statisticManager,
+            @Nonnull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
         this.refreshStrategy = checkNotNull(refreshStrategy);
         this.threadSaveCount = checkNotNull(threadSaveCount);
@@ -136,6 +140,9 @@ public class SessionDelegate {
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
         this.sessionStats = new SessionStats(this);
+        this.clock = checkNotNull(clock);
+        this.loginTime = clock.getTime();
+        this.accessTime = loginTime;
         checkNotNull(statisticManager);
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
         readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
@@ -153,41 +160,36 @@ public class SessionDelegate {
         return c == null ? 0 : c;
     }
 
-    public long getNanosecondsSinceLastAccess() {
-        return nanoTime() - lastAccessTimeNS;
-    }
-
-    public long getNanosecondsSinceLogin() {
-        return nanoTime() - loginTimeNS;
+    public long getSecondsSinceLogin() {
+        return SECONDS.convert(clock.getTime() - loginTime, MILLISECONDS);
     }
 
     public Date getLoginTime() {
-        return new Date(loginTimeMS);
+        return new Date(loginTime);
     }
 
-    private Date getTime(long ns) {
-        long nsSinceStart = ns - loginTimeNS;
-        if (nsSinceStart > 0) {
-            return new Date(loginTimeMS + nsSinceStart / 1000000);
+    private Date getTime(long timestamp) {
+        if (timestamp != 0) {
+            return new Date(timestamp);
         } else {
             return null;
         }
     }
 
     public Date getReadTime() {
-        return getTime(readTimeNS);
+        return getTime(readTime);
     }
 
     public Date getWriteTime() {
-        return getTime(writeTimeNS);
+        return getTime(writeTime);
     }
 
     public Date getRefreshTime() {
-        return getTime(refreshTimeNS);
+        return getTime(refreshTime);
     }
 
     public Date getSaveTime() {
-        return getTime(saveTimeNS);
+        return getTime(saveTime);
     }
 
     public long getReadCount() {
@@ -236,7 +238,7 @@ public class SessionDelegate {
     public synchronized <T> T perform(SessionOperation<T> sessionOperation)
             throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
-        long t0 = nanoTime();
+        long t0 = clock.getTime();
         if (sessionOpCount == 0) {
             // Refresh and precondition checks only for non re-entrant
             // session operations. Don't refresh if this operation is a
@@ -247,7 +249,8 @@ public class SessionDelegate {
                     && !sessionOperation.isLogout()
                     && (refreshAtNextAccess
                         || sessionSaveCount != getThreadSaveCount()
-                        || refreshStrategy.needsRefresh(t0 - lastAccessTimeNS))) {
+                        || refreshStrategy.needsRefresh(
+                                SECONDS.convert(t0 - accessTime, MILLISECONDS)))) {
                 refresh(true);
                 refreshAtNextAccess = false;
                 sessionSaveCount = getThreadSaveCount();
@@ -261,17 +264,17 @@ public class SessionDelegate {
             logOperationDetails(sessionOperation);
             return result;
         } finally {
-            lastAccessTimeNS = t0;
-            long dt = nanoTime() - t0;
+            accessTime = t0;
+            long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
             sessionOpCount--;
             if (sessionOperation.isUpdate()) {
-                writeTimeNS = t0;
+                writeTime = t0;
                 writeCount++;
                 writeCounter.incrementAndGet();
                 writeDuration.addAndGet(dt);
                 updateCount++;
             } else {
-                readTimeNS = t0;
+                readTime = t0;
                 readCount++;
                 readCounter.incrementAndGet();
                 readDuration.addAndGet(dt);
@@ -491,7 +494,7 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(String path) throws RepositoryException {
-        saveTimeNS = nanoTime();
+        saveTime = clock.getTime();
         saveCount++;
         try {
             commit(root, path);
@@ -503,7 +506,7 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        refreshTimeNS = nanoTime();
+        refreshTime = clock.getTime();
         refreshCount++;
         if (keepChanges && hasPendingChanges()) {
             root.rebase();
@@ -556,7 +559,7 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
-                saveTimeNS = nanoTime();
+                saveTime = clock.getTime();
                 saveCount++;
                 commit(moveRoot);
                 refresh(true);

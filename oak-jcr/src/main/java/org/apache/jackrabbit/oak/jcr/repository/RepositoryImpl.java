@@ -47,6 +47,7 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
@@ -83,6 +84,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
 
+    private final Clock clock;
+
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
      * performed per thread so far. This is is then used to determine if
@@ -108,6 +111,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.securityProvider = checkNotNull(securityProvider);
         this.descriptors = determineDescriptors();
         this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
+        this.clock = new Clock.Fast(scheduledExecutor);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -246,7 +250,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             final ContentSession contentSession) {
         return new SessionDelegate(
                 contentSession, refreshStrategy,
-                threadSaveCount, statisticManager) {
+                threadSaveCount, statisticManager, clock) {
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
             ListenableScheduledFuture<Registration> registration = scheduledExecutor.schedule(
