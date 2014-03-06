@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * on all detected changes, and forwards the filtered change events to a given
  * delegate handler.
  */
-public class FilteredHandler implements EventHandler {
+public class FilteredHandler extends DefaultEventHandler {
 
     private final EventFilter filter;
 
@@ -38,6 +38,17 @@ public class FilteredHandler implements EventHandler {
     public FilteredHandler(EventFilter filter, EventHandler handler) {
         this.filter = filter;
         this.handler = handler;
+    }
+
+
+    @Override
+    public void enter(NodeState before, NodeState after) {
+        handler.enter(before, after);
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after) {
+        handler.leave(before, after);
     }
 
     @Override @CheckForNull

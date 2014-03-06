@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -150,6 +151,12 @@ public class Jcr {
     @Nonnull
     public final Jcr with(@Nonnull Executor executor) {
         oak.with(checkNotNull(executor));
+        return this;
+    }
+
+    @Nonnull
+    public final Jcr with(@Nonnull Observer observer) {
+        oak.with(checkNotNull(observer));
         return this;
     }
 

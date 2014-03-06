@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.PathTracker;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierTracker;
+import org.apache.jackrabbit.oak.plugins.observation.DefaultEventHandler;
 import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -29,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * and identifier information to translate change callbacks to corresponding
  * JCR events that are then placed in the given {@link EventQueue}.
  */
-class QueueingHandler implements EventHandler {
+class QueueingHandler extends DefaultEventHandler {
 
     private final EventQueue queue;
 

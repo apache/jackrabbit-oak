@@ -43,8 +43,8 @@ import javax.security.auth.login.LoginException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.io.Closer;
-
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -111,6 +111,8 @@ public class Oak {
     private final List<IndexEditorProvider> indexEditorProviders = newArrayList();
 
     private final List<CommitHook> commitHooks = newArrayList();
+
+    private final List<Observer> observers = Lists.newArrayList();
 
     private List<EditorProvider> editorProviders = newArrayList();
 
@@ -448,6 +450,12 @@ public class Oak {
         return this;
     }
 
+    @Nonnull
+    public Oak with(@Nonnull Observer observer) {
+        observers.add(checkNotNull(observer));
+        return this;
+    }
+
     /**
      * Enable the asynchronous (background) indexing behavior.
      * 
@@ -502,6 +510,12 @@ public class Oak {
         // add index hooks later to prevent the OakInitializer to do excessive indexing
         with(new IndexUpdateProvider(indexEditors));
         withEditorHook();
+
+        // Register observer last to prevent sending events while initialising
+        for (Observer observer : observers) {
+            WhiteboardUtils.registerObserver(whiteboard, observer);
+        }
+
         CommitHook commitHook = CompositeHook.compose(commitHooks);
         return new ContentRepositoryImpl(
                 store,
