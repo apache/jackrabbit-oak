@@ -73,9 +73,6 @@ public class TypeEditorTest {
     public void removeMandatoryProperty() throws CommitFailedException {
         EffectiveType effective = createControl().createMock(EffectiveType.class);
         expect(effective.isMandatoryProperty("mandatory")).andReturn(true);
-        expect(effective.constraintViolation(
-                22, "/", "Mandatory property mandatory can not be removed"))
-                .andReturn(new CommitFailedException("", 0, ""));
 
         replay(effective);
 
@@ -98,9 +95,6 @@ public class TypeEditorTest {
     public void removeMandatoryChildNode() throws CommitFailedException {
         EffectiveType effective = createControl().createMock(EffectiveType.class);
         expect(effective.isMandatoryChildNode("mandatory")).andReturn(true);
-        expect(effective.constraintViolation(
-                26, "/", "Mandatory child node mandatory can not be removed"))
-                .andReturn(new CommitFailedException("", 0, ""));
 
         replay(effective);
 

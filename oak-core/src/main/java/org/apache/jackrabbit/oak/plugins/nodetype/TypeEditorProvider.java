@@ -41,6 +41,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 @Service(EditorProvider.class)
 public class TypeEditorProvider implements EditorProvider {
 
+    private final boolean strict;
+
+    public TypeEditorProvider(boolean strict) {
+        this.strict = strict;
+    }
+
+    public TypeEditorProvider() {
+        this(true);
+    }
+
     @Override
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder,
@@ -68,7 +78,7 @@ public class TypeEditorProvider implements EditorProvider {
         }
 
         Editor editor = new VisibleEditor(
-                new TypeEditor(afterTypes, primary, mixins, builder));
+                new TypeEditor(strict, afterTypes, primary, mixins, builder));
         if (modifiedTypes.isEmpty()) {
             return editor;
         } else {

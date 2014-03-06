@@ -233,7 +233,7 @@ public class RepositoryUpgrade {
             CommitHook hook = new CompositeHook(
                     new EditorHook(new GroupEditorProvider(groupsPath)),
                     new EditorHook(new CompositeEditorProvider(
-                            new TypeEditorProvider(),
+                            new TypeEditorProvider(false),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
                                     new ReferenceEditorProvider(),
                                     new PropertyIndexEditorProvider())))));
