@@ -157,6 +157,14 @@ public class BenchmarkRunner {
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
                     report.value(options)),
+            new ConcurrentHasPermissionTest(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    report.value(options)),
+            new ConcurrentHasPermissionTest2(
+                    runAsAdmin.value(options),
+                    itemsToRead.value(options),
+                    report.value(options)),
             new ManyUserReadTest(
                     runAsAdmin.value(options),
                     itemsToRead.value(options),
