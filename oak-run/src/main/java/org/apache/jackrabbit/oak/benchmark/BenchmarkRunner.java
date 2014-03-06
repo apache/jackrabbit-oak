@@ -161,6 +161,7 @@ public class BenchmarkRunner {
                     report.value(options),
                     randomUser.value(options)),
             new ConcurrentWriteACLTest(),
+            new ConcurrentEveryoneACLTest(runAsAdmin.value(options), itemsToRead.value(options)),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
             ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
