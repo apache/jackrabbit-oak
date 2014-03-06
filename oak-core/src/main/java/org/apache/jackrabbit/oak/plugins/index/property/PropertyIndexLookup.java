@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
-import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -100,12 +99,11 @@ public class PropertyIndexLookup {
         }
 
         NodeState node = root;
-        Iterator<String> it = PathUtils.elements(path).iterator();
-        while (it.hasNext()) {
+        for (String s : PathUtils.elements(path)) {
             if (getIndexNode(node, propertyName, filter) != null) {
                 return true;
             }
-            node = node.getChildNode(it.next());
+            node = node.getChildNode(s);
         }
         return false;
     }
@@ -117,8 +115,8 @@ public class PropertyIndexLookup {
         }
         return getStrategy(indexMeta).query(filter, propertyName, indexMeta, encode(value));
     }
-        
-    private static IndexStoreStrategy getStrategy(NodeState indexMeta) {
+
+    IndexStoreStrategy getStrategy(NodeState indexMeta) {
         if (indexMeta.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME)) {
             return UNIQUE;
         }
@@ -130,7 +128,7 @@ public class PropertyIndexLookup {
         if (indexMeta == null) {
             return Double.POSITIVE_INFINITY;
         }
-        return COST_OVERHEAD + 
+        return COST_OVERHEAD +
                 getStrategy(indexMeta).count(indexMeta, encode(value), MAX_COST);
     }
 
@@ -146,8 +144,7 @@ public class PropertyIndexLookup {
      *         node was found
      */
     @Nullable
-    private static NodeState getIndexNode(
-            NodeState node, String propertyName, Filter filter) {
+    private NodeState getIndexNode(NodeState node, String propertyName, Filter filter) {
         // keep a fallback to a matching index def that has *no* node type constraints
         // (initially, there is no fallback)
         NodeState fallback = null;
@@ -156,7 +153,7 @@ public class PropertyIndexLookup {
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState index = entry.getNodeState();
             PropertyState type = index.getProperty(TYPE_PROPERTY_NAME);
-            if (type == null || type.isArray() || !TYPE.equals(type.getValue(Type.STRING))) {
+            if (type == null || type.isArray() || !getType().equals(type.getValue(Type.STRING))) {
                 continue;
             }
             if (contains(index.getNames(PROPERTY_NAMES), propertyName)) {
@@ -184,7 +181,16 @@ public class PropertyIndexLookup {
         }
         return fallback;
     }
-    
+
+    /**
+     * retrieve the type of the index
+     * 
+     * @return the type
+     */
+    String getType() {
+        return TYPE;
+    }
+
     private static Set<String> getSuperTypes(Filter filter) {
         if (filter != null && !filter.matchesAllTypes()) {
             return filter.getSupertypes();
