@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 
 /**
  * Tests the RDBBlobStore implementation.

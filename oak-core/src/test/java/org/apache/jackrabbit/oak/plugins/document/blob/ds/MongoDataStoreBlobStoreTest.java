@@ -20,7 +20,7 @@ import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.blob.AbstractBlobStoreTest;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;

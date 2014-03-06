@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.blob.cloud;
 
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.blob.AbstractBlobStoreTest;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
