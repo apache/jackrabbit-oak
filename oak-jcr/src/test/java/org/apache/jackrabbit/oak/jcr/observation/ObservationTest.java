@@ -396,7 +396,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }).get(10, TimeUnit.SECONDS);
 
         // Make sure we see no more events
-        assertFalse(noEvents.wait(2, TimeUnit.SECONDS));
+        assertFalse(noEvents.wait(TIME_OUT, TimeUnit.SECONDS));
     }
 
     @Test
@@ -424,7 +424,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         n.getSession().save();
 
         // Make sure we see the events and the listener is gone
-        assertNotNull(unregistered.get(2, TimeUnit.SECONDS));
+        assertNotNull(unregistered.get(TIME_OUT, TimeUnit.SECONDS));
         assertFalse(observationManager.getRegisteredEventListeners().hasNext());
     }
 
