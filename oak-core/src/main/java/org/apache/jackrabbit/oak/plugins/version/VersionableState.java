@@ -39,8 +39,10 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -458,8 +460,12 @@ class VersionableState {
                                  NodeBuilder dest,
                                  PropertyState prop)
                     throws RepositoryException {
-                if (BASIC_FROZEN_PROPERTIES.contains(prop.getName())) {
+                String propName = prop.getName();
+                if (BASIC_FROZEN_PROPERTIES.contains(propName)) {
                     // OAK-940: do not overwrite basic frozen properties
+                    return IGNORE;
+                } else if (isHiddenProperty(propName)) {
+                    // don't copy hidden properties except for :childOrder
                     return IGNORE;
                 }
                 return getOPV(src, prop);
@@ -468,6 +474,9 @@ class VersionableState {
 
         // add the frozen children and histories
         for (String name : src.getChildNodeNames()) {
+            if (NodeStateUtils.isHidden(name)) {
+                continue;
+            }
             NodeBuilder child = src.getChildNode(name);
             String childId = getChildId(srcId, child, name);
             int opv = getOPV(src, child, name);
@@ -504,8 +513,10 @@ class VersionableState {
         initFrozen(dest, src, srcId);
         copyProperties(src, dest, OPVForceCopy.INSTANCE, true);
         for (String name : src.getChildNodeNames()) {
-            NodeBuilder child = src.getChildNode(name);
-            copy(child, getChildId(srcId, child, name), dest.child(name));
+            if (!NodeStateUtils.isHidden(name)) {
+                NodeBuilder child = src.getChildNode(name);
+                copy(child, getChildId(srcId, child, name), dest.child(name));
+            }
         }
     }
 
@@ -545,6 +556,9 @@ class VersionableState {
             if (ignoreTypeAndUUID && BASIC_PROPERTIES.contains(propName)) {
                 continue;
             }
+            if (isHiddenProperty(propName)) {
+                continue;
+            }
             if (opv == OnParentVersionAction.VERSION
                     || opv == COPY) {
                 dest.setProperty(prop);
@@ -560,6 +574,10 @@ class VersionableState {
         }
         ImmutableTree tree = new ImmutableTree(node.getNodeState());
         return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
+    }
+
+    private static boolean isHiddenProperty(@Nonnull String propName) {
+        return NodeStateUtils.isHidden(propName) && !TreeConstants.OAK_CHILD_ORDER.equals(propName);
     }
 
     private int getOPV(NodeBuilder parent, NodeBuilder child, String childName)
