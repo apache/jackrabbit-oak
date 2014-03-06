@@ -202,13 +202,32 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-     public void testNativeSolrNestedQuery() throws Exception {
+    public void testNativeSolrNestedQuery() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', '_query_:\"{!dismax qf=catch_all q.op=OR}hello world\"')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
         test.addChild("a").setProperty("name", "Hello");
         test.addChild("b").setProperty("name", "World");
+        tree.addChild("c");
+        root.commit();
+
+        Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+        assertTrue(strings.hasNext());
+        assertEquals("/test/a", strings.next());
+        assertTrue(strings.hasNext());
+        assertEquals("/test/b", strings.next());
+        assertFalse(strings.hasNext());
+    }
+
+    @Test
+    public void testNativeMLTQuery() throws Exception {
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=name:World&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
+
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        test.addChild("a").setProperty("name", "Hello World, today weather is nice");
+        test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
         tree.addChild("c");
         root.commit();
 

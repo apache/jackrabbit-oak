@@ -1331,6 +1331,9 @@ current implementation relies on the updateLog feature being enabled. -->
         </arr>
     </requestHandler>
 
+    <requestHandler name="/mlt" class="solr.MoreLikeThisHandler">
+    </requestHandler>
+
     <!-- Clustering Component
 
        http://wiki.apache.org/solr/ClusteringComponent

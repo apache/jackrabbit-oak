@@ -100,7 +100,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 // native query support
                 if (NATIVE_SOLR_QUERY.equals(pr.propertyName)) {
                     String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
-                    if (isHttpRequest(nativeQueryString)) {
+                    if (isSupportedHttpRequest(nativeQueryString)) {
                         // pass through the native HTTP Solr request
                         String requestHandlerString = nativeQueryString.substring(0, nativeQueryString.indexOf('?'));
                         if (!"select".equals(requestHandlerString)) {
@@ -206,7 +206,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return solrQuery;
     }
 
-    private boolean isHttpRequest(String nativeQueryString) {
+    private boolean isSupportedHttpRequest(String nativeQueryString) {
         // the query string starts with ${supported-handler.selector}?
         return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
     }
