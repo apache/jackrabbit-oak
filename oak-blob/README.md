@@ -1,9 +1,9 @@
 Oak Blob
 ========
 
-TODO: Temporary oak module containing the common base functionality for all blob
-store implementations. This module might be integrated into oak-core once
-we completed OAK-1434
+Module providing interfaces for reading and writing large binaries from/to the
+content repository. In addition it provides common base functionality for all blob
+store implementations.
 
 License
 -------
