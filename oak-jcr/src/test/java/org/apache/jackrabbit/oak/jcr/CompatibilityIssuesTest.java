@@ -279,7 +279,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         }
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test
     public void addNodeTest() throws RepositoryException {
         Session session = getAdminSession();
 
@@ -298,7 +298,12 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
         // try to create a node with the default nt:base
         Node node = session.getRootNode().addNode("defaultNtBase", ntName);
-        node.addNode("throw");  // Throws ConstraintViolationException on Oak, works on Jackrabbit 2
+        node.addNode("nothrow");  // See OAK-1013
+        try {
+            node.addNode("throw", "nt:base");
+            fail("Abstract primary type should cause ConstraintViolationException");
+        } catch (ConstraintViolationException expected) {
+        }
         session.save();
     }
 
