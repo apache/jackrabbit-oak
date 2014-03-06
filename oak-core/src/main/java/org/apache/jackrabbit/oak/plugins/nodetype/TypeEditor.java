@@ -83,7 +83,7 @@ class TypeEditor extends DefaultEditor {
         this.parent = null;
         this.nodeName = null;
         this.types = checkNotNull(types);
-        this.effective = getEffectiveType(primary, mixins);
+        this.effective = getEffectiveType(null, null, primary, mixins);
         this.builder = checkNotNull(builder);
     }
 
@@ -94,7 +94,8 @@ class TypeEditor extends DefaultEditor {
         this.parent = checkNotNull(parent);
         this.nodeName = checkNotNull(name);
         this.types = parent.types;
-        this.effective = getEffectiveType(primary, mixins);
+        this.effective =
+                getEffectiveType(parent.effective, name, primary, mixins);
         this.builder = checkNotNull(builder);
     }
 
@@ -236,6 +237,7 @@ class TypeEditor extends DefaultEditor {
     //-----------------------------------------------------------< private >--
 
     private EffectiveType getEffectiveType(
+            EffectiveType parent, String name,
             String primary, Iterable<String> mixins)
             throws CommitFailedException {
         List<NodeState> list = Lists.newArrayList();
@@ -249,8 +251,16 @@ class TypeEditor extends DefaultEditor {
                     2, "Mixin type " + primary + " used as the primary type");
         } else {
             if (type.getBoolean(JCR_IS_ABSTRACT)) {
-                log.warn("Abstract type " + primary
-                        + " used as the primary type of node " + getPath());
+                if (parent != null && primary.equals(parent.getDefaultType(name))) {
+                    // OAK-1013: Allow (with a warning) an abstract primary
+                    // type if it's the default type implied by the parent node
+                    log.warn("Abstract type " + primary
+                            + " used as the default primary type of node "
+                            + getPath());
+                } else {
+                    throw constraintViolation(
+                            2, "Abstract type " + primary + " used as the primary type");
+                }
             }
             list.add(type);
         }

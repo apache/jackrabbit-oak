@@ -174,17 +174,26 @@ public final class TreeUtil {
         return tree;
     }
 
-    public static Tree addChild(@Nonnull Tree parent, @Nonnull String name,
-                                @Nonnull String typeName, boolean explicitType,
-                                @Nonnull Tree typeRoot,
-                                @CheckForNull String userID)
-            throws RepositoryException {
+    public static Tree addChild(
+            @Nonnull Tree parent, @Nonnull String name,
+            @CheckForNull String typeName, @Nonnull Tree typeRoot,
+            @CheckForNull String userID) throws RepositoryException {
+        if (typeName == null) {
+            typeName = getDefaultChildType(typeRoot, parent, name);
+            if (typeName == null) {
+                String path = PathUtils.concat(parent.getPath(), name);
+                throw new ConstraintViolationException(
+                        "No default node type available for " + path);
+            }
+        }
+
         Tree type = typeRoot.getChild(typeName);
         if (!type.exists()) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
-        } else if (explicitType // OAK-1013: backwards compatibility
-                && getBoolean(type, JCR_IS_ABSTRACT)) {
+        } else if (getBoolean(type, JCR_IS_ABSTRACT)
+                // OAK-1013: backwards compatibility for abstract default types
+                && !typeName.equals(getDefaultChildType(typeRoot, parent, name))) {
             throw new ConstraintViolationException(
                     "Node type " + typeName + " is abstract");
         } else if (getBoolean(type, JCR_ISMIXIN)) {
@@ -277,7 +286,7 @@ public final class TreeUtil {
                     if (!tree.hasChild(name)) {
                         String typeName =
                                 getName(definition, JCR_DEFAULTPRIMARYTYPE);
-                        addChild(tree, name, typeName, false, typeRoot, userID);
+                        addChild(tree, name, typeName, typeRoot, userID);
                     }
                     break;
                 }
