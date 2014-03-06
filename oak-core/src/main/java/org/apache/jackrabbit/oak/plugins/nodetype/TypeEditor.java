@@ -264,11 +264,10 @@ class TypeEditor extends DefaultEditor {
             } else if (!type.getBoolean(JCR_ISMIXIN)) {
                 throw constraintViolation(
                         6, "Primary type " + mixin + " used as a mixin type");
+            } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
+                throw constraintViolation(
+                        7, "Abstract type " + mixin + " used as a mixin type");
             } else {
-                if (type.getBoolean(JCR_IS_ABSTRACT)) {
-                    log.warn("Abstract type " + mixin
-                            + " used as a mixin type of node " + getPath());
-                }
                 list.add(type);
             }
         }
