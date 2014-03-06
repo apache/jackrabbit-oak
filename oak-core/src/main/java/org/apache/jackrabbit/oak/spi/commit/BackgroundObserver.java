@@ -237,9 +237,9 @@ public class BackgroundObserver implements Observer, Closeable {
      * A future task with a on complete handler.
      */
     private static class ListenableFutureTask extends FutureTask<Void> {
-        private final AtomicBoolean ran = new AtomicBoolean(false);
+        private final AtomicBoolean completed = new AtomicBoolean(false);
 
-        private volatile Runnable task;
+        private volatile Runnable onComplete;
 
         public ListenableFutureTask(Callable<Void> callable) {
             super(callable);
@@ -256,23 +256,23 @@ public class BackgroundObserver implements Observer, Closeable {
          * <p>
          * Note: there is no guarantee to which handler will run when the method
          * is called multiple times with different arguments.
-         * @param task
+         * @param onComplete
          */
-        public void onComplete(Runnable task) {
-            this.task = task;
+        public void onComplete(Runnable onComplete) {
+            this.onComplete = onComplete;
             if (isDone()) {
-                run(task);
+                run(onComplete);
             }
         }
 
         @Override
         protected void done() {
-            run(task);
+            run(onComplete);
         }
 
-        private void run(Runnable runnable) {
-            if (runnable != null && ran.compareAndSet(false, true)) {
-                runnable.run();
+        private void run(Runnable onComplete) {
+            if (onComplete != null && completed.compareAndSet(false, true)) {
+                onComplete.run();
             }
         }
 
