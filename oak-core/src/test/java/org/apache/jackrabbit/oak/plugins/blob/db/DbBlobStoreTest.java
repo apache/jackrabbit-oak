@@ -50,4 +50,8 @@ public class DbBlobStoreTest extends AbstractBlobStoreTest {
         cp.dispose();
     }
 
+    protected int getArtifactSize() {
+        return 4160;
+    }
+
 }

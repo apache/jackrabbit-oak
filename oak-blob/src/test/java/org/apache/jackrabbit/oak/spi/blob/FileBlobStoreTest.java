@@ -41,4 +41,8 @@ public class FileBlobStoreTest extends AbstractBlobStoreTest {
         FileUtils.deleteDirectory(new File("target/tempFileBlobStoreTest"));
     }
 
+    protected int getArtifactSize() {
+        return 4160;
+    }
+
 }
