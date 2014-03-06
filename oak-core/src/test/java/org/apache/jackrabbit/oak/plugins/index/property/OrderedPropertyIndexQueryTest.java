@@ -179,9 +179,8 @@ public class OrderedPropertyIndexQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
             .with(new OpenSecurityProvider())
-            // .with(new PropertyIndexProvider())
-            // .with(new PropertyIndexEditorProvider())
-            .with(new OrderedPropertyIndexProvider()).with(new OrderedPropertyIndexEditorProvider())
+            .with(new LowCostOrderedPropertyIndexProvider())
+            .with(new OrderedPropertyIndexEditorProvider())
             .createContentRepository();
     }
 
