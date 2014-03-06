@@ -18,22 +18,17 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Strings;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -50,22 +45,25 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Objects;
+import com.google.common.base.Strings;
+
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
  * access control content and updates persisted permission store associated
  * with access control related data stored in the repository.
  * <p>
- * The access control entries are grouped by principal and store below the store root based on the hash value of the
+ * The access control entries are grouped by principal and stored below the store root based on the hash value of the
  * access controllable path. hash collisions are handled by adding subnodes accordingly.
  * <pre>
- *   /jcr:system/rep:permissionStore/crx.default
+ *   /jcr:system/rep:permissionStore/workspace-name
  *      /everyone
  *          /552423  [rep:PermissionStore]
  *              /0     [rep:Permissions]
@@ -86,7 +84,6 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
-    private final PermissionEntryCache cache;
 
     private NodeBuilder permissionRoot;
     private PrivilegeBitsProvider bitsProvider;
@@ -98,10 +95,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     private Map<String, Acl> modified = new HashMap<String, Acl>();
     private Map<String, Acl> deleted = new HashMap<String, Acl>();
 
-    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider, PermissionEntryCache cache) {
+    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
-        this.cache = cache;
     }
 
     @Nonnull
@@ -125,14 +121,12 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     private void apply() {
-        Set<String> principalNames = new HashSet<String>();
         for (Map.Entry<String, Acl> entry : deleted.entrySet()) {
-            entry.getValue().remove(principalNames);
+            entry.getValue().remove();
         }
         for (Map.Entry<String, Acl> entry : modified.entrySet()) {
-            entry.getValue().update(principalNames);
+            entry.getValue().update();
         }
-        cache.flush(principalNames);
     }
 
     @Nonnull
@@ -253,11 +247,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             }
         }
 
-        private void remove(Set<String> principalNames) {
-            String msg = "Unable to remove permission entry";
+        private void remove() {
             for (String principalName: entries.keySet()) {
                 if (permissionRoot.hasChildNode(principalName)) {
-                    principalNames.add(principalName);
                     NodeBuilder principalRoot = permissionRoot.getChildNode(principalName);
 
                     // find the ACL node that for this path and principal
@@ -266,15 +258,12 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                         continue;
                     }
 
-                    long numEntries = PermissionUtil.getNumPermissions(principalRoot);
-
                     // check if the node is the correct one
                     if (PermissionUtil.checkACLPath(parent, accessControlledPath)) {
                         // remove and reconnect child nodes
                         NodeBuilder newParent = null;
                         for (String childName : parent.getChildNodeNames()) {
                             if (childName.charAt(0) != 'c') {
-                                numEntries--;
                                 continue;
                             }
                             NodeBuilder child = parent.getChildNode(childName);
@@ -297,24 +286,18 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                             }
                             NodeBuilder child = parent.getChildNode(childName);
                             if (PermissionUtil.checkACLPath(child, accessControlledPath)) {
-                                // remove child
-                                for (String n: child.getChildNodeNames()) {
-                                    numEntries--;
-                                }
                                 child.remove();
                             }
                         }
                     }
-                    touch(principalRoot, numEntries);
                 } else {
-                    log.error("{} {}: Principal root missing.", msg, this);
+                    log.error("Unable to remove permission entry {}: Principal root missing.", this);
                 }
             }
         }
 
-        private void update(Set<String> principalNames) {
+        private void update() {
             for (String principalName: entries.keySet()) {
-                principalNames.add(principalName);
                 NodeBuilder principalRoot = permissionRoot.child(principalName);
                 if (!principalRoot.hasProperty(JCR_PRIMARYTYPE)) {
                     principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
@@ -358,32 +341,20 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                     // new parent
                     parent.setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath);
                 }
-                long numEntries = PermissionUtil.getNumPermissions(principalRoot);
-                numEntries+= updateEntries(parent, entries.get(principalName));
-                touch(principalRoot, numEntries);
+                updateEntries(parent, entries.get(principalName));
             }
         }
 
-        private long updateEntries(NodeBuilder parent, List<AcEntry> list) {
+        private void updateEntries(NodeBuilder parent, List<AcEntry> list) {
             // remove old entries
-            long numEntries = 0;
             for (String childName : parent.getChildNodeNames()) {
                 if (childName.charAt(0) != 'c') {
                     parent.getChildNode(childName).remove();
-                    numEntries--;
                 }
             }
             for (AcEntry ace: list) {
                 PermissionEntry.write(parent, ace.isAllow, ace.index, ace.privilegeBits, ace.restrictions);
-                numEntries++;
             }
-            return numEntries;
-        }
-
-        private void touch(NodeBuilder node, long numEntries) {
-            PropertyState ps = node.getProperty(REP_MOD_COUNT);
-            node.setProperty(REP_MOD_COUNT, ps == null ? 1 : ps.getValue(Type.LONG) + 1);
-            node.setProperty(REP_NUM_PERMISSIONS, numEntries);
         }
     }
 

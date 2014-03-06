@@ -23,19 +23,25 @@ import java.util.TreeSet;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code PermissionStoreImpl}...
  */
 public class PermissionStoreImpl implements PermissionStore {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(PermissionStoreImpl.class);
 
     private Tree permissionsTree;
 
@@ -71,25 +77,26 @@ public class PermissionStoreImpl implements PermissionStore {
     }
 
     @Override
-    public void load(@Nonnull Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path) {
+    @CheckForNull
+    public Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path) {
         Tree principalRoot = getPrincipalRoot(principalName);
-        if (principalRoot == null) {
-            return;
-        }
-        String name = PermissionUtil.getEntryName(path);
-        if (principalRoot.hasChild(name)) {
-            Tree child = principalRoot.getChild(name);
-            if (PermissionUtil.checkACLPath(child, path)) {
-                loadPermissionEntries(path, entries, child, restrictionProvider);
-            } else {
-                // check for child node
-                for (Tree node : child.getChildren()) {
-                    if (PermissionUtil.checkACLPath(node, path)) {
-                        loadPermissionEntries(path, entries, node, restrictionProvider);
+        if (principalRoot != null) {
+            String name = PermissionUtil.getEntryName(path);
+            if (principalRoot.hasChild(name)) {
+                Tree child = principalRoot.getChild(name);
+                if (PermissionUtil.checkACLPath(child, path)) {
+                    entries = loadPermissionEntries(path, entries, child, restrictionProvider);
+                } else {
+                    // check for child node
+                    for (Tree node : child.getChildren()) {
+                        if (PermissionUtil.checkACLPath(node, path)) {
+                            entries = loadPermissionEntries(path, entries, node, restrictionProvider);
+                        }
                     }
                 }
             }
         }
+        return entries == null || entries.isEmpty() ? null : entries;
     }
 
     @Override
@@ -103,39 +110,27 @@ public class PermissionStoreImpl implements PermissionStore {
     }
 
     @Override
-    public boolean hasPermissionEntries(@Nonnull String principalName) {
-        return getPrincipalRoot(principalName) != null;
-    }
-
-    @Override
-    public long getNumEntries(@Nonnull String principalName) {
+    public long getNumEntries(@Nonnull String principalName, long max) {
+        // we ignore the hash-collisions here
         Tree tree = getPrincipalRoot(principalName);
-        return tree == null ? 0 : PermissionUtil.getNumPermissions(tree);
-    }
-
-    @Override
-    public long getModCount(@Nonnull String principalName) {
-        Tree principalRoot = getPrincipalRoot(principalName);
-        if (principalRoot != null) {
-            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_MOD_COUNT);
-            if (ps != null) {
-                return ps.getValue(Type.LONG);
-            }
-        }
-        return 0;
+        return tree == null ? 0 : tree.getChildrenCount(max);
     }
 
     @Override
     @Nonnull
     public PrincipalPermissionEntries load(@Nonnull String principalName) {
+        long t0 = System.nanoTime();
         PrincipalPermissionEntries ret = new PrincipalPermissionEntries(principalName);
         Tree principalRoot = getPrincipalRoot(principalName);
         if (principalRoot != null) {
             for (Tree entryTree : principalRoot.getChildren()) {
                 loadPermissionEntries(entryTree, ret.getEntries(), restrictionProvider);
             }
-            PropertyState ps = principalRoot.getProperty(PermissionConstants.REP_MOD_COUNT);
-            ret.setModCount(ps == null ? -1 : ps.getValue(Type.LONG));
+        }
+        ret.setFullyLoaded(true);
+        long t1 = System.nanoTime();
+        if (log.isDebugEnabled()) {
+            log.debug(String.format("loaded %d entries in %.2fus for %s.%n", ret.getEntries().size(), (t1 - t0) / 1000.0, principalName));
         }
         return ret;
     }
@@ -158,14 +153,19 @@ public class PermissionStoreImpl implements PermissionStore {
         }
     }
 
-    private static void loadPermissionEntries(@Nonnull String path,
-                                              @Nonnull Collection<PermissionEntry> ret,
+    @CheckForNull
+    private static Collection<PermissionEntry> loadPermissionEntries(@Nonnull String path,
+                                              @Nullable Collection<PermissionEntry> ret,
                                               @Nonnull Tree tree,
                                               @Nonnull RestrictionProvider restrictionProvider) {
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
+                if (ret == null) {
+                    ret = new TreeSet<PermissionEntry>();
+                }
                 ret.add(new PermissionEntry(path, ace, restrictionProvider));
             }
         }
+        return ret;
     }
 }

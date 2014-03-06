@@ -17,7 +17,7 @@
 #
 TITLE=ConcurrentEveryoneACLTest
 BENCH="ConcurrentEveryoneACLTest"
-ADMIN="false true"
+ADMIN="false"
 RUNTIME=5
 RANDOM_USER="true"
 FIXS="Oak-Tar" # Jackrabbit"

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.Random;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
@@ -42,7 +43,10 @@ public class ConcurrentWriteACLTest extends AbstractTest {
 
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
 
-    protected ConcurrentWriteACLTest() {
+    private int numItems;
+
+    public ConcurrentWriteACLTest(int numItems) {
+        this.numItems = numItems;
     }
 
     @Override
@@ -73,28 +77,31 @@ public class ConcurrentWriteACLTest extends AbstractTest {
         Session session = null;
         try {
             session = loginWriter();
-            for (int i=0; i<10; i++) {
+            for (int i=0; i<numItems; i++) {
                 session.refresh(false);
                 int a = random.nextInt(NODE_COUNT);
                 int b = random.nextInt(NODE_COUNT);
                 String path = "/" + ROOT_NODE_NAME + "/node" + a + "/node" + b;
                 AccessControlManager acMgr = session.getAccessControlManager();
                 JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
-                Privilege[] privileges = new Privilege[] {
-                        acMgr.privilegeFromName(Privilege.JCR_READ),
-                        acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
-                };
-                if (acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privileges)) {
+                if (acl.isEmpty()) {
+                    Privilege[] privileges = new Privilege[] {
+                            acMgr.privilegeFromName(Privilege.JCR_READ),
+                            acMgr.privilegeFromName(Privilege.JCR_READ_ACCESS_CONTROL)
+                    };
+                    if (acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privileges)) {
+                        acMgr.setPolicy(path, acl);
+                    }
+                } else {
+                    for (AccessControlEntry ace: acl.getAccessControlEntries()) {
+                        acl.removeAccessControlEntry(ace);
+                    }
                     acMgr.setPolicy(path, acl);
                 }
                 session.save();
-                for (AccessControlEntry ace: acl.getAccessControlEntries()) {
-                    acl.removeAccessControlEntry(ace);
-                }
-                acMgr.setPolicy(path, acl);
-                session.save();
             }
-        } catch (Exception e) {
+        } catch (InvalidItemStateException e) {
+            System.out.printf("error: %s%n", e);
             // ignore
         } finally {
             if (session != null) {

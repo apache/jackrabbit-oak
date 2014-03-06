@@ -47,11 +47,11 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     private final PermissionStore store;
 
-    private final PermissionEntryCache.Local cache;
+    private final PermissionEntryCache cache;
 
     private final long maxSize;
 
-    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache.Local cache,
+    PermissionEntryProviderImpl(@Nonnull PermissionStore store, @Nonnull PermissionEntryCache cache,
                                 @Nonnull Set<String> principalNames, @Nonnull ConfigurationParameters options) {
         this.store = store;
         this.cache = cache;
@@ -64,16 +64,10 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
         long cnt = 0;
         existingNames.clear();
         for (String name: principalNames) {
-            if (cnt > maxSize) {
-                if (cache.hasEntries(store, name)) {
-                    existingNames.add(name);
-                }
-            } else {
-                long n = cache.getNumEntries(store, name);
-                cnt+= n;
-                if (n > 0) {
-                    existingNames.add(name);
-                }
+            long n = cache.getNumEntries(store, name, maxSize);
+            cnt+= n;
+            if (n > 0) {
+                existingNames.add(name);
             }
         }
         if (cnt < maxSize) {
