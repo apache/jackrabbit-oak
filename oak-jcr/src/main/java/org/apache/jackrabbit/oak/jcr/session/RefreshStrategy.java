@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import org.slf4j.Logger;
@@ -46,10 +44,10 @@ public interface RefreshStrategy {
      * individual refresh strategies passed to the constructor returns
      * {@code true}.
      *
-     * @param nanosecondsSinceLastAccess nanoseconds since last access
+     * @param secondsSinceLastAccess seconds since last access
      * @return  {@code true} if and only if the session needs to refresh.
      */
-    boolean needsRefresh(long nanosecondsSinceLastAccess);
+    boolean needsRefresh(long secondsSinceLastAccess);
 
     /**
      * Composite of zero or more {@code RefreshStrategy} instances,
@@ -76,12 +74,12 @@ public interface RefreshStrategy {
          * individual refresh strategies passed to the constructor returns
          * {@code true}.
          *
-         * @param nanosecondsSinceLastAccess nanoseconds since last access
+         * @param secondsSinceLastAccess seconds since last access
          * @return  {@code true} if and only if the session needs to refresh.
          */
-        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
+        public boolean needsRefresh(long secondsSinceLastAccess) {
             for (RefreshStrategy r : refreshStrategies) {
-                if (r.needsRefresh(nanosecondsSinceLastAccess)) {
+                if (r.needsRefresh(secondsSinceLastAccess)) {
                     return true;
                 }
             }
@@ -102,12 +100,12 @@ public interface RefreshStrategy {
          *                  activity.
          */
         public Timed(long interval) {
-            this.interval = NANOSECONDS.convert(interval, SECONDS);
+            this.interval = interval;
         }
 
         @Override
-        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
-            return nanosecondsSinceLastAccess > interval;
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            return secondsSinceLastAccess > interval;
         }
 
     }
@@ -118,15 +116,13 @@ public interface RefreshStrategy {
      *
      * TODO replace logging with JMX monitoring. See OAK-941
      */
-    public static class LogOnce implements RefreshStrategy {
+    public static class LogOnce extends Timed {
 
         private static final Logger log =
                 LoggerFactory.getLogger(RefreshStrategy.class);
 
         private final Exception initStackTrace =
                 new Exception("The session was created here:");
-
-        private final long interval;
 
         private boolean warnIfIdle = true;
 
@@ -135,19 +131,19 @@ public interface RefreshStrategy {
          *                  activity.
          */
         public LogOnce(long interval) {
-            this.interval = NANOSECONDS.convert(interval, SECONDS);
+            super(interval);
         }
 
         /**
          * Log once
-         * @param nanosecondsSinceLastAccess nanoseconds since last access
+         * @param secondsSinceLastAccess seconds since last access
          * @return {@code false}
          */
         @Override
-        public boolean needsRefresh(long nanosecondsSinceLastAccess) {
-            if (nanosecondsSinceLastAccess > interval && warnIfIdle) {
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            if (super.needsRefresh(secondsSinceLastAccess) && warnIfIdle) {
                 log.warn("This session has been idle for "
-                        + MINUTES.convert(nanosecondsSinceLastAccess, NANOSECONDS)
+                        + MINUTES.convert(secondsSinceLastAccess, SECONDS)
                         + " minutes and might be out of date. " +
                         "Consider using a fresh session or explicitly refresh the session.",
                         initStackTrace);
