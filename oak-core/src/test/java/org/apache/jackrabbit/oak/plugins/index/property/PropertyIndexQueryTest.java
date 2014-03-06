@@ -16,23 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -57,6 +68,28 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     @Test
     public void xpath() throws Exception {
         test("xpath.txt");
+    }
+
+    @Ignore("OAK-1517")
+    @Test
+    public void testInvalidNamespace() throws Exception {
+        new Oak().with(new InitialContent())
+                .with(new OpenSecurityProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new RepositoryInitializer(){
+
+                    @Override
+                    public void initialize(@Nonnull NodeBuilder builder) {
+                        createIndexDefinition(
+                                builder.child(INDEX_DEFINITIONS_NAME),
+                                "foo",
+                                true,
+                                false,
+                                ImmutableSet.of("illegal:namespaceProperty"), null);
+                    }
+                })
+                .createContentRepository();
+        fail("creating an index definition with an illegal namespace should fail.");
     }
 
     @Test
