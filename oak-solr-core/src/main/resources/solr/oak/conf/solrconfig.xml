@@ -235,6 +235,9 @@
     </arr>
   </requestHandler>
 
+    <requestHandler name="/mlt" class="solr.MoreLikeThisHandler">
+    </requestHandler>
+
 
   <searchComponent name="terms" class="solr.TermsComponent"/>
 
