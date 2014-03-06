@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -40,7 +39,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.dropIndexFromName;
@@ -58,12 +56,6 @@ class EffectiveType {
 
     EffectiveType(List<NodeState> types) {
         this.types = checkNotNull(types);
-    }
-
-    CommitFailedException constraintViolation(
-            int code, String path, String message) {
-        return new CommitFailedException(
-                CONSTRAINT, code, path + this + ": " + message);
     }
 
     /**
