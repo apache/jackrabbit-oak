@@ -17,13 +17,13 @@
 #
 TITLE=ConcurrentReadAccessControlledTreeTest
 BENCH="ConcurrentReadAccessControlledTreeTest" #ConcurrentReadAccessControlledTreeTest2 ConcurrentReadSinglePolicyTreeTest ManyUserReadTest ConcurrentTraversalTest"
-ADMIN="false true"
-RUNTIME=10
+ADMIN="false" # true"
+RUNTIME=5
 RANDOM_USER="true"
-FIXS="Oak-Tar Jackrabbit"
+FIXS="Oak-Tar" # Jackrabbit"
 THREADS="1,2,4,8,10,15,20,50"
 PROFILE=false
-NUM_ITEMS=10000
+NUM_ITEMS=1000
 
 LOG=$TITLE"_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG
@@ -46,7 +46,7 @@ for bm in $BENCH
             echo "Executing benchmarks as admin: $user on $fix" | tee -a $LOG
         echo "-----------------------------------------------------------" | tee -a $LOG
             rm -rf target/Jackrabbit-* target/Oak-Tar-*
-            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=20 -jar target/oak-run-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $bm $fix"
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-run-*-SNAPSHOT.jar benchmark --itemsToRead $NUM_ITEMS --csvFile $LOG --concurrency $THREADS --runAsAdmin $user --report false --randomUser $RANDOM_USER $bm $fix"
             echo $cmd
             $cmd
         done
