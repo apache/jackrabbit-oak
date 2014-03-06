@@ -36,9 +36,32 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * information like the path or identifier of the current node based on
  * the sequence of those specialization calls.
  * <p>
+ * The events belonging to this instance <em>should</em> be delivered
+ * before events to other instance deeper down the tree are delivered.
+ * <p>
  * All names and paths passed to handler methods use unmapped Oak names.
  */
 public interface EventHandler {
+
+    /**
+     * Called before the given before and after states are compared.
+     * The implementation can use this method to initialize any internal
+     * state needed for processing the results of the comparison.
+     *
+     * @param before before state, non-existent if this node was added
+     * @param after after state, non-existent if this node was removed
+     */
+    void enter(NodeState before, NodeState after);
+
+    /**
+     * Called after the given before and after states are compared.
+     * The implementation can use this method to post-process information
+     * collected during the content diff.
+     *
+     * @param before before state, non-existent if this node was added
+     * @param after after state, non-existent if this node was removed
+     */
+    void leave(NodeState before, NodeState after);
 
     /**
      * Returns a handler of events within the given child node, or

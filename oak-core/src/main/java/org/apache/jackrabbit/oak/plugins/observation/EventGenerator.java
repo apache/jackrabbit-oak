@@ -143,7 +143,16 @@ public class EventGenerator {
          */
         @Override
         public void run() {
-            after.compareAgainstBaseState(before, this);
+            if (skip == 0) {
+                // Only call enter if this is not a continuation that hit
+                // the MAX_CHANGES_PER_CONTINUATION limit before
+                handler.enter(before, after);
+            }
+            if (after.compareAgainstBaseState(before, this)) {
+                // Only call leave if this continuation exists normally and not
+                // as a result of hitting the MAX_CHANGES_PER_CONTINUATION limit
+                handler.leave(before, after);
+            }
         }
 
         //-------------------------------------------------< NodeStateDiff >--
