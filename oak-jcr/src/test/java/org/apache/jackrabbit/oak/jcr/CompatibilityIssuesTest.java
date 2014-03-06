@@ -300,7 +300,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         Node node = session.getRootNode().addNode("defaultNtBase", ntName);
         node.addNode("nothrow");  // See OAK-1013
         try {
-            node.addNode("throw", "nt:base");
+            node.addNode("throw", "nt:hierarchyNode");
             fail("Abstract primary type should cause ConstraintViolationException");
         } catch (ConstraintViolationException expected) {
         }

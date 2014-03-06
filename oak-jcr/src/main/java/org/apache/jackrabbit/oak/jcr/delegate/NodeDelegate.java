@@ -686,20 +686,8 @@ public class NodeDelegate extends ItemDelegate {
             return null;
         }
 
-        boolean explicitType = true;
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        if (typeName == null) {
-            explicitType = false;
-            typeName = TreeUtil.getDefaultChildType(typeRoot, tree, name);
-            if (typeName == null) {
-                throw new ConstraintViolationException(
-                        "No default node type available for node "
-                        + PathUtils.concat(tree.getPath(), name));
-            }
-        }
-
-        Tree child = internalAddChild(
-                tree, name, typeName, explicitType, typeRoot);
+        Tree child = TreeUtil.addChild(tree, name, typeName, typeRoot, getUserID());
         return new NodeDelegate(sessionDelegate, child);
     }
 
@@ -852,14 +840,6 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     //------------------------------------------------------------< internal >---
-
-    private Tree internalAddChild(
-            Tree parent, String name,
-            String typeName, boolean explicitType, Tree typeRoot)
-            throws RepositoryException {
-        return TreeUtil.addChild(
-                parent, name, typeName, explicitType, typeRoot, getUserID());
-    }
 
     @Nonnull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
