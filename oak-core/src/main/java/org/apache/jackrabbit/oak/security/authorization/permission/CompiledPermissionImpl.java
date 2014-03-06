@@ -84,8 +84,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     private final TreeTypeProvider typeProvider;
 
-    private CompiledPermissionImpl(@Nonnull PermissionEntryCache.Local cache,
-                                   @Nonnull Set<Principal> principals,
+    private CompiledPermissionImpl(@Nonnull Set<Principal> principals,
                                    @Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                    @Nonnull RestrictionProvider restrictionProvider,
                                    @Nonnull AuthorizationConfiguration acConfig) {
@@ -109,6 +108,7 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
         }
 
         ConfigurationParameters options = acConfig.getParameters();
+        PermissionEntryCache cache = new PermissionEntryCache();
         userStore = new PermissionEntryProviderImpl(store, cache, userNames, options);
         groupStore = new PermissionEntryProviderImpl(store, cache, groupNames, options);
 
@@ -117,13 +117,12 @@ final class CompiledPermissionImpl implements CompiledPermissions, PermissionCon
 
     static CompiledPermissions create(@Nonnull ImmutableRoot root, @Nonnull String workspaceName,
                                       @Nonnull Set<Principal> principals,
-                                      @Nonnull AuthorizationConfiguration acConfig,
-                                      @Nonnull PermissionEntryCache.Local cache) {
+                                      @Nonnull AuthorizationConfiguration acConfig) {
         Tree permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         if (!permissionsTree.exists() || principals.isEmpty()) {
             return NoPermissions.getInstance();
         } else {
-            return new CompiledPermissionImpl(cache, principals, root, workspaceName, acConfig.getRestrictionProvider(), acConfig);
+            return new CompiledPermissionImpl(principals, root, workspaceName, acConfig.getRestrictionProvider(), acConfig);
         }
     }
 

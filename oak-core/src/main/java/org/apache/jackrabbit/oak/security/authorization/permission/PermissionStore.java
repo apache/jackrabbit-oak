@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.util.Collection;
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * The permission store is used to store and provide access control permissions for principals. It is responsible to
@@ -27,16 +29,24 @@ import javax.annotation.Nonnull;
  */
 public interface PermissionStore {
 
-    void load(@Nonnull Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path);
+    /**
+     * Loads the permission entries for the given principal and path. if the given {@code entries} is {@code null}, it
+     * will be created automatically if needed. If a {@code entries} is given, it will reuse it and the same object is
+     * returned. If no entries can be found for the given principal or path, {@code null} is returned.
+     *
+     * @param entries the permission entries or {@code null}
+     * @param principalName name of the principal
+     * @param path access controlled path.
+     * @return the given {@code entries}, a new collection or {@code null}
+     */
+    @CheckForNull
+    Collection<PermissionEntry> load(@Nullable Collection<PermissionEntry> entries, @Nonnull String principalName, @Nonnull String path);
 
     void load(@Nonnull Map<String, Collection<PermissionEntry>> entries, @Nonnull String principalName);
 
     @Nonnull
     PrincipalPermissionEntries load(@Nonnull String principalName);
 
-    boolean hasPermissionEntries(@Nonnull String principalName);
+    long getNumEntries(@Nonnull String principalName, long max);
 
-    long getNumEntries(@Nonnull String principalName);
-
-    long getModCount(@Nonnull String principalName);
 }

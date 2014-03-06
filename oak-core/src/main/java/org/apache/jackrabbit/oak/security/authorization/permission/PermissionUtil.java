@@ -56,16 +56,6 @@ public final class PermissionUtil implements PermissionConstants {
         return String.valueOf(path.hashCode());
     }
 
-    public static long getNumPermissions(@Nonnull NodeBuilder node) {
-        PropertyState property = node.getProperty(REP_NUM_PERMISSIONS);
-        return property == null ? 0 : property.getValue(Type.LONG);
-    }
-
-    public static long getNumPermissions(@Nonnull Tree node) {
-        PropertyState property = node.getProperty(REP_NUM_PERMISSIONS);
-        return property == null ? 0 : property.getValue(Type.LONG);
-    }
-
     public static boolean checkACLPath(@Nonnull NodeBuilder node, @Nonnull String path) {
         PropertyState property = node.getProperty(REP_ACCESS_CONTROLLED_PATH);
         return property != null && path.equals(property.getValue(Type.STRING));

@@ -18,12 +18,12 @@
 TITLE=ConcurrentWriteACLTest
 BENCH="ConcurrentWriteACLTest"
 ADMIN="true"
-RUNTIME=5
+RUNTIME=10
 RANDOM_USER="true"
 FIXS="Oak-Mongo" # Jackrabbit"
 THREADS="1,2,4,8,10,15,20,50"
 PROFILE=false
-NUM_ITEMS=1000
+NUM_ITEMS=10
 
 LOG=$TITLE"_$(date +'%Y%m%d_%H%M%S').csv"
 echo "Benchmarks: $BENCH" > $LOG

@@ -347,43 +347,4 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
         assertEquals(2, cntEntries(principalRoot));
     }
-
-    @Test
-    public void testNumPermissions() throws Exception {
-
-        AccessControlManager acMgr = getAccessControlManager(root);
-        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.addAccessControlEntry(getTestPrincipal(), privilegesFromNames(JCR_READ, REP_WRITE));
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        assertEquals(1, PermissionUtil.getNumPermissions(getPrincipalRoot(testPrincipalName)));
-        assertEquals(1, PermissionUtil.getNumPermissions(getPrincipalRoot(EveryonePrincipal.NAME)));
-
-        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
-        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_READ));
-        acMgr.setPolicy(childPath, acl);
-        root.commit();
-
-        assertEquals(1, PermissionUtil.getNumPermissions(getPrincipalRoot(testPrincipalName)));
-        assertEquals(2, PermissionUtil.getNumPermissions(getPrincipalRoot(EveryonePrincipal.NAME)));
-
-        acl = AccessControlUtils.getAccessControlList(acMgr, testPath);
-        acl.removeAccessControlEntry(acl.getAccessControlEntries()[0]);
-        acMgr.setPolicy(testPath, acl);
-        root.commit();
-
-        assertEquals(0, PermissionUtil.getNumPermissions(getPrincipalRoot(testPrincipalName)));
-        assertEquals(2, PermissionUtil.getNumPermissions(getPrincipalRoot(EveryonePrincipal.NAME)));
-
-        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
-        acl.removeAccessControlEntry(acl.getAccessControlEntries()[0]);
-        acMgr.setPolicy(childPath, acl);
-        root.commit();
-
-        assertEquals(0, PermissionUtil.getNumPermissions(getPrincipalRoot(testPrincipalName)));
-        assertEquals(1, PermissionUtil.getNumPermissions(getPrincipalRoot(EveryonePrincipal.NAME)));
-    }
-
-
 }

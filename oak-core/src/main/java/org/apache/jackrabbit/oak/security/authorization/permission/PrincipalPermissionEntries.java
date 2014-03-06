@@ -33,9 +33,9 @@ public class PrincipalPermissionEntries {
     private final String name;
 
     /**
-     * timestamp of the per-principal permission store
+     * indicating if all entries were loaded.
      */
-    private long modCount;
+    private boolean fullyLoaded;
 
     /**
      * map of permission entries, accessed by path
@@ -51,12 +51,12 @@ public class PrincipalPermissionEntries {
         return name;
     }
 
-    public long getModCount() {
-        return modCount;
+    public boolean isFullyLoaded() {
+        return fullyLoaded;
     }
 
-    public void setModCount(long modCount) {
-        this.modCount = modCount;
+    public void setFullyLoaded(boolean fullyLoaded) {
+        this.fullyLoaded = fullyLoaded;
     }
 
     @Nonnull
