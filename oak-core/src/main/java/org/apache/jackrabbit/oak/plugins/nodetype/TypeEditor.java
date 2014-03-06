@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -61,6 +63,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.
  *       is unique.
  */
 class TypeEditor extends DefaultEditor {
+
+    private static final Logger log = LoggerFactory.getLogger(TypeEditor.class);
 
     private final TypeEditor parent;
 
@@ -243,10 +247,11 @@ class TypeEditor extends DefaultEditor {
         } else if (type.getBoolean(JCR_ISMIXIN)) {
             throw constraintViolation(
                     2, "Mixin type " + primary + " used as the primary type");
-        } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
-            throw constraintViolation(
-                    3, "Abstract type " + primary + " used as the primary type");
         } else {
+            if (type.getBoolean(JCR_IS_ABSTRACT)) {
+                log.warn("Abstract type " + primary
+                        + " used as the primary type of node " + getPath());
+            }
             list.add(type);
         }
 
@@ -259,10 +264,11 @@ class TypeEditor extends DefaultEditor {
             } else if (!type.getBoolean(JCR_ISMIXIN)) {
                 throw constraintViolation(
                         6, "Primary type " + mixin + " used as a mixin type");
-            } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
-                throw constraintViolation(
-                        7, "Abstract type " + mixin + " used as a mixin type");
             } else {
+                if (type.getBoolean(JCR_IS_ABSTRACT)) {
+                    log.warn("Abstract type " + mixin
+                            + " used as a mixin type of node " + getPath());
+                }
                 list.add(type);
             }
         }

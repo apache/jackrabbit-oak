@@ -135,14 +135,19 @@ public class WorkspaceDelegate {
 
         private void copy(Tree source, Tree destParent, String destName, Tree typeRoot, String userId)
                 throws RepositoryException {
+            boolean explicitType = true;
             String primaryType = TreeUtil.getPrimaryTypeName(source);
             if (primaryType == null) {
+                explicitType = false;
                 primaryType = TreeUtil.getDefaultChildType(typeRoot, destParent, destName);
                 if (primaryType == null) {
                     throw new ConstraintViolationException("Cannot determine default node type.");
                 }
             }
-            Tree dest = TreeUtil.addChild(destParent, destName, primaryType, typeRoot, userId);
+
+            Tree dest = TreeUtil.addChild(
+                    destParent, destName,
+                    primaryType, explicitType, typeRoot, userId);
             for (PropertyState property : source.getProperties()) {
                 String propName = property.getName();
                 if (JCR_MIXINTYPES.equals(propName)) {

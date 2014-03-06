@@ -686,8 +686,10 @@ public class NodeDelegate extends ItemDelegate {
             return null;
         }
 
+        boolean explicitType = true;
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         if (typeName == null) {
+            explicitType = false;
             typeName = TreeUtil.getDefaultChildType(typeRoot, tree, name);
             if (typeName == null) {
                 throw new ConstraintViolationException(
@@ -696,7 +698,8 @@ public class NodeDelegate extends ItemDelegate {
             }
         }
 
-        Tree child = internalAddChild(tree, name, typeName, typeRoot);
+        Tree child = internalAddChild(
+                tree, name, typeName, explicitType, typeRoot);
         return new NodeDelegate(sessionDelegate, child);
     }
 
@@ -851,9 +854,11 @@ public class NodeDelegate extends ItemDelegate {
     //------------------------------------------------------------< internal >---
 
     private Tree internalAddChild(
-            Tree parent, String name, String typeName, Tree typeRoot)
+            Tree parent, String name,
+            String typeName, boolean explicitType, Tree typeRoot)
             throws RepositoryException {
-        return TreeUtil.addChild(parent, name, typeName, typeRoot, getUserID());
+        return TreeUtil.addChild(
+                parent, name, typeName, explicitType, typeRoot, getUserID());
     }
 
     @Nonnull // FIXME this should be package private. OAK-672

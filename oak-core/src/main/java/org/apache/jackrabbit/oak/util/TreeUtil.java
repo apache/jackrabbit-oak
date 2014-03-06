@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.util;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -28,6 +29,7 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -173,14 +175,16 @@ public final class TreeUtil {
     }
 
     public static Tree addChild(@Nonnull Tree parent, @Nonnull String name,
-                                @Nonnull String typeName, @Nonnull Tree typeRoot,
+                                @Nonnull String typeName, boolean explicitType,
+                                @Nonnull Tree typeRoot,
                                 @CheckForNull String userID)
             throws RepositoryException {
         Tree type = typeRoot.getChild(typeName);
         if (!type.exists()) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
-        } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+        } else if (explicitType // OAK-1013: backwards compatibility
+                && getBoolean(type, JCR_IS_ABSTRACT)) {
             throw new ConstraintViolationException(
                     "Node type " + typeName + " is abstract");
         } else if (getBoolean(type, JCR_ISMIXIN)) {
@@ -273,7 +277,7 @@ public final class TreeUtil {
                     if (!tree.hasChild(name)) {
                         String typeName =
                                 getName(definition, JCR_DEFAULTPRIMARYTYPE);
-                        addChild(tree, name, typeName, typeRoot, userID);
+                        addChild(tree, name, typeName, false, typeRoot, userID);
                     }
                     break;
                 }
