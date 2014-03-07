@@ -24,16 +24,22 @@ import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 
-public class MemoryStore extends AbstractStore {
+public class MemoryStore implements SegmentStore {
+
+    private final SegmentIdFactory factory = new SegmentIdFactory();
+
+    private final SegmentWriter writer = new SegmentWriter(this, factory);
 
     private SegmentNodeState head;
 
@@ -41,8 +47,6 @@ public class MemoryStore extends AbstractStore {
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
-        super(0);
-
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
 
@@ -56,7 +60,8 @@ public class MemoryStore extends AbstractStore {
     }
 
     @Override
-    public void close() {
+    public SegmentWriter getWriter() {
+        return writer;
     }
 
     @Override
@@ -75,12 +80,12 @@ public class MemoryStore extends AbstractStore {
     }
 
     @Override @Nonnull
-    protected Segment loadSegment(UUID id) {
-        Segment segment = segments.get(id);
+    public Segment readSegment(UUID uuid) {
+        Segment segment = segments.get(uuid);
         if (segment != null) {
             return segment;
         } else {
-            throw new IllegalArgumentException("Segment not found: " + id);
+            throw new IllegalArgumentException("Segment not found: " + uuid);
         }
     }
 
@@ -90,11 +95,19 @@ public class MemoryStore extends AbstractStore {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = createSegment(segmentId, buffer);
-        if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
-            throw new IllegalStateException(
-                    "Segment override: " + segment.getSegmentId());
+        Segment segment = new Segment(this, factory, segmentId, buffer);
+        if (segments.putIfAbsent(segmentId, segment) != null) {
+            throw new IllegalStateException("Segment override: " + segmentId);
         }
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public Blob readBlob(String reference) {
+        return null;
     }
 
 }
