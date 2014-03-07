@@ -58,13 +58,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     @Override
     public SegmentNodeState getNodeState() {
         NodeState state = super.getNodeState();
-        if (!store.isInstance(state, SegmentNodeState.class)) {
-            state = store.getWriter().writeNode(state);
-            set(state);
+        SegmentNodeState sstate = store.getWriter().writeNode(state);
+        if (state != sstate) {
+            set(sstate);
             updateCount = 0;
         }
-        // guaranteed to be a SegmentNodeState from the same store as the base
-        return (SegmentNodeState) state;
+        return sstate;
     }
 
 }

@@ -669,17 +669,18 @@ public class SegmentWriter {
     }
 
     public SegmentBlob writeBlob(Blob blob) throws IOException {
-        if (store.isInstance(blob, SegmentBlob.class)) {
+        if (blob instanceof SegmentBlob
+                && ((SegmentBlob) blob).getStore() == store) {
             return (SegmentBlob) blob;
-        } else {
-            String reference = blob.getReference();
-            if (reference != null) {
-                RecordId id = writeValueRecord(reference, blob.length());
-                return new SegmentBlob(dummySegment, id);
-            } else {
-                return writeStream(blob.getNewStream());
-            }
         }
+
+        String reference = blob.getReference();
+        if (reference != null) {
+            RecordId id = writeValueRecord(reference, blob.length());
+            return new SegmentBlob(dummySegment, id);
+        }
+
+        return writeStream(blob.getNewStream());
     }
 
     /**
@@ -869,7 +870,8 @@ public class SegmentWriter {
     }
 
     public SegmentNodeState writeNode(NodeState state) {
-        if (store.isInstance(state, SegmentNodeState.class)) {
+        if (state instanceof SegmentNodeState
+                && ((SegmentNodeState) state).getStore() == store) {
             return (SegmentNodeState) state;
         }
 
@@ -879,7 +881,8 @@ public class SegmentWriter {
         if (state instanceof ModifiedNodeState) {
             after = (ModifiedNodeState) state;
             NodeState base = after.getBaseState();
-            if (store.isInstance(base, SegmentNodeState.class)) {
+            if (base instanceof SegmentNodeState
+                    && ((SegmentNodeState) base).getStore() == store) {
                 before = (SegmentNodeState) base;
                 beforeTemplate = before.getTemplate();
             }
@@ -939,9 +942,11 @@ public class SegmentWriter {
             String name = pt.getName();
             PropertyState property = state.getProperty(name);
 
-            if (store.isInstance(property, SegmentPropertyState.class)) {
+            if (property instanceof SegmentPropertyState
+                    && ((SegmentPropertyState) property).getStore() == store) {
                 ids.add(((SegmentPropertyState) property).getRecordId());
-            } else if (!store.isInstance(before, SegmentNodeState.class)) {
+            } else if (!(before instanceof SegmentNodeState)
+                    || ((SegmentNodeState) before).getStore() != store) {
                 ids.add(writeProperty(property));
             } else {
                 // reuse previously stored property, if possible
