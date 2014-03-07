@@ -78,8 +78,12 @@ class UserAuthentication implements Authentication {
         boolean success = false;
         try {
             Authorizable authorizable = userManager.getAuthorizable(userId);
-            if (authorizable == null || authorizable.isGroup()) {
-                throw new LoginException("Unknown user " + userId);
+            if (authorizable == null) {
+                return false;
+            }
+
+            if (authorizable.isGroup()) {
+                throw new LoginException("Not a user " + userId);
             }
 
             User user = (User) authorizable;

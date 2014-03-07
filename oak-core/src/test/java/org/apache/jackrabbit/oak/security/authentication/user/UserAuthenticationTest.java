@@ -27,8 +27,10 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +78,33 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testAuthenticateCannotResolveUser() throws Exception {
+        SimpleCredentials sc = new SimpleCredentials("unknownUser", "pw".toCharArray());
+        Authentication a = new UserAuthentication(sc.getUserID(), getUserManager(root));
+
+        assertFalse(a.authenticate(sc));
+    }
+
+    @Test
+    public void testAuthenticateResolvesToGroup() throws Exception {
+        Group g = getUserManager(root).createGroup("g1");
+        SimpleCredentials sc = new SimpleCredentials(g.getID(), "pw".toCharArray());
+        Authentication a = new UserAuthentication(sc.getUserID(), getUserManager(root));
+
+        try {
+            a.authenticate(sc);
+            fail("Authenticating Group should fail");
+        } catch (LoginException e) {
+            // success
+        } finally {
+            if (g != null) {
+                g.remove();
+                root.commit();
+            }
+        }
+    }
+
+    @Test
     public void testAuthenticateInvalidSimpleCredentials() throws Exception {
         List<Credentials> invalid = new ArrayList<Credentials>();
         invalid.add(new SimpleCredentials(userId, "wrongPw".toCharArray()));
@@ -89,6 +118,16 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             } catch (LoginException e) {
                 // success
             }
+        }
+    }
+
+    @Test
+    public void testAuthenticateIdMismatch() throws Exception {
+        try {
+            authentication.authenticate(new SimpleCredentials("unknownUser", "pw".toCharArray()));
+            fail("LoginException expected");
+        } catch (LoginException e) {
+            // success
         }
     }
 
