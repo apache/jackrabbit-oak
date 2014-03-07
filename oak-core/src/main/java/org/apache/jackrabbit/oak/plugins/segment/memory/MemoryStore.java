@@ -81,7 +81,10 @@ public class MemoryStore implements SegmentStore {
 
     @Override @Nonnull
     public Segment readSegment(UUID uuid) {
-        Segment segment = segments.get(uuid);
+        Segment segment = writer.getCurrentSegment(uuid);
+        if (segment == null) {
+            segment = segments.get(uuid);
+        }
         if (segment != null) {
             return segment;
         } else {
