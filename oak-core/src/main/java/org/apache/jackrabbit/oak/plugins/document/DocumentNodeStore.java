@@ -1478,7 +1478,7 @@ public final class DocumentNodeStore
         addPathsForDiff(path, paths, getPendingModifications(), minRev);
         for (Revision r : new Revision[]{fromRev, toRev}) {
             if (r.isBranch()) {
-                Branch b = getBranches().getBranch(fromRev);
+                Branch b = getBranches().getBranch(r);
                 if (b != null) {
                     addPathsForDiff(path, paths, b.getModifications(r), r);
                 }
