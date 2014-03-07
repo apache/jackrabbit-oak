@@ -325,7 +325,7 @@ public class FileStore implements SegmentStore {
             return segment;
         }
 
-        if (segments != null) {
+        if (segments == null) {
             // no in-memory cache, load the segment directly
             return loadSegment(id, dataFiles);
         }
