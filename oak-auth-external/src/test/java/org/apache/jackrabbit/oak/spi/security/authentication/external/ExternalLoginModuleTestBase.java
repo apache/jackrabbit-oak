@@ -45,13 +45,13 @@ import org.junit.Before;
  */
 public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
 
-    protected final HashMap<String, Object> options = new HashMap<String, Object>();
-
     private Set<String> ids = new HashSet<String>();
 
     private Registration testIdpReg;
 
     private Registration syncHandlerReg;
+
+    protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
     protected Whiteboard whiteboard;
 
