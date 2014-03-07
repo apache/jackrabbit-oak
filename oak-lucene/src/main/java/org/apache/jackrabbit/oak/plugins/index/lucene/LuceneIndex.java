@@ -707,7 +707,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                 MultiPhraseQuery mpq = new MultiPhraseQuery();
                 for(String token: tokens){
                     if (hasFulltextToken(token)) {
-                        Term[] terms = extractMatchingTokens(reader, token);
+                        Term[] terms = extractMatchingTokens(reader, fieldName, token);
                         if (terms != null && terms.length > 0) {
                             mpq.add(terms);
                         }
@@ -726,7 +726,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         }
     }
 
-    private static Term[] extractMatchingTokens(IndexReader reader, String token) {
+    private static Term[] extractMatchingTokens(IndexReader reader, String fieldName, String token) {
         if (reader == null) {
             // getPlan call
             return null;
@@ -734,13 +734,14 @@ public class LuceneIndex implements FulltextQueryIndex {
 
         try {
             List<Term> terms = new ArrayList<Term>();
-            Terms t = MultiFields.getTerms(reader, FieldNames.FULLTEXT);
-            Automaton a = WildcardQuery.toAutomaton(newFulltextTerm(token));
+            Term onTerm = newFulltextTerm(token, fieldName);
+            Terms t = MultiFields.getTerms(reader, onTerm.field());
+            Automaton a = WildcardQuery.toAutomaton(onTerm);
             CompiledAutomaton ca = new CompiledAutomaton(a);
             TermsEnum te = ca.getTermsEnum(t);
             BytesRef text;
             while ((text = te.next()) != null) {
-                terms.add(newFulltextTerm(text.utf8ToString()));
+                terms.add(newFulltextTerm(text.utf8ToString(), fieldName));
             }
             return terms.toArray(new Term[terms.size()]);
         } catch (IOException e) {
