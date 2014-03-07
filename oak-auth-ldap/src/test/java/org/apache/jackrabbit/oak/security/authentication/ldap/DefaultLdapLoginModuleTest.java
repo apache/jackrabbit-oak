@@ -16,18 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import java.util.Collections;
 import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
 
-public class LdapLoginStandaloneTest extends LdapLoginTestBase {
+public class DefaultLdapLoginModuleTest extends LdapLoginTestBase {
 
     @Override
     protected Configuration getConfiguration() {
@@ -35,6 +37,10 @@ public class LdapLoginStandaloneTest extends LdapLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
+                        new AppConfigurationEntry(
+                                LoginModuleImpl.class.getName(),
+                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                                Collections.<String, Object>emptyMap()),
                         new AppConfigurationEntry(
                                 ExternalLoginModule.class.getName(),
                                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
@@ -44,14 +50,18 @@ public class LdapLoginStandaloneTest extends LdapLoginTestBase {
         };
     }
 
+    /**
+     * Login with {@link javax.jcr.GuestCredentials} must succeed and result in
+     * an guest session as the SUFFICIENT
+     * {@link org.apache.jackrabbit.oak.spi.security.authentication.LoginModuleImpl}
+     * handles the guest login (in contrast to the ExternalLoginModule).
+     *
+     * @throws Exception
+     */
     @Test
     public void testGuestLogin() throws Exception {
-        try {
-            ContentSession sc = login(new GuestCredentials());
-            sc.close();
-            fail("Guest login must fail.");
-        } catch (LoginException e) {
-            // success
-        }
+        ContentSession cs = login(new GuestCredentials());
+        assertEquals(UserConstants.DEFAULT_ANONYMOUS_ID, cs.getAuthInfo().getUserID());
+        cs.close();
     }
 }
