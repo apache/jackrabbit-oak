@@ -46,7 +46,6 @@ import org.apache.directory.api.ldap.model.name.Rdn;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapConnectionPool;
-import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
 import org.apache.directory.ldap.client.api.PoolableLdapConnectionFactory;
 import org.apache.felix.scr.annotations.Activate;
@@ -291,7 +290,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         SearchRequest req = new SearchRequestImpl();
         req.setScope(SearchScope.SUBTREE);
         req.addAttributes(SchemaConstants.ALL_USER_ATTRIBUTES);
-        req.setTimeLimit(config.getSearchTimeout());
+        req.setTimeLimit((int) config.getSearchTimeout());
         req.setBase(new Dn(idConfig.getBaseDN()));
         req.setFilter(searchFilter);
 
@@ -437,7 +436,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             SearchRequest req = new SearchRequestImpl();
             req.setScope(SearchScope.SUBTREE);
             req.addAttributes(SchemaConstants.NO_ATTRIBUTE);
-            req.setTimeLimit(config.getSearchTimeout());
+            req.setTimeLimit((int) config.getSearchTimeout());
             req.setBase(new Dn(config.getGroupConfig().getBaseDN()));
             req.setFilter(searchFilter);
 
