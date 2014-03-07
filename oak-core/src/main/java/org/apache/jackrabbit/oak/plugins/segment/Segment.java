@@ -97,7 +97,7 @@ public class Segment {
      */
     static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
-    static final Weigher<UUID, Segment> WEIGHER =
+    public static final Weigher<UUID, Segment> WEIGHER =
             new Weigher<UUID, Segment>() {
                 @Override
                 public int weigh(UUID key, Segment value) {
