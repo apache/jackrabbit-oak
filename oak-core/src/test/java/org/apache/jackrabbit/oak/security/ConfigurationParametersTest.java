@@ -143,8 +143,10 @@ public class ConfigurationParametersTest {
         Map<String,Object> m = new HashMap<String, Object>();
         m.put("TEST", testObject);
         m.put("String", "1000");
-        m.put("Int2", new Integer(1000));
+        m.put("Int2", 1000);
         m.put("Int3", 1000);
+        m.put("time0", "1s");
+        m.put("time1", 1000);
         ConfigurationParameters options = ConfigurationParameters.of(m);
 
         assertEquals(testObject, options.getConfigValue("TEST", testObject));
@@ -152,26 +154,29 @@ public class ConfigurationParametersTest {
 
         assertTrue(1000 == options.getConfigValue("String", 10, int.class));
         assertTrue(1000 == options.getConfigValue("String", 10));
-        assertEquals(int1000, options.getConfigValue("String", new Integer(10)));
-        assertEquals(new Long(1000), options.getConfigValue("String", new Long(10)));
+        assertEquals(int1000, options.getConfigValue("String", 10));
+        assertEquals(new Long(1000), options.getConfigValue("String", 10l));
         assertEquals("1000", options.getConfigValue("String", "10"));
 
-        assertEquals(int1000, options.getConfigValue("Int2", new Integer(10)));
+        assertEquals(int1000, options.getConfigValue("Int2", 10));
         assertEquals("1000", options.getConfigValue("Int2", "1000"));
 
-        assertEquals(int1000, options.getConfigValue("Int3", new Integer(10)));
+        assertEquals(int1000, options.getConfigValue("Int3", 10));
         assertEquals("1000", options.getConfigValue("Int3", "1000"));
+
+        assertEquals(ConfigurationParameters.Milliseconds.of(1000), options.getConfigValue("time0", ConfigurationParameters.Milliseconds.NULL));
+        assertEquals(ConfigurationParameters.Milliseconds.of(1000), options.getConfigValue("time1", ConfigurationParameters.Milliseconds.NULL));
     }
 
     @Test
     public void testConversion2() {
         TestObject testObject = new TestObject("t");
-        Integer int1000 = new Integer(1000);
+        Integer int1000 = 1000;
 
         Map<String,Object> m = new HashMap<String, Object>();
         m.put("TEST", testObject);
         m.put("String", "1000");
-        m.put("Int2", new Integer(1000));
+        m.put("Int2", 1000);
         m.put("Int3", 1000);
         ConfigurationParameters options = ConfigurationParameters.of(m);
 
@@ -190,21 +195,21 @@ public class ConfigurationParametersTest {
         assertEquals("1000", options.getConfigValue("String", null, null));
         assertEquals("1000", options.getConfigValue("String", null, String.class));
 
-        assertEquals(int1000, options.getConfigValue("String", new Integer(10), null));
-        assertEquals(int1000, options.getConfigValue("String", new Integer(10), Integer.class));
+        assertEquals(int1000, options.getConfigValue("String", 10, null));
+        assertEquals(int1000, options.getConfigValue("String", 10, Integer.class));
 
-        assertEquals(new Long(1000), options.getConfigValue("String", new Long(10), null));
-        assertEquals(new Long(1000), options.getConfigValue("String", new Long(10), Long.class));
+        assertEquals(new Long(1000), options.getConfigValue("String", 10l, null));
+        assertEquals(new Long(1000), options.getConfigValue("String", 10l, Long.class));
 
         assertEquals("1000", options.getConfigValue("String", "10", null));
         assertEquals("1000", options.getConfigValue("String", "10", String.class));
 
         assertEquals(int1000, options.getConfigValue("Int2", null, null));
-        assertEquals(int1000, options.getConfigValue("Int2", new Integer(10), null));
+        assertEquals(int1000, options.getConfigValue("Int2", 10, null));
         assertEquals("1000", options.getConfigValue("Int2", "1000", null));
 
         assertEquals(1000, options.getConfigValue("Int3", null, null));
-        assertEquals(int1000, options.getConfigValue("Int3", new Integer(10), null));
+        assertEquals(int1000, options.getConfigValue("Int3", 10, null));
         assertEquals("1000", options.getConfigValue("Int3", "1000", null));
     }
 
@@ -213,10 +218,10 @@ public class ConfigurationParametersTest {
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("string", "v");
         map.put("obj", new TestObject("test"));
-        map.put("int", new Integer(10));
+        map.put("int", 10);
         ConfigurationParameters options = ConfigurationParameters.of(map);
 
-        Map<String, Class> impossible = new HashMap();
+        Map<String, Class> impossible = new HashMap<String, Class>();
         impossible.put("string", TestObject.class);
         impossible.put("string", Integer.class);
         impossible.put("string", Calendar.class);
@@ -274,13 +279,25 @@ public class ConfigurationParametersTest {
         }
 
         public boolean equals(Object object) {
-            if (object == this) {
-                return true;
-            }
-            if (object instanceof TestObject) {
-                return name.equals(((TestObject) object).name);
-            }
-            return false;
+            return object == this || object instanceof TestObject && name.equals(((TestObject) object).name);
         }
+    }
+
+    @Test
+    public void testDurationParser() {
+        assertNull(ConfigurationParameters.Milliseconds.of(""));
+        assertNull(ConfigurationParameters.Milliseconds.of(null));
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar").value);
+        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s").value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s").value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms").value);
+        assertEquals(60*1000, ConfigurationParameters.Milliseconds.of("1m").value);
+        assertEquals(90*1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
+        assertEquals(60*60*1000+90*1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
+        assertEquals(36*60*60*1000 + 60*60*1000+90*1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
     }
 }

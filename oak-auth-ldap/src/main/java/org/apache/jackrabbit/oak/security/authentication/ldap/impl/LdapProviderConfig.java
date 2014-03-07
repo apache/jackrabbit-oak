@@ -159,15 +159,15 @@ public class LdapProviderConfig {
     /**
      * @see #getSearchTimeout()
      */
-    public static final int PARAM_SEARCH_TIMEOUT_DEFAULT = 60000;
+    public static final String PARAM_SEARCH_TIMEOUT_DEFAULT = "60s";
 
     /**
      * @see #getSearchTimeout()
      */
     @Property(
             label = "Search Timeout",
-            description = "Time in milliseconds until a search times out.",
-            intValue = PARAM_SEARCH_TIMEOUT_DEFAULT
+            description = "Time in until a search times out (eg: '1s' or '1m 30s').",
+            value = PARAM_SEARCH_TIMEOUT_DEFAULT
     )
     public static final String PARAM_SEARCH_TIMEOUT = "searchTimeout";
 
@@ -523,7 +523,7 @@ public class LdapProviderConfig {
                 .setNoCertCheck(params.getConfigValue(PARAM_NO_CERT_CHECK, PARAM_NO_CERT_CHECK_DEFAULT))
                 .setBindDN(params.getConfigValue(PARAM_BIND_DN, PARAM_BIND_DN_DEFAULT))
                 .setBindPassword(params.getConfigValue(PARAM_BIND_PASSWORD, PARAM_BIND_PASSWORD_DEFAULT))
-                .setSearchTimeout(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT))
+                .setSearchTimeout(ConfigurationParameters.Milliseconds.of(params.getConfigValue(PARAM_SEARCH_TIMEOUT, PARAM_SEARCH_TIMEOUT_DEFAULT)).value)
                 .setGroupMemberAttribute(params.getConfigValue(PARAM_GROUP_MEMBER_ATTRIBUTE, PARAM_GROUP_MEMBER_ATTRIBUTE_DEFAULT));
 
         cfg.getUserConfig()
@@ -559,7 +559,7 @@ public class LdapProviderConfig {
 
     private String bindPassword = PARAM_BIND_PASSWORD_DEFAULT;
 
-    private int searchTimeout = PARAM_SEARCH_TIMEOUT_DEFAULT;
+    private long searchTimeout = ConfigurationParameters.Milliseconds.of(PARAM_SEARCH_TIMEOUT_DEFAULT).value;
 
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
@@ -762,7 +762,7 @@ public class LdapProviderConfig {
      *
      * @return the timeout in milliseconds.
      */
-    public int getSearchTimeout() {
+    public long getSearchTimeout() {
         return searchTimeout;
     }
 
@@ -770,10 +770,10 @@ public class LdapProviderConfig {
      * Sets the search timeout.
      * @param searchTimeout the timeout in milliseconds
      * @return {@code this}
-     * @see #setSearchTimeout(int)
+     * @see #getSearchTimeout()
      */
     @Nonnull
-    public LdapProviderConfig setSearchTimeout(int searchTimeout) {
+    public LdapProviderConfig setSearchTimeout(long searchTimeout) {
         this.searchTimeout = searchTimeout;
         return this;
     }
