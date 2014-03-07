@@ -103,6 +103,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
         this.osgiConfig = osgiConfig;
     }
 
+    //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> ss, Map<String, ?> opts) {
         super.initialize(subject, callbackHandler, ss, opts);
@@ -197,16 +198,6 @@ public class ExternalLoginModule extends AbstractLoginModule {
         return false;
     }
 
-    /**
-     * @return An immutable set containing only the {@link SimpleCredentials} class.
-     */
-    @Override
-    protected Set<Class> getSupportedCredentials() {
-        // TODO: maybe delegate getSupportedCredentials to IDP
-        Class scClass = SimpleCredentials.class;
-        return Collections.singleton(scClass);
-    }
-
     @Override
     public boolean commit() throws LoginException {
         if (externalUser == null || syncHandler == null) {
@@ -247,10 +238,22 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
     }
 
+    //------------------------------------------------< AbstractLoginModule >---
+
     @Override
     protected void clearState() {
         super.clearState();
         externalUser = null;
         credentials = null;
+    }
+
+    /**
+     * @return An immutable set containing only the {@link SimpleCredentials} class.
+     */
+    @Override
+    protected Set<Class> getSupportedCredentials() {
+        // TODO: maybe delegate getSupportedCredentials to IDP
+        Class scClass = SimpleCredentials.class;
+        return Collections.singleton(scClass);
     }
 }
