@@ -20,12 +20,11 @@ import java.util.Collections;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule;
-import org.junit.Ignore;
 
-@Ignore //ignore for the moment because "mvn test" runs into PermGen memory issues
-public class LdapLoginWithRepoLoginTest extends LdapLoginTestBase {
+public class TokenDefaultLdapLoginModuleTest extends DefaultLdapLoginModuleTest {
 
     @Override
     protected Configuration getConfiguration() {
@@ -33,6 +32,10 @@ public class LdapLoginWithRepoLoginTest extends LdapLoginTestBase {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
                 return new AppConfigurationEntry[]{
+                        new AppConfigurationEntry(
+                                TokenLoginModule.class.getName(),
+                                AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                                Collections.<String, Object>emptyMap()),
                         new AppConfigurationEntry(
                                 LoginModuleImpl.class.getName(),
                                 AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
