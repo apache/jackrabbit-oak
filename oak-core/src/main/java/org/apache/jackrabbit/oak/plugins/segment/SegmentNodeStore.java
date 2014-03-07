@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static java.lang.System.currentTimeMillis;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -56,8 +55,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private final SegmentStore store;
 
-    private final Journal journal;
-
     private final ChangeDispatcher changeDispatcher;
 
     /**
@@ -74,21 +71,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     private long maximumBackoff = MILLISECONDS.convert(10, SECONDS);
 
-    public SegmentNodeStore(SegmentStore store, String journal) {
+    public SegmentNodeStore(SegmentStore store) {
         this.store = store;
-        this.journal = store.getJournal(journal);
-        checkState(this.journal != null);
-        this.head = new AtomicReference<SegmentNodeState>(new SegmentNodeState(
-                store.getWriter().getDummySegment(), this.journal.getHead()));
+        this.head = new AtomicReference<SegmentNodeState>(store.getHead());
         this.changeDispatcher = new ChangeDispatcher(getRoot());
     }
 
-    public SegmentNodeStore(SegmentStore store) {
-        this(store, "root");
-    }
-
     public SegmentNodeStore() {
-        this(new MemoryStore(), "root");
+        this(new MemoryStore());
     }
 
     void setMaximumBackoff(long max) {
@@ -100,10 +90,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
      * permit from the {@link #commitSemaphore}.
      */
     private void refreshHead() {
-        RecordId id = journal.getHead();
-        if (!id.equals(head.get().getRecordId())) {
-            SegmentNodeState state = new SegmentNodeState(
-                    store.getWriter().getDummySegment(), id);
+        SegmentNodeState state = store.getHead();
+        if (!state.getRecordId().equals(head.get().getRecordId())) {
             head.set(state);
             changeDispatcher.contentChanged(state.getChildNode(ROOT), null);
         }
@@ -206,7 +194,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     refreshHead();
 
                     SegmentNodeState state = head.get();
-                    RecordId ri = state.getRecordId();
 
                     SegmentNodeBuilder builder = state.builder();
                     NodeBuilder cp = builder.child(name);
@@ -214,8 +201,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                             + lifetime);
                     cp.setChildNode(ROOT, state.getChildNode(ROOT));
 
-                    if (journal.setHead(ri, builder.getNodeState()
-                            .getRecordId())) {
+                    if (store.setHead(state, builder.getNodeState())) {
                         refreshHead();
                         return name;
                     }
@@ -265,7 +251,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             SegmentNodeState after = builder.getNodeState();
 
             refreshHead();
-            if (journal.setHead(before.getRecordId(), after.getRecordId())) {
+            if (store.setHead(before, after)) {
                 head.set(after);
                 changeDispatcher.contentChanged(after.getChildNode(ROOT), info);
                 refreshHead();

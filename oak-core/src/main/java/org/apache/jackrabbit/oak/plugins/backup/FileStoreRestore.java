@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -54,9 +53,7 @@ public class FileStoreRestore {
         // 2. init filestore
         FileStore restore = new FileStore(source, MAX_FILE_SIZE, false);
         try {
-            Journal journal = restore.getJournal("root");
-            SegmentNodeState state = new SegmentNodeState(restore.getWriter()
-                    .getDummySegment(), journal.getHead());
+            SegmentNodeState state = restore.getHead();
             restore(state.getChildNode("root"), store);
         } finally {
             restore.close();

@@ -25,9 +25,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 
 import com.google.common.io.ByteStreams;
@@ -57,12 +57,12 @@ public abstract class SegmentServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String info = request.getPathInfo();
-        if (info == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        } else if (info.startsWith("/s/")) {
-            doGetSegment(info.substring(3, info.length()), response);
-        } else if (info.startsWith("/j/")) {
-            doGetJournal(info.substring(3, info.length()), response);
+        if (info == null || info.equals("") || info.equals("/")) {
+            response.setContentType("text/plain; charset=UTF-8");
+            SegmentNodeState head = getSegmentStore().getHead();
+            response.getWriter().write(head.getRecordId().toString());
+        } else if (info.startsWith("/")) {
+            doGetSegment(info.substring(1, info.length()), response);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
@@ -73,12 +73,22 @@ public abstract class SegmentServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String info = request.getPathInfo();
-        if (info == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        } else if (info.startsWith("/s/")) {
-            doPutSegment(info.substring(3, info.length()), request, response);
-        } else if (info.startsWith("/j/")) {
-            doPutJournal(info.substring(3, info.length()), request, response);
+        if (info == null || info.equals("") || info.equals("/")) {
+            RecordId id = getRecordId(request.getReader());
+            if (id == null) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            } else {
+                SegmentStore store = getSegmentStore();
+                SegmentNodeState head = new SegmentNodeState(
+                        store.getWriter().getDummySegment(), id);
+                if (store.setHead(store.getHead(), head)) {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                } else {
+                    response.sendError(HttpServletResponse.SC_CONFLICT);
+                }
+            }
+        } else if (info.startsWith("/")) {
+            doPutSegment(info.substring(1, info.length()), request, response);
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
@@ -118,42 +128,6 @@ public abstract class SegmentServlet extends HttpServlet {
             byte[] data = ByteStreams.toByteArray(request.getInputStream());
             getSegmentStore().writeSegment(uuid, data, 0, data.length);
             response.setStatus(HttpServletResponse.SC_OK);
-        }
-    }
-
-    private void doGetJournal(
-            String info, HttpServletResponse response)
-            throws ServletException, IOException {
-        Journal journal = getSegmentStore().getJournal(info);
-        if (journal == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        response.setContentType("text/plain; charset=UTF-8");
-        response.getWriter().write(journal.getHead().toString());
-    }
-
-    private void doPutJournal(
-            String info,
-            HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Journal journal = getSegmentStore().getJournal(info);
-        if (journal == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        RecordId head = getRecordId(request.getReader());
-        if (head == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        if (journal.setHead(journal.getHead(), head)) {
-            response.setStatus(HttpServletResponse.SC_OK);
-        } else {
-            response.sendError(HttpServletResponse.SC_CONFLICT);
         }
     }
 

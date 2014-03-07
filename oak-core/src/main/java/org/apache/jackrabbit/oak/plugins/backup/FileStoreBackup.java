@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -56,10 +55,7 @@ public class FileStoreBackup {
         // 2. init filestore
         FileStore backup = new FileStore(destination, MAX_FILE_SIZE, false);
         try {
-            Journal journal = backup.getJournal("root");
-
-            SegmentNodeState state = new SegmentNodeState(
-                    backup.getWriter().getDummySegment(), journal.getHead());
+            SegmentNodeState state = backup.getHead();
             SegmentNodeBuilder builder = state.builder();
 
             String beforeCheckpoint = state.getString("checkpoint");
@@ -81,8 +77,7 @@ public class FileStoreBackup {
             builder.setProperty("checkpoint", checkpoint);
 
             // 4. commit the backup
-            journal.setHead(
-                    state.getRecordId(), builder.getNodeState().getRecordId());
+            backup.setHead(state, builder.getNodeState());
         } finally {
             backup.close();
         }

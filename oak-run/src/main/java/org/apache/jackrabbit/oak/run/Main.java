@@ -136,7 +136,7 @@ public class Main {
 
                         Set<UUID> garbage = newHashSet(idmap.keySet());
                         Queue<UUID> queue = Queues.newArrayDeque();
-                        queue.add(store.getJournal("root").getHead().getSegmentId());
+                        queue.add(store.getHead().getRecordId().getSegmentId());
                         while (!queue.isEmpty()) {
                             UUID id = queue.remove();
                             if (garbage.remove(id)) {
