@@ -14,32 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.TYPE;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class OrderedPropertyIndex extends PropertyIndex {
-    private static final Logger log = LoggerFactory.getLogger(OrderedPropertyIndex.class);
+import com.google.common.collect.ImmutableList;
+
+/**
+ * convenience provider for going around the INFINITE cost of the actual index implementation
+ */
+public class LowCostOrderedPropertyIndexProvider extends OrderedPropertyIndexProvider {
     @Override
-    public String getIndexName() {
-        return TYPE;
+    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+        return ImmutableList.<QueryIndex> of(new LowCostOrderedPropertyIndex());
     }
 
-    @Override
-    PropertyIndexLookup getLookup(NodeState root) {
-        return new OrderedPropertyIndexLookup(root);
-    }
-
-    @Override
-    public double getCost(Filter filter, NodeState root) {
-        //we don't want the index to be used yet
-        log.warn("this index will always return Double.POSITIVE_INFINITY and therefore never work");
-        return Double.POSITIVE_INFINITY;
+    private static class LowCostOrderedPropertyIndex extends OrderedPropertyIndex {
+        @Override
+        public double getCost(Filter filter, NodeState root) {
+            return 1e-3;
+        }
     }
 }

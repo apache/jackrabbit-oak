@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 import java.text.ParseException;
@@ -42,38 +41,25 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQueryTest {
-    /**
-     * testing for asserting the right comparison behaviour of the custom class
-     */
-    @Test
-    public void valuePathTupleComparison() {
-        try {
-            new ValuePathTuple("value", "path").compareTo(null);
-            fail("It should have raised a NPE");
-        } catch (NullPointerException e) {
-            // so far so good
-        }
-        assertEquals(0, (new ValuePathTuple("value", "path")).compareTo(new ValuePathTuple("value", "path")));
-        assertEquals(-1, (new ValuePathTuple("value", "path")).compareTo(new ValuePathTuple("value1", "path")));
-        assertEquals(-1, (new ValuePathTuple("value1", "path")).compareTo(new ValuePathTuple("value1", "path1")));
-        assertEquals(1, (new ValuePathTuple("value1", "path")).compareTo(new ValuePathTuple("value", "path")));
-        assertEquals(1, (new ValuePathTuple("value1", "path1")).compareTo(new ValuePathTuple("value1", "path")));
 
-        assertEquals(-1,
-            (new ValuePathTuple("value000", "/test/n1")).compareTo(new ValuePathTuple("value001", "/test/n0")));
-        assertEquals(1,
-            (new ValuePathTuple("value001", "/test/n0")).compareTo(new ValuePathTuple("value000", "/test/n1")));
-    }
-
+public class OrderedPropertyIndexDescendingQueryTest extends BasicOrderedPropertyIndexQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        IndexUtils.createIndexDefinition(new NodeUtil(index.getChild(IndexConstants.INDEX_DEFINITIONS_NAME)),
-            TEST_INDEX_NAME, false, new String[] { ORDERED_PROPERTY }, null, OrderedIndex.TYPE);
+        IndexUtils.createIndexDefinition(
+            new NodeUtil(index.getChild(IndexConstants.INDEX_DEFINITIONS_NAME)),
+            TEST_INDEX_NAME, 
+            false, 
+            new String[] { ORDERED_PROPERTY }, 
+            null, 
+            OrderedIndex.TYPE,
+            ImmutableMap.of(
+                OrderedIndex.DIRECTION, OrderedIndex.OrderDirection.DESC.getDirection()
+            )
+        );
         root.commit();
     }
-
+    
     /**
      * Query the index for retrieving all the entries
      * 
@@ -90,18 +76,20 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         Tree rTree = root.getTree("/");
         Tree test = rTree.addChild("test");
-        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(NUMBER_OF_NODES), test, OrderDirection.ASC);
+        List<ValuePathTuple> nodes = addChildNodes(
+            generateOrderedValues(NUMBER_OF_NODES, OrderDirection.DESC), test, OrderDirection.DESC);
         root.commit();
-
+        
         // querying
         Iterator<? extends ResultRow> results;
-        results = executeQuery(String.format("SELECT * from [%s] WHERE foo IS NOT NULL", NT_UNSTRUCTURED), SQL2, null)
+        results = executeQuery(
+            String.format("SELECT * from [%s] WHERE foo IS NOT NULL", NT_UNSTRUCTURED), SQL2, null)
             .getRows().iterator();
         assertRightOrder(nodes, results);
 
         setTravesalEnabled(true);
     }
-
+    
     /**
      * test the index for returning the items related to a single key
      * 
@@ -117,17 +105,20 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         Tree rTree = root.getTree("/");
         Tree test = rTree.addChild("test");
-        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(NUMBER_OF_NODES), test, OrderDirection.ASC);
+        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(NUMBER_OF_NODES), test,
+            OrderDirection.DESC);
         root.commit();
 
-        ValuePathTuple searchfor = nodes.get(NUMBER_OF_NODES / 2); // getting the middle of the random list of
-                                                                         // nodes.
-        Map<String, PropertyValue> filter = ImmutableMap
-            .of(ORDERED_PROPERTY, PropertyValues.newString(searchfor.getValue()));
+        // getting the middle of the random list of nodes
+        ValuePathTuple searchfor = nodes.get(NUMBER_OF_NODES / 2);
+
+        Map<String, PropertyValue> filter = ImmutableMap.of(ORDERED_PROPERTY,
+            PropertyValues.newString(searchfor.getValue()));
         String query = "SELECT * FROM [%s] WHERE %s=$%s";
         Iterator<? extends ResultRow> results = executeQuery(
-            String.format(query, NT_UNSTRUCTURED, ORDERED_PROPERTY, ORDERED_PROPERTY), SQL2, filter).getRows()
-            .iterator();
+            String.format(query, NT_UNSTRUCTURED, ORDERED_PROPERTY, ORDERED_PROPERTY), 
+            SQL2, 
+            filter).getRows().iterator();
         assertTrue("one element is expected", results.hasNext());
         assertEquals("wrong path returned", searchfor.getPath(), results.next().getPath());
         assertFalse("there should be not any more items", results.hasNext());

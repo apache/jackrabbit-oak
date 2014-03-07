@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -971,5 +972,277 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(index.getChildNode(N1).hasChildNode(subNodes[0]));
         assertTrue(index.getChildNode(N1).getChildNode(subNodes[0]).hasChildNode(subNodes[1]));
         assertTrue(index.getChildNode(N1).getChildNode(subNodes[0]).getChildNode(subNodes[1]).getBoolean("match"));
+    }
+    
+    /**
+     * test the insert of 1 item in a descending order index. it should not really matter but just
+     * checking we don't break anything
+     * 
+     * expecting
+     * 
+     * <code>
+     *  :index : {
+     *      :start : { :next = n0 },
+     *      n0 : { :next = }
+     *  }
+     * </code>
+     */
+    @Test
+    public void descendingOrderInsert1item() {
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        assertEquals(":start should point to the first node", n0, index.getChildNode(START)
+                                                                       .getString(NEXT));
+        assertTrue("the first node should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+    }
+    
+    /**
+     * <p>test the insertion of 2 already ordered items</p>
+     * 
+     * <p>expected</p>
+     * 
+     *  <code>
+     *      :index : {
+     *          :start : { :next=n0 },
+     *          n0 : { :next=n1 },
+     *          n1 : { :next=}
+     *      }
+     *  </code>
+     */
+    @Test
+    public void descendingOrderInsert2itemsAlreadyOrdered(){
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[0];
+
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        assertEquals(":start should point to the first node", n0, index.getChildNode(START)
+                                                                       .getString(NEXT));
+        assertEquals("n0 should point to n1",n1, index.getChildNode(n0).getString(NEXT));
+        assertTrue("n1 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n1).getString(NEXT)));
+    }
+    
+    /**
+     * test the insert of 4 shuffled items in a descending ordered index
+     * 
+     * expected:
+     * 
+     * <code>
+     *      :index : {
+     *          :start : { :next= n1},
+     *          n0 : { :next= n3},  
+     *          n1 : { :next= n2},  
+     *          n2: { :next= n0},  
+     *          n3 : { :next= },  
+     *      }
+     * </code>
+     */
+    @Test
+    public void descendingOrderInsert4ShuffledItems() {
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        assertEquals(":start should point to n1", n1, index.getChildNode(START).getString(NEXT));
+        assertEquals("n0 should point to n3", n3, index.getChildNode(n0).getString(NEXT));
+        assertEquals("n1 should point to n2", n2, index.getChildNode(n1).getString(NEXT));
+        assertEquals("n2 should point to n1", n0, index.getChildNode(n2).getString(NEXT));
+        assertTrue("n3 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n3).getString(NEXT)));
+    }
+    
+    /**
+     * Tests the insert of 4 items that will always have to be added at the beginning of the list.
+     * Just to simulate the use-case of lastModified DESC.
+     * 
+     * <code>
+     *      Stage 1
+     *      =======
+     *      
+     *      :index : {
+     *          :start : { :next=n0 },
+     *          n0 : { :next= }
+     *      }
+     *      
+     *      Stage 2
+     *      =======
+     *      
+     *      :index : {
+     *          :start : { :next=n1 },
+     *          n0 : { :next= },
+     *          n1 : { :next=n0 }
+     *      }
+     *      
+     *      Stage 3
+     *      =======
+     *      
+     *      :index : {
+     *          :start : { :next=n2 },
+     *          n0 : { :next= },
+     *          n1 : { :next=n0 },
+     *          n2 : { :next=n1 }
+     *      }
+     *      
+     *      Stage 4
+     *      =======
+     *      
+     *      :index : {
+     *          :start : { :next=n3 },
+     *          n0 : { :next= },
+     *          n1 : { :next=n0 },
+     *          n2 : { :next=n1 },
+     *          n3 : { :next=n2 }
+     *      }
+     * </code>
+     */
+    @Test
+    public void descendingOrder4StagedInsertsAlwaysGreater() {
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[0];
+        String n1 = KEYS[1];
+        String n2 = KEYS[2];
+        String n3 = KEYS[3];
+
+        // Stage 1
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        assertEquals(":start should point to n0", n0, index.getChildNode(START).getString(NEXT));
+        assertTrue("n0 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+
+        // Stage 2
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        assertEquals(":start should point to n1", n1, index.getChildNode(START).getString(NEXT));
+        assertEquals("n1 should point to n0", n0, index.getChildNode(n1).getString(NEXT));
+        assertTrue("n0 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+
+        // Stage 3
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        assertEquals(":start should point to n2", n2, index.getChildNode(START).getString(NEXT));
+        assertEquals("n2 should point to n1", n1, index.getChildNode(n2).getString(NEXT));
+        assertEquals("n1 should point to n0", n0, index.getChildNode(n1).getString(NEXT));
+        assertTrue("n0 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+
+        // Stage 4
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        assertEquals(":start should point to n3", n3, index.getChildNode(START).getString(NEXT));
+        assertEquals("n3 should point to n2", n2, index.getChildNode(n3).getString(NEXT));
+        assertEquals("n2 should point to n1", n1, index.getChildNode(n2).getString(NEXT));
+        assertEquals("n1 should point to n0", n0, index.getChildNode(n1).getString(NEXT));
+        assertTrue("n0 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+    }
+    
+    /**
+     * test finding a previous item in a descending ordered index.
+     * 
+     * <code>
+     *      Stage 1
+     *      =======
+     *      
+     *      :index {
+     *          :start : { :next=n0 },
+     *          n0 : { :next= }
+     *      }
+     *      
+     *      findPrevious(n0)=:start
+     *      
+     *      Stage 2
+     *      =======
+     *      
+     *      :index {
+     *          :start : { :next=n1 },
+     *          n0 : { :next= }
+     *          n1 : { :next=n0 }
+     *      }
+     *      
+     *      findPrevious(n0)=n1;
+     * </code>
+     */
+    @Test
+    public void descendingOrderFindPrevious(){
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[0];
+        String n1 = KEYS[1];
+        NodeState indexState;
+        NodeState previous;
+        NodeState node;
+        
+        //Stage 1
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        indexState = index.getNodeState();
+        node = indexState.getChildNode(n0);
+        previous = indexState.getChildNode(START);
+        assertEquals(previous,store.findPrevious(indexState, node).getNodeState());
+        
+        //Stage 2
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        indexState = index.getNodeState();
+        node = indexState.getChildNode(n0);
+        previous = indexState.getChildNode(n1);
+        assertEquals(previous,store.findPrevious(indexState, node).getNodeState());
+    }
+    
+    /**
+     * test the iteration of the descending index with 2 shuffled items
+     * 
+     * <code>
+     *    :index : {
+     *       :start : { :next=n1 },
+     *       n0 : { :next= },
+     *       n1 : { :next=n0 }
+     *    }
+     * </code>
+     */
+    @Test
+    public void descendingOrderChildNodeEntriesACoupleOfMixedItems() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(
+                                                                                        OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        final String n0 = KEYS[0];
+        final String n1 = KEYS[1];
+
+        // setting-up the index structure
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+
+        NodeState indexState = index.getNodeState();
+        NodeState node0 = indexState.getChildNode(n0);
+        NodeState node1 = indexState.getChildNode(n1);
+
+        Iterable<? extends ChildNodeEntry> children = store.getChildNodeEntries(indexState);
+        assertNotNull("The iterable cannot be null", children);
+        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator()));
+
+        // ensuring the right sequence
+        ChildNodeEntry entry = null;
+        children = store.getChildNodeEntries(indexState);
+        Iterator<? extends ChildNodeEntry> it = children.iterator();
+        assertTrue("We should have 2 elements left to loop through", it.hasNext());
+        entry = it.next();
+        assertEquals("The first element should be n1", n1, entry.getName());
+        assertEquals("Wrong entry returned", node1, entry.getNodeState());
+        assertTrue("We should have 1 elements left to loop through", it.hasNext());
+        entry = it.next();
+        assertEquals("The second element should be n0", n0, entry.getName());
+        assertEquals("Wrong entry returned", node0, entry.getNodeState());
+        assertFalse("We should have be at the end of the list", it.hasNext());
     }
 }

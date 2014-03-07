@@ -26,6 +26,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -69,7 +71,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     public static final NodeState EMPTY_START_NODE = EmptyNodeState.EMPTY_NODE.builder()
                                                                               .setProperty(NEXT, "")
                                                                               .getNodeState();
+    
+    /**
+     * the direction of the index.
+     */
+    private OrderDirection direction = OrderedIndex.DEFAULT_DIRECTION;
 
+    public OrderedContentMirrorStoreStrategy(){
+        super();
+    }
+    
+    public OrderedContentMirrorStoreStrategy(OrderDirection direction){
+        this();
+        this.direction = direction;
+    }
+    
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
         log.debug("fetchKeyNode() - index: {} - key: {}", index, key);
@@ -86,26 +102,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         } else {
             // specific use-case where the item has to be added as first of the list
             String nextKey = n;
-            if (key.compareTo(nextKey) < 0) {
-                localkey = index.child(key);
-                localkey.setProperty(NEXT, nextKey);
-                start.setProperty(NEXT, key);
-            } else {
-                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState());
-                for (ChildNodeEntry child : children) {
-                    nextKey = child.getNodeState().getString(NEXT);
-                    if (Strings.isNullOrEmpty(nextKey)) {
-                        // we're at the last element, therefore our 'key' has to be appended
+            Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState(),
+                                                                              true);
+            for (ChildNodeEntry child : children) {
+                nextKey = child.getNodeState().getString(NEXT);
+                if (Strings.isNullOrEmpty(nextKey)) {
+                    // we're at the last element, therefore our 'key' has to be appended
+                    index.getChildNode(child.getName()).setProperty(NEXT, key);
+                    localkey = index.child(key);
+                    localkey.setProperty(NEXT, "");
+                } else {
+                    if (isInsertHere(key, nextKey)) {
                         index.getChildNode(child.getName()).setProperty(NEXT, key);
                         localkey = index.child(key);
-                        localkey.setProperty(NEXT, "");
-                    } else {
-                        if (key.compareTo(nextKey) < 0) {
-                            index.getChildNode(child.getName()).setProperty(NEXT, key);
-                            localkey = index.child(key);
-                            localkey.setProperty(NEXT, nextKey);
-                            break;
-                        }
+                        localkey.setProperty(NEXT, nextKey);
+                        break;
                     }
                 }
             }
@@ -114,6 +125,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         return localkey;
     }
 
+    /**
+     * tells whether or not the is right to insert here a new item.
+     * 
+     * @param newItemKey the new item key to be added
+     * @param existingItemKey the 'here' of the existing index
+     * @return true for green light on insert false otherwise.
+     */
+    private boolean isInsertHere(@Nonnull String newItemKey, @Nonnull String existingItemKey) {
+        if (OrderDirection.ASC.equals(direction)) {
+            return newItemKey.compareTo(existingItemKey) < 0;
+        } else {
+            return newItemKey.compareTo(existingItemKey) > 0;
+        }
+    }
+                                        
     @Override
     void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
         for (NodeBuilder node : builders) {
@@ -138,6 +164,20 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         }
     }
 
+    /**
+     * find the previous item (ChildNodeEntry) in the index given the provided NodeState for
+     * comparison
+     * 
+     * in an index sorted in ascending manner where we have @{code [1, 2, 3, 4, 5]} if we ask for 
+     * a previous given 4 it will be 3. previous(4)=3.
+     * 
+     * in an index sorted in descending manner where we have @{code [5, 4, 3, 2, 1]} if we as for
+     * a previous given 4 it will be 5. previous(4)=5.
+     * 
+     * @param index the index we want to look into ({@code :index})
+     * @param node the node we want to compare
+     * @return the previous item or null if not found.
+     */
     @Nullable
     ChildNodeEntry findPrevious(@Nonnull final NodeState index, @Nonnull final NodeState node) {
         ChildNodeEntry previous = null;
