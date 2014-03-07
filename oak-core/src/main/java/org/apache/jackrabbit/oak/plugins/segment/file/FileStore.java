@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
@@ -38,9 +37,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -69,7 +68,7 @@ public class FileStore extends AbstractStore {
     private final RandomAccessFile journalFile;
 
     /**
-     * The latest head of the root journal.
+     * The latest head state.
      */
     private final AtomicReference<RecordId> head;
 
@@ -255,23 +254,15 @@ public class FileStore extends AbstractStore {
     }
 
     @Override
-    public Journal getJournal(String name) {
-        checkArgument("root".equals(name)); // only root supported for now
-        return new Journal() {
-            @Override
-            public RecordId getHead() {
-                return head.get();
-            }
-            @Override
-            public boolean setHead(RecordId before, RecordId after) {
-                RecordId id = head.get();
-                return id.equals(before) && head.compareAndSet(id, after);
-            }
-            @Override
-            public void merge() {
-                throw new UnsupportedOperationException();
-            }
-        };
+    public SegmentNodeState getHead() {
+        return new SegmentNodeState(getWriter().getDummySegment(), head.get());
+    }
+
+    @Override
+    public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+        RecordId id = this.head.get();
+        return id.equals(base.getRecordId())
+                && this.head.compareAndSet(id, head.getRecordId());
     }
 
     @Override @Nonnull

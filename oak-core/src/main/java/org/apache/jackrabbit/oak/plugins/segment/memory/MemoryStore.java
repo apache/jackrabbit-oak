@@ -19,15 +19,15 @@ package org.apache.jackrabbit.oak.plugins.segment.memory;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.nio.ByteBuffer;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -35,16 +35,20 @@ import com.google.common.collect.Maps;
 
 public class MemoryStore extends AbstractStore {
 
-    private final Map<String, Journal> journals = Maps.newHashMap();
+    private SegmentNodeState head;
 
     private final ConcurrentMap<UUID, Segment> segments =
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
         super(0);
+
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("root", root);
-        journals.put("root", new MemoryJournal(this, builder.getNodeState()));
+
+        SegmentWriter writer = getWriter();
+        this.head = writer.writeNode(builder.getNodeState());
+        writer.flush();
     }
 
     public MemoryStore() {
@@ -56,13 +60,18 @@ public class MemoryStore extends AbstractStore {
     }
 
     @Override
-    public synchronized Journal getJournal(final String name) {
-        Journal journal = journals.get(name);
-        if (journal == null) {
-            journal = new MemoryJournal(this, "root");
-            journals.put(name, journal);
+    public synchronized SegmentNodeState getHead() {
+        return head;
+    }
+
+    @Override
+    public synchronized boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+        if (this.head.getRecordId().equals(base.getRecordId())) {
+            this.head = head;
+            return true;
+        } else {
+            return false;
         }
-        return journal;
     }
 
     @Override @Nonnull

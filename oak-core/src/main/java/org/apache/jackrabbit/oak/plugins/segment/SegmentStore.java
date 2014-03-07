@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import java.util.UUID;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 
@@ -27,13 +28,14 @@ public interface SegmentStore {
     SegmentWriter getWriter();
 
     /**
-     * Returns the named journal.
+     * Returns the head state.
      *
-     * @param name journal name
-     * @return named journal, or {@code null} if not found
+     * @return head state
      */
-    @CheckForNull
-    Journal getJournal(String name);
+    @Nonnull
+    SegmentNodeState getHead();
+
+    boolean setHead(SegmentNodeState base, SegmentNodeState head);
 
     /**
      * Reads the identified segment from this store.

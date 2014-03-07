@@ -32,10 +32,10 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.segment.AbstractStore;
-import org.apache.jackrabbit.oak.plugins.segment.Journal;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 
 import com.google.common.io.ByteStreams;
 
@@ -62,47 +62,39 @@ public class HttpStore extends AbstractStore {
     }
 
     @Override
-    public Journal getJournal(final String name) {
-        return new Journal() {
-            @Override
-            public RecordId getHead() {
-                try {
-                    final URLConnection connection = get("j/" + name);
-                    InputStream stream = connection.getInputStream();
-                    try {
-                        BufferedReader reader = new BufferedReader(
-                                new InputStreamReader(stream, UTF_8));
-                        return RecordId.fromString(reader.readLine());
-                    } finally {
-                        stream.close();
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException(e);
-                } catch (MalformedURLException e) {
-                    throw new IllegalStateException(e);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+    public SegmentNodeState getHead() {
+        try {
+            URLConnection connection = base.openConnection();
+            InputStream stream = connection.getInputStream();
+            try {
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(stream, UTF_8));
+                return new SegmentNodeState(
+                        getWriter().getDummySegment(),
+                        RecordId.fromString(reader.readLine()));
+            } finally {
+                stream.close();
             }
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(e);
+        } catch (MalformedURLException e) {
+            throw new IllegalStateException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-            @Override
-            public boolean setHead(RecordId base, RecordId head) {
-                // TODO throw new UnsupportedOperationException();
-                return true;
-            }
-
-            @Override
-            public void merge() {
-                throw new UnsupportedOperationException();
-            }
-        };
+    @Override
+    public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+        // TODO throw new UnsupportedOperationException();
+        return true;
     }
 
     @Override
     @CheckForNull
     protected Segment loadSegment(UUID id) {
         try {
-            final URLConnection connection = get("s/" + id);
+            final URLConnection connection = get(id.toString());
             InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
@@ -121,7 +113,7 @@ public class HttpStore extends AbstractStore {
     public void writeSegment(UUID segmentId, byte[] bytes, int offset,
             int length) {
         try {
-            URLConnection connection = get("s/" + segmentId);
+            URLConnection connection = get(segmentId.toString());
             connection.setDoInput(false);
             connection.setDoOutput(true);
             OutputStream stream = connection.getOutputStream();
