@@ -159,6 +159,7 @@ public final class TokenLoginModule extends AbstractLoginModule {
         if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
             Credentials shared = getSharedCredentials();
             if (shared != null && tokenProvider.doCreateToken(shared)) {
+                getRoot().refresh(); // refresh root, in case the external login module created users
                 TokenInfo ti = tokenProvider.createToken(shared);
                 if (ti != null) {
                     TokenCredentials tc = new TokenCredentials(ti.getToken());
