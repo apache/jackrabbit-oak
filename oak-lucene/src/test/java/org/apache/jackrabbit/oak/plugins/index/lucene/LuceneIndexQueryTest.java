@@ -265,4 +265,23 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         assertFalse(result.hasNext());
     }
 
+    @Test
+    public void testNativeMLTQuery() throws Exception {
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('lucene', 'mlt?stream.body=World&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
+
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        test.addChild("a").setProperty("name", "Hello World, today weather is nice");
+        test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
+        tree.addChild("c");
+        root.commit();
+
+        Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+        assertTrue(strings.hasNext());
+        assertEquals("/test/a", strings.next());
+        assertTrue(strings.hasNext());
+        assertEquals("/test/b", strings.next());
+        assertFalse(strings.hasNext());
+    }
+
 }
