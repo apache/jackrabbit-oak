@@ -16,19 +16,24 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
+import javax.annotation.Nullable;
+import javax.jcr.Binary;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -74,6 +79,16 @@ public class DefaultSyncHandler implements SyncHandler {
     private static final Logger log = LoggerFactory.getLogger(DefaultSyncHandler.class);
 
     /**
+     * Name of the {@link ExternalIdentity#getExternalId()} property of a synchronized identity.
+     */
+    public static final String REP_EXTERNAL_ID = "rep:externalId";
+
+    /**
+     * Name of the property that stores the time when an identity was synced.
+     */
+    public static final String REP_LAST_SYNCED = "rep:lastSynced";
+
+    /**
      * internal configuration
      */
     private DefaultSyncConfig config;
@@ -107,7 +122,8 @@ public class DefaultSyncHandler implements SyncHandler {
 
     @Nonnull
     @Override
-    public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull Root root) throws SyncException {
+    public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull Root root)
+            throws SyncException {
         return new ContextImpl(idp, userManager, root);
     }
 
@@ -121,33 +137,48 @@ public class DefaultSyncHandler implements SyncHandler {
 
         private final ValueFactory valueFactory;
 
+        // we use the same wall clock for the entire context
+        private final long now;
+        private final Value nowValue;
+
         private ContextImpl(ExternalIdentityProvider idp, UserManager userManager, Root root) {
             this.idp = idp;
             this.userManager = userManager;
             this.root = root;
             valueFactory = new ValueFactoryImpl(root, NamePathMapper.DEFAULT);
+
+            // initialize 'now'
+            final Calendar nowCal = Calendar.getInstance();
+            this.nowValue = valueFactory.createValue(nowCal);
+            this.now = nowCal.getTimeInMillis();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void close() {
             // nothing to do
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean sync(@Nonnull ExternalIdentity identity) throws SyncException {
             try {
                 if (identity instanceof ExternalUser) {
-                    User user = getUser(identity);
+                    User user = getAuthorizable(identity, User.class);
                     if (user == null) {
-                        createUser((ExternalUser) identity);
-                    } else {
-                        updateUser((ExternalUser) identity, user);
+                        user = createUser((ExternalUser) identity);
                     }
-                    return true;
+                    return syncUser((ExternalUser) identity, user);
                 } else if (identity instanceof ExternalGroup) {
-                    // TODO
-                    return false;
-
+                    Group group = getAuthorizable(identity, Group.class);
+                    if (group == null) {
+                        group = createGroup((ExternalGroup) identity);
+                    }
+                    return false;//syncGroup((ExternalGroup) identity, group);
                 } else {
                     throw new IllegalArgumentException("identity must be user or group but was: " + identity);
                 }
@@ -158,55 +189,152 @@ public class DefaultSyncHandler implements SyncHandler {
             }
         }
 
+        /**
+         * Retrieves the repository authorizable that corresponds to the given external identity
+         * @param external the external identity
+         * @param type the authorizable type
+         * @return the repository authorizable or {@code null} if not found.
+         * @throws RepositoryException if an error occurs.
+         * @throws SyncException if the repository contains a colliding authorizable with the same name.
+         */
         @CheckForNull
-        private User getUser(@Nonnull ExternalIdentity externalUser) throws RepositoryException {
-            Authorizable authorizable = userManager.getAuthorizable(externalUser.getId());
+        private <T extends Authorizable> T getAuthorizable(@Nonnull ExternalIdentity external, Class<T> type)
+                throws RepositoryException, SyncException {
+            Authorizable authorizable = userManager.getAuthorizable(external.getId());
             if (authorizable == null) {
-                authorizable = userManager.getAuthorizable(externalUser.getPrincipalName());
+                authorizable = userManager.getAuthorizable(external.getPrincipalName());
             }
             if (authorizable == null) {
                 return null;
-            } else if (authorizable instanceof User) {
-                return (User) authorizable;
+            } else if (type.isInstance(authorizable)) {
+                //noinspection unchecked
+                return (T) authorizable;
             } else {
-                // TODO: deal with colliding authorizable that is group.
-                log.warn("unexpected authorizable: {}", authorizable);
-                return null;
+                log.error("Unable to process external {}: {}. Colliding authorizable exists in repository.", type.getSimpleName(), external.getId());
+                throw new SyncException("Unexpected authorizable: " + authorizable);
             }
         }
 
+        /**
+         * Creates a new repository user for the given external one.
+         * Note that this method only creates the authorizable but does not perform any synchronization.
+         *
+         * @param externalUser the external user
+         * @return the repository user
+         * @throws RepositoryException if an error occurs
+         * @throws ExternalIdentityException if an error occurs
+         */
         @CheckForNull
-        private User createUser(ExternalUser externalUser)
-                throws RepositoryException, SyncException, ExternalIdentityException {
+        private User createUser(ExternalUser externalUser) throws RepositoryException, ExternalIdentityException {
             Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
             User user = userManager.createUser(
                     externalUser.getId(),
                     null,
                     principal,
-                    concatPaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
+                    joinPaths(config.user().getPathPrefix(), externalUser.getIntermediatePath())
             );
-            syncAuthorizable(externalUser, user);
+            user.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalUser.getExternalId().getString()));
             return user;
         }
 
+        /**
+         * Creates a new repository group for the given external one.
+         * Note that this method only creates the authorizable but does not perform any synchronization.
+         *
+         * @param externalGroup the external group
+         * @return the repository group
+         * @throws RepositoryException if an error occurs
+         * @throws ExternalIdentityException if an error occurs
+         */
         @CheckForNull
-        private Group createGroup(ExternalGroup externalGroup)
-                throws RepositoryException, SyncException, ExternalIdentityException {
+        private Group createGroup(ExternalGroup externalGroup) throws RepositoryException, ExternalIdentityException {
             Principal principal = new PrincipalImpl(externalGroup.getPrincipalName());
             Group group = userManager.createGroup(
                     externalGroup.getId(),
                     principal,
-                    concatPaths(config.user().getPathPrefix(), externalGroup.getIntermediatePath()));
-            syncAuthorizable(externalGroup, group);
+                    joinPaths(config.group().getPathPrefix(), externalGroup.getIntermediatePath())
+            );
+            group.setProperty(REP_EXTERNAL_ID, valueFactory.createValue(externalGroup.getExternalId().getString()));
             return group;
         }
 
-        private void updateUser(ExternalUser externalUser, User user)
-                throws RepositoryException, SyncException, ExternalIdentityException {
-            syncAuthorizable(externalUser, user);
+
+        private boolean syncUser(ExternalUser external, User user) throws RepositoryException {
+            // first check if user is expired
+            // todo: add "forceSync" property for potential background sync
+            if (!isExpired(user, config.user().getExpirationTime())) {
+                return false;
+            }
+
+            // synchronize the properties
+            syncProperties(external, user, config.user().getPropertyMapping());
+
+            // finally "touch" the sync property
+            user.setProperty(REP_LAST_SYNCED, nowValue);
+            return true;
         }
 
-        private void syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable)
+        /**
+         * Syncs the properties specified in the {@code mapping} from the external identity to the given authorizable.
+         * Note that this method does not check for value equality and just blindly copies or deletes the properties.
+         *
+         * @param ext external identity
+         * @param auth the authorizable
+         * @param mapping the property mapping
+         * @throws RepositoryException if an error occurs
+         */
+        private void syncProperties(ExternalIdentity ext, Authorizable auth, Map<String, String> mapping)
+                throws RepositoryException {
+            Map<String, ?> properties = ext.getProperties();
+            for (Map.Entry<String, String> entry: mapping.entrySet()) {
+                String relPath = entry.getKey();
+                String name = entry.getValue();
+                Object obj = properties.get(name);
+                if (obj == null) {
+                    auth.removeProperty(relPath);
+                } else {
+                    if (obj instanceof Collection) {
+                        auth.setProperty(relPath, createValues((Collection) obj));
+                    } else if (obj instanceof byte[] || obj instanceof char[]) {
+                        auth.setProperty(relPath, createValue(obj));
+                    } else if (obj instanceof Object[]) {
+                        auth.setProperty(relPath, createValues(Arrays.asList((Object[]) obj)));
+                    } else {
+                        auth.setProperty(relPath, createValue(obj));
+                    }
+                }
+            }
+        }
+
+        /**
+         * Checks if the given authorizable needs syncing based on the {@link #REP_LAST_SYNCED} property.
+         * @param auth the authorizable to check
+         * @param expirationTime the expiration time to compare to.
+         * @return {@code true} if the authorizable needs sync
+         */
+        private boolean isExpired(Authorizable auth, long expirationTime) throws RepositoryException {
+            Value[] values = auth.getProperty(REP_LAST_SYNCED);
+            if (values == null || values.length == 0) {
+                if (log.isDebugEnabled()) {
+                    log.debug("{} '{}' needs sync. " + REP_LAST_SYNCED + " not set.", auth.isGroup() ? "Group" : "User", auth.getID());
+                }
+                return true;
+            } else if (now - values[0].getLong() > expirationTime) {
+                if (log.isDebugEnabled()) {
+                    log.debug("{} '{}' needs sync. " + REP_LAST_SYNCED + " expired ({} > {})", new Object[]{
+                            auth.isGroup() ? "Group" : "User", auth.getID(), now - values[0].getLong(), expirationTime
+                    });
+                }
+                return true;
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("{} '{}' does not need sync.", auth.isGroup() ? "Group" : "User", auth.getID());
+                }
+                return false;
+            }
+        }
+
+        private boolean syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable)
                 throws RepositoryException, SyncException, ExternalIdentityException {
             for (ExternalIdentityRef externalGroupRef : externalUser.getDeclaredGroups()) {
                 ExternalIdentity id = idp.getIdentity(externalGroupRef);
@@ -244,20 +372,51 @@ public class DefaultSyncHandler implements SyncHandler {
                     }
                 }
             }
+            return true;
         }
 
+        /**
+         * Creates a new JCR value of the given object, checking the internal type.
+         * @param v the value
+         * @return the JCR value or null
+         * @throws RepositoryException if an error occurs
+         */
         @CheckForNull
-        private Value createValue(Object propValue) throws ValueFormatException {
-            int type = getType(propValue);
-            if (type == PropertyType.UNDEFINED) {
+        private Value createValue(@Nullable Object v) throws RepositoryException {
+            if (v == null) {
                 return null;
+            } else if (v instanceof Boolean) {
+                return valueFactory.createValue((Boolean) v);
+            } else if (v instanceof Byte || v instanceof Short || v instanceof Integer || v instanceof Long) {
+                return valueFactory.createValue(((Number) v).longValue());
+            } else if (v instanceof Float || v instanceof Double) {
+                return valueFactory.createValue(((Number) v).doubleValue());
+            } else if (v instanceof BigDecimal) {
+                return valueFactory.createValue((BigDecimal) v);
+            } else if (v instanceof Calendar) {
+                return valueFactory.createValue((Calendar) v);
+            } else if (v instanceof Date) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime((Date) v);
+                return valueFactory.createValue(cal);
+            } else if (v instanceof byte[]) {
+                Binary bin = valueFactory.createBinary(new ByteArrayInputStream((byte[])v));
+                return valueFactory.createValue(bin);
+            } else if (v instanceof char[]) {
+                return valueFactory.createValue(new String((char[]) v));
             } else {
-                return valueFactory.createValue(propValue.toString(), type);
+                return valueFactory.createValue(String.valueOf(v));
             }
         }
 
+        /**
+         * Creates an array of JCR values based on the type.
+         * @param propValues the given values
+         * @return and array of JCR values
+         * @throws RepositoryException if an error occurs
+         */
         @CheckForNull
-        private Value[] createValues(Collection<?> propValues) throws ValueFormatException {
+        private Value[] createValues(Collection<?> propValues) throws RepositoryException {
             List<Value> values = new ArrayList<Value>();
             for (Object obj : propValues) {
                 Value v = createValue(obj);
@@ -268,15 +427,6 @@ public class DefaultSyncHandler implements SyncHandler {
             return values.toArray(new Value[values.size()]);
         }
 
-        private int getType(Object propValue) {
-            // TODO: add proper type detection
-            if (propValue == null) {
-                return PropertyType.UNDEFINED;
-            } else {
-                return PropertyType.STRING;
-            }
-        }
-
     }
 
     /**
@@ -284,7 +434,7 @@ public class DefaultSyncHandler implements SyncHandler {
      * @param paths relative paths
      * @return the concatenated path
      */
-    private static String concatPaths(String ... paths) {
+    private static String joinPaths(String... paths) {
         StringBuilder result = new StringBuilder();
         for (String path: paths) {
             if (path != null && !path.isEmpty()) {

@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import javax.security.auth.login.AppConfigurationEntry;
@@ -73,7 +74,14 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
 
         // set default sync config
-        setSyncConfig(new DefaultSyncConfig());
+        DefaultSyncConfig cfg = new DefaultSyncConfig();
+        Map<String, String> mapping = new HashMap<String, String>();
+        mapping.put("name", "name");
+        mapping.put("email", "email");
+        mapping.put("profile/name", "profile/name");
+        mapping.put("profile/age", "profile/age");
+        cfg.user().setPropertyMapping(mapping);
+        setSyncConfig(cfg);
     }
 
     @After

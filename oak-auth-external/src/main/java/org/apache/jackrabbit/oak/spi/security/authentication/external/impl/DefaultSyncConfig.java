@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -255,7 +256,7 @@ public class DefaultSyncConfig {
          */
         @Nonnull
         public Set<String> getAutoMembership() {
-            return autoMembership;
+            return autoMembership == null ? Collections.<String>emptySet() : autoMembership;
         }
 
         /**
@@ -291,7 +292,7 @@ public class DefaultSyncConfig {
          */
         @Nonnull
         public Map<String, String> getPropertyMapping() {
-            return propertyMapping;
+            return propertyMapping == null ? Collections.<String, String>emptyMap() : propertyMapping;
         }
 
         /**
@@ -313,7 +314,7 @@ public class DefaultSyncConfig {
          */
         @Nonnull
         public String getPathPrefix() {
-            return pathPrefix;
+            return pathPrefix == null ? "" : pathPrefix;
         }
 
         /**
@@ -324,7 +325,7 @@ public class DefaultSyncConfig {
          */
         @Nonnull
         public Authorizable setPathPrefix(String pathPrefix) {
-            this.pathPrefix = pathPrefix == null ? "" : pathPrefix;
+            this.pathPrefix = pathPrefix;
             return this;
         }
     }
