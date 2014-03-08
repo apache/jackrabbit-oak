@@ -28,7 +28,7 @@ public interface SyncContext {
      * Synchronizes an external identity with the repository based on the respective configuration.
      *
      * @param identity the identity to sync.
-     * @return {@code true} if the given identity was synced; {@code false} if for no change.
+     * @return {@code true} if the given identity was synced; {@code false} for no change.
      * @throws SyncException if an error occurrs
      */
     boolean sync(@Nonnull ExternalIdentity identity) throws SyncException;

@@ -16,13 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
@@ -42,7 +39,7 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     private Map<String, ExternalIdentityRef> groups;
 
-    private final Map<String, Object> properties = new HashMap<String, Object>();
+    private final LdapIdentityProperties properties = new LdapIdentityProperties();
 
     protected LdapIdentity(LdapIdentityProvider provider, ExternalIdentityRef ref, String id, String path) {
         this.provider = provider;
@@ -110,10 +107,6 @@ public abstract class LdapIdentity implements ExternalIdentity {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("LdapIdentity{");
-        sb.append("ref=").append(ref);
-        sb.append(", id='").append(id).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "LdapIdentity{" + "ref=" + ref + ", id='" + id + '\'' + '}';
     }
 }

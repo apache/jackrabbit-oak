@@ -41,7 +41,7 @@ public class TestIdentityProvider implements ExternalIdentityProvider {
                 .withProperty("name", "Test User")
                 .withProperty("profile/name", "Public Name")
                 .withProperty("profile/age", 72)
-                .withProperty("./email", "test@testuser.com")
+                .withProperty("email", "test@testuser.com")
                 .withGroups("a", "b", "c")
         );
     }

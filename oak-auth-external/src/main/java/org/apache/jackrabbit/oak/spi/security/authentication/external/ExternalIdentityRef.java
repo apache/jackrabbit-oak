@@ -42,9 +42,10 @@ public class ExternalIdentityRef {
         this.providerName = providerName;
 
         StringBuilder b = new StringBuilder();
-        b.append(Text.escape(id));
+        escape(b, id);
         if (providerName != null && providerName.length() > 0) {
-            b.append('@').append(Text.escape(providerName));
+            b.append(';');
+            escape(b, providerName);
         }
         string =  b.toString();
     }
@@ -82,7 +83,7 @@ public class ExternalIdentityRef {
      * @return the reference
      */
     public static ExternalIdentityRef fromString(@Nonnull String str) {
-        int idx = str.indexOf('@');
+        int idx = str.indexOf(';');
         if (idx < 0) {
             return new ExternalIdentityRef(Text.unescape(str), null);
         } else {
@@ -93,13 +94,28 @@ public class ExternalIdentityRef {
         }
     }
 
+    /**
+     * Escapes the given string and appends it to the builder.
+     * @param builder the builder
+     * @param str the string
+     */
+    private void escape(StringBuilder builder, CharSequence str) {
+        final int len = str.length();
+        for (int i=0; i<len; i++) {
+            char c = str.charAt(i);
+            if (c == '%') {
+                builder.append("%25");
+            } else if (c == ';') {
+                builder.append("%3b");
+            } else {
+                builder.append(c);
+            }
+        }
+    }
+
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("ExternalIdentityRef{");
-        sb.append("id='").append(id).append('\'');
-        sb.append(", providerName='").append(providerName).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "ExternalIdentityRef{" + "id='" + id + '\'' + ", providerName='" + providerName + '\'' + '}';
     }
 
     /**

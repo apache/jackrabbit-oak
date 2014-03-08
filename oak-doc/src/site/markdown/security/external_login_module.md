@@ -36,6 +36,18 @@ what it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
+### Structure
+The external identity and login handling is split into 3 parts:
+
+1. An external identity provider (IDP). This is a service implementing the `ExternalIdentityProvider` interface and is responsible to retrieve and authenticate identities towards an external system (e.g. LDAP).
+2. An synchronization handler. This is a service implementing the `SyncHandler` interface and is responsible to actually managing the external identities within the Oak user management. A very trivial implementation might just create users and groups for external ones on demand.
+3. The external login module (ExtLM). This is the connection between JAAS login mechanism, the external identity provider and the synchronization handler.
+
+This modularization allows to reuse the same external login module for different combinations of IDPs and synchronization handlers. Although in practice, systems usually have 1 of each. 
+
+An example where multiple such entities come into play would be the case to use several LDAP servers for authentication. Here we would configure 2 LDAP IDPs, 1 Sync handler and 2 ExtLMs.
+
+
 ### Types of login modules
 In order to understand how login modules work and how Oak can help providing extension points we need to look at how
 JAAS authentication works in general and discuss where the actual credential-verification is performed.
