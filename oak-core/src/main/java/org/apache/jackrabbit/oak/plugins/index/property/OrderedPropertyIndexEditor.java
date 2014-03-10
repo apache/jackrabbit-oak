@@ -22,14 +22,13 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -37,40 +36,68 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Strings;
 
+/**
+ * Index editor for keeping an ordered property index up to date.
+ */
 public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
-    private static final Logger log = LoggerFactory.getLogger(OrderedPropertyIndexEditor.class);
-    private static final IndexStoreStrategy ORDERED_MIRROR = new OrderedContentMirrorStoreStrategy();
+    /**
+     * the default Ascending ordered StoreStrategy
+     */
+    static final IndexStoreStrategy ORDERED_MIRROR = new OrderedContentMirrorStoreStrategy();
+    
+    /**
+     * the Descending ordered StoreStrategy
+     */
+    static final IndexStoreStrategy ORDERED_MIRROR_DESCENDING = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
 
+    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexEditor.class);
+    
     private final Set<String> propertyNames;
 
     private boolean properlyConfigured;
+
+    private OrderDirection direction = OrderedIndex.DEFAULT_DIRECTION;
 
     public OrderedPropertyIndexEditor(NodeBuilder definition, NodeState root,
                                       IndexUpdateCallback callback) {
         super(definition, root, callback);
 
+        // configuring propertyNames
         Set<String> pns = null;
-
         PropertyState names = definition.getProperty(IndexConstants.PROPERTY_NAMES);
         if (names != null) {
             String value = names.getValue(Type.NAME, 0);
             if (Strings.isNullOrEmpty(value)) {
-                log.warn("Empty value passed as propertyNames. Index not properly configured. Ignoring.");
+                LOG.warn("Empty value passed as propertyNames. Index not properly configured. Ignoring.");
             } else {
                 if (names.isArray()) {
-                    log.warn("Only single value supported. '{}' only will be used.", value);
+                    LOG.warn("Only single value supported. '{}' only will be used.", value);
                 }
                 pns = Collections.singleton(value);
                 this.properlyConfigured = true;
             }
         }
-
         this.propertyNames = pns;
+
+        // configuring direction
+        String propertyDirection = definition.getString(OrderedIndex.DIRECTION);
+        if (propertyDirection == null) {
+            LOG.info("Using default direction for sorting: {}", this.direction);
+        } else {
+            OrderDirection dir = OrderDirection.fromString(propertyDirection);
+            if (dir == null) {
+                LOG.warn("An unknown direction has been specified for sorting: '{}'. Using default one. {}",
+                         propertyDirection, this.direction);
+            } else {
+                this.direction = dir;
+            }
+        }
     }
 
     OrderedPropertyIndexEditor(OrderedPropertyIndexEditor parent, String name) {
         super(parent, name);
         this.propertyNames = parent.getPropertyNames();
+        this.direction = parent.getDirection();
     }
 
     /**
@@ -80,7 +107,11 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
      */
     @Override
     IndexStoreStrategy getStrategy(boolean unique) {
-        return ORDERED_MIRROR;
+        IndexStoreStrategy store = ORDERED_MIRROR;
+        if (!OrderedIndex.DEFAULT_DIRECTION.equals(getDirection())) {
+            store = ORDERED_MIRROR_DESCENDING;
+        }
+        return store;
     }
 
     public boolean isProperlyConfigured() {
@@ -98,53 +129,11 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
         return new OrderedPropertyIndexEditor(this, name);
     }
 
-    @Override
-    public void enter(NodeState before, NodeState after) {
-        log.debug("enter() - before: {} - after: {}", before, after);
-        super.enter(before, after);
-    }
-
-    @Override
-    public void leave(NodeState before, NodeState after) throws CommitFailedException {
-        log.debug("leave() - before: {} - after: {}", before, after);
-        super.leave(before, after);
-    }
-
-    @Override
-    public void propertyAdded(PropertyState after) {
-        log.debug("propertyAdded() - after: {}", after);
-        super.propertyAdded(after);
-    }
-
-    @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        log.debug("propertyChanged() - before: {} - after: {}", before, after);
-        super.propertyChanged(before, after);
-    }
-
-    @Override
-    public void propertyDeleted(PropertyState before) {
-        log.debug("propertyDeleted() -  before: {}", before);
-        super.propertyDeleted(before);
-    }
-
-    @Override
-    public Editor childNodeAdded(String name, NodeState after) {
-        log.debug("childNodeAdded() - name: {} - after: {}", name, after);
-        return super.childNodeAdded(name, after);
-    }
-
-    @Override
-    public Editor childNodeChanged(String name, NodeState before, NodeState after) {
-        log.debug("childNodeChanged() - name: {} - before: {} - after: {}", new Object[] { name,
-                                                                                          before,
-                                                                                          after });
-        return super.childNodeChanged(name, before, after);
-    }
-
-    @Override
-    public Editor childNodeDeleted(String name, NodeState before) {
-        log.debug("childNodeDeleted() - name: {} - before: {}", name, before);
-        return super.childNodeDeleted(name, before);
+    /**
+     * 
+     * @return the direction of the index configuration
+     */
+    public OrderDirection getDirection() {
+        return direction;
     }
 }

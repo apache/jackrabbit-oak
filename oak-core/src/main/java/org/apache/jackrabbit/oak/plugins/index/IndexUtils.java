@@ -30,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
 
 import java.util.Collection;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -128,16 +129,8 @@ public class IndexUtils {
                                              @Nonnull String[] propertyNames, 
                                              @Nullable String[] declaringNodeTypeNames, 
                                              @Nonnull String propertyIndexType) throws RepositoryException {
-        NodeUtil entry = indexNode.getOrAddChild(indexDefName, INDEX_DEFINITIONS_NODE_TYPE);
-        entry.setString(TYPE_PROPERTY_NAME, propertyIndexType);
-        entry.setBoolean(REINDEX_PROPERTY_NAME, true);
-        if (unique) {
-            entry.setBoolean(UNIQUE_PROPERTY_NAME, true);
-        }
-        if (declaringNodeTypeNames != null && declaringNodeTypeNames.length > 0) {
-            entry.setNames(DECLARING_NODE_TYPES, declaringNodeTypeNames);
-        }
-        entry.setNames(PROPERTY_NAMES, propertyNames);
+        createIndexDefinition(indexNode, indexDefName, unique, propertyNames,
+            declaringNodeTypeNames, propertyIndexType, null);
     }
 
     public static void createReferenceIndex(@Nonnull NodeBuilder index) {
@@ -161,4 +154,41 @@ public class IndexUtils {
                 && type.getValue(Type.STRING).equals(typeIn);
     }
 
+    /**
+     * Create a new property index definition below the given {@code indexNode} of the provided
+     * {@code propertyIndexType}.
+     * 
+     * @param indexNode
+     * @param indexDefName
+     * @param unique
+     * @param propertyNames
+     * @param declaringNodeTypeNames
+     * @param propertyIndexType
+     * @param properties any additional property to be added to the index definition.
+     * @throws RepositoryException
+     */
+    public static void createIndexDefinition(@Nonnull NodeUtil indexNode, 
+                                             @Nonnull String indexDefName, 
+                                             boolean unique, 
+                                             @Nonnull String[] propertyNames, 
+                                             @Nullable String[] declaringNodeTypeNames, 
+                                             @Nonnull String propertyIndexType,
+                                             Map<String, String> properties) throws RepositoryException {
+        NodeUtil entry = indexNode.getOrAddChild(indexDefName, INDEX_DEFINITIONS_NODE_TYPE);
+        entry.setString(TYPE_PROPERTY_NAME, propertyIndexType);
+        entry.setBoolean(REINDEX_PROPERTY_NAME, true);
+        if (unique) {
+            entry.setBoolean(UNIQUE_PROPERTY_NAME, true);
+        }
+        if (declaringNodeTypeNames != null && declaringNodeTypeNames.length > 0) {
+            entry.setNames(DECLARING_NODE_TYPES, declaringNodeTypeNames);
+        }
+        entry.setNames(PROPERTY_NAMES, propertyNames);
+
+        if (properties != null) {
+            for (String k : properties.keySet()) {
+                entry.setString(k, properties.get(k));
+            }
+        }
+    }
 }
