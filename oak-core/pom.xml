@@ -96,9 +96,6 @@
               org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl,
               org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule
             </Jaas-ModuleClass>
-            <Bundle-Activator>
-              org.apache.jackrabbit.oak.osgi.Activator
-            </Bundle-Activator>
             <DynamicImport-Package>
               org.apache.felix.jaas.boot
             </DynamicImport-Package>
