@@ -41,9 +41,6 @@
             <Export-Package>
               !
             </Export-Package>
-            <Bundle-Activator>
-              org.apache.jackrabbit.oak.http.osgi.Activator
-            </Bundle-Activator>
           </instructions>
         </configuration>
       </plugin>
