@@ -42,6 +42,10 @@ public class TraversingIndex implements QueryIndex {
             // not an appropriate index for full-text search
             return Double.POSITIVE_INFINITY;
         }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return Double.POSITIVE_INFINITY;
+        }
         if (filter.isAlwaysFalse()) {
             return 0;
         }

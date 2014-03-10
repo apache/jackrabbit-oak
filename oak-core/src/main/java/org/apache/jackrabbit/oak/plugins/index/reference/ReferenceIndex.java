@@ -65,6 +65,10 @@ class ReferenceIndex implements QueryIndex {
             // not an appropriate index for full-text search
             return POSITIVE_INFINITY;
         }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return Double.POSITIVE_INFINITY;
+        }
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (pr.propertyType == REFERENCE
                     || pr.propertyType == WEAKREFERENCE) {

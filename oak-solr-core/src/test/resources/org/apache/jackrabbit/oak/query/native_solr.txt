@@ -26,6 +26,9 @@
 
 commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
 
+xpath /jcr:root/test/a[rep:native('solr', 'name:(Hello OR World)')]
+/test/a, null, null
+
 xpath //*[rep:native('solr', 'name:(Hello OR World)')]
 /test/a, null, null
 /test/b, null, null

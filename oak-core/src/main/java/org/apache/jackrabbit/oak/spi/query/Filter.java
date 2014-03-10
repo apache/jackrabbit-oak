@@ -63,6 +63,13 @@ public interface Filter {
      * @return the condition (null if none)
      */
     FullTextExpression getFullTextConstraint();
+    
+    /**
+     * Whether the filter contains a native condition.
+     * 
+     * @return true if it does
+     */
+    boolean containsNativeConstraint();
 
     /**
      * Get the property restriction for the given property, if any.

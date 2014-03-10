@@ -33,6 +33,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -545,7 +546,7 @@ public class FilterImpl implements Filter {
         // TODO support fulltext conditions on certain properties
         return fulltextConditions;
     }
-
+    
     public void restrictFulltextCondition(String condition) {
         fulltextConditions.add(condition);
     }
@@ -557,6 +558,16 @@ public class FilterImpl implements Filter {
     @Override
     public FullTextExpression getFullTextConstraint() {
         return fullTextConstraint;
+    }
+    
+    @Override
+    public boolean containsNativeConstraint() {
+        for (String p : propertyRestrictions.keySet()) {
+            if (p.startsWith(NativeFunctionImpl.NATIVE_PREFIX)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
