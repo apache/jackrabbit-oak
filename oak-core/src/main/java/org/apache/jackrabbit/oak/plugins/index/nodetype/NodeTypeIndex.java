@@ -42,6 +42,10 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             // not an appropriate index for full-text search
             return Double.POSITIVE_INFINITY;
         }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return Double.POSITIVE_INFINITY;
+        }
         if (!hasNodeTypeRestriction(filter)) {
             // this is not an appropriate index if the filter
             // doesn't have a node type restriction

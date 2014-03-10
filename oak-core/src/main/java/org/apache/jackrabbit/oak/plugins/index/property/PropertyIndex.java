@@ -136,6 +136,10 @@ class PropertyIndex implements QueryIndex {
             // not an appropriate index for full-text search
             return Double.POSITIVE_INFINITY;
         }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return Double.POSITIVE_INFINITY;
+        }
 
         PropertyIndexLookup lookup = getLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
