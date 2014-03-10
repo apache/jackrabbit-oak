@@ -23,6 +23,7 @@ import javax.jcr.Repository;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
@@ -41,13 +42,30 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 public abstract class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getMemory(final long cacheSize) {
-        return new OakRepositoryFixture("Oak-Memory") {
+        return getMemory("Oak-Memory", false, cacheSize);
+    }
+
+    public static RepositoryFixture getMemoryNS(final long cacheSize) {
+        return getMemory("Oak-MemoryNS", false, cacheSize);
+    }
+
+    public static RepositoryFixture getMemoryMK(final long cacheSize) {
+        return getMemory("Oak-MemoryMK", true, cacheSize);
+    }
+
+    private static RepositoryFixture getMemory(String name, final boolean useMK, final long cacheSize) {
+        return new OakRepositoryFixture(name) {
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
-                MicroKernel kernel = new MicroKernelImpl();
                 for (int i = 0; i < cluster.length; i++) {
-                    Oak oak = new Oak(new KernelNodeStore(kernel, cacheSize));
+                    Oak oak;
+                    if (useMK) {
+                        MicroKernel kernel = new MicroKernelImpl();
+                        oak = new Oak(new KernelNodeStore(kernel, cacheSize));
+                    } else {
+                        oak = new Oak(new MemoryNodeStore());
+                    }
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
@@ -55,9 +73,9 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
         };
     }
 
-    public static RepositoryFixture getDefault(
+    public static RepositoryFixture getH2MK(
             final File base, final long cacheSize) {
-        return new OakRepositoryFixture("Oak-Default") {
+        return new OakRepositoryFixture("Oak-H2") {
             private MicroKernelImpl[] kernels;
             @Override
             protected Repository[] internalSetUpCluster(int n) throws Exception {

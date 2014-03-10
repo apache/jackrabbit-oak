@@ -76,11 +76,11 @@ public class BenchmarkRunner {
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
-                new JackrabbitRepositoryFixture(
-                        base.value(options), cacheSize),
+                new JackrabbitRepositoryFixture(base.value(options), cacheSize),
                 OakRepositoryFixture.getMemory(cacheSize * MB),
-                OakRepositoryFixture.getDefault(
-                        base.value(options), cacheSize * MB),
+                OakRepositoryFixture.getMemoryNS(cacheSize * MB),
+                OakRepositoryFixture.getMemoryMK(cacheSize * MB),
+                OakRepositoryFixture.getH2MK(base.value(options), cacheSize * MB),
                 OakRepositoryFixture.getMongo(
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
