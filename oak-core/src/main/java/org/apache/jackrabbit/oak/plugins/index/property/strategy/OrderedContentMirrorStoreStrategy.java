@@ -26,6 +26,8 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -51,7 +53,6 @@ import com.google.common.base.Strings;
  * </code>
  */
 public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrategy {
-    private static final Logger log = LoggerFactory.getLogger(OrderedContentMirrorStoreStrategy.class);
 
     /**
      * the property linking to the next node
@@ -70,9 +71,25 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                                                                               .setProperty(NEXT, "")
                                                                               .getNodeState();
 
+    private static final Logger LOG = LoggerFactory.getLogger(OrderedContentMirrorStoreStrategy.class);
+
+    /**
+     * the direction of the index.
+     */
+    private OrderDirection direction = OrderedIndex.DEFAULT_DIRECTION;
+
+    public OrderedContentMirrorStoreStrategy() {
+        super();
+    }
+    
+    public OrderedContentMirrorStoreStrategy(OrderDirection direction) {
+        this();
+        this.direction = direction;
+    }
+    
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
-        log.debug("fetchKeyNode() - index: {} - key: {}", index, key);
+        LOG.debug("fetchKeyNode() - index: {} - key: {}", index, key);
         NodeBuilder localkey = null;
         NodeBuilder start = index.child(START);
 
@@ -86,26 +103,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         } else {
             // specific use-case where the item has to be added as first of the list
             String nextKey = n;
-            if (key.compareTo(nextKey) < 0) {
-                localkey = index.child(key);
-                localkey.setProperty(NEXT, nextKey);
-                start.setProperty(NEXT, key);
-            } else {
-                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState());
-                for (ChildNodeEntry child : children) {
-                    nextKey = child.getNodeState().getString(NEXT);
-                    if (Strings.isNullOrEmpty(nextKey)) {
-                        // we're at the last element, therefore our 'key' has to be appended
+            Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState(),
+                                                                              true);
+            for (ChildNodeEntry child : children) {
+                nextKey = child.getNodeState().getString(NEXT);
+                if (Strings.isNullOrEmpty(nextKey)) {
+                    // we're at the last element, therefore our 'key' has to be appended
+                    index.getChildNode(child.getName()).setProperty(NEXT, key);
+                    localkey = index.child(key);
+                    localkey.setProperty(NEXT, "");
+                } else {
+                    if (isInsertHere(key, nextKey)) {
                         index.getChildNode(child.getName()).setProperty(NEXT, key);
                         localkey = index.child(key);
-                        localkey.setProperty(NEXT, "");
-                    } else {
-                        if (key.compareTo(nextKey) < 0) {
-                            index.getChildNode(child.getName()).setProperty(NEXT, key);
-                            localkey = index.child(key);
-                            localkey.setProperty(NEXT, nextKey);
-                            break;
-                        }
+                        localkey.setProperty(NEXT, nextKey);
+                        break;
                     }
                 }
             }
@@ -114,6 +126,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         return localkey;
     }
 
+    /**
+     * tells whether or not the is right to insert here a new item.
+     * 
+     * @param newItemKey the new item key to be added
+     * @param existingItemKey the 'here' of the existing index
+     * @return true for green light on insert false otherwise.
+     */
+    private boolean isInsertHere(@Nonnull String newItemKey, @Nonnull String existingItemKey) {
+        if (OrderDirection.ASC.equals(direction)) {
+            return newItemKey.compareTo(existingItemKey) < 0;
+        } else {
+            return newItemKey.compareTo(existingItemKey) > 0;
+        }
+    }
+                                        
     @Override
     void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
         for (NodeBuilder node : builders) {
@@ -122,11 +149,12 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             } else if (node.exists()) {
                 if (node.hasProperty(NEXT)) {
                     // it's an index key and we have to relink the list
-                    ChildNodeEntry previous = findPrevious(index.getNodeState(),
-                                                           node.getNodeState()); // (1) find the
-                                                                                 // previous element
-                    log.debug("previous: {}", previous);
-                    String next = node.getString(NEXT); // (2) find the next element
+                    // (1) find the previous element
+                    ChildNodeEntry previous = findPrevious(
+                            index.getNodeState(), node.getNodeState());
+                    LOG.debug("previous: {}", previous);
+                    // (2) find the next element
+                    String next = node.getString(NEXT); 
                     if (next == null) {
                         next = "";
                     }
@@ -138,6 +166,20 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         }
     }
 
+    /**
+     * find the previous item (ChildNodeEntry) in the index given the provided NodeState for
+     * comparison
+     * 
+     * in an index sorted in ascending manner where we have @{code [1, 2, 3, 4, 5]} if we ask for 
+     * a previous given 4 it will be 3. previous(4)=3.
+     * 
+     * in an index sorted in descending manner where we have @{code [5, 4, 3, 2, 1]} if we as for
+     * a previous given 4 it will be 5. previous(4)=5.
+     * 
+     * @param index the index we want to look into ({@code :index})
+     * @param node the node we want to compare
+     * @return the previous item or null if not found.
+     */
     @Nullable
     ChildNodeEntry findPrevious(@Nonnull final NodeState index, @Nonnull final NodeState node) {
         ChildNodeEntry previous = null;
@@ -158,16 +200,16 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             }
         }
 
-        return (found) ? previous : null;
+        return found ? previous : null;
     }
 
     @Override
     public void update(NodeBuilder index, String path, Set<String> beforeKeys,
                        Set<String> afterKeys) {
-        log.debug("update() - index     : {}", index);
-        log.debug("update() - path      : {}", path);
-        log.debug("update() - beforeKeys: {}", beforeKeys);
-        log.debug("update() - afterKeys : {}", afterKeys);
+        LOG.debug("update() - index     : {}", index);
+        LOG.debug("update() - path      : {}", path);
+        LOG.debug("update() - beforeKeys: {}", beforeKeys);
+        LOG.debug("update() - afterKeys : {}", afterKeys);
         super.update(index, path, beforeKeys, afterKeys);
     }
 
@@ -203,8 +245,8 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         } else {
             cne = new Iterable<ChildNodeEntry>() {
                 private NodeState localIndex = index;
-                private NodeState localStart = ((includeStart && !start.exists()) ? EMPTY_START_NODE
-                                                                             : start);
+                private NodeState localStart = includeStart && !start.exists() ? EMPTY_START_NODE
+                                                                             : start;
                 private NodeState current = localStart;
                 private boolean localIncludeStart = includeStart;
 
@@ -214,7 +256,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
 
                         @Override
                         public boolean hasNext() {
-                            return ((localIncludeStart && localStart.equals(current)) || (!localIncludeStart && !Strings.isNullOrEmpty(current.getString(NEXT))));
+                            return (localIncludeStart && localStart.equals(current)) || (!localIncludeStart && !Strings.isNullOrEmpty(current.getString(NEXT)));
                         }
 
                         @Override
