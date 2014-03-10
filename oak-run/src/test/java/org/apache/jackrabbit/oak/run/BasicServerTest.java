@@ -44,7 +44,7 @@ public class BasicServerTest {
 
     @Before
     public void startServer() throws Exception {
-        server = new Main.HttpServer(SERVER_URL, new String[0]);
+        server = new Main.HttpServer(SERVER_URL);
     }
 
     @After
