@@ -35,9 +35,9 @@ class DocumentNodeBuilder extends MemoryNodeBuilder {
     
     private final DocumentRootBuilder root;
 
-    private NodeState base = null;
+    private NodeState base;
 
-    private NodeState rootBase = null;
+    private NodeState rootBase;
 
     DocumentNodeBuilder(MemoryNodeBuilder base,
                         String name,

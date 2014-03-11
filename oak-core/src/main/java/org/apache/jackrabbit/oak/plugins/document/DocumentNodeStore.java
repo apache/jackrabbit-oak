@@ -388,8 +388,7 @@ public final class DocumentNodeStore
             if (blobStore instanceof Closeable) {
                 try {
                     ((Closeable) blobStore).close();
-                }
-                catch (IOException ex) {
+                } catch (IOException ex) {
                     LOG.debug("Error closing blob store " + blobStore, ex);
                 }
             }
@@ -773,9 +772,9 @@ public final class DocumentNodeStore
      * @return the child nodes.
      */
     @Nonnull
-    Iterable<DocumentNodeState> getChildNodes(final @Nonnull DocumentNodeState parent,
-                                              final @Nullable String name,
-                                              final int limit) {
+    Iterable<DocumentNodeState> getChildNodes(@Nonnull final DocumentNodeState parent,
+                    @Nullable final String name,
+                    final int limit) {
         // Preemptive check. If we know there are no children then
         // return straight away
         if (checkNotNull(parent).hasNoChildren()) {
@@ -1109,8 +1108,8 @@ public final class DocumentNodeStore
      * @param base the base node to compare against.
      * @return the json diff.
      */
-    String diffChildren(final @Nonnull DocumentNodeState node,
-                        final @Nonnull DocumentNodeState base) {
+    String diffChildren(@Nonnull final DocumentNodeState node,
+                    @Nonnull final DocumentNodeState base) {
         PathRev key = diffCacheKey(node.getPath(),
                 base.getLastRevision(), node.getLastRevision());
         try {

@@ -128,7 +128,7 @@ public class Document implements CacheValue {
      * Determines if this document is sealed or not
      * @return true if document is sealed.
      */
-    public boolean isSealed(){
+    public boolean isSealed() {
         return sealed.get();
     }
 
