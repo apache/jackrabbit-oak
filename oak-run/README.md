@@ -47,12 +47,44 @@ The Oak server mode starts a full Oak instance with the standard JCR plugins
 and makes it available over a simple HTTP mapping defined in the `oak-http`
 component. To start this mode, use:
 
-    $ java -jar oak-run-*.jar [/path/to/mk...]
+    $ java -jar oak-run-*.jar server [uri] [fixture] [options]
 
 If no arguments are specified, the command starts an in-memory repository
-and makes it available at http://localhost:8080/. Possible path arguments
-specify the locations of on-disk MicroKernel backends that are each opened
-and mapped to URLs under http://localhost:8080/.
+and makes it available at http://localhost:8080/. Specify an `uri` and a
+`fixture` argument to change the host name and port and specify a different
+repository backend.
+
+The optional fixture argument allows to specify the repository implementation
+to be used. The following fixtures are currently supported:
+
+| Fixture     | Description                                           |
+|-------------|-------------------------------------------------------|
+| Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
+| Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-H2      | Oak with the MK using embedded H2 database            |
+
+
+Depending on the fixture the following options are available:
+
+    --cache 100            - cache size (in MB)
+    --host localhost       - MongoDB host
+    --port 27101           - MongoDB port
+    --db <name>            - MongoDB database (default is a generated name)
+    --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
+    --base <file>          - Tar and H2: Path to the base file
+    --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
+
+Examples:
+
+    $ java -jar oak-run-*.jar server
+    $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
+    $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
 See the documentation in the `oak-http` component for details about the
 available functionality.
@@ -72,6 +104,7 @@ The following benchmark options (with default values) are currently supported:
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
     --dropDBAfterTest true - Whether to drop the MongoDB database after the test
+    --base target          - Path to the base file (Tar and H2 setup),
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
     --cache 100            - cache size (in MB)
     --wikipedia <file>     - Wikipedia dump
@@ -122,8 +155,12 @@ Finally the benchmark runner supports the following repository fixtures:
 | Fixture     | Description                                           |
 |-------------|-------------------------------------------------------|
 | Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory  | Oak with in-memory storage                            |
-| Oak-Mongo   | Oak with the Mongo backend                            |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
 | Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-H2      | Oak with the MK using embedded H2 database            |
 
