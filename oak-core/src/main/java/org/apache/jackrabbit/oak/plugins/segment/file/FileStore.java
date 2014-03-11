@@ -234,8 +234,10 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        for (Segment segment : segments.asMap().values().toArray(new Segment[0])) {
-            segment.dropOldCacheEntries();
+        if (segments != null) {
+            for (Segment segment : segments.asMap().values().toArray(new Segment[0])) {
+                segment.dropOldCacheEntries();
+            }
         }
     }
 
