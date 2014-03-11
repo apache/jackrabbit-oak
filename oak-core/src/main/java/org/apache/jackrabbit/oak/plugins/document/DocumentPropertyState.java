@@ -52,7 +52,7 @@ final class DocumentPropertyState implements PropertyState {
 
     private final String value;
 
-    private PropertyState parsed = null;
+    private PropertyState parsed;
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this.store = store;

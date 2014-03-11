@@ -230,7 +230,6 @@ public class Revision {
         return sb;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public String toReadableString() {
         StringBuilder buff = new StringBuilder();
         buff.append("revision: \"").append(toString()).append("\"");

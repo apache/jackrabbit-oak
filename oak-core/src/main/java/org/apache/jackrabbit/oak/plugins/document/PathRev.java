@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A cache key implementation, which is a combination of a path string and a
  * revision.
  */
-final public class PathRev implements CacheValue {
+public final class PathRev implements CacheValue {
 
     private final String path;
 

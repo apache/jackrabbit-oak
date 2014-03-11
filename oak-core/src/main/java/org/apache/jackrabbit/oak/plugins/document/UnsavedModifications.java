@@ -167,7 +167,7 @@ class UnsavedModifications {
         UpdateOp updateOp = null;
         Revision lastRev = null;
         List<String> ids = new ArrayList<String>();
-        for (int i = 0; i < paths.size(); ) {
+        for (int i = 0; i < paths.size();) {
             String p = paths.get(i);
             Revision r = pending.get(p);
             if (r == null) {

@@ -49,7 +49,7 @@ final class BatchCommit {
     private List<UpdateOp> ops;
     private List<Future<NodeDocument>> results;
 
-    private boolean executing = false;
+    private boolean executing;
 
     BatchCommit(String id, BatchCommitQueue queue, boolean onHold) {
         this.id = id;

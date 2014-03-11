@@ -72,13 +72,13 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
      */
     static final int MAX_FETCH_SIZE = INITIAL_FETCH_SIZE << 4;
 
-    private final DocumentNodeStore store;
-
     final String path;
     final Revision rev;
     final Map<String, PropertyState> properties = Maps.newHashMap();
     Revision lastRevision;
     final boolean hasChildren;
+
+    private final DocumentNodeStore store;
 
     /**
      * TODO: OAK-1056

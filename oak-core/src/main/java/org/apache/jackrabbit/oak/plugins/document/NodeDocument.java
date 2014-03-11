@@ -55,7 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 /**
  * A document storing data about a node.
  */
-final public class NodeDocument extends Document implements CachedNodeDocument{
+public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Marker document, which indicates the document does not exist.
@@ -217,7 +217,8 @@ final public class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * @return the system time this object was created.
      */
-    public final long getCreated() {
+    @Override
+    public long getCreated() {
         return creationTime;
     }
 
@@ -235,6 +236,7 @@ final public class NodeDocument extends Document implements CachedNodeDocument{
      * 
      * @param checkTime time at which the check was performed
      */
+    @Override
     public void markUpToDate(long checkTime) {
         lastCheckTime.set(checkTime);
     }
@@ -246,6 +248,7 @@ final public class NodeDocument extends Document implements CachedNodeDocument{
      * @param lastCheckTime time at which current cycle started
      * @return if the document was checked
      */
+    @Override
     public boolean isUpToDate(long lastCheckTime) {
         return lastCheckTime <= this.lastCheckTime.get();
     }
@@ -255,6 +258,7 @@ final public class NodeDocument extends Document implements CachedNodeDocument{
      * 
      * @return the last check time
      */
+    @Override
     public long getLastCheckTime() {
         return lastCheckTime.get();
     }
