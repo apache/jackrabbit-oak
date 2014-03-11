@@ -362,9 +362,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @CheckForNull
     public String getCommitRootPath(Revision revision) {
-        // check local map first
-        Map<Revision, String> local = getLocalCommitRoot();
-        String depth = local.get(revision);
+        String depth = getCommitRootDepth(revision);
         if (depth != null) {
             if (depth.equals("0")) {
                 return "/";
@@ -372,13 +370,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             String p = Utils.getPathFromId(getId());
             return PathUtils.getAncestorPath(p,
                     PathUtils.getDepth(p) - Integer.parseInt(depth));
-        }
-        // check previous
-        for (NodeDocument prev : getPreviousDocs(COMMIT_ROOT, revision)) {
-            String path = prev.getCommitRootPath(revision);
-            if (path != null) {
-                return path;
-            }
         }
         return null;
     }
@@ -965,6 +956,31 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
         // get root of commit
         return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath));
+    }
+
+    /**
+     * Returns the commit root depth for the given revision. This method also
+     * takes previous documents into account.
+     *
+     * @param revision get the commit root depth for this revision.
+     * @return the depth or <code>null</code> if there is no commit root entry
+     *         for the given revision on this document or previous documents.
+     */
+    @CheckForNull
+    private String getCommitRootDepth(@Nonnull Revision revision) {
+        // check local map first
+        Map<Revision, String> local = getLocalCommitRoot();
+        String depth = local.get(revision);
+        if (depth == null) {
+            // check previous
+            for (NodeDocument prev : getPreviousDocs(COMMIT_ROOT, revision)) {
+                depth = prev.getCommitRootDepth(revision);
+                if (depth != null) {
+                    break;
+                }
+            }
+        }
+        return depth;
     }
 
     /**
