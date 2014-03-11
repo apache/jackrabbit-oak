@@ -65,6 +65,7 @@ The build consists of the following main components:
   - oak-http          - HTTP binding for Oak
   - oak-lucene        - Lucene-based query index
   - oak-run           - runnable jar packaging
+  - oak-pojosr        - integration with PojoSR
   - oak-upgrade       - tooling for upgrading Jackrabbit repositories to Oak
   - oak-it            - integration tests
     - oak-it/mk       - integration tests for MicroKernel
