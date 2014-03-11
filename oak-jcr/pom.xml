@@ -154,15 +154,16 @@
     <plugins>
       <plugin>
         <groupId>org.apache.felix</groupId>
+        <artifactId>maven-scr-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr
             </Export-Package>
-            <Bundle-Activator>
-              org.apache.jackrabbit.oak.jcr.osgi.Activator
-            </Bundle-Activator>
           </instructions>
         </configuration>
       </plugin>
