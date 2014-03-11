@@ -56,56 +56,48 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
-import org.osgi.framework.ServiceReference;
-import org.osgi.service.component.ComponentContext;
+import org.osgi.framework.BundleContext;
 
 import com.google.common.collect.ImmutableMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-@Component(immediate = true)
-@Service
+@Component
+@Service(value = {SecurityProvider.class})
 public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
 
-    @Reference(bind = "bindAuthorizationConfiguration",
-            cardinality = ReferenceCardinality.MANDATORY_UNARY, // FIXME OAK-1268
-            policyOption = ReferencePolicyOption.GREEDY)
-    private AuthorizationConfiguration authorizationConfiguration;
+    @Reference
+    private volatile AuthorizationConfiguration authorizationConfiguration;
 
-    @Reference(bind = "bindAuthenticationConfiguration",
-            cardinality = ReferenceCardinality.MANDATORY_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private AuthenticationConfiguration authenticationConfiguration;
+    @Reference
+    private volatile AuthenticationConfiguration authenticationConfiguration;
 
-    @Reference(bind = "bindPrivilegeConfiguration",
-            cardinality = ReferenceCardinality.MANDATORY_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private PrivilegeConfiguration privilegeConfiguration;
+    @Reference
+    private volatile PrivilegeConfiguration privilegeConfiguration;
 
-    @Reference(bind = "bindUserConfiguration",
-            cardinality = ReferenceCardinality.MANDATORY_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private UserConfiguration userConfiguration;
+    @Reference
+    private volatile UserConfiguration userConfiguration;
 
     @Reference(referenceInterface = PrincipalConfiguration.class,
+            name = "principalConfiguration",
             bind = "bindPrincipalConfiguration",
             unbind = "unbindPrincipalConfiguration",
-            cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private PrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
+    private final CompositePrincipalConfiguration compositePrincipalConfiguration = new CompositePrincipalConfiguration(this);
 
     @Reference(referenceInterface = TokenConfiguration.class,
+            name = "tokenConfiguration",
             bind = "bindTokenConfiguration",
             unbind = "unbindTokenConfiguration",
-            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private TokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
+            cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
+    private final CompositeTokenConfiguration compositeTokenConfiguration = new CompositeTokenConfiguration(this);
 
     @Reference(referenceInterface = AuthorizableNodeName.class,
+            name = "authorizableNodeName",
             bind = "bindAuthorizableNodeName",
             cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policyOption = ReferencePolicyOption.GREEDY)
-    private NameGenerator authorizableNodeName = new NameGenerator();
+    private final NameGenerator nameGenerator = new NameGenerator();
 
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
@@ -132,9 +124,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         authenticationConfiguration = new AuthenticationConfigurationImpl(this);
         authorizationConfiguration = new AuthorizationConfigurationImpl(this);
         userConfiguration = new UserConfigurationImpl(this);
-        principalConfiguration = new PrincipalConfigurationImpl(this);
+        compositePrincipalConfiguration.addConfiguration(new PrincipalConfigurationImpl(this));
         privilegeConfiguration = new PrivilegeConfigurationImpl();
-        tokenConfiguration = new TokenConfigurationImpl(this);
+        compositeTokenConfiguration.addConfiguration(new TokenConfigurationImpl(this));
     }
 
     @Override
@@ -169,9 +161,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         scs.add(authenticationConfiguration);
         scs.add(authorizationConfiguration);
         scs.add(userConfiguration);
-        scs.add(principalConfiguration);
+        scs.add(compositePrincipalConfiguration);
         scs.add(privilegeConfiguration);
-        scs.add(tokenConfiguration);
+        scs.add(compositeTokenConfiguration);
         return scs;
     }
 
@@ -186,21 +178,23 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         } else if (UserConfiguration.class == configClass) {
             return (T) userConfiguration;
         } else if (PrincipalConfiguration.class == configClass) {
-            return (T) principalConfiguration;
+            return (T) compositePrincipalConfiguration;
         } else if (PrivilegeConfiguration.class == configClass) {
             return (T) privilegeConfiguration;
         } else if (TokenConfiguration.class == configClass) {
-            return (T) tokenConfiguration;
+            return (T) compositeTokenConfiguration;
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }
     }
 
     @Activate
-    protected void activate(ComponentContext context) throws Exception {
-        whiteboard = new OsgiWhiteboard(context.getBundleContext());
+    protected void activate(BundleContext context) throws Exception {
+        whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
         restrictionProvider.start(whiteboard);
+
+        initializeConfigurations();
     }
 
     @Deactivate
@@ -209,90 +203,58 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         restrictionProvider.stop();
     }
 
-    protected void bindAuthorizationConfiguration(@Nonnull ServiceReference reference) {
-        // also add authorization config specific default parameters for OSGi environments
-        // todo: the config class should track the 'restrictionProvider' itself.
+    private void initializeConfigurations() {
         Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
                 AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
         );
-        authorizationConfiguration =
-                (AuthorizationConfiguration) initConfiguration(reference, ConfigurationParameters.of(authorizMap));
-    }
+        // also add authorization config specific default parameters for OSGi environments
+        // todo: the config class should track the 'restrictionProvider' itself.
+        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(authorizMap));
 
-    protected void bindAuthenticationConfiguration(@Nonnull ServiceReference reference) {
-        authenticationConfiguration =
-                (AuthenticationConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY);
-    }
+        initConfiguration(authenticationConfiguration, ConfigurationParameters.EMPTY);
 
-    protected void bindUserConfiguration(@Nonnull ServiceReference reference) {
         // also initialize user config specific default parameters for OSGi environments
         // todo: the config class should track the 'providers' itself.
         Map<String, Object> userMap = ImmutableMap.of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName);
-        userConfiguration = (UserConfiguration) initConfiguration(reference, ConfigurationParameters.of(userMap));
+                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
+        initConfiguration(userConfiguration, ConfigurationParameters.of(userMap));
+
+        initConfiguration(privilegeConfiguration, ConfigurationParameters.EMPTY);
     }
 
-    protected void bindPrivilegeConfiguration(@Nonnull ServiceReference reference) {
-        privilegeConfiguration = (PrivilegeConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY);
+    protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
+        compositePrincipalConfiguration.addConfiguration(initConfiguration(reference, ConfigurationParameters.EMPTY));
     }
 
-    protected void bindPrincipalConfiguration(@Nonnull ServiceReference reference) {
-        // replace composite configuration if needed
-        if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
-            principalConfiguration = new CompositePrincipalConfiguration(this);
-        }
-        ((CompositePrincipalConfiguration) principalConfiguration).addConfiguration(
-                (PrincipalConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY));
+    protected void unbindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
+        compositePrincipalConfiguration.removeConfiguration(reference);
     }
 
-    protected void unbindPrincipalConfiguration(@Nonnull ServiceReference reference) {
-        Object pc = reference.getBundle().getBundleContext().getService(reference);
-        if (pc instanceof PrincipalConfiguration) {
-            if (principalConfiguration instanceof CompositePrincipalConfiguration) {
-                ((CompositePrincipalConfiguration) principalConfiguration).removeConfiguration((PrincipalConfiguration) pc);
-            }
-        }
+    protected void bindTokenConfiguration(@Nonnull TokenConfiguration reference) {
+        compositeTokenConfiguration.addConfiguration(initConfiguration(reference, ConfigurationParameters.EMPTY));
     }
 
-    protected void bindTokenConfiguration(@Nonnull ServiceReference reference) {
-        // replace composite configuration if needed
-        if (!(tokenConfiguration instanceof CompositeTokenConfiguration)) {
-            tokenConfiguration = new CompositeTokenConfiguration(this);
-        }
-        ((CompositeTokenConfiguration) tokenConfiguration).addConfiguration(
-                (TokenConfiguration) initConfiguration(reference, ConfigurationParameters.EMPTY));
+    protected void unbindTokenConfiguration(@Nonnull TokenConfiguration reference) {
+        compositeTokenConfiguration.removeConfiguration(reference);
     }
 
-    protected void unbindTokenConfiguration(@Nonnull ServiceReference reference) {
-        Object tc = reference.getBundle().getBundleContext().getService(reference);
-        if (tc instanceof TokenConfiguration) {
-            if (tokenConfiguration instanceof CompositeTokenConfiguration) {
-                ((CompositeTokenConfiguration) tokenConfiguration).removeConfiguration((TokenConfiguration) tc);
-            }
-        }
+    protected void bindAuthorizableNodeName(@Nonnull AuthorizableNodeName reference) {
+        nameGenerator.dlg = reference;
     }
 
-    protected void bindAuthorizableNodeName(@Nonnull ServiceReference reference) {
-        Object ann = reference.getBundle().getBundleContext().getService(reference);
-        if (ann instanceof AuthorizableNodeName) {
-            authorizableNodeName.dlg = (AuthorizableNodeName) ann;
-        }
-    }
-
-    private Object initConfiguration(@Nonnull ServiceReference reference, @Nonnull ConfigurationParameters params) {
-        Object service = reference.getBundle().getBundleContext().getService(reference);
-        if (service instanceof ConfigurationBase) {
-            ConfigurationBase cfg = (ConfigurationBase) service;
+    private <T extends SecurityConfiguration> T initConfiguration(@Nonnull T config, @Nonnull ConfigurationParameters params) {
+        if (config instanceof ConfigurationBase) {
+            ConfigurationBase cfg = (ConfigurationBase) config;
             cfg.setSecurityProvider(this);
             cfg.setParameters(ConfigurationParameters.of(params, cfg.getParameters()));
         }
-        return service;
+        return config;
     }
 
     private final class NameGenerator implements AuthorizableNodeName {
 
-        private AuthorizableNodeName dlg = AuthorizableNodeName.DEFAULT;
+        private volatile AuthorizableNodeName dlg = AuthorizableNodeName.DEFAULT;
 
         @Nonnull
         @Override
@@ -300,5 +262,4 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             return dlg.generateNodeName(authorizableId);
         }
     }
-
 }
