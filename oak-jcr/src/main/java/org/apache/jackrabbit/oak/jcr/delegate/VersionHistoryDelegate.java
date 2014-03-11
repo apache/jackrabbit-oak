@@ -18,11 +18,14 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -31,6 +34,7 @@ import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -129,19 +133,41 @@ public class VersionHistoryDelegate extends NodeDelegate {
 
     @Nonnull
     public Iterator<VersionDelegate> getAllVersions() throws RepositoryException {
-        Set<String> versions = new HashSet<String>();
+        List<NodeDelegate> versions = new ArrayList<NodeDelegate>();
         for (Iterator<NodeDelegate> it = getChildren(); it.hasNext();) {
             NodeDelegate n = it.next();
             String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
-                versions.add(n.getName());
+                versions.add(n);
             }
         }
-        final Tree thisTree = getTree();
-        return Iterators.transform(versions.iterator(), new Function<String, VersionDelegate>() {
+        // best-effort sort by created time stamp, see JCR 2.0, 15.1.1.2
+        Collections.sort(versions, new Comparator<NodeDelegate>() {
             @Override
-            public VersionDelegate apply(String name) {
-                return VersionDelegate.create(sessionDelegate, thisTree.getChild(name));
+            public int compare(NodeDelegate n1, NodeDelegate n2) {
+                try {
+                    PropertyDelegate c1 = n1.getPropertyOrNull(JcrConstants.JCR_CREATED);
+                    PropertyDelegate c2 = n2.getPropertyOrNull(JcrConstants.JCR_CREATED);
+                    if (c1 != null && c2 != null) {
+                        return c1.getDate().compareTo(c2.getDate());
+                    } else if (c1 != null) {
+                        return 1;
+                    } else if (c2 != null) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                } catch (RepositoryException ex) {
+                    // best effort
+                    return 0;
+                }
+            }
+        });
+        final Tree thisTree = getTree();
+        return Iterators.transform(versions.iterator(), new Function<NodeDelegate, VersionDelegate>() {
+            @Override
+            public VersionDelegate apply(NodeDelegate nd) {
+                return VersionDelegate.create(sessionDelegate, thisTree.getChild(nd.getName()));
             }
         });
     }
