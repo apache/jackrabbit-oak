@@ -63,7 +63,7 @@ class BundleDescriptorComparator implements Comparator<BundleDescriptor> {
     }
 
     private Integer getStartLevel(BundleDescriptor bd) {
-        String symbolicName = bd.getHeaders().get(Constants.BUNDLE_SYMBOLICNAME);
+        String symbolicName = ((Map<String, String>) bd.getHeaders()).get(Constants.BUNDLE_SYMBOLICNAME);
         Integer level = startLevels.get(symbolicName);
         if (level == null) {
             level = DEFAULT_START_LEVEL;
