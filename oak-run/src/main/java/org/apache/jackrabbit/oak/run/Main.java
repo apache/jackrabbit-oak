@@ -31,17 +31,18 @@ import javax.jcr.Repository;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
+import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
+import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -62,6 +63,8 @@ public class Main {
 
     public static final int PORT = 8080;
     public static final String URI = "http://localhost:" + PORT + "/";
+
+    private static final int MB = 1024 * 1024;
 
     private Main() {
     }
@@ -237,30 +240,89 @@ public class Main {
         }
     }
 
-    private static void server(String uri, String[] args) throws Exception {
-        // TODO add support for different repo implementations (see fixtures for benchmarks)
-        Map<NodeStore, String> storeMap;
-        if (args.length == 0) {
-            System.out.println("Starting an in-memory repository");
-            System.out.println(uri + " -> [memory]");
-            NodeStore store = new MemoryNodeStore();
-            storeMap = Collections.singletonMap(store, "");
-        } else if (args.length == 1) {
-            System.out.println("Starting a standalone repository");
-            System.out.println(uri + " -> " + args[0]);
-            NodeStore store = new KernelNodeStore(new MicroKernelImpl(args[0]));
-            storeMap = Collections.singletonMap(store, "");
+    private static void server(String defaultUri, String[] args) throws Exception {
+        OptionParser parser = new OptionParser();
+
+        OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
+
+        // tar/h2 specific option
+        OptionSpec<File> base = parser.accepts("base", "Base directory").withRequiredArg().ofType(File.class);
+        OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping").withOptionalArg().ofType(Boolean.class).defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
+
+        // mongo specific options:
+        OptionSpec<String> host = parser.accepts("host", "MongoDB host").withRequiredArg().defaultsTo("localhost");
+        OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
+        OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
+
+        OptionSet options = parser.parse(args);
+
+        OakFixture oakFixture;
+
+        List<String> arglist = options.nonOptionArguments();
+        String uri = (arglist.isEmpty()) ? defaultUri : arglist.get(0);
+        String fix = (arglist.size() <= 1) ? OakFixture.OAK_MEMORY : arglist.get(1);
+
+        int cacheSize = cache.value(options);
+        List<Integer> cIds = Collections.emptyList();
+        if (fix.startsWith(OakFixture.OAK_MEMORY)) {
+            if (OakFixture.OAK_MEMORY_NS.equals(fix)) {
+                oakFixture = OakFixture.getMemoryNS(cacheSize * MB);
+            } else if (OakFixture.OAK_MEMORY_MK.equals(fix)) {
+                oakFixture = OakFixture.getMemoryMK(cacheSize * MB);
+            } else {
+                oakFixture = OakFixture.getMemory(cacheSize * MB);
+            }
+        } else if (fix.startsWith(OakFixture.OAK_MONGO)) {
+            cIds = clusterIds.values(options);
+            String db = dbName.value(options);
+            if (db == null) {
+                throw new IllegalArgumentException("Required argument db missing");
+            }
+            if (OakFixture.OAK_MONGO_NS.equals(fix)) {
+                oakFixture = OakFixture.getMongoNS(
+                        host.value(options), port.value(options),
+                        db, false,
+                        cacheSize * MB);
+            } else if (OakFixture.OAK_MONGO_MK.equals(fix)) {
+                oakFixture = OakFixture.getMongoMK(
+                        host.value(options), port.value(options),
+                        db, false, cacheSize * MB);
+            } else {
+                oakFixture = OakFixture.getMongo(
+                        host.value(options), port.value(options),
+                        db, false, cacheSize * MB);
+            }
+
+        } else if (fix.equals(OakFixture.OAK_TAR)) {
+            File baseFile = base.value(options);
+            if (baseFile == null) {
+                throw new IllegalArgumentException("Required argument base missing.");
+            }
+            oakFixture = OakFixture.getTar(baseFile, 256, cacheSize, mmap.value(options));
+        } else if (fix.equals(OakFixture.OAK_H2)) {
+            File baseFile = base.value(options);
+            if (baseFile == null) {
+                throw new IllegalArgumentException("Required argument base missing.");
+            }
+            oakFixture = OakFixture.getH2MK(baseFile, cacheSize * MB);
         } else {
-            System.out.println("Starting a clustered repository");
-            storeMap = new HashMap<NodeStore, String>(args.length);
-            for (int i = 0; i < args.length; i++) {
-                // FIXME: Use a clustered MicroKernel implementation
-                System.out.println(uri + "/node" + i + "/ -> " + args[i]);
-                KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl(args[i]));
-                storeMap.put(store, "/node" + i);
+            throw new IllegalArgumentException("Unsupported repository setup " + fix);
+        }
+
+        Map<Oak, String> m;
+        if (cIds.isEmpty()) {
+            System.out.println("Starting " + oakFixture.toString() + " repository -> " + uri);
+            m = Collections.singletonMap(oakFixture.getOak(0), "");
+        } else {
+            System.out.println("Starting a clustered repository " + oakFixture.toString() + " -> " + uri);
+            m = new HashMap<Oak, String>(cIds.size());
+
+            for (int i = 0; i < cIds.size(); i++) {
+                m.put(oakFixture.getOak(i), "/node" + i);
             }
         }
-        new HttpServer(uri, storeMap);
+        new HttpServer(uri, m);
     }
 
     public static class HttpServer {
@@ -270,10 +332,10 @@ public class Main {
         private final Server server;
 
         public HttpServer(String uri) throws Exception {
-            this(uri, Collections.singletonMap(new MemoryNodeStore(), ""));
+            this(uri, Collections.singletonMap(new Oak(), ""));
         }
 
-        public HttpServer(String uri, Map<? extends NodeStore, String> storeMap) throws Exception {
+        public HttpServer(String uri, Map<Oak, String> oakMap) throws Exception {
             int port = java.net.URI.create(uri).getPort();
             if (port == -1) {
                 // use default
@@ -283,7 +345,7 @@ public class Main {
             context = new ServletContextHandler();
             context.setContextPath("/");
 
-            for (Map.Entry<? extends NodeStore, String> entry : storeMap.entrySet()) {
+            for (Map.Entry<Oak, String> entry : oakMap.entrySet()) {
                 addServlets(entry.getKey(), entry.getValue());
             }
 
@@ -300,8 +362,7 @@ public class Main {
             server.stop();
         }
 
-        private void addServlets(NodeStore store, String path) {
-            Oak oak = new Oak(store);
+        private void addServlets(Oak oak, String path) {
             Jcr jcr = new Jcr(oak);
 
             // 1 - OakServer
