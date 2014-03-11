@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -267,7 +266,12 @@ public class DefaultSyncConfig {
          */
         @Nonnull
         public Authorizable setAutoMembership(String ... autoMembership) {
-            this.autoMembership = new HashSet<String>(Arrays.asList(autoMembership));
+            this.autoMembership = new HashSet<String>();
+            for (String groupName: autoMembership) {
+                if (groupName.trim().length() > 0) {
+                    this.autoMembership.add(groupName.trim());
+                }
+            }
             return this;
         }
 

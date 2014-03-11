@@ -58,6 +58,8 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
 
     protected ExternalIdentityProvider idp;
 
+    protected DefaultSyncConfig syncConfig;
+
     @Before
     public void before() throws Exception {
         super.before();
@@ -74,14 +76,15 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
         options.put(ExternalLoginModule.PARAM_IDP_NAME, idp.getName());
 
         // set default sync config
-        DefaultSyncConfig cfg = new DefaultSyncConfig();
+        syncConfig = new DefaultSyncConfig();
         Map<String, String> mapping = new HashMap<String, String>();
         mapping.put("name", "name");
         mapping.put("email", "email");
         mapping.put("profile/name", "profile/name");
         mapping.put("profile/age", "profile/age");
-        cfg.user().setPropertyMapping(mapping);
-        setSyncConfig(cfg);
+        syncConfig.user().setPropertyMapping(mapping);
+        syncConfig.user().setMembershipNestingDepth(1);
+        setSyncConfig(syncConfig);
     }
 
     @After

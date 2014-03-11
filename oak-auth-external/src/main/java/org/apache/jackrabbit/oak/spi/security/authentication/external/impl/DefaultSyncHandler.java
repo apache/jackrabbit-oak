@@ -24,8 +24,11 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -96,6 +99,7 @@ public class DefaultSyncHandler implements SyncHandler {
     /**
      * Default constructor for OSGi
      */
+    @SuppressWarnings("UnusedDeclaration")
     public DefaultSyncHandler() {
     }
 
@@ -133,8 +137,6 @@ public class DefaultSyncHandler implements SyncHandler {
 
         private final UserManager userManager;
 
-        private final Root root;
-
         private final ValueFactory valueFactory;
 
         // we use the same wall clock for the entire context
@@ -144,7 +146,6 @@ public class DefaultSyncHandler implements SyncHandler {
         private ContextImpl(ExternalIdentityProvider idp, UserManager userManager, Root root) {
             this.idp = idp;
             this.userManager = userManager;
-            this.root = root;
             valueFactory = new ValueFactoryImpl(root, NamePathMapper.DEFAULT);
 
             // initialize 'now'
@@ -167,24 +168,34 @@ public class DefaultSyncHandler implements SyncHandler {
         @Override
         public boolean sync(@Nonnull ExternalIdentity identity) throws SyncException {
             try {
+                DebugTimer timer = new DebugTimer();
+                boolean ret;
                 if (identity instanceof ExternalUser) {
                     User user = getAuthorizable(identity, User.class);
+                    timer.mark("find");
                     if (user == null) {
                         user = createUser((ExternalUser) identity);
+                        timer.mark("create");
                     }
-                    return syncUser((ExternalUser) identity, user);
+                    ret = syncUser((ExternalUser) identity, user);
+                    timer.mark("sync");
                 } else if (identity instanceof ExternalGroup) {
                     Group group = getAuthorizable(identity, Group.class);
+                    timer.mark("find");
                     if (group == null) {
                         group = createGroup((ExternalGroup) identity);
+                        timer.mark("create");
                     }
-                    return false;//syncGroup((ExternalGroup) identity, group);
+                    ret = syncGroup((ExternalGroup) identity, group);
+                    timer.mark("sync");
                 } else {
                     throw new IllegalArgumentException("identity must be user or group but was: " + identity);
                 }
+                if (log.isDebugEnabled()) {
+                    log.debug("sync({}) {}", identity.getId(), timer.getString());
+                }
+                return ret;
             } catch (RepositoryException e) {
-                throw new SyncException(e);
-            } catch (ExternalIdentityException e) {
                 throw new SyncException(e);
             }
         }
@@ -222,10 +233,9 @@ public class DefaultSyncHandler implements SyncHandler {
          * @param externalUser the external user
          * @return the repository user
          * @throws RepositoryException if an error occurs
-         * @throws ExternalIdentityException if an error occurs
          */
         @CheckForNull
-        private User createUser(ExternalUser externalUser) throws RepositoryException, ExternalIdentityException {
+        private User createUser(ExternalUser externalUser) throws RepositoryException {
             Principal principal = new PrincipalImpl(externalUser.getPrincipalName());
             User user = userManager.createUser(
                     externalUser.getId(),
@@ -244,10 +254,9 @@ public class DefaultSyncHandler implements SyncHandler {
          * @param externalGroup the external group
          * @return the repository group
          * @throws RepositoryException if an error occurs
-         * @throws ExternalIdentityException if an error occurs
          */
         @CheckForNull
-        private Group createGroup(ExternalGroup externalGroup) throws RepositoryException, ExternalIdentityException {
+        private Group createGroup(ExternalGroup externalGroup) throws RepositoryException {
             Principal principal = new PrincipalImpl(externalGroup.getPrincipalName());
             Group group = userManager.createGroup(
                     externalGroup.getId(),
@@ -259,19 +268,166 @@ public class DefaultSyncHandler implements SyncHandler {
         }
 
 
-        private boolean syncUser(ExternalUser external, User user) throws RepositoryException {
+        private boolean syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
             // first check if user is expired
             // todo: add "forceSync" property for potential background sync
-            if (!isExpired(user, config.user().getExpirationTime())) {
+            if (!isExpired(user, config.user().getExpirationTime(), "Properties")) {
                 return false;
             }
 
             // synchronize the properties
             syncProperties(external, user, config.user().getPropertyMapping());
 
+            // synchronize auto-group membership
+            applyMembership(user, config.user().getAutoMembership());
+
+            if (isExpired(user, config.user().getMembershipExpirationTime(), "Membership")) {
+                // synchronize external memberships
+                syncMembership(external, user, config.user().getMembershipNestingDepth());
+            }
+
             // finally "touch" the sync property
             user.setProperty(REP_LAST_SYNCED, nowValue);
             return true;
+        }
+
+        private boolean syncGroup(ExternalGroup external, Group group) throws RepositoryException {
+            // first check if user is expired
+            // todo: add "forceSync" property for potential background sync
+            if (!isExpired(group, config.group().getExpirationTime(), "Properties")) {
+                return false;
+            }
+
+            // synchronize the properties
+            syncProperties(external, group, config.group().getPropertyMapping());
+
+            // synchronize auto-group membership
+            applyMembership(group, config.group().getAutoMembership());
+
+            // finally "touch" the sync property
+            group.setProperty(REP_LAST_SYNCED, nowValue);
+            return true;
+        }
+
+        /**
+         * Recursively sync the memberships of an authorizable up-to the specified depth. If the given depth
+         * is equal or less than 0, no syncing is performed.
+         *
+         * @param external the external identity
+         * @param auth the authorizable
+         * @param depth recursion depth.
+         * @throws RepositoryException
+         */
+        private void syncMembership(ExternalIdentity external, Authorizable auth, long depth)
+                throws RepositoryException {
+            if (depth <= 0) {
+                return;
+            }
+            if (log.isDebugEnabled()) {
+                log.debug("Syncing membership '{}' -> '{}'", external.getExternalId().getString(), auth.getID());
+            }
+
+            final DebugTimer timer = new DebugTimer();
+            Iterable<ExternalIdentityRef> externalGroups;
+            try {
+                externalGroups = external.getDeclaredGroups();
+            } catch (ExternalIdentityException e) {
+                log.error("Error while retrieving external declared groups for '{}'", external.getId(), e);
+                return;
+            }
+            timer.mark("fetching");
+
+            // first get the set of the existing groups that are synced ones
+            Map<String, Group> declaredExternalGroups = new HashMap<String, Group>();
+            Iterator<Group> grpIter = auth.declaredMemberOf();
+            while (grpIter.hasNext()) {
+                Group grp = grpIter.next();
+                if (isSameIDP(grp)) {
+                    declaredExternalGroups.put(grp.getID(), grp);
+                }
+            }
+            timer.mark("existing");
+
+            for (ExternalIdentityRef ref: externalGroups) {
+                log.debug("- processing membership {}", ref.getId());
+                // get group
+                ExternalGroup extGroup;
+                try {
+                    extGroup = (ExternalGroup) idp.getIdentity(ref);
+                } catch (ClassCastException e) {
+                    // this should really not be the case, so catching the CCE is ok here.
+                    log.warn("External identity '{}' is not a group, but should be one.", ref.getString());
+                    continue;
+                } catch (ExternalIdentityException e) {
+                    log.warn("Unable to retrieve external group '{}' from provider.", ref.getString(), e);
+                    continue;
+                }
+                if (extGroup == null) {
+                    log.warn("External group for ref '{}' could not be retrieved from provider.", ref);
+                    continue;
+                }
+                log.debug("- idp returned '{}'", extGroup.getId());
+
+                Group grp;
+                try {
+                    grp = (Group) userManager.getAuthorizable(extGroup.getId());
+                } catch (ClassCastException e) {
+                    // this should really not be the case, so catching the CCE is ok here.
+                    log.warn("Authorizable '{}' is not a group, but should be one.", extGroup.getId());
+                    continue;
+                }
+                log.debug("- user manager returned '{}'", grp);
+
+                if (grp == null) {
+                    grp = createGroup(extGroup);
+                    log.debug("- created new group");
+                }
+                syncGroup(extGroup, grp);
+
+                // ensure membership
+                grp.addMember(auth);
+                log.debug("- added '{}' as member to '{}'", auth, grp);
+
+                // remember the declared group
+                declaredExternalGroups.remove(grp.getID());
+
+                // recursively apply further membership
+                if (depth > 1) {
+                    log.debug("- recursively sync group membership of '{}' (depth = {}).", grp.getID(), depth);
+                    syncMembership(extGroup, grp, depth - 1);
+                } else {
+                    log.debug("- group nesting level for '{}' reached", grp.getID());
+                }
+            }
+            timer.mark("adding");
+            // remove us from the lost membership groups
+            for (Group grp: declaredExternalGroups.values()) {
+                grp.removeMember(auth);
+                log.debug("- removing member '{}' for group '{}'", auth.getID(), grp.getID());
+            }
+            if (log.isDebugEnabled()) {
+                timer.mark("removing");
+                log.debug("syncMembership({}) {}", external.getId(), timer.getString());
+            }
+        }
+
+        /**
+         * Ensures that the given authorizable is member of the specific groups. Note that it does not create groups
+         * if missing, nor remove memberships of groups not in the given set.
+         * @param member the authorizable
+         * @param groups set of groups.
+         */
+        private void applyMembership(Authorizable member, Set<String> groups) throws RepositoryException {
+            for (String groupName: groups) {
+                Authorizable group = userManager.getAuthorizable(groupName);
+                if (group == null) {
+                    log.warn("Unable to apply auto-membership to {}. No such group: {}", member.getID(), groupName);
+                } else if (group instanceof Group) {
+                    ((Group) group).addMember(member);
+                } else {
+                    log.warn("Unable to apply auto-membership to {}. Authorizable '{}' is not a group.", member.getID(), groupName);
+                }
+            }
         }
 
         /**
@@ -310,69 +466,40 @@ public class DefaultSyncHandler implements SyncHandler {
          * Checks if the given authorizable needs syncing based on the {@link #REP_LAST_SYNCED} property.
          * @param auth the authorizable to check
          * @param expirationTime the expiration time to compare to.
+         * @param type debug message type
          * @return {@code true} if the authorizable needs sync
          */
-        private boolean isExpired(Authorizable auth, long expirationTime) throws RepositoryException {
+        private boolean isExpired(Authorizable auth, long expirationTime, String type) throws RepositoryException {
             Value[] values = auth.getProperty(REP_LAST_SYNCED);
             if (values == null || values.length == 0) {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} '{}' needs sync. " + REP_LAST_SYNCED + " not set.", auth.isGroup() ? "Group" : "User", auth.getID());
+                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " not set.", new Object[] {
+                            type,
+                            auth.isGroup() ? "group" : "user",
+                            auth.getID()
+                    });
                 }
                 return true;
             } else if (now - values[0].getLong() > expirationTime) {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} '{}' needs sync. " + REP_LAST_SYNCED + " expired ({} > {})", new Object[]{
-                            auth.isGroup() ? "Group" : "User", auth.getID(), now - values[0].getLong(), expirationTime
+                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " expired ({} > {})", new Object[]{
+                            type,
+                            auth.isGroup() ? "group" : "user",
+                            auth.getID(),
+                            now - values[0].getLong(), expirationTime
                     });
                 }
                 return true;
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} '{}' does not need sync.", auth.isGroup() ? "Group" : "User", auth.getID());
+                    log.debug("{} of {} '{}' do not need sync.", new Object[]{
+                            type,
+                            auth.isGroup() ? "group" : "user",
+                            auth.getID()
+                    });
                 }
                 return false;
             }
-        }
-
-        private boolean syncAuthorizable(ExternalIdentity externalUser, Authorizable authorizable)
-                throws RepositoryException, SyncException, ExternalIdentityException {
-            for (ExternalIdentityRef externalGroupRef : externalUser.getDeclaredGroups()) {
-                ExternalIdentity id = idp.getIdentity(externalGroupRef);
-                if (id instanceof ExternalGroup) {
-                    ExternalGroup externalGroup = (ExternalGroup) id;
-                    String groupId = externalGroup.getId();
-                    Group group;
-                    Authorizable a = userManager.getAuthorizable(groupId);
-                    if (a == null) {
-                        group = createGroup(externalGroup);
-                    } else {
-                        group = (a.isGroup()) ? (Group) a : null;
-                    }
-
-                    if (group != null) {
-                        group.addMember(authorizable);
-                    } else {
-                        log.debug("No such group " + groupId + "; Ignoring group membership.");
-                    }
-                }
-            }
-
-            Map<String, ?> properties = externalUser.getProperties();
-            for (String key : properties.keySet()) {
-                Object prop = properties.get(key);
-                if (prop instanceof Collection) {
-                    Value[] values = createValues((Collection) prop);
-                    if (values != null) {
-                        authorizable.setProperty(key, values);
-                    }
-                } else {
-                    Value value = createValue(prop);
-                    if (value != null) {
-                        authorizable.setProperty(key, value);
-                    }
-                }
-            }
-            return true;
         }
 
         /**
@@ -425,6 +552,27 @@ public class DefaultSyncHandler implements SyncHandler {
                 }
             }
             return values.toArray(new Value[values.size()]);
+        }
+
+        /**
+         * Checks if the given authorizable was synced from the same IDP by comparing the IDP name of the
+         * {@value #REP_EXTERNAL_ID} property.
+         *
+         * todo: allow multiple IDPs on 1 authorizable
+         *
+         * @param auth the authorizable.
+         * @return {@code true} if same IDP.
+         */
+        private boolean isSameIDP(@Nullable Authorizable auth) throws RepositoryException {
+            if (auth == null) {
+                return false;
+            }
+            Value[] v = auth.getProperty(REP_EXTERNAL_ID);
+            if (v == null || v.length == 0) {
+                return false;
+            }
+            ExternalIdentityRef ref = ExternalIdentityRef.fromString(v[0].getString());
+            return idp.getName().equals(ref.getProviderName());
         }
 
     }
