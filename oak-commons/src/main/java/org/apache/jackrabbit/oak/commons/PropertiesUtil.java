@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.commons;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !! THIS UTILITY CLASS IS A COPY FROM APACHE SLING !!
@@ -29,10 +38,9 @@ import java.util.List;
 /**
  * The <code>PropertiesUtil</code> is a utility class providing some
  * usefull utility methods for converting property types.
- *
- * @since 2.1
  */
-class PropertiesUtil {
+public class PropertiesUtil {
+    private static Logger log = LoggerFactory.getLogger(PropertiesUtil.class);
 
     /**
      * Returns the boolean value of the parameter or the
@@ -219,5 +227,101 @@ class PropertiesUtil {
         }
 
         return defaultArray;
+    }
+
+    /**
+     * Populates the bean properties from properties instance
+     *
+     * @param instance bean to populate
+     * @param config propertires to set in the passed bean
+     * @param validate Flag to validate the configured bean property names against
+     *                 the configured bean class
+     */
+    @SuppressWarnings("unchecked")
+    public static void populate(Object instance, Map<String,String> config, boolean validate){
+        Class<?> objectClass = instance.getClass();
+
+        // Set all configured bean properties
+        Map<String, Method> setters = getSetters(objectClass);
+        for(Map.Entry<String,String> e : config.entrySet()) {
+            String name = e.getKey();
+            Method setter = setters.get(name);
+            if (setter != null) {
+                if (setter.getAnnotation(Deprecated.class) != null) {
+                    log.warn("Parameter {} of {} has been deprecated",
+                            name, objectClass.getName());
+                }
+                String value = e.getValue();
+                setProperty(instance, name, setter, value);
+            } else if (validate) {
+                throw new IllegalArgumentException(
+                        "Configured class " + objectClass.getName()
+                                + " does not contain a property named " + name);
+            }
+        }
+    }
+
+    private static Map<String, Method> getSetters(Class<?> klass) {
+        Map<String, Method> methods = new HashMap<String, Method>();
+        for (Method method : klass.getMethods()) {
+            String name = method.getName();
+            if (name.startsWith("set") && name.length() > 3
+                    && Modifier.isPublic(method.getModifiers())
+                    && !Modifier.isStatic(method.getModifiers())
+                    && Void.TYPE.equals(method.getReturnType())
+                    && method.getParameterTypes().length == 1) {
+                methods.put(
+                        name.substring(3, 4).toLowerCase(Locale.ENGLISH) + name.substring(4),
+                        method);
+            }
+        }
+        return methods;
+    }
+
+    private static void setProperty(
+            Object instance, String name, Method setter, String value) {
+        String className = instance.getClass().getName();
+        Class<?> type = setter.getParameterTypes()[0];
+        try {
+            if (type.isAssignableFrom(String.class)
+                    || type.isAssignableFrom(Object.class)) {
+                setter.invoke(instance, value);
+            } else if (type.isAssignableFrom(Boolean.TYPE)
+                    || type.isAssignableFrom(Boolean.class)) {
+                setter.invoke(instance, Boolean.valueOf(value));
+            } else if (type.isAssignableFrom(Integer.TYPE)
+                    || type.isAssignableFrom(Integer.class)) {
+                setter.invoke(instance, Integer.valueOf(value));
+            } else if (type.isAssignableFrom(Long.TYPE)
+                    || type.isAssignableFrom(Long.class)) {
+                setter.invoke(instance, Long.valueOf(value));
+            } else if (type.isAssignableFrom(Double.TYPE)
+                    || type.isAssignableFrom(Double.class)) {
+                setter.invoke(instance, Double.valueOf(value));
+            } else {
+                throw new RuntimeException(
+                        "The type (" + type.getName()
+                                + ") of property " + name + " of class "
+                                + className + " is not supported");
+            }
+        } catch (NumberFormatException e) {
+            throw new RuntimeException(
+                    "Invalid number format (" + value + ") for property "
+                            + name + " of class " + className, e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(
+                    "Property " + name + " of class "
+                            + className + " can not be set to \"" + value + "\"",
+                    e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(
+                    "The setter of property " + name
+                            + " of class " + className + " can not be accessed",
+                    e);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException(
+                    "Unable to call the setter of property "
+                            + name + " of class " + className, e);
+        }
     }
 }
