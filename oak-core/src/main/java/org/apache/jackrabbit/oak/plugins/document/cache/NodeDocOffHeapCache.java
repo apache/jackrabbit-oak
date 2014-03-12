@@ -273,6 +273,7 @@ public class NodeDocOffHeapCache
         private final AtomicLong lastCheckTime;
         private final Pointer<NodeDocument> documentPointer;
         private final CacheValue key;
+        private final String path;
 
         public NodeDocReference(CacheValue key, NodeDocument doc) {
             this.modCount = doc.getModCount();
@@ -280,6 +281,12 @@ public class NodeDocOffHeapCache
             this.lastCheckTime = new AtomicLong(doc.getLastCheckTime());
             this.documentPointer = serialize(doc);
             this.key = key;
+            this.path = doc.getPath();
+        }
+        
+        @Override
+        public String getPath() {
+            return path;
         }
 
         @Override

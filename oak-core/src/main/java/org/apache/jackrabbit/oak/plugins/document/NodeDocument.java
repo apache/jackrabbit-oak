@@ -367,7 +367,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (depth.equals("0")) {
                 return "/";
             }
-            String p = Utils.getPathFromId(getId());
+            String p = getPath();
             return PathUtils.getAncestorPath(p,
                     PathUtils.getDepth(p) - Integer.parseInt(depth));
         }
@@ -481,7 +481,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             // deleted
             return null;
         }
-        String path = Utils.getPathFromId(getId());
+        String path = getPath();
         DocumentNodeState n = new DocumentNodeState(nodeStore, path, readRevision, hasChildren());
         Revision lastRevision = min;
         for (String key : keySet()) {
@@ -1143,6 +1143,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
         return value != null ? new Value(value, latestRev) : null;
+    }
+    
+    @Override
+    public String getPath() {
+        return Utils.getPathFromId(getId());
     }
 
     @Nonnull

@@ -659,7 +659,7 @@ public final class DocumentNodeStore
             for (NodeDocument doc : docs) {
                 numReturned++;
                 // filter out deleted children
-                String p = Utils.getPathFromId(doc.getId());
+                String p = doc.getPath();
                 DocumentNodeState child = getNode(p, rev);
                 if (child == null) {
                     continue;
@@ -720,7 +720,7 @@ public final class DocumentNodeStore
             c = new NodeDocument.Children();
             List<NodeDocument> docs = store.query(Collection.NODES, from, to, limit);
             for (NodeDocument doc : docs) {
-                String p = Utils.getPathFromId(doc.getId());
+                String p = doc.getPath();
                 c.childNames.add(PathUtils.getName(p));
             }
             c.isComplete = docs.size() < limit;
@@ -736,7 +736,7 @@ public final class DocumentNodeStore
                     from, to, remainingLimit);
             NodeDocument.Children clone = c.clone();
             for (NodeDocument doc : docs) {
-                String p = Utils.getPathFromId(doc.getId());
+                String p = doc.getPath();
                 clone.childNames.add(PathUtils.getName(p));
             }
             clone.isComplete = docs.size() < remainingLimit;
@@ -1470,7 +1470,7 @@ public final class DocumentNodeStore
         Set<String> paths = Sets.newHashSet();
         for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
                 NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE)) {
-            paths.add(Utils.getPathFromId(doc.getId()));
+            paths.add(doc.getPath());
         }
         // also consider nodes with not yet stored modifications (OAK-1107)
         Revision minRev = new Revision(minTimestamp, 0, getClusterId());
