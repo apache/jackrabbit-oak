@@ -33,11 +33,13 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Resets this instance.
      */
+    @Override
     public void resetWriter() {
         needComma = false;
         buff.setLength(0);
     }
 
+    @Override
     public void setLineLength(int length) {
         lineLength = length;
     }
@@ -48,6 +50,7 @@ public class JsopBuilder implements JsopWriter {
      * @param buffer the buffer
      * @return this
      */
+    @Override
     public JsopBuilder append(JsopWriter buffer) {
         appendTag(buffer.toString());
         return this;
@@ -59,6 +62,7 @@ public class JsopBuilder implements JsopWriter {
      * @param tag the string to append
      * @return this
      */
+    @Override
     public JsopBuilder tag(char tag) {
         buff.append(tag);
         needComma = false;
@@ -84,6 +88,7 @@ public class JsopBuilder implements JsopWriter {
      *
      * @return this
      */
+    @Override
     public JsopBuilder newline() {
         buff.append('\n');
         return this;
@@ -94,6 +99,7 @@ public class JsopBuilder implements JsopWriter {
      *
      * @return this
      */
+    @Override
     public JsopBuilder object() {
         optionalCommaAndNewline(1);
         buff.append('{');
@@ -106,6 +112,7 @@ public class JsopBuilder implements JsopWriter {
      *
      * @return this
      */
+    @Override
     public JsopBuilder endObject() {
         if (JSON_NEWLINES) {
             buff.append("\n}");
@@ -121,6 +128,7 @@ public class JsopBuilder implements JsopWriter {
      *
      * @return this
      */
+    @Override
     public JsopBuilder array() {
         optionalCommaAndNewline(1);
         buff.append('[');
@@ -133,6 +141,7 @@ public class JsopBuilder implements JsopWriter {
      *
      * @return this
      */
+    @Override
     public JsopBuilder endArray() {
         buff.append(']');
         needComma = true;
@@ -146,6 +155,7 @@ public class JsopBuilder implements JsopWriter {
      * @param name the key
      * @return this
      */
+    @Override
     public JsopBuilder key(String name) {
         optionalCommaAndNewline(name.length());
         if (JSON_NEWLINES) {
@@ -162,6 +172,7 @@ public class JsopBuilder implements JsopWriter {
      * @param value the value
      * @return this
      */
+    @Override
     public JsopBuilder value(long value) {
         return encodedValue(Long.toString(value));
     }
@@ -173,6 +184,7 @@ public class JsopBuilder implements JsopWriter {
      * @param value the value
      * @return this
      */
+    @Override
     public JsopBuilder value(boolean value) {
         return encodedValue(Boolean.toString(value));
     }
@@ -183,6 +195,7 @@ public class JsopBuilder implements JsopWriter {
      * @param value the value
      * @return this
      */
+    @Override
     public JsopBuilder value(String value) {
         return encodedValue(encode(value));
     }
@@ -193,6 +206,7 @@ public class JsopBuilder implements JsopWriter {
      * @param value the value
      * @return this
      */
+    @Override
     public JsopBuilder encodedValue(String value) {
         optionalCommaAndNewline(value.length());
         buff.append(value);
@@ -216,6 +230,7 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Get the generated string.
      */
+    @Override
     public String toString() {
         return buff.toString();
     }

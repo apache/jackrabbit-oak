@@ -170,9 +170,8 @@ public final class PathUtils {
         Matcher matcher = SNS_PATTERN.matcher(name);
         if (matcher.matches()) {
             return matcher.group(1);
-        } else {
-            return name;
         }
+        return name;
     }
 
     /**

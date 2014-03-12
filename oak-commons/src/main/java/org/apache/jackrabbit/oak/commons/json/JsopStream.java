@@ -28,6 +28,7 @@ public class JsopStream implements JsopReader, JsopWriter {
 
     // write
 
+    @Override
     public JsopStream append(JsopWriter w) {
         JsopStream s = (JsopStream) w;
         for (int i = s.pos; i < s.len; i++) {
@@ -74,12 +75,14 @@ public class JsopStream implements JsopReader, JsopWriter {
         values = v2;
     }
 
+    @Override
     public JsopStream tag(char tag) {
         addToken(tag);
         needComma = false;
         return this;
     }
 
+    @Override
     public JsopStream array() {
         optionalComma();
         addToken('[');
@@ -87,6 +90,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream encodedValue(String raw) {
         optionalComma();
         addToken(COMMENT + addValue(raw));
@@ -94,18 +98,21 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream endArray() {
         addToken(']');
         needComma = true;
         return this;
     }
 
+    @Override
     public JsopStream endObject() {
         addToken('}');
         needComma = true;
         return this;
     }
 
+    @Override
     public JsopStream key(String key) {
         optionalComma();
         addToken(STRING + addValue(key));
@@ -114,11 +121,13 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream newline() {
         addToken('\n');
         return this;
     }
 
+    @Override
     public JsopStream object() {
         optionalComma();
         addToken('{');
@@ -126,6 +135,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream value(String value) {
         optionalComma();
         if (value == null) {
@@ -137,6 +147,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream value(long x) {
         optionalComma();
         addToken(NUMBER + addValue(Long.valueOf(x)));
@@ -144,22 +155,26 @@ public class JsopStream implements JsopReader, JsopWriter {
         return this;
     }
 
+    @Override
     public JsopStream value(boolean b) {
         optionalComma();
         addToken(b ? TRUE : FALSE);
         needComma = true;
         return this;
     }
-
+    
+    @Override
     public void resetReader() {
         pos = 0;
     }
 
+    @Override
     public void resetWriter() {
         needComma = false;
         len = 0;
     }
 
+    @Override
     public void setLineLength(int i) {
         // ignore
     }
@@ -172,6 +187,7 @@ public class JsopStream implements JsopReader, JsopWriter {
 
     // read
 
+    @Override
     public String getToken() {
         int x = tokens[lastPos];
         switch (x & 255) {
@@ -190,10 +206,12 @@ public class JsopStream implements JsopReader, JsopWriter {
         return Character.toString((char) (x & 255));
     }
 
+    @Override
     public int getTokenType() {
         return tokens[lastPos] & 255;
     }
 
+    @Override
     public boolean matches(int type) {
         if (getType() == type) {
             lastPos = pos;
@@ -208,6 +226,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         return tokens[pos] & 255;
     }
 
+    @Override
     public String read(int type) {
         if (matches(type)) {
             return getToken();
@@ -215,6 +234,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         throw new IllegalArgumentException("expected: " + type + " got: " + tokens[pos]);
     }
 
+    @Override
     public int read() {
         int t = getType();
         lastPos = pos++;
@@ -231,6 +251,7 @@ public class JsopStream implements JsopReader, JsopWriter {
         }
     }
 
+    @Override
     public String readRawValue() {
         skipNewline();
         int x = tokens[pos];
@@ -263,10 +284,12 @@ public class JsopStream implements JsopReader, JsopWriter {
         return Character.toString((char) (x & 255));
     }
 
+    @Override
     public String readString() {
         return read(STRING);
     }
 
+    @Override
     public String toString() {
         JsopBuilder buff = new JsopBuilder();
         for (int i = 0; i < len; i++) {

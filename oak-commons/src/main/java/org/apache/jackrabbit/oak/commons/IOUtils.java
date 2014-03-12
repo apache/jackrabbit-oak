@@ -128,7 +128,7 @@ public final class IOUtils {
     public static byte[] readBytes(InputStream in) throws IOException {
         int len = readVarInt(in);
         byte[] data = new byte[len];
-        for (int pos = 0; pos < len; ) {
+        for (int pos = 0; pos < len;) {
             int l = in.read(data, pos, data.length - pos);
             if (l < 0) {
                 throw new EOFException();
@@ -166,7 +166,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7; ; s += 7) {
+        for (int s = 7;; s += 7) {
             int b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -259,7 +259,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7; ; s += 7) {
+        for (int s = 7;; s += 7) {
             long b = in.read();
             if (b < 0) {
                 throw new EOFException();

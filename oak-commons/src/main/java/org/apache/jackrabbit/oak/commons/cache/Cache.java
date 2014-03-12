@@ -30,6 +30,7 @@ public class Cache<K, V extends Cache.Value> {
 
         private static final long serialVersionUID = 1L;
 
+        @Override
         protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
             if (memoryUsed.get() < maxMemoryBytes) {
                 return false;
@@ -102,7 +103,7 @@ public class Cache<K, V extends Cache.Value> {
     /**
      * A cacheable object.
      */
-    public static interface Value {
+    public interface Value {
 
         /**
          * Get the memory required in bytes. The method must always return the
@@ -120,7 +121,7 @@ public class Cache<K, V extends Cache.Value> {
      * @param <K> the key class
      * @param <V> the value class
      */
-    public static interface Backend<K, V> {
+    public interface Backend<K, V> {
 
         /**
          * Load the object. The method does not need to be synchronized
