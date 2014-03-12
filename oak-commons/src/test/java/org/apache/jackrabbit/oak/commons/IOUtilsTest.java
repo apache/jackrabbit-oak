@@ -38,6 +38,7 @@ public class IOUtilsTest extends TestCase {
         final AtomicInteger readCount = new AtomicInteger();
         r.nextBytes(data);
         FilterInputStream in = new FilterInputStream(new ByteArrayInputStream(data)) {
+            @Override
             public int read(byte[] buffer, int off, int max) throws IOException {
                 readCount.incrementAndGet();
                 if (r.nextInt(10) == 0) {
@@ -67,6 +68,7 @@ public class IOUtilsTest extends TestCase {
         byte[] data = new byte[1000];
         r.nextBytes(data);
         FilterInputStream in = new FilterInputStream(new ByteArrayInputStream(data)) {
+            @Override
             public int read(byte[] buffer, int off, int max) throws IOException {
                 return in.read(buffer, off, Math.min(10, max));
             }
@@ -95,6 +97,7 @@ public class IOUtilsTest extends TestCase {
             IOUtils.writeString(out, s);
             byte[] data = out.toByteArray();
             ByteArrayInputStream in = new ByteArrayInputStream(data) {
+                @Override
                 public int read(byte[] b, int off, int len) {
                     if (r.nextBoolean()) {
                         len = r.nextInt(len);

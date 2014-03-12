@@ -26,47 +26,47 @@ public interface JsopReader {
     /**
      * The token type that signals the end of the stream.
      */
-    static final int END = 0;
+    int END = 0;
 
     /**
      * The token type of a string value.
      */
-    public static final int STRING = 1;
+    int STRING = 1;
 
     /**
      * The token type of a number value.
      */
-    public static final int NUMBER = 2;
+    int NUMBER = 2;
 
     /**
      * The token type of the value "true".
      */
-    public static final int TRUE = 3;
+    int TRUE = 3;
 
     /**
      * The token type of the value "false".
      */
-    public static final int FALSE = 4;
+    int FALSE = 4;
 
     /**
      * The token type of "null".
      */
-    public static final int NULL = 5;
+    int NULL = 5;
 
     /**
      * The token type of a parse error.
      */
-    public static final int ERROR = 6;
+    int ERROR = 6;
 
     /**
      * The token type of an identifier (an unquoted string), if supported by the reader.
      */
-    public static final int IDENTIFIER = 7;
+    int IDENTIFIER = 7;
 
     /**
      * The token type of a comment, if supported by the reader.
      */
-    public static final int COMMENT = 8;
+    int COMMENT = 8;
 
     /**
      * Read a token which must match a given token type.

@@ -47,11 +47,13 @@ public class JsopTokenizer implements JsopReader {
         this(json, 0);
     }
 
+    @Override
     public void resetReader() {
         pos = 0;
         read();
     }
 
+    @Override
     public String toString() {
         return jsop;
     }
@@ -61,6 +63,7 @@ public class JsopTokenizer implements JsopReader {
      *
      * @return the token type
      */
+    @Override
     public int getTokenType() {
         return lastType;
     }
@@ -72,6 +75,7 @@ public class JsopTokenizer implements JsopReader {
      *
      * @return the token
      */
+    @Override
     public String getToken() {
         if (lastType > COMMENT) {
             return String.valueOf((char) lastType);
@@ -95,6 +99,7 @@ public class JsopTokenizer implements JsopReader {
      * @return the token (a null object when reading a null value)
      * @throws IllegalStateException if the token type doesn't match
      */
+    @Override
     public String read(int type) {
         if (matches(type)) {
             return getToken();
@@ -114,6 +119,7 @@ public class JsopTokenizer implements JsopReader {
      * @return the de-escaped string
      * @throws IllegalStateException if the token type doesn't match
      */
+    @Override
     public String readString() {
         return read(STRING);
     }
@@ -124,6 +130,7 @@ public class JsopTokenizer implements JsopReader {
      * @param type the token type
      * @return true if there was a match
      */
+    @Override
     public boolean matches(int type) {
         if (currentType == type) {
             read();
@@ -137,6 +144,7 @@ public class JsopTokenizer implements JsopReader {
      *
      * @return the token type
      */
+    @Override
     public int read() {
         lastPos = pos;
         lastType = currentType;
@@ -391,6 +399,7 @@ public class JsopTokenizer implements JsopReader {
      *
      * @return the Json representation of the value
      */
+    @Override
     public String readRawValue() {
         int start = lastPos;
         while (start < length && jsop.charAt(start) <= ' ') {

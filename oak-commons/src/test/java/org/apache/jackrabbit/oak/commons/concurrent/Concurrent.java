@@ -26,8 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Concurrent {
 
-    private static final boolean PROFILE = false;
-
     private Concurrent() {
     }
 
