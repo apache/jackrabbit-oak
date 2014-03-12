@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -26,6 +25,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.core.data.MultiDataStore;
 import org.apache.jackrabbit.core.data.db.DbDataStore;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
@@ -62,7 +62,7 @@ public class DataStoreBlobStoreBuilder implements BlobStoreBuilder {
         DataStore store = getDataStore(configuration);
         if (store != null) {
             blobStore = new DataStoreBlobStore();
-            BeanUtils.populate(blobStore, configuration.getConfigMap());
+            PropertiesUtil.populate(blobStore, configuration.getConfigMap(), false);
             ((DataStoreBlobStore) blobStore).init(store);
         }
         return Optional.fromNullable(blobStore);
@@ -71,22 +71,20 @@ public class DataStoreBlobStoreBuilder implements BlobStoreBuilder {
     /**
      * Gets the data store based on the DataStoreProvider.
      * 
-     * @param dataStoreConfig
+     * @param config
      *            the data store config
-     * @param dataStoreType
-     *            the data store type
      * @return the data store
      * @throws RepositoryException
      *             the repository exception
      */
     private DataStore getDataStore(BlobStoreConfiguration config) throws Exception {
         return getDataStore(
-                (String) config.getProperty(BlobStoreConfiguration.PROP_DATA_STORE), config);
+                 config.getProperty(BlobStoreConfiguration.PROP_DATA_STORE), config);
     }
 
     private DataStore getDataStore(String dataStoreType, BlobStoreConfiguration config) throws Exception {
         DataStore dataStore = (DataStore) Class.forName(dataStoreType).newInstance();
-        BeanUtils.populate(dataStore, config.getConfigMap());
+        PropertiesUtil.populate(dataStore, config.getConfigMap(), false);
 
         if (dataStore instanceof DbDataStore) {
             ((DbDataStore) dataStore)
@@ -130,7 +128,7 @@ public class DataStoreBlobStoreBuilder implements BlobStoreBuilder {
             }
         };
 
-        BeanUtils.populate(cachingStore, config.getConfigMap());
+        PropertiesUtil.populate(cachingStore, config.getConfigMap(), false);
         cachingStore.init(null);
 
         return cachingStore;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob.cloud;
 
-import org.apache.commons.beanutils.BeanUtils;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
@@ -52,7 +52,7 @@ public class CloudBlobStoreBuilder implements BlobStoreBuilder {
         BlobStore blobStore = null;
 
         blobStore = new CloudBlobStore();
-        BeanUtils.populate(blobStore, configuration.getConfigMap());
+        PropertiesUtil.populate(blobStore, configuration.getConfigMap(), false);
         ((CloudBlobStore) blobStore).init();
 
         return Optional.of(blobStore);
