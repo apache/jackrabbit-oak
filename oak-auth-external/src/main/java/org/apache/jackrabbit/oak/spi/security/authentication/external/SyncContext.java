@@ -34,6 +34,16 @@ public interface SyncContext {
     boolean sync(@Nonnull ExternalIdentity identity) throws SyncException;
 
     /**
+     * Synchronizes an authorizable with the corresponding external identity with the repository based on the respective
+     * configuration.
+     *
+     * @param id the id of the authorizable
+     * @return {@code true} if the given identity was synced; {@code false} for no change.
+     * @throws SyncException if an error occurrs
+     */
+    boolean sync(@Nonnull String id) throws SyncException;
+
+    /**
      * Closes this context and releases any resources bound to it. Note that an implementation must not commit the
      * {@link org.apache.jackrabbit.oak.api.Root} passed during the creation call. This is the responsibility of the
      * application.

@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -55,4 +57,12 @@ public interface SyncHandler {
                               @Nonnull UserManager userManager,
                               @Nonnull Root root) throws SyncException;
 
+    /**
+     * Tries to find the identity with the given authorizable id or name.
+     * @param userManager the user manager
+     * @param id the id or name of the authorizable
+     * @return a synced identity object or {@code null}
+     */
+    @CheckForNull
+    SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id) throws RepositoryException;
 }
