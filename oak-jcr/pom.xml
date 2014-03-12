@@ -147,6 +147,9 @@
 
       <!-- RDB persistence -->
       org.apache.jackrabbit.core.query.QueryResultTest#testGetSize <!-- OAK-1355 -->
+
+      org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShareableMixin <!-- OAK-1532 -->
+
     </known.issues>
   </properties>
 
