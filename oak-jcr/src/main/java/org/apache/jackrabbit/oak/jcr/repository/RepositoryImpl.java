@@ -83,6 +83,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final ContentRepository contentRepository;
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
+    private final int observationQueueLength;
 
     private final Clock clock;
 
@@ -105,10 +106,12 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
-                          @Nonnull SecurityProvider securityProvider) {
+                          @Nonnull SecurityProvider securityProvider,
+                          int observationQueueLength) {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
+        this.observationQueueLength = observationQueueLength;
         this.descriptors = determineDescriptors();
         this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
         this.clock = new Clock.Fast(scheduledExecutor);
@@ -238,7 +241,8 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
             SessionContext context = createSessionContext(
-                    statisticManager, securityProvider, createAttributes(refreshInterval), sessionDelegate);
+                    statisticManager, securityProvider, createAttributes(refreshInterval),
+                    sessionDelegate, observationQueueLength);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -294,8 +298,9 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     protected SessionContext createSessionContext(
             StatisticManager statisticManager, SecurityProvider securityProvider,
-            Map<String, Object> attributes, SessionDelegate delegate) {
-        return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes, delegate);
+            Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength) {
+        return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
+                delegate, observationQueueLength);
     }
 
     /**

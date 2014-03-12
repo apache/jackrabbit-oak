@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.jcr.observation;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -43,13 +45,15 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
+import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,9 +77,9 @@ class ChangeProcessor implements Observer {
     private final AtomicReference<FilterProvider> filterProvider;
     private final AtomicLong eventCount;
     private final AtomicLong eventDuration;
+    private final int queueLength;
 
-    private Registration observerSubscription;
-    private Registration mBeanSubscription;
+    private CompositeRegistration registration;
     private NodeState previousRoot;
 
     public ChangeProcessor(
@@ -84,7 +88,8 @@ class ChangeProcessor implements Observer {
             PermissionProvider permissionProvider,
             ListenerTracker tracker,
             FilterProvider filter,
-            StatisticManager statisticManager) {
+            StatisticManager statisticManager,
+            int queueLength) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.permissionProvider = permissionProvider;
@@ -93,6 +98,7 @@ class ChangeProcessor implements Observer {
         filterProvider = new AtomicReference<FilterProvider>(filter);
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
+        this.queueLength = queueLength;
     }
 
     /**
@@ -110,10 +116,19 @@ class ChangeProcessor implements Observer {
      * @throws IllegalStateException if started already
      */
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(observerSubscription == null, "Change processor started already");
-        observerSubscription = WhiteboardUtils.registerObserver(whiteboard, this);
-        mBeanSubscription = WhiteboardUtils.registerMBean(whiteboard, EventListenerMBean.class,
-                tracker.getListenerMBean(), "EventListener", tracker.toString());
+        checkState(registration == null, "Change processor started already");
+        final WhiteboardExecutor executor = new WhiteboardExecutor();
+        executor.start(whiteboard);
+        registration = new CompositeRegistration(
+            registerObserver(whiteboard, new BackgroundObserver(this, executor, queueLength)),
+            registerMBean(whiteboard, EventListenerMBean.class,
+                    tracker.getListenerMBean(), "EventListener", tracker.toString()),
+            new Registration() {
+        @Override
+        public void unregister() {
+            executor.stop();
+        }
+    });
     }
 
     private final Monitor runningMonitor = new Monitor();
@@ -133,11 +148,10 @@ class ChangeProcessor implements Observer {
      * @throws IllegalStateException if not yet started or stopped already
      */
     public synchronized boolean stopAndWait(int timeOut, TimeUnit unit) {
-        checkState(observerSubscription != null, "Change processor not started");
+        checkState(registration != null, "Change processor not started");
         running.stop();
         if (runningMonitor.enter(timeOut, unit)) {
-            mBeanSubscription.unregister();
-            observerSubscription.unregister();
+            registration.unregister();
             runningMonitor.leave();
             return true;
         } else {
@@ -152,10 +166,9 @@ class ChangeProcessor implements Observer {
      * complete.
      */
     public synchronized void stop() {
-        checkState(observerSubscription != null, "Change processor not started");
+        checkState(registration != null, "Change processor not started");
         running.stop();
-        mBeanSubscription.unregister();
-        observerSubscription.unregister();
+        registration.unregister();
         runningMonitor.leave();
     }
 
