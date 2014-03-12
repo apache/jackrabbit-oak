@@ -76,13 +76,13 @@ public class ExternalSort {
     public static void sort(File input, File output) throws IOException {
         ExternalSort.mergeSortedFiles(ExternalSort.sortInBatch(input), output);
     }
-
-    static int DEFAULTMAXTEMPFILES = 1024;
+    
+    static final int DEFAULTMAXTEMPFILES = 1024;
     
     /**
     * Defines the default maximum memory to be used while sorting (8 MB)
     */
-    static long DEFAULT_MAX_MEM_BYTES = 8388608L;
+    static final long DEFAULT_MAX_MEM_BYTES = 8388608L;
     
     // we divide the file into small blocks. If the blocks
     // are too small, we shall create too many temporary files.
@@ -117,8 +117,6 @@ public class ExternalSort {
      * 
      * @param file
      *            some flat file
-     * @param cmp
-     *            string comparator
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file)
@@ -172,7 +170,7 @@ public class ExternalSort {
      *            string comparator
      * @param maxtmpfiles
      *            maximal number of temporary files
-     * @param Charset
+     * @param cs
      *            character set to use (can use Charset.defaultCharset())
      * @param tmpdirectory
      *            location of the temporary files (set to null for default location)
@@ -190,8 +188,8 @@ public class ExternalSort {
         List<File> files = new ArrayList<File>();
         BufferedReader fbr = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), cs));
-        long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);// in
-                                                                                // bytes
+        // in bytes
+        long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);
 
         try {
             List<String> tmplist = new ArrayList<String>();
@@ -199,7 +197,8 @@ public class ExternalSort {
             try {
                 int counter = 0;
                 while (line != null) {
-                    long currentblocksize = 0;// in bytes
+                    // in bytes
+                    long currentblocksize = 0;
                     while ((currentblocksize < blocksize)
                             && ((line = fbr.readLine()) != null)) {
                         // as long as you have enough memory
@@ -243,7 +242,7 @@ public class ExternalSort {
      *            string comparator
      * @param maxtmpfiles
      *            maximal number of temporary files
-     * @param Charset
+     * @param cs
      *            character set to use (can use Charset.defaultCharset())
      * @param tmpdirectory
      *            location of the temporary files (set to null for default location)
@@ -281,13 +280,14 @@ public class ExternalSort {
                 "flatfile", tmpdirectory);
         newtmpfile.deleteOnExit();
         OutputStream out = new FileOutputStream(newtmpfile);
-        int ZIPBUFFERSIZE = 2048;
-        if (usegzip)
-            out = new GZIPOutputStream(out, ZIPBUFFERSIZE) {
+        int zipBufferSize = 2048;
+        if (usegzip) {
+            out = new GZIPOutputStream(out, zipBufferSize) {
                 {
                     def.setLevel(Deflater.BEST_SPEED);
                 }
             };
+        }
         BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(
                 out, cs));
         String lastLine = null;
@@ -329,7 +329,7 @@ public class ExternalSort {
      * This merges a bunch of temporary flat files
      * 
      * @param files
-     * @param output
+     * @param outputfile
      *            file
      * @return The number of lines sorted. (P. Beaudoin)
      */
@@ -342,7 +342,7 @@ public class ExternalSort {
      * This merges a bunch of temporary flat files
      * 
      * @param files
-     * @param output
+     * @param outputfile
      *            file
      * @return The number of lines sorted. (P. Beaudoin)
      */
@@ -356,7 +356,7 @@ public class ExternalSort {
      * This merges a bunch of temporary flat files
      * 
      * @param files
-     * @param output
+     * @param outputfile
      *            file
      * @return The number of lines sorted. (P. Beaudoin)
      */
@@ -372,8 +372,6 @@ public class ExternalSort {
      * 
      * @param files
      *            The {@link List} of sorted {@link File}s to be merged.
-     * @param Charset
-     *            character set to use to load the strings
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
      * @param outputfile
@@ -393,22 +391,14 @@ public class ExternalSort {
     public static int mergeSortedFiles(List<File> files, File outputfile,
             final Comparator<String> cmp, Charset cs, boolean distinct,
             boolean append, boolean usegzip) throws IOException {
-        PriorityQueue<BinaryFileBuffer> pq = new PriorityQueue<BinaryFileBuffer>(
-                11, new Comparator<BinaryFileBuffer>() {
-                    @Override
-                    public int compare(BinaryFileBuffer i,
-                            BinaryFileBuffer j) {
-                        return cmp.compare(i.peek(), j.peek());
-                    }
-                });
         ArrayList<BinaryFileBuffer> bfbs = new ArrayList<BinaryFileBuffer>();
         for (File f : files) {
-            final int BUFFERSIZE = 2048;
+            final int bufferSize = 2048;
             InputStream in = new FileInputStream(f);
             BufferedReader br;
             if (usegzip) {
                 br = new BufferedReader(new InputStreamReader(
-                        new GZIPInputStream(in, BUFFERSIZE), cs));
+                        new GZIPInputStream(in, bufferSize), cs));
             } else {
                 br = new BufferedReader(new InputStreamReader(in,
                         cs));
@@ -420,15 +410,16 @@ public class ExternalSort {
         BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(outputfile, append), cs));
         int rowcounter = merge(fbw, cmp, distinct, bfbs);
-        for (File f : files)
+        for (File f : files) {
             f.delete();
+        }
         return rowcounter;
     }
 
     /**
      * This merges several BinaryFileBuffer to an output writer.
      * 
-     * @param BufferedWriter
+     * @param fbw
      *            A buffer where we write the data.
      * @param cmp
      *            A comparator object that tells us how to sort the lines.
@@ -449,9 +440,11 @@ public class ExternalSort {
                         return cmp.compare(i.peek(), j.peek());
                     }
                 });
-        for (BinaryFileBuffer bfb : buffers)
-            if (!bfb.empty())
+        for (BinaryFileBuffer bfb : buffers) {
+            if (!bfb.empty()) {
                 pq.add(bfb);
+            }
+        }
         int rowcounter = 0;
         String lastLine = null;
         try {
@@ -473,8 +466,9 @@ public class ExternalSort {
             }
         } finally {
             fbw.close();
-            for (BinaryFileBuffer bfb : pq)
+            for (BinaryFileBuffer bfb : pq) {
                 bfb.close();
+            }
         }
         return rowcounter;
 
@@ -485,8 +479,6 @@ public class ExternalSort {
      * 
      * @param files
      *            The {@link List} of sorted {@link File}s to be merged.
-     * @param Charset
-     *            character set to use to load the strings
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded. (elchetz@gmail.com)
      * @param outputfile
@@ -509,9 +501,9 @@ public class ExternalSort {
      * This merges a bunch of temporary flat files
      * 
      * @param files
-     * @param output
+     * @param outputfile
      *            file
-     * @param Charset
+     * @param cs
      *            character set to use to load the strings
      * @return The number of lines sorted. (P. Beaudoin)
      */
@@ -555,12 +547,12 @@ public class ExternalSort {
             if (args[param].equals("-v")
                     || args[param].equals("--verbose")) {
                 verbose = true;
-            } else if ((args[param].equals("-h") || args[param]
-                    .equals("--help"))) {
+            } else if (args[param].equals("-h") || args[param]
+                    .equals("--help")) {
                 displayUsage();
                 return;
-            } else if ((args[param].equals("-d") || args[param]
-                    .equals("--distinct"))) {
+            } else if (args[param].equals("-d") || args[param]
+                    .equals("--distinct")) {
                 distinct = true;
             } else if ((args[param].equals("-t") || args[param]
                     .equals("--maxtmpfiles"))
@@ -585,8 +577,8 @@ public class ExternalSort {
                     && args.length > param + 1) {
                 param++;
                 cs = Charset.forName(args[param]);
-            } else if ((args[param].equals("-z") || args[param]
-                    .equals("--gzip"))) {
+            } else if (args[param].equals("-z") || args[param]
+                    .equals("--gzip")) {
                 usegzip = true;
             } else if ((args[param].equals("-H") || args[param]
                     .equals("--header")) && args.length > param + 1) {
@@ -601,13 +593,14 @@ public class ExternalSort {
                 param++;
                 tempFileStore = new File(args[param]);
             } else {
-                if (inputfile == null)
+                if (inputfile == null) {
                     inputfile = args[param];
-                else if (outputfile == null)
+                } else if (outputfile == null) {
                     outputfile = args[param];
-                else
+                } else {
                     System.out.println("Unparsed: "
                             + args[param]);
+                }
             }
         }
         if (outputfile == null) {
@@ -620,9 +613,10 @@ public class ExternalSort {
         List<File> l = sortInBatch(new File(inputfile), comparator,
                 maxtmpfiles, maxMemory, cs, tempFileStore, distinct, headersize,
                 usegzip);
-        if (verbose)
+        if (verbose) {
             System.out
                     .println("created " + l.size() + " tmp files");
+        }
         mergeSortedFiles(l, new File(outputfile), comparator, cs,
                 distinct, false, usegzip);
     }
@@ -670,8 +664,9 @@ class BinaryFileBuffer {
     }
 
     public String peek() {
-        if (empty())
+        if (empty()) {
             return null;
+        }
         return this.cache.toString();
     }
 
