@@ -35,8 +35,9 @@ public class OsgiRepository extends RepositoryImpl {
 
     public OsgiRepository(ContentRepository repository,
                           Whiteboard whiteboard,
-                          SecurityProvider securityProvider) {
-        super(repository, whiteboard, securityProvider);
+                          SecurityProvider securityProvider,
+                          int observationQueueLength) {
+        super(repository, whiteboard, securityProvider, observationQueueLength);
     }
 
     @Override

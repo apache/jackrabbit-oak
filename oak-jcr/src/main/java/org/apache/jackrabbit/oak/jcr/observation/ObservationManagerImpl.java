@@ -76,6 +76,7 @@ public class ObservationManagerImpl implements ObservationManager {
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
     private final StatisticManager statisticManager;
+    private final int queueLength;
 
     /**
      * Create a new instance based on a {@link ContentSession} that needs to implement
@@ -89,15 +90,16 @@ public class ObservationManagerImpl implements ObservationManager {
      */
     public ObservationManagerImpl(
             SessionContext sessionContext, ReadOnlyNodeTypeManager nodeTypeManager,
-            PermissionProvider permissionProvider,
-            Whiteboard whiteboard) {
+            PermissionProvider permissionProvider, Whiteboard whiteboard,
+            int queueLength) {
 
         this.sessionDelegate = sessionContext.getSessionDelegate();
         this.ntMgr = nodeTypeManager;
         this.permissionProvider = permissionProvider;
         this.namePathMapper = sessionContext;
         this.whiteboard = whiteboard;
-        statisticManager = sessionContext.getStatisticManager();
+        this.statisticManager = sessionContext.getStatisticManager();
+        this.queueLength = queueLength;
     }
 
     public void dispose() {
@@ -120,7 +122,7 @@ public class ObservationManagerImpl implements ObservationManager {
             LOG.debug(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    permissionProvider, tracker, filterProvider, statisticManager);
+                    permissionProvider, tracker, filterProvider, statisticManager, queueLength);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {

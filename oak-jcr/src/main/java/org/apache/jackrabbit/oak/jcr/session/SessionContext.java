@@ -87,6 +87,7 @@ public class SessionContext implements NamePathMapper {
     private final Whiteboard whiteboard;
     private final Map<String, Object> attributes;
     private final SessionDelegate delegate;
+    private final int observationQueueLength;
 
     private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
@@ -112,13 +113,15 @@ public class SessionContext implements NamePathMapper {
     public SessionContext(
             @Nonnull Repository repository, @Nonnull StatisticManager statisticManager,
             @Nonnull SecurityProvider securityProvider, @Nonnull Whiteboard whiteboard,
-            @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate) {
+            @Nonnull Map<String, Object> attributes, @Nonnull final SessionDelegate delegate,
+            int observationQueueLength) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
         this.whiteboard = checkNotNull(whiteboard);
         this.attributes = checkNotNull(attributes);
         this.delegate = checkNotNull(delegate);
+        this.observationQueueLength = observationQueueLength;
         SessionStats sessionStats = delegate.getSessionStats();
         sessionStats.setAttributes(attributes);
 
@@ -264,8 +267,7 @@ public class SessionContext implements NamePathMapper {
             observationManager = new ObservationManagerImpl(
                 this,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
-                getPermissionProvider(),
-                whiteboard);
+                getPermissionProvider(), whiteboard, observationQueueLength);
         }
         return observationManager;
     }

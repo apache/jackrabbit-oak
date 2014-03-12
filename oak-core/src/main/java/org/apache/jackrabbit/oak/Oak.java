@@ -21,6 +21,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -56,7 +57,6 @@ import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -221,10 +221,7 @@ public class Oak {
                     }
                 }
             } else if (type == Observer.class && store instanceof Observable) {
-                BackgroundObserver backgroundObserver =
-                        new BackgroundObserver((Observer) service, executor);
-                observerSubscription.register(backgroundObserver);
-                observerSubscription.register(((Observable) store).addObserver(backgroundObserver));
+                observerSubscription.register(((Observable) store).addObserver((Observer) service));
             }
 
             ObjectName objectName = null;
@@ -475,6 +472,8 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        whiteboard.register(Executor.class, executor, Collections.emptyMap());
+
         IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
 

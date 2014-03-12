@@ -54,10 +54,12 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class Jcr {
+    private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
 
     private final Oak oak;
 
     private SecurityProvider securityProvider;
+    private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
 
     public Jcr(Oak oak) {
         this.oak = oak;
@@ -160,8 +162,15 @@ public class Jcr {
         return this;
     }
 
+    @Nonnull
     public Jcr withAsyncIndexing() {
         oak.withAsyncIndexing();
+        return this;
+    }
+
+    @Nonnull
+    public Jcr withObservationQueueLength(int observationQueueLength) {
+        this.observationQueueLength = observationQueueLength;
         return this;
     }
 
@@ -169,7 +178,8 @@ public class Jcr {
         return new RepositoryImpl(
                 oak.createContentRepository(), 
                 oak.getWhiteboard(),
-                securityProvider);
+                securityProvider,
+                observationQueueLength);
     }
 
 }
