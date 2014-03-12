@@ -102,7 +102,7 @@ class Collision {
     private static boolean markCommitRoot(@Nonnull NodeDocument document,
                                           @Nonnull Revision revision,
                                           @Nonnull DocumentStore store) {
-        String p = Utils.getPathFromId(document.getId());
+        String p = document.getPath();
         String commitRootPath = null;
         // first check if we can mark the commit with the given revision
         if (document.containsRevision(revision)) {
