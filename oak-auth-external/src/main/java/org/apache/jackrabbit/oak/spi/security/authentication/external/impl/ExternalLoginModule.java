@@ -21,7 +21,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContex
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
@@ -162,7 +165,28 @@ public class ExternalLoginModule extends AbstractLoginModule {
             return false;
         }
 
+        // remember userID as we need this so often
+        final String userId = credentials instanceof SimpleCredentials ? ((SimpleCredentials) credentials).getUserID() : null;
         try {
+            SyncedIdentity sId = null;
+            if (userId != null) {
+                sId = syncHandler.findIdentity(getUserManager(), userId);
+                // if there exists an authorizable with the given userid but is not an external one or if it belongs to
+                // another IDP, we just ignore it.
+                if (sId != null) {
+                    if (sId.getExternalIdRef() == null) {
+                        log.debug("ignoring local user: {}", sId.getId());
+                        return false;
+                    }
+                    if (!sId.getExternalIdRef().getProviderName().equals(idp.getName())) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("ignoring foreign identity: {} (idp={})", sId.getExternalIdRef().getString(), idp.getName());
+                        }
+                        return false;
+                    }
+                }
+            }
+
             externalUser = idp.authenticate(credentials);
             if (externalUser != null) {
                 log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
@@ -178,26 +202,38 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 return true;
             } else {
                 if (log.isDebugEnabled()) {
-                    if (credentials instanceof SimpleCredentials) {
-                        log.debug("IDP {} returned null for simple creds of {}", idp.getName(), ((SimpleCredentials) credentials).getUserID());
+                    if (userId != null) {
+                        log.debug("IDP {} returned null for simple creds of {}", idp.getName(), userId);
                     } else {
                         log.debug("IDP {} returned null for {}", idp.getName(), credentials);
                     }
                 }
+
+                if (sId != null) {
+                    // invalidate the user if it exists as synced variant
+                    log.debug("local user exists for '{}'. re-validating.", sId.getId());
+                    validateUser(sId.getId());
+                }
+                return false;
             }
         } catch (ExternalIdentityException e) {
-            log.error("Error while authenticating credentials {} with {}", new Object[]{credentials, idp.getName(), e});
+            log.error("Error while authenticating '{}' with {}", new Object[]{
+                    userId == null ? credentials : userId, idp.getName(), e
+            });
             return false;
         } catch (LoginException e) {
-            log.debug("IDP {} throws login exception for {}", new Object[] {idp.getName(), credentials, e});
+            log.debug("IDP {} throws login exception for '{}': {}", new Object[] {
+                    idp.getName(), userId == null ? credentials : userId, e.getMessage()
+            });
             throw e;
-        } catch (SyncException e) {
-            log.debug("SyncHandler {} throws sync exception for {}", new Object[] {idp.getName(), credentials, e});
+        } catch (Exception e) {
+            log.debug("SyncHandler {} throws sync exception for '{}'", new Object[] {
+                    syncHandler.getName(), userId == null ? credentials : userId, e
+            });
             LoginException le = new LoginException("Error while syncing user.");
             le.initCause(e);
             throw le;
         }
-        return false;
     }
 
     @Override
@@ -231,7 +267,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * @param user the external user
      * @throws SyncException if an error occurs
      */
-    private void syncUser(ExternalUser user) throws SyncException {
+    private void syncUser(@Nonnull ExternalUser user) throws SyncException {
         SyncContext context = null;
         try {
             Root root = getRoot();
@@ -242,9 +278,15 @@ public class ExternalLoginModule extends AbstractLoginModule {
             if (userManager == null) {
                 throw new SyncException("Cannot synchronize user. userManager == null");
             }
+            DebugTimer timer = new DebugTimer();
             context = syncHandler.createContext(idp, userManager, root);
             context.sync(user);
+            timer.mark("sync");
             root.commit();
+            timer.mark("commit");
+            if (log.isDebugEnabled()) {
+                log.debug("syncUser({}) {}", user.getId(), timer.getString());
+            }
         } catch (CommitFailedException e) {
             throw new SyncException("User synchronization failed during commit.", e);
         } finally {
@@ -254,6 +296,39 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
     }
 
+    /**
+     * Initiates synchronization of a possible remove user
+     * @param id the user id
+     */
+    private void validateUser(@Nonnull String id) throws SyncException {
+        SyncContext context = null;
+        try {
+            Root root = getRoot();
+            if (root == null) {
+                throw new SyncException("Cannot synchronize user. root == null");
+            }
+            UserManager userManager = getUserManager();
+            if (userManager == null) {
+                throw new SyncException("Cannot synchronize user. userManager == null");
+            }
+            DebugTimer timer = new DebugTimer();
+            context = syncHandler.createContext(idp, userManager, root);
+            context.sync(id);
+            timer.mark("sync");
+            root.commit();
+            timer.mark("commit");
+            if (log.isDebugEnabled()) {
+                log.debug("validateUser({}) {}", id, timer.getString());
+            }
+        } catch (CommitFailedException e) {
+            throw new SyncException("User synchronization failed during commit.", e);
+        } finally {
+            if (context != null) {
+                context.close();
+            }
+        }
+
+    }
     //------------------------------------------------< AbstractLoginModule >---
 
     @Override

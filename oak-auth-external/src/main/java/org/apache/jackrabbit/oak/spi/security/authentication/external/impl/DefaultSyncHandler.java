@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,12 +119,18 @@ public class DefaultSyncHandler implements SyncHandler {
         config = DefaultSyncConfig.of(cfg);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     public String getName() {
         return config.getName();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull Root root)
@@ -131,6 +138,28 @@ public class DefaultSyncHandler implements SyncHandler {
         return new ContextImpl(idp, userManager, root);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id)
+            throws RepositoryException {
+        Authorizable auth = userManager.getAuthorizable(id);
+        if (auth == null) {
+            return null;
+        }
+        ExternalIdentityRef ref = getIdentityRef(auth);
+        Value[] lmValues = auth.getProperty(REP_LAST_SYNCED);
+        long lastModified = -1;
+        if (lmValues != null && lmValues.length > 0) {
+            lastModified = lmValues[0].getLong();
+        }
+        return new SyncedIdentityImpl(id, ref, auth.isGroup(), lastModified);
+    }
+
+    /**
+     * Internal implementation of the sync context
+     */
     private class ContextImpl implements SyncContext {
 
         private final ExternalIdentityProvider idp;
@@ -192,10 +221,72 @@ public class DefaultSyncHandler implements SyncHandler {
                     throw new IllegalArgumentException("identity must be user or group but was: " + identity);
                 }
                 if (log.isDebugEnabled()) {
-                    log.debug("sync({}) {}", identity.getId(), timer.getString());
+                    log.debug("sync({}) -> {} {}", new Object[]{
+                            identity.getExternalId().getString(), identity.getId(), timer.getString()
+                    });
                 }
                 return ret;
             } catch (RepositoryException e) {
+                throw new SyncException(e);
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean sync(@Nonnull String id) throws SyncException {
+            try {
+                DebugTimer timer = new DebugTimer();
+                boolean ret = false;
+                // find authorizable
+                Authorizable auth = userManager.getAuthorizable(id);
+                if (auth == null) {
+                    return false;
+                }
+                // check if we need to deal with this authorizable
+                ExternalIdentityRef ref = getIdentityRef(auth);
+                if (ref == null || !idp.getName().equals(ref.getProviderName())) {
+                    return false;
+                }
+
+                if (auth instanceof Group) {
+                    Group group = (Group) auth;
+                    ExternalGroup external = idp.getGroup(id);
+                    timer.mark("retrieve");
+                    if (external == null) {
+                        if (group.getDeclaredMembers().hasNext()) {
+                            log.info("won't remove local group with members: {}", id);
+                        } else {
+                            auth.remove();
+                            log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+                            timer.mark("remove");
+                            ret = true;
+                        }
+                    } else {
+                        ret = syncGroup(external, group);
+                        timer.mark("sync");
+                    }
+                } else {
+                    ExternalUser external = idp.getUser(id);
+                    timer.mark("retrieve");
+                    if (external == null) {
+                        auth.remove();
+                        log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+                        timer.mark("remove");
+                        ret = true;
+                    } else {
+                        ret = syncUser(external, (User) auth);
+                        timer.mark("sync");
+                    }
+                }
+                if (log.isDebugEnabled()) {
+                    log.debug("sync({}) -> {} {}", new Object[]{id, ref.getString(), timer.getString()});
+                }
+                return ret;
+            } catch (RepositoryException e) {
+                throw new SyncException(e);
+            } catch (ExternalIdentityException e) {
                 throw new SyncException(e);
             }
         }
@@ -346,7 +437,7 @@ public class DefaultSyncHandler implements SyncHandler {
                     declaredExternalGroups.put(grp.getID(), grp);
                 }
             }
-            timer.mark("existing");
+            timer.mark("reading");
 
             for (ExternalIdentityRef ref: externalGroups) {
                 log.debug("- processing membership {}", ref.getId());
@@ -564,17 +655,28 @@ public class DefaultSyncHandler implements SyncHandler {
          * @return {@code true} if same IDP.
          */
         private boolean isSameIDP(@Nullable Authorizable auth) throws RepositoryException {
-            if (auth == null) {
-                return false;
-            }
-            Value[] v = auth.getProperty(REP_EXTERNAL_ID);
-            if (v == null || v.length == 0) {
-                return false;
-            }
-            ExternalIdentityRef ref = ExternalIdentityRef.fromString(v[0].getString());
-            return idp.getName().equals(ref.getProviderName());
+            ExternalIdentityRef ref = getIdentityRef(auth);
+            return ref != null && idp.getName().equals(ref.getProviderName());
         }
 
+    }
+
+    /**
+     * Retrieves the external identity ref from the authorizable
+     * @param auth the authorizable
+     * @return the ref
+     * @throws RepositoryException if an error occurs
+     */
+    @CheckForNull
+    private static ExternalIdentityRef getIdentityRef(@Nullable Authorizable auth) throws RepositoryException {
+        if (auth == null) {
+            return null;
+        }
+        Value[] v = auth.getProperty(REP_EXTERNAL_ID);
+        if (v == null || v.length == 0) {
+            return null;
+        }
+        return ExternalIdentityRef.fromString(v[0].getString());
     }
 
     /**
@@ -603,5 +705,44 @@ public class DefaultSyncHandler implements SyncHandler {
             }
         }
         return result.length() == 0 ? null : result.toString();
+    }
+
+    private static class SyncedIdentityImpl implements SyncedIdentity {
+
+        private final String id;
+
+        private final ExternalIdentityRef ref;
+
+        private final boolean isGroup;
+
+        private final long lastSynced;
+
+        private SyncedIdentityImpl(String id, ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
+            this.id = id;
+            this.ref = ref;
+            this.isGroup = isGroup;
+            this.lastSynced = lastSynced;
+        }
+
+        @Nonnull
+        @Override
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        public ExternalIdentityRef getExternalIdRef() {
+            return ref;
+        }
+
+        @Override
+        public boolean isGroup() {
+            return false;
+        }
+
+        @Override
+        public long lastSynced() {
+            return lastSynced;
+        }
     }
 }
