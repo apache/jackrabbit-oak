@@ -26,6 +26,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -40,12 +41,16 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for {@code Observer} instances that group changes
  * by node instead of tracking them down to individual properties.
  */
 public abstract class NodeObserver implements Observer {
+    private static final Logger LOG = LoggerFactory.getLogger(NodeObserver.class);
+
     private final String path;
     private final Set<String> propertyNames = Sets.newHashSet();
 
@@ -114,28 +119,37 @@ public abstract class NodeObserver implements Observer {
 
     @Override
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
-        if (previousRoot != null) {
-            NamePathMapper namePathMapper = new NamePathMapperImpl(
-                    new GlobalNameMapper(new ImmutableRoot(root)));
+        try {
+            if (previousRoot != null) {
+                NamePathMapper namePathMapper = new NamePathMapperImpl(
+                        new GlobalNameMapper(new ImmutableRoot(root)));
 
-            NodeState before = previousRoot;
-            NodeState after = root;
-            EventHandler handler = new FilteredHandler(
-                    new VisibleFilter(),
-                    new NodeEventHandler("/", info, namePathMapper));
-            for (String name : PathUtils.elements(path)) {
-                before = before.getChildNode(name);
-                after = after.getChildNode(name);
-                handler = handler.getChildHandler(name, before, after);
+                Set<String> oakPropertyNames = Sets.newHashSet();
+                for (String name : propertyNames) {
+                    oakPropertyNames.add(namePathMapper.getJcrName(name));
+                }
+                NodeState before = previousRoot;
+                NodeState after = root;
+                EventHandler handler = new FilteredHandler(
+                        new VisibleFilter(),
+                        new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
+                for (String name : PathUtils.elements(path)) {
+                    String oakName = namePathMapper.getOakName(name);
+                    before = before.getChildNode(oakName);
+                    after = after.getChildNode(oakName);
+                    handler = handler.getChildHandler(oakName, before, after);
+                }
+
+                EventGenerator generator = new EventGenerator(before, after, handler);
+                while (!generator.isDone()) {
+                    generator.generate();
+                }
             }
 
-            EventGenerator generator = new EventGenerator(before, after, handler);
-            while (!generator.isDone()) {
-                generator.generate();
-            }
+            previousRoot = root;
+        } catch (RepositoryException e) {
+            LOG.warn("Error while handling content change", e);
         }
-
-        previousRoot = root;
     }
 
     private enum EventType {ADDED, DELETED, CHANGED}
@@ -144,15 +158,18 @@ public abstract class NodeObserver implements Observer {
         private final String path;
         private final CommitInfo commitInfo;
         private final NamePathMapper namePathMapper;
+        private final Set<String> propertyNames;
         private final EventType eventType;
         private final Set<String> added = Sets.newHashSet();
         private final Set<String> deleted = Sets.newHashSet();
         private final Set<String> changed = Sets.newHashSet();
 
-        public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper) {
+        public NodeEventHandler(String path, CommitInfo commitInfo, NamePathMapper namePathMapper,
+                Set<String> propertyNames) {
             this.path = path;
             this.commitInfo = commitInfo == null ? CommitInfo.EMPTY : commitInfo;
             this.namePathMapper = namePathMapper;
+            this.propertyNames = propertyNames;
             this.eventType = EventType.CHANGED;
         }
 
@@ -160,6 +177,7 @@ public abstract class NodeObserver implements Observer {
             this.path = "/".equals(parent.path) ? '/' + name : parent.path + '/' + name;
             this.commitInfo = parent.commitInfo;
             this.namePathMapper = parent.namePathMapper;
+            this.propertyNames = parent.propertyNames;
             this.eventType = eventType;
         }
 
