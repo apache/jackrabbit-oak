@@ -30,11 +30,11 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -54,6 +54,7 @@ import org.osgi.framework.ServiceRegistration;
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
+    private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
 
     private final WhiteboardEditorProvider editorProvider =
             new WhiteboardEditorProvider();
@@ -72,6 +73,8 @@ public class RepositoryManager {
 
     private int observationQueueLength;
 
+    private CommitRateLimiter commitRateLimiter;
+
     @Reference
     private SecurityProvider securityProvider;
 
@@ -79,15 +82,29 @@ public class RepositoryManager {
     private NodeStore store;
 
     @Property(
-            intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
-            name = "Observation queue length",
-            description = "Maximum number of pending revisions in a observation listener queue")
-    private static final String OBSERVATION_QUEUE_LENGTH = "oak.observation-queue-length";
+        intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
+        name = "Observation queue length",
+        description = "Maximum number of pending revisions in a observation listener queue")
+    private static final String OBSERVATION_QUEUE_LENGTH = "oak.observation.queue-length";
+
+    @Property(
+        boolValue = DEFAULT_COMMIT_RATE_LIMIT,
+        name = "Commit rate limiter",
+        description = "Limit the commit rate once the number of pending revisions in the observation " +
+                "queue exceed 90% of its capacity.")
+    private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
     @Activate
     public void activate(BundleContext bundleContext, Map<String, ?> config) throws Exception {
         observationQueueLength = PropertiesUtil.toInteger(prop(
                 config, bundleContext, OBSERVATION_QUEUE_LENGTH), DEFAULT_OBSERVATION_QUEUE_LENGTH);
+
+        if(PropertiesUtil.toBoolean(prop(
+                config, bundleContext, COMMIT_RATE_LIMIT), DEFAULT_COMMIT_RATE_LIMIT)) {
+            commitRateLimiter = new CommitRateLimiter();
+        } else {
+            commitRateLimiter = null;
+        }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
         editorProvider.start(whiteboard);
@@ -122,7 +139,7 @@ public class RepositoryManager {
     }
 
     private ServiceRegistration registerRepository(BundleContext bundleContext) {
-        ContentRepository cr = new Oak(store)
+        Oak oak = new Oak(store)
                 .with(new InitialContent())
                 .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
                 .with(whiteboard)
@@ -131,12 +148,16 @@ public class RepositoryManager {
                 .with(indexEditorProvider)
                 .with(indexProvider)
                 .withAsyncIndexing()
-                .with(executor)
-                .createContentRepository();
+                .with(executor);
+
+        if (commitRateLimiter != null) {
+            oak.with(commitRateLimiter);
+        }
 
         return bundleContext.registerService(
                 Repository.class.getName(),
-                new OsgiRepository(cr, whiteboard, securityProvider, observationQueueLength),
+                new OsgiRepository(oak.createContentRepository(), whiteboard, securityProvider,
+                        observationQueueLength, commitRateLimiter),
                 new Properties());
     }
 }

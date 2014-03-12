@@ -78,6 +78,11 @@ public class BackgroundObserver implements Observer, Closeable {
      */
     private final BlockingQueue<ContentChange> queue;
 
+    /**
+     * Maximal number of elements before queue will start to block
+     */
+    private final int queueLength;
+
     private static class ContentChange {
         private final NodeState root;
         private final CommitInfo info;
@@ -118,6 +123,7 @@ public class BackgroundObserver implements Observer, Closeable {
                         observer.contentChanged(change.root, change.info);
                         change = queue.poll();
                     }
+                    queueEmpty();
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
                 }
@@ -146,6 +152,7 @@ public class BackgroundObserver implements Observer, Closeable {
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
         this.queue = newArrayBlockingQueue(queueLength);
+        this.queueLength = queueLength;
     }
 
     public BackgroundObserver(
@@ -165,6 +172,9 @@ public class BackgroundObserver implements Observer, Closeable {
             @Nonnull Executor executor) {
         this(observer, executor, 1000);
     }
+
+    protected void queueNearlyFull() {}
+    protected void queueEmpty() {}
 
     /**
      * Clears the change queue and signals the background thread to stop
@@ -225,6 +235,10 @@ public class BackgroundObserver implements Observer, Closeable {
             // Keep track of the last change added, so we can do the
             // compacting of external changes shown above.
             last = change;
+        }
+
+        if (10 * queue.remainingCapacity() < queueLength) {
+            queueNearlyFull();
         }
 
         // Set the completion handler on the currently running task. Multiple calls
