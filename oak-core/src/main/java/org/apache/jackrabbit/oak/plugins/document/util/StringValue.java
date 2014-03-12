@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * A cache value wrapping a simple string.
  */
-final public class StringValue implements CacheValue {
+public final class StringValue implements CacheValue {
 
     private final String value;
 
