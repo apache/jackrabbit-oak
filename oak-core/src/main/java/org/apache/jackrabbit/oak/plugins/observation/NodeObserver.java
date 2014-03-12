@@ -19,13 +19,18 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static java.util.Collections.addAll;
+
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
@@ -42,15 +47,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public abstract class NodeObserver implements Observer {
     private final String path;
+    private final Set<String> propertyNames = Sets.newHashSet();
 
     private NodeState previousRoot;
 
     /**
      * Create a new instance for observing the given path.
      * @param path
+     * @param propertyNames  names of properties to report even without a change
      */
-    protected NodeObserver(String path) {
+    protected NodeObserver(String path, String... propertyNames) {
         this.path = path;
+        addAll(this.propertyNames, propertyNames);
     }
 
     /**
@@ -59,6 +67,7 @@ public abstract class NodeObserver implements Observer {
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
      * @param changed    Names of the changed properties.
+     * @param properties Properties as specified in the constructor
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void added(
@@ -66,6 +75,7 @@ public abstract class NodeObserver implements Observer {
             @Nonnull Set<String> added,
             @Nonnull Set<String> deleted,
             @Nonnull Set<String> changed,
+            @Nonnull Map<String, String> properties,
             @Nonnull CommitInfo commitInfo);
 
     /**
@@ -74,6 +84,7 @@ public abstract class NodeObserver implements Observer {
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
      * @param changed    Names of the changed properties.
+     * @param properties Properties as specified in the constructor
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void deleted(
@@ -81,6 +92,7 @@ public abstract class NodeObserver implements Observer {
             @Nonnull Set<String> added,
             @Nonnull Set<String> deleted,
             @Nonnull Set<String> changed,
+            @Nonnull Map<String, String> properties,
             @Nonnull CommitInfo commitInfo);
 
     /**
@@ -89,6 +101,7 @@ public abstract class NodeObserver implements Observer {
      * @param added      Names of the added properties.
      * @param deleted    Names of the deleted properties.
      * @param changed    Names of the changed properties.
+     * @param properties Properties as specified in the constructor
      * @param commitInfo commit info associated with this change.
      */
     protected abstract void changed(
@@ -96,6 +109,7 @@ public abstract class NodeObserver implements Observer {
             @Nonnull Set<String> added,
             @Nonnull Set<String> deleted,
             @Nonnull Set<String> changed,
+            @Nonnull Map<String, String> properties,
             @Nonnull CommitInfo commitInfo);
 
     @Override
@@ -153,17 +167,31 @@ public abstract class NodeObserver implements Observer {
         public void leave(NodeState before, NodeState after) {
             switch (eventType) {
                 case ADDED:
-                    added(namePathMapper.getJcrPath(path), added, deleted, changed, commitInfo);
+                    added(namePathMapper.getJcrPath(path), added, deleted, changed,
+                            collectProperties(after), commitInfo);
                     break;
                 case DELETED:
-                    deleted(namePathMapper.getJcrPath(path), added, deleted, changed, commitInfo);
+                    deleted(namePathMapper.getJcrPath(path), added, deleted, changed,
+                            collectProperties(before), commitInfo);
                     break;
                 case CHANGED:
                     if (!added.isEmpty() || ! deleted.isEmpty() || !changed.isEmpty()) {
-                        changed(namePathMapper.getJcrPath(path), added, deleted, changed, commitInfo);
+                        changed(namePathMapper.getJcrPath(path), added, deleted, changed,
+                                collectProperties(after), commitInfo);
                     }
                     break;
             }
+        }
+
+        private Map<String, String> collectProperties(NodeState node) {
+            Map<String, String> properties = Maps.newHashMap();
+            for (String name : propertyNames) {
+                PropertyState p = node.getProperty(name);
+                if (p != null && !p.isArray()) {
+                    properties.put(name, p.getValue(Type.STRING));
+                }
+            }
+            return properties;
         }
 
         @Override

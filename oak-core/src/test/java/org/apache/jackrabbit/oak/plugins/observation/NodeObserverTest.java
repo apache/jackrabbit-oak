@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -30,8 +32,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,6 +44,7 @@ public class NodeObserverTest {
     {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setChildNode("m").setChildNode("n").setProperty("p", 1);
+        builder.getChildNode("m").getChildNode("n").setProperty("extra", 42);
         builder.getChildNode("m").getChildNode("n").setChildNode("o").setProperty("q", 2);
         builder.setChildNode("a").setChildNode("b").setProperty("p", 1);
         before = builder.getNodeState();
@@ -53,7 +54,7 @@ public class NodeObserverTest {
 
     @Before
     public void setup() {
-        nodeObserver = new TestNodeObserver("/m/n");
+        nodeObserver = new TestNodeObserver("/m/n", "extra");
         nodeObserver.contentChanged(before, CommitInfo.EMPTY);
     }
 
@@ -66,6 +67,7 @@ public class NodeObserverTest {
         assertEquals(ImmutableMap.of("/m/n/new", ImmutableSet.of("p")), nodeObserver.added);
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
+        assertTrue(nodeObserver.properties.isEmpty());
     }
 
     @Test
@@ -77,6 +79,7 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertEquals(ImmutableMap.of("/m/n/o", ImmutableSet.of("q")), nodeObserver.deleted);
         assertTrue(nodeObserver.changed.isEmpty());
+        assertTrue(nodeObserver.properties.isEmpty());
     }
 
     @Test
@@ -88,6 +91,7 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
         assertEquals(ImmutableMap.of("/m/n", ImmutableSet.of("p")), nodeObserver.changed);
+        assertEquals(ImmutableMap.of("/m/n", ImmutableMap.of("extra", "42")), nodeObserver.properties);
     }
 
     @Test
@@ -99,6 +103,7 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
+        assertTrue(nodeObserver.properties.isEmpty());
     }
 
     @Test
@@ -110,6 +115,7 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
+        assertTrue(nodeObserver.properties.isEmpty());
     }
 
     @Test
@@ -121,17 +127,19 @@ public class NodeObserverTest {
         assertTrue(nodeObserver.added.isEmpty());
         assertTrue(nodeObserver.deleted.isEmpty());
         assertTrue(nodeObserver.changed.isEmpty());
+        assertTrue(nodeObserver.properties.isEmpty());
     }
 
     //------------------------------------------------------------< TestNodeObserver >---
 
     private static class TestNodeObserver extends NodeObserver {
-        private final Map<String, Set<String>> added = Maps.newHashMap();
-        private final Map<String, Set<String>> deleted = Maps.newHashMap();
-        private final Map<String, Set<String>> changed = Maps.newHashMap();
+        private final Map<String, Set<String>> added = newHashMap();
+        private final Map<String, Set<String>> deleted = newHashMap();
+        private final Map<String, Set<String>> changed = newHashMap();
+        private final Map<String, Map<String, String>> properties = newHashMap();
 
-        protected TestNodeObserver(String path) {
-            super(path);
+        protected TestNodeObserver(String path, String... propertyNames) {
+            super(path, propertyNames);
         }
 
         @Override
@@ -140,8 +148,12 @@ public class NodeObserverTest {
                 @Nonnull Set<String> added,
                 @Nonnull Set<String> deleted,
                 @Nonnull Set<String> changed,
+                @Nonnull Map<String, String> properties,
                 @Nonnull CommitInfo commitInfo) {
-            update(this.added, path, added);
+            this.added.put(path, newHashSet(added));
+            if (!properties.isEmpty()) {
+                this.properties.put(path, newHashMap(properties));
+            }
         }
 
         @Override
@@ -150,8 +162,12 @@ public class NodeObserverTest {
                 @Nonnull Set<String> added,
                 @Nonnull Set<String> deleted,
                 @Nonnull Set<String> changed,
+                @Nonnull Map<String, String> properties,
                 @Nonnull CommitInfo commitInfo) {
-            update(this.deleted, path, deleted);
+            this.deleted.put(path, newHashSet(deleted));
+            if (!properties.isEmpty()) {
+                this.properties.put(path, newHashMap(properties));
+            }
         }
 
         @Override
@@ -160,17 +176,13 @@ public class NodeObserverTest {
                 @Nonnull Set<String> added,
                 @Nonnull Set<String> deleted,
                 @Nonnull Set<String> changed,
+                @Nonnull Map<String, String> properties,
                 @Nonnull CommitInfo commitInfo) {
-            update(this.changed, path, changed);
+            this.changed.put(path, newHashSet(changed));
+            if (!properties.isEmpty()) {
+                this.properties.put(path, newHashMap(properties));
+            }
         }
 
-        private static void update(Map<String, Set<String>> map, String key, Set<String> value) {
-            Set<String> current = map.get(key);
-            if (current == null) {
-                current = Sets.newHashSet();
-            }
-            current.addAll(value);
-            map.put(key, current);
-        }
     }
 }
