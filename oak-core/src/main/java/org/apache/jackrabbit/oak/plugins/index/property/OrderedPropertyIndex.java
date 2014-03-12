@@ -28,7 +28,11 @@ import org.slf4j.LoggerFactory;
  * A property index that supports ordering keys.
  */
 public class OrderedPropertyIndex extends PropertyIndex {
+    
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndex.class);
+    
+    private static boolean warned;
+    
     @Override
     public String getIndexName() {
         return TYPE;
@@ -42,7 +46,10 @@ public class OrderedPropertyIndex extends PropertyIndex {
     @Override
     public double getCost(Filter filter, NodeState root) {
         //we don't want the index to be used yet
-        LOG.warn("this index will always return Double.POSITIVE_INFINITY and therefore never work");
+        if (!warned) {
+            warned = true;
+            LOG.warn("This index always returns Double.POSITIVE_INFINITY and is therefore never used");
+        }
         return Double.POSITIVE_INFINITY;
     }
 }
