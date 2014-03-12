@@ -41,6 +41,7 @@ import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
@@ -78,6 +79,7 @@ class ChangeProcessor implements Observer {
     private final AtomicLong eventCount;
     private final AtomicLong eventDuration;
     private final int queueLength;
+    private final CommitRateLimiter commitRateLimiter;
 
     private CompositeRegistration registration;
     private NodeState previousRoot;
@@ -89,7 +91,8 @@ class ChangeProcessor implements Observer {
             ListenerTracker tracker,
             FilterProvider filter,
             StatisticManager statisticManager,
-            int queueLength) {
+            int queueLength,
+            CommitRateLimiter commitRateLimiter) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
         this.permissionProvider = permissionProvider;
@@ -99,6 +102,7 @@ class ChangeProcessor implements Observer {
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
         this.queueLength = queueLength;
+        this.commitRateLimiter = commitRateLimiter;
     }
 
     /**
@@ -120,7 +124,7 @@ class ChangeProcessor implements Observer {
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
         registration = new CompositeRegistration(
-            registerObserver(whiteboard, new BackgroundObserver(this, executor, queueLength)),
+            registerObserver(whiteboard, createObserver(executor)),
             registerMBean(whiteboard, EventListenerMBean.class,
                     tracker.getListenerMBean(), "EventListener", tracker.toString()),
             new Registration() {
@@ -129,6 +133,24 @@ class ChangeProcessor implements Observer {
             executor.stop();
         }
     });
+    }
+
+    private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
+        if (commitRateLimiter == null) {
+            return new BackgroundObserver(this, executor, queueLength);
+        } else {
+            return new BackgroundObserver(this, executor, queueLength) {
+                @Override
+                protected void queueNearlyFull() {
+                    commitRateLimiter.blockCommits();
+                }
+
+                @Override
+                protected void queueEmpty() {
+                    commitRateLimiter.unblockCommits();
+                }
+            };
+        }
     }
 
     private final Monitor runningMonitor = new Monitor();

@@ -47,6 +47,7 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
+import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
@@ -84,6 +85,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     protected final Whiteboard whiteboard;
     private final SecurityProvider securityProvider;
     private final int observationQueueLength;
+    private final CommitRateLimiter commitRateLimiter;
 
     private final Clock clock;
 
@@ -107,11 +109,13 @@ public class RepositoryImpl implements JackrabbitRepository {
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull Whiteboard whiteboard,
                           @Nonnull SecurityProvider securityProvider,
-                          int observationQueueLength) {
+                          int observationQueueLength,
+                          CommitRateLimiter commitRateLimiter) {
         this.contentRepository = checkNotNull(contentRepository);
         this.whiteboard = checkNotNull(whiteboard);
         this.securityProvider = checkNotNull(securityProvider);
         this.observationQueueLength = observationQueueLength;
+        this.commitRateLimiter = commitRateLimiter;
         this.descriptors = determineDescriptors();
         this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
         this.clock = new Clock.Fast(scheduledExecutor);
@@ -242,7 +246,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
             SessionContext context = createSessionContext(
                     statisticManager, securityProvider, createAttributes(refreshInterval),
-                    sessionDelegate, observationQueueLength);
+                    sessionDelegate, observationQueueLength, commitRateLimiter);
             return context.getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
@@ -298,9 +302,10 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     protected SessionContext createSessionContext(
             StatisticManager statisticManager, SecurityProvider securityProvider,
-            Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength) {
+            Map<String, Object> attributes, SessionDelegate delegate, int observationQueueLength,
+            CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
-                delegate, observationQueueLength);
+                delegate, observationQueueLength, commitRateLimiter);
     }
 
     /**

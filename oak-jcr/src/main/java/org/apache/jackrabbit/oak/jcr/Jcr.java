@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -60,6 +61,7 @@ public class Jcr {
 
     private SecurityProvider securityProvider;
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
+    private CommitRateLimiter commitRateLimiter = null;
 
     public Jcr(Oak oak) {
         this.oak = oak;
@@ -174,12 +176,20 @@ public class Jcr {
         return this;
     }
 
+    @Nonnull
+    public Jcr with(CommitRateLimiter commitRateLimiter) {
+        oak.with(commitRateLimiter);
+        this.commitRateLimiter = commitRateLimiter;
+        return this;
+    }
+
     public Repository createRepository() {
         return new RepositoryImpl(
                 oak.createContentRepository(), 
                 oak.getWhiteboard(),
                 securityProvider,
-                observationQueueLength);
+                observationQueueLength,
+                commitRateLimiter);
     }
 
 }
