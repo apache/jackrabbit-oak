@@ -44,7 +44,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterators;
 
 /**
  * A {@link BlobStore} implementation which is a compatibility wrapper for
@@ -537,7 +537,7 @@ public class DataStoreBlobStore implements GarbageCollectableBlobStore,
 
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
-        return Lists.newArrayList(blobId).iterator();
+        return Iterators.singletonIterator(blobId);
     }
 
     class DataStoreIterator implements Iterator<String> {
