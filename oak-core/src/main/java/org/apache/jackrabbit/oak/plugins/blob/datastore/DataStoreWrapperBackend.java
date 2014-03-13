@@ -21,17 +21,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.core.data.AsyncUploadCallback;
+import org.apache.jackrabbit.core.data.AsyncUploadCallback.RESULT;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-
-import com.google.common.collect.Lists;
 
 /**
  * {@link Backend} wrapper over Jackrabbit {@link DataStore} which enables using
@@ -72,6 +73,12 @@ public class DataStoreWrapperBackend implements Backend {
     }
 
     @Override
+    public void writeAsync(DataIdentifier dataIdentifier, File file,
+            AsyncUploadCallback asyncUploadCallback) throws DataStoreException {
+        asyncUploadCallback.call(dataIdentifier, file, RESULT.FAILED);
+    }
+
+    @Override
     public void write(DataIdentifier identifier, File file) throws DataStoreException {
         InputStream stream = null;
         try {
@@ -90,8 +97,8 @@ public class DataStoreWrapperBackend implements Backend {
     }
 
     @Override
-    public void touch(DataIdentifier identifier, long minModifiedDate) throws DataStoreException {
-        // currently no-op
+    public boolean exists(DataIdentifier identifier, boolean touch) throws DataStoreException {
+        return exists(identifier);
     }
 
     @Override
@@ -105,9 +112,9 @@ public class DataStoreWrapperBackend implements Backend {
     }
 
     @Override
-    public List<DataIdentifier> deleteAllOlderThan(long timestamp) throws DataStoreException {
+    public Set<DataIdentifier> deleteAllOlderThan(long timestamp) throws DataStoreException {
         dataStore.deleteAllOlderThan(timestamp);
-        return Lists.newArrayList();
+        return Sets.newHashSet();
     }
 
     @Override
