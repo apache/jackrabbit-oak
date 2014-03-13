@@ -384,7 +384,7 @@ public interface QueryIndex {
         
         private final Order order;
         
-        OrderEntry(String propertyName, Type<?> propertyType, Order order) {
+        public OrderEntry(String propertyName, Type<?> propertyType, Order order) {
             this.propertyName = propertyName;
             this.propertyType = propertyType;
             this.order = order;

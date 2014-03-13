@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AndImpl;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.apache.jackrabbit.oak.query.ast.ConstraintImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeImpl;
 import org.apache.jackrabbit.oak.query.ast.DescendantNodeJoinConditionImpl;
+import org.apache.jackrabbit.oak.query.ast.DynamicOperandImpl;
 import org.apache.jackrabbit.oak.query.ast.EquiJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.apache.jackrabbit.oak.query.ast.FullTextSearchScoreImpl;
@@ -67,6 +69,9 @@ import org.apache.jackrabbit.oak.query.plan.SelectorExecutionPlan;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -681,7 +686,7 @@ public class QueryImpl implements Query {
                 context.getIndexProvider(), traversalEnabled);
     }
 
-    private static SelectorExecutionPlan getBestSelectorExecutionPlan(
+    private SelectorExecutionPlan getBestSelectorExecutionPlan(
             NodeState rootState, FilterImpl filter,
             QueryIndexProvider indexProvider, boolean traversalEnabled) {
         QueryIndex best = null;
@@ -691,7 +696,57 @@ public class QueryImpl implements Query {
 
         double bestCost = Double.POSITIVE_INFINITY;
         for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
-            double cost = index.getCost(filter, rootState);
+            double cost;
+            if (index instanceof AdvancedQueryIndex) {
+                AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
+                List<OrderEntry> sortOrder = null;
+                if (orderings != null) {
+                    sortOrder = new ArrayList<OrderEntry>();
+                    for (OrderingImpl o : orderings) {
+                        DynamicOperandImpl op = o.getOperand();
+                        if (!(op instanceof PropertyValueImpl)) {
+                            // ordered by a function: currently not supported
+                            break;
+                        }
+                        PropertyValueImpl p = (PropertyValueImpl) op;
+                        SelectorImpl s = p.getSelectors().iterator().next();
+                        if (!s.equals(filter.getSelector())) {
+                            // ordered by a different selector
+                            continue;
+                        }
+                        OrderEntry e = new OrderEntry(
+                                p.getPropertyName(), 
+                                Type.UNDEFINED, 
+                                o.isDescending() ? 
+                                OrderEntry.Order.DESCENDING : OrderEntry.Order.ASCENDING);
+                        sortOrder.add(e);
+                    }
+                    if (sortOrder.size() == 0) {
+                        sortOrder = null;
+                    }
+                }
+                long maxEntryCount = limit;
+                if (offset > 0) {
+                    if (offset + limit < 0) {
+                        // long overflow
+                        maxEntryCount = Long.MAX_VALUE;
+                    } else {
+                        maxEntryCount = offset + limit;
+                    }
+                }
+                List<IndexPlan> ipList = advIndex.getPlans(
+                        filter, sortOrder, rootState);
+                cost = Double.POSITIVE_INFINITY;
+                for (IndexPlan p : ipList) {
+                    long entryCount = Math.min(maxEntryCount, p.getEstimatedEntryCount());
+                    double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
+                    if (c < cost) {
+                        cost = c;
+                    }
+                }
+            } else {
+                cost = index.getCost(filter, rootState);
+            }
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index.getIndexName() + " is " + cost);
             }
