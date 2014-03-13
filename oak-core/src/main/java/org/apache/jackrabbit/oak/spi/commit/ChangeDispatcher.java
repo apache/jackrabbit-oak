@@ -40,7 +40,7 @@ public class ChangeDispatcher implements Observable, Observer {
     private final CompositeObserver observers = new CompositeObserver();
 
     @Nonnull
-    private NodeState root;
+    private volatile NodeState root;
 
     /**
      * Create a new instance for dispatching content changes
