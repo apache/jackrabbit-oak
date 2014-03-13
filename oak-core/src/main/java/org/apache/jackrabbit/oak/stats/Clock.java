@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.stats;
 
 import java.util.Date;
+import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +25,15 @@ import java.util.concurrent.TimeUnit;
  * Mechanism for keeping track of time at millisecond accuracy.
  */
 public abstract class Clock {
+
+    /**
+     * Maximum amount (in ms) of random noise to include in the time
+     * signal reported by the {@link #SIMPLE} clock. Configurable by the
+     * "simple.clock.noise" system property to make it easier to test
+     * the effect of an inaccurate system clock.
+     */
+    private static final int SIMPLE_CLOCK_NOISE =
+            Integer.getInteger("simple.clock.noise", 0);
 
     /**
      * Millisecond granularity of the {@link #ACCURATE} clock.
@@ -123,12 +133,27 @@ public abstract class Clock {
      * Simple clock implementation based on {@link System#currentTimeMillis()},
      * which is known to be rather slow on some platforms.
      */
-    public static Clock SIMPLE = new Clock() {
-        @Override
-        public long getTime() {
-            return System.currentTimeMillis() & ~0xfL;
+    public static Clock SIMPLE = createSimpleClock();
+
+    private static Clock createSimpleClock() {
+        final int noise = SIMPLE_CLOCK_NOISE;
+        if (noise > 0) {
+            return new Clock() {
+                private final Random random = new Random();
+                @Override
+                public synchronized long getTime() {
+                    return System.currentTimeMillis() + random.nextInt(noise);
+                }
+            };
+        } else {
+            return new Clock() {
+                @Override
+                public long getTime() {
+                    return System.currentTimeMillis();
+                }
+            };
         }
-    };
+    }
 
     /**
      * Accurate clock implementation that uses interval timings from the
@@ -153,16 +178,24 @@ public abstract class Clock {
             if (now > ms + SYNC_INTERVAL) {
                 ms = SIMPLE.getTime();
                 ns = System.nanoTime();
+                // Check whether the system time jumped ahead or back
+                // from what we'd expect based on the nanosecond interval.
+                // If the jump was small, it was probably caused by low
+                // granularity of the system time. In that case we reduce
+                // the jump to just 0.5ms to smoothen the reported time.
+                // This should still keep clock drift in check as long as
+                // the nanosecond timings drift on average less than 0.5ms
+                // per second.
                 long jump = ms - now;
-                if (jump != 0 && Math.abs(jump) < SYNC_INTERVAL) {
-                    // currentTimeMillis() jumped a little bit, which was
-                    // probably caused by its lower granularity instead of
-                    // an adjustment to system time, so we reduce the jump
-                    // to just 0.5ms to make the reported time smoother
+                if (0 < jump && jump < 1000) {
                     ms = now;
-                    ns += Long.signum(jump) * NS_IN_MS / 2;
-                } else {
-                    now = ms;
+                    ns -= NS_IN_MS / 2;
+                } else if (0 > jump && jump > -1000) {
+                    // Note that the Math.max(..., 0) above will cause the
+                    // reported time to stay constant for a while instead
+                    // of going backwards because of this.
+                    ms = now;
+                    ns += NS_IN_MS / 2;
                 }
             }
 

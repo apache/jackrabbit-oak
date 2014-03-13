@@ -18,12 +18,35 @@ package org.apache.jackrabbit.oak.stats;
 
 import static junit.framework.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.junit.Test;
 
 public class ClockTest {
+
+    /**
+     * Helper for checking how accurate the system clock is.
+     */
+    public static void main(String[] args) {
+        List<Long> values = new ArrayList<Long>();
+        long end = System.currentTimeMillis() + 10000; // 10 seconds
+        long last = System.currentTimeMillis();
+        long current = last;
+
+        do {
+            current = System.currentTimeMillis();
+            if (current != last && current != last + 1) {
+                values.add(current);
+            }
+            last = current;
+        } while (current < end);
+        for (int i = 1; i < values.size(); i++) {
+            System.out.println(values.get(i) + " " + (values.get(i) - values.get(i - 1)));
+        }
+    }
 
     @Test
     public void testClockDrift() throws InterruptedException {
