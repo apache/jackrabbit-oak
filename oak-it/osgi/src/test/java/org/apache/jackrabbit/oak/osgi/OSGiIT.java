@@ -57,6 +57,7 @@ public class OSGiIT {
                 mavenBundle("org.apache.felix", "org.apache.felix.scr", "1.8.0"),
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.4.0" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
+                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles());
     }
