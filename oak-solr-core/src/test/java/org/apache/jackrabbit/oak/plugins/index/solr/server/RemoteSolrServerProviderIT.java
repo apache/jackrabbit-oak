@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.solr.http;
+package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.request.UpdateRequest;
@@ -58,7 +59,7 @@ public class RemoteSolrServerProviderIT {
             }
             if (cloudServerAvailable) {
                 String collection = "sample_" + System.nanoTime();
-                RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(null, host, collection, 2, 2, null);
+                RemoteSolrServerProvider remoteSolrServerProvider = new RemoteSolrServerProvider(new RemoteSolrServerConfiguration(host, collection, 2, 2, null));
                 SolrServer solrServer = remoteSolrServerProvider.getSolrServer();
                 assertNotNull(solrServer);
                 solrServer.shutdown();

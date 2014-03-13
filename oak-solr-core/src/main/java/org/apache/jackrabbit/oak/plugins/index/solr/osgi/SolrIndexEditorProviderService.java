@@ -33,32 +33,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Osgi Service that provides Solr based {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor}s
- * 
+ *
  * @see org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider
  * @see org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider
  */
 @Component(metatype = false, immediate = true)
 @Service(value = IndexEditorProvider.class)
 public class SolrIndexEditorProviderService implements IndexEditorProvider {
-    
+
     @Reference
     private SolrServerProvider solrServerProvider;
 
     @Reference
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    private SolrIndexEditorProvider solrIndexEditorProvider;
-
     @Override
     @CheckForNull
-    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition, 
-                    @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
-        Editor indexEditor = null;
-        if (solrServerProvider != null && oakSolrConfigurationProvider != null && solrIndexEditorProvider == null) {
-            solrIndexEditorProvider = new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider);
-            indexEditor = solrIndexEditorProvider.getIndexEditor(type, definition, root, callback);
+    public Editor getIndexEditor(@Nonnull String type, @Nonnull NodeBuilder definition,
+                                 @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback) throws CommitFailedException {
+        if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
+            return new SolrIndexEditorProvider(solrServerProvider,
+                    oakSolrConfigurationProvider).getIndexEditor(type, definition, root, callback);
+        } else {
+            return null;
         }
-        return indexEditor;
     }
-
 }

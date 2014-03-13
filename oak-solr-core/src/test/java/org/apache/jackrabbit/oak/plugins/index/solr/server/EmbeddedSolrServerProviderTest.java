@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.Test;
 
@@ -29,8 +29,8 @@ public class EmbeddedSolrServerProviderTest {
 
     @Test
     public void testSolrServerInitialization() throws Exception {
-        SolrServerConfiguration solrServerConfiguration = new SolrServerConfiguration("target/solr",
-                "target/solr/solr.xml", "oak");
+        EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(getClass().getResource("/solr").getFile(),
+                getClass().getResource("/solr/solr.xml").getFile(), "oak");
         EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
         SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);

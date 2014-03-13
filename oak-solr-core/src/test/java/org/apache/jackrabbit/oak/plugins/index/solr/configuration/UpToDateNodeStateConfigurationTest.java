@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.UpToDateNodeStateConfiguration}
@@ -47,7 +47,7 @@ public class UpToDateNodeStateConfigurationTest {
     public void testExistingPath() throws Exception {
         String path = "oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        SolrServerConfiguration solrServerConfiguration = upToDateNodeStateConfiguration.getSolrServerConfiguration();
+        EmbeddedSolrServerConfiguration solrServerConfiguration = (EmbeddedSolrServerConfiguration) upToDateNodeStateConfiguration.getSolrServerConfiguration();
         assertNotNull(solrServerConfiguration);
         assertEquals("sh", solrServerConfiguration.getSolrHomePath()); // property defined in the node state
         assertEquals("cn", solrServerConfiguration.getCoreName()); // property defined in the node state

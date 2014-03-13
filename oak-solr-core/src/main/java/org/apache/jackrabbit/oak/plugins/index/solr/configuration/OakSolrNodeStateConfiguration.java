@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -30,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Subclasses of this should at least provide the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which holds
  * the configuration.
  */
-public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider {
+public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
 
     /**
      * get the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which contains the properties for the Oak -
@@ -46,11 +47,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
             // TODO : use Tika / SolrCell here
             return propertyType.toString() + "_bin";
         }
-        return null;
-    }
-
-    @Override
-    public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
         return null;
     }
 
@@ -94,6 +90,11 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     }
 
     @Override
+    public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
+        return null;
+    }
+
+    @Override
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
     }
@@ -114,7 +115,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     }
 
     @Override
-    public SolrServerConfiguration getSolrServerConfiguration() {
+    public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
         String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
         String solrConfigPath = getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH);
         String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
@@ -122,7 +123,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
         Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
 
-        return new SolrServerConfiguration(solrHomePath,
+        return new EmbeddedSolrServerConfiguration(solrHomePath,
                 solrConfigPath, coreName).withHttpConfiguration(context, httpPort);
     }
 

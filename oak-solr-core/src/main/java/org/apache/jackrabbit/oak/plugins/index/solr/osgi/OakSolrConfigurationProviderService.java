@@ -14,30 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.http;
+package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * An {@link OakSolrConfigurationProvider} for the remote Solr server
- * <p/>
- * In this {@link OakSolrConfiguration} the 'path' related fields are taken from
- * OSGi configuration while the other configuration just does nothing triggering
- * the default behavior that properties are indexed by name.
- * Possible extensions of this class may trigger type based property indexing / search.
+ * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
-@Component(metatype = true, immediate = true, label = "Remote Solr Configuration Provider")
+@Component(label = "Oak Solr indexing / search configuration", metatype = true, immediate = true)
 @Service(OakSolrConfigurationProvider.class)
-public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProvider {
+public class OakSolrConfigurationProviderService implements OakSolrConfigurationProvider {
 
     private static final String DEFAULT_DESC_FIELD = "path_des";
     private static final String DEFAULT_CHILD_FIELD = "path_child";
@@ -83,26 +79,7 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
 
     private OakSolrConfiguration oakSolrConfiguration;
 
-    public RemoteSolrConfigurationProvider() {
-        this.pathChildrenFieldName = DEFAULT_CHILD_FIELD;
-        this.pathDescendantsFieldName = DEFAULT_DESC_FIELD;
-        this.pathExactFieldName = DEFAULT_PATH_FIELD;
-        this.pathParentFieldName = DEFAULT_PARENT_FIELD;
-        this.commitPolicy = CommitPolicy.SOFT;
-        this.catchAllField = DEFAULT_CATCHALL_FIELD;
-    }
-
-    public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,
-                                           String pathDescendantsFieldName, String pathExactFieldName, String catchAllField,
-                                           CommitPolicy commitPolicy) {
-        this.pathChildrenFieldName = pathChildrenFieldName;
-        this.pathParentFieldName = pathParentFieldName;
-        this.pathDescendantsFieldName = pathDescendantsFieldName;
-        this.pathExactFieldName = pathExactFieldName;
-        this.catchAllField = catchAllField;
-        this.commitPolicy = commitPolicy;
-    }
-
+  @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
         pathChildrenFieldName = String.valueOf(componentContext.getProperties().get(PATH_CHILDREN_FIELD));
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
@@ -115,15 +92,8 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     @Override
     public OakSolrConfiguration getConfiguration() {
         if (oakSolrConfiguration == null) {
-            oakSolrConfiguration = new OakSolrConfiguration() {
-                @Override
-                public String getFieldNameFor(Type<?> propertyType) {
-                    if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
-                        // TODO : use Tika / SolrCell here
-                        return propertyType.toString()+"_bin";
-                    }
-                    return null;
-                }
+            // extend DefaultOakSolrConfiguration
+            oakSolrConfiguration = new DefaultSolrConfiguration() {
 
                 @Override
                 public String getPathField() {
@@ -160,11 +130,6 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
                 }
 
                 @Override
-                public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
-                    return null;
-                }
-
-                @Override
                 public CommitPolicy getCommitPolicy() {
                     return commitPolicy;
                 }
@@ -173,7 +138,6 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
                 public String getCatchAllField() {
                     return catchAllField;
                 }
-
             };
         }
         return oakSolrConfiguration;

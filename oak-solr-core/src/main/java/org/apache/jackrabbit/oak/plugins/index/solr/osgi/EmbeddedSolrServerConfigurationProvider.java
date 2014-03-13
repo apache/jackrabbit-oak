@@ -14,28 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded.osgi;
+package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.io.File;
-
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
-import org.apache.solr.client.solrj.SolrServer;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.osgi.service.component.ComponentContext;
 
 /**
- * An OSGi service {@link SolrServerConfigurationProvider}
+ * An OSGi service {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider}
  */
-@Component(metatype = true,
-        label = "OSGi Embedded Solr server configuration provider")
+@Component(metatype = true, immediate = true,
+        label = "Oak Solr embedded server configuration")
 @Service(value = SolrServerConfigurationProvider.class)
-public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurationProvider {
+@Property(name = "name", value = "embedded", propertyPrivate = true)
+public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
 
     @Property(value = SolrServerConfigurationDefaults.SOLR_HOME_PATH)
     private static final String SOLR_HOME_PATH = "solr.home.path";
@@ -52,8 +53,6 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
     @Property(value = SolrServerConfigurationDefaults.CONTEXT)
     private static final String SOLR_CONTEXT = "solr.context";
 
-    private static SolrServer solrServer;
-
     private String solrHome;
     private String solrConfigFile;
     private String solrCoreName;
@@ -61,7 +60,7 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
     private Integer solrHttpPort;
     private String solrContext;
 
-    private SolrServerConfiguration solrServerConfiguration;
+    private SolrServerConfiguration<EmbeddedSolrServerProvider> solrServerConfiguration;
 
 
     @Activate
@@ -77,7 +76,7 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
         solrHttpPort = Integer.valueOf(String.valueOf(componentContext.getProperties().get(SOLR_HTTP_PORT)));
         solrContext = String.valueOf(componentContext.getProperties().get(SOLR_CONTEXT));
 
-        solrServerConfiguration = new SolrServerConfiguration(solrHome, solrConfigFile, solrCoreName).
+        solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrConfigFile, solrCoreName).
                 withHttpConfiguration(solrContext, solrHttpPort);
     }
 
@@ -88,14 +87,10 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
         solrConfigFile = null;
         solrCoreName = null;
         solrContext = null;
-        if (solrServer != null) {
-            solrServer.shutdown();
-            solrServer = null;
-        }
     }
 
     @Override
-    public SolrServerConfiguration getSolrServerConfiguration() {
+    public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
         return solrServerConfiguration;
     }
 }
