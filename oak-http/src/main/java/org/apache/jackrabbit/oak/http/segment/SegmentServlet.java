@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 
@@ -36,9 +37,12 @@ public abstract class SegmentServlet extends HttpServlet {
 
     protected abstract SegmentStore getSegmentStore();
 
-    private UUID getSegmentId(String info) {
+    private SegmentId getSegmentId(String info) {
         try {
-            return UUID.fromString(info);
+            UUID uuid = UUID.fromString(info);
+            return getSegmentStore().getFactory().getSegmentId(
+                    uuid.getMostSignificantBits(),
+                    uuid.getLeastSignificantBits());
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -46,7 +50,8 @@ public abstract class SegmentServlet extends HttpServlet {
 
     private RecordId getRecordId(BufferedReader reader) throws IOException {
         try {
-            return RecordId.fromString(reader.readLine());
+            return RecordId.fromString(
+                    getSegmentStore().getFactory(), reader.readLine());
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -79,8 +84,7 @@ public abstract class SegmentServlet extends HttpServlet {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             } else {
                 SegmentStore store = getSegmentStore();
-                SegmentNodeState head = new SegmentNodeState(
-                        store.getWriter().getDummySegment(), id);
+                SegmentNodeState head = new SegmentNodeState(id);
                 if (store.setHead(store.getHead(), head)) {
                     response.setStatus(HttpServletResponse.SC_OK);
                 } else {
@@ -97,13 +101,13 @@ public abstract class SegmentServlet extends HttpServlet {
     private void doGetSegment(
             String info, HttpServletResponse response)
             throws ServletException, IOException {
-        UUID uuid = getSegmentId(info);
-        if (uuid == null) {
+        SegmentId id = getSegmentId(info);
+        if (id == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
-        Segment segment = getSegmentStore().readSegment(uuid);
+        Segment segment = id.getSegment();
         if (segment == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -117,16 +121,16 @@ public abstract class SegmentServlet extends HttpServlet {
             String info,
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        UUID uuid = getSegmentId(info);
-        if (uuid == null) {
+        SegmentId id = getSegmentId(info);
+        if (id == null) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
-        } else if (getSegmentStore().readSegment(uuid) != null) {
+        } else if (getSegmentStore().containsSegment(id)) {
             // can't modify an existing segment
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
         } else {
             // TODO: sanity check the segment data?
             byte[] data = ByteStreams.toByteArray(request.getInputStream());
-            getSegmentStore().writeSegment(uuid, data, 0, data.length);
+            getSegmentStore().writeSegment(id, data, 0, data.length);
             response.setStatus(HttpServletResponse.SC_OK);
         }
     }

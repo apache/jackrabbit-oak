@@ -27,13 +27,16 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+
 import javax.jcr.Repository;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -44,7 +47,7 @@ import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -153,22 +156,22 @@ public class Main {
             FileStore store = new FileStore(file, 256, false);
             try {
                 if (args.length == 1) {
-                    Map<UUID, List<UUID>> idmap = Maps.newHashMap();
+                    Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
 
                     int dataCount = 0;
                     long dataSize = 0;
                     int bulkCount = 0;
                     long bulkSize = 0;
-                    for (UUID uuid : store.getSegmentIds()) {
-                        if (SegmentIdFactory.isDataSegmentId(uuid)) {
-                            Segment segment = store.readSegment(uuid);
+                    for (SegmentId id : store.getSegmentIds()) {
+                        if (id.isDataSegmentId()) {
+                            Segment segment = id.getSegment();
                             dataCount++;
                             dataSize += segment.size();
-                            idmap.put(uuid, segment.getReferencedIds());
-                        } else if (SegmentIdFactory.isBulkSegmentId(uuid)) {
+                            idmap.put(id, segment.getReferencedIds());
+                        } else if (id.isBulkSegmentId()) {
                             bulkCount++;
-                            bulkSize += store.readSegment(uuid).size();
-                            idmap.put(uuid, Collections.<UUID>emptyList());
+                            bulkSize += id.getSegment().size();
+                            idmap.put(id, Collections.<SegmentId>emptyList());
                         }
                     }
                     System.out.println("Total size:");
@@ -179,11 +182,11 @@ public class Main {
                             "%6dMB in %6d bulk segments%n",
                             bulkSize / (1024 * 1024), bulkCount);
 
-                    Set<UUID> garbage = newHashSet(idmap.keySet());
-                    Queue<UUID> queue = Queues.newArrayDeque();
+                    Set<SegmentId> garbage = newHashSet(idmap.keySet());
+                    Queue<SegmentId> queue = Queues.newArrayDeque();
                     queue.add(store.getHead().getRecordId().getSegmentId());
                     while (!queue.isEmpty()) {
-                        UUID id = queue.remove();
+                        SegmentId id = queue.remove();
                         if (garbage.remove(id)) {
                             queue.addAll(idmap.get(id));
                         }
@@ -192,13 +195,13 @@ public class Main {
                     dataSize = 0;
                     bulkCount = 0;
                     bulkSize = 0;
-                    for (UUID uuid : garbage) {
-                        if (SegmentIdFactory.isDataSegmentId(uuid)) {
+                    for (SegmentId id : garbage) {
+                        if (id.isDataSegmentId()) {
                             dataCount++;
-                            dataSize += store.readSegment(uuid).size();
-                        } else if (SegmentIdFactory.isBulkSegmentId(uuid)) {
+                            dataSize += id.getSegment().size();
+                        } else if (id.isBulkSegmentId()) {
                             bulkCount++;
-                            bulkSize += store.readSegment(uuid).size();
+                            bulkSize += id.getSegment().size();
                         }
                     }
                     System.out.println("Available for garbage collection:");
@@ -211,7 +214,10 @@ public class Main {
                 } else {
                     for (int i = 1; i < args.length; i++) {
                         UUID uuid = UUID.fromString(args[i]);
-                        System.out.println(store.readSegment(uuid));
+                        SegmentId id = store.getFactory().getSegmentId(
+                                uuid.getMostSignificantBits(),
+                                uuid.getLeastSignificantBits());
+                        System.out.println(id.getSegment());
                     }
                 }
             } finally {

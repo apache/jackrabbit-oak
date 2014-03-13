@@ -24,8 +24,8 @@ class BlockRecord extends Record {
 
     private final int size;
 
-    BlockRecord(Segment segment, RecordId id, int size) {
-        super(segment, id);
+    BlockRecord(RecordId id, int size) {
+        super(id);
         this.size = size;
     }
 

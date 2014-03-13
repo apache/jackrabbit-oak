@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Factory for creating the UUID objects used to identify segments.
@@ -47,59 +46,46 @@ public class SegmentIdFactory {
     private static final long BULK = 0xBL << 60;
 
     /**
-     * Checks whether the given UUID identifies a data segment.
-     *
-     * @param id segment identifier
-     * @return {@code true} for a data segment, {@code false} for bulk
-     */
-    public static boolean isDataSegmentId(UUID id) {
-        return (id.getLeastSignificantBits() & ~LSB_MASK) == DATA; 
-    }
-
-    /**
-     * Checks whether the given UUID identifies a bulk segment.
-     *
-     * @param id segment identifier
-     * @return {@code true} for a bulk segment, {@code false} for data
-     */
-    public static boolean isBulkSegmentId(UUID id) {
-        return (id.getLeastSignificantBits() & ~LSB_MASK) == BULK; 
-    }
-
-    /**
      * The random number source for generating new segment identifiers.
      */
     private final SecureRandom random = new SecureRandom();
 
     /**
-     * Hash table of weak references to UUIDs that are currently referenced.
-     * The size of the table is always a power of two, which optimizes the
-     * {@link #expand()} operation. The table is indexed by the random UUID
-     * bits, which guarantees uniform distribution of entries. Each table
-     * entry is either {@code null} (when there are no matching UUIDs) or
-     * a list of weak references to the matching UUIDs.
+     * Hash table of weak references to segment identifiers that are
+     * currently being accessed. The size of the table is always a power
+     * of two, which optimizes the {@link #expand()} operation. The table is
+     * indexed by the random identifier bits, which guarantees uniform
+     * distribution of entries. Each table entry is either {@code null}
+     * (when there are no matching identifiers) or a list of weak references
+     * to the matching identifiers.
      */
-    private final ArrayList<List<WeakReference<UUID>>> uuids = newArrayList(
-            Collections.<List<WeakReference<UUID>>>nCopies(1024, null));
+    private final ArrayList<List<WeakReference<SegmentId>>> uuids = newArrayList(
+            Collections.<List<WeakReference<SegmentId>>>nCopies(1024, null));
+
+    private final SegmentStore store;
+
+    public SegmentIdFactory(SegmentStore store) {
+        this.store = store;
+    }
 
     /**
      * Returns all segment identifiers that are currently referenced in memory.
      *
      * @return referenced segment identifiers
      */
-    synchronized Set<UUID> getReferencedSegmentIds() {
-        Set<UUID> set = newHashSetWithExpectedSize(uuids.size());
+    synchronized Set<SegmentId> getReferencedSegmentIds() {
+        Set<SegmentId> set = newHashSetWithExpectedSize(uuids.size());
 
         for (int i = 0; i < uuids.size(); i++) {
-            List<WeakReference<UUID>> list = uuids.get(i);
+            List<WeakReference<SegmentId>> list = uuids.get(i);
             if (list != null) {
-                Iterator<WeakReference<UUID>> iterator = list.iterator();
+                Iterator<WeakReference<SegmentId>> iterator = list.iterator();
                 while (iterator.hasNext()) {
-                    UUID uuid = iterator.next().get();
-                    if (uuid == null) {
+                    SegmentId id = iterator.next().get();
+                    if (id == null) {
                         iterator.remove();
                     } else {
-                        set.add(uuid);
+                        set.add(id);
                     }
                 }
                 if (list.isEmpty()) {
@@ -117,45 +103,44 @@ public class SegmentIdFactory {
      * @param lsb
      * @return
      */
-    synchronized UUID getSegmentId(long msb, long lsb) {
+    public synchronized SegmentId getSegmentId(long msb, long lsb) {
         int index = ((int) lsb) & (uuids.size() - 1);
 
-        List<WeakReference<UUID>> list = uuids.get(index);
+        List<WeakReference<SegmentId>> list = uuids.get(index);
         if (list == null) {
             list = newLinkedList();
             uuids.set(index, list);
         }
 
-        Iterator<WeakReference<UUID>> iterator = list.iterator();
+        Iterator<WeakReference<SegmentId>> iterator = list.iterator();
         while (iterator.hasNext()) {
-            UUID uuid = iterator.next().get();
-            if (uuid == null) {
+            SegmentId id = iterator.next().get();
+            if (id == null) {
                 iterator.remove();
-            } else if (uuid.getMostSignificantBits() == msb
-                    && uuid.getLeastSignificantBits() == lsb) {
-                return uuid;
+            } else if (id.equals(msb, lsb)) {
+                return id;
             }
         }
 
-        UUID uuid = new UUID(msb, lsb);
-        list.add(new WeakReference<UUID>(uuid));
+        SegmentId id = new SegmentId(store, msb, lsb);
+        list.add(new WeakReference<SegmentId>(id));
 
         if (list.size() > 5) {
             expand();
         }
 
-        return uuid;
+        return id;
     }
 
-    UUID newDataSegmentId() {
+    SegmentId newDataSegmentId() {
         return newSegmentId(DATA);
     }
 
-    UUID newBulkSegmentId() {
+    SegmentId newBulkSegmentId() {
         return newSegmentId(BULK);
     }
 
-    private UUID newSegmentId(long type) {
+    private SegmentId newSegmentId(long type) {
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
         long lsb = (random.nextLong() & LSB_MASK) | type;
         return getSegmentId(msb, lsb);
@@ -165,16 +150,16 @@ public class SegmentIdFactory {
         int n = uuids.size();
         uuids.ensureCapacity(n * 2);
         for (int i = 0; i < n; i++) {
-            List<WeakReference<UUID>> list = uuids.get(i);
+            List<WeakReference<SegmentId>> list = uuids.get(i);
             if (list == null) {
                 uuids.add(null);
             } else {
-                List<WeakReference<UUID>> newList = newLinkedList();
+                List<WeakReference<SegmentId>> newList = newLinkedList();
 
-                Iterator<WeakReference<UUID>>iterator = list.iterator();
+                Iterator<WeakReference<SegmentId>>iterator = list.iterator();
                 while (iterator.hasNext()) {
-                    WeakReference<UUID> reference = iterator.next();
-                    UUID uuid = reference.get();
+                    WeakReference<SegmentId> reference = iterator.next();
+                    SegmentId uuid = reference.get();
                     if (uuid == null) {
                         iterator.remove();
                     } else if ((uuid.getLeastSignificantBits() & n) != 0) {

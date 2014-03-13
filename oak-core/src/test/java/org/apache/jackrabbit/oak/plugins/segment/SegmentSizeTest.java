@@ -40,29 +40,29 @@ public class SegmentSizeTest {
     @Test
     public void testNodeSize() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        assertEquals(28, getSize(builder));
+        assertEquals(40, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertEquals(32, getSize(builder));
+        assertEquals(44, getSize(builder));
         assertEquals(8, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(48, getSize(builder));
+        assertEquals(60, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
-        assertEquals(48, getSize(builder));
+        assertEquals(60, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertEquals(76, getSize(builder));
+        assertEquals(88, getSize(builder));
         assertEquals(40, getAmortizedSize(builder));
     }
 
@@ -106,7 +106,7 @@ public class SegmentSizeTest {
     public void testAccessControlNodes() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
-        assertEquals(28, getSize(builder));
+        assertEquals(40, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         NodeBuilder deny = builder.child("deny");
@@ -114,7 +114,7 @@ public class SegmentSizeTest {
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(152, getSize(builder));
+        assertEquals(164, getSize(builder));
         assertEquals(28, getAmortizedSize(builder));
 
         NodeBuilder allow = builder.child("allow");
@@ -122,7 +122,7 @@ public class SegmentSizeTest {
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(272, getSize(builder));
+        assertEquals(284, getSize(builder));
         assertEquals(72, getAmortizedSize(builder));
 
         NodeBuilder deny0 = builder.child("deny0");
@@ -131,7 +131,7 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(364, getSize(builder));
+        assertEquals(376, getSize(builder));
         assertEquals(108, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
@@ -139,7 +139,7 @@ public class SegmentSizeTest {
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(420, getSize(builder));
+        assertEquals(432, getSize(builder));
         assertEquals(136, getAmortizedSize(builder));
     }
 
@@ -156,7 +156,7 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(27508, Segment.WEIGHER.weigh(null, segment));
+        assertEquals(27520, segment.size());
 
         writer.flush(); // force flushing of the previous segment
 
@@ -165,7 +165,7 @@ public class SegmentSizeTest {
         state = writer.writeNode(builder.getNodeState());
         writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(484, Segment.WEIGHER.weigh(null, segment));
+        assertEquals(496, segment.size());
     }
 
     private int getSize(NodeBuilder builder) {
@@ -174,7 +174,7 @@ public class SegmentSizeTest {
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        return Segment.WEIGHER.weigh(null, segment);
+        return segment.size();
     }
 
     private int getAmortizedSize(NodeBuilder builder) {
@@ -184,7 +184,7 @@ public class SegmentSizeTest {
         RecordId id = writer.writeNode(state).getRecordId();
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        int base = Segment.WEIGHER.weigh(null, segment);
+        int base = segment.size();
 
         store = new MemoryStore(); // avoid cross-segment caching
         writer = store.getWriter();
@@ -192,7 +192,7 @@ public class SegmentSizeTest {
         id = writer.writeNode(state).getRecordId();
         writer.flush();
         segment = store.readSegment(id.getSegmentId());
-        return Segment.WEIGHER.weigh(null, segment) - base - 4;
+        return segment.size() - base - 4;
     }
 
 }

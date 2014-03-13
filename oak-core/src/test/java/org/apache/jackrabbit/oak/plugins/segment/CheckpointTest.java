@@ -42,7 +42,7 @@ public class CheckpointTest {
         verifyNS(store, false);
 
         // gc?
-        store.retrieve(new SegmentIdFactory().newDataSegmentId().toString());
+        store.retrieve("missing-checkpoint");
     }
 
     private static void verifyNS(SegmentNodeStore store, boolean exists) {

@@ -25,34 +25,41 @@ public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
-    public static RecordId fromString(String id) {
+    public static RecordId fromString(SegmentIdFactory factory, String id) {
         int colon = id.indexOf(':');
         if (colon != -1) {
+            UUID uuid = UUID.fromString(id.substring(0, colon));
             return new RecordId(
-                    UUID.fromString(id.substring(0, colon)),
+                    factory.getSegmentId(
+                            uuid.getMostSignificantBits(),
+                            uuid.getLeastSignificantBits()),
                     Integer.parseInt(id.substring(colon + 1)));
         } else {
             throw new IllegalArgumentException("Bad RecordId: " + id);
         }
     }
 
-    private final UUID segmentId;
+    private final SegmentId segmentId;
 
     private final int offset;
 
-    public RecordId(UUID segmentId, int offset) {
+    public RecordId(SegmentId segmentId, int offset) {
         checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
         checkArgument(offset == Segment.align(offset));
         this.segmentId = checkNotNull(segmentId);
         this.offset = offset;
     }
 
-    public UUID getSegmentId() {
+    public SegmentId getSegmentId() {
         return segmentId;
     }
 
     public int getOffset() {
         return offset;
+    }
+
+    public Segment getSegment() {
+        return segmentId.getSegment();
     }
 
     //--------------------------------------------------------< Comparable >--

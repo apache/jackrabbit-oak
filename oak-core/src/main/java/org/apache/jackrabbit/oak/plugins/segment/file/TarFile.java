@@ -96,8 +96,8 @@ class TarFile {
         return entries.keySet();
     }
 
-    ByteBuffer readEntry(UUID id) throws IOException {
-        TarEntry entry = entries.get(id);
+    ByteBuffer readEntry(UUID uuid) throws IOException {
+        TarEntry entry = entries.get(uuid);
         if (entry != null) {
             return entry.read(access);
         } else {
@@ -105,8 +105,8 @@ class TarFile {
         }
     }
 
-    synchronized boolean writeEntry(UUID id, byte[] b, int offset, int size)
-            throws IOException {
+    synchronized boolean writeEntry(
+            UUID uuid, byte[] b, int offset, int size) throws IOException {
         if (position + BLOCK_SIZE + size > maxFileSize) {
             return false;
         }
@@ -114,7 +114,7 @@ class TarFile {
         byte[] header = new byte[BLOCK_SIZE];
 
         // File name
-        byte[] n = id.toString().getBytes(UTF_8);
+        byte[] n = uuid.toString().getBytes(UTF_8);
         System.arraycopy(n, 0, header, 0, n.length);
 
         // File mode
@@ -165,7 +165,7 @@ class TarFile {
         position += BLOCK_SIZE;
 
         access.write(position, b, offset, size);
-        entries.put(id, new TarEntry(position, size));
+        entries.put(uuid, new TarEntry(position, size));
         position += size;
 
         int padding = BLOCK_SIZE - position % BLOCK_SIZE;

@@ -159,10 +159,9 @@ public class Template {
         return childName;
     }
 
-    SegmentPropertyState getProperty(
-            Segment segment, RecordId recordId, int index) {
+    SegmentPropertyState getProperty(RecordId recordId, int index) {
         checkElementIndex(index, properties.length);
-        segment = checkNotNull(segment).getSegment(checkNotNull(recordId));
+        Segment segment = checkNotNull(recordId).getSegment();
 
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
         if (childName != ZERO_CHILD_NODES) {
@@ -170,23 +169,22 @@ public class Template {
         }
         offset += index * RECORD_ID_BYTES;
         return new SegmentPropertyState(
-                segment, segment.readRecordId(offset), properties[index]);
+                segment.readRecordId(offset), properties[index]);
     }
 
-    MapRecord getChildNodeMap(Segment segment, RecordId recordId) {
+    MapRecord getChildNodeMap(RecordId recordId) {
         checkState(childName != ZERO_CHILD_NODES);
-        segment = segment.getSegment(recordId);
+        Segment segment = recordId.getSegment();
         int offset = recordId.getOffset() + RECORD_ID_BYTES;
         RecordId childNodesId = segment.readRecordId(offset);
         return segment.readMap(childNodesId);
     }
 
-    public NodeState getChildNode(
-            String name, Segment segment, RecordId recordId) {
+    public NodeState getChildNode(String name, RecordId recordId) {
         if (childName == ZERO_CHILD_NODES) {
             return MISSING_NODE;
         } else if (childName == MANY_CHILD_NODES) {
-            MapRecord map = getChildNodeMap(segment, recordId);
+            MapRecord map = getChildNodeMap(recordId);
             MapEntry child = map.getEntry(name);
             if (child != null) {
                 return child.getNodeState();
@@ -194,40 +192,38 @@ public class Template {
                 return MISSING_NODE;
             }
         } else if (name.equals(childName)) {
-            segment = segment.getSegment(recordId);
+            Segment segment = recordId.getSegment();
             int offset = recordId.getOffset() + RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
-            return new SegmentNodeState(segment, childNodeId);
+            return new SegmentNodeState(childNodeId);
         } else {
             return MISSING_NODE;
         }
     }
 
-    Iterable<? extends ChildNodeEntry> getChildNodeEntries(
-            Segment segment, RecordId recordId) {
+    Iterable<? extends ChildNodeEntry> getChildNodeEntries(RecordId recordId) {
         if (childName == ZERO_CHILD_NODES) {
             return Collections.emptyList();
         } else if (childName == MANY_CHILD_NODES) {
-            MapRecord map = getChildNodeMap(segment, recordId);
+            MapRecord map = getChildNodeMap(recordId);
             return map.getEntries();
         } else {
-            segment = segment.getSegment(recordId);
+            Segment segment = recordId.getSegment();
             int offset = recordId.getOffset() + RECORD_ID_BYTES;
             RecordId childNodeId = segment.readRecordId(offset);
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, new SegmentNodeState(segment, childNodeId)));
+                    childName, new SegmentNodeState(childNodeId)));
         }
     }
 
-    public boolean compare(
-            Segment thisSegment, RecordId thisId, Segment thatSegment, RecordId thatId) {
+    public boolean compare(RecordId thisId, RecordId thatId) {
         checkNotNull(thisId);
         checkNotNull(thatId);
 
         // Compare properties
         for (int i = 0; i < properties.length; i++) {
-            PropertyState thisProperty = getProperty(thisSegment, thisId, i);
-            PropertyState thatProperty = getProperty(thatSegment, thatId, i);
+            PropertyState thisProperty = getProperty(thisId, i);
+            PropertyState thatProperty = getProperty(thatId, i);
             if (!thisProperty.equals(thatProperty)) {
                 return false;
             }
@@ -237,13 +233,13 @@ public class Template {
         if (childName == ZERO_CHILD_NODES) {
             return true;
         } else if (childName != MANY_CHILD_NODES) {
-            NodeState thisChild = getChildNode(childName, thisSegment, thisId);
-            NodeState thatChild = getChildNode(childName, thatSegment, thatId);
+            NodeState thisChild = getChildNode(childName, thisId);
+            NodeState thatChild = getChildNode(childName, thatId);
             return thisChild.equals(thatChild);
         } else {
             // TODO: Leverage the HAMT data structure for the comparison
-            MapRecord thisMap = getChildNodeMap(thisSegment, thisId);
-            MapRecord thatMap = getChildNodeMap(thatSegment, thatId);
+            MapRecord thisMap = getChildNodeMap(thisId);
+            MapRecord thatMap = getChildNodeMap(thatId);
             if (fastEquals(thisMap, thatMap)) {
                 return true; // shortcut
             } else if (thisMap.size() != thatMap.size()) {

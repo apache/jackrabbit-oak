@@ -61,8 +61,7 @@ public class RecordTest {
     @Test
     public void testBlockRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
-        BlockRecord block = new BlockRecord(
-                writer.getDummySegment(), blockId, bytes.length);
+        BlockRecord block = new BlockRecord(blockId, bytes.length);
 
         // Check reading with all valid positions and lengths
         for (int n = 1; n < bytes.length; n++) {
@@ -119,13 +118,12 @@ public class RecordTest {
 
     private ListRecord writeList(int size, RecordId id) {
         List<RecordId> list = Collections.nCopies(size, id);
-        return new ListRecord(
-                writer.getDummySegment(), writer.writeList(list), size);
+        return new ListRecord(writer.writeList(list), size);
     }
 
     @Test
     public void testListWithLotsOfReferences() { // OAK-1184
-        SegmentIdFactory factory = new SegmentIdFactory();
+        SegmentIdFactory factory = store.getFactory();
         List<RecordId> list = newArrayList();
         for (int i = 0; i < 1000; i++) {
             list.add(new RecordId(factory.newBulkSegmentId(), 0));

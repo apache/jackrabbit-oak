@@ -28,13 +28,13 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     private static final int UPDATE_LIMIT =
             Integer.getInteger("update.limit", 10000);
 
+    private final SegmentWriter writer;
+
     private long updateCount = 0;
 
-    private final SegmentStore store;
-
-    SegmentNodeBuilder(SegmentNodeState base) {
+    SegmentNodeBuilder(SegmentNodeState base, SegmentWriter writer) {
         super(base);
-        this.store = base.getStore();
+        this.writer = writer;
     }
 
     //-------------------------------------------------< MemoryNodeBuilder >--
@@ -58,7 +58,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     @Override
     public SegmentNodeState getNodeState() {
         NodeState state = super.getNodeState();
-        SegmentNodeState sstate = store.getWriter().writeNode(state);
+        SegmentNodeState sstate = writer.writeNode(state);
         if (state != sstate) {
             set(sstate);
             updateCount = 0;

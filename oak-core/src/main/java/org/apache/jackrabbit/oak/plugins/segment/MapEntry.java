@@ -34,16 +34,13 @@ import com.google.common.collect.ComparisonChain;
 class MapEntry extends AbstractChildNodeEntry
         implements Map.Entry<RecordId, RecordId>, Comparable<MapEntry> {
 
-    private final Segment segment;
-
     private final String name;
 
     private final RecordId key;
 
     private final RecordId value;
 
-    MapEntry(Segment segment, String name, RecordId key, RecordId value) {
-        this.segment = checkNotNull(segment);
+    MapEntry(String name, RecordId key, RecordId value) {
         this.name = checkNotNull(name);
         this.key = checkNotNull(key);
         this.value = value;
@@ -63,7 +60,7 @@ class MapEntry extends AbstractChildNodeEntry
     @Override @Nonnull
     public SegmentNodeState getNodeState() {
         checkState(value != null);
-        return new SegmentNodeState(segment, value);
+        return new SegmentNodeState(value);
     }
 
     //---------------------------------------------------------< Map.Entry >--
