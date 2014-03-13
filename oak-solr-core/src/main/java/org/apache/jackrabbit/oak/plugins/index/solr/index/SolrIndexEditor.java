@@ -23,8 +23,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.util.OakSolrUtils;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -111,14 +111,29 @@ public class SolrIndexEditor implements IndexEditor {
 
         if (parent == null) {
             try {
-                OakSolrUtils.commitByPolicy(
-                        solrServer,  configuration.getCommitPolicy());
+                commitByPolicy(solrServer, configuration.getCommitPolicy());
             } catch (SolrServerException e) {
                 throw new CommitFailedException(
                         "Solr", 3, "Failed to commit changes to Solr", e);
             } catch (IOException e) {
                 throw new CommitFailedException(
                         "Solr", 6, "Failed to send data to Solr", e);
+            }
+        }
+    }
+
+    private void commitByPolicy(SolrServer solrServer, CommitPolicy commitPolicy) throws IOException, SolrServerException {
+        switch (commitPolicy) {
+            case HARD: {
+                solrServer.commit();
+                break;
+            }
+            case SOFT: {
+                solrServer.commit(false, false, true);
+                break;
+            }
+            case AUTO: {
+                break;
             }
         }
     }

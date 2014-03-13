@@ -92,13 +92,6 @@
     <fieldType name="pdouble" class="solr.DoubleField"/>
     <fieldType name="pdate" class="solr.DateField" sortMissingLast="true"/>
 
-    <fieldType name="point" class="solr.PointType" dimension="2" subFieldSuffix="_d"/>
-
-    <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_coordinate"/>
-
-    <fieldType name="location_rpt" class="solr.SpatialRecursivePrefixTreeFieldType"
-               geo="true" distErrPct="0.025" maxDistErr="0.000009" units="degrees" />
-
     <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD" currencyConfig="currency.xml" />
     <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
   </types>
@@ -130,7 +123,6 @@
 
     <dynamicField name="*_dt"  type="date"    indexed="true"  stored="true"/>
     <dynamicField name="*_dts" type="date"    indexed="true"  stored="true" multiValued="true"/>
-    <dynamicField name="*_p"  type="location" indexed="true" stored="true"/>
 
     <dynamicField name="*_ti" type="tint"    indexed="true"  stored="true"/>
     <dynamicField name="*_tl" type="tlong"   indexed="true"  stored="true"/>

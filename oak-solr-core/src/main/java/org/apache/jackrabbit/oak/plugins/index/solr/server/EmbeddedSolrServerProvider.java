@@ -14,19 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-
-import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.embedded.JettySolrRunner;
@@ -36,34 +33,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default implementation of {@link SolrServerProvider} which uses an
- * {@link EmbeddedSolrServer} configured as per passed {@link SolrServerConfiguration}.
+ * Default implementation of {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} which uses an
+ * {@link EmbeddedSolrServer} configured as per passed {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration}.
  */
 public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final SolrServerConfiguration solrServerConfiguration;
+    private final EmbeddedSolrServerConfiguration solrServerConfiguration;
 
-    public EmbeddedSolrServerProvider(SolrServerConfiguration solrServerConfiguration) {
+    public EmbeddedSolrServerProvider(EmbeddedSolrServerConfiguration solrServerConfiguration) {
         this.solrServerConfiguration = solrServerConfiguration;
     }
 
     private SolrServer solrServer;
-
-    @Deactivate
-    protected void deactivate() throws Exception {
-        if (solrServer != null) {
-            solrServer.shutdown();
-        }
-    }
 
     private SolrServer createSolrServer() throws Exception {
 
         String solrHomePath = solrServerConfiguration.getSolrHomePath();
         String coreName = solrServerConfiguration.getCoreName();
         String solrConfigPath = solrServerConfiguration.getSolrConfigPath();
-        SolrServerConfiguration.HttpConfiguration httpConfiguration = solrServerConfiguration.getHttpConfiguration();
+        EmbeddedSolrServerConfiguration.HttpConfiguration httpConfiguration = solrServerConfiguration.getHttpConfiguration();
 
 
         if (solrConfigPath != null && solrHomePath != null && coreName != null) {
@@ -111,7 +101,8 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 }
                 HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(
                         SolrServerConfigurationDefaults.LOCAL_BASE_URL).append(':')
-                        .append(httpPort).append(context).append('/').append(coreName)
+                        .append(httpPort).append(context)
+                        .append('/').append(coreName)
                         .toString());
                 return httpSolrServer;
             } else {

@@ -16,82 +16,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+
 /**
  * Configuration parameters for starting a {@link org.apache.solr.client.solrj.SolrServer}
  */
-public class SolrServerConfiguration {
+public abstract class SolrServerConfiguration<S extends SolrServerProvider> {
 
-    private final String solrHomePath;
-    private final String solrConfigPath;
-    private final String coreName;
-    private HttpConfiguration httpConfiguration;
+    private final Type type;
+    private volatile Constructor<?> constructor;
 
-    public SolrServerConfiguration(String solrHomePath, String solrConfigPath, String coreName) {
-        this.solrHomePath = solrHomePath;
-        this.solrConfigPath = solrConfigPath;
-        this.coreName = coreName;
-    }
-
-    public SolrServerConfiguration withHttpConfiguration(String context, Integer httpPort) {
-        if (context != null && context.length() > 0 && httpPort != null && httpPort > 0) {
-            this.httpConfiguration = new HttpConfiguration(context, httpPort);
+    protected SolrServerConfiguration() {
+        Type superclass = getClass().getGenericSuperclass();
+        if (superclass instanceof Class) {
+            throw new RuntimeException("Missing type parameter.");
         }
-        return this;
+        this.type = ((ParameterizedType) superclass).getActualTypeArguments()[0];
     }
 
-    /**
-     * get the Solr home path where all the configuration files are stored
-     *
-     * @return a <code>String</code> representing a path to the Solr home.
-     */
-    public String getSolrHomePath() {
-        return solrHomePath;
+    public Type getType() {
+        return this.type;
     }
 
-    /**
-     * get the name of the main Solr configuration file (solr.xml for multicore
-     * deployments or solrconfig.xml for single core deployments).
-     *
-     * @return a <code>String</code> representing a path to the main Solr config file.
-     */
-    public String getSolrConfigPath() {
-        return solrConfigPath;
-    }
-
-    /**
-     * get the default core name to use for the Solr server
-     *
-     * @return a <code>String</code> representing the core name
-     */
-    public String getCoreName() {
-        return coreName;
-    }
-
-    /**
-     * get the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration.HttpConfiguration} holding parameters for enabling Solr
-     * server with HTTP bindings
-     *
-     * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration.HttpConfiguration} or <code>null</code> if not set
-     */
-    public HttpConfiguration getHttpConfiguration() {
-        return httpConfiguration;
-    }
-
-    public class HttpConfiguration {
-        private String context;
-        private Integer httpPort;
-
-        HttpConfiguration(String context, Integer httpPort) {
-            this.context = context;
-            this.httpPort = httpPort;
+    public S newInstance()
+            throws NoSuchMethodException, IllegalAccessException,
+            InvocationTargetException, InstantiationException {
+        if (constructor == null) {
+            Class<?> rawType = type instanceof Class<?>
+                    ? (Class<?>) type
+                    : (Class<?>) ((ParameterizedType) type).getRawType();
+            Constructor<?>[] constructors = rawType.getConstructors();
+            for (Constructor<?> c: constructors) {
+                if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].equals(this.getClass())) {
+                    constructor = c;
+                }
+            }
+            if (constructor == null) {
+                throw new InstantiationException("missing constructor SolrServerProvider(SolrServerConfiguration) for type "+ rawType);
+            }
         }
-
-        public String getContext() {
-            return context;
-        }
-
-        public Integer getHttpPort() {
-            return httpPort;
-        }
+        return (S) constructor.newInstance(this); // TODO : each SolrServerProvider impl. is forced to have a constructor with a SolrServerConfiguration, fix?
     }
+
 }

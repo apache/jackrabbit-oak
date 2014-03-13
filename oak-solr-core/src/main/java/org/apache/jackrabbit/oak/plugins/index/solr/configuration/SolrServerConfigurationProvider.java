@@ -16,16 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+
 /**
  * {@link org.apache.solr.client.solrj.SolrServer} configuration provider.
  */
-public interface SolrServerConfigurationProvider {
+public interface SolrServerConfigurationProvider<S extends SolrServerProvider> {
 
     /**
-     * Provide a {@lin SolrServerConfiguration} to be used to initialize a specific
+     * Provide a {@link SolrServerConfiguration} to be used to initialize a specific
      * {@link org.apache.solr.client.solrj.SolrServer} implementation.
      *
      * @return the {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration} holding the configuration parameters
      */
-    public SolrServerConfiguration getSolrServerConfiguration();
+    public SolrServerConfiguration<S> getSolrServerConfiguration();
 }
