@@ -166,7 +166,7 @@ class UnsavedModifications {
 
         UpdateOp updateOp = null;
         Revision lastRev = null;
-        List<String> ids = new ArrayList<String>();
+        ArrayList<String> pathList = new ArrayList<String>();
         for (int i = 0; i < paths.size();) {
             String p = paths.get(i);
             Revision r = pending.get(p);
@@ -174,18 +174,18 @@ class UnsavedModifications {
                 i++;
                 continue;
             }
-            int size = ids.size();
+            int size = pathList.size();
             if (updateOp == null) {
                 // create UpdateOp
                 Commit commit = new Commit(store, null, r);
                 updateOp = commit.getUpdateOperationForNode(p);
                 NodeDocument.setLastRev(updateOp, r);
                 lastRev = r;
-                ids.add(Utils.getIdFromPath(p));
+                pathList.add(p);
                 i++;
             } else if (r.equals(lastRev)) {
                 // use multi update when possible
-                ids.add(Utils.getIdFromPath(p));
+                pathList.add(p);
                 i++;
             }
             // call update if any of the following is true:
@@ -194,13 +194,17 @@ class UnsavedModifications {
             // - revision is not equal to last revision (size of ids didn't change)
             // - the update limit is reached
             if (i + 2 > paths.size()
-                    || size == ids.size()
-                    || ids.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
-                store.getDocumentStore().update(NODES, ids, updateOp);
-                for (String id : ids) {
-                    map.remove(Utils.getPathFromId(id), lastRev);
+                    || size == pathList.size()
+                    || pathList.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
+                List<String> ids = new ArrayList<String>();
+                for (String path : pathList) {
+                    ids.add(Utils.getIdFromPath(path));
                 }
-                ids.clear();
+                store.getDocumentStore().update(NODES, ids, updateOp);
+                for (String path : pathList) {
+                    map.remove(path, lastRev);
+                }
+                pathList.clear();
                 updateOp = null;
                 lastRev = null;
             }

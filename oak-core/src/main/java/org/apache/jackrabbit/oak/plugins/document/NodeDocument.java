@@ -158,6 +158,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * node had a child node
      */
     private static final String CHILDREN_FLAG = "_children";
+    
+    /**
+     * The node path, in case the id can not be converted to a path.
+     */
+    public static final String PATH = "_path";
 
     /**
      * Properties to ignore when a document is split.
@@ -707,6 +712,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             UpdateOp main = new UpdateOp(id, false);
             setPrevious(main, high, low);
             UpdateOp old = new UpdateOp(Utils.getPreviousIdFor(id, high), true);
+            if (get(PATH) != null) {
+                old.set(PATH, get(PATH));
+            }
             old.set(ID, old.getId());
             for (String property : splitValues.keySet()) {
                 NavigableMap<Revision, String> splitMap = splitValues.get(property);
@@ -1147,6 +1155,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     
     @Override
     public String getPath() {
+        String p = (String) get(PATH);
+        if (p != null) {
+            return p;
+        }
         return Utils.getPathFromId(getId());
     }
 

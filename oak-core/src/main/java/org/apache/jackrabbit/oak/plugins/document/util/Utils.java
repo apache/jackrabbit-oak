@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
@@ -29,6 +32,7 @@ import javax.annotation.Nullable;
 
 import com.mongodb.BasicDBObject;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.bson.types.ObjectId;
@@ -45,6 +49,22 @@ public class Utils {
      */
     private static final int REVISION_LENGTH =
             new Revision(System.currentTimeMillis(), 0, 0).toString().length();
+    
+    /**
+     * The length of path (in characters), whose UTF-8 representation can not
+     * possibly be too large to be used for the primary key for the document
+     * store.
+     */
+    private static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 330);
+    
+    /**
+     * The maximum length of the parent path, in bytes. If the parent path is
+     * longer, then the id of a document is no longer the path, but the hash of
+     * the parent, and then the node name.
+     */
+    private static final int PATH_LONG = Integer.getInteger("oak.pathLong", 700);
+
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     /**
      * Make sure the name string does not contain unnecessary baggage (shared
@@ -210,12 +230,42 @@ public class Utils {
     }
 
     public static String getIdFromPath(String path) {
+        if (isLongPath(path)) {
+            MessageDigest digest;
+            try {
+                digest = MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+            int depth = Utils.pathDepth(path);
+            String parent = PathUtils.getParentPath(path);
+            byte[] hash = digest.digest(parent.getBytes(UTF_8));
+            String name = PathUtils.getName(path);
+            return depth + ":h" + Hex.encodeHexString(hash) + "/" + name;
+        }
         int depth = Utils.pathDepth(path);
         return depth + ":" + path;
     }
     
+    public static boolean isLongPath(String path) {
+        // the most common case: a short path
+        // avoid calculating the parent path
+        if (path.length() < PATH_SHORT) {
+            return false;
+        }
+        // check if the parent path is long
+        byte[] parent = PathUtils.getParentPath(path).getBytes(UTF_8);
+        if (parent.length < PATH_LONG) {
+            return false;
+        }
+        return true;
+    }
+    
     public static String getPathFromId(String id) {
         int index = id.indexOf(':');
+        if (id.charAt(index + 1) == 'h') {
+            throw new IllegalArgumentException("Id is hashed: " + id);
+        }
         return id.substring(index + 1);
     }
 

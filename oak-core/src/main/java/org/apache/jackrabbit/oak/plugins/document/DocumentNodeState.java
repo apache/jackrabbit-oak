@@ -304,6 +304,9 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(id, isNew);
         op.set(Document.ID, id);
+        if (Utils.isLongPath(path)) {
+            op.set(NodeDocument.PATH, path);
+        }
         NodeDocument.setModified(op, rev);
         NodeDocument.setDeleted(op, rev, false);
         for (String p : properties.keySet()) {

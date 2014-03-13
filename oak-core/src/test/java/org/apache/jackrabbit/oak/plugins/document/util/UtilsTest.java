@@ -30,9 +30,12 @@ public class UtilsTest {
     @Test
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        assertEquals("1:p/" + r.toString(), Utils.getPreviousIdFor("0:/", r));
-        assertEquals("2:p/test/" + r.toString(), Utils.getPreviousIdFor("1:/test", r));
-        assertEquals("14:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString(), Utils.getPreviousIdFor("13:/a/b/c/d/e/f/g/h/i/j/k/l/m", r));
+        String p = Utils.getIdFromPath("/");
+        assertEquals("1:p/" + r.toString(), Utils.getPreviousIdFor(p, r));
+        p = Utils.getIdFromPath("/test");
+        assertEquals("2:p/test/" + r.toString(), Utils.getPreviousIdFor(p, r));
+        p = Utils.getIdFromPath("/a/b/c/d/e/f/g/h/i/j/k/l/m");
+        assertEquals("14:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString(), Utils.getPreviousIdFor(p, r));
     }
 
     @Ignore("Performance test")
