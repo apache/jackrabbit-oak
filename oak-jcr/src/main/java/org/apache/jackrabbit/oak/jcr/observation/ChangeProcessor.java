@@ -19,21 +19,25 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.collect.ForwardingIterator;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
@@ -75,7 +79,7 @@ class ChangeProcessor implements Observer {
     private final PermissionProvider permissionProvider;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
-    private final AtomicReference<FilterProvider> filterProvider;
+    private final AtomicReference<List<FilterProvider>> filterProvider;
     private final AtomicLong eventCount;
     private final AtomicLong eventDuration;
     private final int queueLength;
@@ -89,7 +93,7 @@ class ChangeProcessor implements Observer {
             NamePathMapper namePathMapper,
             PermissionProvider permissionProvider,
             ListenerTracker tracker,
-            FilterProvider filter,
+            List<FilterProvider> filters,
             StatisticManager statisticManager,
             int queueLength,
             CommitRateLimiter commitRateLimiter) {
@@ -98,7 +102,7 @@ class ChangeProcessor implements Observer {
         this.permissionProvider = permissionProvider;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
-        filterProvider = new AtomicReference<FilterProvider>(filter);
+        filterProvider = new AtomicReference<List<FilterProvider>>(filters);
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
         this.queueLength = queueLength;
@@ -107,10 +111,10 @@ class ChangeProcessor implements Observer {
 
     /**
      * Set the filter for the events this change processor will generate.
-     * @param filter
+     * @param filters
      */
-    public void setFilterProvider(FilterProvider filter) {
-        filterProvider.set(filter);
+    public void setFilterProvider(List<FilterProvider> filters) {
+        filterProvider.set(filters);
     }
 
     /**
@@ -198,22 +202,28 @@ class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
-                FilterProvider provider = filterProvider.get();
-                // FIXME don't rely on toString for session id
-                if (provider.includeCommit(contentSession.toString(), info)) {
-                    String basePath = provider.getPath();
-                    EventFilter userFilter = provider.getFilter(previousRoot, root);
-                    EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
-                    EventQueue events = new EventQueue(
-                            namePathMapper, info, previousRoot, root, basePath,
-                            Filters.all(userFilter, acFilter));
-                    if (events.hasNext() && runningMonitor.enterIf(running)) {
-                        try {
-                            eventListener.onEvent(
-                                    new EventIteratorAdapter(statisticProvider(events)));
-                        } finally {
-                            runningMonitor.leave();
-                        }
+                List<FilterProvider> providers = filterProvider.get();
+                List<Iterator<Event>> eventQueues = Lists.newArrayList();
+                for (FilterProvider provider : providers) {
+                    // FIXME don't rely on toString for session id
+                    if (provider.includeCommit(contentSession.toString(), info)) {
+                        String basePath = provider.getPath();
+                        EventFilter userFilter = provider.getFilter(previousRoot, root);
+                        EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
+                        EventQueue events = new EventQueue(
+                                namePathMapper, info, previousRoot, root, basePath,
+                                Filters.all(userFilter, acFilter));
+                        eventQueues.add(events);
+                    }
+                }
+
+                Iterator<Event> events = concat(eventQueues.iterator());
+                if (events.hasNext() && runningMonitor.enterIf(running)) {
+                    try {
+                        eventListener.onEvent(
+                                new EventIteratorAdapter(statisticProvider(events)));
+                    } finally {
+                        runningMonitor.leave();
                     }
                 }
             } catch (Exception e) {
