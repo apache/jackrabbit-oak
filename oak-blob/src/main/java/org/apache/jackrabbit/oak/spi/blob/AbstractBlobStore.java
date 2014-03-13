@@ -92,11 +92,6 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     private int blockSize = 2 * 1024 * 1024;
 
     /**
-     * The cache (16 MB).
-     */
-    private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 16 * 1024 * 1024);
-
-    /**
      * The byte array is re-used if possible, to avoid having to create a new,
      * large byte array each time a (potentially very small) binary is stored.
      */
@@ -171,11 +166,6 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     @Override
     public void clearInUse() {
         inUse.clear();
-    }
-
-    @Override
-    public void clearCache() {
-        cache.clear();
     }
 
     private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws IOException {
@@ -323,7 +313,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
 
     byte[] readBlock(byte[] digest, long pos) {
         BlockId id = new BlockId(digest, pos);
-        return cache.get(id).data;
+        return load(id).data;
     }
 
     @Override
@@ -410,13 +400,12 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 }
                 byte[] digest = new byte[IOUtils.readVarInt(idStream)];
                 IOUtils.readFully(idStream, digest, 0, digest.length);
+                BlockId id = new BlockId(digest, 0);
+                mark(id);
                 if (level > 0) {
                     byte[] block = readBlock(digest, 0);
                     idStream = new ByteArrayInputStream(block);
                     mark(idStream);
-                } else {
-                    BlockId id = new BlockId(digest, 0);
-                    mark(id);
                 }
             } else {
                 throw new IOException("Unknown blobs id type " + type);

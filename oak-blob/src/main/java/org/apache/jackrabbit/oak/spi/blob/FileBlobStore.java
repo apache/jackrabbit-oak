@@ -262,4 +262,9 @@ public class FileBlobStore extends AbstractBlobStore {
             }
         };
     }
+
+    @Override
+    public void clearCache() {
+        // no cache
+    }
 }

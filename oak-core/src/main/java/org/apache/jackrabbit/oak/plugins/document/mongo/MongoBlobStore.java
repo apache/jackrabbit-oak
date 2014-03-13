@@ -19,6 +19,11 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
 import com.mongodb.Bytes;
@@ -31,11 +36,6 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
 
-import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
-import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Implementation of blob store for the MongoDB extending from
  * {@link AbstractBlobStore}. It saves blobs into a separate collection in
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is
  * going to work for multiple MKs talking to same MongoDB?
  */
-public class MongoBlobStore extends AbstractBlobStore {
+public class MongoBlobStore extends CachingBlobStore {
 
     public static final String COLLECTION_BLOBS = "blobs";
 
@@ -52,7 +52,7 @@ public class MongoBlobStore extends AbstractBlobStore {
 
     private final DB db;
     private long minLastModified;
-
+    
     /**
      * Constructs a new {@code MongoBlobStore}
      *
@@ -66,6 +66,7 @@ public class MongoBlobStore extends AbstractBlobStore {
     @Override
     protected void storeBlock(byte[] digest, int level, byte[] data) throws IOException {
         String id = StringUtils.convertBytesToHex(digest);
+        cache.put(id, data);
         // Check if it already exists?
         MongoBlob mongoBlob = new MongoBlob();
         mongoBlob.setId(id);
@@ -84,18 +85,20 @@ public class MongoBlobStore extends AbstractBlobStore {
     @Override
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
-        MongoBlob blobMongo = getBlob(id, 0);
-        if (blobMongo == null) {
-            String message = "Did not find block " + id;
-            LOG.error(message);
-            throw new IOException(message);
+        byte[] data = cache.get(id);
+        if (data == null) {
+            MongoBlob blobMongo = getBlob(id, 0);
+            if (blobMongo == null) {
+                String message = "Did not find block " + id;
+                LOG.error(message);
+                throw new IOException(message);
+            }
+            data = blobMongo.getData();
+            cache.put(id, data);
         }
-        byte[] data = blobMongo.getData();
-
         if (blockId.getPos() == 0) {
             return data;
         }
-
         int len = (int) (data.length - blockId.getPos());
         if (len < 0) {
             return new byte[0];

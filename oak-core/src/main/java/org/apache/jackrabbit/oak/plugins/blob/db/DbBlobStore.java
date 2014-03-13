@@ -25,16 +25,16 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import com.google.common.collect.AbstractIterator;
-
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.h2.jdbcx.JdbcConnectionPool;
+
+import com.google.common.collect.AbstractIterator;
 
 /**
  * A database blob store.
  */
-public class DbBlobStore extends AbstractBlobStore {
+public class DbBlobStore extends CachingBlobStore {
 
     private JdbcConnectionPool cp;
     private long minLastModified;
@@ -61,9 +61,10 @@ public class DbBlobStore extends AbstractBlobStore {
     }
     
     private void storeBlockToDatabase(byte[] digest, int level, byte[] data) throws SQLException {
+        String id = StringUtils.convertBytesToHex(digest);
+        cache.put(id, data);
         Connection conn = cp.getConnection();
         try {
-            String id = StringUtils.convertBytesToHex(digest);
             long now = System.currentTimeMillis();
             PreparedStatement prep = conn.prepareStatement(
                     "update datastore_meta set lastMod = ? where id = ?");
@@ -111,35 +112,39 @@ public class DbBlobStore extends AbstractBlobStore {
 
     @Override
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
-        Connection conn = cp.getConnection();
-        try {
-            PreparedStatement prep = conn.prepareStatement(
-                    "select data from datastore_data where id = ?");
+        String id = StringUtils.convertBytesToHex(blockId.getDigest());
+        byte[] data = cache.get(id);
+        if (data == null) {        
+            Connection conn = cp.getConnection();
             try {
-                String id = StringUtils.convertBytesToHex(blockId.getDigest());
-                prep.setString(1, id);
-                ResultSet rs = prep.executeQuery();
-                if (!rs.next()) {
-                    throw new IOException("Datastore block " + id + " not found");
+                PreparedStatement prep = conn.prepareStatement(
+                        "select data from datastore_data where id = ?");
+                try {
+                    prep.setString(1, id);
+                    ResultSet rs = prep.executeQuery();
+                    if (!rs.next()) {
+                        throw new IOException("Datastore block " + id + " not found");
+                    }
+                    data = rs.getBytes(1);
+                } finally {
+                    prep.close();
                 }
-                byte[] data = rs.getBytes(1);
-                // System.out.println("    read block " + id + " blockLen: " + data.length + " [0]: " + data[0]);
-                if (blockId.getPos() == 0) {
-                    return data;
-                }
-                int len = (int) (data.length - blockId.getPos());
-                if (len < 0) {
-                    return new byte[0];
-                }
-                byte[] d2 = new byte[len];
-                System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
-                return d2;
+                cache.put(id, data);
             } finally {
-                prep.close();
+                conn.close();
             }
-        } finally {
-            conn.close();
         }
+        // System.out.println("    read block " + id + " blockLen: " + data.length + " [0]: " + data[0]);
+        if (blockId.getPos() == 0) {
+            return data;
+        }
+        int len = (int) (data.length - blockId.getPos());
+        if (len < 0) {
+            return new byte[0];
+        }
+        byte[] d2 = new byte[len];
+        System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
+        return d2;
     }
 
     @Override
@@ -289,4 +294,5 @@ public class DbBlobStore extends AbstractBlobStore {
             }
         };
     }
+    
 }

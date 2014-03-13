@@ -32,12 +32,12 @@ import javax.sql.DataSource;
 import com.google.common.collect.AbstractIterator;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RDBBlobStore extends AbstractBlobStore implements Closeable {
+public class RDBBlobStore extends CachingBlobStore implements Closeable {
     /**
      * Creates a {@linkplain RDBBlobStore} instance using an embedded H2
      * database in in-memory mode.
@@ -142,8 +142,9 @@ public class RDBBlobStore extends AbstractBlobStore implements Closeable {
     }
 
     private void storeBlockInDatabase(byte[] digest, int level, byte[] data) throws SQLException {
+        String id = StringUtils.convertBytesToHex(digest);
+        cache.put(id, data);
         try {
-            String id = StringUtils.convertBytesToHex(digest);
             long now = System.currentTimeMillis();
             PreparedStatement prep = connection.prepareStatement("update datastore_meta set lastMod = ? where id = ?");
             int count;
@@ -188,34 +189,36 @@ public class RDBBlobStore extends AbstractBlobStore implements Closeable {
 
     @Override
     protected byte[] readBlockFromBackend(BlockId blockId) throws Exception {
+        String id = StringUtils.convertBytesToHex(blockId.getDigest());
+        byte[] data = cache.get(id);
         try {
             PreparedStatement prep = connection.prepareStatement("select data from datastore_data where id = ?");
             try {
-                String id = StringUtils.convertBytesToHex(blockId.getDigest());
                 prep.setString(1, id);
                 ResultSet rs = prep.executeQuery();
                 if (!rs.next()) {
                     throw new IOException("Datastore block " + id + " not found");
                 }
-                byte[] data = rs.getBytes(1);
-                // System.out.println("    read block " + id + " blockLen: " +
-                // data.length + " [0]: " + data[0]);
-                if (blockId.getPos() == 0) {
-                    return data;
-                }
-                int len = (int) (data.length - blockId.getPos());
-                if (len < 0) {
-                    return new byte[0];
-                }
-                byte[] d2 = new byte[len];
-                System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
-                return d2;
+                data = rs.getBytes(1);
             } finally {
                 prep.close();
             }
+            cache.put(id, data);
         } finally {
             connection.commit();
         }
+        // System.out.println("    read block " + id + " blockLen: " +
+        // data.length + " [0]: " + data[0]);
+        if (blockId.getPos() == 0) {
+            return data;
+        }
+        int len = (int) (data.length - blockId.getPos());
+        if (len < 0) {
+            return new byte[0];
+        }
+        byte[] d2 = new byte[len];
+        System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
+        return d2;
     }
 
     @Override

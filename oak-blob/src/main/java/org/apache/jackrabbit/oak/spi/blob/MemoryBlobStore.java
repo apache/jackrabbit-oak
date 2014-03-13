@@ -117,5 +117,10 @@ public class MemoryBlobStore extends AbstractBlobStore {
             }
         };
     }
+    
+    @Override
+    public void clearCache() {
+        // no cache
+    }
 
 }
