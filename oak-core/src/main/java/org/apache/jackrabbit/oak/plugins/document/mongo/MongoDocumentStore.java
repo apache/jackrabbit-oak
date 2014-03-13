@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
@@ -127,9 +126,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
         nodes.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
-        if(builder.useOffHeapCache()){
+        if (builder.useOffHeapCache()) {
             nodesCache = createOffHeapCache(builder);
-        }else{
+        } else {
             nodesCache = builder.buildCache(builder.getDocumentCacheSize());
         }
 
@@ -137,7 +136,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 builder.getDocumentCacheSize());
     }
 
-    private Cache<CacheValue, NodeDocument> createOffHeapCache(DocumentMK.Builder builder){
+    private Cache<CacheValue, NodeDocument> createOffHeapCache(
+            DocumentMK.Builder builder) {
         ForwardingListener<CacheValue, NodeDocument> listener = ForwardingListener.newInstance();
 
         Cache<CacheValue, NodeDocument> primaryCache = CacheBuilder.newBuilder()
@@ -622,12 +622,12 @@ public class MongoDocumentStore implements CachingDocumentStore {
         }
         nodes.getDB().getMongo().close();
 
-        if(nodesCache instanceof Closeable){
+        if (nodesCache instanceof Closeable) {
             try {
-                ((Closeable)nodesCache).close();
+                ((Closeable) nodesCache).close();
             } catch (IOException e) {
 
-                LOG.warn("Error occurred while closing Off Heap Cache",e);
+                LOG.warn("Error occurred while closing Off Heap Cache", e);
             }
         }
     }
@@ -638,16 +638,16 @@ public class MongoDocumentStore implements CachingDocumentStore {
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
-        if(nodesCache instanceof OffHeapCache){
+        if (nodesCache instanceof OffHeapCache) {
             return Iterables.concat(nodesCache.asMap().entrySet(),
-                    ((OffHeapCache)nodesCache).offHeapEntriesMap().entrySet());
+                    ((OffHeapCache) nodesCache).offHeapEntriesMap().entrySet());
         }
         return nodesCache.asMap().entrySet();
     }
 
-    CachedNodeDocument getCachedNodeDoc(String id){
-        if(nodesCache instanceof OffHeapCache){
-            return  ((OffHeapCache) nodesCache).getCachedDocument(id);
+    CachedNodeDocument getCachedNodeDoc(String id) {
+        if (nodesCache instanceof OffHeapCache) {
+            return ((OffHeapCache) nodesCache).getCachedDocument(id);
         }
 
         return nodesCache.getIfPresent(new StringValue(id));
