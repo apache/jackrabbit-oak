@@ -63,6 +63,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
+import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -583,6 +585,32 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void disjunctPaths() throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAdditionalPaths(TEST_PATH + "/a", TEST_PATH + "/x")
+                .setEventTypes(NODE_ADDED);
+        oManager.addEventListener(listener, filter);
+
+        Node testNode = getNode(TEST_PATH);
+        Node b = testNode.addNode("a").addNode("b");
+        b.addNode("c");
+        Node y = testNode.addNode("x").addNode("y");
+        y.addNode("z");
+
+        listener.expect(b.getPath(), NODE_ADDED);
+        listener.expect(y.getPath(), NODE_ADDED);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
     public void filterPropertyOfParent()
             throws RepositoryException, ExecutionException, InterruptedException {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
@@ -630,11 +658,11 @@ public class ObservationTest extends AbstractRepositoryTest {
         // Events for all items that have a property "b/c/foo" with value "bar"
         builder.condition(builder.property(Selectors.fromThis("b/c"), "foo",
                 new Predicate<PropertyState>() {
-            @Override
-            public boolean apply(PropertyState property) {
-                return "bar".equals(property.getValue(STRING));
-            }
-        }));
+                    @Override
+                    public boolean apply(PropertyState property) {
+                        return "bar".equals(property.getValue(STRING));
+                    }
+                }));
         oManager.addEventListener(listener, builder.build());
 
         Node testNode = getNode(TEST_PATH);
@@ -818,7 +846,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }
 
         public void expectMove(final String src, final String dst) {
-            expect(new Expectation(">" + src + ':' + dst){
+            expect(new Expectation('>' + src + ':' + dst){
                 @Override
                 public boolean onEvent(Event event) throws Exception {
                     return event.getType() == NODE_MOVED &&
@@ -839,8 +867,8 @@ public class ObservationTest extends AbstractRepositoryTest {
             catch (TimeoutException e) {
                 long dt = System.nanoTime() - t0;
                 // TODO remove again once OAK-1491 is fixed
-                assertTrue("Spurious wak-up after " + 0,
-                        dt < 0.8*TimeUnit.NANOSECONDS.convert(time, timeUnit));
+                assertTrue("Spurious wak-up after " + dt,
+                        dt > 0.8*TimeUnit.NANOSECONDS.convert(time, timeUnit));
                 for (Expectation exp : expected) {
                     if (!exp.isDone()) {
                         missing.add(exp);

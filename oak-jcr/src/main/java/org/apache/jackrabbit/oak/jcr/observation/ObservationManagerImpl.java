@@ -23,6 +23,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +37,10 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
-import javax.jcr.observation.ObservationManager;
 
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
+import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -58,7 +62,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-public class ObservationManagerImpl implements ObservationManager {
+public class ObservationManagerImpl implements JackrabbitObservationManager {
     private static final Logger LOG = LoggerFactory.getLogger(ObservationManagerImpl.class);
     private static final int STOP_TIME_OUT = 1000;
 
@@ -118,21 +122,30 @@ public class ObservationManagerImpl implements ObservationManager {
         }
     }
 
-    private synchronized void addEventListener(
+    private void addEventListener(
             EventListener listener, ListenerTracker tracker, FilterProvider filterProvider) {
+        addEventListener(listener, tracker, Collections.singletonList(filterProvider));
+    }
+
+    private synchronized void addEventListener(
+            EventListener listener, ListenerTracker tracker, List<FilterProvider> filterProviders) {
         ChangeProcessor processor = processors.get(listener);
+        if (filterProviders.isEmpty()) {
+            return;
+        }
+
         if (processor == null) {
             LOG.debug(OBSERVATION,
-                    "Registering event listener {} with filter {}", listener, filterProvider);
+                    "Registering event listener {} with filter {}", listener, filterProviders);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    permissionProvider, tracker, filterProvider, statisticManager, queueLength,
+                    permissionProvider, tracker, filterProviders, statisticManager, queueLength,
                     commitRateLimiter);
             processors.put(listener, processor);
             processor.start(whiteboard);
         } else {
             LOG.debug(OBSERVATION,
-                    "Changing event listener {} to filter {}", listener, filterProvider);
-            processor.setFilterProvider(filterProvider);
+                    "Changing event listener {} to filter {}", listener, filterProviders);
+            processor.setFilterProvider(filterProviders);
         }
     }
 
@@ -200,6 +213,56 @@ public class ObservationManagerImpl implements ObservationManager {
         };
 
         addEventListener(listener, tracker, filterBuilder.build());
+    }
+
+    @Override
+    public void addEventListener(EventListener listener, JackrabbitEventFilter filter)
+            throws RepositoryException {
+
+        int eventTypes = filter.getEventTypes();
+        boolean isDeep = filter.getIsDeep();
+        String[] uuids = filter.getIdentifiers();
+        String[] nodeTypeName = filter.getNodeTypes();
+        boolean noLocal = filter.getNoLocal();
+        boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
+        List<String> absPaths = Lists.newArrayList(filter.getAdditionalPaths());
+        String absPath = filter.getAbsPath();
+        if (absPath != null) {
+            absPaths.add(absPath);
+        }
+
+        ArrayList<FilterProvider> filterProviders = Lists.newArrayList();
+        for (String path : absPaths) {
+            FilterBuilder filterBuilder = new FilterBuilder();
+            filterBuilder
+                    .basePath(namePathMapper.getOakPath(path))
+                    .includeSessionLocal(!noLocal)
+                    .includeClusterExternal(!noExternal)
+                    .condition(filterBuilder.all(
+                            filterBuilder.deleteSubtree(),
+                            filterBuilder.moveSubtree(),
+                            filterBuilder.path(isDeep ? STAR_STAR : STAR),
+                            filterBuilder.eventType(eventTypes),
+                            filterBuilder.uuid(Selectors.PARENT, uuids),
+                            filterBuilder.nodeType(Selectors.PARENT,
+                                    validateNodeTypeNames(nodeTypeName))));
+            filterProviders.add(filterBuilder.build());
+        }
+
+        // FIXME support multiple path in ListenerTracker
+        ListenerTracker tracker = new ListenerTracker(
+                listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
+            @Override
+            protected void warn(String message) {
+                LOG.warn(DEPRECATED, message, initStackTrace);
+            }
+            @Override
+            protected void beforeEventDelivery() {
+                sessionDelegate.refreshAtNextAccess();
+            }
+        };
+
+        addEventListener(listener, tracker, filterProviders);
     }
 
     @Override
