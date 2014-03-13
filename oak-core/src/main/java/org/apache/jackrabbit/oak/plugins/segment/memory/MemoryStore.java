@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.plugins.segment.memory;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.nio.ByteBuffer;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -37,13 +37,13 @@ import com.google.common.collect.Maps;
 
 public class MemoryStore implements SegmentStore {
 
-    private final SegmentIdFactory factory = new SegmentIdFactory();
+    private final SegmentIdFactory factory = new SegmentIdFactory(this);
 
-    private final SegmentWriter writer = new SegmentWriter(this, factory);
+    private final SegmentWriter writer = new SegmentWriter(this);
 
     private SegmentNodeState head;
 
-    private final ConcurrentMap<UUID, Segment> segments =
+    private final ConcurrentMap<SegmentId, Segment> segments =
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
@@ -57,6 +57,11 @@ public class MemoryStore implements SegmentStore {
 
     public MemoryStore() {
         this(EMPTY_NODE);
+    }
+
+    @Override
+    public SegmentIdFactory getFactory() {
+        return factory;
     }
 
     @Override
@@ -79,28 +84,33 @@ public class MemoryStore implements SegmentStore {
         }
     }
 
+    @Override
+    public boolean containsSegment(SegmentId id) {
+        return id.getStore() == this;
+    }
+
     @Override @Nonnull
-    public Segment readSegment(UUID uuid) {
-        Segment segment = writer.getCurrentSegment(uuid);
+    public Segment readSegment(SegmentId id) {
+        Segment segment = writer.getCurrentSegment(id);
         if (segment == null) {
-            segment = segments.get(uuid);
+            segment = segments.get(id);
         }
         if (segment != null) {
             return segment;
         } else {
-            throw new IllegalArgumentException("Segment not found: " + uuid);
+            throw new IllegalArgumentException("Segment not found: " + id);
         }
     }
 
     @Override
     public void writeSegment(
-            UUID segmentId, byte[] data, int offset, int length) {
+            SegmentId id, byte[] data, int offset, int length) {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         buffer.put(data, offset, length);
         buffer.rewind();
-        Segment segment = new Segment(this, factory, segmentId, buffer);
-        if (segments.putIfAbsent(segmentId, segment) != null) {
-            throw new IllegalStateException("Segment override: " + segmentId);
+        Segment segment = new Segment(this, id, buffer);
+        if (segments.putIfAbsent(id, segment) != null) {
+            throw new IllegalStateException("Segment override: " + id);
         }
     }
 

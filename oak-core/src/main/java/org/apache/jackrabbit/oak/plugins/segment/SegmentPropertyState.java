@@ -53,9 +53,8 @@ class SegmentPropertyState extends Record implements PropertyState {
 
     private final PropertyTemplate template;
 
-    public SegmentPropertyState(
-            Segment segment, RecordId id, PropertyTemplate template) {
-        super(segment, id);
+    public SegmentPropertyState(RecordId id, PropertyTemplate template) {
+        super(id);
         this.template = checkNotNull(template);
     }
 
@@ -68,7 +67,7 @@ class SegmentPropertyState extends Record implements PropertyState {
                 listId = segment.readRecordId(getOffset(4));
             }
         }
-        return new ListRecord(segment, listId, size);
+        return new ListRecord(listId, size);
     }
 
     Map<String, RecordId> getValueRecords() {
@@ -162,7 +161,7 @@ class SegmentPropertyState extends Record implements PropertyState {
     @SuppressWarnings("unchecked")
     private <T> T getValue(Segment segment, RecordId id, Type<T> type) {
         if (type == BINARY) {
-            return (T) new SegmentBlob(segment, id); // load binaries lazily
+            return (T) new SegmentBlob(id); // load binaries lazily
         }
 
         String value = segment.readString(id);

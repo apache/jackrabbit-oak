@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Objects.equal;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-
-import java.util.UUID;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -38,24 +32,13 @@ class Record {
     }
 
     static boolean fastEquals(Record a, Record b) {
-        return a.offset == b.offset && equal(a.uuid, b.uuid);
+        return a.segmentId == b.segmentId && a.offset == b.offset;
     }
 
     /**
-     * The segment that contains this record, or initially some other segment
-     * in the same store. The reference is lazily updated when the
-     * {@link #getSegment()} method is first called to prevent the potentially
-     * costly pre-loading of segments that might actually not be needed.
+     * Identifier of the segment that contains this record.
      */
-    private volatile Segment segment;
-
-    /**
-     * Identifier of the segment that contains this record. The value of
-     * this identifier never changes, but the exact instance reference may
-     * get updated by the {@link #getSegment()} method to indicate that
-     * lazy initialization has happened.
-     */
-    private volatile UUID uuid;
+    private final SegmentId segmentId;
 
     /**
      * Segment offset of this record.
@@ -63,40 +46,17 @@ class Record {
     private final int offset;
 
     /**
-     * Creates a new object for the identified record. The segment from which
-     * the record identifier was read is also given as it either directly
-     * contains the identified record (common case) or can be used to look
-     * up the segment that contains the record.
+     * Creates a new object for the identified record.
      *
-     * @param segment from which the record identifier was read
      * @param id record identified
      */
-    protected Record(@Nonnull Segment segment, @Nonnull RecordId id) {
-        this.segment = checkNotNull(segment);
-
-        checkNotNull(id);
-        if (equal(id.getSegmentId(), segment.getSegmentId())) {
-            this.uuid = segment.getSegmentId();
-        } else {
-            this.uuid = id.getSegmentId();
-        }
-        this.offset = id.getOffset();
+    protected Record(@Nonnull RecordId id) {
+        this(id.getSegmentId(), id.getOffset());
     }
 
-    protected Record(@Nonnull Segment segment, int offset) {
-        this.segment = checkNotNull(segment);
-        this.uuid = segment.getSegmentId();
+    protected Record(@Nonnull SegmentId segmentId, int offset) {
+        this.segmentId = segmentId;
         this.offset = offset;
-    }
-
-    /**
-     * Returns the store that contains this record.
-     *
-     * @return containing segment store
-     */
-    @Nonnull
-    protected SegmentStore getStore() {
-        return segment.getStore();
     }
 
     /**
@@ -104,13 +64,8 @@ class Record {
      *
      * @return segment that contains this record
      */
-    protected synchronized Segment getSegment() {
-        if (uuid != segment.getSegmentId()) {
-            segment = segment.getSegment(uuid);
-            checkState(uuid.equals(segment.getSegmentId()));
-            uuid = segment.getSegmentId();
-        }
-        return segment;
+    protected Segment getSegment() {
+        return segmentId.getSegment();
     }
 
     /**
@@ -119,7 +74,7 @@ class Record {
      * @return record identifier
      */
     public RecordId getRecordId() {
-        return new RecordId(uuid, offset);
+        return new RecordId(segmentId, offset);
     }
 
     /**
@@ -157,20 +112,13 @@ class Record {
     //------------------------------------------------------------< Object >--
 
     @Override
-    public boolean equals(Object object) {
-        if (object == this) {
-            return true;
-        } else if (object instanceof Record) {
-            Record that = (Record) object;
-            return offset == that.offset && uuid.equals(that.uuid);
-        } else {
-            return false;
-        }
+    public boolean equals(Object that) {
+        return fastEquals(this, that);
     }
 
     @Override
     public int hashCode() {
-        return uuid.hashCode() ^ offset;
+        return segmentId.hashCode() ^ offset;
     }
 
     @Override

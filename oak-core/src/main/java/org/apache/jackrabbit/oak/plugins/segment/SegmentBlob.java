@@ -31,8 +31,8 @@ import java.io.InputStream;
 
 class SegmentBlob extends Record implements Blob {
 
-    SegmentBlob(Segment segment, RecordId id) {
-        super(segment, id);
+    SegmentBlob(RecordId id) {
+        super(id);
     }
 
     private InputStream getInlineStream(
@@ -59,15 +59,15 @@ class SegmentBlob extends Record implements Blob {
             long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
             int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list = new ListRecord(
-                    segment, segment.readRecordId(offset + 8), listSize);
-            return new SegmentStream(getStore(), getRecordId(), list, length);
+                    segment.readRecordId(offset + 8), listSize);
+            return new SegmentStream(getRecordId(), list, length);
         } else if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value
             int length = segment.readShort(offset) & 0x0fff;
             byte[] bytes = new byte[length];
             segment.readBytes(offset + 10, bytes, 0, length);
             String refererence = new String(bytes, UTF_8);
-            return getStore().readBlob(refererence).getNewStream();
+            return segment.getStore().readBlob(refererence).getNewStream();
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));

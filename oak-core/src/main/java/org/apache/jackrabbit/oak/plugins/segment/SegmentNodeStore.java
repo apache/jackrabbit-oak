@@ -122,7 +122,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkNotNull(commitHook);
 
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
-        checkArgument(store == snb.getBaseState().getStore());
 
         try {
             commitSemaphore.acquire();
@@ -145,7 +144,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkArgument(builder instanceof SegmentNodeBuilder);
 
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
-        checkArgument(store == snb.getBaseState().getStore());
 
         NodeState root = getRoot();
         SegmentNodeState before = snb.getBaseState();
@@ -164,7 +162,6 @@ public class SegmentNodeStore implements NodeStore, Observable {
         checkArgument(builder instanceof SegmentNodeBuilder);
 
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
-        checkArgument(store == snb.getBaseState().getStore());
 
         NodeState root = getRoot();
         snb.reset(root);

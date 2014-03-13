@@ -36,14 +36,14 @@ public class SegmentStream extends InputStream {
             InputStream stream, SegmentStore store) {
         if (stream instanceof SegmentStream) {
             SegmentStream sstream = (SegmentStream) stream;
-            if (sstream.position == 0 && sstream.store == store) {
-                return sstream.recordId;
+            RecordId id = sstream.recordId;
+            if (sstream.position == 0
+                    && store.containsSegment(id.getSegmentId())) {
+                return id;
             }
         }
         return null;
     }
-
-    private final SegmentStore store;
 
     private final RecordId recordId;
 
@@ -57,10 +57,7 @@ public class SegmentStream extends InputStream {
 
     private long mark = 0;
 
-    SegmentStream(
-            SegmentStore store, RecordId recordId,
-            ListRecord blocks, long length) {
-        this.store = checkNotNull(store);
+    SegmentStream(RecordId recordId, ListRecord blocks, long length) {
         this.recordId = checkNotNull(recordId);
         this.inline = null;
         this.blocks = checkNotNull(blocks);
@@ -69,7 +66,6 @@ public class SegmentStream extends InputStream {
     }
 
     SegmentStream(RecordId recordId, byte[] inline) {
-        this.store = null;
         this.recordId = checkNotNull(recordId);
         this.inline = checkNotNull(inline);
         this.blocks = null;
@@ -86,8 +82,7 @@ public class SegmentStream extends InputStream {
         } else if (length > Integer.MAX_VALUE) {
             throw new IllegalStateException("Too long value: " + length);
         } else {
-            SegmentStream stream =
-                    new SegmentStream(store, recordId, blocks, length);
+            SegmentStream stream = new SegmentStream(recordId, blocks, length);
             try {
                 byte[] data = new byte[(int) length];
                 ByteStreams.readFully(stream, data);
@@ -156,10 +151,8 @@ public class SegmentStream extends InputStream {
                 len = (int) (length - position);
             }
 
-            BlockRecord block = new BlockRecord(
-                    blocks.getSegment(),
-                    blocks.getEntry(blockIndex),
-                    BLOCK_SIZE);
+            BlockRecord block =
+                    new BlockRecord(blocks.getEntry(blockIndex), BLOCK_SIZE);
             len = block.read(blockOffset, b, off, len);
             position += len;
             return len;

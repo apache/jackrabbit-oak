@@ -18,25 +18,24 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isBulkSegmentId;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory.isDataSegmentId;
 
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.junit.Test;
 
 public class SegmentIdFactoryTest {
 
-    private final SegmentIdFactory factory = new SegmentIdFactory();
+    private final SegmentIdFactory factory = new MemoryStore().getFactory();
 
     @Test
     public void segmentIdType() {
-        assertTrue(isDataSegmentId(factory.newDataSegmentId()));
-        assertTrue(isBulkSegmentId(factory.newBulkSegmentId()));
+        assertTrue(factory.newDataSegmentId().isDataSegmentId());
+        assertTrue(factory.newBulkSegmentId().isBulkSegmentId());
 
-        assertFalse(isBulkSegmentId(factory.newDataSegmentId()));
-        assertFalse(isDataSegmentId(factory.newBulkSegmentId()));
+        assertFalse(factory.newDataSegmentId().isBulkSegmentId());
+        assertFalse(factory.newBulkSegmentId().isDataSegmentId());
     }
 
     @Test
@@ -48,11 +47,11 @@ public class SegmentIdFactoryTest {
 
     @Test
     public void referencedSegmentIds() throws InterruptedException {
-        UUID a = factory.newDataSegmentId();
-        UUID b = factory.newBulkSegmentId();
-        UUID c = factory.newDataSegmentId();
+        SegmentId a = factory.newDataSegmentId();
+        SegmentId b = factory.newBulkSegmentId();
+        SegmentId c = factory.newDataSegmentId();
 
-        Set<UUID> ids = factory.getReferencedSegmentIds();
+        Set<SegmentId> ids = factory.getReferencedSegmentIds();
         assertTrue(ids.contains(a));
         assertTrue(ids.contains(b));
         assertTrue(ids.contains(c));
@@ -68,19 +67,19 @@ public class SegmentIdFactoryTest {
      */
     // @Test
     public void garbageCollection() {
-        UUID a = factory.newDataSegmentId();
-        UUID b = factory.newBulkSegmentId();
+        SegmentId a = factory.newDataSegmentId();
+        SegmentId b = factory.newBulkSegmentId();
 
         // generate lots of garbage copies of an UUID to get the
         // garbage collector to reclaim also the original instance
         for (int i = 0; i < 1000000; i++) {
-            a = new UUID(
-                    a.getMostSignificantBits(), a.getLeastSignificantBits());
+            a = new SegmentId(
+                    null, a.getMostSignificantBits(), a.getLeastSignificantBits());
         }
         System.gc();
 
         // now the original UUID should no longer be present
-        Set<UUID> ids = factory.getReferencedSegmentIds();
+        Set<SegmentId> ids = factory.getReferencedSegmentIds();
         assertFalse(ids.contains(a));
         assertTrue(ids.contains(b));
     }
