@@ -40,7 +40,7 @@ public class ChangeDispatcher implements Observable, Observer {
     private final CompositeObserver observers = new CompositeObserver();
 
     @Nonnull
-    private volatile NodeState root;
+    private NodeState root;
 
     /**
      * Create a new instance for dispatching content changes
@@ -62,7 +62,7 @@ public class ChangeDispatcher implements Observable, Observer {
      */
     @Override
     @Nonnull
-    public Closeable addObserver(final Observer observer) {
+    public synchronized Closeable addObserver(final Observer observer) {
         observer.contentChanged(root, null);
         observers.addObserver(observer);
         return new Closeable() {
