@@ -86,7 +86,7 @@ class ChangeProcessor implements Observer {
     private final CommitRateLimiter commitRateLimiter;
 
     private CompositeRegistration registration;
-    private NodeState previousRoot;
+    private volatile NodeState previousRoot;
 
     public ChangeProcessor(
             ContentSession contentSession,
