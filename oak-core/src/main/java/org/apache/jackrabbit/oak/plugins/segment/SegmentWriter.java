@@ -38,8 +38,10 @@ import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LE
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,6 +59,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -712,6 +715,7 @@ public class SegmentWriter {
 
     private RecordId internalWriteStream(InputStream stream)
             throws IOException {
+        BlobStore blobStore = store.getBlobStore();
         byte[] data = new byte[MAX_SEGMENT_SIZE];
         int n = ByteStreams.read(stream, data, 0, data.length);
 
@@ -719,6 +723,9 @@ public class SegmentWriter {
         // store them directly as small- or medium-sized value records
         if (n < Segment.MEDIUM_LIMIT) {
             return writeValueRecord(n, data);
+        }else if (blobStore != null){
+            String blobId = blobStore.writeBlob(new SequenceInputStream(new ByteArrayInputStream(data, 0, n), stream));
+            return writeValueRecord(blobId, blobStore.getBlobLength(blobId));
         }
 
         long length = n;
