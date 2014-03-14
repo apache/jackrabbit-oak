@@ -20,9 +20,11 @@
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.jackrabbit.aws.ext.ds.S3DataStore;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.service.component.ComponentContext;
 
@@ -32,9 +34,12 @@ public class S3DataStoreService extends AbstractDataStoreService{
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
-        //TODO Looks like there is no release of jackrabbit-aws-ext so far
-        //So need to wait for that
-//        return new S3DataStore();
-        throw new IllegalStateException("S3 support not complete");
+        S3DataStore dataStore = new S3DataStore();
+
+        Properties properties = new Properties();
+        properties.putAll(config);
+
+        dataStore.setProperties(properties);
+        return dataStore;
     }
 }
