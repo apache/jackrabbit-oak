@@ -28,8 +28,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Objects.ToStringHelper;
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // !! THIS UTILITY CLASS IS A COPY FROM APACHE SLING !!
@@ -230,7 +233,9 @@ public class PropertiesUtil {
     }
 
     /**
-     * Populates the bean properties from properties instance
+     * Populates the bean properties from config instance. It supports coercing
+     *  values for simple types like Number, Integer, Long, Boolean etc. Complex
+     *  objects are not supported
      *
      * @param instance bean to populate
      * @param config propertires to set in the passed bean
@@ -238,12 +243,13 @@ public class PropertiesUtil {
      *                 the configured bean class
      */
     @SuppressWarnings("unchecked")
-    public static void populate(Object instance, Map<String,String> config, boolean validate){
+    public static void populate(Object instance, Map<String,?> config, boolean validate){
         Class<?> objectClass = instance.getClass();
 
         // Set all configured bean properties
         Map<String, Method> setters = getSetters(objectClass);
-        for(Map.Entry<String,String> e : config.entrySet()) {
+        ToStringHelper toStringHelper = Objects.toStringHelper(instance);
+        for(Map.Entry<String,?> e : config.entrySet()) {
             String name = e.getKey();
             Method setter = setters.get(name);
             if (setter != null) {
@@ -251,14 +257,17 @@ public class PropertiesUtil {
                     log.warn("Parameter {} of {} has been deprecated",
                             name, objectClass.getName());
                 }
-                String value = e.getValue();
+                Object value = e.getValue();
                 setProperty(instance, name, setter, value);
+                toStringHelper.add(name,value);
             } else if (validate) {
                 throw new IllegalArgumentException(
                         "Configured class " + objectClass.getName()
                                 + " does not contain a property named " + name);
             }
         }
+
+        log.debug("Configured object with properties {}", toStringHelper);
     }
 
     private static Map<String, Method> getSetters(Class<?> klass) {
@@ -279,7 +288,7 @@ public class PropertiesUtil {
     }
 
     private static void setProperty(
-            Object instance, String name, Method setter, String value) {
+            Object instance, String name, Method setter, Object value) {
         String className = instance.getClass().getName();
         Class<?> type = setter.getParameterTypes()[0];
         try {
@@ -288,16 +297,16 @@ public class PropertiesUtil {
                 setter.invoke(instance, value);
             } else if (type.isAssignableFrom(Boolean.TYPE)
                     || type.isAssignableFrom(Boolean.class)) {
-                setter.invoke(instance, Boolean.valueOf(value));
+                setter.invoke(instance, toBoolean(value, false));
             } else if (type.isAssignableFrom(Integer.TYPE)
                     || type.isAssignableFrom(Integer.class)) {
-                setter.invoke(instance, Integer.valueOf(value));
+                setter.invoke(instance, toInteger(value,0));
             } else if (type.isAssignableFrom(Long.TYPE)
                     || type.isAssignableFrom(Long.class)) {
-                setter.invoke(instance, Long.valueOf(value));
+                setter.invoke(instance, toLong(value, 0));
             } else if (type.isAssignableFrom(Double.TYPE)
                     || type.isAssignableFrom(Double.class)) {
-                setter.invoke(instance, Double.valueOf(value));
+                setter.invoke(instance, toDouble(value,0));
             } else {
                 throw new RuntimeException(
                         "The type (" + type.getName()

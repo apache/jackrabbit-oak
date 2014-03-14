@@ -17,14 +17,16 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -142,15 +144,35 @@ public abstract class OakFixture {
             private BlobStore blobStore;
 
             private BlobStore getBlobStore() {
-                BlobStoreConfiguration config =
-                        BlobStoreConfiguration.newInstance().loadFromSystemProps();
+
                 try {
-                    blobStore = BlobStoreHelper.create(config).orNull();
+                    String className = System.getProperty("dataStore");
+                    if(className != null){
+                        DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
+                        ds.init(null);
+                        PropertiesUtil.populate(ds, getConfig(), false);
+                        blobStore = new DataStoreBlobStore(ds);
+                    }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
 
                 return blobStore;
+            }
+
+            /**
+             * Taken from org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils
+             */
+            private Map<String,?> getConfig(){
+                Map<String,Object> result = Maps.newHashMap();
+                for(Map.Entry<String,?> e : Maps.fromProperties(System.getProperties()).entrySet()){
+                    String key = e.getKey();
+                    if(key.startsWith("ds.") || key.startsWith("bs.")){
+                        key = key.substring(3); //length of bs.
+                        result.put(key, e.getValue());
+                    }
+                }
+                return result;
             }
 
             @Override

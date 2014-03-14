@@ -16,23 +16,23 @@
  */
 package org.apache.jackrabbit.mk.test;
 
+import java.util.Map;
+
+import com.google.common.collect.Maps;
+import com.mongodb.DB;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-
-import com.mongodb.DB;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
  * The Class MongoCloudBlobMicroKernelFixture.
  */
 public class MongoCloudBlobMicroKernelFixture extends BaseMongoMicroKernelFixture {
-
     /** The blob store. */
     private BlobStore blobStore;
 
@@ -43,11 +43,14 @@ public class MongoCloudBlobMicroKernelFixture extends BaseMongoMicroKernelFixtur
      */
     protected void openConnection() throws Exception {
         if (blobStore == null) {
-            blobStore =
-                    CloudBlobStoreBuilder
-                            .newInstance()
-                            .build(
-                                    BlobStoreConfiguration.newInstance().loadFromSystemProps()).get();
+            Map<String,?> config = getConfig();
+            if(!config.isEmpty()){
+                CloudBlobStore cbs  = new CloudBlobStore();
+                PropertiesUtil.populate(cbs, config, false);
+                cbs.init();
+                blobStore = cbs;
+            }
+            blobStore = null;
         }
     }
 
@@ -74,5 +77,20 @@ public class MongoCloudBlobMicroKernelFixture extends BaseMongoMicroKernelFixtur
         db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
         db.getCollection(Collection.NODES.toString()).drop();
         ((CloudBlobStore) blobStore).deleteBucket();
+    }
+
+    /**
+     * See org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils#getConfig()
+     */
+    private static Map<String,?> getConfig(){
+        Map<String,Object> result = Maps.newHashMap();
+        for(Map.Entry<String,?> e : Maps.fromProperties(System.getProperties()).entrySet()){
+            String key = e.getKey();
+            if(key.startsWith("bs.")){
+                key = key.substring(3); //length of bs.
+                result.put(key, e.getValue());
+            }
+        }
+        return result;
     }
 }

@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.blob.cloud;
 
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
-import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 
 /**
  * Helper class for retrieving the appropriate blobStore instance
@@ -34,10 +31,7 @@ public class CloudStoreUtils {
      *             the exception
      */
     public static AbstractBlobStore getBlobStore() throws Exception {
-        BlobStoreConfiguration config =
-                BlobStoreConfiguration.newInstance().loadFromSystemProps();
-        config.addProperty(
-                BlobStoreConfiguration.PROP_BLOB_STORE_PROVIDER, CloudBlobStore.class.getName());
-        return (AbstractBlobStore) BlobStoreHelper.create(config).orNull();
+        //TODO Need to be implemented
+        return null;
     }
 }
