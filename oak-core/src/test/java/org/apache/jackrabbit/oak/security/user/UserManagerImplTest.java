@@ -18,16 +18,22 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -36,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -52,25 +59,34 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     private UserManagerImpl userMgr;
     private String testUserId = "testUser";
+    private Set<String> beforeAuthorizables = new HashSet<String>();
 
     @Before
     public void before() throws Exception {
         super.before();
 
         userMgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+        beforeAuthorizables.clear();
+        Iterator<Authorizable> iter = userMgr.findAuthorizables("jcr:primaryType", null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+        while (iter.hasNext()) {
+            beforeAuthorizables.add(iter.next().getID());
+        }
     }
 
     @After
     public void after() throws Exception {
-        try {
-            Authorizable testUser = userMgr.getAuthorizable(testUserId);
-            if (testUser != null) {
-                testUser.remove();
-                root.commit();
+        Iterator<Authorizable> iter = userMgr.findAuthorizables("jcr:primaryType", null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
+        while (iter.hasNext()) {
+            Authorizable auth = iter.next();
+            if (!beforeAuthorizables.remove(auth.getID())) {
+                try {
+                    auth.remove();
+                } catch (RepositoryException e) {
+                    // ignore
+                }
             }
-        } finally {
-            super.after();
         }
+        super.after();
     }
 
     @Test
@@ -162,7 +178,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         // authNode - authFolder -> create User
         try {
             Principal p = new PrincipalImpl("test2");
-            Authorizable a = userMgr.createUser(p.getName(), p.getName(), p, path);
+            userMgr.createUser(p.getName(), p.getName(), p, path);
             root.commit();
 
             fail("Users may not be nested.");
@@ -232,5 +248,41 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
         result = userMgr.findAuthorizables("./"+UserConstants.REP_PRINCIPAL_NAME, null);
         assertTrue(result.hasNext());
+    }
+
+    @Ignore("OAK-1541")
+    @Test
+    public void testConcurrentCreateUser() throws Exception {
+        final List<Exception> exceptions = new ArrayList<Exception>();
+        List<Thread> workers = new ArrayList<Thread>();
+        for (int i=0; i<10; i++) {
+            final String userId = "foo-user-" + i;
+            workers.add(new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        ContentSession admin = login(getAdminCredentials());
+                        Root root = admin.getLatestRoot();
+                        UserManager userManager = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+                        userManager.createUser(userId, "pass");
+                        root.commit();
+                        admin.close();
+                    } catch (Exception e) {
+                        exceptions.add(e);
+                    }
+                }
+            }));
+        }
+        for (Thread t : workers) {
+            t.start();
+        }
+        for (Thread t : workers) {
+            t.join();
+        }
+        for (Exception e : exceptions) {
+            e.printStackTrace();
+        }
+        if (!exceptions.isEmpty()) {
+            throw exceptions.get(0);
+        }
     }
 }
