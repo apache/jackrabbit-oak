@@ -27,6 +27,7 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -43,28 +44,33 @@ public abstract class AbstractDataStoreService {
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
+    private DataStore dataStore;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
-        DataStore dataStore = createDataStore(context, config);
+        DataStore ds = createDataStore(context, config);
 
         String homeDir = lookup(context, PROP_HOME);
         if (homeDir != null) {
             log.debug("Initializing the DataStore with homeDir [{}]", homeDir);
         }
-        PropertiesUtil.populate(dataStore, config, false);
-        dataStore.init(lookup(context, PROP_HOME));
+        PropertiesUtil.populate(ds, config, false);
+        ds.init(lookup(context, PROP_HOME));
+        this.dataStore = new DataStoreBlobStore(ds);
         reg = context.getBundleContext().registerService(new String[]{
                 DataStore.class.getName(),
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
-        }, new DataStoreBlobStore(dataStore), null);
+        }, ds , null);
     }
 
     @Deactivate
-    protected void deactivate() {
+    protected void deactivate() throws DataStoreException {
         if (reg != null) {
             reg.unregister();
         }
+
+        dataStore.close();
     }
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
@@ -72,7 +78,7 @@ public abstract class AbstractDataStoreService {
     protected static String lookup(ComponentContext context, String property) {
         //Prefer property from BundleContext first
         if (context.getBundleContext().getProperty(property) != null) {
-            return context.getBundleContext().getProperty(property).toString();
+            return context.getBundleContext().getProperty(property);
         }
 
         if (context.getProperties().get(property) != null) {
