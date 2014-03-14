@@ -127,7 +127,7 @@ public class PropertiesUtilTest {
 
     @Test
     public void testPopulate() {
-        Map<String, String> props = new HashMap<String, String>();
+        Map<String, Object> props = new HashMap<String, Object>();
         props.put("string", "foo");
         props.put("bool", "true");
         props.put("integer", "7");
@@ -144,7 +144,7 @@ public class PropertiesUtilTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testPopulateAndValidate() {
-        Map<String, String> props = new HashMap<String, String>();
+        Map<String, Object> props = new HashMap<String, Object>();
         props.put("something", "foo");
 
         TestBeanA bean = new TestBeanA();

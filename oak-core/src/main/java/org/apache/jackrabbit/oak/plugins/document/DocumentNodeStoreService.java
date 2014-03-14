@@ -20,12 +20,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.annotation.CheckForNull;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -38,19 +39,20 @@ import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.util.tracker.ServiceTracker;
+import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Strings;
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -99,48 +101,63 @@ public class DocumentNodeStoreService {
     @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
 
+    /**
+     * Boolean value indicating a blobStore is to be used
+     */
+    public static final String CUSTOM_BLOB_STORE = "customBlobStore";
+
     private static final long MB = 1024 * 1024;
 
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
 
     private ServiceRegistration reg;
     private final List<Registration> registrations = new ArrayList<Registration>();
     private DocumentMK mk;
     private ObserverTracker observerTracker;
-    private BundleContext bundleContext;
+    private ComponentContext context;
+    private ServiceTracker blobStoreTracker;
 
     @Activate
-    protected void activate(BundleContext context, Map<String, ?> config) throws Exception {
-        this.bundleContext = context;
+    protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
+        this.context = context;
 
-        String uri = PropertiesUtil.toString(prop(config, PROP_URI, FWK_PROP_URI), DEFAULT_URI);
-        String db = PropertiesUtil.toString(prop(config, PROP_DB, FWK_PROP_DB), DEFAULT_DB);
+        if(PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)){
+            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when BlobStore would be available");
+            blobStoreTracker = new ServiceTracker(context.getBundleContext(),
+                    BlobStore.class.getName(), new BlobStoreTracker());
+            blobStoreTracker.open();
+        }else{
+            initialize(context, null);
+        }
+    }
 
-        int offHeapCache = PropertiesUtil.toInteger(prop(config, PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
-        int cacheSize = PropertiesUtil.toInteger(prop(config, PROP_CACHE), DEFAULT_CACHE);
-        boolean useMK = PropertiesUtil.toBoolean(config.get(PROP_USE_MK), false);
+    protected void initialize(ComponentContext context, BlobStore blobStore) throws UnknownHostException {
+
+
+        String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
+        String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
+
+        int offHeapCache = PropertiesUtil.toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
+        int cacheSize = PropertiesUtil.toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
+        boolean useMK = PropertiesUtil.toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
 
         MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
         MongoClientURI mongoURI = new MongoClientURI(uri, builder);
 
-        if (logger.isInfoEnabled()) {
+        if (log.isInfoEnabled()) {
             // Take care around not logging the uri directly as it
             // might contain passwords
             String type = useMK ? "MK" : "NodeStore";
-            logger.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
-                    new Object[] {type, mongoURI.getHosts(), db, cacheSize, offHeapCache});
-            logger.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
+                    new Object[]{type, mongoURI.getHosts(), db, cacheSize, offHeapCache});
+            log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
         }
 
         MongoClient client = new MongoClient(mongoURI);
         DB mongoDB = client.getDB(db);
 
-        // Check if any valid external BlobStore is defined.
-        // If not then use the default which is MongoBlobStore
-        BlobStore blobStore = createBlobStore(config);
-
-        DocumentMK.Builder mkBuilder = 
+        DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
                 offHeapCacheSize(offHeapCache * MB);
@@ -154,9 +171,9 @@ public class DocumentNodeStoreService {
 
         mk = mkBuilder.open();
 
-        logger.info("Connected to database {}", mongoDB);
+        log.info("Connected to database {}", mongoDB);
 
-        registerJMXBeans(mk.getNodeStore(), context);
+        registerJMXBeans(mk.getNodeStore(), context.getBundleContext());
 
         NodeStore store;
         if (useMK) {
@@ -169,40 +186,23 @@ public class DocumentNodeStoreService {
             observerTracker = new ObserverTracker(mns);
         }
 
-        observerTracker.start(context);
-        reg = context.registerService(NodeStore.class.getName(), store, new Properties());
+        observerTracker.start(context.getBundleContext());
+        reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, new Properties());
     }
 
-    @CheckForNull
-    private BlobStore createBlobStore(Map<String, ?> config) throws Exception {
-        String blobStoreType = PropertiesUtil.toString(
-                prop(config, BlobStoreConfiguration.PROP_BLOB_STORE_PROVIDER),
-                BlobStoreConfiguration.DEFAULT_BLOB_STORE_PROVIDER);
-
-        BlobStore blobStore = null;
-        if (!Strings.isNullOrEmpty(blobStoreType)) {
-            blobStore = BlobStoreHelper.create(
-                    BlobStoreConfiguration.newInstance().
-                            loadFromContextOrMap(config, bundleContext))
-                    .orNull();
-            logger.info("BlobStore Configured {}", blobStore);
-        }
-        return blobStore;
+    private Object prop(String propName) {
+        return prop(propName, PREFIX + propName);
     }
 
-    private Object prop(Map<String, ?> config, String propName) {
-        return prop(config, propName, PREFIX + propName);
-    }
-
-    private Object prop(Map<String, ?> config, String propName, String fwkPropName) {
+    private Object prop(String propName, String fwkPropName) {
         //Prefer framework property first
-        Object value = bundleContext.getProperty(fwkPropName);
+        Object value = context.getBundleContext().getProperty(fwkPropName);
         if (value != null) {
             return value;
         }
 
         //Fallback to one from config
-        return config.get(propName);
+        return context.getProperties().get(propName);
     }
 
     @Deactivate
@@ -211,6 +211,13 @@ public class DocumentNodeStoreService {
             observerTracker.stop();
         }
 
+        blobStoreTracker.close();
+        blobStoreTracker = null;
+
+        unregisterNodeStore();
+    }
+
+    private void unregisterNodeStore() {
         for (Registration r : registrations) {
             r.unregister();
         }
@@ -266,5 +273,30 @@ public class DocumentNodeStoreService {
         }
 
         //TODO Register JMX bean for Off Heap Cache stats
+    }
+
+    private class BlobStoreTracker implements ServiceTrackerCustomizer {
+
+        @Override
+        public Object addingService(ServiceReference reference) {
+            BlobStore blobStore = (BlobStore) context.getBundleContext().getService(reference);
+            try {
+                initialize(context, blobStore);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return blobStore;
+        }
+
+        @Override
+        public void modifiedService(ServiceReference reference, Object service) {
+
+        }
+
+        @Override
+        public void removedService(ServiceReference reference, Object service) {
+            log.info("BlobStore services unregistered. Unregistered the DocumentNodeStore");
+            unregisterNodeStore();
+        }
     }
 }

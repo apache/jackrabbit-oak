@@ -16,18 +16,18 @@
  */
 package org.apache.jackrabbit.mk.test;
 
+import java.io.File;
+
+import com.mongodb.DB;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.BlobStoreConfiguration;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-
-import com.mongodb.DB;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 /**
  * The Class MongoCloudBlobMicroKernelFixture.
@@ -44,11 +44,9 @@ public class MongoDataStoreBlobMicroKernelFixture extends BaseMongoMicroKernelFi
      */
     protected void openConnection() throws Exception {
         if (blobStore == null) {
-            blobStore =
-                    DataStoreBlobStoreBuilder
-                            .newInstance()
-                            .build(
-                                    BlobStoreConfiguration.newInstance().loadFromSystemProps()).get();
+            FileDataStore fds = new FileDataStore();
+            fds.init(new File("target", "BlobStoreTest").getAbsolutePath());
+            blobStore = new DataStoreBlobStore(fds);
         }
     }
 
