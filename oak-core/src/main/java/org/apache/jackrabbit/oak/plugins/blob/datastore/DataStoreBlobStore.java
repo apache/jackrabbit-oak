@@ -33,13 +33,14 @@ import javax.jcr.RepositoryException;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
@@ -120,11 +121,18 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     //~-------------------------------------------< BlobStore >
 
     @Override
-    public String writeBlob(InputStream in) throws IOException {
+    public String writeBlob(InputStream stream) throws IOException {
+        boolean threw = true;
         try {
-            return writeStream(in).getIdentifier().toString();
+            String id = writeStream(stream).getIdentifier().toString();
+            threw = false;
+            return id;
         } catch (DataStoreException e) {
             throw new IOException(e);
+        } finally {
+            //DataStore does not closes the stream internally
+            //So close the stream explicitly
+            Closeables.close(stream, threw);
         }
     }
 
@@ -133,19 +141,15 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         //This is inefficient as repeated calls for same blobId would involve opening new Stream
         //instead clients should directly access the stream from DataRecord by special casing for
         //BlobStore which implements DataStore
-        InputStream in = getStream(blobId);
+        InputStream stream = getStream(blobId);
+        boolean threw = true;
         try {
-            long skip = pos;
-            while (skip > 0) {
-                long skipped = in.skip(skip);
-                if (skipped <= 0) {
-                    return -1;
-                }
-                skip -= skipped;
-            }
-            return IOUtils.readFully(in, buff,off,length);
+            ByteStreams.skipFully(stream, pos);
+            int readCount = stream.read(buff, off, length);
+            threw = false;
+            return readCount;
         } finally {
-            in.close();
+            Closeables.close(stream, threw);
         }
     }
 
