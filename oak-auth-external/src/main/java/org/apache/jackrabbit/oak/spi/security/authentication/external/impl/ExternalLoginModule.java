@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,11 +30,13 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
@@ -242,7 +245,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
                 subject.getPublicCredentials().add(credentials);
-                setAuthInfo(new AuthInfoImpl(externalUser.getId(), null, principals), subject);
+                setAuthInfo(createAuthInfo(externalUser.getId(), principals), subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
             }
@@ -325,6 +328,29 @@ public class ExternalLoginModule extends AbstractLoginModule {
         }
 
     }
+
+    private AuthInfo createAuthInfo(String userId, Set<? extends Principal> principals) {
+        Credentials creds;
+        if (credentials instanceof ImpersonationCredentials) {
+            creds = ((ImpersonationCredentials) credentials).getBaseCredentials();
+        } else {
+            creds = credentials;
+        }
+        Map<String, Object> attributes = new HashMap<String, Object>();
+        Object shared = sharedState.get(SHARED_KEY_ATTRIBUTES);
+        if (shared instanceof Map) {
+            for (Object key : ((Map) shared).keySet()) {
+                attributes.put(key.toString(), ((Map) shared).get(key));
+            }
+        } else if (creds instanceof SimpleCredentials) {
+            SimpleCredentials sc = (SimpleCredentials) creds;
+            for (String attrName : sc.getAttributeNames()) {
+                attributes.put(attrName, sc.getAttribute(attrName));
+            }
+        }
+        return new AuthInfoImpl(userId, attributes, principals);
+    }
+
     //------------------------------------------------< AbstractLoginModule >---
 
     @Override

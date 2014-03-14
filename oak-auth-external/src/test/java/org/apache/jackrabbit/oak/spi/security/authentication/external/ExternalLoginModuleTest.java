@@ -60,6 +60,11 @@ public class ExternalLoginModuleTest extends ExternalLoginModuleTestBase {
         return new TestIdentityProvider();
     }
 
+    @Override
+    protected void destroyIDP(ExternalIdentityProvider idp) {
+    // ignore
+    }
+
     @Test
     public void testLoginFailed() throws Exception {
         UserManager userManager = getUserManager(root);
