@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -120,6 +121,11 @@ public class MemoryStore implements SegmentStore {
 
     @Override
     public Blob readBlob(String reference) {
+        return null;
+    }
+
+    @Override
+    public BlobStore getBlobStore() {
         return null;
     }
 

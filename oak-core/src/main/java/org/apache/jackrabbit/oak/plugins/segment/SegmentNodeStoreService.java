@@ -23,22 +23,28 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
+import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.util.tracker.ServiceTracker;
+import org.osgi.util.tracker.ServiceTrackerCustomizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
-@Service(NodeStore.class)
 public class SegmentNodeStoreService extends ProxyNodeStore
         implements Observable {
 
@@ -57,6 +63,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Property(description="Cache size (MB)", intValue=256)
     public static final String CACHE = "cache";
 
+    /**
+     * Boolean value indicating a blobStore is to be used
+     */
+    public static final String CUSTOM_BLOB_STORE = "customBlobStore";
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     private String name;
 
     private SegmentStore store;
@@ -65,18 +78,33 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private ObserverTracker observerTracker;
 
+    private ComponentContext context;
+
+    private ServiceRegistration registration;
+
+    private ServiceTracker blobStoreTracker;
+
     @Override
     protected synchronized SegmentNodeStore getNodeStore() {
         checkState(delegate != null, "service must be activated when used");
         return delegate;
     }
 
-    public SegmentStore getSegmentStore() {
-        return store;
+    @Activate
+    public void activate(ComponentContext context) throws IOException {
+        this.context = context;
+
+        if(Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE))){
+            log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
+            blobStoreTracker = new ServiceTracker(context.getBundleContext(),
+                    BlobStore.class.getName(), new BlobStoreTracker());
+            blobStoreTracker.open();
+        }else{
+            initialize(context, null);
+        }
     }
 
-    @Activate
-    public synchronized void activate(ComponentContext context)
+    public synchronized void initialize(ComponentContext context, BlobStore blobStore)
             throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
@@ -84,6 +112,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         String directory = lookup(context, DIRECTORY);
         if (directory == null) {
             directory = "tarmk";
+        }else{
+            directory = FilenameUtils.concat(directory, "segmentstore");
         }
 
         String mode = lookup(context, MODE);
@@ -98,12 +128,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         store = new FileStore(
+                blobStore,
                 new File(directory),
                 Integer.parseInt(size), "64".equals(mode));
 
         delegate = new SegmentNodeStore(store);
         observerTracker = new ObserverTracker(delegate);
         observerTracker.start(context.getBundleContext());
+
+        registration = context.getBundleContext().registerService(NodeStore.class.getName(), this, null);
     }
 
     private static String lookup(ComponentContext context, String property) {
@@ -111,18 +144,30 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             return context.getProperties().get(property).toString();
         }
         if (context.getBundleContext().getProperty(property) != null) {
-            return context.getBundleContext().getProperty(property).toString();
+            return context.getBundleContext().getProperty(property);
         }
         return null;
     }
 
     @Deactivate
     public synchronized void deactivate() {
+        unregisterNodeStore();
+
         observerTracker.stop();
         delegate = null;
 
         store.close();
         store = null;
+
+        blobStoreTracker.close();
+        blobStoreTracker = null;
+    }
+
+    private void unregisterNodeStore() {
+        if(registration != null){
+            registration.unregister();
+            registration = null;
+        }
     }
 
     //------------------------------------------------------------< Observable >---
@@ -137,6 +182,31 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Override
     public String toString() {
         return name + ": " + delegate;
+    }
+
+    private class BlobStoreTracker implements ServiceTrackerCustomizer {
+
+        @Override
+        public Object addingService(ServiceReference reference) {
+            BlobStore blobStore = (BlobStore) context.getBundleContext().getService(reference);
+            try {
+                initialize(context, blobStore);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return blobStore;
+        }
+
+        @Override
+        public void modifiedService(ServiceReference reference, Object service) {
+
+        }
+
+        @Override
+        public void removedService(ServiceReference reference, Object service) {
+            log.info("BlobStore services unregistered. Unregistered the SegmentNodeStore");
+            unregisterNodeStore();
+        }
     }
 
 }
