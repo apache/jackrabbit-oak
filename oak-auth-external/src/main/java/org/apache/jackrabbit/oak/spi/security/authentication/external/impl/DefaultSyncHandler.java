@@ -221,9 +221,7 @@ public class DefaultSyncHandler implements SyncHandler {
                     throw new IllegalArgumentException("identity must be user or group but was: " + identity);
                 }
                 if (log.isDebugEnabled()) {
-                    log.debug("sync({}) -> {} {}", new Object[]{
-                            identity.getExternalId().getString(), identity.getId(), timer.getString()
-                    });
+                    log.debug("sync({}) -> {} {}", identity.getExternalId().getString(), identity.getId(), timer.getString());
                 }
                 return ret;
             } catch (RepositoryException e) {
@@ -281,7 +279,7 @@ public class DefaultSyncHandler implements SyncHandler {
                     }
                 }
                 if (log.isDebugEnabled()) {
-                    log.debug("sync({}) -> {} {}", new Object[]{id, ref.getString(), timer.getString()});
+                    log.debug("sync({}) -> {} {}", id, ref.getString(), timer.getString());
                 }
                 return ret;
             } catch (RepositoryException e) {
@@ -564,30 +562,19 @@ public class DefaultSyncHandler implements SyncHandler {
             Value[] values = auth.getProperty(REP_LAST_SYNCED);
             if (values == null || values.length == 0) {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " not set.", new Object[] {
-                            type,
-                            auth.isGroup() ? "group" : "user",
-                            auth.getID()
-                    });
+                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " not set.",
+                            type, auth.isGroup() ? "group" : "user", auth.getID());
                 }
                 return true;
             } else if (now - values[0].getLong() > expirationTime) {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " expired ({} > {})", new Object[]{
-                            type,
-                            auth.isGroup() ? "group" : "user",
-                            auth.getID(),
-                            now - values[0].getLong(), expirationTime
-                    });
+                    log.debug("{} of {} '{}' need sync. " + REP_LAST_SYNCED + " expired ({} > {})",
+                            type, auth.isGroup() ? "group" : "user", auth.getID(), now - values[0].getLong(), expirationTime);
                 }
                 return true;
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("{} of {} '{}' do not need sync.", new Object[]{
-                            type,
-                            auth.isGroup() ? "group" : "user",
-                            auth.getID()
-                    });
+                    log.debug("{} of {} '{}' do not need sync.", type, auth.isGroup() ? "group" : "user", auth.getID());
                 }
                 return false;
             }

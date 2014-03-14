@@ -306,8 +306,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
                     log.warn("search for {} returned more than one entry. discarding additional ones.", searchFilter);
                 }
                 if (log.isDebugEnabled()) {
-                    log.debug("search below {} with {} found {}",
-                            new Object[]{idConfig.getBaseDN(), searchFilter, resultEntry.getDn()});
+                    log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
                 }
                 return resultEntry;
             }
@@ -457,9 +456,8 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             }
             timer.mark("iterate");
             if (log.isDebugEnabled()) {
-                log.debug("search below {} with {} found {} entries. {}", new Object[]{
-                        config.getGroupConfig().getBaseDN(), searchFilter, groups.size(), timer.getString()
-                });
+                log.debug("search below {} with {} found {} entries. {}",
+                        config.getGroupConfig().getBaseDN(), searchFilter, groups.size(), timer.getString());
             }
             return groups;
         } catch (Exception e) {
@@ -495,9 +493,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             }
             timer.mark("iterate");
             if (log.isDebugEnabled()) {
-                log.debug("members lookup of {} found {} members. {}", new Object[]{
-                        ref.getId(), members.size(), timer.getString()
-                });
+                log.debug("members lookup of {} found {} members. {}", ref.getId(), members.size(), timer.getString());
             }
             return members;
         } catch (Exception e) {
