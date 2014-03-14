@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import com.mongodb.DB;
 import com.mongodb.gridfs.GridFS;
+import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 
 /**
  * Implementation of {@link BlobStore} for MongoDB using GridFS. It does not
@@ -47,6 +48,11 @@ public class MongoGridFSBlobStore implements BlobStore {
     public long getBlobLength(String blobId) throws IOException {
         Command<Long> command = new GetBlobLengthCommandGridFS(gridFS, blobId);
         return commandExecutor.execute(command);
+    }
+
+    @Override
+    public InputStream getInputStream(String blobId) throws IOException {
+        return new BlobStoreInputStream(this, blobId, 0);
     }
 
     @Override

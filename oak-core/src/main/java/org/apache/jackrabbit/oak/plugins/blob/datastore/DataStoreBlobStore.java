@@ -1,474 +1,173 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
+
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.io.SequenceInputStream;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ExecutionException;
 
-import org.apache.jackrabbit.core.data.CachingDataStore;
+import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Strings;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 
 /**
- * A {@link BlobStore} implementation which is a compatibility wrapper for
- * Jackrabbit {@link DataStore}.
- * <p>
- * Uses a 2 level cache to improve random read performance.
- * 
- * Caches the {@link InputStream} until fully read or closed. Number of streams
- * cached are controlled by the
- * {@link DataStoreConfiguration#getStreamCacheSize()} parameter
- * 
- * Also, uses a 16MB bytes[] cache.
- * 
+ * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
+ * It also handles inlining binaries if there size is smaller than
+ * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
-public class DataStoreBlobStore implements GarbageCollectableBlobStore,
-        Cache.Backend<DataStoreBlobStore.LogicalBlockId, DataStoreBlobStore.Data> {
+public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollectableBlobStore {
+    private final DataStore delegate;
 
-    /**
-     * Logger instance.
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(DataStoreBlobStore.class);
-
-    protected static final int BLOCK_SIZE_LIMIT = 40;
-
-    private static final int DEFAULT_STREAM_CACHE_SIZE = 256;
-
-    /**
-     * The size of a block. 128 KB has been found to be as fast as larger
-     * values, and faster than smaller values. 2 MB results in less files.
-     */
-    private int blockSize = 2 * 1024 * 1024;
-
-    /**
-     * The block cache (16 MB). Caches blocks up to blockSize.
-     */
-    private Cache<LogicalBlockId, Data> blockCache = Cache.newInstance(this, 16 * 1024 * 1024);
-
-    /** The stream cache size. */
-    protected int streamCacheSize;
-
-    /**
-     * The stream cache caches a number of streams to avoid opening a new stream
-     * on every random access read.
-     */
-    private LoadingCache<String, InputStream> streamCache;
-
-    private LoadingCache<String, Long> fileLengthCache;
-
-    /** The data store. */
-    private DataStore dataStore;
-
-    /**
-     * Gets the stream cache size.
-     * 
-     * @return the stream cache size
-     */
-    protected int getStreamCacheSize() {
-        return streamCacheSize;
+    public DataStoreBlobStore(DataStore delegate) {
+        this.delegate = delegate;
     }
 
-    /**
-     * Sets the stream cache size.
-     * 
-     * @param streamCacheSize
-     *            the new stream cache size
-     */
-    protected void setStreamCacheSize(int streamCacheSize) {
-        this.streamCacheSize = streamCacheSize;
+    //~----------------------------------< DataStore >
+
+    @Override
+    public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
+        if(isInMemoryRecord(identifier)){
+            return getDataRecord(identifier.toString());
+        }
+        return delegate.getRecordIfStored(identifier);
     }
 
-    /**
-     * Sets the block size.
-     * 
-     * @param x
-     *            the new block size
-     */
-    public final void setBlockSize(final int x) {
-        validateBlockSize(x);
-        this.blockSize = x;
+    @Override
+    public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
+        if(isInMemoryRecord(identifier)){
+            return getDataRecord(identifier.toString());
+        }
+        return delegate.getRecord(identifier);
     }
 
-    /**
-     * Validate block size.
-     * 
-     * @param x
-     *            the x
-     */
-    private static void validateBlockSize(final int x) {
-        if (x < BLOCK_SIZE_LIMIT) {
-            throw new IllegalArgumentException("The minimum size must be bigger "
-                    + "than a content hash itself; limit = " + BLOCK_SIZE_LIMIT);
+    @Override
+    public DataRecord getRecordFromReference(String reference) throws DataStoreException {
+        return delegate.getRecordFromReference(reference);
+    }
+
+    @Override
+    public DataRecord addRecord(InputStream stream) throws DataStoreException {
+        try {
+            return writeStream(stream);
+        } catch (IOException e) {
+            throw new DataStoreException(e);
         }
     }
 
-    /**
-     * Initialized the blob store.
-     * 
-     * @param dataStore
-     *            the data store
-     * @param streamCacheSize
-     *            the stream cache size
-     */
-    public void init(DataStore dataStore) {
-        if (streamCacheSize <= 0) {
-            streamCacheSize = DEFAULT_STREAM_CACHE_SIZE;
-        }
-
-        streamCache = CacheBuilder.newBuilder().maximumSize(streamCacheSize)
-                .removalListener(new RemovalListener<String, InputStream>() {
-                    public void onRemoval(RemovalNotification<String, InputStream> removal) {
-                        InputStream stream = removal.getValue();
-                        IOUtils.closeQuietly(stream);
-                    }
-                }).build(new CacheLoader<String, InputStream>() {
-                    public InputStream load(String key) throws Exception {
-                        return loadStream(key);
-                    }
-                });
-        fileLengthCache = CacheBuilder.newBuilder().maximumSize(streamCacheSize)
-                .build(new CacheLoader<String, Long>() {
-                    @Override
-                    public Long load(String key) throws Exception {
-                        return getBlobLength(key);
-                    }
-                });
-        this.dataStore = dataStore;
+    @Override
+    public void updateModifiedDateOnAccess(long before) {
+        delegate.updateModifiedDateOnAccess(before);
     }
 
-    /**
-     * Writes the input stream to the data store.
-     */
+    @Override
+    public int deleteAllOlderThan(long min) throws DataStoreException {
+        return delegate.deleteAllOlderThan(min);
+    }
+
+    @Override
+    public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
+        return delegate.getAllIdentifiers();
+    }
+
+    @Override
+    public void init(String homeDir) throws RepositoryException {
+        throw new UnsupportedOperationException("DataStore cannot be initialized again");
+    }
+
+    @Override
+    public int getMinRecordLength() {
+        return delegate.getMinRecordLength();
+    }
+
+    @Override
+    public void close() throws DataStoreException {
+        delegate.close();
+    }
+
+    //~-------------------------------------------< BlobStore >
+
     @Override
     public String writeBlob(InputStream in) throws IOException {
         try {
-            // add the record in the data store
-            DataRecord dataRec = dataStore.addRecord(in);
-            return dataRec.getIdentifier().toString();
+            return writeStream(in).getIdentifier().toString();
         } catch (DataStoreException e) {
             throw new IOException(e);
-        } finally {
-            IOUtils.closeQuietly(in);
         }
     }
 
-    /**
-     * Reads the blob with the given blob id and range.
-     */
     @Override
     public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
-        if (Strings.isNullOrEmpty(blobId)) {
-            return -1;
-        }
-
-        long blobLength;
+        //This is inefficient as repeated calls for same blobId would involve opening new Stream
+        //instead clients should directly access the stream from DataRecord by special casing for
+        //BlobStore which implements DataStore
+        InputStream in = getStream(blobId);
         try {
-            blobLength = fileLengthCache.get(blobId);
-        } catch (ExecutionException e) {
-            LOG.debug("File length cache error", e);
-            blobLength = getBlobLength(blobId);
-        }
-        LOG.debug("read {" + blobId + "}, {" + blobLength + "}");
-
-        long position = pos;
-        int offset = off;
-
-        if (position < blobLength) {
-            int totalLength = 0;
-            long bytesLeft = ((position + length) > blobLength ? blobLength - position : length);
-
-            // Reads all the logical blocks satisfying the required range
-            while (bytesLeft > 0) {
-                long posBlockStart = position / blockSize;
-                int posOffsetInBlock = (int) (position - posBlockStart * blockSize);
-
-                byte[] block = readBlock(blobId, posBlockStart);
-
-                long bytesToRead = Math.min(bytesLeft,
-                        Math.min((blobLength - posOffsetInBlock), (blockSize - posOffsetInBlock)));
-                System.arraycopy(block, posOffsetInBlock, buff, offset, (int) bytesToRead);
-
-                position += bytesToRead;
-                offset += bytesToRead;
-                totalLength += bytesToRead;
-                bytesLeft -= bytesToRead;
+            long skip = pos;
+            while (skip > 0) {
+                long skipped = in.skip(skip);
+                if (skipped <= 0) {
+                    return -1;
+                }
+                skip -= skipped;
             }
-            return totalLength;
-        } else {
-            LOG.trace("Blob read for pos " + pos + "," + (pos + length - 1) + " out of range");
-            return -1;
+            return IOUtils.readFully(in, buff,off,length);
+        } finally {
+            in.close();
         }
     }
 
-    /**
-     * Gets the data store.
-     * 
-     * @return the data store
-     */
-    public DataStore getDataStore() {
-        return dataStore;
-    }
-
-    /**
-     * Sets the data store.
-     * 
-     * @param dataStore
-     *            the data store
-     */
-    protected void setDataStore(DataStore dataStore) {
-        this.dataStore = dataStore;
-    }
-
-    /**
-     * Load the block to the cache.
-     */
     @Override
-    public final Data load(final LogicalBlockId id) {
-        byte[] data;
+    public long getBlobLength(String blobId) throws IOException {
         try {
-            data = readBlockFromBackend(id);
-        } catch (Exception e) {
-            throw new RuntimeException("failed to read block from backend, id " + id, e);
+            return getDataRecord(blobId).getLength();
+        } catch (DataStoreException e) {
+            throw new IOException(e);
         }
-        if (data == null) {
-            throw new IllegalArgumentException("The block with id " + id + " was not found");
-        }
-        LOG.debug("Read from backend (Cache Miss): " + id);
-        return new Data(data);
     }
 
-    /**
-     * Gets the length of the blob identified by the blobId.
-     */
     @Override
-    public final long getBlobLength(final String blobId) throws IOException {
-        if (Strings.isNullOrEmpty(blobId)) {
-            return 0;
-        }
-
-        Long length = null;
-        try {
-            if (dataStore instanceof CachingDataStore) {
-                length = ((CachingDataStore) dataStore).getLength(new DataIdentifier(blobId));
-            } else {
-                length = dataStore.getRecord(new DataIdentifier(blobId)).getLength();
-            }
-            return length;
-        } catch (DataStoreException e) {
-            throw new IOException("Could not get length of blob for id " + blobId, e);
-        }
+    public InputStream getInputStream(String blobId) throws IOException {
+        return getStream(blobId);
     }
 
-    /**
-     * Reads block from backend.
-     * 
-     * @param id
-     *            the id
-     * @return the byte[]
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
-     */
-    private byte[] readBlockFromBackend(final LogicalBlockId id) throws IOException {
-        String key = StringUtils.convertBytesToHex(id.digest);
-        InputStream stream = null;
-        try {
-            stream = streamCache.get(key);
-        } catch (ExecutionException e) {
-            LOG.debug("Error retrieving from stream cache : " + key, e);
-        }
+    //~-------------------------------------------< GarbageCollectableBlobStore >
 
-        byte[] block = new byte[blockSize];
-        org.apache.commons.io.IOUtils.read(stream, block, 0, blockSize);
+    @Override
+    public void setBlockSize(int x) {
 
-        if ((stream != null) && (stream.available() <= 0)) {
-            streamCache.invalidate(key);
-        }
-        return block;
-    }
-
-    /**
-     * Loads the stream from the data store.
-     * 
-     * @param key
-     *            the key
-     * @return the input stream
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
-     */
-    private InputStream loadStream(String key) throws IOException {
-        InputStream stream = null;
-        try {
-            stream = dataStore.getRecord(new DataIdentifier(key)).getStream();
-        } catch (DataStoreException e) {
-            throw new IOException("Could not read blob for id " + key, e);
-        }
-        return stream;
-    }
-
-    /**
-     * Reads block.
-     * 
-     * @param blobId
-     *            the blob id
-     * @param posStart
-     *            the pos start
-     * @return the byte[]
-     * @throws Exception
-     *             the exception
-     */
-    private byte[] readBlock(final String blobId, final long posStart) throws IOException {
-        byte[] digest = StringUtils.convertHexToBytes(blobId);
-        LogicalBlockId id = new LogicalBlockId(digest, posStart);
-
-        LOG.debug("Trying to read from cache : " + blobId + ", " + posStart);
-
-        return blockCache.get(id).data;
-    }
-
-    /**
-     * Delete all blobs older than.
-     * 
-     * @param time
-     *            the time
-     * @return the int
-     * @throws Exception
-     *             the exception
-     */
-    public int deleteAllOlderThan(long time) throws Exception {
-        return dataStore.deleteAllOlderThan(time);
-    }
-
-    /**
-     * A file is divided into logical chunks. Blocks are small enough to fit in
-     * memory, so they can be cached.
-     */
-    public static class LogicalBlockId {
-
-        /** The digest. */
-        final byte[] digest;
-
-        /** The starting pos. */
-        final long pos;
-
-        /**
-         * Instantiates a new logical block id.
-         * 
-         * @param digest
-         *            the digest
-         * @param pos
-         *            the starting position of the block
-         */
-        LogicalBlockId(final byte[] digest, final long pos) {
-            this.digest = digest;
-            this.pos = pos;
-        }
-
-        @Override
-        public final boolean equals(final Object other) {
-            if (this == other) {
-                return true;
-            }
-            if (other == null || !(other instanceof LogicalBlockId)) {
-                return false;
-            }
-            LogicalBlockId o = (LogicalBlockId) other;
-            return Arrays.equals(digest, o.digest) && pos == o.pos;
-        }
-
-        @Override
-        public final int hashCode() {
-            return Arrays.hashCode(digest) ^ (int) (pos >> 32) ^ (int) pos;
-        }
-
-        @Override
-        public final String toString() {
-            return StringUtils.convertBytesToHex(digest) + "@" + pos;
-        }
-
-        /**
-         * Gets the digest.
-         * 
-         * @return the digest
-         */
-        public final byte[] getDigest() {
-            return digest;
-        }
-
-        /**
-         * Gets the starting position.
-         * 
-         * @return the starting position
-         */
-        public final long getPos() {
-            return pos;
-        }
-    }
-
-    /**
-     * The data for a block.
-     */
-    public static class Data implements Cache.Value {
-
-        /** The data. */
-        final byte[] data;
-
-        /**
-         * Instantiates a new data.
-         * 
-         * @param data
-         *            the data
-         */
-        Data(final byte[] data) {
-            this.data = data;
-        }
-
-        @Override
-        public final String toString() {
-            String s = StringUtils.convertBytesToHex(data);
-            return s.length() > 100 ? s.substring(0, 100) + ".. (len=" + data.length + ")" : s;
-        }
-
-        @Override
-        public final int getMemory() {
-            return data.length;
-        }
     }
 
     @Override
@@ -479,56 +178,56 @@ public class DataStoreBlobStore implements GarbageCollectableBlobStore,
             in = new FileInputStream(file);
             return writeBlob(in);
         } finally {
-            if (in != null) {
-                in.close();
-            }
-            file.delete();
+            org.apache.commons.io.IOUtils.closeQuietly(in);
+            FileUtils.forceDelete(file);
         }
     }
 
     @Override
     public int sweep() throws IOException {
-        // no-op
         return 0;
     }
 
     @Override
     public void startMark() throws IOException {
+
     }
 
     @Override
     public void clearInUse() {
-        dataStore.clearInUse();
+        delegate.clearInUse();
     }
 
     @Override
     public void clearCache() {
-        // no-op
+
     }
 
     @Override
     public long getBlockSizeMin() {
-        // no-op
         return 0;
     }
 
-    /**
-     * Ignores the maxLastModifiedTime currently.
-     */
     @Override
-    public Iterator<String> getAllChunkIds(
-            long maxLastModifiedTime) throws Exception {
-        return new DataStoreIterator(dataStore.getAllIdentifiers());
+    public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
+        //TODO Ignores the maxLastModifiedTime currently.
+        return Iterators.transform(delegate.getAllIdentifiers(), new Function<DataIdentifier, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable DataIdentifier input) {
+                return input.toString();
+            }
+        });
     }
 
     @Override
-    public boolean deleteChunk(String blobId, long maxLastModifiedTime) throws Exception {
-        if (dataStore instanceof MultiDataStoreAware) {
-            DataIdentifier identifier = new DataIdentifier(blobId);
-            DataRecord dataRecord = dataStore.getRecord(identifier);
-            if ((maxLastModifiedTime <= 0) 
+    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+        if (delegate instanceof MultiDataStoreAware) {
+            DataIdentifier identifier = new DataIdentifier(chunkId);
+            DataRecord dataRecord = delegate.getRecord(identifier);
+            if ((maxLastModifiedTime <= 0)
                     || dataRecord.getLastModified() <= maxLastModifiedTime) {
-                ((MultiDataStoreAware) dataStore).deleteRecord(identifier);
+                ((MultiDataStoreAware) delegate).deleteRecord(identifier);
                 return true;
             }
         }
@@ -540,29 +239,68 @@ public class DataStoreBlobStore implements GarbageCollectableBlobStore,
         return Iterators.singletonIterator(blobId);
     }
 
-    class DataStoreIterator implements Iterator<String> {
-        Iterator<DataIdentifier> backingIterator;
+    @Override
+    public String toString() {
+        return String.format("DataStore backed BlobStore [%s]", delegate.getClass().getName());
+    }
 
-        public DataStoreIterator(Iterator<DataIdentifier> backingIterator) {
-            this.backingIterator = backingIterator;
+    public DataStore getDataStore() {
+        return delegate;
+    }
+
+    private InputStream getStream(String blobId) throws IOException {
+        try {
+            return getDataRecord(blobId).getStream();
+        } catch (DataStoreException e) {
+            throw new IOException(e);
         }
+    }
 
-        @Override
-        public boolean hasNext() {
-            return backingIterator.hasNext();
+    private DataRecord getDataRecord(String blobId) throws DataStoreException {
+        DataRecord id;
+        if(InMemoryDataRecord.isInstance(blobId)){
+            id = InMemoryDataRecord.getInstance(blobId);
+        }else{
+            id = delegate.getRecord(new DataIdentifier(blobId));
+            Preconditions.checkNotNull(id, "No DataRecord found for blodId [%s]", blobId);
         }
+        return id;
+    }
 
-        @Override
-        public String next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException("No more elements");
+    private boolean isInMemoryRecord(DataIdentifier identifier){
+        return InMemoryDataRecord.isInstance(identifier.toString());
+    }
+
+    /**
+     * Create a BLOB value from in input stream. Small objects will create an in-memory object,
+     * while large objects are stored in the data store
+     *
+     * @param in the input stream
+     * @return the value
+     */
+    private DataRecord writeStream(InputStream in) throws IOException, DataStoreException {
+        int maxMemorySize = Math.max(0, delegate.getMinRecordLength() + 1);
+        byte[] buffer = new byte[maxMemorySize];
+        int pos = 0, len = maxMemorySize;
+        while (pos < maxMemorySize) {
+            int l = in.read(buffer, pos, len);
+            if (l < 0) {
+                break;
             }
-            return backingIterator.next().toString();
+            pos += l;
+            len -= l;
         }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
+        DataRecord record;
+        if (pos < maxMemorySize) {
+            // shrink the buffer
+            byte[] data = new byte[pos];
+            System.arraycopy(buffer, 0, data, 0, pos);
+            record = InMemoryDataRecord.getInstance(data);
+        } else {
+            // a few bytes are already read, need to re-build the input stream
+            in = new SequenceInputStream(new ByteArrayInputStream(buffer, 0, pos), in);
+            record = delegate.addRecord(in);
         }
+        return record;
     }
 }
