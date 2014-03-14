@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
@@ -30,10 +31,13 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityProvider;
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModuleTestBase;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -67,14 +71,14 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
 
     protected static String GROUP_DN;
 
-    protected static int CONCURRENT_LOGINS = 10;
+    protected static int NUM_CONCURRENT_LOGINS = 10;
+    private static String[] CONCURRENT_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
+    private static String[] CONCURRENT_GROUP_TEST_USERS = new String[NUM_CONCURRENT_LOGINS];
 
     //initialize LDAP server only once (fast, but might turn out to be not sufficiently flexible in the future)
     protected static final boolean USE_COMMON_LDAP_FIXTURE = true;
 
     protected UserManager userManager;
-
-    protected LdapIdentityProvider idp;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -130,6 +134,14 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     }
 
     @Override
+    protected void setSyncConfig(DefaultSyncConfig cfg) {
+        if (cfg != null) {
+            cfg.user().getPropertyMapping().put(USER_PROP, USER_ATTR);
+        }
+        super.setSyncConfig(cfg);
+    }
+
+    @Override
     protected ExternalIdentityProvider createIDP() {
         LdapProviderConfig cfg = new LdapProviderConfig()
                 .setName("ldap")
@@ -146,7 +158,14 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
                 .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
                 .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
 
-        return new LdapIdentityProvider(cfg);
+        LdapIdentityProvider ldapIDP = new LdapIdentityProvider(cfg);
+        ldapIDP.disableConnectionPooling = true;
+        return ldapIDP;
+    }
+
+    @Override
+    protected void destroyIDP(ExternalIdentityProvider idp) {
+        ((LdapIdentityProvider) idp).close();
     }
 
     /**
@@ -183,7 +202,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testSyncCreateUser() throws Exception {
         ContentSession cs = null;
@@ -206,7 +224,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testSyncCreateGroup() throws Exception {
         ContentSession cs = null;
@@ -214,8 +231,8 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
 
             root.refresh();
-            assertNull(userManager.getAuthorizable(USER_ID));
-            assertNull(userManager.getAuthorizable(GROUP_DN));
+            assertNotNull(userManager.getAuthorizable(USER_ID));
+            assertNotNull(userManager.getAuthorizable(GROUP_NAME));
         } finally {
             if (cs != null) {
                 cs.close();
@@ -224,11 +241,12 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testSyncUpdate() throws Exception {
         // create user upfront in order to test update mode
-        userManager.createUser(USER_ID, null);
+        Authorizable user = userManager.createUser(USER_ID, null);
+        ExternalUser externalUser = idp.getUser(USER_ID);
+        user.setProperty("rep:externalId", new ValueFactoryImpl(root, NamePathMapper.DEFAULT).createValue(externalUser.getExternalId().getString()));
         root.commit();
 
         ContentSession cs = null;
@@ -236,7 +254,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
 
             root.refresh();
-            Authorizable user = userManager.getAuthorizable(USER_ID);
+             user = userManager.getAuthorizable(USER_ID);
             assertNotNull(user);
             assertTrue(user.hasProperty(USER_PROP));
             assertNull(userManager.getAuthorizable(GROUP_DN));
@@ -248,7 +266,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testLoginSetsAuthInfo() throws Exception {
         ContentSession cs = null;
@@ -268,33 +285,8 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testPrincipalsFromAuthInfo() throws Exception {
-        ContentSession cs = null;
-        try {
-            SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
-            sc.setAttribute("attr", "val");
-
-            cs = login(sc);
-            AuthInfo ai = cs.getAuthInfo();
-
-            root.refresh();
-            PrincipalProvider pp = getSecurityProvider().getConfiguration(PrincipalConfiguration.class).getPrincipalProvider(root, NamePathMapper.DEFAULT);
-            Set<? extends Principal> expected = pp.getPrincipals(USER_ID);
-            assertEquals(2, expected.size());
-            assertEquals(expected, ai.getPrincipals());
-
-        } finally {
-            if (cs != null) {
-                cs.close();
-            }
-        }
-    }
-
-    @Ignore() // FIXME
-    @Test
-    public void testPrincipalsFromAuthInfo2() throws Exception {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials(USER_ID, USER_PWD.toCharArray());
@@ -316,7 +308,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore() // FIXME
     @Test
     public void testReLogin() throws Exception {
         ContentSession cs = null;
@@ -331,6 +322,7 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
             cs.close();
             // login again
             cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+            root.refresh();
             assertEquals(USER_ID, cs.getAuthInfo().getUserID());
         } finally {
             if (cs != null) {
@@ -340,33 +332,27 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         }
     }
 
-    @Ignore // FIXME
     @Test
+    @Ignore("OAK-1541")
     public void testConcurrentLogin() throws Exception {
-        concurrentLogin(false);
+        concurrentLogin(CONCURRENT_TEST_USERS);
     }
 
-    @Ignore // FIXME
     @Test
+    @Ignore("OAK-1541")
     public void testConcurrentLoginSameGroup() throws Exception {
-        concurrentLogin(true);
+        concurrentLogin(CONCURRENT_GROUP_TEST_USERS);
     }
 
-    private void concurrentLogin(boolean sameGroup) throws Exception {
+    private void concurrentLogin(String [] users) throws Exception {
         final List<Exception> exceptions = new ArrayList<Exception>();
         List<Thread> workers = new ArrayList<Thread>();
-        for (int i = 0; i < CONCURRENT_LOGINS; i++) {
-            final String userId = "user-" + i;
-            final String pass = "secret";
-            String userDN = LDAP_SERVER.addUser(userId, "test", userId, pass);
-            if (sameGroup) {
-                LDAP_SERVER.addMember(GROUP_DN, userDN);
-            }
+        for (String userId: users) {
+            final String uid = userId;
             workers.add(new Thread(new Runnable() {
                 public void run() {
                     try {
-                        login(new SimpleCredentials(
-                                userId, pass.toCharArray())).close();
+                        login(new SimpleCredentials(uid, USER_PWD.toCharArray())).close();
                     } catch (Exception e) {
                         exceptions.add(e);
                     }
@@ -391,5 +377,15 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         LDAP_SERVER.addMember(
                 GROUP_DN = LDAP_SERVER.addGroup(GROUP_NAME),
                 LDAP_SERVER.addUser(USER_FIRSTNAME, USER_LASTNAME, USER_ID, USER_PWD));
+        for (int i = 0; i < NUM_CONCURRENT_LOGINS * 2; i++) {
+            final String userId = "user-" + i;
+            String userDN = LDAP_SERVER.addUser(userId, "test", userId, USER_PWD);
+            if (i%2 == 0) {
+                CONCURRENT_GROUP_TEST_USERS[i/2] = userId;
+                LDAP_SERVER.addMember(GROUP_DN, userDN);
+            } else {
+                CONCURRENT_TEST_USERS[i/2] = userId;
+            }
+        }
     }
 }

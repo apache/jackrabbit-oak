@@ -98,6 +98,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     private UnboundLdapConnectionPool userPool;
 
     /**
+     * temporary flag to disable connection pooling during unit tests. somehow the internal DS does not work correctly.
+     */
+    public boolean disableConnectionPooling;
+
+    /**
      * Default constructor for OSGi
      */
     @SuppressWarnings("UnusedDeclaration")
@@ -295,20 +300,27 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         req.setFilter(searchFilter);
 
         // Process the request
-        SearchCursor searchCursor = connection.search(req);
-        while (searchCursor.next()) {
-            Response response = searchCursor.get();
+        SearchCursor searchCursor = null;
+        try {
+            searchCursor = connection.search(req);
+            while (searchCursor.next()) {
+                Response response = searchCursor.get();
 
-            // process the SearchResultEntry
-            if (response instanceof SearchResultEntry) {
-                Entry resultEntry = ((SearchResultEntry) response).getEntry();
-                if (searchCursor.next()) {
-                    log.warn("search for {} returned more than one entry. discarding additional ones.", searchFilter);
+                // process the SearchResultEntry
+                if (response instanceof SearchResultEntry) {
+                    Entry resultEntry = ((SearchResultEntry) response).getEntry();
+                    if (searchCursor.next()) {
+                        log.warn("search for {} returned more than one entry. discarding additional ones.", searchFilter);
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
+                    }
+                    return resultEntry;
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("search below {} with {} found {}", idConfig.getBaseDN(), searchFilter, resultEntry.getDn());
-                }
-                return resultEntry;
+            }
+        } finally {
+            if (searchCursor != null) {
+                searchCursor.close();
             }
         }
         if (log.isDebugEnabled()) {
@@ -369,6 +381,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     private void disconnect(@Nullable LdapConnection connection) throws ExternalIdentityException {
         try {
             if (connection != null) {
+                if (disableConnectionPooling) {
+                    connection.close();
+                }
                 adminPool.releaseConnection(connection);
             }
         } catch (Exception e) {
@@ -430,6 +445,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         String searchFilter = config.getMemberOfSearchFilter(ref.getId());
 
         LdapConnection connection = null;
+        SearchCursor searchCursor = null;
         try {
             // Create the SearchRequest object
             SearchRequest req = new SearchRequestImpl();
@@ -444,7 +460,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             connection = connect();
             timer.mark("connect");
 
-            SearchCursor searchCursor = connection.search(req);
+            searchCursor = connection.search(req);
             timer.mark("search");
             while (searchCursor.next()) {
                 Response response = searchCursor.get();
@@ -464,6 +480,9 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             log.error("Error during ldap membership search." ,e);
             throw new ExternalIdentityException("Error during ldap membership search.", e);
         } finally {
+            if (searchCursor != null) {
+                searchCursor.close();
+            }
             disconnect(connection);
         }
     }

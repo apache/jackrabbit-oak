@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapIdentityP
 import org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -110,7 +109,9 @@ public class LdapProviderTest {
                 .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
                 .setObjectClasses("groupOfUniqueNames");
 
-        return new LdapIdentityProvider(providerConfig);
+        LdapIdentityProvider ldapIDP = new LdapIdentityProvider(providerConfig);
+        ldapIDP.disableConnectionPooling = true;
+        return ldapIDP;
     }
 
     protected static void initLdapFixture(InternalLdapServer server) throws Exception {

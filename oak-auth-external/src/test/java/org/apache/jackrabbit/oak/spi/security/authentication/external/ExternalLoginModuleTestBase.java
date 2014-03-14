@@ -93,6 +93,7 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
             testIdpReg.unregister();
             testIdpReg = null;
         }
+        destroyIDP(idp);
         idp = null;
         setSyncConfig(null);
 
@@ -128,6 +129,8 @@ public abstract class ExternalLoginModuleTestBase extends AbstractSecurityTest {
     }
 
     protected abstract ExternalIdentityProvider createIDP();
+
+    protected abstract void destroyIDP(ExternalIdentityProvider idp);
 
     protected void setSyncConfig(DefaultSyncConfig cfg) {
         if (syncHandlerReg != null) {
