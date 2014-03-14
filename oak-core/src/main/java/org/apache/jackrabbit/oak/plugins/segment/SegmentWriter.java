@@ -27,7 +27,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithExpectedSize;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newTreeSet;
+import static com.google.common.collect.Sets.newIdentityHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.nCopies;
@@ -46,7 +46,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,47 +196,30 @@ public class SegmentWriter {
         checkArgument(size >= 0);
         checkNotNull(ids);
 
-        int refcount = segment.getRefCount();
-        int newcount = refcount;
-
-        Set<SegmentId> segmentIds = newTreeSet();
-        for (RecordId recordId : ids) {
-            segmentIds.add(recordId.getSegmentId());
-        }
-        segmentIds.remove(segment.getSegmentId());
-
-        int refid = 1;
-        Iterator<SegmentId> iterator = segmentIds.iterator();
-        while (refid < refcount && iterator.hasNext()) {
-            SegmentId segmentId = iterator.next();
-            long msb = segmentId.getMostSignificantBits();
-            while (refid < refcount
-                    && segment.readLong(refid * 16) < msb) {
-                refid++;
-            }
-            long lsb = segmentId.getLeastSignificantBits();
-            while (refid < refcount
-                    && segment.readLong(refid * 16) == msb
-                    && segment.readLong(refid * 16 + 8) < lsb) {
-                refid++;
-            }
-            if (refid < refcount
-                    && segment.readLong(refid * 16) == msb
-                    && segment.readLong(refid * 16 + 8) == lsb) {
-                // that segment is already referenced, so no new entry needed
-            } else {
-                newcount++;
-            }
-        }
-
         int rootcount = roots.size() + 1;
+        int refcount = segment.getRefCount();
+        Set<SegmentId> segmentIds = newIdentityHashSet();
+        for (RecordId recordId : ids) {
+            SegmentId segmentId = recordId.getSegmentId();
+            if (segmentId != segment.getSegmentId()) {
+                segmentIds.add(segmentId);
+            } else if (roots.containsKey(recordId)) {
+                rootcount--;
+            }
+        }
+        if (!segmentIds.isEmpty()) {
+            for (int refid = 1; refid < refcount; refid++) {
+                segmentIds.remove(segment.getRefId(refid));
+            }
+            refcount += segmentIds.size();
+        }
 
         int recordSize = Segment.align(size + ids.size() * Segment.RECORD_ID_BYTES);
-        int headerSize = Segment.align(newcount * 16 + rootcount * 3);
+        int headerSize = Segment.align(refcount * 16 + rootcount * 3);
         int segmentSize = headerSize + recordSize + length;
         if (segmentSize > buffer.length - 1
                 || rootcount > 0xffff
-                || newcount > Segment.SEGMENT_REFERENCE_LIMIT) {
+                || refcount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
         }
 
