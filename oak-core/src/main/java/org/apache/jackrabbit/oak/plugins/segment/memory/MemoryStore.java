@@ -129,4 +129,10 @@ public class MemoryStore implements SegmentStore {
         return null;
     }
 
+    @Override
+    public void gc() {
+        System.gc();
+        segments.keySet().retainAll(factory.getReferencedSegmentIds());
+    }
+
 }
