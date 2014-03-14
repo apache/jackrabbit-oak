@@ -58,6 +58,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -266,7 +267,7 @@ public final class DocumentNodeStore
     private final BlobSerializer blobSerializer = new BlobSerializer() {
         @Override
         public String serialize(Blob blob) {
-            if (blob instanceof DocumentBlob) {
+            if (blob instanceof BlobStoreBlob) {
                 return blob.toString();
             }
             String id;
@@ -1232,7 +1233,7 @@ public final class DocumentNodeStore
         } catch (Exception e) {
             throw new IOException("Could not write blob", e);
         }
-        return new DocumentBlob(blobStore, id);
+        return new BlobStoreBlob(blobStore, id);
     }
 
     /**
@@ -1244,7 +1245,7 @@ public final class DocumentNodeStore
     @Override
     @Nonnull
     public Blob getBlob(String blobId) {
-        return new DocumentBlob(blobStore, blobId);
+        return new BlobStoreBlob(blobStore, blobId);
     }
 
     @Nonnull

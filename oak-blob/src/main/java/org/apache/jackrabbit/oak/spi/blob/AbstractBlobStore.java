@@ -35,6 +35,7 @@ import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -133,10 +134,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
             in = new FileInputStream(file);
             return writeBlob(in);
         } finally {
-            if (in != null) {
-                in.close();
-            }
-            file.delete();
+            org.apache.commons.io.IOUtils.closeQuietly(in);
+            FileUtils.forceDelete(file);
         }
     }
 
@@ -157,6 +156,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 // ignore
             }
         }
+    }
+
+    public InputStream getInputStream(String blobId) throws IOException {
+        //Marking would handled by next call to store.readBlob
+        return new BlobStoreInputStream(this, blobId, 0);
     }
 
     protected void usesBlobId(String blobId) {

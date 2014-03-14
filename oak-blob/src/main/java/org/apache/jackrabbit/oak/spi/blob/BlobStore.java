@@ -53,4 +53,16 @@ public interface BlobStore {
      */
     long getBlobLength(String blobId) throws IOException;
 
+    /**
+     * Returns a new stream for given blobId. The streams returned from
+     * multiple calls to this method are byte wise equals. That is,
+     * subsequent calls to {@link java.io.InputStream#read() read}
+     * return the same sequence of bytes as long as neither call throws
+     * an exception.
+     *
+     * @param blobId the blob id
+     * @return a new stream for given blobId
+     */
+    InputStream getInputStream(String blobId) throws IOException;
+
 }
