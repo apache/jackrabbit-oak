@@ -23,7 +23,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
-import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.CallbackHandler;
@@ -217,19 +216,16 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 return false;
             }
         } catch (ExternalIdentityException e) {
-            log.error("Error while authenticating '{}' with {}", new Object[]{
-                    userId == null ? credentials : userId, idp.getName(), e
-            });
+            log.error("Error while authenticating '{}' with {}",
+                    userId == null ? credentials : userId, idp.getName(), e);
             return false;
         } catch (LoginException e) {
-            log.debug("IDP {} throws login exception for '{}': {}", new Object[] {
-                    idp.getName(), userId == null ? credentials : userId, e.getMessage()
-            });
+            log.debug("IDP {} throws login exception for '{}': {}",
+                    idp.getName(), userId == null ? credentials : userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.debug("SyncHandler {} throws sync exception for '{}'", new Object[] {
-                    syncHandler.getName(), userId == null ? credentials : userId, e
-            });
+            log.debug("SyncHandler {} throws sync exception for '{}'",
+                    syncHandler.getName(), userId == null ? credentials : userId, e);
             LoginException le = new LoginException("Error while syncing user.");
             le.initCause(e);
             throw le;
