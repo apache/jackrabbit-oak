@@ -81,4 +81,9 @@ public interface SegmentStore {
     @CheckForNull
     BlobStore getBlobStore();
 
+    /**
+     * Triggers removal of segments that are no longer referenceable.
+     */
+    void gc();
+
 }

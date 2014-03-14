@@ -169,4 +169,9 @@ public class HttpStore implements SegmentStore {
         return null;
     }
 
+    @Override
+    public void gc() {
+        // TODO: distributed gc
+    }
+
 }

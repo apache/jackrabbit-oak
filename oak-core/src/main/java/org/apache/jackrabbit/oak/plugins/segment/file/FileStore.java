@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -393,5 +394,12 @@ public class FileStore implements SegmentStore {
     @Override
     public BlobStore getBlobStore() {
         return blobStore;
+    }
+
+    @Override
+    public void gc() {
+        System.gc();
+        Set<SegmentId> ids = factory.getReferencedSegmentIds();
+        // TODO reclaim unreferenced segments
     }
 }

@@ -73,7 +73,7 @@ public class SegmentIdFactory {
      *
      * @return referenced segment identifiers
      */
-    synchronized Set<SegmentId> getReferencedSegmentIds() {
+    public synchronized Set<SegmentId> getReferencedSegmentIds() {
         Set<SegmentId> set = newHashSetWithExpectedSize(uuids.size());
 
         for (int i = 0; i < uuids.size(); i++) {
