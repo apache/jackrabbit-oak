@@ -21,28 +21,38 @@ package org.apache.jackrabbit.oak.api.jmx;
 
 /**
  * This interface exposes repository management operations
- * and the status of such operations.
+ * and the status of such operations. This interface only
+ * provides high level functionality for starting certain
+ * management operations and monitoring their outcomes.
+ * Parametrisation and configuration of the operations is
+ * beyond the scope of this interface and must be achieved
+ * by other means. For example through a dedicated MBean of
+ * the specific service providing the respective functionality.
+ * Furthermore not all operations might be available in all
+ * deployments or at all times. However the status should give
+ * a clear indication for this case.
  * <p>
  * The status of an operation is an opaque string describing
  * in a human readable form what the operation currently does,
  * which might depend on the particular implementation performing
- * the operation. However the status status must always indicate
- * whether an operation is ongoing or terminated. In the latter case
- * it must indicate whether it terminated successfully or failed.
- * In all cases the status may provide additional information
- * like e.g. how far an ongoing operation progressed, what time
- * it took to complete a terminated operation, or information
+ * the operation. However the status status <em>must</em> always
+ * indicate whether an operation is ongoing, not started  or
+ * terminated. In the latter case it <em>must</em> indicate whether
+ * it terminated successfully or whether it failed. Furthermore the
+ * status <em>must</em> indicate when an operation is not available.
+ * In all cases the status <em>may</em> provide additional
+ * information like e.g. how far an ongoing operation progressed,
+ * what time it took to complete a terminated operation, or information
  * about what caused a terminated operation to fail.
  */
 public interface RepositoryManagementMBean {
 
     /**
-     * Initiate a backup operation to a file at the given absolute path
+     * Initiate a backup operation.
      *
-     * @param path  absolute path
      * @return  the status of the operation right after it was initiated
      */
-    String startBackup(String path);
+    String startBackup();
 
     /**
      * Backup status
@@ -53,12 +63,11 @@ public interface RepositoryManagementMBean {
     String getBackupStatus();
 
     /**
-     * Initiate a restore operation from a file at the given absolute path
+     * Initiate a restore operation.
      *
-     * @param path  absolute path
      * @return  the status of the operation right after it was initiated
      */
-    String startRestore(String path);
+    String startRestore();
 
     /**
      * Restore status
