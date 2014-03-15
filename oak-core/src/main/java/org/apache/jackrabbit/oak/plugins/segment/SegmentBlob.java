@@ -67,7 +67,7 @@ class SegmentBlob extends Record implements Blob {
             byte[] bytes = new byte[length];
             segment.readBytes(offset + 10, bytes, 0, length);
             String refererence = new String(bytes, UTF_8);
-            return segment.getStore().readBlob(refererence).getNewStream();
+            return segment.getSegmentId().getTracker().getStore().readBlob(refererence).getNewStream();
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));

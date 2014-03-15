@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import java.lang.ref.SoftReference;
 import java.util.UUID;
 
 /**
@@ -26,40 +23,23 @@ import java.util.UUID;
  */
 public class SegmentId implements Comparable<SegmentId> {
 
-    private static final long MSB_MASK = ~(0xfL << 12);
-
-    private static final long VERSION = (0x4L << 12);
-
-    private static final long LSB_MASK = ~(0xfL << 60);
-
-    private static final long DATA = 0xAL << 60;
-
-    private static final long BULK = 0xBL << 60;
-
-    private final SegmentStore store;
+    private final SegmentTracker tracker;
 
     private final long msb;
 
     private final long lsb;
 
-    private SoftReference<Segment> reference = null;
+    private volatile Segment segment;
 
-    SegmentId(SegmentStore store, long msb, long lsb, Segment segment) {
-        this.store = store;
+    SegmentId(SegmentTracker tracker, long msb, long lsb, Segment segment) {
+        this.tracker = tracker;
         this.msb = msb;
         this.lsb = lsb;
-        this.reference = new SoftReference<Segment>(segment);
+        this.segment = segment;
     }
 
-    SegmentId(SegmentStore store, long msb, long lsb) {
-        this.store = store;
-        this.msb = msb;
-        this.lsb = lsb;
-        this.reference = null;
-    }
-
-    public SegmentStore getStore() {
-        return store;
+    SegmentId(SegmentTracker tracker, long msb, long lsb) {
+        this(tracker, msb, lsb, null);
     }
 
     /**
@@ -68,7 +48,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @return {@code true} for a data segment, {@code false} otherwise
      */
     public boolean isDataSegmentId() {
-        return (lsb & ~LSB_MASK) == DATA; 
+        return (lsb >>> 60) == 0xAL; 
     }
 
     /**
@@ -77,7 +57,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @return {@code true} for a bulk segment, {@code false} otherwise
      */
     public boolean isBulkSegmentId() {
-        return (lsb & ~LSB_MASK) == BULK; 
+        return (lsb >>> 60) == 0xBL; 
     }
 
     public boolean equals(long msb, long lsb) {
@@ -92,28 +72,36 @@ public class SegmentId implements Comparable<SegmentId> {
         return lsb;
     }
 
-    public synchronized Segment getSegment() {
-        Segment segment = null;
-        if (reference != null) {
-            segment = reference.get();
-        }
+    public Segment getSegment() {
+        Segment segment = this.segment;
         if (segment == null) {
-            segment = store.readSegment(this);
-            checkState(segment != null);
-            reference = new SoftReference<Segment>(segment);
+            synchronized (this) {
+                segment = this.segment;
+                if (segment == null) {
+                    segment = tracker.getSegment(this);
+                }
+            }
         }
         return segment;
     }
 
     synchronized void setSegment(Segment segment) {
-        reference = new SoftReference<Segment>(segment);
+        this.segment = segment;
+    }
+
+    public SegmentTracker getTracker() {
+        return tracker;
     }
 
     //--------------------------------------------------------< Comparable >--
 
     @Override
-    public int compareTo(SegmentId o) {
-        return 0;
+    public int compareTo(SegmentId that) {
+        int d = Long.valueOf(this.msb).compareTo(Long.valueOf(that.msb));
+        if (d == 0) {
+            d = Long.valueOf(this.lsb).compareTo(Long.valueOf(that.lsb)); 
+        }
+        return d;
     }
 
     //------------------------------------------------------------< Object >--

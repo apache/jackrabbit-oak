@@ -24,9 +24,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public interface SegmentStore {
 
-    SegmentIdFactory getFactory();
-
-    SegmentWriter getWriter();
+    SegmentTracker getTracker();
 
     /**
      * Returns the head state.

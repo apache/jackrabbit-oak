@@ -25,15 +25,15 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Factory for creating the UUID objects used to identify segments.
- * Weak references are used to keep track of all currently referenced
- * UUIDs, so that we can avoid garbage-collecting those segments.
+ * Tracker of references to segment identifiers and segment instances
+ * that are currently kept in memory.
  */
-public class SegmentIdFactory {
+public class SegmentTracker {
 
     private static final long MSB_MASK = ~(0xfL << 12);
 
@@ -44,6 +44,10 @@ public class SegmentIdFactory {
     private static final long DATA = 0xAL << 60;
 
     private static final long BULK = 0xBL << 60;
+
+    private static final int MB = 1024 * 1024;
+
+    private static final int DEFAULT_MEMORY_CACHE_SIZE = 256;
 
     /**
      * The random number source for generating new segment identifiers.
@@ -62,11 +66,51 @@ public class SegmentIdFactory {
     private final ArrayList<List<WeakReference<SegmentId>>> uuids = newArrayList(
             Collections.<List<WeakReference<SegmentId>>>nCopies(1024, null));
 
+    private final LinkedList<Segment> segments = newLinkedList();
+
     private final SegmentStore store;
 
-    public SegmentIdFactory(SegmentStore store) {
+    private final SegmentWriter writer;
+
+    private final long cacheSize;
+
+    private long currentSize = 0;
+
+    public SegmentTracker(SegmentStore store, int cacheSizeMB) {
         this.store = store;
+        this.writer = new SegmentWriter(store, this);
+        this.cacheSize = cacheSizeMB * MB;
     }
+
+    public SegmentTracker(SegmentStore store) {
+        this(store, DEFAULT_MEMORY_CACHE_SIZE);
+    }
+
+    public SegmentWriter getWriter() {
+        return writer;
+    }
+
+    public SegmentStore getStore() {
+        return store;
+    }
+
+    Segment getSegment(SegmentId id) {
+        Segment segment = store.readSegment(id);
+        id.setSegment(segment);
+
+        synchronized (this) {
+            segments.addFirst(segment);
+            currentSize += segment.getCacheSize();
+            while (currentSize > cacheSize && segments.size() > 1) {
+                Segment remove = segments.removeLast();
+                remove.getSegmentId().setSegment(null);
+                currentSize -= remove.getCacheSize();
+            }
+        }
+
+        return segment;
+    }
+
 
     /**
      * Returns all segment identifiers that are currently referenced in memory.
@@ -122,7 +166,7 @@ public class SegmentIdFactory {
             }
         }
 
-        SegmentId id = new SegmentId(store, msb, lsb);
+        SegmentId id = new SegmentId(this, msb, lsb);
         list.add(new WeakReference<SegmentId>(id));
 
         if (list.size() > 5) {

@@ -214,7 +214,7 @@ public class Main {
                 } else {
                     for (int i = 1; i < args.length; i++) {
                         UUID uuid = UUID.fromString(args[i]);
-                        SegmentId id = store.getFactory().getSegmentId(
+                        SegmentId id = store.getTracker().getSegmentId(
                                 uuid.getMostSignificantBits(),
                                 uuid.getLeastSignificantBits());
                         System.out.println(id.getSegment());

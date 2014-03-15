@@ -34,19 +34,16 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentIdFactory;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class HttpStore implements SegmentStore {
 
-    private final SegmentIdFactory factory = new SegmentIdFactory(this);
-
-    private final SegmentWriter writer = new SegmentWriter(this);
+    private final SegmentTracker tracker = new SegmentTracker(this);
 
     private final URL base;
 
@@ -60,13 +57,8 @@ public class HttpStore implements SegmentStore {
     }
 
     @Override
-    public SegmentIdFactory getFactory() {
-        return factory;
-    }
-
-    @Override
-    public SegmentWriter getWriter() {
-        return writer;
+    public SegmentTracker getTracker() {
+        return tracker;
     }
 
     @Override
@@ -78,7 +70,7 @@ public class HttpStore implements SegmentStore {
                 BufferedReader reader = new BufferedReader(
                         new InputStreamReader(stream, UTF_8));
                 return new SegmentNodeState(
-                        RecordId.fromString(factory, reader.readLine()));
+                        RecordId.fromString(tracker, reader.readLine()));
             } finally {
                 stream.close();
             }
@@ -99,31 +91,18 @@ public class HttpStore implements SegmentStore {
 
     @Override
     public boolean containsSegment(SegmentId id) {
-        return id.getStore() == this
-                || loadSegment(id) != null;
+        return id.getTracker() == tracker || readSegment(id) != null;
     }
 
     @Override
     public Segment readSegment(SegmentId id) {
-        if (id.isBulkSegmentId()) {
-            return loadSegment(id);
-        }
-
-        Segment segment = getWriter().getCurrentSegment(id);
-        if (segment == null) {
-            segment = loadSegment(id);
-        }
-        return segment;
-    }
-
-    private Segment loadSegment(SegmentId id) {
         try {
             URLConnection connection =
                     new URL(base, id.toString()).openConnection();
             InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
-                return new Segment(this, id, ByteBuffer.wrap(data));
+                return new Segment(tracker, id, ByteBuffer.wrap(data));
             } finally {
                 stream.close();
             }

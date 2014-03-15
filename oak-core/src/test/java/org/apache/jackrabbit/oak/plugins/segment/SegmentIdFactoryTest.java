@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class SegmentIdFactoryTest {
 
-    private final SegmentIdFactory factory = new MemoryStore().getFactory();
+    private final SegmentTracker factory = new MemoryStore().getTracker();
 
     @Test
     public void segmentIdType() {

@@ -95,6 +95,8 @@ public class SegmentWriter {
         return buffer;
     }
 
+    private final SegmentTracker tracker;
+
     private final SegmentStore store;
 
     /**
@@ -136,9 +138,12 @@ public class SegmentWriter {
 
     private Segment segment;
 
-    public SegmentWriter(SegmentStore store) {
+    public SegmentWriter(SegmentStore store, SegmentTracker tracker) {
         this.store = store;
-        this.segment = new Segment(store, ByteBuffer.wrap(buffer));
+        this.tracker = tracker;
+        this.segment = new Segment(
+                tracker, tracker.newDataSegmentId(), ByteBuffer.wrap(buffer));
+        segment.getSegmentId().setSegment(segment);
     }
 
     public synchronized Segment getCurrentSegment(SegmentId id) {
@@ -178,12 +183,16 @@ public class SegmentWriter {
             store.writeSegment(
                     segment.getSegmentId(),
                     buffer, buffer.length - length, length);
+            segment.getSegmentId().setSegment(null);
 
             buffer = createNewBuffer();
             roots.clear();
             length = 0;
             position = buffer.length;
-            segment = new Segment(store, ByteBuffer.wrap(buffer));
+            segment = new Segment(
+                    tracker, tracker.newDataSegmentId(),
+                    ByteBuffer.wrap(buffer));
+            segment.getSegmentId().setSegment(segment);
         }
     }
 
@@ -640,7 +649,7 @@ public class SegmentWriter {
 
         // write as many full bulk segments as possible
         while (pos + MAX_SEGMENT_SIZE <= data.length) {
-            SegmentId bulkId = store.getFactory().newBulkSegmentId();
+            SegmentId bulkId = store.getTracker().newBulkSegmentId();
             store.writeSegment(bulkId, data, pos, MAX_SEGMENT_SIZE);
             for (int i = 0; i < MAX_SEGMENT_SIZE; i += BLOCK_SIZE) {
                 blockIds.add(new RecordId(bulkId, i));
@@ -716,7 +725,7 @@ public class SegmentWriter {
 
         // Write the data to bulk segments and collect the list of block ids
         while (n != 0) {
-            SegmentId bulkId = store.getFactory().newBulkSegmentId();
+            SegmentId bulkId = store.getTracker().newBulkSegmentId();
             int len = align(n);
             store.writeSegment(bulkId, data, 0, len);
 
