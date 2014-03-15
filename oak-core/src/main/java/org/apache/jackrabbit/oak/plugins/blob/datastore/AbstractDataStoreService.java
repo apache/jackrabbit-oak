@@ -19,24 +19,23 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
 
@@ -46,25 +45,27 @@ public abstract class AbstractDataStoreService {
 
     private DataStore dataStore;
 
-    @Activate
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         DataStore ds = createDataStore(context, config);
 
         String homeDir = lookup(context, PROP_HOME);
         if (homeDir != null) {
-            log.debug("Initializing the DataStore with homeDir [{}]", homeDir);
+            log.info("Initializing the DataStore with homeDir [{}]", homeDir);
         }
         PropertiesUtil.populate(ds, config, false);
-        ds.init(lookup(context, PROP_HOME));
+        ds.init(homeDir);
         this.dataStore = new DataStoreBlobStore(ds);
+
+        Dictionary<String, String> props = new Hashtable<String, String>();
+        props.put(Constants.SERVICE_PID, ds.getClass().getName());
+
         reg = context.getBundleContext().registerService(new String[]{
                 DataStore.class.getName(),
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
-        }, ds , null);
+        }, dataStore , props);
     }
 
-    @Deactivate
     protected void deactivate() throws DataStoreException {
         if (reg != null) {
             reg.unregister();
