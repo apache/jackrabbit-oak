@@ -141,8 +141,7 @@ public class SegmentWriter {
     public SegmentWriter(SegmentStore store, SegmentTracker tracker) {
         this.store = store;
         this.tracker = tracker;
-        this.segment = new Segment(
-                tracker, tracker.newDataSegmentId(), ByteBuffer.wrap(buffer));
+        this.segment = new Segment(tracker, buffer);
         segment.getSegmentId().setSegment(segment);
     }
 
@@ -189,9 +188,7 @@ public class SegmentWriter {
             roots.clear();
             length = 0;
             position = buffer.length;
-            segment = new Segment(
-                    tracker, tracker.newDataSegmentId(),
-                    ByteBuffer.wrap(buffer));
+            segment = new Segment(tracker, buffer);
             segment.getSegmentId().setSegment(segment);
         }
     }

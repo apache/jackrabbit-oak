@@ -103,6 +103,12 @@ public class Segment {
     private final ByteBuffer data;
 
     /**
+     * Referenced segment identifiers. Entries are initialized lazily in
+     * {@link #getRefId(int)}. Set to {@code null} for bulk segments.
+     */
+    private final SegmentId[] refids;
+
+    /**
      * String records read from segment. Used to avoid duplicate
      * copies and repeated parsing of the same strings.
      */
@@ -118,6 +124,22 @@ public class Segment {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
         this.data = checkNotNull(data);
+
+        if (id.isDataSegmentId()) {
+            this.refids = new SegmentId[getRefCount()];
+            refids[0] = id;
+        } else {
+            this.refids = null;
+        }
+    }
+
+    Segment(SegmentTracker tracker, byte[] buffer) {
+        this.tracker = checkNotNull(tracker);
+        this.id = tracker.newDataSegmentId();
+        this.data = ByteBuffer.wrap(checkNotNull(buffer));
+
+        this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
+        refids[0] = id;
     }
 
     /**
@@ -137,22 +159,28 @@ public class Segment {
     }
 
     public SegmentId getSegmentId() {
-        return id;
+        return refids[0];
     }
 
     int getRefCount() {
         return (data.get(REF_COUNT_OFFSET) & 0xff) + 1;
     }
 
-    SegmentId getRefId(int refid) {
-        if (refid == 0) {
-            return id;
-        } else {
-            int refpos = data.position() + refid * 16;
-            long msb = data.getLong(refpos);
-            long lsb = data.getLong(refpos + 8);
-            return tracker.getSegmentId(msb, lsb);
+    SegmentId getRefId(int index) {
+        SegmentId refid = refids[index];
+        if (refid == null) {
+            synchronized (this) {
+                refid = refids[index];
+                if (refid == null) {
+                    int refpos = data.position() + index * 16;
+                    long msb = data.getLong(refpos);
+                    long lsb = data.getLong(refpos + 8);
+                    refid = tracker.getSegmentId(msb, lsb);
+                    refids[index] = refid;
+                }
+            }
         }
+        return refid;
     }
 
     public List<SegmentId> getReferencedIds() {
@@ -169,11 +197,14 @@ public class Segment {
     }
 
     public long getCacheSize() {
-        if (data.isDirect()) {
-            return 1024 + data.remaining();
-        } else {
-            return 1024 + 2 * data.remaining();
+        int size = 1024;
+        if (!data.isDirect()) {
+            size += size();
         }
+        if (id.isDataSegmentId()) {
+            size += size();
+        }
+        return size;
     }
 
     /**
