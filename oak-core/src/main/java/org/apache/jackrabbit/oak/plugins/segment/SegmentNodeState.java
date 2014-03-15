@@ -374,7 +374,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override @Nonnull
     public SegmentNodeBuilder builder() {
-        return new SegmentNodeBuilder(this, getSegment().getStore().getWriter());
+        return new SegmentNodeBuilder(this);
     }
 
     @Override

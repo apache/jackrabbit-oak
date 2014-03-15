@@ -43,7 +43,7 @@ public class MapRecordTest {
             createControl().createMock("diff", NodeStateDiff.class);
 
     private NodeBuilder builder =
-            new MemoryStore().getWriter().writeNode(EMPTY_NODE).builder();
+            new MemoryStore().getTracker().getWriter().writeNode(EMPTY_NODE).builder();
 
     @Test
     public void testOak1104() {

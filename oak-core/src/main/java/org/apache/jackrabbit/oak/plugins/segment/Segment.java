@@ -34,8 +34,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -98,7 +96,7 @@ public class Segment {
 
     static int ROOT_COUNT_OFFSET = 6;
 
-    private final SegmentStore store;
+    private final SegmentTracker tracker;
 
     private final SegmentId id;
 
@@ -116,17 +114,10 @@ public class Segment {
      */
     private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
 
-    public Segment(SegmentStore store, SegmentId id, ByteBuffer data) {
-        this.store = checkNotNull(store);
+    public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
+        this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
         this.data = checkNotNull(data);
-    }
-
-    public Segment(SegmentStore store, ByteBuffer data) {
-        this.store = checkNotNull(store);
-        this.id = store.getFactory().newDataSegmentId();
-        this.data = checkNotNull(data);
-        id.setSegment(this);
     }
 
     /**
@@ -145,16 +136,6 @@ public class Segment {
         return pos;
     }
 
-    /**
-     * Returns the store that contains this segment.
-     *
-     * @return containing segment store
-     */
-    @Nonnull
-    SegmentStore getStore() {
-        return store;
-    }
-
     public SegmentId getSegmentId() {
         return id;
     }
@@ -170,7 +151,7 @@ public class Segment {
             int refpos = data.position() + refid * 16;
             long msb = data.getLong(refpos);
             long lsb = data.getLong(refpos + 8);
-            return store.getFactory().getSegmentId(msb, lsb);
+            return tracker.getSegmentId(msb, lsb);
         }
     }
 
@@ -185,6 +166,14 @@ public class Segment {
 
     public int size() {
         return data.remaining();
+    }
+
+    public long getCacheSize() {
+        if (data.isDirect()) {
+            return 1024 + data.remaining();
+        } else {
+            return 1024 + 2 * data.remaining();
+        }
     }
 
     /**

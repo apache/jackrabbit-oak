@@ -25,7 +25,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
-    public static RecordId fromString(SegmentIdFactory factory, String id) {
+    public static RecordId fromString(SegmentTracker factory, String id) {
         int colon = id.indexOf(':');
         if (colon != -1) {
             UUID uuid = UUID.fromString(id.substring(0, colon));

@@ -54,7 +54,7 @@ public class RecordTest {
 
     private SegmentStore store = new MemoryStore();
 
-    private SegmentWriter writer = store.getWriter();
+    private SegmentWriter writer = store.getTracker().getWriter();
 
     private final Random random = new Random(0xcafefaceL);
 
@@ -123,7 +123,7 @@ public class RecordTest {
 
     @Test
     public void testListWithLotsOfReferences() { // OAK-1184
-        SegmentIdFactory factory = store.getFactory();
+        SegmentTracker factory = store.getTracker();
         List<RecordId> list = newArrayList();
         for (int i = 0; i < 1000; i++) {
             list.add(new RecordId(factory.newBulkSegmentId(), 0));
@@ -181,7 +181,7 @@ public class RecordTest {
         }
         RecordId large = writer.writeString(builder.toString());
 
-        Segment segment = store.readSegment(large.getSegmentId());
+        Segment segment = large.getSegmentId().getSegment();
 
         assertEquals("", segment.readString(empty));
         assertEquals(" ", segment.readString(space));

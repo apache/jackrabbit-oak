@@ -40,7 +40,7 @@ public abstract class SegmentServlet extends HttpServlet {
     private SegmentId getSegmentId(String info) {
         try {
             UUID uuid = UUID.fromString(info);
-            return getSegmentStore().getFactory().getSegmentId(
+            return getSegmentStore().getTracker().getSegmentId(
                     uuid.getMostSignificantBits(),
                     uuid.getLeastSignificantBits());
         } catch (IllegalArgumentException e) {
@@ -51,7 +51,7 @@ public abstract class SegmentServlet extends HttpServlet {
     private RecordId getRecordId(BufferedReader reader) throws IOException {
         try {
             return RecordId.fromString(
-                    getSegmentStore().getFactory(), reader.readLine());
+                    getSegmentStore().getTracker(), reader.readLine());
         } catch (IllegalArgumentException e) {
             return null;
         }
