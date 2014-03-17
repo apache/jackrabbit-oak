@@ -119,8 +119,6 @@
     <dynamicField name="*_d"  type="double" indexed="true"  stored="true"/>
     <dynamicField name="*_ds" type="double" indexed="true"  stored="true"  multiValued="true"/>
 
-    <dynamicField name="*_coordinate"  type="tdouble" indexed="true"  stored="false" />
-
     <dynamicField name="*_dt"  type="date"    indexed="true"  stored="true"/>
     <dynamicField name="*_dts" type="date"    indexed="true"  stored="true" multiValued="true"/>
 

@@ -43,7 +43,7 @@
                             org.apache.lucene.*;resolution:=optional,
                             com.carrotsearch.*;resolution:=optional,
                             com.googlecode.*;resolution:=optional,
-                            com.spatial4j.*;resolution:=optional,
+                            com.vividsolutions.jts.*;resolution:=optional,
                             com.sun.*;resolution:=optional,
                             jline;resolution:=optional,
                             org.apache.hadoop.*;resolution:=optional,
@@ -190,6 +190,19 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-suggest</artifactId>
             <version>${lucene.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-spatial</artifactId>
+            <version>${lucene.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.spatial4j</groupId>
+            <artifactId>spatial4j</artifactId>
+            <version>0.3</version>
             <scope>runtime</scope>
         </dependency>
 

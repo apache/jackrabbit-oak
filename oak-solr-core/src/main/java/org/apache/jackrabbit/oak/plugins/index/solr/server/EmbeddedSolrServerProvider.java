@@ -99,11 +99,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 if (log.isInfoEnabled()) {
                     log.info("starting HTTP Solr server");
                 }
-                return new HttpSolrServer(new StringBuilder(
-                        SolrServerConfigurationDefaults.LOCAL_BASE_URL).append(':')
-                        .append(httpPort).append(context)
-                        .append('/').append(coreName)
-                        .toString());
+                return new HttpWithJettySolrServer(SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' + httpPort + context + '/' + coreName, jettySolrRunner);
             } else {
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
@@ -147,7 +143,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 copy("/solr/oak/conf/solrconfig.xml", coreDir);
             }
         } else if (!solrHomePathFile.isDirectory()) {
-            throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '"+solrHomePath);
+            throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '" + solrHomePath);
         }
 
         // TODO : improve this check
@@ -211,4 +207,26 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         return solrServer;
     }
 
+    private class HttpWithJettySolrServer extends HttpSolrServer {
+        private final JettySolrRunner jettySolrRunner;
+
+        public HttpWithJettySolrServer(String s, JettySolrRunner jettySolrRunner) {
+            super(s);
+            this.jettySolrRunner = jettySolrRunner;
+        }
+
+        @Override
+        public void shutdown() {
+            super.shutdown();
+            try {
+                if (jettySolrRunner != null) {
+                    if (jettySolrRunner.isRunning()) {
+                        jettySolrRunner.stop();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("could not stop JettySolrRunner {}", jettySolrRunner);
+            }
+        }
+    }
 }
