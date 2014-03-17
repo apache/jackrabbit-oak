@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
@@ -300,10 +302,18 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public void execute(NodeState rootState) {
-        if (plan.getIndex() != null) {
-            cursor = plan.getIndex().query(createFilter(false), rootState);
-        } else {
+        QueryIndex index = plan.getIndex();
+        if (index == null) {
             cursor = Cursors.newPathCursor(new ArrayList<String>());
+            return;
+        }
+        IndexPlan p = plan.getIndexPlan();
+        if (p != null) {
+            p.setFilter(createFilter(false));
+            AdvancedQueryIndex adv = (AdvancedQueryIndex) index;
+            cursor = adv.query(p, rootState);
+        } else {
+            cursor = index.query(createFilter(false), rootState);
         }
     }
 

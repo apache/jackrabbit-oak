@@ -206,6 +206,11 @@ public interface QueryIndex {
          * @return the filter
          */
         Filter getFilter();
+        
+        /**
+         * Use the given filter.
+         */
+        void setFilter(Filter filter);
 
         /**
          * Whether the index is not always up-to-date.
@@ -302,7 +307,7 @@ public interface QueryIndex {
                             Builder.this.costPerEntry;
                     private final long estimatedEntryCount = 
                             Builder.this.estimatedEntryCount;
-                    private final Filter filter = 
+                    private Filter filter = 
                             Builder.this.filter;
                     private final boolean isDelayed = 
                             Builder.this.isDelayed;
@@ -333,6 +338,11 @@ public interface QueryIndex {
                     @Override
                     public Filter getFilter() {
                         return filter;
+                    }
+                    
+                    @Override
+                    public void setFilter(Filter filter) {
+                        this.filter = filter;
                     }
 
                     @Override

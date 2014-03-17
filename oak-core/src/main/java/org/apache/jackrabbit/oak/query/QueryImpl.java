@@ -689,14 +689,16 @@ public class QueryImpl implements Query {
     private SelectorExecutionPlan getBestSelectorExecutionPlan(
             NodeState rootState, FilterImpl filter,
             QueryIndexProvider indexProvider, boolean traversalEnabled) {
-        QueryIndex best = null;
+        QueryIndex bestIndex = null;
         if (LOG.isDebugEnabled()) {
             LOG.debug("cost using filter " + filter);
         }
 
         double bestCost = Double.POSITIVE_INFINITY;
+        IndexPlan bestPlan = null;
         for (QueryIndex index : indexProvider.getQueryIndexes(rootState)) {
             double cost;
+            IndexPlan indexPlan = null;
             if (index instanceof AdvancedQueryIndex) {
                 AdvancedQueryIndex advIndex = (AdvancedQueryIndex) index;
                 List<OrderEntry> sortOrder = null;
@@ -742,6 +744,7 @@ public class QueryImpl implements Query {
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
                     if (c < cost) {
                         cost = c;
+                        indexPlan = p;
                     }
                 }
             } else {
@@ -752,7 +755,8 @@ public class QueryImpl implements Query {
             }
             if (cost < bestCost) {
                 bestCost = cost;
-                best = index;
+                bestIndex = index;
+                bestPlan = indexPlan;
             }
         }
 
@@ -761,10 +765,10 @@ public class QueryImpl implements Query {
             double cost = traversal.getCost(filter, rootState);
             if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
                 bestCost = cost;
-                best = traversal;
+                bestIndex = traversal;
             }
         }
-        return new SelectorExecutionPlan(filter.getSelector(), best, bestCost);
+        return new SelectorExecutionPlan(filter.getSelector(), bestIndex, bestPlan, bestCost);
     }
 
     @Override
