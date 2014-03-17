@@ -205,7 +205,9 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     public boolean childNodeAdded(String name, NodeState after) {
         if (builder.hasChildNode(name)) {
             NodeState other = builder.child(name).getNodeState();
-            addExistingNode(builder, name, other, after);
+            if (!other.equals(after)) {
+                addExistingNode(builder, name, other, after);
+            }
         } else {
             builder.setChildNode(name, after);
         }
