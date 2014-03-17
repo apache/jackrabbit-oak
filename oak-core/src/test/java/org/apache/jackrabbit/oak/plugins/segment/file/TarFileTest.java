@@ -44,8 +44,8 @@ public class TarFileTest {
 
     @Test
     public void testOpenClose() throws IOException {
-        new TarFile(file, 1024, true).close();
-        new TarFile(file, 1024, false).close();
+        new TarFile(file, 10240, true).close();
+        new TarFile(file, 10240, false).close();
     }
 
     @Test
@@ -53,7 +53,7 @@ public class TarFileTest {
         UUID id = UUID.randomUUID();
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
-        TarFile tar = new TarFile(file, 1024, false);
+        TarFile tar = new TarFile(file, 10240, false);
         try {
             tar.writeEntry(id, data, 0, data.length);
             assertEquals(ByteBuffer.wrap(data), tar.readEntry(id));
@@ -61,9 +61,9 @@ public class TarFileTest {
             tar.close();
         }
 
-        assertEquals(1024, file.length());
+        assertEquals(10240, file.length());
 
-        tar = new TarFile(file, 1024, false);
+        tar = new TarFile(file, 10240, false);
         try {
             assertEquals(ByteBuffer.wrap(data), tar.readEntry(id));
         } finally {

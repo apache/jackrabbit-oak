@@ -57,6 +57,9 @@ public class FileStore implements SegmentStore {
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
+    private static final boolean MEMORY_MAPPING_DEFAULT =
+            "64".equals(System.getProperty("sun.arch.data.model", "32"));
+
     private final SegmentTracker tracker;
 
     private final File directory;
@@ -104,6 +107,11 @@ public class FileStore implements SegmentStore {
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
         this(null, directory, maxFileSizeMB, memoryMapping);
+    }
+
+    public FileStore(File directory, int maxFileSizeMB)
+            throws IOException {
+        this(null, directory, maxFileSizeMB, MEMORY_MAPPING_DEFAULT);
     }
 
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,

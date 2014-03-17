@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static java.nio.channels.FileChannel.MapMode.READ_WRITE;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -30,17 +29,16 @@ class MappedAccess implements FileAccess {
 
     private boolean updated = false;
 
-    MappedAccess(File file, int length) throws IOException {
-        RandomAccessFile f = new RandomAccessFile(file, "rw");
+    MappedAccess(RandomAccessFile file, int length) throws IOException {
         try {
-            long l = f.length();
+            long l = file.length();
             if (l == 0) { // it's a new file
                 l = length;
                 updated = true;
             }
-            buffer = f.getChannel().map(READ_WRITE, 0, l);
+            buffer = file.getChannel().map(READ_WRITE, 0, l);
         } finally {
-            f.close();
+            file.close();
         }
     }
 
