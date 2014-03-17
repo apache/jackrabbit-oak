@@ -41,9 +41,9 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndexProvider.class);
 
-    private SolrServerProvider solrServerProvider;
+    private final SolrServerProvider solrServerProvider;
 
-    private OakSolrConfigurationProvider oakSolrConfigurationProvider;
+    private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
