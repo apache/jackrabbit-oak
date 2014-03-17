@@ -65,7 +65,9 @@ public class SegmentTracker {
      */
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
-    private final LinkedList<Segment> segments = newLinkedList();
+    private final LinkedList<Segment> dataSegments = newLinkedList();
+
+    private final LinkedList<Segment> bulkSegments = newLinkedList();
 
     private long currentSize = 0;
 
@@ -95,11 +97,17 @@ public class SegmentTracker {
         Segment segment = store.readSegment(id);
         id.setSegment(segment);
 
+        LinkedList<Segment> segments = dataSegments;
+        if (id.isBulkSegmentId()) {
+            segments = bulkSegments;
+        }
+
         synchronized (this) {
+            // TODO: use a scan-resistant cache
             segments.addFirst(segment);
             currentSize += segment.getCacheSize();
-            while (currentSize > cacheSize && segments.size() > 1) {
-                Segment remove = segments.removeLast();
+            while (currentSize > cacheSize / 2 && segments.size() > 1) {
+                Segment remove = dataSegments.removeLast();
                 remove.getSegmentId().setSegment(null);
                 currentSize -= remove.getCacheSize();
             }
