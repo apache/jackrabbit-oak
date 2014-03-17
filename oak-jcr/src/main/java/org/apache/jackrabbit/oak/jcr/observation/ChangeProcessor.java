@@ -146,11 +146,13 @@ class ChangeProcessor implements Observer {
             return new BackgroundObserver(this, executor, queueLength) {
                 @Override
                 protected void queueNearlyFull() {
+                    super.queueNearlyFull();
                     commitRateLimiter.blockCommits();
                 }
 
                 @Override
                 protected void queueEmpty() {
+                    super.queueEmpty();
                     commitRateLimiter.unblockCommits();
                 }
             };
