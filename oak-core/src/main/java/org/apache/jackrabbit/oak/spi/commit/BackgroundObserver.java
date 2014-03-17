@@ -105,6 +105,11 @@ public class BackgroundObserver implements Observer, Closeable {
     private boolean full;
 
     /**
+     * Log a warning once when the queue is full. Reset once the queue is back empty.
+     */
+    private volatile boolean warnOnFullQueue = true;
+
+    /**
      * Current background task
      */
     private volatile ListenableFutureTask currentTask = ListenableFutureTask.completed();
@@ -173,8 +178,17 @@ public class BackgroundObserver implements Observer, Closeable {
         this(observer, executor, 1000);
     }
 
+    /**
+     * Called whenever the queue is 90% full.
+     */
     protected void queueNearlyFull() {}
-    protected void queueEmpty() {}
+
+    /**
+     * Called whenever the queue has been emptied.
+     */
+    protected void queueEmpty() {
+        warnOnFullQueue = true;
+    }
 
     /**
      * Clears the change queue and signals the background thread to stop
@@ -225,9 +239,9 @@ public class BackgroundObserver implements Observer, Closeable {
 
         // Try to add this change to the queue without blocking, and
         // mark the queue as full if there wasn't enough space
-        boolean wasFull = full;
         full = !queue.offer(change);
-        if (full && !wasFull) {
+        if (full && warnOnFullQueue) {
+            warnOnFullQueue = false;
             LOG.warn("Revision queue is full. Further revisions will be compacted.");
         }
 
