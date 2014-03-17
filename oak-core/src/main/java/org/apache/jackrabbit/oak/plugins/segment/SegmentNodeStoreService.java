@@ -170,6 +170,14 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
     }
 
+    /**
+     * needed for situations where you have to unwrap the
+     * SegmentNodeStoreService, to get the SegmentStore, like the failover
+     */
+    public SegmentStore getSegmentStore() {
+        return store;
+    }
+
     //------------------------------------------------------------< Observable >---
 
     @Override
