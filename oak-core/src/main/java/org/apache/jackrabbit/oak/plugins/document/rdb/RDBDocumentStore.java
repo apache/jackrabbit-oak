@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -69,8 +68,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
     public RDBDocumentStore(DocumentMK.Builder builder) {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
-            Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
-            initialize(connection, builder);
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
+            initialize(ds.getConnection(), builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
         }
@@ -94,8 +93,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
      */
     public RDBDocumentStore(String jdbcurl, String username, String password, DocumentMK.Builder builder) {
         try {
-            Connection connection = DriverManager.getConnection(jdbcurl, username, password);
-            initialize(connection, builder);
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
+            initialize(ds.getConnection(), builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
         }
