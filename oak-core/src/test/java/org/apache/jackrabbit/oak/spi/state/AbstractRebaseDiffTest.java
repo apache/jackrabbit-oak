@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AbstractRebaseDiffTest {
@@ -153,7 +152,6 @@ public class AbstractRebaseDiffTest {
     }
 
     @Test
-    @Ignore("OAK-1549")
     public void addExistingNode() {
         NodeBuilder headBuilder = base.builder();
         headBuilder.setChildNode("n");
