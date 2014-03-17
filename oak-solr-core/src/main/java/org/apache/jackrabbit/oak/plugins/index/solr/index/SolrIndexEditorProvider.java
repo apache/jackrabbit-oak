@@ -38,9 +38,9 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private SolrServerProvider solrServerProvider;
+    private final SolrServerProvider solrServerProvider;
 
-    private OakSolrConfigurationProvider oakSolrConfigurationProvider;
+    private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrIndexEditorProvider(
             SolrServerProvider solrServerProvider,

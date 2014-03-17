@@ -99,12 +99,11 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 if (log.isInfoEnabled()) {
                     log.info("starting HTTP Solr server");
                 }
-                HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(
+                return new HttpSolrServer(new StringBuilder(
                         SolrServerConfigurationDefaults.LOCAL_BASE_URL).append(':')
                         .append(httpPort).append(context)
                         .append('/').append(coreName)
                         .toString());
-                return httpSolrServer;
             } else {
                 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());

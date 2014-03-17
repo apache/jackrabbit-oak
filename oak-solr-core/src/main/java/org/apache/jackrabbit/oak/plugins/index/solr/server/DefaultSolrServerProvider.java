@@ -27,10 +27,9 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     @Override
     public SolrServer getSolrServer() throws Exception {
         if (solrServer == null) {
-            String url = new StringBuilder(SolrServerConfigurationDefaults.LOCAL_BASE_URL)
-                            .append(':').append(SolrServerConfigurationDefaults.HTTP_PORT)
-                            .append(SolrServerConfigurationDefaults.CONTEXT).append('/')
-                            .append(SolrServerConfigurationDefaults.CORE_NAME).toString();
+            String url = SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+                    SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
+                    '/' + SolrServerConfigurationDefaults.CORE_NAME;
             solrServer = new HttpSolrServer(url);
         }
         return solrServer;
