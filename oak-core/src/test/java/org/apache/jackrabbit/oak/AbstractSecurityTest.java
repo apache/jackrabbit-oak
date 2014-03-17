@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -40,8 +42,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
@@ -62,8 +62,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.junit.After;
 import org.junit.Before;
 
-import static com.google.common.collect.Lists.newArrayList;
-
 /**
  * AbstractOakTest is the base class for oak test execution.
  */
@@ -83,14 +81,16 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         Oak oak = new Oak()
                 .with(new InitialContent())
-                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
+// FIXME review whether we need to improve the test setup here. See also OAK-1541
+//                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
                 .with(new NamespaceEditorProvider())
                 .with(new ReferenceEditorProvider())
                 .with(new ReferenceIndexProvider())
                 .with(new PropertyIndexEditorProvider())
                 .with(new PropertyIndexProvider())
                 .with(new TypeEditorProvider())
-                .with(new ConflictValidatorProvider())
+// FIXME review whether we need to improve the test setup here. See also OAK-1541
+//                .with(new ConflictValidatorProvider())
                 .with(getSecurityProvider());
         withEditors(oak);
         contentRepository = oak.createContentRepository();
