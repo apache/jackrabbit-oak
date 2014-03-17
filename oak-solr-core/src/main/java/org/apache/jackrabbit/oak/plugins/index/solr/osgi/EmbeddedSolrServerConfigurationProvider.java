@@ -38,19 +38,19 @@ import org.osgi.service.component.ComponentContext;
 @Property(name = "name", value = "embedded", propertyPrivate = true)
 public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
 
-    @Property(value = SolrServerConfigurationDefaults.SOLR_HOME_PATH)
+    @Property(value = SolrServerConfigurationDefaults.SOLR_HOME_PATH, label = "Solr home directory")
     private static final String SOLR_HOME_PATH = "solr.home.path";
 
-    @Property(value = SolrServerConfigurationDefaults.CORE_NAME)
+    @Property(value = SolrServerConfigurationDefaults.CORE_NAME, label = "Solr Core name")
     private static final String SOLR_CORE_NAME = "solr.core.name";
 
-    @Property(value = SolrServerConfigurationDefaults.SOLR_CONFIG_PATH)
+    @Property(value = SolrServerConfigurationDefaults.SOLR_CONFIG_PATH, label = "Path to specific Solr Core configuration")
     private static final String SOLR_CONFIG_FILE = "solr.config.path";
 
-    @Property(value = SolrServerConfigurationDefaults.HTTP_PORT)
+    @Property(intValue = 0, label = "Solr HTTP Endpoint port (optional)")
     private static final String SOLR_HTTP_PORT = "solr.http.port";
 
-    @Property(value = SolrServerConfigurationDefaults.CONTEXT)
+    @Property(value = "", label = "Solr HTTP Endpoint context (optional)")
     private static final String SOLR_CONTEXT = "solr.context";
 
     private String solrHome;
