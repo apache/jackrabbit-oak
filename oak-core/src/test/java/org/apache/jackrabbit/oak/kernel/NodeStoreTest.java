@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
@@ -41,9 +42,14 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -52,7 +58,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -116,6 +121,35 @@ public class NodeStoreTest {
     }
 
     @Test
+    public void addExistingNode() throws CommitFailedException {
+        // FIXME OAK-1550 Incorrect handling of addExistingNode conflict in NodeStore
+        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);
+        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
+
+        CommitHook hook = new CompositeHook(
+                new ConflictHook(JcrConflictHandler.JCR_CONFLICT_HANDLER),
+                new EditorHook(new ConflictValidatorProvider())
+        );
+
+        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder b2 = store.getRoot().builder();
+
+        // make sure we make it past DocumentRootBuilder.UPDATE_LIMIT
+        // in order to see the conflict handling of the stores involved
+        // rather the in memory one from AbstractRebaseDiff
+        for (int k = 0; k < 1002; k++) {
+            b1.setChildNode("n" + k);
+            b2.setChildNode("m" + k);
+        }
+
+        b1.setChildNode("conflict");
+        b2.setChildNode("conflict");
+
+        store.merge(b1, hook, CommitInfo.EMPTY);
+        store.merge(b2, hook, CommitInfo.EMPTY);
+    }
+
+    @Test
     public void simpleMerge() throws CommitFailedException {
         NodeBuilder rootBuilder = store.getRoot().builder();
         NodeBuilder testBuilder = rootBuilder.child("test");
@@ -147,7 +181,7 @@ public class NodeStoreTest {
 
     @Test
     public void afterCommitHook() throws CommitFailedException, InterruptedException {
-        Assume.assumeTrue(store instanceof Observable);
+        assumeTrue(store instanceof Observable);
 
         final AtomicReference<NodeState> observedRoot =
                 new AtomicReference<NodeState>(null);
