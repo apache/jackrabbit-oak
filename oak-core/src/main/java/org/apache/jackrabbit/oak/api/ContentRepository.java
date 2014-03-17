@@ -46,8 +46,8 @@ public interface ContentRepository {
      * {@link ContentSession} instance for accessing repository content
      * inside the specified workspace as the authenticated user.
      * <p/>
-     * TODO: Determine whether ContentSessions should cover a single
-     * workspace or the entire repository.
+     * TODO clarify workspace handling once multiple workspaces are
+     * supported. See OAK-118.
      * <p/>
      * The exact type of access credentials is undefined, as this method
      * simply acts as a generic messenger between clients and pluggable

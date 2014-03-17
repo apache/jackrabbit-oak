@@ -28,16 +28,16 @@ public interface IndexStatsMBean {
     String STATUS_DONE = "done";
 
     /**
-     * @return The time the indexing job stared at, or <code>""</code> if it is
+     * @return The time the indexing job stared at, or {@code ""} if it is
      *         not currently running.
      */
-    public String getStart();
+    String getStart();
 
     /**
-     * @return The time the indexing job finished at, or <code>""</code> if it
+     * @return The time the indexing job finished at, or {@code ""} if it
      *         is still running.
      */
-    public String getDone();
+    String getDone();
 
     /**
      * Returns the current status of the indexing job
@@ -45,6 +45,6 @@ public interface IndexStatsMBean {
      * @return the current status of the indexing job: {@value #STATUS_INIT},
      *         {@value #STATUS_RUNNING} or {@value #STATUS_DONE}
      */
-    public String getStatus();
+    String getStatus();
 
 }
