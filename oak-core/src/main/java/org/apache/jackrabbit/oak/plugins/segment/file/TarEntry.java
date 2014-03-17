@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 class TarEntry {
 
     private final int offset;
@@ -30,8 +27,12 @@ class TarEntry {
         this.size = size;
     }
 
-    ByteBuffer read(FileAccess access) throws IOException {
-        return access.read(offset, size);
+    int offset() {
+        return offset;
+    }
+
+    int size() {
+        return size;
     }
 
 }

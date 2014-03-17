@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -30,8 +29,8 @@ class RandomAccess implements FileAccess {
 
     private final RandomAccessFile file;
 
-    RandomAccess(@Nonnull File file) throws IOException {
-        this.file = new RandomAccessFile(checkNotNull(file), "rw");
+    RandomAccess(@Nonnull RandomAccessFile file) throws IOException {
+        this.file = checkNotNull(file);
     }
 
     @Override
