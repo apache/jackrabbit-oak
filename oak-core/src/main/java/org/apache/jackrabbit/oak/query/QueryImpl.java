@@ -72,6 +72,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -405,7 +406,45 @@ public class QueryImpl implements Query {
             LOG.debug("query plan {}", getPlan());
         }
         RowIterator rowIt = new RowIterator(context.getBaseState());
-        Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
+        Comparator<ResultRowImpl> orderBy;
+        boolean sortUsingIndex = false;
+        if (selectors.size() == 1) {
+            IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
+            if (plan != null) {
+                List<OrderEntry> list = plan.getSortOrder();
+                if (list != null && list.size() == orderings.length) {
+                    sortUsingIndex = true;
+                    for (int i = 0; i < list.size(); i++) {
+                        OrderEntry e = list.get(i);
+                        OrderingImpl o = orderings[i];
+                        DynamicOperandImpl op = o.getOperand();
+                        if (!(op instanceof PropertyValueImpl)) {
+                            // ordered by a function: currently not supported
+                            sortUsingIndex = false;
+                            break;
+                        }
+                        // we only have one selector, so no need to check that
+                        // TODO support joins
+                        String pn = ((PropertyValueImpl) op).getPropertyName();
+                        if (!pn.equals(e.getPropertyName())) {
+                            // ordered by another property
+                            sortUsingIndex = false;
+                            break;
+                        }
+                        if (o.isDescending() != (e.getOrder() == Order.DESCENDING)) {
+                            // ordered ascending versus descending
+                            sortUsingIndex = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (sortUsingIndex) {
+            orderBy = null;
+        } else {
+            orderBy = ResultRowImpl.getComparator(orderings);
+        }
         Iterator<ResultRowImpl> it = 
                 FilterIterators.newCombinedFilter(rowIt, distinct, limit, offset, orderBy);
         if (measure) {

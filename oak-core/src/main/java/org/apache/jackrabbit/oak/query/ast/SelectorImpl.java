@@ -278,6 +278,10 @@ public class SelectorImpl extends SourceImpl {
         return plan;
     }
     
+    public SelectorExecutionPlan getExecutionPlan() {
+        return plan;
+    }
+    
     @Override
     public void setQueryConstraint(ConstraintImpl queryConstraint) {
         this.queryConstraint = queryConstraint;
