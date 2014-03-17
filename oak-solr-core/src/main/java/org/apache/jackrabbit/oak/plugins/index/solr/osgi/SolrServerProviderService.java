@@ -112,12 +112,14 @@ public class SolrServerProviderService implements SolrServerProvider {
             if (cachedSolrServer == null) {
                 if (serverType != null && !"none".equals(serverType)) {
                     SolrServerConfigurationProvider solrServerConfigurationProvider = solrServerConfigurationProviders.get(serverType);
-                    try {
-                        SolrServerConfiguration solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
-                        SolrServerProvider solrServerProvider = solrServerConfiguration.getProvider();
-                        cachedSolrServer = solrServerProvider.getSolrServer();
-                    } catch (Exception e) {
-                        log.error("could not get a SolrServerProvider of type {}, {}", serverType, e);
+                    if (solrServerConfigurationProvider != null) {
+                        try {
+                            SolrServerConfiguration solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
+                            SolrServerProvider solrServerProvider = solrServerConfiguration.getProvider();
+                            cachedSolrServer = solrServerProvider.getSolrServer();
+                        } catch (Exception e) {
+                            log.error("could not get a SolrServerProvider of type {}", serverType, e);
+                        }
                     }
                 }
             }

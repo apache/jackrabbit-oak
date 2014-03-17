@@ -73,7 +73,10 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
         solrConfigFile = String.valueOf(componentContext.getProperties().get(SOLR_CONFIG_FILE));
         solrCoreName = String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
 
-        solrHttpPort = Integer.valueOf(String.valueOf(componentContext.getProperties().get(SOLR_HTTP_PORT)));
+        String httpPort = String.valueOf(componentContext.getProperties().get(SOLR_HTTP_PORT));
+        if (httpPort != null && httpPort.length() > 0) {
+            solrHttpPort = Integer.valueOf(httpPort);
+        }
         solrContext = String.valueOf(componentContext.getProperties().get(SOLR_CONTEXT));
 
         solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrConfigFile, solrCoreName).
