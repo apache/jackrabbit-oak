@@ -408,7 +408,7 @@ public class QueryImpl implements Query {
         RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy;
         boolean sortUsingIndex = false;
-        if (selectors.size() == 1) {
+        if (orderings != null && selectors.size() == 1) {
             IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
             if (plan != null) {
                 List<OrderEntry> list = plan.getSortOrder();
