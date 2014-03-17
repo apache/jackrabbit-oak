@@ -53,6 +53,11 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
     */
    static final String INDEXED_PROPERTY = "indexedProperty";
    
+    /**
+     * size of the batch for saving
+     */
+    static final int BATCH_SAVING_SIZE = 1024;
+   
    /**
     * node name below which creating the test data
     */
@@ -68,17 +73,33 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
     */
    Node dump;
       
-   void insertRandomNodes(int numberOfNodes){
-      try{
-         for(int i=0; i<numberOfNodes; i++){
-            String uuid = UUID.randomUUID().toString();
-            dump.addNode(uuid, NODE_TYPE).setProperty(INDEXED_PROPERTY, uuid);
-            session.save();            
-         }
-      } catch (RepositoryException e){
-         throw new RuntimeException(e);
-      }      
-   }
+
+    /**
+     * insert a {@code numberOfNode} random nodes in the repository
+     * 
+     * @param numberOfNodes
+     */
+    void insertRandomNodes(int numberOfNodes) {
+        try {
+            for (int i = 0; i < numberOfNodes; i++) {
+                String uuid = UUID.randomUUID().toString();
+                dump.addNode(uuid, NODE_TYPE).setProperty(INDEXED_PROPERTY, uuid);
+                if (isBatchSaving()) {
+                    if (i % BATCH_SAVING_SIZE == 0) {
+                        session.save();
+                    }
+                } else {
+                    session.save();
+                }
+            }
+            if (isBatchSaving()) {
+                // an extra save to catch any pending operations.
+                session.save();
+            }
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
    /**
     * override when needed to define an index
@@ -109,4 +130,13 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
        session.save();
        return index;
    }
+   
+    /**
+     * 
+     * @return true if you want batch saving during {@code insertRandomNodes} by
+     *         {@code BATCH_SAVE_SIZE}
+     */
+    boolean isBatchSaving() {
+        return false;
+    }
 }

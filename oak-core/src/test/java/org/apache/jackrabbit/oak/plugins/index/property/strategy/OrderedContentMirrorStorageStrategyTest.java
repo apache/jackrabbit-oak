@@ -25,18 +25,29 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Iterator;
 import java.util.Set;
 
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
@@ -49,6 +60,7 @@ public class OrderedContentMirrorStorageStrategyTest {
      */
     private static final String[] KEYS = new String[] { "donald", "goofy", "mickey", "minnie" };
     private static final Set<String> EMPTY_KEY_SET = newHashSet();
+    private static final NumberFormat NF = new DecimalFormat("00000");
 
     /**
      * checks that the fist item/key is inserted with an empty property 'next'
@@ -972,33 +984,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(index.getChildNode(n1).getChildNode(subNodes[0]).hasChildNode(subNodes[1]));
         assertTrue(index.getChildNode(n1).getChildNode(subNodes[0]).getChildNode(subNodes[1]).getBoolean("match"));
     }
-    
-    /**
-     * test the insert of 1 item in a descending order index. it should not really matter but just
-     * checking we don't break anything
-     * 
-     * expecting
-     * 
-     * <code>
-     *  :index : {
-     *      :start : { :next = n0 },
-     *      n0 : { :next = }
-     *  }
-     * </code>
-     */
-    @Test
-    public void descendingOrderInsert1item() {
-        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
-        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
-        String n0 = KEYS[1];
-
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        assertEquals(":start should point to the first node", n0, index.getChildNode(START)
-                                                                       .getString(NEXT));
-        assertTrue("the first node should point nowhere",
-                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
-    }
-    
+        
     /**
      * <p>test the insertion of 2 already ordered items</p>
      * 
@@ -1027,43 +1013,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("n1 should point nowhere",
                    Strings.isNullOrEmpty(index.getChildNode(n1).getString(NEXT)));
     }
-    
-    /**
-     * test the insert of 4 shuffled items in a descending ordered index
-     * 
-     * expected:
-     * 
-     * <code>
-     *      :index : {
-     *          :start : { :next= n1},
-     *          n0 : { :next= n3},  
-     *          n1 : { :next= n2},  
-     *          n2: { :next= n0},  
-     *          n3 : { :next= },  
-     *      }
-     * </code>
-     */
-    @Test
-    public void descendingOrderInsert4ShuffledItems() {
-        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
-        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
-        String n0 = KEYS[1];
-        String n1 = KEYS[3];
-        String n2 = KEYS[2];
-        String n3 = KEYS[0];
-
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
-        assertEquals(":start should point to n1", n1, index.getChildNode(START).getString(NEXT));
-        assertEquals("n0 should point to n3", n3, index.getChildNode(n0).getString(NEXT));
-        assertEquals("n1 should point to n2", n2, index.getChildNode(n1).getString(NEXT));
-        assertEquals("n2 should point to n1", n0, index.getChildNode(n2).getString(NEXT));
-        assertTrue("n3 should point nowhere",
-                   Strings.isNullOrEmpty(index.getChildNode(n3).getString(NEXT)));
-    }
-    
+        
     /**
      * Tests the insert of 4 items that will always have to be added at the beginning of the list.
      * Just to simulate the use-case of lastModified DESC.
@@ -1198,7 +1148,69 @@ public class OrderedContentMirrorStorageStrategyTest {
         previous = indexState.getChildNode(n1);
         assertEquals(previous, store.findPrevious(indexState, node).getNodeState());
     }
-    
+        
+    /**
+     * test the insert of 1 item in a descending order index. it should not really matter but just
+     * checking we don't break anything
+     * 
+     * expecting
+     * 
+     * <code>
+     *  :index : {
+     *      :start : { :next = n0 },
+     *      n0 : { :next = }
+     *  }
+     * </code>
+     */
+    @Test
+    public void descendingOrderInsert1item() {
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        assertEquals(":start should point to the first node", n0, index.getChildNode(START)
+                                                                       .getString(NEXT));
+        assertTrue("the first node should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
+    }
+        
+    /**
+     * test the insert of 4 shuffled items in a descending ordered index
+     * 
+     * expected:
+     * 
+     * <code>
+     *      :index : {
+     *          :start : { :next= n1},
+     *          n0 : { :next= n3},  
+     *          n1 : { :next= n2},  
+     *          n2: { :next= n0},  
+     *          n3 : { :next= },  
+     *      }
+     * </code>
+     */
+    @Test
+    public void descendingOrderInsert4ShuffledItems() {
+        IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        assertEquals(":start should point to n1", n1, index.getChildNode(START).getString(NEXT));
+        assertEquals("n0 should point to n3", n3, index.getChildNode(n0).getString(NEXT));
+        assertEquals("n1 should point to n2", n2, index.getChildNode(n1).getString(NEXT));
+        assertEquals("n2 should point to n1", n0, index.getChildNode(n2).getString(NEXT));
+        assertTrue("n3 should point nowhere",
+                   Strings.isNullOrEmpty(index.getChildNode(n3).getString(NEXT)));
+    }    
+        
     /**
      * test the iteration of the descending index with 2 shuffled items
      * 
@@ -1243,5 +1255,109 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("The second element should be n0", n0, entry.getName());
         assertEquals("Wrong entry returned", node0, entry.getNodeState());
         assertFalse("We should have be at the end of the list", it.hasNext());
+    }
+
+    @Test
+    public void count() throws IllegalArgumentException, RepositoryException {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        OrderedContentMirrorStoreStrategy descendingStore = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+        final String orderedProperty = "fooprop";
+        final String testAscendingName = "testascending";
+        final String testDescendingName = "testdescending";
+        final int numberOfNodes = 1000;
+        final int maxNodeCount = 100;
+       
+        NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
+        
+        IndexUtils.createIndexDefinition(builder.child(IndexConstants.INDEX_DEFINITIONS_NAME),
+            testAscendingName, false, ImmutableList.of(orderedProperty), null, OrderedIndex.TYPE,
+            ImmutableMap.<String, String> of());
+        IndexUtils.createIndexDefinition(builder.child(IndexConstants.INDEX_DEFINITIONS_NAME),
+            testDescendingName, false, ImmutableList.of(orderedProperty), null, OrderedIndex.TYPE,
+            ImmutableMap.<String, String> of(OrderedIndex.DIRECTION,OrderDirection.DESC.getDirection()));
+
+        NodeBuilder ascendingContent = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+            .getChildNode(testAscendingName).child(IndexConstants.INDEX_CONTENT_NODE_NAME);
+        NodeBuilder descendingContent = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+            .getChildNode(testDescendingName).child(IndexConstants.INDEX_CONTENT_NODE_NAME);
+        
+        // adding some content under the index
+        for (int i = 0; i < numberOfNodes; i++) {
+            store.update(ascendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
+            descendingStore.update(descendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
+        }
+        
+        assertEquals("wrong number of nodes encountered", numberOfNodes,
+            Iterables.size(store.getChildNodeEntries(ascendingContent.getNodeState())));
+        assertEquals("wrong number of nodes encountered", numberOfNodes,
+            Iterables.size(descendingStore.getChildNodeEntries(descendingContent.getNodeState())));
+
+        NodeState ascendingMeta = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+            .getChildNode(testAscendingName).getNodeState(); 
+        NodeState descendingMeta = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
+            .getChildNode(testDescendingName).getNodeState(); 
+
+        Filter.PropertyRestriction pr = null;
+        
+        // equality
+        String value = "x" + NF.format(11);
+        pr = new Filter.PropertyRestriction();
+        pr.first = PropertyValues.newString(value);
+        pr.last = PropertyValues.newString(value);
+        pr.firstIncluding = true;
+        pr.lastIncluding = true;
+        assertEquals(1, store.count(ascendingMeta, pr, maxNodeCount));
+        assertEquals(1, descendingStore.count(descendingMeta, pr, maxNodeCount));
+
+        // property not null
+        pr = new Filter.PropertyRestriction();
+        pr.first = null;
+        pr.last = null;
+        pr.firstIncluding = false;
+        pr.lastIncluding = false;
+        // don't care about the actual results as long as we have something. We're reusing existing
+        // code
+        assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
+        assertEquals(store.count(ascendingMeta, pr, maxNodeCount),
+            descendingStore.count(descendingMeta, pr, maxNodeCount));
+        
+        // '>'
+        pr = new Filter.PropertyRestriction();
+        pr.first = PropertyValues.newString(value);
+        pr.last = null;
+        pr.firstIncluding = false;
+        pr.lastIncluding = false;
+        // don't care about the actual results as long as we have something. We're reusing existing
+        // code
+        assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
+        assertEquals(0, descendingStore.count(descendingMeta, pr, maxNodeCount));
+
+        // '>='
+        pr = new Filter.PropertyRestriction();
+        pr.first = PropertyValues.newString(value);
+        pr.last = null;
+        pr.firstIncluding = true;
+        pr.lastIncluding = false;
+        // don't care about the actual results as long as we have something. We're reusing existing
+        // code
+        assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
+        assertEquals(0, descendingStore.count(descendingMeta, pr, maxNodeCount));
+
+        // '<'
+        pr = new Filter.PropertyRestriction();
+        pr.first = null;
+        pr.last = PropertyValues.newString(value);;
+        pr.firstIncluding = false;
+        pr.lastIncluding = false;
+        // don't care about the actual results as long as we have something. We're reusing existing
+        // code
+        assertTrue(descendingStore.count(descendingMeta, pr, maxNodeCount) > 0);
+        assertEquals(0, store.count(ascendingMeta, pr, maxNodeCount));
+        
+        // when no conditions has been asked but just an ORDER BY
+        pr = null;
+        assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
+        assertEquals(store.count(ascendingMeta, pr, maxNodeCount),
+            descendingStore.count(descendingMeta, pr, maxNodeCount));
     }
 }
