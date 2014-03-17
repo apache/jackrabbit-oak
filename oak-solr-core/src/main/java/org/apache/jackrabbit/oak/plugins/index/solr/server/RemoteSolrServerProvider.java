@@ -84,6 +84,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private SolrServer initializeWithCloudSolrServer() throws IOException, SolrServerException {
         // try SolrCloud client
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
+        cloudSolrServer.setZkConnectTimeout(100);
         cloudSolrServer.connect();
         cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
 
@@ -131,7 +132,13 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
             ZkStateReader zkStateReader = cloudSolrServer.getZkStateReader();
             SolrZkClient zkClient = zkStateReader.getZkClient();
             if (zkClient.isConnected() && !zkClient.exists("/configs/" + solrCollection, false)) {
-                File dir = new File(remoteSolrServerConfiguration != null ? remoteSolrServerConfiguration.getSolrConfDir() : getClass().getResource("/solr-oak-conf").getFile());
+                String solrConfDir = remoteSolrServerConfiguration.getSolrConfDir();
+                File dir;
+                if (solrConfDir != null && solrConfDir.length() > 0) {
+                    dir = new File(solrConfDir);
+                } else {
+                    dir = new File(getClass().getResource("/solr/oak/conf").getFile());
+                }
                 ZkController.uploadConfigDir(zkClient, dir, solrCollection);
                 UpdateRequest req = new UpdateRequest("/admin/collections");
                 req.setParam("action", "CREATE");
