@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 import java.io.Closeable;
 import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,13 +28,13 @@ import java.util.Iterator;
 
 import javax.sql.DataSource;
 
-import com.google.common.collect.AbstractIterator;
-
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.AbstractIterator;
 
 public class RDBBlobStore extends CachingBlobStore implements Closeable {
     /**
@@ -45,8 +44,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     public RDBBlobStore() {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
-            Connection connection = DriverManager.getConnection(jdbcurl, "sa", "");
-            initialize(connection);
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
+            initialize(ds.getConnection());
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB blob store", ex);
         }
@@ -58,8 +57,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
      */
     public RDBBlobStore(String jdbcurl, String username, String password) {
         try {
-            Connection connection = DriverManager.getConnection(jdbcurl, username, password);
-            initialize(connection);
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, username, password);
+            initialize(ds.getConnection());
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB blob store", ex);
         }
