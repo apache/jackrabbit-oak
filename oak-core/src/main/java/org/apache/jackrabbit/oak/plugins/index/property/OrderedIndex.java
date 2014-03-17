@@ -21,6 +21,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 /**
  * interface for shared constants around different actors: QueryIndex, IndexEditors,
  * IndexEditorProviders, ...
@@ -41,20 +43,22 @@ public interface OrderedIndex {
         DESC("descending");
         
         private final String direction;
-        private OrderDirection(String direction) {
+        private OrderDirection(String direction){
             this.direction = direction;
         }
-        public String getDirection() {
+        public String getDirection(){
             return direction;
         }
         
         /**
-         * retrieve an {@code OrderDirection} from a provided String. Will return null in case of no-match
+         * retrieve an {@code OrderDirection} from a provided String. Will return null in case of
+         * no-match
          * 
          * @param direction the direction of the sorting: ascending or descending
-         * @return the order
+         * @return
          */
-        @Nullable @CheckForNull 
+        @Nullable
+        @CheckForNull
         public static OrderDirection fromString(@Nonnull final String direction) {
             for (OrderDirection d : OrderDirection.values()) {
                 if (d.getDirection().equalsIgnoreCase(direction)) {
@@ -63,6 +67,40 @@ public interface OrderedIndex {
             }
             return null;
         }
+        
+        /**
+         * tells whether the provided index definition is ascending or descending
+         * 
+         * @param indexMeta
+         * @return the direction
+         */
+        public static OrderDirection fromIndexMeta(final NodeState indexMeta) {
+            OrderDirection direction = ASC;
+            if (indexMeta != null && DESC.getDirection().equals(indexMeta.getString(DIRECTION))) {
+                direction = DESC;
+            }
+            return direction;
+        }
+        
+        /**
+         * convenience method that tells if the provided index definition is descending
+         * 
+         * @param indexMeta
+         * @return true if descending
+         */
+        public static boolean isDescending(NodeState indexMeta) {
+            return DESC.equals(fromIndexMeta(indexMeta));
+        }
+
+        /**
+         * convenience method that tells if the provided index definition is ascending
+         * 
+         * @param indexMeta
+         * @return true if ascending
+         */
+        public static boolean isAscending(NodeState indexMeta) {
+            return ASC.equals(fromIndexMeta(indexMeta));
+        }
     };
     
     String TYPE = "ordered";
@@ -70,7 +108,7 @@ public interface OrderedIndex {
     /**
      * the 'key' used for specifying the direction of the index when providing the configuration
      * 
-     * {@code "propertyNames"="foobar", "direction"="ascending" }
+     * {@code  { "propertyNames"="foobar", "direction"="ascending" } }
      */
     String DIRECTION = "direction";
     

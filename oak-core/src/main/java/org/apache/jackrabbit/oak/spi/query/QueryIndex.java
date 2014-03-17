@@ -255,7 +255,7 @@ public interface QueryIndex {
             protected boolean isDelayed;
             protected boolean isFulltextIndex;
             protected boolean includesNodeData;
-            protected List<OrderEntry> sortOrder;
+            protected List<OrderEntry> sortOrder;            
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;

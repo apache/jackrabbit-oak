@@ -103,7 +103,6 @@ public class BenchmarkRunner {
             new OrderedIndexInsertOrderedPropertyTest(),
             new OrderedIndexInsertStandardPropertyTest(),
             new OrderedIndexInsertNoIndexTest(),
-            new OrderByQueryTest(),
             new LoginTest(),
             new LoginLogoutTest(),
             new NamespaceTest(),

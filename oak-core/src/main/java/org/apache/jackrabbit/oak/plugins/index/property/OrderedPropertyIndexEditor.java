@@ -39,7 +39,7 @@ import com.google.common.base.Strings;
 /**
  * Index editor for keeping an ordered property index up to date.
  */
-public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
+public class OrderedPropertyIndexEditor extends PropertyIndexEditor {    
     /**
      * the default Ascending ordered StoreStrategy
      */

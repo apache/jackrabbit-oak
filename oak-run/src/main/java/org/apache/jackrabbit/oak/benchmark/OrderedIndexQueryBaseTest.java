@@ -77,4 +77,9 @@ public abstract class OrderedIndexQueryBaseTest extends OrderedIndexBaseTest {
     }
     
     abstract String getQuery();
+
+    @Override
+    boolean isBatchSaving() {
+        return true;
+    }
 }

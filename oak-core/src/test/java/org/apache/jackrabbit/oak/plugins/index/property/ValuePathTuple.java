@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import com.google.common.base.Predicate;
+
 
 /**
  * convenience orderable object that represents a tuple of values and paths
@@ -27,6 +29,64 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
     private String value;
     private String path;
 
+    /**
+     * convenience Predicate for easing the testing
+     */
+    public static class GreaterThanPredicate implements Predicate<ValuePathTuple> {
+        /** 
+         * the value for comparison 
+         */
+        private String value;
+        
+        /**
+         * whether we should include the value in the result
+         */
+        private boolean include = false;
+        
+        public GreaterThanPredicate(String value) {
+            this.value = value;
+        }
+
+        public GreaterThanPredicate(String value, boolean include) {
+            this.value = value;
+            this.include = include;
+        }
+
+        @Override
+        public boolean apply(ValuePathTuple arg0) {
+            return (value.compareTo(arg0.getValue()) < 0)
+                   || (include && value.equals(arg0.getValue()));
+        }
+    };
+    
+    public static class LessThanPredicate implements Predicate<ValuePathTuple> {
+        /** 
+         * the value for comparison 
+         */
+        private String value;
+        
+        /**
+         * whether we should include the value in the result
+         */
+        private boolean include = false;
+
+        public LessThanPredicate(String value){
+            this.value = value;
+        }
+
+        public LessThanPredicate(String value, boolean include){
+            this.value = value;
+            this.include = include;
+        }
+
+        @Override
+        public boolean apply(ValuePathTuple arg0) {
+            return (value.compareTo(arg0.getValue()) > 0)
+                || (include && value.equals(arg0.getValue()));
+        }
+        
+    }
+    
     ValuePathTuple(String value, String path) {
         this.value = value;
         this.path = path;
@@ -97,5 +157,15 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
 
     public String getPath() {
         return path;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(
+            "value: %s - path: %s - hash: %s",
+            value,
+            path,
+            super.toString()
+        );
     }
 }
