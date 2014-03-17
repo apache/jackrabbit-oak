@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.query.plan;
 
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 /**
  * An execution plan for one selector in a query. The conditions of the given
@@ -30,11 +31,13 @@ public class SelectorExecutionPlan implements ExecutionPlan {
     private final SelectorImpl selector;
     private final double estimatedCost;
     private final QueryIndex index;
+    private final IndexPlan plan;
 
-    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, double estimatedCost) {
+    public SelectorExecutionPlan(SelectorImpl selector, QueryIndex index, IndexPlan plan, double estimatedCost) {
         this.selector = selector;
         this.index = index;
         this.estimatedCost = estimatedCost;
+        this.plan = plan;
     }
     
     @Override
@@ -48,6 +51,10 @@ public class SelectorExecutionPlan implements ExecutionPlan {
 
     public QueryIndex getIndex() {
         return index;
+    }
+    
+    public IndexPlan getIndexPlan() {
+        return plan;
     }
 
 }
