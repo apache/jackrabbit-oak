@@ -319,6 +319,27 @@ public interface QueryIndex {
                             Builder.this.sortOrder == null ?
                             null : new ArrayList<OrderEntry>(
                                     Builder.this.sortOrder);                  
+                    @Override
+                    public String toString() {
+                        return String.format(
+                              "{ costPerExecution : %s,"
+                            + " costPerEntry : %s,"
+                            + " estimatedEntryCount : %s,"
+                            + " filter : %s,"
+                            + " isDelayed : %s,"
+                            + " isFulltextIndex : %s,"
+                            + " includesNodeData : %s,"
+                            + " sortOrder : %s }",
+                            costPerExecution,
+                            costPerEntry,
+                            estimatedEntryCount,
+                            filter,
+                            isDelayed,
+                            isFulltextIndex,
+                            includesNodeData,
+                            sortOrder
+                            );
+                    }
 
                     @Override
                     public double getCostPerExecution() {
@@ -412,6 +433,14 @@ public interface QueryIndex {
             return propertyType;
         }
 
+        @Override
+        public String toString() {
+            return String.format(
+                "{ propertyName : %s, propertyType : %s, order : %s }",
+                propertyName,
+                propertyType,
+                order);
+        }
     }
 
 }
