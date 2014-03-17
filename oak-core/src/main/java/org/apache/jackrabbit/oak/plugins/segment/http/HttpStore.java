@@ -61,10 +61,26 @@ public class HttpStore implements SegmentStore {
         return tracker;
     }
 
+    /**
+     * Builds a simple URLConnection. This method can be extended to add
+     * authorization headers if needed.
+     * 
+     */
+    protected URLConnection get(String fragment) throws MalformedURLException,
+            IOException {
+        final URL url;
+        if (fragment == null) {
+            url = base;
+        } else {
+            url = new URL(base, fragment);
+        }
+        return url.openConnection();
+    }
+
     @Override
     public SegmentNodeState getHead() {
         try {
-            URLConnection connection = base.openConnection();
+            URLConnection connection = get(null);
             InputStream stream = connection.getInputStream();
             try {
                 BufferedReader reader = new BufferedReader(
@@ -97,8 +113,7 @@ public class HttpStore implements SegmentStore {
     @Override
     public Segment readSegment(SegmentId id) {
         try {
-            URLConnection connection =
-                    new URL(base, id.toString()).openConnection();
+            URLConnection connection = get(id.toString());
             InputStream stream = connection.getInputStream();
             try {
                 byte[] data = ByteStreams.toByteArray(stream);
@@ -117,8 +132,7 @@ public class HttpStore implements SegmentStore {
     public void writeSegment(
             SegmentId id, byte[] bytes, int offset, int length) {
         try {
-            URLConnection connection =
-                    new URL(base, id.toString()).openConnection();
+            URLConnection connection = get(id.toString());
             connection.setDoInput(false);
             connection.setDoOutput(true);
             OutputStream stream = connection.getOutputStream();
