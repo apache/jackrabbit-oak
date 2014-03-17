@@ -159,7 +159,7 @@ public class Segment {
     }
 
     public SegmentId getSegmentId() {
-        return refids[0];
+        return id;
     }
 
     int getRefCount() {

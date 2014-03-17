@@ -95,11 +95,6 @@ public class SegmentTracker {
         Segment segment = store.readSegment(id);
         id.setSegment(segment);
 
-        if (id.isBulkSegmentId()) {
-            // don't cache bulk segments
-            return segment;
-        }
-
         synchronized (this) {
             segments.addFirst(segment);
             currentSize += segment.getCacheSize();
