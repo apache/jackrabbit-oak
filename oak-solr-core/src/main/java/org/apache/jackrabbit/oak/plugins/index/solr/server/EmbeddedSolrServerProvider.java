@@ -137,10 +137,12 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 if (!new File(solrHomePath + "/" + coreName + "/conf").mkdirs()) {
                     throw new IOException("could not create nested core directory in solrHomePath");
                 }
-                String coreDir = solrHomePath + "/" + coreName + "/conf/";
-                copy("/solr/oak/conf/currency.xml", coreDir);
-                copy("/solr/oak/conf/schema.xml", coreDir);
-                copy("/solr/oak/conf/solrconfig.xml", coreDir);
+                String solrCoreDir = solrHomePath + "/" + coreName;
+                copy("/solr/oak/core.properties", solrCoreDir);
+                String coreConfDir = solrCoreDir + "/conf/";
+                copy("/solr/oak/conf/currency.xml", coreConfDir);
+                copy("/solr/oak/conf/schema.xml", coreConfDir);
+                copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
             }
         } else if (!solrHomePathFile.isDirectory()) {
             throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '" + solrHomePath);
