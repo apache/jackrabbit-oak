@@ -64,7 +64,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.Path;
-import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,6 +129,11 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
+    public long getPropertyCount() {
+        return properties.size();
+    }
+
+    @Override
     public boolean hasProperty(String name) {
         return properties.containsKey(name);
     }
@@ -142,6 +146,11 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Override
     public Iterable<PropertyState> getProperties() {
         return properties.values();
+    }
+
+    @Override
+    public long getChildNodeCount(long max) {
+        return nodes.size();
     }
 
     @Override
@@ -162,6 +171,11 @@ class JackrabbitNodeState extends AbstractNodeState {
         }
         checkValidName(name);
         return EmptyNodeState.MISSING_NODE;
+    }
+
+    @Override
+    public Iterable<String> getChildNodeNames() {
+        return nodes.keySet();
     }
 
     @Override
