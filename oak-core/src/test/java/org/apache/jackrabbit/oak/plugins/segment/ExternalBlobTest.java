@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -49,7 +50,7 @@ public class ExternalBlobTest {
     private SegmentNodeStore nodeStore;
     private FileBlob fileBlob;
 
-    @Test
+    @Test @Ignore("would need a FileBlobStore for this")
     public void testFileBlob() throws Exception {
         nodeStore = getNodeStore(new TestBlobStore());
         testCreateAndRead(getFileBlob());
