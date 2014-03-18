@@ -32,6 +32,8 @@ import javax.jcr.Repository;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -46,6 +48,8 @@ import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -227,15 +231,55 @@ public class Main {
     }
 
     private static void upgrade(String[] args) throws Exception {
-        if (args.length == 2) {
-            RepositoryContext source = RepositoryContext.create(RepositoryConfig.create(new File(args[0])));
+        OptionParser parser = new OptionParser();
+        parser.accepts("datastore", "keep data store");
+
+        OptionSet options = parser.parse(args);
+
+        List<String> argList = options.nonOptionArguments();
+        if (argList.size() == 2 || argList.size() == 3) {
+            File dir = new File(argList.get(0));
+            File xml = new File(dir, "repository.xml");
+            String dst = argList.get(1);
+            if (argList.size() == 3) {
+                xml = new File(dst);
+                dst = argList.get(2);
+            }
+
+            RepositoryContext source =
+                    RepositoryContext.create(RepositoryConfig.create(dir, xml));
             try {
-                FileStore store = new FileStore(new File(args[1]), 256, true);
-                try {
-                    NodeStore target = new SegmentNodeStore(store);
-                    new RepositoryUpgrade(source, target).copy();
-                } finally {
-                    store.close();
+                if (dst.startsWith("mongodb://")) {
+                    MongoClientURI uri = new MongoClientURI(dst);
+                    MongoClient client = new MongoClient(uri);
+                    try {
+                        DocumentNodeStore target = new DocumentMK.Builder()
+                            .setMongoDB(client.getDB(uri.getDatabase()))
+                            .getNodeStore();
+                        try {
+                            RepositoryUpgrade upgrade =
+                                    new RepositoryUpgrade(source, target);
+                            upgrade.setCopyBinariesByReference(
+                                    options.has("datastore"));
+                            upgrade.copy();
+                        } finally {
+                            target.dispose();
+                        }
+                    } finally {
+                        client.close();
+                    }
+                } else {
+                    FileStore store = new FileStore(new File(dst), 256);
+                    try {
+                        NodeStore target = new SegmentNodeStore(store);
+                        RepositoryUpgrade upgrade =
+                                new RepositoryUpgrade(source, target);
+                        upgrade.setCopyBinariesByReference(
+                                options.has("datastore"));
+                        upgrade.copy();
+                    } finally {
+                        store.close();
+                    }
                 }
             } finally {
                 source.getRepository().shutdown();
