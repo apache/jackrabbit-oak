@@ -127,16 +127,23 @@ class ChangeProcessor implements Observer {
         checkState(registration == null, "Change processor started already");
         final WhiteboardExecutor executor = new WhiteboardExecutor();
         executor.start(whiteboard);
+        final BackgroundObserver observer = createObserver(executor);
         registration = new CompositeRegistration(
-            registerObserver(whiteboard, createObserver(executor)),
+            registerObserver(whiteboard, observer),
             registerMBean(whiteboard, EventListenerMBean.class,
                     tracker.getListenerMBean(), "EventListener", tracker.toString()),
             new Registration() {
-        @Override
-        public void unregister() {
-            executor.stop();
-        }
-    });
+                @Override
+                public void unregister() {
+                    observer.close();
+                }
+            },
+            new Registration() {
+                @Override
+                public void unregister() {
+                    executor.stop();
+                }
+        });
     }
 
     private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
