@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,6 +53,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
@@ -82,7 +86,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -487,8 +490,8 @@ public class Oak {
             String name = "async";
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
                     indexEditors);
-            WhiteboardUtils.scheduleWithFixedDelay(whiteboard, task, 5, true);
-            WhiteboardUtils.registerMBean(whiteboard, IndexStatsMBean.class,
+            scheduleWithFixedDelay(whiteboard, task, 5, true);
+            registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name);
         }
 
@@ -512,13 +515,16 @@ public class Oak {
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {
-            WhiteboardUtils.registerObserver(whiteboard, observer);
+            registerObserver(whiteboard, observer);
         }
 
-        CommitHook commitHook = CompositeHook.compose(commitHooks);
+        RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
+        registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
+                RepositoryManagementMBean.TYPE, repositoryManager.getName());
+
         return new ContentRepositoryImpl(
                 store,
-                commitHook,
+                CompositeHook.compose(commitHooks),
                 defaultWorkspaceName,
                 indexProvider,
                 securityProvider);
