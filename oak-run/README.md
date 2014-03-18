@@ -25,20 +25,46 @@ Debug
 -----
 
 The 'debug' mode allows to obtain information about the status of the specified
-store. Currently this is only supported for the segment store (aka tar mk). To
-start this mode, use:
+store. Currently this is only supported for the TarMK. To start this mode, use:
 
-    $ java -jar oak-run-*.jar debug /path/to/oakrepository [id...]
+    $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
 
 Upgrade
 -------
 
-The 'upgrade' mode allows to upgrade an existing Jackrabbit 2.x installation to
-Oak. To start the upgrade, use
+The 'upgrade' mode allows to migrate the contents of an existing
+Jackrabbit 2.x repository to Oak. To run the migration, use:
 
-    $ java -jar oak-run-*.jar upgrade /path/to/jr2repository /path/to/oakrepository
+    $ java -jar oak-run-*.jar upgrade [--datastore] \
+          /path/to/jackrabbit/repository [/path/to/jackrabbit/repository.xml] \
+          { /path/to/oak/repository | mongodb://host:port/database }
 
+The source repository is opened from the given repository directory, and
+should not be concurrently accessed by any other client. Repository
+configuration is read from the specified configuration file, or from
+a `repository.xml` file within the repository directory if an explicit
+configuration file is not given.
+
+The target repository is specified either as a local filesystem path to
+a directory (which will be automatically created if it doesn't already exist)
+of a new TarMK repository or as a MongoDB client URI that specifies the
+location of a MongoDB database where a new DocumentMK repository.
+
+The `--datastore` option (if present) prevents the copying of binary data
+from a data store of the source repository to the target Oak repository.
+Instead the binaries are copied by reference, and you need to make the
+source data store available to the new Oak repository.
+
+The content migration will automatically adjust things like node type,
+privilege and user account settings that work a bit differently in Oak.
+Unsupported features like same-name-siblings are migrated on a best-effort
+basis, with no strict guarantees of completeness. Warnings will be logged
+for any content inconsistencies that might be encountered; such content
+should be manually reviewed after the migration is complete. Note that
+things like search index configuration work differently in Oak than in
+Jackrabbit 2.x, and will need to be manually recreated after the migration.
+See the relevant documentation for more details.
 
 Oak server mode
 ---------------
