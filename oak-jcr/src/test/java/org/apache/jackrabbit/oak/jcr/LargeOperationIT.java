@@ -318,7 +318,7 @@ public class LargeOperationIT {
     }
 
     /**
-     * Assert adding many siblings scales linearly with the number of added siblings.
+     * Assert adding siblings scales linearly with the number of already existing siblings.
      * @throws RepositoryException
      * @throws InterruptedException
      */
@@ -331,24 +331,26 @@ public class LargeOperationIT {
             ScalabilityTest test = new ScalabilityTest(scale) {
                 @Override
                 void before(int scale) throws RepositoryException {
-                    n.addNode("s" + scale);
+                    Node s = n.addNode("s" + scale);
+                    for (int k = 0; k < scale; k++) {
+                        s.addNode("s" + k);
+                    }
                 }
 
                 @Override
                 void run(int scale) throws RepositoryException {
                     Node s = n.getNode("s" + scale);
-                    for (int k = 0; k < scale; k++) {
-                        s.addNode("s" + k);
+                    for (int k = 0; k < 100; k++) {
+                        s.addNode("t" + k);
                     }
                     session.save();
                 }
             };
             double t = test.run();
             executionTimes.add(t);
-            LOG.info("Adding {} siblings took {} ns/node", scale, t);
+            LOG.info("Adding 100 siblings next to {} siblings took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1416
-        assertOnLgn("many siblings", scales, executionTimes, knownIssue);
+        assertOnLgn("many siblings", scales, executionTimes, false);
     }
 
     /**
@@ -386,7 +388,7 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        assertOnLgn("large number of pending moves", scales, executionTimes, false);
+        assertOnLgn("large number of pending events", scales, executionTimes, false);
     }
 
     @Test
