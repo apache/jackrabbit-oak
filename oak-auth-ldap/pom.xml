@@ -61,7 +61,11 @@
                     <groupId>org.apache.rat</groupId>
                     <artifactId>apache-rat-plugin</artifactId>
                     <configuration>
-                        <excludes />
+                        <excludes>
+                            <exclude>
+                                src/test/scripts/users.csv
+                            </exclude>
+                        </excludes>
                     </configuration>
                 </plugin>
             </plugins>
