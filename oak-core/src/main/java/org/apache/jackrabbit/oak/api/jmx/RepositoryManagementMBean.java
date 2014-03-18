@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.api.jmx;
 
+import javax.annotation.Nonnull;
+
 /**
  * This interface exposes repository management operations
  * and the status of such operations. This interface only
@@ -46,12 +48,14 @@ package org.apache.jackrabbit.oak.api.jmx;
  * about what caused a terminated operation to fail.
  */
 public interface RepositoryManagementMBean {
+    String TYPE = "RepositoryManagement";
 
     /**
      * Initiate a backup operation.
      *
      * @return  the status of the operation right after it was initiated
      */
+    @Nonnull
     String startBackup();
 
     /**
@@ -60,6 +64,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or {@code null} if none.
      */
+    @Nonnull
     String getBackupStatus();
 
     /**
@@ -67,6 +72,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
+    @Nonnull
     String startRestore();
 
     /**
@@ -75,6 +81,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or {@code null} if none.
      */
+    @Nonnull
     String getRestoreStatus();
 
     /**
@@ -82,6 +89,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
+    @Nonnull
     String startDataStoreGC();
 
     /**
@@ -90,6 +98,7 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or {@code null} if none.
      */
+    @Nonnull
     String getDataStoreGCStatus();
 
     /**
@@ -97,6 +106,7 @@ public interface RepositoryManagementMBean {
      *
      * @return  the status of the operation right after it was initiated
      */
+    @Nonnull
     String startRevisionGC();
 
     /**
@@ -105,5 +115,6 @@ public interface RepositoryManagementMBean {
      * @return  the status of the ongoing operation or if none the terminal
      * status of the last operation or {@code null} if none.
      */
+    @Nonnull
     String getRevisionGCStatus();
 }
