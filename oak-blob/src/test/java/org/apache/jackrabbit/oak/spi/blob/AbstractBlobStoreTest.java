@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -100,6 +101,7 @@ public abstract class AbstractBlobStoreTest {
         doTestRead(new byte[4], 4, combinedId);
     }
 
+    @Ignore("OAK-1554")
     @Test
     public void testEmptyIdentifier() throws Exception {
         byte[] data = new byte[1];
