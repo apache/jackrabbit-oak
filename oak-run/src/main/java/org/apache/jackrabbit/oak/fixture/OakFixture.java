@@ -149,8 +149,8 @@ public abstract class OakFixture {
                     String className = System.getProperty("dataStore");
                     if(className != null){
                         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
-                        ds.init(null);
                         PropertiesUtil.populate(ds, getConfig(), false);
+                        ds.init(null);
                         blobStore = new DataStoreBlobStore(ds);
                     }
                 } catch (Exception e) {

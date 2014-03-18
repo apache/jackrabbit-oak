@@ -47,21 +47,18 @@ public class DataStoreUtils extends AbstractMongoConnectionTest {
     private static final String BS_PROP_PREFIX = "bs.";
 
     public static DataStoreBlobStore getBlobStore() throws Exception {
-        String className = System.getProperty(DS_CLASS_NAME);
-        if(className != null){
-            DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
-            ds.init(getHomeDir());
-            PropertiesUtil.populate(ds, getConfig() , false);
-            return new DataStoreBlobStore(ds);
-        }
-        return null;
+        String className = System.getProperty(DS_CLASS_NAME, FileDataStore.class.getName());
+        DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
+        PropertiesUtil.populate(ds, getConfig(), false);
+        ds.init(getHomeDir());
+        return new DataStoreBlobStore(ds);
     }
 
-    private static Map<String,?> getConfig(){
-        Map<String,Object> result = Maps.newHashMap();
-        for(Map.Entry<String,?> e : Maps.fromProperties(System.getProperties()).entrySet()){
+    private static Map<String, ?> getConfig() {
+        Map<String, Object> result = Maps.newHashMap();
+        for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
             String key = e.getKey();
-            if(key.startsWith(DS_PROP_PREFIX) || key.startsWith(BS_PROP_PREFIX)){
+            if (key.startsWith(DS_PROP_PREFIX) || key.startsWith(BS_PROP_PREFIX)) {
                 key = key.substring(3); //length of bs.
                 result.put(key, e.getValue());
             }
@@ -70,7 +67,7 @@ public class DataStoreUtils extends AbstractMongoConnectionTest {
     }
 
     private static String getHomeDir() {
-        return concat( new File(".").getAbsolutePath(), "target/blobstore/"+System.currentTimeMillis());
+        return concat(new File(".").getAbsolutePath(), "target/blobstore/" + System.currentTimeMillis());
     }
 
     @Test
