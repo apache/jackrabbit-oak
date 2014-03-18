@@ -174,23 +174,30 @@ class ChangeProcessor implements Observer {
      * the specified time for a pending event listener to complete. If
      * no timeout occurred no further events will be delivered after this
      * method returns.
+     * <p>
+     * Does nothing if stopped already.
      *
      * @param timeOut time this method will wait for an executing event
      *                listener to complete.
      * @param unit    time unit for {@code timeOut}
      * @return {@code true} if no time out occurred and this change processor
      *         could be stopped, {@code false} otherwise.
-     * @throws IllegalStateException if not yet started or stopped already
+     * @throws IllegalStateException if not yet started
      */
     public synchronized boolean stopAndWait(int timeOut, TimeUnit unit) {
         checkState(registration != null, "Change processor not started");
-        running.stop();
-        if (runningMonitor.enter(timeOut, unit)) {
-            registration.unregister();
-            runningMonitor.leave();
-            return true;
+        if (running.stop()) {
+            if (runningMonitor.enter(timeOut, unit)) {
+                registration.unregister();
+                runningMonitor.leave();
+                return true;
+            } else {
+                // Timed out
+                return false;
+            }
         } else {
-            return false;
+            // Stopped already
+            return true;
         }
     }
 
@@ -202,9 +209,10 @@ class ChangeProcessor implements Observer {
      */
     public synchronized void stop() {
         checkState(registration != null, "Change processor not started");
-        running.stop();
-        registration.unregister();
-        runningMonitor.leave();
+        if (running.stop()) {
+            registration.unregister();
+            runningMonitor.leave();
+        }
     }
 
     @Override
@@ -274,9 +282,14 @@ class ChangeProcessor implements Observer {
             return !stopped;
         }
 
-        public void stop() {
-            checkState(!stopped, "Change processor already stopped");
+        /**
+         * @return  {@code true} if this call set this guard to stopped,
+         *          {@code false} if another call set this guard to stopped before.
+         */
+        public boolean stop() {
+            boolean wasStopped = stopped;
             stopped = true;
+            return !wasStopped;
         }
     }
 }
