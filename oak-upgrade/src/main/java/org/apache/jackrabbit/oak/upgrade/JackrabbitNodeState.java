@@ -266,7 +266,7 @@ class JackrabbitNodeState extends AbstractNodeState {
                     name, value.getBoolean(), Type.BOOLEAN);
         case PropertyType.DATE:
             return PropertyStates.createProperty(
-                    name, ISO8601.format(value.getCalendar()), Type.DATE);
+                    name, value.getString(), Type.DATE);
         case PropertyType.DECIMAL:
             return PropertyStates.createProperty(
                     name, value.getDecimal(), Type.DECIMAL);
@@ -318,7 +318,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         case PropertyType.DATE:
             List<String> dates = newArrayListWithCapacity(values.length);
             for (InternalValue value : values) {
-                dates.add(ISO8601.format(value.getCalendar()));
+                dates.add(value.getString());
             }
             return PropertyStates.createProperty(name, dates, Type.DATES);
         case PropertyType.DECIMAL:
