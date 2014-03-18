@@ -409,12 +409,6 @@ public class Segment {
         }
     }
 
-    long readBlobLength(int offset) {
-        long high = readInt(offset + 2);
-        long low = readInt(offset + 6);
-        return high << 32 | low;
-    }
-
     //------------------------------------------------------------< Object >--
 
     @Override

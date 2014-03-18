@@ -63,11 +63,9 @@ class SegmentBlob extends Record implements Blob {
             return new SegmentStream(getRecordId(), list, length);
         } else if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value
-            int length = segment.readShort(offset) & 0x0fff;
-            byte[] bytes = new byte[length];
-            segment.readBytes(offset + 10, bytes, 0, length);
-            String refererence = new String(bytes, UTF_8);
-            return segment.getSegmentId().getTracker().getStore().readBlob(refererence).getNewStream();
+            String refererence = readReference(segment, offset, head);
+            return segment.getSegmentId().getTracker().getStore()
+                    .readBlob(refererence).getNewStream();
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -90,7 +88,14 @@ class SegmentBlob extends Record implements Blob {
             return (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
         } else if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value
-            return segment.readLong(offset + 2);
+            String reference = readReference(segment, offset, head);
+            long length = segment.getSegmentId().getTracker().getStore()
+                    .readBlob(reference).length();
+            if (length == -1) {
+                throw new IllegalStateException(
+                        "Unknown length of external binary: " + reference);
+            }
+            return length;
         } else {
             throw new IllegalStateException(String.format(
                     "Unexpected value record type: %02x", head & 0xff));
@@ -101,12 +106,10 @@ class SegmentBlob extends Record implements Blob {
     public String getReference() {
         Segment segment = getSegment();
         int offset = getOffset();
-        if ((segment.readByte(offset) & 0xf0) == 0xe0) {
+        byte head = segment.readByte(offset);
+        if ((head & 0xf0) == 0xe0) {
             // 1110 xxxx: external value
-            int length = segment.readShort(offset) & 0x0fff;
-            byte[] bytes = new byte[length];
-            segment.readBytes(offset + 10, bytes, 0, length);
-            return new String(bytes, UTF_8);
+            return readReference(segment, offset, head);
         } else {
             return null;
         }
@@ -127,6 +130,16 @@ class SegmentBlob extends Record implements Blob {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    //-----------------------------------------------------------< private >--
+
+    private static String readReference(
+            Segment segment, int offset, byte head) {
+        int length = (head & 0x0f) << 8 | (segment.readByte(offset + 1) & 0xff);
+        byte[] bytes = new byte[length];
+        segment.readBytes(offset + 2, bytes, 0, length);
+        return new String(bytes, UTF_8);
     }
 
 }
