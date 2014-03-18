@@ -228,9 +228,13 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             @Override
             public boolean visit(FullTextOr or) {
                 fullTextString.append('(');
-                for (FullTextExpression e : or.list) {
+                for (int i = 0; i < or.list.size(); i++) {
+                    FullTextExpression e = or.list.get(i);
                     String orTerm = getFullTextQuery(e);
-                    fullTextString.append(orTerm).append(" OR ");
+                    fullTextString.append(orTerm);
+                    if (i > 0 && i < or.list.size()) {
+                        fullTextString.append(" OR ");
+                    }
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
@@ -240,9 +244,13 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             @Override
             public boolean visit(FullTextAnd and) {
                 fullTextString.append('(');
-                for (FullTextExpression e : and.list) {
+                for (int i = 0; i < and.list.size(); i++) {
+                    FullTextExpression e = and.list.get(i);
                     String andTerm = getFullTextQuery(e);
-                    fullTextString.append(andTerm).append(" AND ");
+                    fullTextString.append(andTerm);
+                    if (i > 0 && i < and.list.size()) {
+                        fullTextString.append(" AND ");
+                    }
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
