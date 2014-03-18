@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
@@ -56,7 +57,8 @@ public abstract class AbstractRepositoryUpgradeTest {
     @Before
     public synchronized void upgradeRepository() throws Exception {
         if (targetRepository == null) {
-            File directory = new File("target", "upgrade");
+            File directory = new File(
+                    "target", "upgrade-" + Clock.SIMPLE.getTimeIncreasing());
             FileUtils.deleteQuietly(directory);
 
             File source = new File(directory, "source");

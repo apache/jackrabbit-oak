@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -29,6 +32,7 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -43,6 +47,20 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_P
  * @since Oak 0.11
  */
 public class TypePredicate implements Predicate<NodeState> {
+
+    public static TypePredicate isOrderable(NodeState root) {
+        Set<String> orderable = newHashSet();
+        NodeState types = checkNotNull(root)
+                .getChildNode(JCR_SYSTEM)
+                .getChildNode(JCR_NODE_TYPES);
+        for (ChildNodeEntry entry : types.getChildNodeEntries()) {
+            NodeState type = entry.getNodeState();
+            if (type.getBoolean(JCR_HASORDERABLECHILDNODES)) {
+                orderable.add(entry.getName());
+            }
+        }
+        return new TypePredicate(root, orderable);
+    }
 
     private final NodeState root;
 
@@ -124,10 +142,7 @@ public class TypePredicate implements Predicate<NodeState> {
         }
     }
 
-    //---------------------------------------------------------< Predicate >--
-
-    @Override
-    public boolean apply(NodeState input) {
+    private void init() {
         if (!initialized) {
             // lazy initialization of the sets of matching type names
             NodeState types = checkNotNull(root)
@@ -138,7 +153,24 @@ public class TypePredicate implements Predicate<NodeState> {
             }
             initialized = true;
         }
+    }
 
+    public boolean apply(String primary, Set<String> mixins) {
+        init();
+        if (primaryTypes != null && primaryTypes.contains(primary)) {
+            return true;
+        } else if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    //---------------------------------------------------------< Predicate >--
+
+    @Override
+    public boolean apply(NodeState input) {
+        init();
         if (primaryTypes != null
                 && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
             return true;
