@@ -125,6 +125,14 @@ public class MongoDocumentStore implements CachingDocumentStore {
         options.put("unique", Boolean.FALSE);
         nodes.ensureIndex(index, options);
 
+        // index on the _bin flag to faster access nodes with binaries for GC
+        index = new BasicDBObject();
+        index.put(NodeDocument.HAS_BINARY_FLAG, Integer.valueOf(1));
+        options = new BasicDBObject();
+        options.put("unique", Boolean.FALSE);
+        options.put("sparse", Boolean.TRUE);
+        this.nodes.ensureIndex(index, options);
+
         // TODO expire entries if the parent was changed
         if (builder.useOffHeapCache()) {
             nodesCache = createOffHeapCache(builder);

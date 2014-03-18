@@ -70,6 +70,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     public static final int DEFAULT_BATCH_COUNT = 2048;
 
+    public static final String NOT_RUNNING = "NotRunning";
+
+    public static final String MARKING = "Running-Marking";
+
+    public static final String SWEEPING = "Running-Sweeping";
+
     /** The max last modified time of blobs to consider for garbage collection. */
     private long maxLastModifiedTime;
 
@@ -90,6 +96,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /** The batch count. */
     private int batchCount = DEFAULT_BATCH_COUNT;
+
+    /** Flag to indicate whether to run in a debug mode **/
+    private boolean debugMode = Boolean.getBoolean("debugModeGC") | LOG.isDebugEnabled();
+
+    /** Flag to indicate the state of the gc **/
+    private String state;
 
     /**
      * Gets the max last modified time considered for garbage collection.
@@ -143,6 +155,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     protected int getNumSweepers() {
         return numSweepers;
+    }
+
+    /**
+     * Gets the state of the gc process.
+     * 
+     * @return the state
+     */
+    protected String getState() {
+        return state;
     }
 
     /**
@@ -206,6 +227,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.debug("garbage collector finished");
         } finally {
             fs.complete();
+            state = NOT_RUNNING;
         }
     }
 
@@ -216,6 +238,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *             the exception
      */
     protected void mark() throws Exception {
+        state = MARKING;
         LOG.debug("Starting mark phase of the garbage collector");
 
         // Find all blobs available in the blob store
@@ -287,6 +310,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      *             Signals that an I/O exception has occurred.
      */
     protected void sweep() throws IOException {
+        state = SWEEPING;        
         LOG.debug("Starting sweep phase of the garbage collector");
 
         ConcurrentLinkedQueue<String> exceptionQueue = new ConcurrentLinkedQueue<String>();
@@ -428,12 +452,21 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             int referencesFound = 0;
             while (blobIterator.hasNext()) {
                 Blob blob = blobIterator.next();
+
+                if (debugMode) {
+                    LOG.debug("BlobId : " + blob.toString());
+                }
+
                 if (blob.toString().length() != 0) {
                     Iterator<String> idIter = ((GarbageCollectableBlobStore) nodeStore
                             .getBlobStore())
                             .resolveChunks(blob.toString());
                     while (idIter.hasNext()) {
-                        referencedBlobs.add(idIter.next());
+                        String id = idIter.next();
+                        referencedBlobs.add(id);
+                        if (debugMode) {
+                            LOG.debug("chunkId : " + id);
+                        }
                     }
                 }
 

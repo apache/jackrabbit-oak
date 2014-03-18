@@ -164,11 +164,15 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     public static final String PATH = "_path";
 
+    public static final String HAS_BINARY_FLAG = "_bin";
+    
     /**
      * Properties to ignore when a document is split.
      */
     private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(ID, MOD_COUNT, MODIFIED, PREVIOUS,
-            LAST_REV, CHILDREN_FLAG);
+            LAST_REV, CHILDREN_FLAG, HAS_BINARY_FLAG);
+
+    public static final long HAS_BINARY_VAL = 1;
 
     final DocumentStore store;
 
@@ -266,6 +270,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Override
     public long getLastCheckTime() {
         return lastCheckTime.get();
+    }
+
+    public int hasBinary() {
+        Integer flag = (Integer) get(HAS_BINARY_FLAG);
+        return flag != null ? flag.intValue() : 0;
     }
 
     /**
@@ -940,6 +949,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                    @Nonnull Revision low) {
         checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(high),
                 checkNotNull(low).toString());
+    }
+
+    public static void setHasBinary(@Nonnull UpdateOp op) {
+        checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
     }
 
     //----------------------------< internal >----------------------------------

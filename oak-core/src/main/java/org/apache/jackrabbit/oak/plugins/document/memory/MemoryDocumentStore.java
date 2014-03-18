@@ -118,7 +118,7 @@ public class MemoryDocumentStore implements DocumentStore {
             for (T doc : sub.values()) {
                 if (indexedProperty != null) {
                     Long value = (Long) doc.get(indexedProperty);
-                    if (value < startValue) {
+                    if (value == null || value < startValue) {
                         continue;
                     }
                 }
