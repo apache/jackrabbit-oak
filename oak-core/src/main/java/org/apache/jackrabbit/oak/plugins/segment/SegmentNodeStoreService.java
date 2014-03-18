@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.felix.scr.annotations.Activate;
@@ -29,6 +28,9 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -36,13 +38,13 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.ProxyNodeStore;
-import org.osgi.framework.ServiceReference;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
-import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkState;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class SegmentNodeStoreService extends ProxyNodeStore
@@ -80,9 +82,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private ComponentContext context;
 
-    private ServiceRegistration registration;
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC)
+    private volatile BlobStore blobStore;
 
-    private ServiceTracker blobStoreTracker;
+    private ServiceRegistration registration;
 
     @Override
     protected synchronized SegmentNodeStore getNodeStore() {
@@ -91,21 +95,24 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     @Activate
-    public void activate(ComponentContext context) throws IOException {
+    private void activate(ComponentContext context) throws IOException {
         this.context = context;
 
-        if(Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE))){
+        if(blobStore == null &&
+                Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE))){
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
-            blobStoreTracker = new ServiceTracker(context.getBundleContext(),
-                    BlobStore.class.getName(), new BlobStoreTracker());
-            blobStoreTracker.open();
         }else{
-            initialize(context, null);
+            registerNodeStore();
         }
     }
 
-    public synchronized void initialize(ComponentContext context, BlobStore blobStore)
+    public synchronized void registerNodeStore()
             throws IOException {
+        if(context == null){
+            log.info("Component still not activated. Ignoring the initialization call");
+            return;
+        }
+
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
 
@@ -136,7 +143,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         observerTracker = new ObserverTracker(delegate);
         observerTracker.start(context.getBundleContext());
 
-        registration = context.getBundleContext().registerService(NodeStore.class.getName(), this, null);
+        Dictionary<String, String> props = new Hashtable<String, String>();
+        props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
+        registration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
+        log.info("SegmentNodeStore initialized");
     }
 
     private static String lookup(ComponentContext context, String property) {
@@ -158,9 +168,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         store.close();
         store = null;
+    }
 
-        blobStoreTracker.close();
-        blobStoreTracker = null;
+    protected void bindBlobStore(BlobStore blobStore) throws IOException {
+        log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
+        this.blobStore = blobStore;
+        registerNodeStore();
+    }
+
+    protected void unbindBlobStore(BlobStore blobStore){
+        this.blobStore = null;
+        unregisterNodeStore();
     }
 
     private void unregisterNodeStore() {
@@ -191,30 +209,4 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     public String toString() {
         return name + ": " + delegate;
     }
-
-    private class BlobStoreTracker implements ServiceTrackerCustomizer {
-
-        @Override
-        public Object addingService(ServiceReference reference) {
-            BlobStore blobStore = (BlobStore) context.getBundleContext().getService(reference);
-            try {
-                initialize(context, blobStore);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return blobStore;
-        }
-
-        @Override
-        public void modifiedService(ServiceReference reference, Object service) {
-
-        }
-
-        @Override
-        public void removedService(ServiceReference reference, Object service) {
-            log.info("BlobStore services unregistered. Unregistered the SegmentNodeStore");
-            unregisterNodeStore();
-        }
-    }
-
 }

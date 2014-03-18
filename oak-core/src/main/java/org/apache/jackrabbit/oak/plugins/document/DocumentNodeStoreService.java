@@ -18,54 +18,50 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-
-
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.osgi.ObserverTracker;
-import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceReference;
-import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
-import org.osgi.util.tracker.ServiceTracker;
-import org.osgi.util.tracker.ServiceTrackerCustomizer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.osgi.ObserverTracker;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
  */
-@Component(metatype = true,
-        label = "%oak.documentns.label",
-        description = "%oak.documentns.description",
-        policy = ConfigurationPolicy.REQUIRE
-)
+@Component(policy = ConfigurationPolicy.REQUIRE)
 public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
@@ -112,28 +108,33 @@ public class DocumentNodeStoreService {
 
     private ServiceRegistration reg;
     private final List<Registration> registrations = new ArrayList<Registration>();
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC)
+    private volatile BlobStore blobStore;
+
     private DocumentMK mk;
     private ObserverTracker observerTracker;
     private ComponentContext context;
-    private ServiceTracker blobStoreTracker;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
 
-        if(PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)){
-            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when BlobStore would be available");
-            blobStoreTracker = new ServiceTracker(context.getBundleContext(),
-                    BlobStore.class.getName(), new BlobStoreTracker());
-            blobStoreTracker.open();
+        if(blobStore == null &&
+                PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)){
+            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when " +
+                    "BlobStore would be available");
         }else{
-            initialize(context, null);
+            registerNodeStore();
         }
     }
 
-    protected void initialize(ComponentContext context, BlobStore blobStore) throws UnknownHostException {
-
-
+    protected void registerNodeStore() throws UnknownHostException {
+        if(context == null){
+            log.info("Component still not activated. Ignoring the initialization call");
+            return;
+        }
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
@@ -150,7 +151,7 @@ public class DocumentNodeStoreService {
             // might contain passwords
             String type = useMK ? "MK" : "NodeStore";
             log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
-                    new Object[]{type, mongoURI.getHosts(), db, cacheSize, offHeapCache});
+                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache);
             log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
         }
 
@@ -187,7 +188,10 @@ public class DocumentNodeStoreService {
         }
 
         observerTracker.start(context.getBundleContext());
-        reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, new Properties());
+
+        Dictionary<String, String> props = new Hashtable<String, String>();
+        props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
+        reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
     }
 
     private Object prop(String propName) {
@@ -211,9 +215,17 @@ public class DocumentNodeStoreService {
             observerTracker.stop();
         }
 
-        blobStoreTracker.close();
-        blobStoreTracker = null;
+        unregisterNodeStore();
+    }
 
+    protected void bindBlobStore(BlobStore blobStore) throws IOException {
+        log.info("Initializing DocumentNodeStore with BlobStore [{}]", blobStore);
+        this.blobStore = blobStore;
+        registerNodeStore();
+    }
+
+    protected void unbindBlobStore(BlobStore blobStore){
+        this.blobStore = null;
         unregisterNodeStore();
     }
 
@@ -273,30 +285,5 @@ public class DocumentNodeStoreService {
         }
 
         //TODO Register JMX bean for Off Heap Cache stats
-    }
-
-    private class BlobStoreTracker implements ServiceTrackerCustomizer {
-
-        @Override
-        public Object addingService(ServiceReference reference) {
-            BlobStore blobStore = (BlobStore) context.getBundleContext().getService(reference);
-            try {
-                initialize(context, blobStore);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return blobStore;
-        }
-
-        @Override
-        public void modifiedService(ServiceReference reference, Object service) {
-
-        }
-
-        @Override
-        public void removedService(ServiceReference reference, Object service) {
-            log.info("BlobStore services unregistered. Unregistered the DocumentNodeStore");
-            unregisterNodeStore();
-        }
     }
 }
