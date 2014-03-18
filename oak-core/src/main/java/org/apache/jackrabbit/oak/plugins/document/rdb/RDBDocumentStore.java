@@ -69,7 +69,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             String jdbcurl = "jdbc:h2:mem:oaknodes";
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
-            initialize(ds.getConnection(), builder);
+            initialize(ds, builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
         }
@@ -81,7 +81,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
      */
     public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder) {
         try {
-            initialize(ds.getConnection(), builder);
+            initialize(ds, builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
         }
@@ -94,7 +94,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     public RDBDocumentStore(String jdbcurl, String username, String password, DocumentMK.Builder builder) {
         try {
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
-            initialize(ds.getConnection(), builder);
+            initialize(ds, builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
         }
@@ -153,7 +153,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 return castAsT(unwrap(doc));
             } catch (ExecutionException e) {
                 throw new IllegalStateException("Failed to load document with " + id, e);
-           }
+            }
         }
     }
 
@@ -215,12 +215,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public void dispose() {
-        try {
-            this.connection.close();
-            this.connection = null;
-        } catch (SQLException ex) {
-            throw new MicroKernelException(ex);
-        }
+        this.ds = null;
     }
 
     @Override
@@ -249,28 +244,35 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private Exception callStack;
 
-    private Connection connection;
+    private DataSource ds;
 
-    private void initialize(Connection con, DocumentMK.Builder builder) throws Exception {
-        con.setAutoCommit(false);
+    private void initialize(DataSource ds, DocumentMK.Builder builder) throws Exception {
 
-        Statement stmt = con.createStatement();
-        stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
-        stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
-        stmt.close();
-
-        con.commit();
-
-        this.connection = con;
+        this.ds = ds;
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.nodesCache = builder.buildCache(builder.getDocumentCacheSize());
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
+
+        Connection con = ds.getConnection();
+
+        try {
+            con.setAutoCommit(false);
+
+            Statement stmt = con.createStatement();
+            stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
+            stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
+            stmt.close();
+
+            con.commit();
+        } finally {
+            con.close();
+        }
     }
 
     @Override
     public void finalize() {
-        if (this.connection != null && this.callStack != null) {
+        if (this.ds != null && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
     }
@@ -355,8 +357,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     private <T extends Document> void internalUpdate(Collection<T> collection, List<String> ids, UpdateOp update) {
+        Connection connection = null;
         String tableName = getTable(collection);
         try {
+            connection = getConnection();
             for (String id : ids) {
                 String in = dbRead(connection, tableName, id);
                 if (in == null) {
@@ -375,17 +379,21 @@ public class RDBDocumentStore implements CachingDocumentStore {
             connection.commit();
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
     }
 
     private <T extends Document> List<T> internalQuery(Collection<T> collection, String fromKey, String toKey,
             String indexedProperty, long startValue, int limit) {
+        Connection connection = null;
         String tableName = getTable(collection);
         List<T> result = new ArrayList<T>();
         if (indexedProperty != null && !MODIFIED.equals(indexedProperty)) {
             throw new MicroKernelException("indexed property " + indexedProperty + " not supported");
         }
         try {
+            connection = getConnection();
             List<String> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (String data : dbresult) {
                 T doc = fromString(collection, data);
@@ -395,6 +403,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
         return result;
     }
@@ -451,28 +461,38 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     private <T extends Document> T readDocument(Collection<T> collection, String id) {
+        Connection connection = null;
         String tableName = getTable(collection);
         try {
+            connection = getConnection();
             String in = dbRead(connection, tableName, id);
             return in != null ? fromString(collection, in) : null;
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
     }
 
     private <T extends Document> void delete(Collection<T> collection, String id) {
+        Connection connection = null;
         String tableName = getTable(collection);
         try {
+            connection = getConnection();
             dbDelete(connection, tableName, id);
             connection.commit();
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
     }
 
     private <T extends Document> boolean updateDocument(@Nonnull Collection<T> collection, @Nonnull T document, Long oldmodcount) {
+        Connection connection = null;
         String tableName = getTable(collection);
         try {
+            connection = getConnection();
             String data = asString(document);
             Long modified = (Long) document.get(MODIFIED);
             Long modcount = (Long) document.get(MODCOUNT);
@@ -486,12 +506,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // TODO
             }
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
     }
 
     private <T extends Document> void insertDocument(Collection<T> collection, T document) {
+        Connection connection = null;
         String tableName = getTable(collection);
         try {
+            connection = getConnection();
             String data = asString(document);
             Long modified = (Long) document.get(MODIFIED);
             Long modcount = (Long) document.get(MODCOUNT);
@@ -504,6 +528,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // TODO
             }
             throw new MicroKernelException(ex);
+        } finally {
+            closeConnection(connection);
         }
     }
 
@@ -696,13 +722,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
         if (cached == newDoc) {
             // successful
             return;
-        }
-        else if (oldDoc == null) {
+        } else if (oldDoc == null) {
             // this is an insert and some other thread was quicker
             // loading it into the cache -> return now
             return;
-        }
-        else {
+        } else {
             CacheValue key = new StringValue(newDoc.getId());
             // this is an update (oldDoc != null)
             if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
@@ -764,6 +788,22 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
             } finally {
                 lock.unlock();
+            }
+        }
+    }
+
+    private Connection getConnection() throws SQLException {
+        Connection c = this.ds.getConnection();
+        c.setAutoCommit(false);
+        return c;
+    }
+
+    private void closeConnection(Connection c) {
+        if (c != null) {
+            try {
+                c.close();
+            } catch (SQLException ex) {
+                // log me
             }
         }
     }

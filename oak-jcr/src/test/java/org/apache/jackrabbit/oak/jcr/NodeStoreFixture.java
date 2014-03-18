@@ -78,7 +78,7 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:" + id, "sa", "").getNodeStore();
+            return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:" + id + ";MVCC=true", "sa", "").getNodeStore();
         }
 
         @Override
