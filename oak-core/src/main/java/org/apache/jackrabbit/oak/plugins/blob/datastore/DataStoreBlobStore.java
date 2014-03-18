@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
@@ -43,6 +42,8 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores
@@ -124,6 +125,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     public String writeBlob(InputStream stream) throws IOException {
         boolean threw = true;
         try {
+            checkNotNull(stream);
             String id = writeStream(stream).getIdentifier().toString();
             threw = false;
             return id;
@@ -156,6 +158,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     @Override
     public long getBlobLength(String blobId) throws IOException {
         try {
+            checkNotNull(blobId, "BlobId must be specified");
             return getDataRecord(blobId).getLength();
         } catch (DataStoreException e) {
             throw new IOException(e);
@@ -266,8 +269,8 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
             id = InMemoryDataRecord.getInstance(blobId);
         }else{
             id = delegate.getRecord(new DataIdentifier(blobId));
-            Preconditions.checkNotNull(id, "No DataRecord found for blodId [%s]", blobId);
         }
+        checkNotNull(id, "No DataRecord found for blodId [%s]", blobId);
         return id;
     }
 
