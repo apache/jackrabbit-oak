@@ -22,6 +22,11 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -36,6 +41,8 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 
 /**
  * A Solr based {@link QueryIndex}
@@ -175,7 +182,13 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
             if (i == pts.length - 1) {
                 queryBuilder.append(")");
+                queryBuilder.append(' ');
             }
+        }
+
+        if (filter.getFullTextConstraint() != null) {
+            queryBuilder.append(getFullTextQuery(filter.getFullTextConstraint()));
+            queryBuilder.append(' ');
         }
 
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
@@ -186,7 +199,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 queryBuilder.append(fieldName);
                 queryBuilder.append(':');
                 queryBuilder.append(path);
-                queryBuilder.append(" ");
+                queryBuilder.append(' ');
             }
         }
 
@@ -206,6 +219,61 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         }
 
         return solrQuery;
+    }
+
+    private String getFullTextQuery(FullTextExpression ft) {
+        final StringBuilder fullTextString = new StringBuilder();
+        ft.accept(new FullTextVisitor() {
+
+            @Override
+            public boolean visit(FullTextOr or) {
+                fullTextString.append('(');
+                for (FullTextExpression e : or.list) {
+                    String orTerm = getFullTextQuery(e);
+                    fullTextString.append(orTerm).append(" OR ");
+                }
+                fullTextString.append(')');
+                fullTextString.append(' ');
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextAnd and) {
+                fullTextString.append('(');
+                for (FullTextExpression e : and.list) {
+                    String orTerm = getFullTextQuery(e);
+                    fullTextString.append(orTerm).append(" OR ");
+                }
+                fullTextString.append(')');
+                fullTextString.append(' ');
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextTerm term) {
+                if (term.isNot()) {
+                    fullTextString.append('-');
+                }
+                String p = term.getPropertyName();
+                if (p != null && p.indexOf('/') >= 0) {
+                    p = getName(p);
+                }
+                if (p == null) {
+                    p = configuration.getCatchAllField();
+                }
+                fullTextString.append(p);
+                fullTextString.append(':');
+                fullTextString.append(term.getText());
+                String boost = term.getBoost();
+                if (boost != null) {
+                    fullTextString.append('^');
+                    fullTextString.append(boost);
+                }
+                fullTextString.append(' ');
+                return true;
+            }
+        });
+        return fullTextString.toString();
     }
 
     private boolean isSupportedHttpRequest(String nativeQueryString) {
