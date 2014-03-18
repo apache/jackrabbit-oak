@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClockTest {
@@ -49,6 +50,7 @@ public class ClockTest {
     }
 
     @Test
+    @Ignore("OAK-1564")  // FIXME OAK-1564 ClockTest on Windows fails
     public void testClockDrift() throws InterruptedException {
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
