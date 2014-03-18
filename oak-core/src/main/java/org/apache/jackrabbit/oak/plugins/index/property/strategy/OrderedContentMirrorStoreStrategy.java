@@ -17,18 +17,24 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
+
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -36,7 +42,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
 
 /**
  * Same as for {@link ContentMirrorStoreStrategy} but the order of the keys is kept by using the
@@ -89,7 +97,6 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
-        LOG.debug("fetchKeyNode() - index: {} - key: {}", index, key);
         NodeBuilder localkey = null;
         NodeBuilder start = index.child(START);
 
@@ -203,16 +210,6 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         return found ? previous : null;
     }
 
-    @Override
-    public void update(NodeBuilder index, String path, Set<String> beforeKeys,
-                       Set<String> afterKeys) {
-        LOG.debug("update() - index     : {}", index);
-        LOG.debug("update() - path      : {}", path);
-        LOG.debug("update() - beforeKeys: {}", beforeKeys);
-        LOG.debug("update() - afterKeys : {}", afterKeys);
-        super.update(index, path, beforeKeys, afterKeys);
-    }
-
     /**
      * retrieve an Iterable for going through the index in the right order without the :start node
      * 
@@ -289,6 +286,96 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         return cne;
     }
 
+    /**
+     * search the index for the provided PropertyRestriction
+     * 
+     * @param filter
+     * @param indexName
+     * @param indexMeta
+     * @param pr
+     * @return
+     */
+    public Iterable<String> query(final Filter filter, final String indexName,
+                                  final NodeState indexMeta, final PropertyRestriction pr) {
+        return query(filter, indexName, indexMeta, INDEX_CONTENT_NODE_NAME, pr);
+    }
+
+    /**
+     * queries through the index as other query() but provides the PropertyRestriction to be applied
+     * for advanced cases like range queries
+     * 
+     * @param filter
+     * @param indexName
+     * @param indexMeta
+     * @param indexStorageNodeName
+     * @param pr
+     * @return
+     */
+    public Iterable<String> query(final Filter filter, final String indexName,
+                                  final NodeState indexMeta, final String indexStorageNodeName,
+                                  final PropertyRestriction pr) {
+
+        final NodeState index = indexMeta.getChildNode(indexStorageNodeName);
+
+        if (pr.first != null && !pr.first.equals(pr.last)) {
+            // '>' & '>=' use case
+            return new Iterable<String>() {
+                private PropertyRestriction lpr = pr;
+
+                @Override
+                public Iterator<String> iterator() {
+                    PathIterator pi = new PathIterator(filter, indexName);
+                    Iterator<? extends ChildNodeEntry> children = getChildNodeEntries(
+                            index).iterator();
+                    pi.setPathContainsValue(true);
+                    pi.enqueue(Iterators.filter(children,
+                            new Predicate<ChildNodeEntry>() {
+                                @Override
+                                public boolean apply(ChildNodeEntry entry) {
+                                    String value = lpr.first
+                                            .getValue(Type.STRING);
+                                    String name = convert(entry.getName());
+                                    return value.compareTo(name) < 0 || (lpr.firstIncluding && value
+                                            .equals(name));
+                                }
+                            }));
+                    return pi;
+                }
+            };
+        } else if (pr.last != null && !pr.last.equals(pr.first)) {  
+            // '<' & '<=' use case
+            return new Iterable<String>() {
+                private PropertyRestriction lpr = pr;
+
+                @Override
+                public Iterator<String> iterator() {
+                    PathIterator pi = new PathIterator(filter, indexName);
+                    Iterator<? extends ChildNodeEntry> children = getChildNodeEntries(index)
+                        .iterator();
+                    pi.setPathContainsValue(true);
+                    pi.enqueue(Iterators.filter(children, new Predicate<ChildNodeEntry>() {
+                        @Override
+                        public boolean apply(ChildNodeEntry entry) {
+                            String value = lpr.last.getValue(Type.STRING);
+                            String name = convert(entry.getName());
+                            return (value.compareTo(name) > 0) 
+                                || (lpr.lastIncluding && value.equals(name));
+                        }
+                    }));
+                    return pi;
+                }
+            };
+        } else {
+            // property is not null. AKA "open query"
+            Iterable<String> values = null;
+            return query(filter, indexName, indexMeta, values);
+        }
+    }
+
+    private static String convert(String value) {
+        return value.replaceAll("%3A", ":");
+    }
+    
     private static final class OrderedChildNodeEntry extends AbstractChildNodeEntry {
         private final String name;
         private final NodeState state;
@@ -311,5 +398,105 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         public NodeState getNodeState() {
             return state;
         }
+    }
+    
+    /**
+     * estimate the number of nodes given the provided PropertyRestriction
+     * 
+     * @param indexMeta
+     * @param pr
+     * @param max
+     * @return the estimated number of nodes
+     */
+    public long count(NodeState indexMeta, Filter.PropertyRestriction pr, int max) {
+        long count = 0;
+        NodeState content = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
+        Filter.PropertyRestriction lpr = pr;
+        
+        if (content.exists()) {
+            if (lpr == null) {
+                // it means we have no restriction and we should return the whole lot
+                lpr = new Filter.PropertyRestriction();
+            }
+            // the index is not empty
+            String value;
+            if (lpr.firstIncluding && lpr.lastIncluding && lpr.first != null
+                && lpr.first.equals(lpr.last)) {
+                // property==value case
+                value = lpr.first.getValue(Type.STRING);
+                NodeState n = content.getChildNode(value);
+                if (n.exists()) {
+                    CountingNodeVisitor v = new CountingNodeVisitor(max);
+                    v.visit(n);
+                    count = v.getEstimatedCount();
+                }
+            } else if (lpr.first == null && lpr.last == null) {
+                // property not null case
+                PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
+                if (ec != null) {
+                    count = ec.getValue(Type.LONG);
+                } else {
+                    CountingNodeVisitor v = new CountingNodeVisitor(max);
+                    v.visit(content);
+                    count = v.getEstimatedCount();
+                }
+            } else if (lpr.first != null && !lpr.first.equals(lpr.last)
+                       && OrderDirection.ASC.equals(direction)) {
+                // > & >= in ascending index
+                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
+                CountingNodeVisitor v;
+                value = lpr.first.getValue(Type.STRING);
+                int depthTotal = 0;
+                // seeking the right starting point
+                for (ChildNodeEntry child : children) {
+                    String converted = convert(child.getName());
+                    if (value.compareTo(converted) < 0
+                        || (lpr.firstIncluding && value.equals(converted))) {
+                        // here we are let's start counting
+                        v = new CountingNodeVisitor(max);
+                        v.visit(content.getChildNode(child.getName()));
+                        count += v.getCount();
+                        depthTotal += v.depthTotal;
+                        if (count > max) {
+                            break;
+                        }
+                    }
+                }
+                // small hack for having a common way of counting
+                v = new CountingNodeVisitor(max);
+                v.depthTotal = depthTotal;
+                v.count = (int) Math.min(count, Integer.MAX_VALUE);
+                count = v.getEstimatedCount();
+            } else if (lpr.last != null && !lpr.last.equals(lpr.first)
+                       && OrderDirection.DESC.equals(direction)) {
+                // > & >= in ascending index
+                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
+                CountingNodeVisitor v;
+                value = lpr.last.getValue(Type.STRING);
+                int depthTotal = 0;
+                // seeking the right starting point
+                for (ChildNodeEntry child : children) {
+                    String converted = convert(child.getName());
+                    if (value.compareTo(converted) > 0
+                        || (lpr.lastIncluding && value.equals(converted))) {
+                        // here we are let's start counting
+                        v = new CountingNodeVisitor(max);
+                        v.visit(content.getChildNode(child.getName()));
+                        count += v.getCount();
+                        depthTotal += v.depthTotal;
+                        if (count > max) {
+                            break;
+                        }
+                    }
+                }
+                // small hack for having a common way of counting
+                v = new CountingNodeVisitor(max);
+                v.depthTotal = depthTotal;
+                v.count = (int) Math.min(count, Integer.MAX_VALUE);
+                count = v.getEstimatedCount();
+            }
+
+        }
+        return count;
     }
 }
