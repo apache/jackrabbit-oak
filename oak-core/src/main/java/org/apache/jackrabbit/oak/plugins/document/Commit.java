@@ -62,7 +62,10 @@ public class Commit {
     
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
-    
+
+    /** Set of all nodes which have binary properties. **/
+    private HashSet<String> nodesWithBinaries = Sets.newHashSet();
+
     Commit(DocumentNodeStore nodeStore, Revision baseRevision, Revision revision) {
         this.baseRevision = baseRevision;
         this.revision = revision;
@@ -121,6 +124,10 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
         op.setMapEntry(key, revision, value);
+    }
+
+    void markNodeHavingBinary(String path) {
+        this.nodesWithBinaries.add(path);
     }
 
     void addNode(DocumentNodeState n) {
@@ -185,6 +192,7 @@ public class Commit {
     private void applyInternal() {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
+            updateBinaryStatus();
             applyToDocumentStore();
         }
     }
@@ -192,7 +200,24 @@ public class Commit {
     private void prepare(Revision baseRevision) {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
+            updateBinaryStatus();
             applyToDocumentStore(baseRevision);
+        }
+    }
+
+    /**
+     * Update the binary status in the update op.
+     */
+    private void updateBinaryStatus() {
+        DocumentStore store = this.nodeStore.getDocumentStore();
+
+        for (String path : this.nodesWithBinaries) {
+            NodeDocument nd =
+                    (NodeDocument) store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
+            if ((nd == null) || (nd.hasBinary() != 1)) {
+                UpdateOp updateParentOp = getUpdateOperationForNode(path);
+                NodeDocument.setHasBinary(updateParentOp);
+            }
         }
     }
 

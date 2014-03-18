@@ -95,7 +95,10 @@ public class BlobReferenceIterator implements Iterator<Blob> {
 
     private boolean loadBatchQuery() {
         // read about BATCH_SIZE documents
-        List<NodeDocument> list = docStore.query(Collection.NODES, fromKey, "999999", BATCH_SIZE);
+        List<NodeDocument> list =
+                docStore.query(Collection.NODES, fromKey, ";", NodeDocument.HAS_BINARY_FLAG, 
+                        NodeDocument.HAS_BINARY_VAL,
+                        BATCH_SIZE);
         boolean hasMore = false;
         for (NodeDocument doc : list) {
             if (doc.getId().equals(fromKey)) {

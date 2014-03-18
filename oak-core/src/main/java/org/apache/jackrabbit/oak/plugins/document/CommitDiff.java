@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.kernel.JsonSerializer;
@@ -111,5 +112,9 @@ class CommitDiff implements NodeStateDiff {
         JsonSerializer serializer = new JsonSerializer(builder, blobs);
         serializer.serialize(property);
         commit.updateProperty(path, property.getName(), serializer.toString());
+        if ((property.getType() == Type.BINARY) 
+                || (property.getType() == Type.BINARIES)) {
+            this.commit.markNodeHavingBinary(this.path);
+        }
     }
 }
