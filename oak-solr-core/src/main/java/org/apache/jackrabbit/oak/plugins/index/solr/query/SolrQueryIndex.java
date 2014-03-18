@@ -241,8 +241,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             public boolean visit(FullTextAnd and) {
                 fullTextString.append('(');
                 for (FullTextExpression e : and.list) {
-                    String orTerm = getFullTextQuery(e);
-                    fullTextString.append(orTerm).append(" OR ");
+                    String andTerm = getFullTextQuery(e);
+                    fullTextString.append(andTerm).append(" AND ");
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
