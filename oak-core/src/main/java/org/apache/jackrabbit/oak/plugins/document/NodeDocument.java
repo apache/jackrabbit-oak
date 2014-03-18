@@ -273,7 +273,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     public int hasBinary() {
-        Integer flag = (Integer) get(HAS_BINARY_FLAG);
+        Number flag = (Number) get(HAS_BINARY_FLAG);
         return flag != null ? flag.intValue() : 0;
     }
 
