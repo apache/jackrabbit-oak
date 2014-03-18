@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
@@ -28,12 +30,15 @@ import static org.junit.Assert.assertNotNull;
 public class EmbeddedSolrServerProviderTest {
 
     @Test
-    public void testSolrServerInitialization() throws Exception {
+    public void testEmbeddedSolrServerInitialization() throws Exception {
         EmbeddedSolrServerConfiguration solrServerConfiguration = new EmbeddedSolrServerConfiguration(getClass().getResource("/solr").getFile(),
                 getClass().getResource("/solr/solr.xml").getFile(), "oak");
         EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
         SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);
+        SolrPingResponse ping = solrServer.ping();
+        assertNotNull(ping);
+        assertEquals(0, ping.getStatus());
     }
 
 }

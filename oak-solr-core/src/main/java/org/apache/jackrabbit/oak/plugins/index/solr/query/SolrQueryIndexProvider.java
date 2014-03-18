@@ -69,7 +69,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                 }
                 try {
                     SolrServer solrServer = solrServerProvider.getSolrServer();
-                    // the query engine should be returned only if the serve is alive, otherwise other indexes should be used
+                    // the query engine should be returned only if the server is alive, otherwise other indexes should be used
                     if (solrServer != null && 0 == solrServer.ping().getStatus()) {
                         tempIndexes.add(new SolrQueryIndex(
                                 entry.getName(),
