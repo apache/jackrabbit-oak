@@ -276,7 +276,7 @@ abstract class CacheInvalidator {
                 //check them
                 //TODO Need to determine way to determine if the
                 //key is referring to a split document
-                String path = e.getValue().getPath();
+                String path = Utils.getPathFromId(e.getKey().toString());
                 result.cacheSize++;
                 for (String name : PathUtils.elements(path)) {
                     current = current.child(name);
