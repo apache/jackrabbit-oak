@@ -261,7 +261,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     public void setReadWriteMode(String readWriteMode) {
         try {

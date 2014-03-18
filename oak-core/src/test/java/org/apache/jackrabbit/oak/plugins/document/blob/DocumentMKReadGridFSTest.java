@@ -44,7 +44,7 @@ public class DocumentMKReadGridFSTest extends AbstractMongoConnectionTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void large() throws Exception {
         read(20 * 1024 * 1024);
     }

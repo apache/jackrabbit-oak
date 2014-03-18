@@ -40,19 +40,19 @@ public class MongoUtils {
 
     /**
      * Get a connection if available. If not available, null is returned.
-     * 
+     *
      * @return the connection or null
      */
     public static MongoConnection getConnection() {
         return getConnection(DB);
     }
-    
+
     /**
      * Get a connection if available. If not available, null is returned.
-     * 
+     *
      * @param dbName the database name
      * @return the connection or null
-     */    
+     */
     public static MongoConnection getConnection(String dbName) {
         if (exception != null) {
             return null;
@@ -68,10 +68,10 @@ public class MongoUtils {
         }
         return mongoConnection;
     }
-    
+
     /**
      * Drop all user defined collections. System collections are not dropped.
-     * 
+     *
      * @param db the connection
      */
     public static void dropCollections(DB db) {

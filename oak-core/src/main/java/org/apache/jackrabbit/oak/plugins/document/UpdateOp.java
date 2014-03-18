@@ -34,12 +34,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class UpdateOp {
 
     final String id;
-    
+
     private boolean isNew;
     private boolean isDelete;
-    
+
     private final Map<Key, Operation> changes;
-    
+
     /**
      * Create an update operation for the document with the given id. The commit
      * root is assumed to be the path, unless this is changed later on.
@@ -87,11 +87,11 @@ public final class UpdateOp {
         return new UpdateOp(id, isNew, isDelete,
                 new HashMap<Key, Operation>(changes));
     }
-    
+
     public String getId() {
         return id;
     }
-    
+
     public boolean isNew() {
         return isNew;
     }
@@ -99,7 +99,7 @@ public final class UpdateOp {
     public void setNew(boolean isNew) {
         this.isNew = isNew;
     }
-    
+
     void setDelete(boolean isDelete) {
         this.isDelete = isDelete;
     }
@@ -111,11 +111,11 @@ public final class UpdateOp {
     public Map<Key, Operation> getChanges() {
         return changes;
     }
-    
+
     /**
      * Add a new or update an existing map entry.
      * The property is a map of revisions / values.
-     * 
+     *
      * @param property the property
      * @param revision the revision
      * @param value the value
@@ -126,11 +126,11 @@ public final class UpdateOp {
         op.value = value;
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
-    
+
     /**
      * Remove a map entry.
      * The property is a map of revisions / values.
-     * 
+     *
      * @param property the property
      * @param revision the revision
      */
@@ -139,10 +139,10 @@ public final class UpdateOp {
         op.type = Operation.Type.REMOVE_MAP_ENTRY;
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
-    
+
     /**
      * Set the property to the given value.
-     * 
+     *
      * @param property the property name
      * @param value the value
      */
@@ -152,11 +152,11 @@ public final class UpdateOp {
         op.value = value;
         changes.put(new Key(property, null), op);
     }
-    
+
     /**
      * Do not set the property entry (after it has been set).
      * The property is a map of revisions / values.
-     * 
+     *
      * @param property the property name
      * @param revision the revision
      */
@@ -185,7 +185,7 @@ public final class UpdateOp {
 
     /**
      * Increment the value.
-     * 
+     *
      * @param property the key
      * @param value the increment
      */
@@ -195,7 +195,7 @@ public final class UpdateOp {
         op.value = value;
         changes.put(new Key(property, null), op);
     }
-    
+
     public UpdateOp getReverseOperation() {
         UpdateOp reverse = new UpdateOp(id, isNew);
         for (Entry<Key, Operation> e : changes.entrySet()) {
@@ -203,7 +203,7 @@ public final class UpdateOp {
             if (r != null) {
                 reverse.changes.put(e.getKey(), r);
             }
-        }        
+        }
         return reverse;
     }
 
@@ -211,35 +211,35 @@ public final class UpdateOp {
     public String toString() {
         return "key: " + id + " " + (isNew ? "new" : "update") + " " + changes;
     }
-    
+
     /**
      * A DocumentStore operation for a given key within a document.
      */
     public static final class Operation {
-        
+
         /**
          * The DocumentStore operation type.
          */
-        public enum Type { 
-            
+        public enum Type {
+
             /**
-             * Set the value. 
+             * Set the value.
              * The sub-key is not used.
              */
             SET,
-            
+
             /**
              * Increment the Long value with the provided Long value.
              * The sub-key is not used.
              */
-            INCREMENT, 
-            
+            INCREMENT,
+
             /**
              * Add the sub-key / value pair.
              * The value in the stored node is a map.
-             */ 
+             */
             SET_MAP_ENTRY,
-             
+
             /**
              * Remove the sub-key / value pair.
              * The value in the stored node is a map.
@@ -250,20 +250,20 @@ public final class UpdateOp {
              * Checks if the sub-key is present in a map or not.
              */
             CONTAINS_MAP_ENTRY
-             
+
          }
-             
-        
+
+
         /**
          * The operation type.
          */
         public Type type;
-        
+
         /**
          * The value, if any.
          */
         public Object value;
-        
+
         @Override
         public String toString() {
             return type + " " + value;
@@ -289,7 +289,7 @@ public final class UpdateOp {
             }
             return reverse;
         }
-        
+
     }
 
     /**

@@ -42,12 +42,12 @@ public class ClusterNodeInfo {
      * The prefix for random (non-reusable) keys.
      */
     private static final String RANDOM_PREFIX = "random:";
-    
+
     /**
      * The machine id.
      */
     private static final String MACHINE_ID_KEY = "machine";
-    
+
     /**
      * The unique instance id within this machine (the current working directory
      * if not set).
@@ -63,7 +63,7 @@ public class ClusterNodeInfo {
      * Additional info, such as the process id, for support.
      */
     private static final String INFO_KEY = "info";
-    
+
     /**
      * The read/write mode key.
      */
@@ -78,38 +78,38 @@ public class ClusterNodeInfo {
      * The process id (if available).
      */
     private static final long PROCESS_ID = getProcessId();
-    
+
     /**
      * The current working directory.
      */
     private static final String WORKING_DIR = System.getProperty("user.dir", "");
-    
+
     /**
      * The number of milliseconds for a lease (1 minute by default, and
      * initially).
      */
     private long leaseTime = 1000 * 60;
-    
+
     /**
      * The assigned cluster id.
      */
     private final int id;
-    
+
     /**
      * The machine id.
      */
     private final String machineId;
-    
+
     /**
      * The instance id.
      */
     private final String instanceId;
-    
+
     /**
      * The document store that is used to renew the lease.
      */
     private final DocumentStore store;
-    
+
     /**
      * The time (in milliseconds UTC) where this instance was started.
      */
@@ -119,17 +119,17 @@ public class ClusterNodeInfo {
      * A unique id.
      */
     private final String uuid = UUID.randomUUID().toString();
-    
+
     /**
      * The time (in milliseconds UTC) where the lease of this instance ends.
      */
     private long leaseEndTime;
-    
+
     /**
      * The read/write mode.
      */
     private String readWriteMode;
-    
+
     ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId) {
         this.id = id;
         this.startTime = System.currentTimeMillis();
@@ -138,14 +138,14 @@ public class ClusterNodeInfo {
         this.machineId = machineId;
         this.instanceId = instanceId;
     }
-    
+
     public int getId() {
         return id;
     }
-    
+
     /**
-     * Create a cluster node info instance for the store, with the 
-     * 
+     * Create a cluster node info instance for the store, with the
+     *
      * @param store the document store (for the lease)
      * @return the cluster node info
      */
@@ -155,7 +155,7 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store.
-     * 
+     *
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
@@ -183,7 +183,7 @@ public class ClusterNodeInfo {
         }
         throw new MicroKernelException("Could not get cluster node info");
     }
-    
+
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId, String instanceId) {
         long now = System.currentTimeMillis();
         // keys between "0" and "a" includes all possible numbers
@@ -212,7 +212,7 @@ public class ClusterNodeInfo {
                 store.remove(Collection.CLUSTER_NODES, key);
                 continue;
             }
-            if (!mId.equals(machineId) || 
+            if (!mId.equals(machineId) ||
                     !iId.equals(instanceId)) {
                 // a different machine or instance
                 continue;
@@ -229,11 +229,11 @@ public class ClusterNodeInfo {
         }
         return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId);
     }
-    
+
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * 
+     *
      * @param nextCheckMillis the millisecond offset
      */
     public void renewLease(long nextCheckMillis) {
@@ -251,21 +251,21 @@ public class ClusterNodeInfo {
             store.setReadWriteMode(mode);
         }
     }
-    
+
     public void setLeaseTime(long leaseTime) {
         this.leaseTime = leaseTime;
     }
-    
+
     public long getLeaseTime() {
         return leaseTime;
     }
-    
+
     public void dispose() {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
-    
+
     @Override
     public String toString() {
         return "id: " + id + ",\n" +
@@ -276,7 +276,7 @@ public class ClusterNodeInfo {
                 "uuid: " + uuid +",\n" +
                 "readWriteMode: " + readWriteMode;
     }
-        
+
     private static long getProcessId() {
         try {
             String name = ManagementFactory.getRuntimeMXBean().getName();
@@ -286,11 +286,11 @@ public class ClusterNodeInfo {
             return 0;
         }
     }
-    
+
     /**
      * Calculate the unique machine id. This is the lowest MAC address if
      * available. As an alternative, a randomly generated UUID is used.
-     * 
+     *
      * @return the unique id
      */
     private static String getMachineId() {

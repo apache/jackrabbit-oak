@@ -35,7 +35,7 @@ public class MongoConnection {
     /**
      * Constructs a new connection using the specified MongoDB connection string.
      * See also http://docs.mongodb.org/manual/reference/connection-string/
-     * 
+     *
      * @param uri the MongoDB URI
      * @throws UnknownHostException
      */
@@ -45,7 +45,7 @@ public class MongoConnection {
         mongo = new MongoClient(mongoURI);
         db = mongo.getDB(mongoURI.getDatabase());
     }
-    
+
     /**
      * Constructs a new {@code MongoConnection}.
      *

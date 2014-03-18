@@ -45,8 +45,8 @@ public class DocumentMKBranchTest extends BaseDocumentMKTest {
      * </pre>
      * The test reads /child from <code>branchRev2</code> and expects
      * the version from the first commit.
-     * 
-     * @throws ParseException 
+     *
+     * @throws ParseException
      */
     @Test
     public void isolatedBranches() throws ParseException {

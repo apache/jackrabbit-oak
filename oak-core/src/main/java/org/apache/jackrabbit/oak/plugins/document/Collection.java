@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 /**
  * The collection types.
- * 
+ *
  * @param <T> the document type
  */
 public abstract class Collection<T extends Document> {

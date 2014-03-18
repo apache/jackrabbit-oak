@@ -64,13 +64,13 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * checks that the fist item/key is inserted with an empty property 'next'
-     * 
+     *
      * expected structure:
-     * 
+     *
      * <code>
      * :index : {
      *    :start : { :next=n0 },
-     *    n0 : { 
+     *    n0 : {
      *       :next=,
      *       foo : {
      *          bar: { match=true}
@@ -110,14 +110,14 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * test the saving of 2 new keys that comes already ordered
-     * 
+     *
      * final state of the index will be
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n0 },
      *       n0 : { :next=n1 },
-     *       n1 : { :next= }       
+     *       n1 : { :next= }
      *    }
      * </code>
      */
@@ -132,7 +132,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder node = null;
 
         // first node arrives
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n0)); 
+        store.update(index, path, EMPTY_KEY_SET, newHashSet(n0));
 
         node = index.getChildNode(START);
         assertTrue(":index should have :start", node.exists());
@@ -143,7 +143,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("n0 should point nowhere at this stage", "", node.getString(NEXT));
 
         // second node arrives
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n1)); 
+        store.update(index, path, EMPTY_KEY_SET, newHashSet(n1));
 
         node = index.getChildNode(START);
         assertTrue(":index should still have :start", node.exists());
@@ -174,7 +174,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * test the iteration of the index with 2 shuffled items
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n1 },
@@ -202,7 +202,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         Iterable<ChildNodeEntry> children = (Iterable<ChildNodeEntry>) store.getChildNodeEntries(indexState);
         assertNotNull("The iterable cannot be null", children);
-        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator())); 
+        assertEquals("Expecting 2 items in the index", 2, Iterators.size(children.iterator()));
 
         // ensuring the right sequence
         ChildNodeEntry entry = null;
@@ -222,7 +222,7 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test the iteration of the index with 2 shuffled items without the :start
      * node
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n1 },
@@ -270,7 +270,7 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test the iteration of the index with 2 shuffled items including the
      * :start node as first
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n1 },
@@ -299,7 +299,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         Iterable<ChildNodeEntry> children = (Iterable<ChildNodeEntry>) store.getChildNodeEntries(indexState, true);
         assertNotNull("The iterable cannot be null", children);
-        assertEquals("Expecting 3 items in the index", 3, Iterators.size(children.iterator())); 
+        assertEquals("Expecting 3 items in the index", 3, Iterators.size(children.iterator()));
 
         // ensuring the right sequence
         ChildNodeEntry entry = null;
@@ -323,7 +323,7 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test the iteration over an empty list when the :start is required. In
      * this case :start should always be returned
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next= }
@@ -374,9 +374,9 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * test the insert of two shuffled items
-     * 
+     *
      * Building final a structure like
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n1 },
@@ -384,23 +384,23 @@ public class OrderedContentMirrorStorageStrategyTest {
      *       n1 : { :next=n0 }
      *    }
      * </code>
-     * 
+     *
      * where:
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     * 
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
-     *          :next = 
+     *          :next =
      *       }
      *    }
-     * 
+     *
      *    Stage 2
      *    =======
-     * 
+     *
      *    :index : {
      *       :start : { :next = n1 },
      *       n0 : {
@@ -442,9 +442,9 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * test the insert of shuffled items
-     * 
+     *
      * Building a final structure like
-     * 
+     *
      * <code>
      *    {
      *       :start : { :next = n1 },
@@ -459,42 +459,42 @@ public class OrderedContentMirrorStorageStrategyTest {
      *       }
      *    }
      * </code>
-     * 
+     *
      * where:
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     * 
+     *
      *    {
      *       :start : { :next = n0 },
      *       n0 : {
-     *          :next = 
+     *          :next =
      *       }
      *    }
-     * 
+     *
      *    Stage 2
      *    =======
-     * 
+     *
      *    {
      *       :start : { :next = n1 },
      *       n0 : { :next = },
      *       n1 : { :next = n0 }
      *    }
-     *    
+     *
      *    Stage 3
      *    =======
-     *    
+     *
      *    {
      *       :start : { :next = n1 },
      *       n0 : { :next = },
      *       n1 : { :next = n2 },
      *       n2 : { :next = n0 }
      *    }
-     *    
+     *
      *    Stage 4
      *    =======
-     * 
+     *
      *    {
      *       :start : { :next = n1 },
      *       n0 : { :next = n3 },
@@ -545,13 +545,13 @@ public class OrderedContentMirrorStorageStrategyTest {
      * perform a test where the index gets updated if an already existent
      * node/key gets updated by changing the key and the key contains only 1
      * item.
-     * 
+     *
      * Where the second key is greater than the first.
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     *    
+     *
      *    :index : {
      *       :start { :next = n0 },
      *       n0 : {
@@ -563,10 +563,10 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          }
      *       }
      *    }
-     *    
+     *
      *    Stage 2
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n1 },
      *       n1 : {
@@ -629,12 +629,12 @@ public class OrderedContentMirrorStorageStrategyTest {
      * <p>
      * find a previous item given a key in an index with 1 element only
      * </p>
-     * 
+     *
      * <p>
      * <i>it relies on the functionality of the store.update() for creating the
      * index</i>
      * </p>
-     * 
+     *
      * <code>
      *    :index {
      *       :start : { :next=n0 },
@@ -662,16 +662,16 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test the use case where a document change the indexed property. For
      * example document that change author.
-     * 
+     *
      * <p>
      * <i>it relies on the functionality of the store.update() for creating the
      * index</i>
      * </p>
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
@@ -682,10 +682,10 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          }
      *       }
      *    }
-     *    
+     *
      *    Stage 2
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
@@ -776,16 +776,16 @@ public class OrderedContentMirrorStorageStrategyTest {
 
     /**
      * test when a document is deleted and is the only one under the indexed key
-     * 
+     *
      * <p>
      * <i>it relies on the functionality of the store.update() for creating the
      * index</i>
      * </p>
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
@@ -793,10 +793,10 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          sampledoc : { match = true }
      *       }
      *    }
-     *    
+     *
      *    Stage 2
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = }
      *    }
@@ -825,16 +825,16 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test when the document is deleted but there're still some documents left
      * under the indexed key
-     * 
+     *
      * <p>
      * <i>it relies on the functionality of the store.update() for creating the
      * index</i>
      * </p>
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
@@ -843,10 +843,10 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          doc2 : { match=true }
      *       }
      *    }
-     *    
+     *
      *    Stage 2
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n0 },
      *       n0 : {
@@ -887,16 +887,16 @@ public class OrderedContentMirrorStorageStrategyTest {
     /**
      * test when the only document is deleted from an indexed key but there're
      * still some keys left in the index
-     * 
+     *
      * <p>
      * <i>it relies on the functionality of the store.update() for creating the
      * index</i>
      * </p>
-     * 
+     *
      * <code>
      *    Stage 1
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n1 },
      *       n0 : {
@@ -918,10 +918,10 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          }
      *       }
      *    }
-     *    
+     *
      *    Stage 2
      *    =======
-     *    
+     *
      *    :index : {
      *       :start : { :next = n1 },
      *       n0 : {
@@ -937,7 +937,7 @@ public class OrderedContentMirrorStorageStrategyTest {
      *          }
      *       }
      *    }
-     *    
+     *
      * </code>
      */
     @Test
@@ -984,12 +984,12 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(index.getChildNode(n1).getChildNode(subNodes[0]).hasChildNode(subNodes[1]));
         assertTrue(index.getChildNode(n1).getChildNode(subNodes[0]).getChildNode(subNodes[1]).getBoolean("match"));
     }
-    
+
     /**
      * <p>test the insertion of 2 already ordered items</p>
-     * 
+     *
      * <p>expected</p>
-     * 
+     *
      *  <code>
      *      :index : {
      *          :start : { :next=n0 },
@@ -1013,42 +1013,42 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("n1 should point nowhere",
                    Strings.isNullOrEmpty(index.getChildNode(n1).getString(NEXT)));
     }
-    
+
     /**
      * Tests the insert of 4 items that will always have to be added at the beginning of the list.
      * Just to simulate the use-case of lastModified DESC.
-     * 
+     *
      * <code>
      *      Stage 1
      *      =======
-     *      
+     *
      *      :index : {
      *          :start : { :next=n0 },
      *          n0 : { :next= }
      *      }
-     *      
+     *
      *      Stage 2
      *      =======
-     *      
+     *
      *      :index : {
      *          :start : { :next=n1 },
      *          n0 : { :next= },
      *          n1 : { :next=n0 }
      *      }
-     *      
+     *
      *      Stage 3
      *      =======
-     *      
+     *
      *      :index : {
      *          :start : { :next=n2 },
      *          n0 : { :next= },
      *          n1 : { :next=n0 },
      *          n2 : { :next=n1 }
      *      }
-     *      
+     *
      *      Stage 4
      *      =======
-     *      
+     *
      *      :index : {
      *          :start : { :next=n3 },
      *          n0 : { :next= },
@@ -1097,30 +1097,30 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("n0 should point nowhere",
                    Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
     }
-    
+
     /**
      * test finding a previous item in a descending ordered index.
-     * 
+     *
      * <code>
      *      Stage 1
      *      =======
-     *      
+     *
      *      :index {
      *          :start : { :next=n0 },
      *          n0 : { :next= }
      *      }
-     *      
+     *
      *      findPrevious(n0)=:start
-     *      
+     *
      *      Stage 2
      *      =======
-     *      
+     *
      *      :index {
      *          :start : { :next=n1 },
      *          n0 : { :next= }
      *          n1 : { :next=n0 }
      *      }
-     *      
+     *
      *      findPrevious(n0)=n1;
      * </code>
      */
@@ -1133,14 +1133,14 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeState indexState;
         NodeState previous;
         NodeState node;
-        
+
         //Stage 1
         store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
         indexState = index.getNodeState();
         node = indexState.getChildNode(n0);
         previous = indexState.getChildNode(START);
         assertEquals(previous, store.findPrevious(indexState, node).getNodeState());
-        
+
         //Stage 2
         store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
         indexState = index.getNodeState();
@@ -1148,13 +1148,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         previous = indexState.getChildNode(n1);
         assertEquals(previous, store.findPrevious(indexState, node).getNodeState());
     }
-    
+
     /**
      * test the insert of 1 item in a descending order index. it should not really matter but just
      * checking we don't break anything
-     * 
+     *
      * expecting
-     * 
+     *
      * <code>
      *  :index : {
      *      :start : { :next = n0 },
@@ -1174,19 +1174,19 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("the first node should point nowhere",
                    Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
     }
-        
+
     /**
      * test the insert of 4 shuffled items in a descending ordered index
-     * 
+     *
      * expected:
-     * 
+     *
      * <code>
      *      :index : {
      *          :start : { :next= n1},
-     *          n0 : { :next= n3},  
-     *          n1 : { :next= n2},  
-     *          n2: { :next= n0},  
-     *          n3 : { :next= },  
+     *          n0 : { :next= n3},
+     *          n1 : { :next= n2},
+     *          n2: { :next= n0},
+     *          n3 : { :next= },
      *      }
      * </code>
      */
@@ -1209,11 +1209,11 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("n2 should point to n1", n0, index.getChildNode(n2).getString(NEXT));
         assertTrue("n3 should point nowhere",
                    Strings.isNullOrEmpty(index.getChildNode(n3).getString(NEXT)));
-    }    
-        
+    }
+
     /**
      * test the iteration of the descending index with 2 shuffled items
-     * 
+     *
      * <code>
      *    :index : {
      *       :start : { :next=n1 },
@@ -1266,9 +1266,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         final String testDescendingName = "testdescending";
         final int numberOfNodes = 1000;
         final int maxNodeCount = 100;
-       
+
         NodeBuilder builder = EmptyNodeState.EMPTY_NODE.builder();
-        
+
         IndexUtils.createIndexDefinition(builder.child(IndexConstants.INDEX_DEFINITIONS_NAME),
             testAscendingName, false, ImmutableList.of(orderedProperty), null, OrderedIndex.TYPE,
             ImmutableMap.<String, String> of());
@@ -1280,25 +1280,25 @@ public class OrderedContentMirrorStorageStrategyTest {
             .getChildNode(testAscendingName).child(IndexConstants.INDEX_CONTENT_NODE_NAME);
         NodeBuilder descendingContent = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
             .getChildNode(testDescendingName).child(IndexConstants.INDEX_CONTENT_NODE_NAME);
-        
+
         // adding some content under the index
         for (int i = 0; i < numberOfNodes; i++) {
             store.update(ascendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
             descendingStore.update(descendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
         }
-        
+
         assertEquals("wrong number of nodes encountered", numberOfNodes,
             Iterables.size(store.getChildNodeEntries(ascendingContent.getNodeState())));
         assertEquals("wrong number of nodes encountered", numberOfNodes,
             Iterables.size(descendingStore.getChildNodeEntries(descendingContent.getNodeState())));
 
         NodeState ascendingMeta = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-            .getChildNode(testAscendingName).getNodeState(); 
+            .getChildNode(testAscendingName).getNodeState();
         NodeState descendingMeta = builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-            .getChildNode(testDescendingName).getNodeState(); 
+            .getChildNode(testDescendingName).getNodeState();
 
         Filter.PropertyRestriction pr = null;
-        
+
         // equality
         String value = "x" + NF.format(11);
         pr = new Filter.PropertyRestriction();
@@ -1320,7 +1320,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
         assertEquals(store.count(ascendingMeta, pr, maxNodeCount),
             descendingStore.count(descendingMeta, pr, maxNodeCount));
-        
+
         // '>'
         pr = new Filter.PropertyRestriction();
         pr.first = PropertyValues.newString(value);
@@ -1353,7 +1353,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         // code
         assertTrue(descendingStore.count(descendingMeta, pr, maxNodeCount) > 0);
         assertEquals(0, store.count(ascendingMeta, pr, maxNodeCount));
-        
+
         // when no conditions has been asked but just an ORDER BY
         pr = null;
         assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);

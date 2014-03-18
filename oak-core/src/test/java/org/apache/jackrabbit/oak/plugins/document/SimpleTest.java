@@ -40,7 +40,7 @@ import com.mongodb.DB;
  * A set of simple tests.
  */
 public class SimpleTest {
-    
+
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
 
@@ -59,7 +59,7 @@ public class SimpleTest {
         assertEquals("10:/1/2/3/3/4/6/7/8/9/a", Utils.getIdFromPath("/1/2/3/3/4/6/7/8/9/a"));
         assertEquals("/1/2/3/3/4/6/7/8/9/a", Utils.getPathFromId("10:/1/2/3/3/4/6/7/8/9/a"));
     }
-    
+
     @Test
     public void pathDepth() {
         assertEquals(0, Utils.pathDepth(""));
@@ -69,7 +69,7 @@ public class SimpleTest {
         assertEquals(2, Utils.pathDepth("/a/b"));
         assertEquals(3, Utils.pathDepth("/a/b/c"));
     }
-    
+
     @Test
     public void addNodeGetNode() {
         DocumentMK mk = new DocumentMK.Builder().open();
@@ -89,7 +89,7 @@ public class SimpleTest {
         assertEquals("Hello", p.getValue(Type.STRING));
         mk.dispose();
     }
-    
+
     @Test
     public void nodeIdentifier() {
         DocumentMK mk = createMK(true);
@@ -99,7 +99,7 @@ public class SimpleTest {
         String rev2 = mk.commit("/test", "+\"a\":{}", null, null);
         String rev3 = mk.commit("/test", "+\"b\":{}", null, null);
         String rev4 = mk.commit("/test", "^\"a/x\":1", null, null);
-        
+
         String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, ":id");
         assertEquals("{\":id\":\"/@r0-0-1\",\":childNodeCount\":0}", r0);
         String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, ":id");
@@ -120,10 +120,10 @@ public class SimpleTest {
         assertEquals("{\":id\":\"/test/a@r4-0-1\",\"x\":1,\":childNodeCount\":0}", r4);
         r4 = mk.getNodes("/test/b", rev4, 0, 0, Integer.MAX_VALUE, ":id");
         assertEquals("{\":id\":\"/test/b@r3-0-1\",\":childNodeCount\":0}", r4);
-        
-        mk.dispose();        
+
+        mk.dispose();
     }
-    
+
     @Test
     public void conflict() {
         DocumentMK mk = createMK();
@@ -139,17 +139,17 @@ public class SimpleTest {
         mk.commit("/", "+\"b\": {}", null, null);
         mk.dispose();
     }
-    
+
     @Test
     public void diff() {
         DocumentMK mk = createMK();
-        
+
         String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"t1\":{}", null, null);
         String rev2 = mk.commit("/", "+\"t2\":{}", null, null);
         String rev3 = mk.commit("/", "+\"t3\":{}", null, null);
         String rev4 = mk.commit("/", "^\"t3/x\":1", null, null);
-        
+
         String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\":childNodeCount\":0}", r0);
         String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, null);
@@ -158,7 +158,7 @@ public class SimpleTest {
         assertEquals("{\"t1\":{},\"t2\":{},\":childNodeCount\":2}", r2);
         String r3 = mk.getNodes("/", rev3, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"t1\":{},\"t2\":{},\"t3\":{},\":childNodeCount\":3}", r3);
-        
+
         String diff01 = mk.diff(rev0, rev1, "/", 0).trim();
         assertEquals("+\"/t1\":{}", diff01);
         String diff12 = mk.diff(rev1, rev2, "/", 0).trim();
@@ -202,7 +202,7 @@ public class SimpleTest {
         assertEquals("{\":childNodeCount\":0}", test2);
         mk.dispose();
     }
-    
+
     @Test
     public void move() {
         DocumentMK mk = createMK();
@@ -214,7 +214,7 @@ public class SimpleTest {
         assertNull(test);
         mk.dispose();
     }
-    
+
     @Test
     public void copy() {
         DocumentMK mk = createMK();
@@ -236,16 +236,16 @@ public class SimpleTest {
         assertEquals("{\"$x\":\"1\",\"_id\":\"a\",\"name.first\":\"Hello\",\":childNodeCount\":0}", test);
         mk.dispose();
     }
-    
+
     @Test
     public void commit() {
         DocumentMK mk = createMK();
         DocumentNodeStore ns = mk.getNodeStore();
-        
+
         String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
-        
+
         String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
@@ -291,12 +291,12 @@ public class SimpleTest {
         n = ns.getNode("/testDel", Revision.fromString(r3));
         assertNull(n);
     }
-    
+
     @Test
     public void escapeUnescape() {
         DocumentMK mk = createMK();
         String rev;
-        String nodes; 
+        String nodes;
         Random r = new Random(1);
         for (int i = 0; i < 20; i++) {
             int len = 1 + r.nextInt(5);
@@ -315,7 +315,7 @@ public class SimpleTest {
             }
             JsopBuilder jsop = new JsopBuilder();
             jsop.tag('+').key(s).object().key(s).value("x").endObject();
-            rev = mk.commit("/", jsop.toString(), 
+            rev = mk.commit("/", jsop.toString(),
                     null, null);
             nodes = mk.getNodes("/" + s, rev, 0, 0, 100, null);
             jsop = new JsopBuilder();
@@ -332,15 +332,15 @@ public class SimpleTest {
             jsop = new JsopBuilder();
             jsop.tag('-').value(s);
             rev = mk.commit("/", jsop.toString(), rev, null);
-            
+
         }
     }
-    
+
     @Test
     public void nodeAndPropertyNames() {
         DocumentMK mk = createMK();
         String rev;
-        String nodes; 
+        String nodes;
         for (String s : new String[] { "_", "$", "__", "_id", "$x", ".", ".\\", "x\\", "\\x", "first.name" }) {
             String x2 = Utils.escapePropertyName(s);
             String s2 = Utils.unescapePropertyName(x2);
@@ -349,7 +349,7 @@ public class SimpleTest {
             }
             JsopBuilder jsop = new JsopBuilder();
             jsop.tag('+').key(s).object().key(s).value("x").endObject();
-            rev = mk.commit("/", jsop.toString(), 
+            rev = mk.commit("/", jsop.toString(),
                     null, null);
             nodes = mk.getNodes("/" + s, rev, 0, 0, 10, null);
             jsop = new JsopBuilder();

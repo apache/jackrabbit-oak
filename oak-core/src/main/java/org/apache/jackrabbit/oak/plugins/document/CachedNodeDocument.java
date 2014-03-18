@@ -35,7 +35,7 @@ public interface CachedNodeDocument {
     void markUpToDate(long checkTime);
 
     boolean isUpToDate(long lastCheckTime);
-    
+
     String getPath();
-    
+
 }

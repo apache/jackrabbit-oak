@@ -32,7 +32,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
             throw new IOException(e);
         }
     }
-        
+
     public <T> T executeCommand(Command<T> command) throws Exception {
         T result = null;
 

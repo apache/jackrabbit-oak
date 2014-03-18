@@ -47,12 +47,12 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
     /**
      * convenience class that return an always indexed strategy
      */
-    private static class AlwaysIndexedOrderedPropertyIndex extends OrderedPropertyIndex {        
+    private static class AlwaysIndexedOrderedPropertyIndex extends OrderedPropertyIndex {
         @Override
         PropertyIndexLookup getLookup(NodeState root) {
             return new AlwaysIndexedLookup(root);
         }
-        
+
         /**
          * convenience class that always return true at the isIndexed test
          */
@@ -88,10 +88,10 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         root.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME).getChildNode(TEST_INDEX_NAME)
             .child(IndexConstants.INDEX_CONTENT_NODE_NAME);
     }
-    
+
     /**
      * define e descending ordered index in the provided root
-     * 
+     *
      * @param root
      * @throws IllegalArgumentException
      * @throws RepositoryException
@@ -103,7 +103,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     /**
      * define e Ascending ordered index in the provided root
-     * 
+     *
      * @param root
      * @throws IllegalArgumentException
      * @throws RepositoryException
@@ -126,7 +126,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         assertEquals("if it contains FullText we don't serve", Double.POSITIVE_INFINITY,
             index.getCost(filter, root), 0);
     }
-  
+
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costContainsNativeConstraints(){
         OrderedPropertyIndex index = new OrderedPropertyIndex();
@@ -141,7 +141,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     /**
      * tests the use-case where we ask for '>' of a date.
-     * 
+     *
      * As we're not testing the actual algorithm, part of {@code IndexLookup} we want to make sure
      * the Index doesn't reply with "dont' serve" in special cases
      */
@@ -163,11 +163,11 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         assertFalse("In ascending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
     }
-    
+
     /**
      * test that the '>=' use case is served from the index
-     * @throws RepositoryException 
-     * @throws IllegalArgumentException 
+     * @throws RepositoryException
+     * @throws IllegalArgumentException
      */
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterThanEqualAscendingDirection() throws IllegalArgumentException, RepositoryException {
@@ -188,11 +188,11 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         assertFalse("In ascending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
     }
-    
+
     /**
      * when we run a '<' in an Ascending index it should not serve it
-     * @throws RepositoryException 
-     * @throws IllegalArgumentException 
+     * @throws RepositoryException
+     * @throws IllegalArgumentException
      */
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costLessThanAscendingDirection() throws IllegalArgumentException, RepositoryException {
@@ -232,7 +232,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         assertEquals("in ascending index we're not expecting to serve '<=' queries",
             Double.POSITIVE_INFINITY, index.getCost(filter, root), 0);
     }
-    
+
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterThanDescendingDirection() throws IllegalArgumentException, RepositoryException {
         OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
@@ -250,7 +250,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertEquals("in descending index we're not expecting to serve '>' queries",
             Double.POSITIVE_INFINITY, index.getCost(filter, root), 0);
-        
+
     }
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
@@ -271,7 +271,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertEquals("in descending index we're not expecting to serve '>' queries",
             Double.POSITIVE_INFINITY, index.getCost(filter, root), 0);
-        
+
     }
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
@@ -291,7 +291,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertFalse("In descending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
-        
+
     }
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
@@ -312,7 +312,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertFalse("In descending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
-        
+
     }
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
@@ -323,7 +323,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         NodeState root = builder.getNodeState();
         Filter filter = createNiceMock(Filter.class);
         Filter.PropertyRestriction restriction = new Filter.PropertyRestriction();
-        restriction.first = PropertyValues.newDate("2013-01-01"); 
+        restriction.first = PropertyValues.newDate("2013-01-01");
         restriction.last = PropertyValues.newDate("2013-01-02");
         restriction.firstIncluding = true;
         restriction.lastIncluding = true;
@@ -335,7 +335,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertFalse("In descending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
-        
+
     }
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
@@ -346,7 +346,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
         NodeState root = builder.getNodeState();
         Filter filter = createNiceMock(Filter.class);
         Filter.PropertyRestriction restriction = new Filter.PropertyRestriction();
-        restriction.first = PropertyValues.newDate("2013-01-01"); 
+        restriction.first = PropertyValues.newDate("2013-01-01");
         restriction.last = PropertyValues.newDate("2013-01-02");
         restriction.firstIncluding = true;
         restriction.lastIncluding = true;
@@ -358,6 +358,6 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
         assertFalse("In descending order we're expeting to serve this kind of queries",
             Double.POSITIVE_INFINITY == index.getCost(filter, root));
-        
+
     }
 }

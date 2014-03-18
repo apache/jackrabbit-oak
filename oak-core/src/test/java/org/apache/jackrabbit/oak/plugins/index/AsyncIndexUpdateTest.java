@@ -66,7 +66,7 @@ public class AsyncIndexUpdateTest {
      * <li>Add some content</li>
      * <li>Search & verify</li>
      * </ul>
-     * 
+     *
      */
     @Test
     public void testAsync() throws Exception {
@@ -103,7 +103,7 @@ public class AsyncIndexUpdateTest {
      * <li>Add some content</li>
      * <li>Search & verify</li>
      * </ul>
-     * 
+     *
      */
     @Test
     public void testAsyncDouble() throws Exception {
@@ -153,7 +153,7 @@ public class AsyncIndexUpdateTest {
      * <li>Add some content</li>
      * <li>Search & verify</li>
      * </ul>
-     * 
+     *
      */
     @Test
     public void testAsyncDoubleSubtree() throws Exception {

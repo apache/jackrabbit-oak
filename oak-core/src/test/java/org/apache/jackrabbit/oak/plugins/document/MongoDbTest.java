@@ -31,7 +31,7 @@ import com.mongodb.WriteConcern;
  * Test directly ran against MongoDB.
  */
 public class MongoDbTest {
-    
+
     @Test
     @Ignore
     public void manyChildNodes() {
@@ -45,28 +45,28 @@ public class MongoDbTest {
         index.put("_id", 1L);
         DBObject options = new BasicDBObject();
         // options.put("unique", Boolean.TRUE);
-        nodes.ensureIndex(index, options);  
-        
+        nodes.ensureIndex(index, options);
+
         // index on (_id, _mod):
-        // Query plan: { "cursor" : "BtreeCursor _id_1__mod_-1" , 
-        // "isMultiKey" : false , "n" : 2000 , "nscannedObjects" : 2000 , 
-        // "nscanned" : 954647 , "nscannedObjectsAllPlans" : 1907080 , 
-        // "nscannedAllPlans" : 2859727 , "scanAndOrder" : false , 
-        // "indexOnly" : true , "nYields" : 5 , "nChunkSkips" : 0 , 
+        // Query plan: { "cursor" : "BtreeCursor _id_1__mod_-1" ,
+        // "isMultiKey" : false , "n" : 2000 , "nscannedObjects" : 2000 ,
+        // "nscanned" : 954647 , "nscannedObjectsAllPlans" : 1907080 ,
+        // "nscannedAllPlans" : 2859727 , "scanAndOrder" : false ,
+        // "indexOnly" : true , "nYields" : 5 , "nChunkSkips" : 0 ,
         // "millis" : 5112 ,...
         // Time: 2229 ms
         // Count: 2000
-        
+
         // index on (_mod, _id)
-        // Query plan: { "cursor" : "BtreeCursor _mod_-1__id_1" , 
-        // "isMultiKey" : false , "n" : 2000 , "nscannedObjects" : 2000 , 
-        // "nscanned" : 2000 , "nscannedObjectsAllPlans" : 2203 , 
-        // "nscannedAllPlans" : 2203 , "scanAndOrder" : false , 
-        // "indexOnly" : true , "nYields" : 0 , "nChunkSkips" : 0 , 
+        // Query plan: { "cursor" : "BtreeCursor _mod_-1__id_1" ,
+        // "isMultiKey" : false , "n" : 2000 , "nscannedObjects" : 2000 ,
+        // "nscanned" : 2000 , "nscannedObjectsAllPlans" : 2203 ,
+        // "nscannedAllPlans" : 2203 , "scanAndOrder" : false ,
+        // "indexOnly" : true , "nYields" : 0 , "nChunkSkips" : 0 ,
         // "millis" : 3 ,...
         // Time: 43 ms
         // Count: 2000
-        
+
         int children = 1000000;
         int perInsert = 1000;
         int group = 0;
@@ -106,7 +106,7 @@ public class MongoDbTest {
         log("Count: " + count);
         db.getMongo().close();
     }
-        
+
     @Test
     @Ignore
     public void updateDocument() {
@@ -120,11 +120,11 @@ public class MongoDbTest {
         index.put("_id", 1L);
         DBObject options = new BasicDBObject();
         // options.put("unique", Boolean.TRUE);
-        nodes.ensureIndex(index, options);  
-        
+        nodes.ensureIndex(index, options);
+
         long time;
         time = System.currentTimeMillis();
-        
+
         int nodeCount = 4500;
         String parent = "/parent/node/abc";
         DBObject[] inserts = new DBObject[nodeCount];
@@ -137,11 +137,11 @@ public class MongoDbTest {
             doc.put("x", 10);
         }
         nodes.insert(inserts, WriteConcern.SAFE);
-        
+
         time = System.currentTimeMillis() - time;
         System.out.println("insert: " + time);
         time = System.currentTimeMillis();
-        
+
         for (int i = 0; i < nodeCount; i++) {
             QueryBuilder queryBuilder = QueryBuilder.start(Document.ID).is(parent + "/node" + i);
             DBObject fields = new BasicDBObject();
@@ -156,7 +156,7 @@ public class MongoDbTest {
             setUpdates.append("_mod", i);
             incUpdates.append("_counter", 1);
             unsetUpdates.append("x", "1");
-            
+
             BasicDBObject update = new BasicDBObject();
             if (!setUpdates.isEmpty()) {
                 update.append("$set", setUpdates);
@@ -170,7 +170,7 @@ public class MongoDbTest {
 
             // 1087 ms (upsert true+false, returnNew = false)
             // 1100 ms (returnNew = true)
-//            DBObject oldNode = 
+//            DBObject oldNode =
             nodes.findAndModify(query, fields,
                     null /*sort*/, false /*remove*/, update, false /*returnNew*/,
                     true /*upsert*/);
@@ -178,23 +178,23 @@ public class MongoDbTest {
             // 250 ms WriteConcern.NORMAL, NONE
             // 891 ms WriteConvern.SAFE
             // > 10 s WriteConcern.JOURNAL_SAFE, FSYNC_SAFE
-            
-//            WriteResult result = 
-//            nodes.update(query, update, /* upsert */ true, /* multi */ false, 
+
+//            WriteResult result =
+//            nodes.update(query, update, /* upsert */ true, /* multi */ false,
 //                    WriteConcern.NORMAL);
 
-            
+
         }
-        
+
         time = System.currentTimeMillis() - time;
         System.out.println("update: " + time);
         time = System.currentTimeMillis();
 
         db.getMongo().close();
     }
-    
+
     private static void log(String msg) {
         System.out.println(msg);
     }
-    
+
 }

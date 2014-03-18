@@ -32,7 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A node builder implementation for DocumentMK.
  */
 class DocumentNodeBuilder extends MemoryNodeBuilder {
-    
+
     private final DocumentRootBuilder root;
 
     private NodeState base;
@@ -80,7 +80,7 @@ class DocumentNodeBuilder extends MemoryNodeBuilder {
         }
         return super.moveTo(newParent, newName);
     }
-    
+
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
         return root.createBlob(stream);

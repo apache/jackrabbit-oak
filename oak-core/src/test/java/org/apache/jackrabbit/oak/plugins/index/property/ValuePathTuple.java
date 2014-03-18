@@ -21,7 +21,7 @@ import com.google.common.base.Predicate;
 
 /**
  * convenience orderable object that represents a tuple of values and paths
- * 
+ *
  * where the values are the indexed keys from the index and the paths are the path which hold the
  * key
  */
@@ -33,16 +33,16 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
      * convenience Predicate for easing the testing
      */
     public static class GreaterThanPredicate implements Predicate<ValuePathTuple> {
-        /** 
-         * the value for comparison 
+        /**
+         * the value for comparison
          */
         private String value;
-        
+
         /**
          * whether we should include the value in the result
          */
         private boolean include;
-        
+
         public GreaterThanPredicate(String value) {
             this.value = value;
         }
@@ -58,13 +58,13 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
                    || (include && value.equals(arg0.getValue()));
         }
     };
-    
+
     public static class LessThanPredicate implements Predicate<ValuePathTuple> {
-        /** 
-         * the value for comparison 
+        /**
+         * the value for comparison
          */
         private String value;
-        
+
         /**
          * whether we should include the value in the result
          */
@@ -84,9 +84,9 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
             return (value.compareTo(arg0.getValue()) > 0)
                 || (include && value.equals(arg0.getValue()));
         }
-        
+
     }
-    
+
     ValuePathTuple(String value, String path) {
         this.value = value;
         this.path = path;

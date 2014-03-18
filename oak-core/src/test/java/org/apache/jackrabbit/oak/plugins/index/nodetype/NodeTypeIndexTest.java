@@ -70,8 +70,8 @@ public class NodeTypeIndexTest {
         NodeBuilder root = store.getRoot().builder();
 
         // remove "rep:security" as it interferes with tests
-        root.getChildNode("rep:security").remove(); 
-        
+        root.getChildNode("rep:security").remove();
+
         addFolder(root, "folder-1");
         addFolder(root, "folder-2");
         addFile(root, "file-1");
@@ -137,5 +137,5 @@ public class NodeTypeIndexTest {
         return node.child(name).setProperty(
                 JcrConstants.JCR_PRIMARYTYPE, nodeType, Type.NAME);
     }
-    
+
 }

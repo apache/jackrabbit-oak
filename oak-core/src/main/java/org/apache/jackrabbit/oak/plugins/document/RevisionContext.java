@@ -43,5 +43,5 @@ public interface RevisionContext {
      * @return the cluster id of the local DocumentMK instance.
      */
     int getClusterId();
-    
+
 }

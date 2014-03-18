@@ -231,7 +231,7 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (this == base) {
             return true;
-        } else if (base == EMPTY_NODE || !base.exists()) { 
+        } else if (base == EMPTY_NODE || !base.exists()) {
             // special case
             return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (base instanceof DocumentNodeState) {

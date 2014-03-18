@@ -77,7 +77,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     /**
      * Query the index for retrieving all the entries
-     * 
+     *
      * @throws CommitFailedException
      * @throws ParseException
      * @throws RepositoryException
@@ -106,7 +106,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     /**
      * test the index for returning the items related to a single key
-     * 
+     *
      * @throws CommitFailedException
      * @throws ParseException
      */
@@ -125,7 +125,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         // getting the middle of the random list of nodes.
         ValuePathTuple searchfor = nodes.get(NUMBER_OF_NODES / 2);
-        
+
         Map<String, PropertyValue> filter = ImmutableMap.of(ORDERED_PROPERTY,
             PropertyValues.newString(searchfor.getValue()));
         String query = "SELECT * FROM [%s] WHERE %s=$%s";
@@ -138,10 +138,10 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         setTravesalEnabled(true);
     }
-    
+
     /**
      * test the range query in case of '>' condition
-     * 
+     *
      * @throws CommitFailedException
      * @throws ParseException
      */
@@ -178,11 +178,11 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         setTravesalEnabled(true);
     }
-    
+
     /**
      * test the range query in case of '>=' condition
-     * @throws CommitFailedException 
-     * @throws ParseException 
+     * @throws CommitFailedException
+     * @throws ParseException
      */
     @Test @Ignore("Disabling for now. Integration with OAK-622 and prioritising.")
     public void queryGreaterEqualThan() throws CommitFailedException, ParseException {
@@ -221,10 +221,10 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     /**
      * test the range query in case of '<' condition
-     * 
+     *
      * in this case as we're ascending we're expecting an empty resultset with the proper
      * provider. not the lowcost one.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test @Ignore("Disabling for now. Integration with OAK-622 and prioritising.")
     public void queryLessThan() throws Exception {
@@ -259,10 +259,10 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     /**
      * test the range query in case of '<=' condition
-     * 
+     *
      * in this case as we're ascending we're expecting an empty resultset with the proper
      * provider. not the lowcost one.
-     * @throws Exception 
+     * @throws Exception
      */
     @Test @Ignore("Disabling for now. Integration with OAK-622 and prioritising.")
     public void queryLessEqualThan() throws Exception {
@@ -295,7 +295,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         setTravesalEnabled(true);
     }
-    
+
     @Test
     public void queryAllEntriesWithOrderBy() throws CommitFailedException, ParseException, RepositoryException {
         setTravesalEnabled(false);
@@ -346,7 +346,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         setTravesalEnabled(true);
     }
-        
+
     @Test
     public void planOderByNoWhere() throws IllegalArgumentException, RepositoryException,
                                    CommitFailedException {
@@ -388,7 +388,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertEquals(ORDERED_PROPERTY, oe.getPropertyName());
         assertEquals(QueryIndex.OrderEntry.Order.ASCENDING, oe.getOrder());
     }
-    
+
     @Test
     public void queryOrderByNonIndexedProperty() throws CommitFailedException, ParseException {
         setTravesalEnabled(false);
@@ -456,16 +456,16 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertNotNull(plans);
         assertEquals(0, plans.size());
     }
-    
+
     /**
      * tests the output of a plan where the query is asked with where conditions that are not indexed
      * but the ORDER BY are on the indexed property
-     * 
+     *
      * eg: SELECT * FROM [nt:base] WHERE pinned=1 ORDER BY lastModified
-     * 
-     * @throws RepositoryException 
-     * @throws IllegalArgumentException 
-     * @throws CommitFailedException 
+     *
+     * @throws RepositoryException
+     * @throws IllegalArgumentException
+     * @throws CommitFailedException
      */
     @Test
     public void planOrderAndWhereMixed() throws IllegalArgumentException, RepositoryException, CommitFailedException {
@@ -489,7 +489,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         final String nodeTypeName = JcrConstants.NT_BASE;
         FilterImpl filter = createFilter(indexed, nodeTypeName);
         filter.restrictProperty("somethingNotIndexed", Operator.EQUAL, PropertyValues.newLong(1L));
-        
+
         List<QueryIndex.OrderEntry> sortOrder = ImmutableList.of(createOrderEntry(
             ORDERED_PROPERTY, order));
 
@@ -503,16 +503,16 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertEquals(QueryIndex.OrderEntry.Order.ASCENDING, p.getSortOrder()
                 .get(0).getOrder());
     }
-    
+
     /**
      * query the index in case of mixed situation
-     * 
+     *
      * eg: SELECT * FROM [nt:base] WHERE pinned=1 ORDER BY lastModified
-     * 
-     * @throws RepositoryException 
-     * @throws IllegalArgumentException 
-     * @throws CommitFailedException 
-     * @throws ParseException 
+     *
+     * @throws RepositoryException
+     * @throws IllegalArgumentException
+     * @throws CommitFailedException
+     * @throws ParseException
      */
     @Test
     public void queryOrderAndWhereMixed() throws IllegalArgumentException, RepositoryException, CommitFailedException, ParseException {
@@ -530,14 +530,14 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         String where = "wholetthedogsout";
         String value = "woof-woof-woof-woof";
-        
+
         // let's set the property that will have to be queried only on 2 nodes
         Tree t = root.getTree(nodes.get(0).getPath());
         t.setProperty(where, value);
         t = root.getTree(nodes.get(1).getPath());
         t.setProperty(where, value);
         root.commit();
-        
+
         // querying
         Iterator<? extends ResultRow> results;
         String query = String.format(

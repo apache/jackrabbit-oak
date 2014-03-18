@@ -152,7 +152,7 @@ class CommitQueue {
          * The revision of the commit (used for debugging).
          */
         private final Revision revision;
-        
+
         /**
          * The latch. Initially set to 1, so that release() needs to be called
          * once for await() to continue.

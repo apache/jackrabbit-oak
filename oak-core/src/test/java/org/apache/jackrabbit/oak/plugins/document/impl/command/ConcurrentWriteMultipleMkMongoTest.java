@@ -41,7 +41,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
 
     @Test
     // Ignored only because it takes a while to complete.
-    @Ignore 
+    @Ignore
     public void testLarge() throws Exception {
         doTest(10000);
     }
@@ -119,7 +119,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends
             this.diff = diff;
             this.nodesPerCommit = nodesPerCommit;
         }
-        
+
         @Override
         public String toString() {
             return id;

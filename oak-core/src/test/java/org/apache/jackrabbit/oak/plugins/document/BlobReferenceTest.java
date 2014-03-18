@@ -34,7 +34,7 @@ import org.junit.Test;
  * Test the BlobReferenceIterator.
  */
 public class BlobReferenceTest {
-    
+
     @Test
     public void test() throws Exception {
         DocumentNodeStore s = new DocumentMK.Builder().getNodeStore();
@@ -54,7 +54,7 @@ public class BlobReferenceTest {
         assertTrue(set.isEmpty());
         s.dispose();
     }
-    
+
     static InputStream randomStream(int seed, int size) {
         Random r = new Random(seed);
         byte[] data = new byte[size];

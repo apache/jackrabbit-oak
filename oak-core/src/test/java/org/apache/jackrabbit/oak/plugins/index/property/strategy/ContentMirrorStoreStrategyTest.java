@@ -48,7 +48,7 @@ public class ContentMirrorStoreStrategyTest {
      * <li>
      * adds a few levels of nodes, nodes with an even index will have the
      * 'match' property set</li>
-     * 
+     *
      * <li>
      * pruning in this case means that whatever path that doesn't have a 'match'
      * property is considered dead weight and should be removed from the index</li>
@@ -132,7 +132,7 @@ public class ContentMirrorStoreStrategyTest {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
         NodeState root = EMPTY_NODE;
         NodeBuilder indexMeta = root.builder();
-        NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);        
+        NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
         store.update(index, "a", EMPTY, KEY);
         store.update(index, "b", EMPTY, KEY);
         Assert.assertTrue(

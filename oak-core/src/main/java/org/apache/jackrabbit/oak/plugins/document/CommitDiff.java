@@ -112,7 +112,7 @@ class CommitDiff implements NodeStateDiff {
         JsonSerializer serializer = new JsonSerializer(builder, blobs);
         serializer.serialize(property);
         commit.updateProperty(path, property.getName(), serializer.toString());
-        if ((property.getType() == Type.BINARY) 
+        if ((property.getType() == Type.BINARY)
                 || (property.getType() == Type.BINARIES)) {
             this.commit.markNodeHavingBinary(this.path);
         }

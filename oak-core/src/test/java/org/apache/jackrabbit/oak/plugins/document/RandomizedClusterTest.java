@@ -41,15 +41,15 @@ import com.mongodb.DB;
  * A simple randomized dual-instance test.
  */
 public class RandomizedClusterTest {
-    
+
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
-    
+
     private static final int MK_COUNT = 2;
-    
+
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
-    
+
     private DocumentMK[] mkList = new DocumentMK[MK_COUNT];
     private String[] revList = new String[MK_COUNT];
     @SuppressWarnings({ "unchecked", "cast" })
@@ -57,11 +57,11 @@ public class RandomizedClusterTest {
     private HashMap<Integer, List<Op>> changes = new HashMap<Integer, List<Op>>();
 
     private int opId;
-    
+
     private int mkId;
-    
+
     private StringBuilder log;
-    
+
     /**
      * The map of changes. Key: node name; value: the last operation that
      * changed the node.
@@ -75,9 +75,9 @@ public class RandomizedClusterTest {
             mkList[i] = createMK(i);
             revList[i] = mkList[i].getHeadRevision();
         }
-        HashMap<Integer, ClusterRev> revs = 
+        HashMap<Integer, ClusterRev> revs =
                 new HashMap<Integer, ClusterRev>();
-        
+
         Random r = new Random(1);
         int operations = 1000, nodeCount = 10;
         int valueCount = 10;
@@ -244,7 +244,7 @@ public class RandomizedClusterTest {
         // System.out.println(log);
         // System.out.println();
     }
-    
+
     private String getValue(int clusterId, int maxOp, String nodeName) {
         for (int i = maxOp; i >= 0; i--) {
             List<Op> ops = changes.get(i);
@@ -261,7 +261,7 @@ public class RandomizedClusterTest {
         }
         return null;
     }
-    
+
     private boolean isConflict(String node) {
         Integer change = nodeChange.get(node);
         if (change == null || !unseenChanges[mkId].contains(change)) {
@@ -269,12 +269,12 @@ public class RandomizedClusterTest {
         }
         return true;
     }
-    
+
     private void log(String msg) {
         msg = opId + ": [" + mkId + "] " + msg + "\n";
         log.append(msg);
     }
-    
+
     private void syncClusterNode() {
         for (int i = 0; i < mkList.length; i++) {
             DocumentMK mk = mkList[i];
@@ -283,7 +283,7 @@ public class RandomizedClusterTest {
         DocumentMK mk = mkList[mkId];
         mk.backgroundRead();
     }
-    
+
     private void syncAndRefreshAllClusterNodes() {
         syncClusterNode();
         for (int i = 0; i < mkList.length; i++) {
@@ -294,29 +294,29 @@ public class RandomizedClusterTest {
         }
         log("sync");
     }
-    
+
     private boolean get(int maxOp, String node) {
         String head = revList[mkId];
         return get(maxOp, node, head);
     }
-    
+
     private boolean exists(String node) {
         String head = revList[mkId];
         DocumentMK mk = mkList[mkId];
         return mk.nodeExists("/" + node, head);
     }
-        
+
     private boolean get(int maxOp, String node, String head) {
         String p = "/" + node;
         DocumentMK mk = mkList[mkId];
         String value = getValue(mkId, maxOp, node);
         if (value == null) {
-            assertFalse("path: " + p + " is supposed to not exist", 
+            assertFalse("path: " + p + " is supposed to not exist",
                     mk.nodeExists(p, head));
             return false;
         }
         if (!mk.nodeExists(p, head)) {
-            assertTrue("path: " + p + " is supposed to exist", 
+            assertTrue("path: " + p + " is supposed to exist",
                     mk.nodeExists(p, head));
         }
         String expected = "{\":childNodeCount\":0,\"x\":" + value + "}";
@@ -326,7 +326,7 @@ public class RandomizedClusterTest {
         assertEquals(expected, result);
         return true;
     }
-    
+
     private static String normalize(String json) {
         JsopTokenizer t = new JsopTokenizer(json);
         t.read('{');
@@ -352,7 +352,7 @@ public class RandomizedClusterTest {
             result = mk.commit("/", diff, rev, null);
             revList[mkId] = result;
         } else {
-            // System.out.println("--> fail " + e.toString());            
+            // System.out.println("--> fail " + e.toString());
             try {
                 mk.commit("/", diff, rev, null);
                 fail("Should fail: " + diff + " with " + ex);
@@ -369,7 +369,7 @@ public class RandomizedClusterTest {
         }
         return result;
     }
-    
+
     private DocumentMK createMK(int clusterId) {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         builder.setAsyncDelay(0);
@@ -388,7 +388,7 @@ public class RandomizedClusterTest {
         }
         return builder.setClusterId(clusterId + 1).open();
     }
-    
+
     /**
      * A revision in a certain cluster node.
      */
@@ -396,7 +396,7 @@ public class RandomizedClusterTest {
         int mkId;
         String rev;
     }
-    
+
     /**
      * An operation.
      */

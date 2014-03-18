@@ -113,7 +113,7 @@ public class MultipleIndicesTest extends AbstractQueryTest {
                 ImmutableList.of("/node-2"));
         assertQuery("select [jcr:path] from [nt:base] where [pid] = ':'",
                 ImmutableList.of("/node-3"));
-        
+
         setTravesalEnabled(true);
     }
 }

@@ -98,7 +98,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         branchRev2 = mk.commit("/foo", "^\"prop\":\"other\"", branchRev2, null);
 
         mk.merge(branchRev2, null);
-        
+
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for addExistingProperty");
@@ -172,13 +172,13 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/foo", "^\"prop\":null", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark collision on branchRev1
         branchRev2 = mk.commit("/foo", "^\"prop\":null", branchRev2, null);
 
         mk.merge(branchRev2, null);
-        
+
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for removeRemovedProperty");
@@ -252,7 +252,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/foo", "^\"prop\":null", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark conflict on branchRev1
         branchRev2 = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev2, null);
@@ -331,7 +331,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark collision on branchRev1
         branchRev2 = mk.commit("/foo", "^\"prop\":null", branchRev2, null);
@@ -489,13 +489,13 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/foo", "+\"bar\":{}", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark conflict on branchRev1
         branchRev2 = mk.commit("/foo", "+\"bar\":{}", branchRev2, null);
 
         mk.merge(branchRev2, null);
-        
+
         try {
             mk.merge(branchRev1, null);
             fail("Must fail with conflict for addExistingNode");
@@ -569,7 +569,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/", "-\"foo\"", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark collision on branchRev1
         branchRev2 = mk.commit("/", "-\"foo\"", branchRev2, null);
@@ -648,7 +648,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/", "-\"foo\"", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark collision on branchRev1
         branchRev2 = mk.commit("/foo", "^\"prop\":\"value\"", branchRev2, null);
@@ -727,7 +727,7 @@ public class ConflictTest extends BaseDocumentMKTest {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev1 = mk.branch(rev);
         branchRev1 = mk.commit("/foo", "^\"prop\":\"value\"", branchRev1, null);
-        
+
         String branchRev2 = mk.branch(rev);
         // will mark collision on branchRev1
         branchRev2 = mk.commit("/", "-\"foo\"", branchRev2, null);

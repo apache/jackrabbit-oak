@@ -67,7 +67,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
-    
+
     /**
      * A size threshold after which to consider a document a split candidate.
      * TODO: check which value is the best one
@@ -132,18 +132,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * The list of recent revisions for this node, where this node is the
-     * root of the commit. 
+     * root of the commit.
      * <p>
      * Key: revision.
      * <p>
-     * Value: "c" for a regular (non-branch) commit, 
+     * Value: "c" for a regular (non-branch) commit,
      * "c-" + base revision of the successfully merged branch commit,
      * "b" + base revision of an un-merged branch commit
      */
     private static final String REVISIONS = "_revisions";
 
     /**
-     * The last revision. 
+     * The last revision.
      * <p>
      * Key: machine id, in the form "r0-0-1".
      * <p>
@@ -158,14 +158,14 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * node had a child node
      */
     private static final String CHILDREN_FLAG = "_children";
-    
+
     /**
      * The node path, in case the id can not be converted to a path.
      */
     public static final String PATH = "_path";
 
     public static final String HAS_BINARY_FLAG = "_bin";
-    
+
     /**
      * Properties to ignore when a document is split.
      */
@@ -242,7 +242,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Mark this instance as up-to-date (matches the state in persistence
      * store).
-     * 
+     *
      * @param checkTime time at which the check was performed
      */
     @Override
@@ -253,7 +253,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Returns true if the document has already been checked for consistency
      * in current cycle.
-     * 
+     *
      * @param lastCheckTime time at which current cycle started
      * @return if the document was checked
      */
@@ -264,7 +264,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Returns the last time when this object was checked for consistency.
-     * 
+     *
      * @return the last check time
      */
     @Override
@@ -572,7 +572,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Get the earliest (oldest) revision where the node was alive at or before
      * the provided revision, if the node was alive at the given revision.
-     * 
+     *
      * @param context the revision context
      * @param maxRev the maximum revision to return
      * @param validRevisions the set of revisions already checked against maxRev
@@ -1165,7 +1165,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
         return value != null ? new Value(value, latestRev) : null;
     }
-    
+
     @Override
     public String getPath() {
         String p = (String) get(PATH);
@@ -1184,7 +1184,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     private Map<Revision, String> getCommitRoot() {
         return ValueMap.create(this, COMMIT_ROOT);
     }
-    
+
     /**
      * The list of children for a node. The list might be complete or not, in
      * which case it only represents a block of children.
@@ -1195,7 +1195,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
          * The child node names, ordered as stored in DocumentStore.
          */
         ArrayList<String> childNames = new ArrayList<String>();
-        
+
         /**
          * Whether the list is complete (in which case there are no other
          * children) or not.

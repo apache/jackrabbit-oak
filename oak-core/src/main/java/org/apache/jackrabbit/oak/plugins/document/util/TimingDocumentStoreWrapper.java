@@ -51,7 +51,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     private long lastLogTime;
     private long totalLogTime;
     private final Map<String, Integer> slowCalls = new ConcurrentHashMap<String, Integer>();
-    
+
     private int callCount;
 
     /**
@@ -79,11 +79,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         this.base = base;
         lastLogTime = now();
     }
-    
+
     private boolean logCommonCall() {
         return callCount % 10 == 0;
     }
-    
+
     @Override
     @CheckForNull
     public <T extends Document> T find(Collection<T> collection, String key) {
@@ -285,7 +285,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     @Override
     public void setReadWriteMode(String readWriteMode) {
         try {
@@ -296,7 +296,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             throw convert(e);
         }
     }
-    
+
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
         if (time <= 0) {
@@ -336,7 +336,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             System.out.println("[" + id + "] " + message);
         }
     }
-    
+
     private static <T extends Document> int size(List<T> list) {
         int result = 0;
         for (T doc : list) {
@@ -352,7 +352,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             return document.getMemory();
         }
     }
-    
+
     private static long now() {
         return System.currentTimeMillis();
     }
@@ -386,15 +386,15 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
                 long in = c.paramSize / 1024 / 1024;
                 long out = c.resultSize / 1024 / 1024;
                 if (count > 0) {
-                    log(e.getKey() + 
-                            " count " + count + 
+                    log(e.getKey() +
+                            " count " + count +
                             " " + (100 * count / totalCount) + "%" +
                             " in " + in + " out " + out +
                             " time " + total +
                             " " + (100 * total / totalTime) + "%");
                 }
             }
-            log("all count " + totalCount + " time " + totalTime + " " + 
+            log("all count " + totalCount + " time " + totalTime + " " +
                     (100 * totalTime / totalLogTime) + "%");
 
             Map<String, Integer> map = slowCalls;
@@ -422,10 +422,10 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
                 max = best;
             }
             slowCalls.clear();
-            
+
             log("------");
-            
+
         }
     }
-    
+
 }

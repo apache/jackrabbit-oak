@@ -93,14 +93,14 @@ public class ValuePathTupleTest {
         assertEquals("f", filtered.next().getValue());
         assertFalse(filtered.hasNext());
     }
-    
+
     @Test
     public void lessThanPredicate() {
         List<ValuePathTuple> data = ImmutableList.of(
             new ValuePathTuple("a", "foobar"),
-            new ValuePathTuple("b", "foobar"), 
+            new ValuePathTuple("b", "foobar"),
             new ValuePathTuple("c", "foobar"),
-            new ValuePathTuple("d", "foobar"), 
+            new ValuePathTuple("d", "foobar"),
             new ValuePathTuple("e", "foobar"),
             new ValuePathTuple("f", "foobar"));
         Iterator<ValuePathTuple> filtered = Iterables.filter(data,
@@ -111,13 +111,13 @@ public class ValuePathTupleTest {
         assertEquals("c", filtered.next().getValue());
         assertEquals("d", filtered.next().getValue());
         assertFalse(filtered.hasNext());
-        
+
         data = ImmutableList.of(
             new ValuePathTuple("f", "foobar"),
             new ValuePathTuple("e", "foobar"),
-            new ValuePathTuple("d", "foobar"), 
+            new ValuePathTuple("d", "foobar"),
             new ValuePathTuple("c", "foobar"),
-            new ValuePathTuple("b", "foobar"), 
+            new ValuePathTuple("b", "foobar"),
             new ValuePathTuple("a", "foobar")
             );
         filtered = Iterables.filter(data,
@@ -129,14 +129,14 @@ public class ValuePathTupleTest {
         assertEquals("a", filtered.next().getValue());
         assertFalse(filtered.hasNext());
     }
-    
+
     @Test
     public void lessThanEqualPredicate() {
         List<ValuePathTuple> data = ImmutableList.of(
             new ValuePathTuple("a", "foobar"),
-            new ValuePathTuple("b", "foobar"), 
+            new ValuePathTuple("b", "foobar"),
             new ValuePathTuple("c", "foobar"),
-            new ValuePathTuple("d", "foobar"), 
+            new ValuePathTuple("d", "foobar"),
             new ValuePathTuple("e", "foobar"),
             new ValuePathTuple("f", "foobar"));
         Iterator<ValuePathTuple> filtered = Iterables.filter(data,

@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
  * An item might be returned multiple times.
  */
 public class BlobReferenceIterator implements Iterator<Blob> {
-    
+
     private static final int BATCH_SIZE = 1000;
     private final DocumentNodeStore nodeStore;
     private final DocumentStore docStore;
@@ -51,7 +51,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
         this.docStore = nodeStore.getDocumentStore();
         batchIterator = batch.iterator();
     }
-    
+
     @Override
     public boolean hasNext() {
         if (!batchIterator.hasNext()) {
@@ -73,7 +73,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
     public void remove() {
         throw new UnsupportedOperationException();
     }
-    
+
     private void loadBatch() {
         if (done) {
             return;
@@ -96,7 +96,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
     private boolean loadBatchQuery() {
         // read about BATCH_SIZE documents
         List<NodeDocument> list =
-                docStore.query(Collection.NODES, fromKey, ";", NodeDocument.HAS_BINARY_FLAG, 
+                docStore.query(Collection.NODES, fromKey, ";", NodeDocument.HAS_BINARY_FLAG,
                         NodeDocument.HAS_BINARY_VAL,
                         BATCH_SIZE);
         boolean hasMore = false;
@@ -121,7 +121,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
         }
         return hasMore;
     }
-    
+
     private void loadValue(String v) {
         JsopReader reader = new JsopTokenizer(v);
         PropertyState p;

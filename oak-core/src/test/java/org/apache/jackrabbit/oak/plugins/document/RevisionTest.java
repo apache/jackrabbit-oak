@@ -41,7 +41,7 @@ public class RevisionTest {
             assertTrue(r.equals(r2));
         }
     }
-    
+
     @Test
     public void difference() throws InterruptedException {
         long t0 = Revision.getCurrentTimestamp();
@@ -59,7 +59,7 @@ public class RevisionTest {
         Revision r2 = Revision.newRevision(0);
         assertTrue(Revision.getTimestampDifference(r2, r1) > 0);
     }
-    
+
     @Test
     public void equalsHashCode() {
         Revision a = Revision.newRevision(0);
@@ -89,7 +89,7 @@ public class RevisionTest {
         assertFalse(x3.equals(a));
         assertFalse(a.hashCode() == x3.hashCode());
     }
-    
+
     @Test
     public void compare() throws InterruptedException {
         Revision last = Revision.newRevision(0);
@@ -111,7 +111,7 @@ public class RevisionTest {
             }
         }
     }
-    
+
     @Test
     public void revisionComparatorSimple() {
         RevisionComparator comp = new RevisionComparator(0);
@@ -129,7 +129,7 @@ public class RevisionTest {
 
         Revision r0c1 = new Revision(0x010, 0, 1);
         Revision r0c2 = new Revision(0x010, 0, 2);
-        
+
         Revision r1c1 = new Revision(0x110, 0, 1);
         Revision r2c1 = new Revision(0x120, 0, 1);
         Revision r3c1 = new Revision(0x130, 0, 1);
@@ -205,14 +205,14 @@ public class RevisionTest {
         Revision r1c2 = new Revision(0x20, 0, 2);
         Revision r2c1 = new Revision(0x30, 0, 1);
         Revision r2c2 = new Revision(0x40, 0, 2);
-        
+
         comp.add(r1c1, new Revision(0x10, 0, 0));
         comp.add(r2c1, new Revision(0x20, 0, 0));
 
         // there's no range for c2, and therefore this
         // revision must be considered to be in the future
         assertTrue(comp.compare(r1c2, r2c1) > 0);
-        
+
         // add a range for r2r2
         comp.add(r2c2, new Revision(0x30, 0, 0));
 
@@ -253,5 +253,5 @@ public class RevisionTest {
         // within a range -> must return lower bound of next higher range
         assertEquals(new Revision(0x30, 0, 0), comp.getRevisionSeen(r21));
     }
-    
+
 }

@@ -38,7 +38,7 @@ import org.junit.Test;
  * Tests the ordered index.
  */
 public class OrderedPropertyIndexEditorTest {
-   
+
    @Test public void isProperlyConfiguredWithPropertyNames() {
       NodeBuilder definition = createNiceMock(NodeBuilder.class);
       PropertyState names = createNiceMock(PropertyState.class);
@@ -46,13 +46,13 @@ public class OrderedPropertyIndexEditorTest {
       expect(definition.getProperty(IndexConstants.PROPERTY_NAMES)).andReturn(names).anyTimes();
       replay(names);
       replay(definition);
-      
+
       OrderedPropertyIndexEditor ie = new OrderedPropertyIndexEditor(definition, null, null);
         assertFalse(
                 "With empty or missing property the index should not work.",
                 ie.isProperlyConfigured());
    }
-   
+
    @Test public void isProperlyConfiguredSingleValuePropertyNames() {
       NodeBuilder definition = createNiceMock(NodeBuilder.class);
       PropertyState names = createNiceMock(PropertyState.class);
@@ -61,14 +61,14 @@ public class OrderedPropertyIndexEditorTest {
       expect(definition.getProperty(IndexConstants.PROPERTY_NAMES)).andReturn(names).anyTimes();
       replay(names);
       replay(definition);
-      
+
       OrderedPropertyIndexEditor ie = new OrderedPropertyIndexEditor(definition, null, null);
       assertNotNull("With a correct property set 'propertyNames' can't be null", ie.getPropertyNames());
       assertEquals(1, ie.getPropertyNames().size());
       assertEquals("jcr:lastModified", ie.getPropertyNames().iterator().next());
       assertTrue("Expecting a properly configured index", ie.isProperlyConfigured());
    }
-   
+
    @Test public void multiValueProperty() {
       NodeBuilder definition = createNiceMock(NodeBuilder.class);
       PropertyState names = createNiceMock(PropertyState.class);
@@ -87,7 +87,7 @@ public class OrderedPropertyIndexEditorTest {
       assertEquals("jcr:lastModified", ie.getPropertyNames().iterator().next());
       assertTrue("Expecting a properly configured index", ie.isProperlyConfigured());
    }
-      
+
    @Test
    public void orderDirectionDefinitionNotSpecified() {
        final String property = "foobar";
@@ -99,7 +99,7 @@ public class OrderedPropertyIndexEditorTest {
        assertEquals(OrderedIndex.OrderDirection.ASC, editor.getDirection());
    }
 
-   @Test 
+   @Test
    public void orderDirectionDefinitionDescending() {
        final String property = "foobar";
        NodeBuilder definition = EmptyNodeState.EMPTY_NODE.builder();
@@ -111,7 +111,7 @@ public class OrderedPropertyIndexEditorTest {
         assertEquals(property, editor.getPropertyNames().iterator().next());
         assertEquals(OrderedIndex.OrderDirection.DESC, editor.getDirection());
    }
-   
+
    @Test
    public void orderDirectionUnknownDefinition() {
        final String property = "foobar";
@@ -126,7 +126,7 @@ public class OrderedPropertyIndexEditorTest {
                 "if we provide a non-valid definition for order the Ascending is expected",
                 OrderedIndex.OrderDirection.ASC, editor.getDirection());
     }
-   
+
    @Test
    public void strategies() {
        final String property = "foobar";

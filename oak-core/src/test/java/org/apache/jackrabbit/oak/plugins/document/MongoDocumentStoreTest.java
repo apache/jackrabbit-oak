@@ -47,12 +47,12 @@ import com.mongodb.WriteResult;
  * Tests the document store.
  */
 public class MongoDocumentStoreTest {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreTest.class);
 
 //    private static final boolean MONGO_DB = true;
 //    private static final int NODE_COUNT = 2000;
-    
+
     private static final boolean MONGO_DB = false;
     private static final int NODE_COUNT = 10;
 

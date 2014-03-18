@@ -65,7 +65,7 @@ public class DocumentMKGetNodesTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void depthNegative() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -87,7 +87,7 @@ public class DocumentMKGetNodesTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void depthOne() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -107,7 +107,7 @@ public class DocumentMKGetNodesTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void depthLimitless() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();

@@ -96,7 +96,7 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
     @Ignore("New DocumentMK only supports depth 0")
     public void removePath() {
         // Add level1 & level1/level2
-        String rev0 = mk.commit("/", 
+        String rev0 = mk.commit("/",
                 "+\"level1\":{}" +
                 "+\"level1/level2\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));

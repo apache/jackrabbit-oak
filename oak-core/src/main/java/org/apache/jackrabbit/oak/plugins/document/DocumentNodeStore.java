@@ -1656,9 +1656,9 @@ public final class DocumentNodeStore
     BlobSerializer getBlobSerializer() {
         return blobSerializer;
     }
-    
+
     public Iterator<Blob> getReferencedBlobsIterator() {
         return new BlobReferenceIterator(this);
     }
-    
+
 }

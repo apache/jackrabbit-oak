@@ -65,7 +65,7 @@ class Collision {
      * Marks the collision in the document store. Either our or their
      * revision is annotated with a collision marker. Their revision is
      * marked if it is not yet committed, otherwise our revision is marked.
-     * 
+     *
      * @param store the document store.
      * @return the revision that was marked. Either our or their.
      * @throws MicroKernelException if the mark operation fails.
@@ -91,7 +91,7 @@ class Collision {
     /**
      * Marks the commit root of the change to the given <code>document</code> in
      * <code>revision</code>.
-     * 
+     *
      * @param document the document.
      * @param revision the revision of the commit to annotated with a collision
      *            marker.
@@ -138,7 +138,7 @@ class Collision {
                 new Object[]{commitRootPath, p, revision});
         return true;
     }
-    
+
     private static void throwNoCommitRootException(@Nonnull Revision revision,
                                                    @Nonnull Document document)
                                                            throws MicroKernelException {

@@ -45,7 +45,7 @@ public class OrderDirectionEnumTest {
             .setProperty(OrderedIndex.DIRECTION, OrderDirection.DESC.getDirection()).getNodeState();
         assertEquals(OrderDirection.DESC, OrderDirection.fromIndexMeta(indexMeta));
     }
-    
+
     @Test
     public void isDescending(){
         NodeState indexMeta = null;
@@ -73,7 +73,7 @@ public class OrderDirectionEnumTest {
             .setProperty(OrderedIndex.DIRECTION, OrderDirection.DESC.getDirection()).getNodeState();
         assertFalse(OrderDirection.isAscending(indexMeta));
     }
-    
+
     @Test
     public void orderedDirectionFromString() {
         assertNull("A non-existing order direction should result in null",

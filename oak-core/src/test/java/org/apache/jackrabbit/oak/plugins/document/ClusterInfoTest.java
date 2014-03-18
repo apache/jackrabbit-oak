@@ -33,10 +33,10 @@ import com.mongodb.WriteConcern;
  * Test the ClusterInfo class
  */
 public class ClusterInfoTest {
-    
+
     @Test
     public void readWriteMode() throws InterruptedException {
-        
+
         MemoryDocumentStore mem = new MemoryDocumentStore();
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
@@ -51,7 +51,7 @@ public class ClusterInfoTest {
         List<ClusterNodeInfoDocument> list = mem.query(
                 Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
         assertEquals(2, list.size());
-        
+
         assertNull(mem.getReadPreference());
         assertNull(mem.getWriteConcern());
         mem.setReadWriteMode("read:primary, write:majority");
@@ -59,7 +59,7 @@ public class ClusterInfoTest {
         assertEquals(WriteConcern.MAJORITY, mem.getWriteConcern());
 
         UpdateOp op;
-        
+
         // unknown modes: ignore
         op = new UpdateOp(list.get(0).getId(), false);
         op.set("readWriteMode", "read:xyz, write:abc");

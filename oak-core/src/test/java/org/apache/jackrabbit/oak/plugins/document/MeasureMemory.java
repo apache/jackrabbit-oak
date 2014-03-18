@@ -30,9 +30,9 @@ import org.junit.Test;
  * Simple test to measure how much memory a certain object uses.
  */
 public class MeasureMemory {
-    
+
     static final boolean TRACE = false;
-    
+
     static final int TEST_COUNT = 10000;
     static final int OVERHEAD = 24;
 
@@ -48,7 +48,7 @@ public class MeasureMemory {
             }
         });
     }
-    
+
     @Test
     public void node() throws Exception {
         measureMemory(new Callable<Object[]>() {
@@ -59,7 +59,7 @@ public class MeasureMemory {
             }
         });
     }
-    
+
     @Test
     public void nodeWithoutProperties() throws Exception {
         measureMemory(new Callable<Object[]>() {
@@ -92,7 +92,7 @@ public class MeasureMemory {
             }
         });
     }
-    
+
     @Test
     public void nodeChildManyChildren() throws Exception {
         measureMemory(new Callable<Object[]>() {
@@ -125,7 +125,7 @@ public class MeasureMemory {
             }
         });
     }
-    
+
     private static void measureMemory(Callable<Object[]> c) throws Exception {
         LinkedList<Object> list = new LinkedList<Object>();
         long base = getMemoryUsed();
@@ -137,7 +137,7 @@ public class MeasureMemory {
         }
         long used = getMemoryUsed() - base;
         int estimation = (int) (100 * mem / used);
-        String message = 
+        String message =
                 new Error().getStackTrace()[1].getMethodName() + "\n" +
                 "used: " + used + " calculated: " + mem + "\n" +
                 "estimation is " + estimation + "%\n";
@@ -151,7 +151,7 @@ public class MeasureMemory {
         // the list might be garbage collected too early
         list.clear();
     }
-    
+
     static DocumentNodeState generateNode(int propertyCount) {
         DocumentNodeState n = new DocumentNodeState(STORE, new String("/hello/world"),
                 new Revision(1, 2, 3));
@@ -178,7 +178,7 @@ public class MeasureMemory {
         }
         return n;
     }
-    
+
     private static long getMemoryUsed() {
         for (int i = 0; i < 10; i++) {
             System.gc();
@@ -186,5 +186,5 @@ public class MeasureMemory {
         return Runtime.getRuntime().totalMemory()
                 - Runtime.getRuntime().freeMemory();
     }
-    
+
 }

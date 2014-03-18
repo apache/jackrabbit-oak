@@ -36,7 +36,7 @@ public class UpdateUtils {
 
     /**
      * Apply the changes to the in-memory document.
-     * 
+     *
      * @param doc
      *            the target document.
      * @param update
