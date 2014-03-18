@@ -110,10 +110,10 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     public synchronized <T extends Document> T getIfCached(final Collection<T> collection, final String key) {
         return store.getIfCached(collection, key);
     }
-    
+
     @Override
     public synchronized void setReadWriteMode(String readWriteMode) {
         store.setReadWriteMode(readWriteMode);
-    }    
-    
+    }
+
 }

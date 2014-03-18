@@ -88,7 +88,7 @@ public class ClusterTest {
 
         mk2.commit("/", "^\"test/x\":1", null, null);
         String n3 = mk3.getNodes("/test", mk3.getHeadRevision(), 0, 0, 10, null);
-        // mk3 didn't see the previous change yet; 
+        // mk3 didn't see the previous change yet;
         // it is questionable if this should prevent any changes to this node
         // (currently it does not)
         assertEquals("{\":childNodeCount\":0}", n3);

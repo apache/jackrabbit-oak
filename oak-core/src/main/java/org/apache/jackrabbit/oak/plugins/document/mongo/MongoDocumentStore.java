@@ -81,19 +81,19 @@ import com.mongodb.WriteResult;
 public class MongoDocumentStore implements CachingDocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
-    
+
     private static final boolean LOG_TIME = false;
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
-    
+
     /**
      * The sum of all milliseconds this class waited for MongoDB.
      */
     private long timeSum;
-    
+
     private final Cache<CacheValue, NodeDocument> nodesCache;
     private final CacheStats cacheStats;
 
@@ -159,11 +159,11 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 new NodeDocOffHeapCache(primaryCache, listener, builder, this);
         return cache;
     }
-    
+
     private static long start() {
         return LOG_TIME ? System.currentTimeMillis() : 0;
     }
-    
+
     private void end(String message, long start) {
         if (LOG_TIME) {
             long t = System.currentTimeMillis() - start;
@@ -173,7 +173,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             timeSum += t;
         }
     }
-    
+
     @Override
     public void finalize() throws Throwable {
         super.finalize();
@@ -181,7 +181,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         // oak-jcr doesn't call dispose()
         dispose();
     }
-    
+
     @Override
     public void invalidateCache() {
         //TODO Check if we should use LinearInvalidator for small cache sizes as
@@ -205,7 +205,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     public <T extends Document> T find(Collection<T> collection, String key) {
         return find(collection, key, Integer.MAX_VALUE);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public <T extends Document> T find(final Collection<T> collection,
@@ -267,7 +267,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             throw new IllegalStateException("Failed to load document with " + key, e);
         }
     }
-    
+
     @CheckForNull
     <T extends Document> T findUncached(Collection<T> collection, String key) {
         DBCollection dbCollection = getDBCollection(collection);
@@ -286,7 +286,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             end("findUncached", start);
         }
     }
-    
+
     @Nonnull
     @Override
     public <T extends Document> List<T> query(Collection<T> collection,
@@ -358,7 +358,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, String key) {
-        log("remove", key);        
+        log("remove", key);
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
@@ -461,7 +461,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
-        log("create", updateOps);       
+        log("create", updateOps);
         List<T> docs = new ArrayList<T>();
         DBObject[] inserts = new DBObject[updateOps.size()];
 
@@ -622,7 +622,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     private static QueryBuilder getByKeyQuery(String key) {
         return QueryBuilder.start(Document.ID).is(key);
     }
-    
+
     @Override
     public void dispose() {
         if (LOG.isDebugEnabled()) {
@@ -670,7 +670,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             LOG.debug(message + argList);
         }
     }
-    
+
     @Override
     public <T extends Document> T getIfCached(Collection<T> collection, String key) {
         if (collection != Collection.NODES) {
@@ -878,7 +878,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     nodes.setReadPreference(readPref);
                     LOG.info("Using ReadPreference " + readPref);
                 }
-            } 
+            }
             String write = map.get("write");
             if (write != null) {
                 WriteConcern writeConcern = WriteConcern.valueOf(write);

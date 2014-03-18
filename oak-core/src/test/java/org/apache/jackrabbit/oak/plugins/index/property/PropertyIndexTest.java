@@ -60,7 +60,7 @@ public class PropertyIndexTest {
 
     private static final EditorHook HOOK = new EditorHook(
             new IndexUpdateProvider(new PropertyIndexEditorProvider()));
-    
+
     @Test
     public void costEstimation() throws Exception {
         NodeState root = INITIAL_CONTENT;
@@ -84,14 +84,14 @@ public class PropertyIndexTest {
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         double cost;
-        
+
         cost = lookup.getCost(f, "foo", PropertyValues.newString("x1"));
         assertTrue("cost: " + cost, cost >= 6.5 && cost <= 7.5);
-        
+
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
                 Arrays.asList("x1", "x2")));
         assertTrue("cost: " + cost, cost >= 11.5 && cost <= 12.5);
-        
+
         cost = lookup.getCost(f, "foo", PropertyValues.newString(
                 Arrays.asList("x1", "x2", "x3", "x4", "x5")));
         assertTrue("cost: " + cost, cost >= 26.5 && cost <= 27.5);
@@ -128,7 +128,7 @@ public class PropertyIndexTest {
         // threshold for estimation (PropertyIndexLookup.MAX_COST) is at 100
         int nodes = 101;
         int levels = 12;
-        
+
         NodeBuilder data = builder;
         for (int i = 0; i < levels; i++) {
             data = data.child("l" + i);

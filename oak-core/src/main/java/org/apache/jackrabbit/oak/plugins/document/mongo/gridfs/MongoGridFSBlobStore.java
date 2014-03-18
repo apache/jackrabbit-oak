@@ -67,5 +67,5 @@ public class MongoGridFSBlobStore implements BlobStore {
         Command<String> command = new WriteBlobCommandGridFS(gridFS, is);
         return commandExecutor.execute(command);
     }
-    
+
 }

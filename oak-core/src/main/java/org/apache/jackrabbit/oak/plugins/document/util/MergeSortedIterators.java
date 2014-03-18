@@ -33,7 +33,7 @@ import com.google.common.collect.PeekingIterator;
  * the provided Comparator. In addition the sequence of iterators must also
  * be sorted in a way that the first element of the next iterator is greater
  * than the first element of the previous iterator.
- * 
+ *
  * @param <T> the entry type
  */
 public abstract class MergeSortedIterators<T> implements Iterator<T> {

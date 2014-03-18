@@ -56,7 +56,7 @@ public class DocumentMK implements MicroKernel {
      */
     static final int MANY_CHILDREN_THRESHOLD = Integer.getInteger(
             "oak.documentMK.manyChildren", 50);
-    
+
     /**
      * Enable the LIRS cache.
      */
@@ -74,7 +74,7 @@ public class DocumentMK implements MicroKernel {
      */
     static final int CACHE_CONCURRENCY = Integer.getInteger(
             "oak.documentMK.cacheConcurrency", 16);
-        
+
     /**
      * The node store.
      */
@@ -162,7 +162,7 @@ public class DocumentMK implements MicroKernel {
         }
         return nodeStore.diff(fromRevisionId, toRevisionId, path);
     }
-    
+
     @Override
     public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
@@ -335,7 +335,7 @@ public class DocumentMK implements MicroKernel {
     public DocumentStore getDocumentStore() {
         return store;
     }
-    
+
     //------------------------------< internal >--------------------------------
 
     private void parseJsonDiff(Commit commit, String json, String rootPath) {
@@ -466,7 +466,7 @@ public class DocumentMK implements MicroKernel {
 
         /**
          * Set the MongoDB connection to use. By default an in-memory store is used.
-         * 
+         *
          * @param db the MongoDB connection
          * @return this
          */
@@ -486,7 +486,7 @@ public class DocumentMK implements MicroKernel {
         /**
          * Sets a JDBC connection URL to use for the RDB document and blob
          * stores.
-         * 
+         *
          * @return this
          */
         public Builder setRDBConnection(String jdbcurl, String username, String password) {
@@ -498,7 +498,7 @@ public class DocumentMK implements MicroKernel {
         /**
          * Sets a JDBC connection URLs to use for the RDB document and blob
          * stores.
-         * 
+         *
          * @return this
          */
         public Builder setRDBConnection(String dsjdbcurl, String dsusername, String dspassword, String bsjdbcurl,
@@ -511,7 +511,7 @@ public class DocumentMK implements MicroKernel {
         /**
          * Sets a {@link DataSource} to use for the RDB document and blob
          * stores.
-         * 
+         *
          * @return this
          */
         public Builder setRDBConnection(DataSource ds) {
@@ -523,7 +523,7 @@ public class DocumentMK implements MicroKernel {
         /**
          * Sets a {@link DataSource}s to use for the RDB document and blob
          * stores.
-         * 
+         *
          * @return this
          */
         public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
@@ -534,7 +534,7 @@ public class DocumentMK implements MicroKernel {
 
         /**
          * Use the timing document store wrapper.
-         * 
+         *
          * @param timing whether to use the timing wrapper.
          * @return this
          */
@@ -558,7 +558,7 @@ public class DocumentMK implements MicroKernel {
 
         /**
          * Set the document store to use. By default an in-memory store is used.
-         * 
+         *
          * @param documentStore the document store
          * @return this
          */
@@ -566,7 +566,7 @@ public class DocumentMK implements MicroKernel {
             this.documentStore = documentStore;
             return this;
         }
-        
+
         public DocumentStore getDocumentStore() {
             if (documentStore == null) {
                 documentStore = new MemoryDocumentStore();
@@ -583,7 +583,7 @@ public class DocumentMK implements MicroKernel {
 
         /**
          * Set the blob store to use. By default an in-memory store is used.
-         * 
+         *
          * @param blobStore the blob store
          * @return this
          */
@@ -602,7 +602,7 @@ public class DocumentMK implements MicroKernel {
         /**
          * Set the cluster id to use. By default, 0 is used, meaning the cluster
          * id is automatically generated.
-         * 
+         *
          * @param clusterId the cluster id
          * @return this
          */
@@ -610,15 +610,15 @@ public class DocumentMK implements MicroKernel {
             this.clusterId = clusterId;
             return this;
         }
-        
+
         public int getClusterId() {
             return clusterId;
         }
-        
+
         /**
          * Set the maximum delay to write the last revision to the root node. By
          * default 1000 (meaning 1 second) is used.
-         * 
+         *
          * @param asyncDelay in milliseconds
          * @return this
          */
@@ -626,7 +626,7 @@ public class DocumentMK implements MicroKernel {
             this.asyncDelay = asyncDelay;
             return this;
         }
-        
+
         public int getAsyncDelay() {
             return asyncDelay;
         }
@@ -677,12 +677,12 @@ public class DocumentMK implements MicroKernel {
         public boolean isUseSimpleRevision() {
             return useSimpleRevision;
         }
-        
+
         public Builder setSplitDocumentAgeMillis(long splitDocumentAgeMillis) {
             this.splitDocumentAgeMillis = splitDocumentAgeMillis;
             return this;
         }
-        
+
         public long getSplitDocumentAgeMillis() {
             return splitDocumentAgeMillis;
         }
@@ -702,13 +702,13 @@ public class DocumentMK implements MicroKernel {
 
         /**
          * Open the DocumentMK instance using the configured options.
-         * 
+         *
          * @return the DocumentMK instance
          */
         public DocumentMK open() {
             return new DocumentMK(this);
         }
-        
+
         public <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(long maxWeight) {
             if (LIRS_CACHE) {
                 return CacheLIRS.newBuilder().

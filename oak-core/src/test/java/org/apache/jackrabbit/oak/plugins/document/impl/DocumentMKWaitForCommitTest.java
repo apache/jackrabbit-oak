@@ -59,7 +59,7 @@ public class DocumentMKWaitForCommitTest extends AbstractMongoConnectionTest {
         long after = System.currentTimeMillis();
         assertEquals(headRev, rev);
         // Basically no wait.
-        assertTrue(after - before < 100); 
+        assertTrue(after - before < 100);
     }
 
     @Test
@@ -122,7 +122,7 @@ public class DocumentMKWaitForCommitTest extends AbstractMongoConnectionTest {
         assertEquals(headRev, rev);
         assertEquals(headRev, rev);
         // Basically no wait.
-        assertTrue(after - before < 10); 
+        assertTrue(after - before < 10);
     }
 
     private ScheduledFuture<String> scheduleCommit(long delay, final String revisionId) {

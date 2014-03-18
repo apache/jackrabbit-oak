@@ -49,13 +49,13 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
      * the property used by the index
      */
     public static final String ORDERED_PROPERTY = "foo";
-    
+
     /**
      * number of nodes to create for testing.
-     * 
+     *
      * It has been found during development that in some cases the order of the nodes creation
      * within the persistence where the actual expected order.
-     * 
+     *
      * The higher the value the lower the chance for this to happen.
      */
     protected static final int NUMBER_OF_NODES = 50;
@@ -69,8 +69,8 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     /**
      * generate a list of values to be used as ordered set. Will return something like
      * {@code value000, value001, value002, ...}
-     * 
-     * 
+     *
+     *
      * @param amount
      * @param direction the direction of the sorting
      * @return a list of {@code amount} values ordered as specified by {@code direction}
@@ -93,17 +93,17 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
         }
         return values;
     }
-    
+
     /**
      * as {@code generateOrderedValues(int, OrderDirection)} by forcing OrderDirection.ASC
-     * 
+     *
      * @param amount
      * @return
      */
     protected static List<String> generateOrderedValues(int amount) {
         return generateOrderedValues(amount, OrderDirection.ASC);
     }
-    
+
     /**
      * As {@link #child(Tree, String, String, String, Type)} but forces {@code String} as
      * {@code Type}.
@@ -124,7 +124,7 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     /**
      * convenience method that adds a bunch of nodes in random order and return the order in which
      * they should be presented by the OrderedIndex
-     * 
+     *
      * @param values the values of the property that will be indexed
      * @param father the father under which add the nodes
      * @param direction the direction of the items to be added.
@@ -154,7 +154,7 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
 
     /**
      * assert the right order of the returned resultset
-     * 
+     *
      * @param orderedSequence the right order in which the resultset should be returned
      * @param resultset the resultset
      */
@@ -165,31 +165,31 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
         while (resultset.hasNext() && counter < orderedSequence.size()) {
             ResultRow row = resultset.next();
             assertEquals(
-                String.format("Wrong path at the element '%d'", counter), 
+                String.format("Wrong path at the element '%d'", counter),
                 orderedSequence.get(counter).getPath(),
                 row.getPath()
             );
             counter++;
         }
     }
-    
+
     /**
      * convenience method for generating a list of ordered dates as string in ISO
      * 8601:2000-compliant format.
-     * 
+     *
      * {@link http ://www.day.com/specs/jcr/2.0/3_Repository_Model.html#3.6.4.3%20From%20DATE%20To}.
-     * 
+     *
      * it will add or remove depending of the {@code direction} provided, 12hrs for every entry to
      * be generated.
-     * 
-     * 
+     *
+     *
      * @param amount
      * @param direction the direction of the sorting. If null the {@code OrderDirection.ASC} will be
      *            used
      * @param start the date from which to start from in the generation
      * @return a list of {@code amount} values ordered as specified by {@code direction}
      */
-    protected static List<String> generateOrderedDates(int amount, 
+    protected static List<String> generateOrderedDates(int amount,
                                                        OrderDirection direction,
                                                        @Nonnull final Calendar start) {
         if (amount > 1000) {
@@ -208,7 +208,7 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
 
     /**
      * create a child node for the provided father
-     * 
+     *
      * @param father
      * @param name the name of the node to create
      * @param propName the name of the property to assign
@@ -217,7 +217,7 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
      * @return the just added child
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    static Tree child(@Nonnull Tree father, @Nonnull String name, @Nonnull String propName, 
+    static Tree child(@Nonnull Tree father, @Nonnull String name, @Nonnull String propName,
                       @Nonnull String propValue, @Nonnull Type type) {
         Tree child = father.addChild(name);
         child.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
@@ -237,13 +237,13 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     /**
      * convenience method that adds a bunch of nodes in random order and return the order in which
      * they should be presented by the OrderedIndex
-     * 
+     *
      * @param values the values of the property that will be indexed
      * @param father the father under which add the nodes
      * @return
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    protected void addChildNodes(final List<String> values, 
+    protected void addChildNodes(final List<String> values,
                                  final NodeBuilder father,
                                  @Nonnull final Type propertyType) {
         Random rnd = new Random();

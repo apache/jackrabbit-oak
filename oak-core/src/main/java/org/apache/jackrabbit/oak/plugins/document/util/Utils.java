@@ -49,14 +49,14 @@ public class Utils {
      */
     private static final int REVISION_LENGTH =
             new Revision(System.currentTimeMillis(), 0, 0).toString().length();
-    
+
     /**
      * The length of path (in characters), whose UTF-8 representation can not
      * possibly be too large to be used for the primary key for the document
      * store.
      */
     private static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 330);
-    
+
     /**
      * The maximum length of the parent path, in bytes. If the parent path is
      * longer, then the id of a document is no longer the path, but the hash of
@@ -73,14 +73,14 @@ public class Utils {
      * This is only needed for older versions of Java (before Java 7 update 6).
      * See also
      * http://mail.openjdk.java.net/pipermail/core-libs-dev/2012-May/010257.html
-     * 
+     *
      * @param x the string
      * @return the new string
      */
     public static String unshareString(String x) {
         return new String(x);
     }
-    
+
     public static int pathDepth(String path) {
         if (path.equals("/")) {
             return 0;
@@ -93,7 +93,7 @@ public class Utils {
         }
         return depth;
     }
-    
+
     public static <K, V> Map<K, V> newMap() {
         return new TreeMap<K, V>();
     }
@@ -140,16 +140,16 @@ public class Utils {
         } else {
             // overhead for some other kind of map
             // TreeMap (80) + unmodifiable wrapper (32)
-            size += 112; 
+            size += 112;
             // 64 bytes per entry
-            size += map.size() * 64; 
+            size += map.size() * 64;
         }
         return size;
     }
 
     /**
      * Generate a unique cluster id, similar to the machine id field in MongoDB ObjectId objects.
-     * 
+     *
      * @return the unique machine id
      */
     public static int getUniqueClusterId() {
@@ -195,7 +195,7 @@ public class Utils {
         }
         return buff == null ? propertyName : buff.toString();
     }
-    
+
     public static String unescapePropertyName(String key) {
         int len = key.length();
         if (key.startsWith("_")
@@ -224,7 +224,7 @@ public class Utils {
         }
         return buff == null ? key : buff.toString();
     }
-    
+
     public static boolean isPropertyName(String key) {
         return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
     }
@@ -246,7 +246,7 @@ public class Utils {
         int depth = Utils.pathDepth(path);
         return depth + ":" + path;
     }
-    
+
     public static boolean isLongPath(String path) {
         // the most common case: a short path
         // avoid calculating the parent path
@@ -260,7 +260,7 @@ public class Utils {
         }
         return true;
     }
-    
+
     public static String getPathFromId(String id) {
         int index = id.indexOf(':');
         if (id.charAt(index + 1) == 'h') {
@@ -288,7 +288,7 @@ public class Utils {
 
     /**
      * Deep copy of a map that may contain map values.
-     * 
+     *
      * @param source the source map
      * @param target the target map
      * @param <K> the type of the map key
@@ -312,7 +312,7 @@ public class Utils {
             target.put(e.getKey(), value);
         }
     }
-    
+
     /**
      * Returns the lower key limit to retrieve the children of the given
      * <code>path</code>.

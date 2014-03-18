@@ -29,10 +29,10 @@ import org.junit.BeforeClass;
  * skipped if the configured MongoDB connection can not be created.
  */
 public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
-    
+
     protected MongoConnection mongoConnection;
     protected DocumentMK mk;
-    
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeNotNull(MongoUtils.getConnection());

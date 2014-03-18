@@ -34,7 +34,7 @@ public interface DocumentStore {
      * {@code maxCacheAge} of {@code Integer.MAX_VALUE}.
      * <p>
      * The returned document is immutable.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
@@ -52,7 +52,7 @@ public interface DocumentStore {
      * newer version of the document.
      * <p>
      * The returned document is immutable.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
@@ -67,7 +67,7 @@ public interface DocumentStore {
      * less than an end value, sorted by the key.
      * <p>
      * The returned documents are immutable.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param fromKey the start value (excluding)
@@ -84,7 +84,7 @@ public interface DocumentStore {
     /**
      * Get a list of documents where the key is greater than a start value and
      * less than an end value. The returned documents are immutable.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param fromKey the start value (excluding)
@@ -113,7 +113,7 @@ public interface DocumentStore {
 
     /**
      * Try to create a list of documents.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param updateOps the list of documents to add
@@ -133,7 +133,7 @@ public interface DocumentStore {
     <T extends Document> void update(Collection<T> collection,
                                      List<String> keys,
                                      UpdateOp updateOp);
-    
+
     /**
      * Create or update a document. For MongoDB, this is using "findAndModify" with
      * the "upsert" flag (insert or update). The returned document is immutable.
@@ -172,7 +172,7 @@ public interface DocumentStore {
 
     /**
      * Invalidate the document cache for the given key.
-     * 
+     *
      * @param <T> the document type
      * @param collection the collection
      * @param key the key
@@ -197,9 +197,9 @@ public interface DocumentStore {
 
     /**
      * Set the level of guarantee for read and write operations, if supported by this backend.
-     * 
+     *
      * @param readWriteMode the read/write mode
      */
     void setReadWriteMode(String readWriteMode);
-    
+
 }

@@ -75,7 +75,7 @@ public class TimingWrapper implements MicroKernel {
         try {
             long start = now();
             String result = mk.commit(path, jsonDiff, revisionId, message);
-            updateAndLogTimes("commit", start, 
+            updateAndLogTimes("commit", start,
                     size(path) + size(jsonDiff) + size(message), 0);
             return result;
         } catch (Exception e) {
@@ -294,11 +294,11 @@ public class TimingWrapper implements MicroKernel {
             System.out.println("[" + id + "] " + message);
         }
     }
-    
+
     private static int size(String s) {
         return s == null ? 0 : s.length();
     }
-    
+
     private static long now() {
         return System.currentTimeMillis();
     }
@@ -332,15 +332,15 @@ public class TimingWrapper implements MicroKernel {
                 long in = c.paramSize / 1024 / 1024;
                 long out = c.resultSize / 1024 / 1024;
                 if (count > 0) {
-                    log(e.getKey() + 
-                            " count " + count + 
+                    log(e.getKey() +
+                            " count " + count +
                             " " + (100 * count / totalCount) + "%" +
                             " in " + in + " out " + out +
                             " time " + total +
                             " " + (100 * total / totalTime) + "%");
                 }
             }
-            log("all count " + totalCount + " time " + totalTime + " " + 
+            log("all count " + totalCount + " time " + totalTime + " " +
                     (100 * totalTime / totalLogTime) + "%");
             log("------");
         }

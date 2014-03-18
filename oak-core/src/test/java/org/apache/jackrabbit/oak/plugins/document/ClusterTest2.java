@@ -26,13 +26,13 @@ import static org.junit.Assert.assertEquals;
  * A set of simple cluster tests.
  */
 public class ClusterTest2 {
-    
+
     @Test
     public void twoNodes() throws Exception {
         MemoryDocumentStore ds = new MemoryDocumentStore();
         MemoryBlobStore bs = new MemoryBlobStore();
         DocumentMK.Builder builder;
-        
+
         builder = new DocumentMK.Builder();
         builder.setDocumentStore(ds).setBlobStore(bs);
         DocumentMK mk1 = builder.setClusterId(1).open();
@@ -42,7 +42,7 @@ public class ClusterTest2 {
 
         mk1.commit("/", "+\"test\":{\"x\": 1}", null, null);
         mk1.backgroundWrite();
-        
+
         mk2.backgroundRead();
         String b1 = mk2.branch(mk2.getHeadRevision());
         mk2.commit("/", "-\"test\"", b1, null);
@@ -50,11 +50,11 @@ public class ClusterTest2 {
         String b2b = mk2.commit("/", "-\"test\"", b2, null);
         mk2.merge(b2b, null);
         mk2.backgroundWrite();
-        
+
         mk1.backgroundRead();
         mk1.commit("/", "+\"test\":{\"x\": 1}", null, null);
         mk1.backgroundWrite();
-        
+
         mk2.backgroundRead();
 
         String n1 = mk1.getNodes("/test", mk1.getHeadRevision(), 0, 0, 10, null);

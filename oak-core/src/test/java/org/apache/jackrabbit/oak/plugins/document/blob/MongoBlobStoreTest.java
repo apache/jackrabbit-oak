@@ -31,18 +31,18 @@ import org.junit.BeforeClass;
 public class MongoBlobStoreTest extends AbstractBlobStoreTest {
 
     private MongoConnection mongoConnection;
-    
+
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeNotNull(MongoUtils.getConnection());
     }
-    
+
     @Before
     @Override
     public void setUp() throws Exception {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
-        
+
         MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDB());
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);

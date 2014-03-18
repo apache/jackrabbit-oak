@@ -31,7 +31,7 @@ import com.mongodb.DB;
  * Tests the blob store.
  */
 public class BlobTest {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
 //     private static final boolean MONGO_DB = true;
@@ -41,11 +41,11 @@ public class BlobTest {
     private static final boolean MONGO_DB = false;
     private static final long TOTAL_SIZE = 1 * 1024 * 1024;
     private static final int DOCUMENT_COUNT = 10;
-    
+
     DB openMongoConnection() {
         return MONGO_DB ? MongoUtils.getConnection().getDB() : null;
     }
-    
+
     void dropCollections() {
         if (MONGO_DB) {
             MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
@@ -58,7 +58,7 @@ public class BlobTest {
                 setMongoDB(openMongoConnection()).open();
         long blobSize = TOTAL_SIZE / DOCUMENT_COUNT;
         ArrayList<String> blobIds = new ArrayList<String>();
-        // use a new seed each time, to allow running the test multiple times 
+        // use a new seed each time, to allow running the test multiple times
         Random r = new Random();
         for (int i = 0; i < DOCUMENT_COUNT; i++) {
             log("writing " + i + "/" + DOCUMENT_COUNT);
@@ -70,9 +70,9 @@ public class BlobTest {
         }
         mk.dispose();
     }
-    
+
     private static void log(String s) {
         LOG.info(s);
     }
-    
+
 }

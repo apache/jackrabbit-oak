@@ -51,5 +51,5 @@ public class SimpleNodeScenario {
     public String deleteB() throws Exception {
         return mk.commit("/a", "-\"b\"", null, "Commit with deleted /a/b");
     }
-    
+
 }

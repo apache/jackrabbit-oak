@@ -25,7 +25,7 @@ public class CloudStoreUtils {
 
     /**
      * Gets the blob store.
-     * 
+     *
      * @return the blob store
      * @throws Exception
      *             the exception

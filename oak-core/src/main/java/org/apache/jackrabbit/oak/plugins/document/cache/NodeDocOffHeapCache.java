@@ -283,7 +283,7 @@ public class NodeDocOffHeapCache
             this.key = key;
             this.path = doc.getPath();
         }
-        
+
         @Override
         public String getPath() {
             return path;

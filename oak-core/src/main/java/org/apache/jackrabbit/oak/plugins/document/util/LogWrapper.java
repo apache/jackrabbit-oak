@@ -29,11 +29,11 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A logging microkernel implementation.
- * 
+ *
  * @param <T> the wrapped microkernel
  */
 public class LogWrapper<T extends MicroKernel> implements MicroKernel {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(LogWrapper.class);
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("mk.debug", "true"));

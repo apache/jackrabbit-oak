@@ -79,7 +79,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public <T extends Document> T find(Collection<T> collection, String key, int maxCacheAge) {
         return find(collection, key);
     }
-    
+
     @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
         Lock lock = rwLock.readLock();
@@ -91,7 +91,7 @@ public class MemoryDocumentStore implements DocumentStore {
             lock.unlock();
         }
     }
-    
+
     @Override
     @Nonnull
     public <T extends Document> List<T> query(Collection<T> collection,
@@ -100,7 +100,7 @@ public class MemoryDocumentStore implements DocumentStore {
                                 int limit) {
         return query(collection, fromKey, toKey, null, 0, limit);
     }
-    
+
     @Override
     @Nonnull
     public <T extends Document> List<T> query(Collection<T> collection,
@@ -289,7 +289,7 @@ public class MemoryDocumentStore implements DocumentStore {
         if (readWriteMode == null || readWriteMode.equals(lastReadWriteMode)) {
             return;
         }
-        lastReadWriteMode = readWriteMode;        
+        lastReadWriteMode = readWriteMode;
         try {
             Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
             String read = map.get("read");
@@ -298,7 +298,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (!readPref.equals(this.readPreference)) {
                     this.readPreference = readPref;
                 }
-            } 
+            }
             String write = map.get("write");
             if (write != null) {
                 WriteConcern writeConcern = WriteConcern.valueOf(write);
@@ -310,7 +310,7 @@ public class MemoryDocumentStore implements DocumentStore {
             // unsupported or parse error - ignore
         }
     }
-    
+
     public ReadPreference getReadPreference() {
         return readPreference;
     }

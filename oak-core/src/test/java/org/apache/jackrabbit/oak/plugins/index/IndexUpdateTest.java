@@ -64,7 +64,7 @@ public class IndexUpdateTest {
      * <li>Add some content</li>
      * <li>Search & verify</li>
      * </ul>
-     * 
+     *
      */
     @Test
     public void test() throws Exception {

@@ -33,7 +33,7 @@ public class Revision {
 
     private static volatile long lastRevisionTimestamp;
     private static volatile int lastRevisionCount;
-    
+
     /**
      * The timestamp in milliseconds since 1970 (unlike in seconds as in
      * MongoDB). The timestamp is local to the machine that generated the
@@ -41,13 +41,13 @@ public class Revision {
      * machine id is the same.
      */
     private final long timestamp;
-    
+
     /**
      * An incrementing counter, for commits that occur within the same
      * millisecond.
      */
     private final int counter;
-    
+
     /**
      * The cluster id (the MongoDB machine id).
      */
@@ -57,11 +57,11 @@ public class Revision {
      * Whether this is a branch revision.
      */
     private final boolean branch;
-    
+
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
     }
-    
+
     public Revision(long timestamp, int counter, int clusterId, boolean branch) {
         this.timestamp = timestamp;
         this.counter = counter;
@@ -74,7 +74,7 @@ public class Revision {
      * the counter is compared.
      * <p>
      * This method requires that both revisions are from the same cluster node.
-     * 
+     *
      * @param other the other revision
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
      * @throws IllegalArgumentException if the cluster ids don't match
@@ -82,7 +82,7 @@ public class Revision {
     int compareRevisionTime(Revision other) {
         if (clusterId != other.clusterId) {
             throw new IllegalArgumentException(
-                    "Trying to compare revisions of different cluster ids: " + 
+                    "Trying to compare revisions of different cluster ids: " +
                             this + " and " + other);
         }
         int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
@@ -91,15 +91,15 @@ public class Revision {
         }
         return comp;
     }
-    
+
     /**
      * Compare the time part of two revisions. If they contain the same time,
      * the counter is compared. If the counter is the same, the cluster ids are
      * compared.
-     * 
+     *
      * @param other the other revision
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
-     */    
+     */
     int compareRevisionTimeThenClusterId(Revision other) {
         int comp = timestamp < other.timestamp ? -1 : timestamp > other.timestamp ? 1 : 0;
         if (comp == 0) {
@@ -110,20 +110,20 @@ public class Revision {
         }
         return comp;
     }
-    
+
     /**
      * Compare the cluster node ids of both revisions.
-     * 
+     *
      * @param other the other revision
      * @return -1 if this revision occurred earlier, 1 if later, 0 if equal
      */
     int compareClusterId(Revision other) {
         return clusterId < other.clusterId ? -1 : clusterId > other.clusterId ? 1 : 0;
     }
-    
+
     /**
      * Create a simple revision id. The format is similar to MongoDB ObjectId.
-     * 
+     *
      * @param clusterId the unique machineId + processId
      * @return the unique revision id
      */
@@ -140,12 +140,12 @@ public class Revision {
         }
         return new Revision(timestamp, c, clusterId);
     }
-    
+
     /**
      * Get the timestamp value of the current date and time. Within the same
      * process, the returned value is never smaller than a previously returned
      * value, even if the system time was changed.
-     * 
+     *
      * @return the timestamp
      */
     public static long getCurrentTimestamp() {
@@ -159,11 +159,11 @@ public class Revision {
         }
         return timestamp;
     }
-    
+
     /**
      * Get the timestamp difference between two revisions (r1 - r2) in
      * milliseconds.
-     * 
+     *
      * @param r1 the first revision
      * @param r2 the second revision
      * @return the difference in milliseconds
@@ -171,7 +171,7 @@ public class Revision {
     public static long getTimestampDifference(Revision r1, Revision r2) {
         return r1.getTimestamp() - r2.getTimestamp();
     }
-    
+
     public static Revision fromString(String rev) {
         boolean isBranch = false;
         if (rev.startsWith("b")) {
@@ -197,7 +197,7 @@ public class Revision {
         int clusterId = Integer.parseInt(t, 16);
         return new Revision(timestamp, c, clusterId, isBranch);
     }
-    
+
     @Override
     public String toString() {
         return toStringBuilder(new StringBuilder()).toString();
@@ -245,10 +245,10 @@ public class Revision {
         }
         return buff.toString();
     }
-    
+
     /**
      * Get the timestamp in milliseconds since 1970.
-     * 
+     *
      * @return the timestamp
      */
     public long getTimestamp() {
@@ -299,7 +299,7 @@ public class Revision {
     public int hashCode() {
         return (int) (timestamp >>> 32) ^ (int) timestamp ^ counter ^ clusterId;
     }
-    
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
@@ -310,8 +310,8 @@ public class Revision {
             return false;
         }
         Revision r = (Revision) other;
-        return r.timestamp == this.timestamp && 
-                r.counter == this.counter && 
+        return r.timestamp == this.timestamp &&
+                r.counter == this.counter &&
                 r.clusterId == this.clusterId &&
                 r.branch == this.branch;
     }
@@ -337,7 +337,7 @@ public class Revision {
      * the current process.
      */
     static class RevisionRange {
-        
+
         /**
          * The newest revision for the given cluster instance and time.
          */
@@ -348,14 +348,14 @@ public class Revision {
          * cluster instance.
          */
         Revision seenAt;
-        
+
         @Override
         public String toString() {
             return revision + ":" + seenAt;
         }
-        
+
     }
-    
+
     /**
      * A facility that is able to compare revisions of different cluster instances.
      * It contains a map of revision ranges.
@@ -365,22 +365,22 @@ public class Revision {
         static final Revision NEWEST = new Revision(Long.MAX_VALUE, 0, 0);
 
         static final Revision FUTURE = new Revision(Long.MAX_VALUE, Integer.MAX_VALUE, 0);
-        
+
         /**
          * The map of cluster instances to lists of revision ranges.
          */
-        private final ConcurrentMap<Integer, List<RevisionRange>> map = 
+        private final ConcurrentMap<Integer, List<RevisionRange>> map =
                 new ConcurrentHashMap<Integer, List<RevisionRange>>();
-        
+
         /**
          * When comparing revisions that occurred before, the timestamp is ignored.
          */
         private long oldestTimestamp;
-        
+
         /**
-         * The cluster node id of the current cluster node. Revisions 
+         * The cluster node id of the current cluster node. Revisions
          * from this cluster node that are newer than the newest range
-         * (new local revisions) 
+         * (new local revisions)
          * are considered to be the newest revisions overall.
          */
         private final int currentClusterNodeId;
@@ -388,12 +388,12 @@ public class Revision {
         RevisionComparator(int currentClusterNodId) {
             this.currentClusterNodeId = currentClusterNodId;
         }
-        
+
         /**
          * Forget the order of older revisions. After calling this method, when comparing
          * revisions that happened before the given value, the timestamp order is used
          * (time dilation is ignored for older events).
-         * 
+         *
          * @param timestamp the time in milliseconds (see {@link #getCurrentTimestamp})
          */
         public void purge(long timestamp) {
@@ -417,7 +417,7 @@ public class Revision {
                         }
                     }
                 }
-            } 
+            }
         }
 
         private List<RevisionRange> purge(List<RevisionRange> list) {
@@ -435,11 +435,11 @@ public class Revision {
             }
             return new ArrayList<RevisionRange>(list.subList(i, list.size()));
         }
-        
+
         /**
          * Add the revision to the top of the queue for the given cluster node.
          * If an entry for this timestamp already exists, it is replaced.
-         * 
+         *
          * @param r the revision
          * @param seenAt the (local) revision where this revision was seen here
          */
@@ -462,7 +462,7 @@ public class Revision {
                     }
                     if (last.revision.compareRevisionTime(r) > 0) {
                         throw new IllegalArgumentException(
-                                "Can not add an earlier revision: " + last.revision + " > " + r + 
+                                "Can not add an earlier revision: " + last.revision + " > " + r +
                                 "; current cluster node is " + currentClusterNodeId);
                     }
                     newList = new ArrayList<RevisionRange>(list);
@@ -474,7 +474,7 @@ public class Revision {
                 if (list == null) {
                     if (map.putIfAbsent(clusterId, newList) == null) {
                         return;
-                    }                    
+                    }
                 } else {
                     if (map.replace(clusterId, list, newList)) {
                         return;
@@ -482,7 +482,7 @@ public class Revision {
                 }
             }
         }
-        
+
         @Override
         public int compare(Revision o1, Revision o2) {
             if (o1.getClusterId() == o2.getClusterId()) {
@@ -564,7 +564,7 @@ public class Revision {
             }
             return null;
         }
-        
+
         @Override
         public String toString() {
             StringBuilder buff = new StringBuilder();
@@ -581,7 +581,7 @@ public class Revision {
             }
             return buff.toString();
         }
-        
+
     }
 
 }

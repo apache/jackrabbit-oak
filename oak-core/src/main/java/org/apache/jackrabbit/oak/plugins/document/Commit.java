@@ -59,7 +59,7 @@ public class Commit {
      * which are actually changed it also contains there parent node paths
      */
     private HashSet<String> modifiedNodes = new HashSet<String>();
-    
+
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
 
@@ -111,7 +111,7 @@ public class Commit {
     Revision getBaseRevision() {
         return baseRevision;
     }
-    
+
     void addNodeDiff(DocumentNodeState n) {
         diff.tag('+').key(n.getPath());
         diff.object();
@@ -119,7 +119,7 @@ public class Commit {
         diff.endObject();
         diff.newline();
     }
-    
+
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
@@ -412,7 +412,7 @@ public class Commit {
             }
         }
     }
-    
+
     private void rollback(List<UpdateOp> newDocuments,
                           List<UpdateOp> changed,
                           UpdateOp commitRoot) {
@@ -434,7 +434,7 @@ public class Commit {
     /**
      * Try to create or update the node. If there was a conflict, this method
      * throws an exception, even though the change is still applied.
-     * 
+     *
      * @param store the store
      * @param op the operation
      */
@@ -551,7 +551,7 @@ public class Commit {
 
     /**
      * Apply the changes to the DocumentNodeStore (to update the cache).
-     * 
+     *
      * @param before the revision right before this commit.
      * @param isBranchCommit whether this is a commit to a branch
      */
@@ -601,7 +601,7 @@ public class Commit {
     public void moveNode(String sourcePath, String targetPath) {
         diff.tag('>').key(sourcePath).value(targetPath);
     }
-    
+
     public void copyNode(String sourcePath, String targetPath) {
         diff.tag('*').key(sourcePath).value(targetPath);
     }
@@ -624,7 +624,7 @@ public class Commit {
     public void updatePropertyDiff(String path, String propertyName, String value) {
         diff.tag('^').key(PathUtils.concat(path, propertyName)).value(value);
     }
-    
+
     public void removeNodeDiff(String path) {
         diff.tag('-').value(path).newline();
     }

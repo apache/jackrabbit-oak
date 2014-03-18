@@ -40,7 +40,7 @@ import com.mongodb.WriteResult;
  * Implementation of blob store for the MongoDB extending from
  * {@link AbstractBlobStore}. It saves blobs into a separate collection in
  * MongoDB (not using GridFS) and it supports basic garbage collection.
- * 
+ *
  * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is
  * going to work for multiple MKs talking to same MongoDB?
  */
@@ -52,7 +52,7 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private final DB db;
     private long minLastModified;
-    
+
     /**
      * Constructs a new {@code MongoBlobStore}
      *
@@ -79,7 +79,7 @@ public class MongoBlobStore extends CachingBlobStore {
             getBlobCollection().insert(mongoBlob);
         } catch (MongoException.DuplicateKey e) {
             // the same block was already stored before: ignore
-        } 
+        }
     }
 
     @Override
@@ -168,7 +168,7 @@ public class MongoBlobStore extends CachingBlobStore {
 
     private MongoBlob getBlob(String id, long lastMod) {
         DBObject query = getBlobQuery(id, lastMod);
-        
+
         // try the secondary first
         // TODO add a configuration option for whether to try reading from secondary
         ReadPreference pref = ReadPreference.secondaryPreferred();
@@ -193,7 +193,7 @@ public class MongoBlobStore extends CachingBlobStore {
         }
         return queryBuilder.get();
     }
-    
+
     @Override
     public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();

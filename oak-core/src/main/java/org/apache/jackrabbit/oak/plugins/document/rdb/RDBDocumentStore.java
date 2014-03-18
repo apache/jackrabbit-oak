@@ -678,7 +678,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
      * the cache with the document key. This method does not acquire a lock from
      * {@link #locks}! The caller must ensure a lock is held for the given
      * document.
-     * 
+     *
      * @param doc
      *            the document to add to the cache.
      * @return either the given <code>doc</code> or the document already present

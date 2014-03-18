@@ -80,7 +80,7 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
      * Scenario: 3 MKs total, 2 MKs point to DB1, 1 points to DB2.
      */
     @Test
-    @Ignore    
+    @Ignore
     public void basicMultiTenancy() {
         mk1.commit("/", "+\"a\" : {}", null, null);
         assertEquals(1, mk1.getChildNodeCount("/", null));

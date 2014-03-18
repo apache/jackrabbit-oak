@@ -88,7 +88,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void copyNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
         assertTrue(mk.nodeExists("/a", null));
@@ -130,7 +130,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void addNodeAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{}\n" +
@@ -151,7 +151,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void addNodeWithChildrenAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{ \"c\" : {}, \"d\" : {} }\n" +
@@ -164,7 +164,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void addNodeWithNestedChildrenAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { } } }", null, null);
         mk.commit("/", "+\"a/b/c/d\":{}\n"
@@ -175,7 +175,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void addNodeAndCopyParent() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{}\n" +
@@ -186,7 +186,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removeNodeAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
 
@@ -200,7 +200,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removeNodeWithNestedChildrenAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { \"d\" : {} } } }", null, null);
         mk.commit("/", "-\"a/b/c/d\"\n"
@@ -212,7 +212,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removeNodeAndCopyParent() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
         mk.commit("/", "-\"a/b\"\n" +
@@ -223,7 +223,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void setPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "^\"a/key1\": \"value1\"\n" +
@@ -236,7 +236,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void setNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
         mk.commit("/", "^\"a/b/key1\": \"value1\"\n" +
@@ -249,7 +249,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void modifyParentAddPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
@@ -263,7 +263,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removePropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
         mk.commit("/", "^\"a/b/key1\": null\n" +
@@ -276,7 +276,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removeNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "^\"a/key1\" : null\n" +
@@ -289,7 +289,7 @@ public class DocumentMKCommitCopyTest extends BaseDocumentMKTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void modifyParentRemovePropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
