@@ -191,13 +191,26 @@ class TarFile {
         access.write(position, header, 0, BLOCK_SIZE);
     }
 
-    public void flush() throws IOException {
-        access.flush();
+    public boolean flush() throws IOException {
+        try {
+            access.flush();
+            return true;
+        } catch (IOException e) {
+            StackTraceElement[] trace = e.getStackTrace();
+            if (trace.length > 2
+                    && "java.nio.MappedByteBuffer".equals(trace[0].getClassName())
+                    && "force0".equals(trace[0].getMethodName())
+                    && "java.nio.MappedByteBuffer".equals(trace[1].getClassName())
+                    && "force".equals(trace[1].getMethodName())) {
+                return false;
+            } else {
+                throw e;
+            }
+        }
     }
 
 
     void close() throws IOException {
-        flush();
         access.close();
     }
 
