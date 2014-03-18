@@ -93,7 +93,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
      */
     public RDBDocumentStore(String jdbcurl, String username, String password, DocumentMK.Builder builder) {
         try {
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, username, password);
             initialize(ds, builder);
         } catch (Exception ex) {
             throw new MicroKernelException("initializing RDB document store", ex);
