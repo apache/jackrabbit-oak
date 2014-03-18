@@ -20,6 +20,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -27,6 +36,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -34,22 +44,24 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.core.id.NodeId;
-import org.apache.jackrabbit.core.id.PropertyId;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
-import org.apache.jackrabbit.core.state.ChildNodeEntry;
+import org.apache.jackrabbit.core.persistence.util.NodePropBundle;
+import org.apache.jackrabbit.core.persistence.util.NodePropBundle.ChildNodeEntry;
+import org.apache.jackrabbit.core.persistence.util.NodePropBundle.PropertyEntry;
 import org.apache.jackrabbit.core.state.ItemStateException;
-import org.apache.jackrabbit.core.state.NodeState;
-import org.apache.jackrabbit.core.state.PropertyState;
 import org.apache.jackrabbit.core.value.InternalValue;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.Path;
 import org.apache.jackrabbit.util.ISO8601;
@@ -62,33 +74,48 @@ class JackrabbitNodeState extends AbstractNodeState {
             LoggerFactory.getLogger(JackrabbitNodeState.class);
 
     /**
-     * Source persistence manager.
+     * Bundle loader based on the source persistence manager.
      */
-    private final PersistenceManager source;
+    private final BundleLoader loader;
+
+    private final TypePredicate isReferenceable;
+
+    private final TypePredicate isOrderable;
 
     /**
      * Source namespace mappings (URI -&lt; prefix).
      */
     private final Map<String, String> uriToPrefix;
 
-    private final NodeState state;
+    private final Map<String, NodeId> nodes;
+
+    private final Map<String, PropertyState> properties;
 
     private final boolean useBinaryReferences;
 
-    private JackrabbitNodeState(JackrabbitNodeState parent, NodeState state) {
-        this.source = parent.source;
+    private JackrabbitNodeState(
+            JackrabbitNodeState parent, NodePropBundle bundle) {
+        this.loader = parent.loader;
+        this.isReferenceable = parent.isReferenceable;
+        this.isOrderable = parent.isOrderable;
         this.uriToPrefix = parent.uriToPrefix;
-        this.state = state;
+        this.nodes = createNodes(bundle);
+        this.properties = createProperties(bundle);
         this.useBinaryReferences = parent.useBinaryReferences;
     }
 
     JackrabbitNodeState(
-            PersistenceManager source, Map<String, String> uriToPrefix,
-            NodeId id, boolean useBinaryReferences) {
-        this.source = source;
+            PersistenceManager source, NodeState root,
+            Map<String, String> uriToPrefix, NodeId id,
+            boolean useBinaryReferences) {
+        this.loader = new BundleLoader(source);
+        this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
+        this.isOrderable = TypePredicate.isOrderable(root);
         this.uriToPrefix = uriToPrefix;
         try {
-            this.state = source.load(id);
+            NodePropBundle bundle = loader.loadBundle(id);
+            this.nodes = createNodes(bundle);
+            this.properties = createProperties(bundle);
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
@@ -103,43 +130,34 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     @Override
-    public Iterable<org.apache.jackrabbit.oak.api.PropertyState> getProperties() {
-        List<org.apache.jackrabbit.oak.api.PropertyState> properties = newArrayList();
-        for (Name name : state.getPropertyNames()) {
-            String oakName = createName(name);
-            try {
-                PropertyState property = source.load(
-                        new PropertyId(state.getNodeId(), name));
-                int type = property.getType();
-                if (property.isMultiValued()) {
-                    properties.add(createProperty(
-                            oakName, type, property.getValues()));
-                } else {
-                    properties.add(createProperty(
-                            oakName, type, property.getValues()[0]));
-                }
-            } catch (Exception e) {
-                warn("Unable to access property " + oakName, e);
-            }
-        }
-        return properties;
+    public boolean hasProperty(String name) {
+        return properties.containsKey(name);
+    }
+
+    @Override
+    public PropertyState getProperty(String name) {
+        return properties.get(name);
+    }
+
+    @Override
+    public Iterable<PropertyState> getProperties() {
+        return properties.values();
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        for (MemoryChildNodeEntry entry : getChildNodeEntries()) {
-            if (name.equals(entry.getName())) {
-                return true;
-            }
-        }
-        return false;
+        return nodes.containsKey(name);
     }
 
     @Override
-    public org.apache.jackrabbit.oak.spi.state.NodeState getChildNode(String name) {
-        for (MemoryChildNodeEntry entry : getChildNodeEntries()) {
-            if (name.equals(entry.getName())) {
-                return entry.getNodeState();
+    public NodeState getChildNode(String name) {
+        NodeId id = nodes.get(name);
+        if (id != null) {
+            try {
+                return new JackrabbitNodeState(this, loader.loadBundle(id));
+            } catch (ItemStateException e) {
+                throw new IllegalStateException(
+                        "Unable to access child node " + name, e);
             }
         }
         checkValidName(name);
@@ -149,20 +167,14 @@ class JackrabbitNodeState extends AbstractNodeState {
     @Override
     public Iterable<MemoryChildNodeEntry> getChildNodeEntries() {
         List<MemoryChildNodeEntry> entries = newArrayList();
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            String name = createName(entry.getName());
-            int index = entry.getIndex();
-            if (index > 1) {
-                name = name + '[' + index + ']';
-            }
-
+        for (Map.Entry<String, NodeId> entry : nodes.entrySet()) {
+            String name = entry.getKey();
             try {
-                NodeState childState = source.load(entry.getId());
-                JackrabbitNodeState child =
-                        new JackrabbitNodeState(this, childState);
+                JackrabbitNodeState child = new JackrabbitNodeState(
+                        this, loader.loadBundle(entry.getValue()));
                 entries.add(new MemoryChildNodeEntry(name, child));
             } catch (ItemStateException e) {
-                warn("Unable to access child entry " + name, e);
+                warn("Skipping broken child node entry " + name, e);
             }
         }
         return entries;
@@ -174,6 +186,73 @@ class JackrabbitNodeState extends AbstractNodeState {
     }
 
     //-----------------------------------------------------------< private >--
+
+    private Map<String, NodeId> createNodes(NodePropBundle bundle) {
+        Map<String, NodeId> children = newLinkedHashMap();
+        for (ChildNodeEntry entry : bundle.getChildNodeEntries()) {
+            String base = createName(entry.getName());
+            String name = base;
+            for (int i = 2; children.containsKey(name); i++) {
+                name = base + '[' + i + ']';
+            }
+            children.put(name, entry.getId());
+        }
+        return children;
+    }
+
+    public Map<String, PropertyState> createProperties(NodePropBundle bundle) {
+        Map<String, PropertyState> properties = newHashMap();
+
+        String primary;
+        if (bundle.getNodeTypeName() != null) {
+            primary = createName(bundle.getNodeTypeName());
+        } else {
+            warn("Missing primary node type; defaulting to nt:unstructured");
+            primary = NT_UNSTRUCTURED;
+        }
+        properties.put(JCR_PRIMARYTYPE, PropertyStates.createProperty(
+                JCR_PRIMARYTYPE, primary, Type.NAME));
+
+        Set<String> mixins = newLinkedHashSet();
+        if (bundle.getMixinTypeNames() != null) {
+            for (Name mixin : bundle.getMixinTypeNames()) {
+                mixins.add(createName(mixin));
+            }
+        }
+        if (!mixins.isEmpty()) {
+            properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
+                    JCR_MIXINTYPES, mixins, Type.NAMES));
+        }
+
+        if (bundle.isReferenceable()
+                || isReferenceable.apply(primary, mixins)) {
+            properties.put(JCR_UUID, PropertyStates.createProperty(
+                    JCR_UUID, bundle.getId().toString()));
+        }
+
+        if (isOrderable.apply(primary, mixins)) {
+            properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
+                    OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
+        }
+
+        for (PropertyEntry property : bundle.getPropertyEntries()) {
+            String name = createName(property.getName());
+            try {
+                int type = property.getType();
+                if (property.isMultiValued()) {
+                    properties.put(name, createProperty(
+                            name, type, property.getValues()));
+                } else {
+                    properties.put(name, createProperty(
+                            name, type, property.getValues()[0]));
+                }
+            } catch (Exception e) {
+                warn("Skipping broken property entry " + name, e);
+            }
+        }
+
+        return properties;
+    }
 
     private org.apache.jackrabbit.oak.api.PropertyState createProperty(
             String name, int type, InternalValue value)
