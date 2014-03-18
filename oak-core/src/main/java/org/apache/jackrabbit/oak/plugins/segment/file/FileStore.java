@@ -213,11 +213,18 @@ public class FileStore implements SegmentStore {
                 tracker.getWriter().flush();
 
                 synchronized (this) {
+                    boolean success = true;
                     for (TarFile file : bulkFiles) {
-                        file.flush();
+                        success = success && file.flush();
                     }
                     for (TarFile file : dataFiles) {
-                        file.flush();
+                        success = success && file.flush();
+                    }
+                    if (!success) {
+                        log.warn("Failed to sync one ore more tar files with"
+                                + " the underlying file system, possibly because of"
+                                + " http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6539707."
+                                + " Will retry later.");
                     }
                     journalFile.writeBytes(after + " root\n");
                     journalFile.getChannel().force(false);

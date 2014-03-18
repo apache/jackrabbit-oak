@@ -29,6 +29,8 @@ class RandomAccess implements FileAccess {
 
     private final RandomAccessFile file;
 
+    private boolean updated = false;
+
     RandomAccess(@Nonnull RandomAccessFile file) throws IOException {
         this.file = checkNotNull(file);
     }
@@ -55,16 +57,20 @@ class RandomAccess implements FileAccess {
             throws IOException {
         file.seek(position);
         file.write(buffer, offset, length);
+        updated = true;
     }
 
     @Override
-    public void flush() throws IOException {
-        file.getFD().sync();
+    public synchronized void flush() throws IOException {
+        if (updated) {
+            file.getFD().sync();
+            updated = false;
+        }
     }
 
     @Override
-    public void close() throws IOException {
-        file.close();
+    public synchronized void close() throws IOException {
+        file.close(); // will automatically sync unsaved changes
     }
 
 }

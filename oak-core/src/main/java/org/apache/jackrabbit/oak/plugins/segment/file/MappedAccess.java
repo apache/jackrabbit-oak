@@ -66,7 +66,7 @@ class MappedAccess implements FileAccess {
     }
 
     @Override
-    public synchronized void flush() {
+    public synchronized void flush() throws IOException {
         if (updated) {
             buffer.force();
             updated = false;
@@ -74,7 +74,8 @@ class MappedAccess implements FileAccess {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
+        flush();
     }
 
 }
