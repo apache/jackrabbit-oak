@@ -239,24 +239,16 @@ public class SegmentWriter {
     }
 
     private synchronized int getSegmentRef(SegmentId segmentId) {
-        if (segmentId == segment.getSegmentId()) {
-            return 0;
-        }
-
-        long msb = segmentId.getMostSignificantBits();
-        long lsb = segmentId.getLeastSignificantBits();
-
         int refcount = segment.getRefCount();
-        for (int refid = 1; refid < refcount; refid++) {
-            if (msb == segment.readLong(refid * 16)
-                    && lsb == segment.readLong(refid * 16 + 8)) {
-                return refid;
+        for (int index = 0; index < refcount; index++) {
+            if (segmentId == segment.getRefId(index)) {
+                return index;
             }
         }
 
-        ByteBuffer data = ByteBuffer.wrap(buffer);
-        data.putLong(refcount * 16, msb);
-        data.putLong(refcount * 16 + 8, lsb);
+        ByteBuffer.wrap(buffer, refcount * 16, 16)
+            .putLong(segmentId.getMostSignificantBits())
+            .putLong(segmentId.getLeastSignificantBits());
         buffer[Segment.REF_COUNT_OFFSET] = (byte) refcount;
         return refcount;
     }
