@@ -16,7 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.PATHS;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -46,16 +57,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.PATH;
-import static org.apache.jackrabbit.oak.api.Type.PATHS;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
-import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 /**
  * TODO document
  */
@@ -63,6 +64,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
     public static final String ITEM_SAVE_DOES_SESSION_SAVE = "item-save-does-session-save";
+    public static final int MV_PROPERTY_WARN_THRESHOLD = 1000;
 
     /**
      * The value of this flag determines the behaviour of {@link #save()}. If {@code false},
