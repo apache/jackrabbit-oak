@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
+import org.apache.jackrabbit.oak.stats.TimeSeriesMax;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +82,7 @@ class ChangeProcessor implements Observer {
     private final AtomicReference<List<FilterProvider>> filterProvider;
     private final AtomicLong eventCount;
     private final AtomicLong eventDuration;
+    private final TimeSeriesMax maxQueueLength;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
 
@@ -104,6 +106,7 @@ class ChangeProcessor implements Observer {
         filterProvider = new AtomicReference<List<FilterProvider>>(filters);
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
+        this.maxQueueLength = statisticManager.maxQueLengthRecorder();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
     }
@@ -151,6 +154,7 @@ class ChangeProcessor implements Observer {
 
             @Override
             protected void added(int queueSize) {
+                maxQueueLength.recordValue(queueSize);
                 if (warnWhenFull && queueSize == queueLength) {
                     warnWhenFull = false;
                     if (commitRateLimiter != null) {
