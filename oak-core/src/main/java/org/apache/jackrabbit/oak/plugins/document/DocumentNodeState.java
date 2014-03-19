@@ -52,7 +52,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -241,8 +240,8 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     if (lastRevision.equals(mBase.lastRevision)) {
                         // no differences
                         return true;
-                    } else if (getChildNodeCount(MANY_CHILDREN_THRESHOLD) > MANY_CHILDREN_THRESHOLD) {
-                        // use DocumentNodeStore compare when there are many children
+                    } else {
+                        // use DocumentNodeStore compare
                         return dispatch(store.diffChildren(this, mBase), mBase, diff);
                     }
                 }

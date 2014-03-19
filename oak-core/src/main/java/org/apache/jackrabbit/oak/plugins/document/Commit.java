@@ -569,6 +569,7 @@ public class Commit {
             }
             list.add(p);
         }
+        DiffCache.Entry cacheEntry = nodeStore.getDiffCache().newEntry(before, revision);
         List<String> added = new ArrayList<String>();
         List<String> removed = new ArrayList<String>();
         List<String> changed = new ArrayList<String>();
@@ -592,10 +593,10 @@ public class Commit {
             boolean isNew = op != null && op.isNew();
             boolean pendingLastRev = op == null
                     || !NodeDocument.hasLastRev(op, revision.getClusterId());
-            boolean isDelete = op != null && op.isDelete();
-            nodeStore.applyChanges(revision, before, path, isNew, isDelete,
-                    pendingLastRev, isBranchCommit, added, removed, changed);
+            nodeStore.applyChanges(revision, path, isNew, pendingLastRev,
+                    isBranchCommit, added, removed, changed, cacheEntry);
         }
+        cacheEntry.done();
     }
 
     public void moveNode(String sourcePath, String targetPath) {

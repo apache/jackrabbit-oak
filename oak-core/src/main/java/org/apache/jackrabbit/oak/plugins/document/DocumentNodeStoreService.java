@@ -261,16 +261,21 @@ public class DocumentNodeStoreService {
         registrations.add(
                 registerMBean(wb,
                         CacheStatsMBean.class,
-                        store.getDiffCacheStats(),
-                        CacheStatsMBean.TYPE,
-                        store.getDiffCacheStats().getName()));
-        registrations.add(
-                registerMBean(wb,
-                        CacheStatsMBean.class,
                         store.getDocChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
                         store.getDocChildrenCacheStats().getName())
         );
+        DiffCache cl = store.getDiffCache();
+        if (cl instanceof MemoryDiffCache) {
+            MemoryDiffCache mcl = (MemoryDiffCache) cl;
+            registrations.add(
+                    registerMBean(wb,
+                            CacheStatsMBean.class,
+                            mcl.getDiffCacheStats(),
+                            CacheStatsMBean.TYPE,
+                            mcl.getDiffCacheStats().getName()));
+            
+        }
 
         DocumentStore ds = store.getDocumentStore();
         if (ds instanceof CachingDocumentStore) {
