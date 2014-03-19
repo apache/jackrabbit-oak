@@ -260,12 +260,17 @@ public class Utils {
         }
         return true;
     }
+    
+    public static boolean isIdFromLongPath(String id) {
+        int index = id.indexOf(':');
+        return id.charAt(index + 1) == 'h';
+    }
 
     public static String getPathFromId(String id) {
-        int index = id.indexOf(':');
-        if (id.charAt(index + 1) == 'h') {
+        if (isIdFromLongPath(id)) {
             throw new IllegalArgumentException("Id is hashed: " + id);
         }
+        int index = id.indexOf(':');
         return id.substring(index + 1);
     }
 

@@ -41,6 +41,8 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.document.mongo.CacheInvalidator.InvalidationResult;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
@@ -132,6 +134,43 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
         //Query would only have been done for first two levels /a and /a/b, /a/c, /a/d
         assertEquals(4, result.cacheEntriesProcessedCount);
+    }
+
+    @Test
+    public void testCacheInvalidationHierarchicalNotExist()
+            throws CommitFailedException {
+
+        NodeBuilder b2 = getRoot(c2).builder();
+        // we create x/other, so that x is known to have a child node
+        b2.child("x").child("other");
+        b2.child("y");
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        c2.runBackgroundOperations();
+        c1.runBackgroundOperations();
+
+        // we check for the existence of "x/futureX", which
+        // should create a negative entry in the cache
+        NodeState x = getRoot(c1).getChildNode("x");
+        assertTrue(x.exists());
+        assertFalse(x.getChildNode("futureX").exists());
+        // we don't check for the existence of "y/futureY"
+        NodeState y = getRoot(c1).getChildNode("y");
+        assertTrue(y.exists());
+
+        // now we add both "futureX" and "futureY"
+        // in the other cluster node
+        b2.child("x").child("futureX").setProperty("z", "1");
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        b2.child("y").child("futureY").setProperty("z", "2");
+        c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        c2.runBackgroundOperations();
+        c1.runBackgroundOperations();
+
+        // both nodes should now be visible
+        assertTrue(getRoot(c1).getChildNode("y").getChildNode("futureY").exists());
+        assertTrue(getRoot(c1).getChildNode("x").getChildNode("futureX").exists());
+
     }
 
     @Test

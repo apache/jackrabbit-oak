@@ -279,13 +279,23 @@ abstract class CacheInvalidator {
                 //key is referring to a split document
                 result.cacheSize++;
                 CachedNodeDocument doc = e.getValue();
+                String path;
                 if (doc == NodeDocument.NULL) {
-                    // we only need to process documents that exist
-                    continue;
+                    String id = e.getKey().toString();
+                    if (Utils.isIdFromLongPath(id)) {
+                        LOG.debug("Negative cache entry with long path {}. Invalidating", id);
+                        documentStore.invalidateCache(Collection.NODES, id);
+                        path = null;
+                    } else {
+                        path = Utils.getPathFromId(id);
+                    }
+                } else {
+                    path = doc.getPath();
                 }
-                String path = doc.getPath();
-                for (String name : PathUtils.elements(path)) {
-                    current = current.child(name);
+                if (path != null) {
+                    for (String name : PathUtils.elements(path)) {
+                        current = current.child(name);
+                    }
                 }
             }
             return root;
