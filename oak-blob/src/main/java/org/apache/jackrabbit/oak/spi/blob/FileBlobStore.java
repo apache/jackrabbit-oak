@@ -27,6 +27,7 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -219,20 +220,22 @@ public class FileBlobStore extends AbstractBlobStore {
     }
 
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
-        byte[] digest = StringUtils.convertHexToBytes(chunkId);
-        File f = getFile(digest, false);
-        if (!f.exists()) {
-            File old = getFile(digest, true);
-            f.getParentFile().mkdir();
-            old.renameTo(f);
-            f = getFile(digest, false);
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        for (String chunkId : chunkIds) {
+            byte[] digest = StringUtils.convertHexToBytes(chunkId);
+            File f = getFile(digest, false);
+            if (!f.exists()) {
+                File old = getFile(digest, true);
+                f.getParentFile().mkdir();
+                old.renameTo(f);
+                f = getFile(digest, false);
+            }
+            if ((maxLastModifiedTime <= 0) 
+                    || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
+                f.delete();
+            }
         }
-        if ((maxLastModifiedTime <= 0) 
-                || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
-            return f.delete();
-        }
-        return false;
+        return true;
     }
 
     @Override

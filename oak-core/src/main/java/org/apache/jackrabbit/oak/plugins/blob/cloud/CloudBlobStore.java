@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.blob.cloud;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -226,18 +227,20 @@ public class CloudBlobStore extends CachingBlobStore {
 
         final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
         return new CloudStoreIterator(blobStore, maxLastModifiedTime);
-}
+    }
 
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         Preconditions.checkNotNull(context);
 
-        final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
-        StorageMetadata metadata = blobStore.blobMetadata(cloudContainer, chunkId);
-        if ((maxLastModifiedTime <= 0) 
-                || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
-            blobStore.removeBlob(cloudContainer, chunkId);
-            return true;
+        for (String chunkId : chunkIds) {
+            final org.jclouds.blobstore.BlobStore blobStore = context.getBlobStore();
+            StorageMetadata metadata = blobStore.blobMetadata(cloudContainer, chunkId);
+            if ((maxLastModifiedTime <= 0) 
+                    || (metadata.getLastModified().getTime() <= maxLastModifiedTime)) {
+                blobStore.removeBlob(cloudContainer, chunkId);
+                return true;
+            }
         }
         return true;
     }
