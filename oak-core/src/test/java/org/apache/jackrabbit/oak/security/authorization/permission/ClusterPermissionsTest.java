@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -29,7 +34,6 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -38,14 +42,15 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceIndexProvider;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
@@ -54,13 +59,10 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
+@Ignore("OAK-1569") // FIXME OAK-1569: ClusterPermissionsTest occasionally fails on Windows
 public class ClusterPermissionsTest {
 
     private DocumentNodeStore ns1;
