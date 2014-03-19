@@ -16,12 +16,24 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -81,17 +93,6 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Sets.newLinkedHashSet;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
-
 /**
  * TODO document
  *
@@ -108,7 +109,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NodeImpl.class);
 
     public static NodeImpl<? extends NodeDelegate> createNodeOrNull(
             NodeDelegate delegate, SessionContext context)
@@ -534,7 +535,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (nd == null) {
                     throw new PathNotFoundException(oakPath);
                 } else {
-                    return NodeImpl.createNode(nd, sessionContext);
+                    return createNode(nd, sessionContext);
                 }
             }
         });
@@ -1028,7 +1029,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 // check for pending changes
                 if (sessionDelegate.hasPendingChanges()) {
                     String msg = "Unable to perform operation. Session has pending changes.";
-                    log.debug(msg);
+                    LOG.debug(msg);
                     throw new InvalidItemStateException(msg);
                 }
 
@@ -1376,6 +1377,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final PropertyState state = createMultiState(
                 oakName, compact(values), Type.fromTag(type, true));
+
+        if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
+            LOG.warn("Large multi valued property detected ({} values).", values.length);
+        }
+
         return perform(new ItemWriteOperation<Property>() {
             @Override
             public void checkPreconditions() throws RepositoryException {

@@ -45,11 +45,14 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.session.operation.PropertyOperation;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
+    private static final Logger LOG = LoggerFactory.getLogger(PropertyImpl.class);
 
     private static final Value[] NO_VALUES = new Value[0];
 
@@ -459,8 +462,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    private void internalSetValue(final @Nonnull Value[] values)
+    private void internalSetValue(@Nonnull final Value[] values)
             throws RepositoryException {
+        if (values.length > MV_PROPERTY_WARN_THRESHOLD) {
+            LOG.warn("Large multi valued property detected ({} values).", values.length);
+        }
+
         perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
