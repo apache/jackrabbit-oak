@@ -445,6 +445,7 @@ public class DocumentMK implements MicroKernel {
         private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
+        private DiffCache diffCache;
         private BlobStore blobStore;
         private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
         private int asyncDelay = 1000;
@@ -478,6 +479,10 @@ public class DocumentMK implements MicroKernel {
 
                 if (this.blobStore == null) {
                     this.blobStore = new MongoBlobStore(db);
+                }
+
+                if (this.diffCache == null) {
+                    this.diffCache = new MongoDiffCache(db, this);
                 }
             }
             return this;
@@ -581,6 +586,18 @@ public class DocumentMK implements MicroKernel {
             return nodeStore;
         }
 
+        public DiffCache getDiffCache() {
+            if (diffCache == null) {
+                diffCache = new MemoryDiffCache(this);
+            }
+            return diffCache;
+        }
+
+        public Builder setDiffCache(DiffCache diffCache) {
+            this.diffCache = diffCache;
+            return this;
+        }
+
         /**
          * Set the blob store to use. By default an in-memory store is used.
          *
@@ -643,7 +660,7 @@ public class DocumentMK implements MicroKernel {
         public Builder memoryCacheSize(long memoryCacheSize) {
             this.nodeCacheSize = memoryCacheSize * 25 / 100;
             this.childrenCacheSize = memoryCacheSize * 10 / 100;
-            this.diffCacheSize = memoryCacheSize * 2 / 100;
+            this.diffCacheSize = memoryCacheSize * 5 / 100;
             this.docChildrenCacheSize = memoryCacheSize * 3 / 100;
             this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize - diffCacheSize - docChildrenCacheSize;
             return this;
