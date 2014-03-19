@@ -53,9 +53,11 @@ public class RepositoryStats implements RepositoryStatsMBean {
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryStats.class);
 
     private final RepositoryStatistics repoStats;
+    private final TimeSeries maxQueueLength;
 
-    public RepositoryStats(RepositoryStatistics repoStats) {
+    public RepositoryStats(RepositoryStatistics repoStats, TimeSeries maxQueueLength) {
         this.repoStats = repoStats;
+        this.maxQueueLength = maxQueueLength;
     }
 
     @Override
@@ -128,29 +130,40 @@ public class RepositoryStats implements RepositoryStatsMBean {
         return asCompositeData(OBSERVATION_EVENT_AVERAGE);
     }
 
+    @Override
+    public CompositeData getObservationQueueMaxLength() {
+        return asCompositeData(maxQueueLength, "maximal length of observation queue");
+    }
+
     public static final String[] ITEM_NAMES = new String[] {
             "per second", "per minute", "per hour", "per week"};
 
+    private TimeSeries getTimeSeries(Type type) {
+        return repoStats.getTimeSeries(type);
+    }
+
     private CompositeData asCompositeData(Type type) {
+        return asCompositeData(getTimeSeries(type), type.name());
+    }
+
+    private static CompositeData asCompositeData(TimeSeries timeSeries, String name) {
         try {
-            TimeSeries timeSeries = repoStats.getTimeSeries(type);
             long[][] values = new long[][] {
                 timeSeries.getValuePerSecond(),
                 timeSeries.getValuePerMinute(),
                 timeSeries.getValuePerHour(),
                 timeSeries.getValuePerWeek()};
-            return new CompositeDataSupport(getCompositeType(type), ITEM_NAMES, values);
+            return new CompositeDataSupport(getCompositeType(name), ITEM_NAMES, values);
         } catch (Exception e) {
             LOG.error("Error creating CompositeData instance from TimeSeries", e);
             return null;
         }
     }
 
-    private static CompositeType getCompositeType(Type type) throws OpenDataException {
+    private static CompositeType getCompositeType(String name) throws OpenDataException {
         ArrayType<int[]> longArrayType = new ArrayType<int[]>(SimpleType.LONG, true);
         OpenType<?>[] itemTypes = new OpenType[] {
                 longArrayType, longArrayType, longArrayType, longArrayType};
-        String name = type.toString();
         return new CompositeType(name, name + " time series", ITEM_NAMES, ITEM_NAMES, itemTypes);
     }
 

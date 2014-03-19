@@ -99,4 +99,9 @@ public interface RepositoryStatsMBean {
      * @see org.apache.jackrabbit.api.stats.RepositoryStatistics.Type#OBSERVATION_EVENT_AVERAGE
      */
     CompositeData getObservationEventAverage();
+
+    /**
+     * Maximum length of observation queue in the respective time period.
+     */
+    CompositeData getObservationQueueMaxLength();
 }
