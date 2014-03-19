@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -276,8 +277,13 @@ abstract class CacheInvalidator {
                 //check them
                 //TODO Need to determine way to determine if the
                 //key is referring to a split document
-                String path = Utils.getPathFromId(e.getKey().toString());
                 result.cacheSize++;
+                CachedNodeDocument doc = e.getValue();
+                if (doc == NodeDocument.NULL) {
+                    // we only need to process documents that exist
+                    continue;
+                }
+                String path = doc.getPath();
                 for (String name : PathUtils.elements(path)) {
                     current = current.child(name);
                 }
