@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
  */
 public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
+
     private static final Logger log = LoggerFactory.getLogger(FileStoreBackupRestore.class);
 
     private final NodeStore store;
@@ -142,5 +143,10 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
 
     private static String formatTime(long nanos) {
         return TimeUnit.MINUTES.convert(nanos, TimeUnit.NANOSECONDS) + " minutes";
+    }
+
+    @Override
+    public String checkpoint(long lifetime) {
+        return store.checkpoint(lifetime);
     }
 }
