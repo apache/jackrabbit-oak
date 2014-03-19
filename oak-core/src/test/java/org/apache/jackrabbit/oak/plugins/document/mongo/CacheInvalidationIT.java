@@ -71,14 +71,14 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
                 "/a/d",
                 "/a/d/h",
         };
-        final int totalPaths = paths.length + 1; //1 extra for root
+        final int totalPaths = paths.length + 1; // 1 extra for root
         NodeBuilder root = getRoot(c1).builder();
-        createTree(root,paths);
+        createTree(root, paths);
         c1.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         assertEquals(totalPaths, Iterables.size(ds(c1).getCacheEntries()));
 
-        runBgOps(c1,c2);
+        runBgOps(c1, c2);
         return totalPaths;
     }
 
@@ -87,7 +87,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         final int totalPaths = createScenario();
 
         NodeBuilder b2 = getRoot(c2).builder();
-        builder(b2,"/a/d").setProperty("foo", "bar");
+        builder(b2, "/a/d").setProperty("foo", "bar");
         c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
@@ -99,15 +99,16 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(totalPaths - 2,Iterables.size(ds(c1).getCacheEntries()));
+        assertEquals(totalPaths - 2, Iterables.size(ds(c1).getCacheEntries()));
     }
 
     @Test
-    public void testCacheInvalidation_Hierarchical() throws CommitFailedException {
+    public void testCacheInvalidationHierarchical()
+            throws CommitFailedException {
         final int totalPaths = createScenario();
 
         NodeBuilder b2 = getRoot(c2).builder();
-        builder(b2,"/a/c").setProperty("foo", "bar");
+        builder(b2, "/a/c").setProperty("foo", "bar");
         c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
@@ -134,11 +135,11 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     @Test
-    public void testCacheInvalidation_Linear() throws CommitFailedException {
+    public void testCacheInvalidationLinear() throws CommitFailedException {
         final int totalPaths = createScenario();
 
         NodeBuilder b2 = getRoot(c2).builder();
-        builder(b2,"/a/c").setProperty("foo", "bar");
+        builder(b2, "/a/c").setProperty("foo", "bar");
         c2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Push pending changes at /a
@@ -165,30 +166,30 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     }
 
-    private void refreshHead(DocumentNodeStore store){
+    private static void refreshHead(DocumentNodeStore store) {
         ds(store).find(Collection.NODES, Utils.getIdFromPath("/"), 0);
     }
 
 
-    private static MongoDocumentStore ds(DocumentNodeStore ns){
+    private static MongoDocumentStore ds(DocumentNodeStore ns) {
         return (MongoDocumentStore) ns.getDocumentStore();
     }
 
-    private void createTree(NodeBuilder node, String[] paths){
-        for(String path : paths){
-            createPath(node,path);
+    private static void createTree(NodeBuilder node, String[] paths) {
+        for (String path : paths) {
+            createPath(node, path);
         }
     }
 
-    private static NodeBuilder builder(NodeBuilder builder,String path) {
+    private static NodeBuilder builder(NodeBuilder builder, String path) {
         for (String name : PathUtils.elements(path)) {
             builder = builder.getChildNode(name);
         }
         return builder;
     }
 
-    private void createPath(NodeBuilder node, String path){
-        for(String element : PathUtils.elements(path)){
+    private static void createPath(NodeBuilder node, String path) {
+        for (String element : PathUtils.elements(path)) {
             node = node.child(element);
         }
     }
@@ -198,23 +199,24 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
     }
 
     @After
-    public void closeStores(){
+    public void closeStores() {
         c1.dispose();
         c2.dispose();
     }
 
-    private void runBgOps(DocumentNodeStore... stores){
-        for(DocumentNodeStore ns : stores){
+    private static void runBgOps(DocumentNodeStore... stores) {
+        for (DocumentNodeStore ns : stores) {
             ns.runBackgroundOperations();
         }
     }
 
-    private DocumentNodeStore createNS(int clusterId) throws Exception {
+    private static DocumentNodeStore createNS(int clusterId) throws Exception {
         MongoConnection mc = MongoUtils.getConnection();
         return new DocumentMK.Builder()
                           .setMongoDB(mc.getDB())
                           .setClusterId(clusterId)
-                          .setAsyncDelay(0) //Set delay to 0 so that effect of changes are immediately reflected
+                          //Set delay to 0 so that effect of changes are immediately reflected
+                          .setAsyncDelay(0) 
                           .getNodeStore();
     }
 
