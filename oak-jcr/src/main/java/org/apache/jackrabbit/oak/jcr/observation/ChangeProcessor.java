@@ -71,8 +71,7 @@ import org.slf4j.LoggerFactory;
  * delivering observation events and stopped to stop doing so.
  */
 class ChangeProcessor implements Observer {
-
-    private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ChangeProcessor.class);
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
@@ -147,23 +146,25 @@ class ChangeProcessor implements Observer {
     }
 
     private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
-        if (commitRateLimiter == null) {
-            return new BackgroundObserver(this, executor, queueLength);
-        } else {
-            return new BackgroundObserver(this, executor, queueLength) {
-                @Override
-                protected void queueNearlyFull() {
-                    super.queueNearlyFull();
-                    commitRateLimiter.blockCommits();
-                }
+        return new BackgroundObserver(this, executor, queueLength) {
+            private volatile boolean warnWhenFull = true;
 
-                @Override
-                protected void queueEmpty() {
-                    super.queueEmpty();
-                    commitRateLimiter.unblockCommits();
+            @Override
+            protected void added(int queueSize) {
+                if (warnWhenFull && queueSize == queueLength) {
+                    warnWhenFull = false;
+                    if (commitRateLimiter != null) {
+                        commitRateLimiter.blockCommits();
+                    }
+                    LOG.warn("Revision queue is full. Further revisions will be compacted.");
+                } else if (queueSize <= 1) {
+                    warnWhenFull = true;
+                    if (commitRateLimiter != null) {
+                        commitRateLimiter.unblockCommits();
+                    }
                 }
-            };
-        }
+            }
+        };
     }
 
     private final Monitor runningMonitor = new Monitor();
@@ -244,7 +245,7 @@ class ChangeProcessor implements Observer {
                     }
                 }
             } catch (Exception e) {
-                log.warn("Error while dispatching observation events", e);
+                LOG.warn("Error while dispatching observation events", e);
             }
         }
         previousRoot = root;

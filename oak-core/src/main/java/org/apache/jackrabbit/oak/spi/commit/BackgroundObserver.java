@@ -128,7 +128,6 @@ public class BackgroundObserver implements Observer, Closeable {
                         observer.contentChanged(change.root, change.info);
                         change = queue.poll();
                     }
-                    queueEmpty();
                 } catch (Throwable t) {
                     exceptionHandler.uncaughtException(Thread.currentThread(), t);
                 }
@@ -179,16 +178,10 @@ public class BackgroundObserver implements Observer, Closeable {
     }
 
     /**
-     * Called whenever the queue is 90% full.
+     * Called when ever an item has been added to the queue
+     * @param queueSize  size of the queue
      */
-    protected void queueNearlyFull() {}
-
-    /**
-     * Called whenever the queue has been emptied.
-     */
-    protected void queueEmpty() {
-        warnOnFullQueue = true;
-    }
+    protected void added(int queueSize) { }
 
     /**
      * Clears the change queue and signals the background thread to stop
@@ -251,14 +244,11 @@ public class BackgroundObserver implements Observer, Closeable {
             last = change;
         }
 
-        if (10 * queue.remainingCapacity() < queueLength) {
-            queueNearlyFull();
-        }
-
         // Set the completion handler on the currently running task. Multiple calls
         // to onComplete are not a problem here since we always pass the same value.
         // Thus there is no question as to which of the handlers will effectively run.
         currentTask.onComplete(completionHandler);
+        added(queue.size());
     }
 
     //------------------------------------------------------------< internal >---
