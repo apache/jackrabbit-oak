@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.tree;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -24,18 +23,21 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.size;
 import static com.google.common.collect.Iterables.transform;
+import static com.google.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.api.Tree.Status.MODIFIED;
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
-import java.util.Iterator;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -117,42 +119,24 @@ public abstract class AbstractTree implements Tree {
      *         {@code false} otherwise.
      */
     protected boolean hasOrderableChildren() {
-        return nodeBuilder.hasProperty(TreeConstants.OAK_CHILD_ORDER);
+        return nodeBuilder.hasProperty(OAK_CHILD_ORDER);
     }
 
     /**
      * Returns the list of child names considering its ordering
-     * when the {@link org.apache.jackrabbit.oak.plugins.tree.TreeConstants#OAK_CHILD_ORDER} property is set.
+     * when the {@link TreeConstants#OAK_CHILD_ORDER} property is set.
      *
      * @return the list of child names.
      */
     @Nonnull
     protected Iterable<String> getChildNames() {
-        if (hasOrderableChildren()) {
-            return new Iterable<String>() {
-                @Override
-                public Iterator<String> iterator() {
-                    return new Iterator<String>() {
-                        final PropertyState childOrder = nodeBuilder.getProperty(TreeConstants.OAK_CHILD_ORDER);
-                        int index;
-
-                        @Override
-                        public boolean hasNext() {
-                            return index < childOrder.count();
-                        }
-
-                        @Override
-                        public String next() {
-                            return childOrder.getValue(NAME, index++);
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                }
-            };
+        PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
+        if (order != null && order.getType() == NAMES) {
+            Set<String> names = newLinkedHashSet(nodeBuilder.getChildNodeNames());
+            Set<String> ordered = newLinkedHashSet(order.getValue(NAMES));
+            ordered.retainAll(names); // remove names of missing child nodes
+            ordered.addAll(names);    // insert names of unordered child nodes
+            return ordered;
         } else {
             return nodeBuilder.getChildNodeNames();
         }
