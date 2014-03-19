@@ -112,6 +112,7 @@ public class BenchmarkRunner {
             GetNodeTest.withAnonymous(),
             new GetDeepNodeTest(),
             new SetPropertyTest(),
+            new SetMultiPropertyTest(),
             new SmallFileReadTest(),
             new SmallFileWriteTest(),
             new ConcurrentReadTest(),
