@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.blob;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Maps;
@@ -84,12 +85,14 @@ public class MemoryBlobStore extends AbstractBlobStore {
      * Ignores the maxlastModifiedTime
      */
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
-        BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
-        if (map.containsKey(id)) {
-            map.remove(id);
-        } else if (old.containsKey(id)) {
-            old.remove(id);
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+        for (String chunkId : chunkIds) {
+            BlockId id = new BlockId(StringUtils.convertHexToBytes(chunkId), 0);
+            if (map.containsKey(id)) {
+                map.remove(id);
+            } else if (old.containsKey(id)) {
+                old.remove(id);
+            }
         }
         return true;
     }

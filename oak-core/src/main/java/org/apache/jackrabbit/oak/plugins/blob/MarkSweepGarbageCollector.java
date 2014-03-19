@@ -416,17 +416,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         @Override
         public void run() {
-            for (String id : ids) {
-                try {
-                    boolean deleted = ((GarbageCollectableBlobStore) nodeStore.getBlobStore())
-                            .deleteChunk(id, maxLastModifiedTime);
-                    if (!deleted) {
-                        exceptionQueue.add(id);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    exceptionQueue.add(id);
+            try {
+                boolean deleted = ((GarbageCollectableBlobStore) nodeStore.getBlobStore())
+                        .deleteChunks(ids, maxLastModifiedTime);
+                if (!deleted) {
+                    exceptionQueue.addAll(ids);
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+                exceptionQueue.addAll(ids);
             }
         }
     }

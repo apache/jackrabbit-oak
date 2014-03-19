@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -220,32 +221,49 @@ public class DbBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         Connection conn = cp.getConnection();
         try {
+            
             PreparedStatement prep = null;
             PreparedStatement prepData = null;
+            
+            StringBuilder inClause = new StringBuilder();
+            int batch = chunkIds.size();
+            for (int i = 0; i < batch; i++) {
+                inClause.append('?');
+                if (i != batch -1) {
+                    inClause.append(',');
+                }
+            }
 
             if (maxLastModifiedTime > 0) {
                 prep = conn.prepareStatement(
-                        "delete from datastore_meta where id = ? and lastMod <= ?");
-                prep.setLong(2, maxLastModifiedTime);
+                        "delete from datastore_meta where id in (" 
+                                + inClause.toString() + ") and lastMod <= ?");
+                prep.setLong(batch + 1, maxLastModifiedTime);
 
                 prepData = conn.prepareStatement(
-                        "delete from datastore_data where id = ? and lastMod <= ?");
-                prepData.setLong(2, maxLastModifiedTime);
+                        "delete from datastore_data where id in (" 
+                                + inClause.toString() + ") and lastMod <= ?");
+                prepData.setLong(batch + 1, maxLastModifiedTime);
             } else {
                 prep = conn.prepareStatement(
-                        "delete from datastore_meta where id = ?");
+                        "delete from datastore_meta where id in (" 
+                                + inClause.toString() + ")");
 
                 prepData = conn.prepareStatement(
-                        "delete from datastore_data where id = ?");
+                        "delete from datastore_data where id in (" 
+                                + inClause.toString() + ")");
             }
-            prep.setString(1, chunkId);
-            prep.execute();
-            prepData.setString(1, chunkId);
-            prepData.execute();
+            
+            for (int idx = 0; idx < batch; idx++) {
+                prep.setString(idx + 1, chunkIds.get(idx));
+                prepData.setString(idx + 1, chunkIds.get(idx));
+            }
 
+            prep.execute();
+            prepData.execute();
             prep.close();
             prepData.close();
         } finally {
@@ -255,6 +273,7 @@ public class DbBlobStore extends CachingBlobStore {
 
         return true;
     }
+
 
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {

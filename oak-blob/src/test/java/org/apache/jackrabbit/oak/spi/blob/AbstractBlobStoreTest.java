@@ -31,6 +31,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -394,10 +395,8 @@ public abstract class AbstractBlobStoreTest {
     @Test
     public void delete() throws Exception {
         Set<String> ids = createArtifacts();
-
-        for (String id : ids) {
-            store.deleteChunk(id, 0);
-        }
+        
+        store.deleteChunks(Lists.newArrayList(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
         Set<String> ret = Sets.newHashSet();
@@ -405,7 +404,7 @@ public abstract class AbstractBlobStoreTest {
             ret.add(iter.next());
         }
 
-        assertTrue(ret.isEmpty());
+        assertTrue(ret.toString(), ret.isEmpty());
     }
 
     private Set<String> createArtifacts() throws Exception {

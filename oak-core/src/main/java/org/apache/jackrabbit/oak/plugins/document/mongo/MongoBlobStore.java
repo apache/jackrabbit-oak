@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
@@ -195,11 +196,19 @@ public class MongoBlobStore extends CachingBlobStore {
     }
 
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         DBCollection collection = getBlobCollection();
-        WriteResult result = collection.remove(getBlobQuery(chunkId, maxLastModifiedTime));
+        QueryBuilder queryBuilder = new QueryBuilder();
+        if (chunkIds != null) {
+            queryBuilder = queryBuilder.and(MongoBlob.KEY_ID).in(chunkIds.toArray(new String[0]));
+            if (maxLastModifiedTime > 0) {
+                queryBuilder = queryBuilder.and(MongoBlob.KEY_LAST_MOD)
+                                    .lessThan(maxLastModifiedTime);
+            }
+        }
 
-        if (result.getN() == 1) {
+        WriteResult result = collection.remove(queryBuilder.get());
+        if (result.getN() == chunkIds.size()) {
             return true;
         }
 

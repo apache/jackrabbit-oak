@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -228,17 +229,20 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     }
 
     @Override
-    public boolean deleteChunk(String chunkId, long maxLastModifiedTime) throws Exception {
+    public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
         if (delegate instanceof MultiDataStoreAware) {
-            DataIdentifier identifier = new DataIdentifier(chunkId);
-            DataRecord dataRecord = delegate.getRecord(identifier);
-            if ((maxLastModifiedTime <= 0)
-                    || dataRecord.getLastModified() <= maxLastModifiedTime) {
+            for (String chunkId : chunkIds) {
+                DataIdentifier identifier = new DataIdentifier(chunkId);
+                DataRecord dataRecord = delegate.getRecord(identifier);
+                boolean success = (maxLastModifiedTime <= 0)
+                        || dataRecord.getLastModified() <= maxLastModifiedTime;
+                if (!success) {
+                    return false;
+                }
                 ((MultiDataStoreAware) delegate).deleteRecord(identifier);
-                return true;
             }
         }
-        return false;
+        return true;
     }
 
     @Override
