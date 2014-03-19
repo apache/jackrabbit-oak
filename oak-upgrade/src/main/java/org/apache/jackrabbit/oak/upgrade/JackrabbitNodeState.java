@@ -53,6 +53,7 @@ import org.apache.jackrabbit.core.value.InternalValue;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -71,6 +72,21 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private static final Logger log =
             LoggerFactory.getLogger(JackrabbitNodeState.class);
+
+    private static long count = 0;
+
+    private static void logNewNode(JackrabbitNodeState state) {
+        count++;
+        if (count % 10000 == 0) {
+            log.info("Migrating node #" + count + ": " + state.getPath());
+        }
+    }
+
+    private final JackrabbitNodeState parent;
+
+    private final String name;
+
+    private String path;
 
     /**
      * Bundle loader based on the source persistence manager.
@@ -93,7 +109,10 @@ class JackrabbitNodeState extends AbstractNodeState {
     private final boolean useBinaryReferences;
 
     private JackrabbitNodeState(
-            JackrabbitNodeState parent, NodePropBundle bundle) {
+            JackrabbitNodeState parent, String name, NodePropBundle bundle) {
+        this.parent = parent;
+        this.name = name;
+        this.path = null;
         this.loader = parent.loader;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
@@ -101,12 +120,16 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.nodes = createNodes(bundle);
         this.properties = createProperties(bundle);
         this.useBinaryReferences = parent.useBinaryReferences;
+        logNewNode(this);
     }
 
     JackrabbitNodeState(
             PersistenceManager source, NodeState root,
-            Map<String, String> uriToPrefix, NodeId id,
+            Map<String, String> uriToPrefix, NodeId id, String path,
             boolean useBinaryReferences) {
+        this.parent = null;
+        this.name = null;
+        this.path = path;
         this.loader = new BundleLoader(source);
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
@@ -119,6 +142,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
         this.useBinaryReferences = useBinaryReferences;
+        logNewNode(this);
     }
 
     //---------------------------------------------------------< NodeState >--
@@ -163,7 +187,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         NodeId id = nodes.get(name);
         if (id != null) {
             try {
-                return new JackrabbitNodeState(this, loader.loadBundle(id));
+                return new JackrabbitNodeState(
+                        this, name, loader.loadBundle(id));
             } catch (ItemStateException e) {
                 throw new IllegalStateException(
                         "Unable to access child node " + name, e);
@@ -185,7 +210,7 @@ class JackrabbitNodeState extends AbstractNodeState {
             String name = entry.getKey();
             try {
                 JackrabbitNodeState child = new JackrabbitNodeState(
-                        this, loader.loadBundle(entry.getValue()));
+                        this, name, loader.loadBundle(entry.getValue()));
                 entries.add(new MemoryChildNodeEntry(name, child));
             } catch (ItemStateException e) {
                 warn("Skipping broken child node entry " + name, e);
@@ -483,12 +508,19 @@ class JackrabbitNodeState extends AbstractNodeState {
         return builder.toString();
     }
 
+    private String getPath() {
+        if (path == null) { // implies: parent != null && name != null
+            path = PathUtils.concat(parent.getPath(), name);
+        }
+        return path;
+    }
+
     private void warn(String message) {
-        log.warn(message);
+        log.warn(getPath() + ": " + message);
     }
 
     private void warn(String message, Throwable cause) {
-        log.warn(message, cause);
+        log.warn(getPath() + ": " + message, cause);
     }
 
 }

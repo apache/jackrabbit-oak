@@ -73,11 +73,10 @@ class BundleLoader {
         NodeState state = pm.load(id);
         NodePropBundle bundle = new NodePropBundle(state);
         for (Name name : state.getPropertyNames()) {
-            if (NameConstants.JCR_PRIMARYTYPE.equals(name)) {
-            } else if (NameConstants.JCR_MIXINTYPES.equals(name)) {
-            } else if (NameConstants.JCR_UUID.equals(name)) {
+            if (NameConstants.JCR_UUID.equals(name)) {
                 bundle.setReferenceable(true);
-            } else {
+            } else if (!NameConstants.JCR_PRIMARYTYPE.equals(name)
+                    && !NameConstants.JCR_MIXINTYPES.equals(name)) {
                 bundle.addProperty(new PropertyEntry(
                         pm.load(new PropertyId(id, name))));
             }

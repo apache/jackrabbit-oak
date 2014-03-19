@@ -224,6 +224,7 @@ public class RepositoryUpgrade {
             copyVersionStore(builder, root, uriToPrefix, idxToPrefix);
             copyWorkspaces(builder, root, uriToPrefix, idxToPrefix);
 
+            logger.info("Applying default commit hooks");
             String groupsPath;
             UserManagerConfig userConfig = config.getSecurityConfig().getSecurityManagerConfig().getUserManagerConfig();
             if (userConfig != null) {
@@ -549,11 +550,11 @@ public class RepositoryUpgrade {
 
         NodeBuilder system = builder.child(JCR_SYSTEM);
         system.setChildNode(JCR_VERSIONSTORAGE, new JackrabbitNodeState(
-                pm, root, uriToPrefix,
-                VERSION_STORAGE_NODE_ID, copyBinariesByReference));
+                pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
+                "/jcr:system/jcr:versionStorage", copyBinariesByReference));
         system.setChildNode("jcr:activities", new JackrabbitNodeState(
-                pm, root, uriToPrefix,
-                ACTIVITIES_NODE_ID, copyBinariesByReference));
+                pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
+                "/jcr:system/jcr:activities", copyBinariesByReference));
     }   
 
     private void copyWorkspaces(
@@ -570,7 +571,7 @@ public class RepositoryUpgrade {
                 source.getWorkspaceInfo(name).getPersistenceManager();
 
         NodeState state = new JackrabbitNodeState(
-                pm, root, uriToPrefix, ROOT_NODE_ID, copyBinariesByReference);
+                pm, root, uriToPrefix, ROOT_NODE_ID, "/", copyBinariesByReference);
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
         }
