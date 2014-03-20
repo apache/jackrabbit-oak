@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 
+import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -77,7 +78,8 @@ public class OsgiWhiteboard implements Whiteboard {
         return new Tracker<T>() {
             @Override @SuppressWarnings("unchecked")
             public List<T> getServices() {
-                return (List<T>) asList(tracker.getServices());
+                Object[] services = tracker.getServices();
+                return (List<T>) (services != null ? asList(services) : Collections.emptyList());
             }
             @Override
             public void stop() {
