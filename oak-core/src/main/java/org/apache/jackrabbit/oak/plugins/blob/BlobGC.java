@@ -23,8 +23,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -39,20 +40,19 @@ public class BlobGC implements BlobGCMBean {
     private static final Logger log = LoggerFactory.getLogger(BlobGC.class);
 
     private final BlobGarbageCollector blobGarbageCollector;
-    private final ExecutorService executorService;
+    private final Executor executor;
 
-    private Future<Long> gcOp;
+    private RunnableFuture<Long> gcOp;
 
     /**
      * @param blobGarbageCollector  Blob garbage collector
-     * @param executorService  executor service for running the garbage collection task
-     *                         in the background.
+     * @param executor              executor for running the garbage collection task
      */
     public BlobGC(
             @Nonnull BlobGarbageCollector blobGarbageCollector,
-            @Nonnull ExecutorService executorService) {
+            @Nonnull Executor executor) {
         this.blobGarbageCollector = checkNotNull(blobGarbageCollector);
-        this.executorService = checkNotNull(executorService);
+        this.executor = checkNotNull(executor);
     }
 
     @Nonnull
@@ -61,7 +61,7 @@ public class BlobGC implements BlobGCMBean {
         if (gcOp != null && !gcOp.isDone()) {
             return "Garbage collection already running";
         } else {
-            gcOp = executorService.submit(new Callable<Long>() {
+            gcOp = new FutureTask<Long>(new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
                     long t0 = System.nanoTime();
@@ -69,6 +69,7 @@ public class BlobGC implements BlobGCMBean {
                     return System.nanoTime() - t0;
                 }
             });
+            executor.execute(gcOp);
             return getBlobGCStatus();
         }
     }
