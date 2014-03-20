@@ -53,7 +53,7 @@ public class FileStore implements SegmentStore {
 
     private static final int MB = 1024 * 1024;
 
-    private static final String FILE_NAME_FORMAT = "%s%05d.tar";
+    private static final String FILE_NAME_FORMAT = "%s%05d%s.tar";
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
@@ -135,8 +135,12 @@ public class FileStore implements SegmentStore {
         this.memoryMapping = memoryMapping;
 
         for (int i = 0; true; i++) {
-            String name = String.format(FILE_NAME_FORMAT, "bulk", i);
+            String name = String.format(FILE_NAME_FORMAT, "bulk", i, "a");
             File file = new File(directory, name);
+            if (!file.isFile()) {
+                name = String.format(FILE_NAME_FORMAT, "bulk", i, "");
+                file = new File(directory, name);
+            }
             if (file.isFile()) {
                 bulkFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
@@ -145,8 +149,12 @@ public class FileStore implements SegmentStore {
         }
 
         for (int i = 0; true; i++) {
-            String name = String.format(FILE_NAME_FORMAT, "data", i);
+            String name = String.format(FILE_NAME_FORMAT, "data", i, "a");
             File file = new File(directory, name);
+            if (!file.isFile()) {
+                name = String.format(FILE_NAME_FORMAT, "data", i, "");
+                file = new File(directory, name);
+            }
             if (file.isFile()) {
                 dataFiles.add(new TarFile(file, maxFileSize, memoryMapping));
             } else {
@@ -378,7 +386,8 @@ public class FileStore implements SegmentStore {
                     id.getLeastSignificantBits());
             if (files.isEmpty() || !files.get(files.size() - 1).writeEntry(
                     uuid, data, offset, length)) {
-                String name = String.format(FILE_NAME_FORMAT, base, files.size());
+                String name = String.format(
+                        FILE_NAME_FORMAT, base, files.size(), "a");
                 File file = new File(directory, name);
                 TarFile last = new TarFile(file, maxFileSize, memoryMapping);
                 checkState(last.writeEntry(uuid, data, offset, length));
