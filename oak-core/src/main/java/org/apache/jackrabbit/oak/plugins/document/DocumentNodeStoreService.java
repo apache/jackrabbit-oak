@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -43,20 +44,23 @@ import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
@@ -108,6 +112,7 @@ public class DocumentNodeStoreService {
 
     private ServiceRegistration reg;
     private final List<Registration> registrations = new ArrayList<Registration>();
+    private WhiteboardExecutor executor;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policy = ReferencePolicy.DYNAMIC)
@@ -130,7 +135,7 @@ public class DocumentNodeStoreService {
         }
     }
 
-    protected void registerNodeStore() throws UnknownHostException {
+    protected void registerNodeStore() throws IOException {
         if(context == null){
             log.info("Component still not activated. Ignoring the initialization call");
             return;
@@ -241,9 +246,14 @@ public class DocumentNodeStoreService {
         if (mk != null) {
             mk.dispose();
         }
+
+        if (executor != null) {
+            executor.stop();
+            executor = null;
+        }
     }
 
-    private void registerJMXBeans(DocumentNodeStore store, BundleContext context) {
+    private void registerJMXBeans(DocumentNodeStore store, BundleContext context) throws IOException {
         Whiteboard wb = new OsgiWhiteboard(context);
         registrations.add(
                 registerMBean(wb,
@@ -287,6 +297,14 @@ public class DocumentNodeStoreService {
                             CacheStatsMBean.TYPE,
                             cds.getCacheStats().getName())
             );
+        }
+        if (blobStore instanceof GarbageCollectableBlobStore) {
+            executor = new WhiteboardExecutor();
+            executor.start(wb);
+            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
+            gc.init(store);  // FIXME OAK-1582 ClassCastException in MarkSweepGarbageCollector#init()
+            registrations.add(registerMBean(wb, BlobGCMBean.class, new BlobGC(gc, executor),
+                    BlobGCMBean.TYPE, "Segment node store blob garbage collection"));
         }
 
         //TODO Register JMX bean for Off Heap Cache stats
