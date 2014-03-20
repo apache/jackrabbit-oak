@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public interface RevisionGCMBean {
+    String TYPE = "RevisionGarbageCollection";
 
     /**
      * Initiate a revision garbage collection operation
