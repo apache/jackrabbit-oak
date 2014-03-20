@@ -44,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
 
 /**
  * Same as for {@link ContentMirrorStoreStrategy} but the order of the keys is kept by using the
@@ -240,48 +239,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             // if the property is not there or is empty it means we're empty
             cne = Collections.emptyList();
         } else {
-            cne = new Iterable<ChildNodeEntry>() {
-                private NodeState localIndex = index;
-                private NodeState localStart = includeStart && !start.exists() ? EMPTY_START_NODE
-                                                                             : start;
-                private NodeState current = localStart;
-                private boolean localIncludeStart = includeStart;
-
-                @Override
-                public Iterator<ChildNodeEntry> iterator() {
-                    return new Iterator<ChildNodeEntry>() {
-
-                        @Override
-                        public boolean hasNext() {
-                            return (localIncludeStart && localStart.equals(current)) || (!localIncludeStart && !Strings.isNullOrEmpty(current.getString(NEXT)));
-                        }
-
-                        @Override
-                        public ChildNodeEntry next() {
-                            ChildNodeEntry localCNE = null;
-                            if (localIncludeStart && localStart.equals(current)) {
-                                localCNE = new OrderedChildNodeEntry(START, current);
-                                // let's set it to false. We just included it.
-                                localIncludeStart = false; 
-                            } else {
-                                if (hasNext()) {
-                                    final String name = current.getString(NEXT);
-                                    current = localIndex.getChildNode(name);
-                                    localCNE = new OrderedChildNodeEntry(name, current);
-                                } else {
-                                    throw new NoSuchElementException();
-                                }
-                            }
-                            return localCNE;
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                }
-            };
+            cne = new FullIterable(index, includeStart);
         }
         return cne;
     }
@@ -319,52 +277,24 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
 
         if (pr.first != null && !pr.first.equals(pr.last)) {
             // '>' & '>=' use case
-            return new Iterable<String>() {
-                private PropertyRestriction lpr = pr;
-
-                @Override
-                public Iterator<String> iterator() {
-                    PathIterator pi = new PathIterator(filter, indexName);
-                    Iterator<? extends ChildNodeEntry> children = getChildNodeEntries(
-                            index).iterator();
-                    pi.setPathContainsValue(true);
-                    pi.enqueue(Iterators.filter(children,
-                            new Predicate<ChildNodeEntry>() {
-                                @Override
-                                public boolean apply(ChildNodeEntry entry) {
-                                    String value = lpr.first
-                                            .getValue(Type.STRING);
-                                    String name = convert(entry.getName());
-                                    return value.compareTo(name) < 0 || (lpr.firstIncluding && value
-                                            .equals(name));
-                                }
-                            }));
-                    return pi;
-                }
-            };
-        } else if (pr.last != null && !pr.last.equals(pr.first)) {  
+            ChildNodeEntry firstValueableItem = seek(index,
+                new PredicateGreaterThan(pr.first.getValue(Type.STRING), pr.firstIncluding));
+            Iterable<String> it = Collections.emptyList();
+            if (firstValueableItem != null) {
+                it = new QueryResultsWrapper(filter, indexName, new SeekedIterable(index,
+                    firstValueableItem));
+            }
+            return it;
+        } else if (pr.last != null && !pr.last.equals(pr.first)) {
             // '<' & '<=' use case
-            return new Iterable<String>() {
-                private PropertyRestriction lpr = pr;
-
-                @Override
-                public Iterator<String> iterator() {
-                    PathIterator pi = new PathIterator(filter, indexName);
-                    Iterator<? extends ChildNodeEntry> children = getChildNodeEntries(index)
-                        .iterator();
-                    pi.setPathContainsValue(true);
-                    pi.enqueue(Iterators.filter(children, new Predicate<ChildNodeEntry>() {
-                        @Override
-                        public boolean apply(ChildNodeEntry entry) {
-                            String value = lpr.last.getValue(Type.STRING);
-                            String name = convert(entry.getName());
-                            return (value.compareTo(name) > 0) 
-                                || (lpr.lastIncluding && value.equals(name));
-                        }
-                    }));
-                    return pi;
-                }
-            };
+            ChildNodeEntry firstValueableItem = seek(index,
+                new PredicateLessThan(pr.last.getValue(Type.STRING), pr.lastIncluding));
+            Iterable<String> it = Collections.emptyList();
+            if (firstValueableItem != null) {
+                it = new QueryResultsWrapper(filter, indexName, new SeekedIterable(index,
+                    firstValueableItem));
+            }
+            return it;
         } else {
             // property is not null. AKA "open query"
             Iterable<String> values = null;
@@ -498,5 +428,261 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
 
         }
         return count;
+    }
+    
+    /**
+     * wrap an {@code Iterable<ChildNodeEntry>} in something that can be understood by the Query
+     * Engine
+     */
+    private static class QueryResultsWrapper implements Iterable<String> {
+        private Iterable<ChildNodeEntry> children;
+        private String indexName;
+        private Filter filter;
+
+        public QueryResultsWrapper(Filter filter, String indexName,
+                                   Iterable<ChildNodeEntry> children) {
+            this.children = children;
+            this.indexName = indexName;
+            this.filter = filter;
+        }
+
+        @Override
+        public Iterator<String> iterator() {
+            PathIterator pi = new PathIterator(filter, indexName);
+            pi.setPathContainsValue(true);
+            pi.enqueue(children.iterator());
+            return pi;
+        }
+    }
+    
+    /**
+     * iterating throughout the index in the correct order. Externalised as class for easy
+     * overloading.
+     */
+    private static class FullIterator implements Iterator<ChildNodeEntry> {
+        private boolean includeStart;
+        private NodeState start;
+        private NodeState current;
+        private NodeState index;
+
+        public FullIterator(NodeState index, NodeState start, boolean includeStart,
+                            NodeState current) {
+            this.includeStart = includeStart;
+            this.start = start;
+            this.current = current;
+            this.index = index;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return (includeStart && start.equals(current))
+                   || (!includeStart && !Strings.isNullOrEmpty(current.getString(NEXT)));
+        }
+
+        @Override
+        public ChildNodeEntry next() {
+            ChildNodeEntry entry = null;
+            if (includeStart && start.equals(current)) {
+                entry = new OrderedChildNodeEntry(START, current);
+                // let's set it to false. We just included it.
+                includeStart = false;
+            } else {
+                if (hasNext()) {
+                    final String name = current.getString(NEXT);
+                    current = index.getChildNode(name);
+                    entry = new OrderedChildNodeEntry(name, current);
+                } else {
+                    throw new NoSuchElementException();
+                }
+            }
+            return entry;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+
+    }
+    
+    /**
+     * Convenience class for iterating throughout the index in the correct order
+     */
+    private static class FullIterable implements Iterable<ChildNodeEntry> {
+        private boolean includeStart;
+
+        NodeState index;
+        NodeState start;
+        NodeState current;
+
+        /**
+         * @param index the current index content state. The {@code :index} node
+         * @param includeStart whether include {@code :start} or not.
+         */
+        public FullIterable(NodeState index, boolean includeStart) {
+            this.index = index;
+            this.includeStart = includeStart;
+            NodeState s = index.getChildNode(START);
+            if (includeStart && !s.exists()) {
+                start = EMPTY_START_NODE;
+            } else {
+                start = s;
+            }
+            current = start;
+        }
+
+        @Override
+        public Iterator<ChildNodeEntry> iterator() {
+            return new FullIterator(index, start, includeStart, current);
+        }
+    }
+
+    /**
+     * Iterator that allows to start iterating from a given position
+     */
+    private static class SeekedIterator extends FullIterator {
+        /**
+         * whether the seekeed item has been returned already or not.
+         */
+        private boolean firstReturned = false;
+
+        /**
+         * the seeked item
+         */
+        private ChildNodeEntry first;
+
+        public SeekedIterator(NodeState index, NodeState start, ChildNodeEntry first) {
+            super(index, start, false, first.getNodeState());
+            this.first = first;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !firstReturned || super.hasNext();
+        }
+
+        @Override
+        public ChildNodeEntry next() {
+            if (firstReturned) {
+                return super.next();
+            } else {
+                firstReturned = true;
+                return first;
+            }
+        }
+    }
+    
+    /**
+     * iterable that starts at a provided position ({@code ChildNodeEntry})
+     */
+    private static class SeekedIterable extends FullIterable {
+        private ChildNodeEntry first;
+
+        public SeekedIterable(NodeState index, ChildNodeEntry first) {
+            super(index, false);
+            this.first = first;
+        }
+
+        @Override
+        public Iterator<ChildNodeEntry> iterator() {
+            return new SeekedIterator(index, start, first);
+        }
+    }
+    
+    /**
+     * seek for an element in the index given the provided Predicate
+     * 
+     * @param index the index content node {@code :index}
+     * @param condition the predicate to evaluate
+     * @return the entry or null if not found
+     */
+    static ChildNodeEntry seek(@Nonnull NodeState index,
+                                      @Nonnull Predicate<ChildNodeEntry> condition) {
+        
+        // TODO the FullIterable will have to be replaced with something else once we'll have the
+        // Skip part of the list implemented.
+        Iterable<ChildNodeEntry> children = new FullIterable(index, false);
+        ChildNodeEntry entry = null;
+        for (ChildNodeEntry child : children) {
+            if (condition.apply(child)) {
+                entry = child;
+                break;
+            }
+        }
+        return entry;
+    }
+    
+    /**
+     * predicate for evaluating 'key' equality across index 
+     */
+    static class PredicateEquals implements Predicate<ChildNodeEntry> {
+        private String searchfor;
+
+        public PredicateEquals(@Nonnull String searchfor) {
+            this.searchfor = searchfor;
+        }
+
+        @Override
+        public boolean apply(ChildNodeEntry arg0) {
+            return (arg0 != null && searchfor.equals(arg0.getName()));
+        }
+    }
+    
+    /**
+     * evaluates when the current element is greater than (>) and greater than equal
+     * {@code searchfor}
+     */
+    static class PredicateGreaterThan implements Predicate<ChildNodeEntry> {
+        private String searchfor;
+        private boolean include;
+        
+        public PredicateGreaterThan(@Nonnull String searchfor) {
+            this(searchfor, false);
+        }
+        
+        public PredicateGreaterThan(@Nonnull String searchfor, boolean include) {
+            this.searchfor = searchfor;
+            this.include = include;
+        }
+
+        @Override
+        public boolean apply(ChildNodeEntry arg0) {
+            boolean b = false;
+            if(arg0!=null){
+                String name = convert(arg0.getName());
+                b = (searchfor.compareTo(name) < 0 || (include && searchfor
+                    .equals(name))); 
+            }
+            
+            return b;
+        }
+    }
+
+    /**
+     * evaluates when the current element is less than (<) and less than equal {@code searchfor}
+     */
+    static class PredicateLessThan implements Predicate<ChildNodeEntry> {
+        private String searchfor;
+        private boolean include;
+
+        public PredicateLessThan(@Nonnull String searchfor) {
+            this(searchfor, false);
+        }
+
+        public PredicateLessThan(@Nonnull String searchfor, boolean include) {
+            this.searchfor = searchfor;
+            this.include = include;
+        }
+
+        @Override
+        public boolean apply(ChildNodeEntry arg0) {
+            boolean b = false;
+            if (arg0 != null) {
+                String name = convert(arg0.getName());
+                b = (searchfor.compareTo(name) > 0 || (include && searchfor.equals(name)));
+            }
+
+            return b;
+        }
     }
 }
