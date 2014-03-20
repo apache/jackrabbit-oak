@@ -17,10 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newIdentityHashSet;
 
 import java.security.SecureRandom;
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
 
 /**
@@ -128,6 +131,37 @@ public class SegmentTracker {
             table.collectReferencedIds(ids);
         }
         return ids;
+    }
+
+    /**
+     * Finds all external blob references that are currently accessible
+     * in this repository and adds them to the given collector. Useful
+     * for collecting garbage in an external data store.
+     * <p>
+     * Note that this method only collects blob references that are already
+     * stored in the repository (at the time when this method is called), so
+     * the garbage collector will need some other mechanism for tracking
+     * in-memory references and references stored while this method is
+     * running.
+     */
+    public void collectBlobReferences(ReferenceCollector collector) {
+        Set<SegmentId> processed = newIdentityHashSet();
+        Queue<SegmentId> queue = newArrayDeque(getReferencedSegmentIds());
+        writer.flush(); // force the current segment to have root record info
+        while (!queue.isEmpty()) {
+            SegmentId id = queue.remove();
+            if (id.isDataSegmentId() && !processed.add(id)) {
+                Segment segment = id.getSegment();
+
+                segment.collectBlobReferences(collector);
+
+                for (SegmentId refid : segment.getReferencedIds()) {
+                    if (refid.isDataSegmentId() && !processed.contains(refid)) {
+                        queue.add(refid);
+                    }
+                }
+            }
+        }
     }
 
     /**
