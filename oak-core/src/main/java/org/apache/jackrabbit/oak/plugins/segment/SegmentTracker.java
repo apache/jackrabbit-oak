@@ -110,7 +110,7 @@ public class SegmentTracker {
             segments.addFirst(segment);
             currentSize += segment.getCacheSize();
             while (currentSize > cacheSize / 2 && segments.size() > 1) {
-                Segment remove = dataSegments.removeLast();
+                Segment remove = segments.removeLast();
                 remove.getSegmentId().setSegment(null);
                 currentSize -= remove.getCacheSize();
             }
