@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
 public interface BlobGCMBean {
+    String TYPE = "BlobGarbageCollection";
 
     /**
      * Initiate a data store garbage collection operation

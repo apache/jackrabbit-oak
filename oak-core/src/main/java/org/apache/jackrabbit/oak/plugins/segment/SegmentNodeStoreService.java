@@ -36,8 +36,12 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -93,7 +97,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private volatile BlobStore blobStore;
 
     private ServiceRegistration registration;
-    private Registration mBeanRegistration;
+    private Registration revisionGCRegistration;
+    private Registration blobGCRegistration;
     private WhiteboardExecutor executor;
 
     @Override
@@ -165,8 +170,15 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 store.gc();
             }
         }, executor);
-        mBeanRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
+        revisionGCRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
+
+        if (blobStore instanceof GarbageCollectableBlobStore) {
+            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
+//            gc.init(delegate);  FIXME OAK-1582 ClassCastException in MarkSweepGarbageCollector#init()
+            blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
+                    BlobGCMBean.TYPE, "Segment node store blob garbage collection");
+        }
 
         log.info("SegmentNodeStore initialized");
     }
@@ -208,9 +220,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             registration.unregister();
             registration = null;
         }
-        if (mBeanRegistration != null) {
-            mBeanRegistration.unregister();
-            mBeanRegistration = null;
+        if (revisionGCRegistration != null) {
+            revisionGCRegistration.unregister();
+            revisionGCRegistration = null;
+        }
+        if (blobGCRegistration != null) {
+            blobGCRegistration.unregister();
+            blobGCRegistration = null;
         }
         if (executor != null) {
             executor.stop();
