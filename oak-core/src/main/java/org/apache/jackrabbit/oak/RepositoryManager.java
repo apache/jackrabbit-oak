@@ -159,12 +159,12 @@ public class RepositoryManager implements RepositoryManagementMBean {
     }
 
     @Override
-    public String checkpoint(long lifetime) {
+    public String checkpoint(final long lifetime) {
         return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, String>() {
             @Nullable
             @Override
             public String apply(FileStoreBackupRestoreMBean backupService) {
-                return backupService.getRestoreStatus();
+                return backupService.checkpoint(lifetime);
             }
         });
     }
