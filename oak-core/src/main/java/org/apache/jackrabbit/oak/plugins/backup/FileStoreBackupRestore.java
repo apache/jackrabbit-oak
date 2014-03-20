@@ -24,8 +24,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.File;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -43,26 +44,25 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
 
     private final NodeStore store;
     private final File file;
-    private final ExecutorService executorService;
+    private final Executor executor;
 
-    private Future<Long> backupOp;
+    private RunnableFuture<Long> backupOp;
     private long backupEndTime;
-    private Future<Long> restoreOp;
+    private RunnableFuture<Long> restoreOp;
     private long restoreEndTime;
 
     /**
      * @param store  store to back up from or restore to
      * @param file   file to back up to or restore from
-     * @param executorService  executor service for running the back up or restore operation
-     *                         in the background.
+     * @param executor  executor for running the back up or restore operation
      */
     public FileStoreBackupRestore(
             @Nonnull NodeStore store,
             @Nonnull File file,
-            @Nonnull ExecutorService executorService) {
+            @Nonnull Executor executor) {
         this.store = checkNotNull(store);
         this.file = checkNotNull(file);
-        this.executorService = checkNotNull(executorService);
+        this.executor = checkNotNull(executor);
     }
 
     @Override
@@ -70,7 +70,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
         if (backupOp != null && !backupOp.isDone()) {
             return "Backup already running";
         } else {
-            backupOp = executorService.submit(new Callable<Long>() {
+            backupOp = new FutureTask<Long>(new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
                     long t0 = System.nanoTime();
@@ -78,6 +78,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
                     return System.nanoTime() - t0;
                 }
             });
+            executor.execute(backupOp);
             return getBackupStatus();
         }
     }
@@ -108,7 +109,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
         if (restoreOp != null && !restoreOp.isDone()) {
             return "Restore already running";
         } else {
-            restoreOp = executorService.submit(new Callable<Long>() {
+            restoreOp = new FutureTask<Long>(new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
                     long t0 = System.nanoTime();
@@ -116,6 +117,7 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
                     return System.nanoTime() - t0;
                 }
             });
+            executor.execute(restoreOp);
             return getRestoreStatus();
         }
     }
