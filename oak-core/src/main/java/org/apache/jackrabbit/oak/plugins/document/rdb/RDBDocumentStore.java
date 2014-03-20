@@ -299,7 +299,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         T oldDoc = readDocument(collection, update.getId());
 
         if (oldDoc == null) {
-            if (!update.isNew() || !allowCreate) {
+            if (!allowCreate) {
+                return null;
+            } else if (!update.isNew()) {
                 throw new MicroKernelException("Document does not exist: " + update.getId());
             }
             T doc = collection.newDocument(this);
