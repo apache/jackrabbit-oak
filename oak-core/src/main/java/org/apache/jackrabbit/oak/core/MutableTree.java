@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
@@ -30,7 +30,6 @@ import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORD
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -177,8 +176,12 @@ class MutableTree extends AbstractTree {
             nodeBuilder.remove();
             PropertyState order = parent.nodeBuilder.getProperty(OAK_CHILD_ORDER);
             if (order != null) {
-                Set<String> names = newLinkedHashSet(order.getValue(NAMES));
-                names.remove(name);
+                List<String> names = newArrayListWithCapacity(order.count());
+                for (String n : order.getValue(NAMES)) {
+                    if (!n.equals(name)) {
+                        names.add(n);
+                    }
+                }
                 parent.nodeBuilder.setProperty(OAK_CHILD_ORDER, names, NAMES);
             }
             root.updated();
@@ -196,7 +199,12 @@ class MutableTree extends AbstractTree {
             nodeBuilder.setChildNode(name);
             PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
             if (order != null) {
-                Set<String> names = newLinkedHashSet(order.getValue(NAMES));
+                List<String> names = newArrayListWithCapacity(order.count() + 1);
+                for (String n : order.getValue(NAMES)) {
+                    if (!n.equals(name)) {
+                        names.add(n);
+                    }
+                }
                 names.add(name);
                 nodeBuilder.setProperty(OAK_CHILD_ORDER, names, NAMES);
             }
