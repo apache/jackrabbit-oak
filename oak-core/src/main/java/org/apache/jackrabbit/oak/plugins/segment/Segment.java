@@ -96,6 +96,8 @@ public class Segment {
 
     static int ROOT_COUNT_OFFSET = 6;
 
+    static int BLOBREF_COUNT_OFFSET = 8;
+
     private final SegmentTracker tracker;
 
     private final SegmentId id;
@@ -218,6 +220,21 @@ public class Segment {
         WritableByteChannel channel = Channels.newChannel(stream);
         while (buffer.hasRemaining()) {
             channel.write(buffer);
+        }
+    }
+
+    void collectBlobReferences(ReferenceCollector collector) {
+        int refcount = getRefCount();
+        int rootcount =
+                data.getShort(data.position() + ROOT_COUNT_OFFSET) & 0xffff;
+        int blobrefcount =
+                data.getShort(data.position() + BLOBREF_COUNT_OFFSET) & 0xffff;
+        int blobrefpos = data.position() + refcount * 16 + rootcount * 3;
+
+        for (int i = 0; i < blobrefcount; i++) {
+            int offset = (data.getShort(blobrefpos + i * 2) & 0xffff) << 2;
+            SegmentBlob blob = new SegmentBlob(new RecordId(id, offset));
+            collector.addReference(blob.getReference());
         }
     }
 

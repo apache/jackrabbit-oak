@@ -36,6 +36,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
 import java.io.ByteArrayInputStream;
@@ -70,17 +71,6 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
 
 public class SegmentWriter {
-
-    private enum RecordType {
-        LEAF,
-        BRANCH,
-        BUCKET,
-        LIST,
-        VALUE,
-        BLOCK,
-        TEMPLATE,
-        NODE
-    }
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
@@ -117,6 +107,11 @@ public class SegmentWriter {
      * in this segment.
      */
     private final Map<RecordId, RecordType> roots = newLinkedHashMap();
+
+    /**
+     * Identifiers of the external blob references stored in this segment.
+     */
+    private final List<RecordId> blobrefs = newArrayList();
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -162,21 +157,29 @@ public class SegmentWriter {
             buffer[Segment.ROOT_COUNT_OFFSET] = (byte) (rootcount >> 8);
             buffer[Segment.ROOT_COUNT_OFFSET + 1] = (byte) rootcount;
 
-            int rootpos = refcount * 16;
-            if (length + rootpos > buffer.length) {
+            int blobrefcount = blobrefs.size();
+            buffer[Segment.BLOBREF_COUNT_OFFSET] = (byte) (blobrefcount >> 8);
+            buffer[Segment.BLOBREF_COUNT_OFFSET + 1] = (byte) blobrefcount;
+
+            int pos = refcount * 16;
+            if (length + pos > buffer.length) {
                 length = buffer.length;
             } else {
-                System.arraycopy(
-                        buffer, 0,
-                        buffer, buffer.length-length, rootpos);
-                rootpos += buffer.length - length;
+                System.arraycopy(buffer, 0, buffer, buffer.length-length, pos);
+                pos += buffer.length - length;
             }
 
             for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
                 int offset = entry.getKey().getOffset();
-                buffer[rootpos++] = (byte) entry.getValue().ordinal();
-                buffer[rootpos++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
-                buffer[rootpos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
+                buffer[pos++] = (byte) entry.getValue().ordinal();
+                buffer[pos++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
+                buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
+            }
+
+            for (RecordId blobref : blobrefs) {
+                int offset = blobref.getOffset();
+                buffer[pos++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
+                buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
             }
 
             store.writeSegment(
@@ -186,6 +189,7 @@ public class SegmentWriter {
 
             buffer = createNewBuffer();
             roots.clear();
+            blobrefs.clear();
             length = 0;
             position = buffer.length;
             segment = new Segment(tracker, buffer);
@@ -202,6 +206,7 @@ public class SegmentWriter {
         checkArgument(size >= 0);
         checkNotNull(ids);
 
+        int blobrefcount = blobrefs.size() + 1;
         int rootcount = roots.size() + 1;
         int refcount = segment.getRefCount();
         Set<SegmentId> segmentIds = newIdentityHashSet();
@@ -220,10 +225,12 @@ public class SegmentWriter {
             refcount += segmentIds.size();
         }
 
-        int recordSize = Segment.align(size + ids.size() * Segment.RECORD_ID_BYTES);
-        int headerSize = Segment.align(refcount * 16 + rootcount * 3);
+        int recordSize = Segment.align(size + ids.size() * RECORD_ID_BYTES);
+        int headerSize = Segment.align(
+                refcount * 16 + rootcount * 3 + blobrefcount * 2);
         int segmentSize = headerSize + recordSize + length;
         if (segmentSize > buffer.length - 1
+                || blobrefcount > 0xffff
                 || rootcount > 0xffff
                 || refcount > Segment.SEGMENT_REFERENCE_LIMIT) {
             flush();
@@ -496,6 +503,8 @@ public class SegmentWriter {
 
         System.arraycopy(data, 0, buffer, position, length);
         position += length;
+
+        blobrefs.add(id);
         return id;
     }
 
