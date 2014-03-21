@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
@@ -160,15 +161,21 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (idp == null || syncHandler == null) {
             return false;
         }
-
         credentials = getCredentials();
-        if (credentials == null) {
+
+        // check if we have a pre authenticated login from a previous login module
+        final String userId;
+        final PreAuthenticatedLogin preAuthLogin = getSharedPreAuthLogin();
+        if (preAuthLogin != null) {
+            userId = preAuthLogin.getUserId();
+        } else {
+            userId = credentials instanceof SimpleCredentials ? ((SimpleCredentials) credentials).getUserID() : null;
+        }
+        if (userId == null && credentials == null) {
             log.debug("No credentials found for external login module. ignoring.");
             return false;
         }
 
-        // remember userID as we need this so often
-        final String userId = credentials instanceof SimpleCredentials ? ((SimpleCredentials) credentials).getUserID() : null;
         try {
             SyncedIdentity sId = null;
             if (userId != null) {
@@ -189,12 +196,19 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 }
             }
 
-            externalUser = idp.authenticate(credentials);
+            if (preAuthLogin != null) {
+                externalUser = idp.getUser(preAuthLogin.getUserId());
+            } else {
+                externalUser = idp.authenticate(credentials);
+            }
+
             if (externalUser != null) {
                 log.debug("IDP {} returned valid user {}", idp.getName(), externalUser);
 
-                //noinspection unchecked
-                sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+                if (credentials != null) {
+                    //noinspection unchecked
+                    sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
+                }
 
                 //noinspection unchecked
                 sharedState.put(SHARED_KEY_LOGIN_NAME, externalUser.getId());
@@ -244,7 +258,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
         if (!principals.isEmpty()) {
             if (!subject.isReadOnly()) {
                 subject.getPrincipals().addAll(principals);
-                subject.getPublicCredentials().add(credentials);
+                if (credentials != null) {
+                    subject.getPublicCredentials().add(credentials);
+                }
                 setAuthInfo(createAuthInfo(externalUser.getId(), principals), subject);
             } else {
                 log.debug("Could not add information to read only subject {}", subject);
