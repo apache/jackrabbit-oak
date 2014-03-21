@@ -62,11 +62,6 @@ public class Segment {
      */
     static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
-    static int align(int value) {
-        int mask = -1 << RECORD_ALIGN_BITS;
-        return (value + ~mask) & mask;
-    }
-
     /**
      * Maximum segment size. Record identifiers are stored as three-byte
      * sequences with the first byte indicating the segment and the next
