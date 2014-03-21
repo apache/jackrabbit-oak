@@ -36,8 +36,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     private Set<String> removeMe = new HashSet<String>();
 
-    public BasicDocumentStoreTest(DocumentStore ds) {
-        super(ds);
+    public BasicDocumentStoreTest(DocumentStoreFixture dsf) {
+        super(dsf);
     }
 
     @After
@@ -93,7 +93,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
         }
 
-        LOG.info("max id for " + super.ds.getClass() + " was " + test);
+        LOG.info("max id length for " + super.dsname + " was " + test);
     }
 
     private static String generateId(int length) {
