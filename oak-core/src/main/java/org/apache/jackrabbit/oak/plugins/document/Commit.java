@@ -419,16 +419,16 @@ public class Commit {
         DocumentStore store = nodeStore.getDocumentStore();
         for (UpdateOp op : changed) {
             UpdateOp reverse = op.getReverseOperation();
-            store.createOrUpdate(NODES, reverse);
+            store.findAndUpdate(NODES, reverse);
         }
         for (UpdateOp op : newDocuments) {
             UpdateOp reverse = op.getReverseOperation();
             NodeDocument.unsetLastRev(reverse, revision.getClusterId());
-            store.createOrUpdate(NODES, reverse);
+            store.findAndUpdate(NODES, reverse);
         }
         UpdateOp removeCollision = new UpdateOp(commitRoot.getId(), false);
         NodeDocument.removeCollision(removeCollision, revision);
-        store.createOrUpdate(NODES, removeCollision);
+        store.findAndUpdate(NODES, removeCollision);
     }
 
     /**
