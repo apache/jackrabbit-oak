@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * Provides constants for permissions used in the OAK access evaluation as well
@@ -160,6 +161,35 @@ public final class Permissions {
         PERMISSION_NAMES.put(INDEX_DEFINITION_MANAGEMENT, "INDEX_DEFINITION_MANAGEMENT");
     }
 
+    private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<String, Long>();
+        static {
+            PERMISSION_LOOKUP.put("ALL", ALL);
+            PERMISSION_LOOKUP.put("READ", READ);
+            PERMISSION_LOOKUP.put("READ_NODE", READ_NODE);
+            PERMISSION_LOOKUP.put("READ_PROPERTY", READ_PROPERTY);
+            PERMISSION_LOOKUP.put("SET_PROPERTY", SET_PROPERTY);
+            PERMISSION_LOOKUP.put("ADD_PROPERTY", ADD_PROPERTY);
+            PERMISSION_LOOKUP.put("MODIFY_PROPERTY", MODIFY_PROPERTY);
+            PERMISSION_LOOKUP.put("REMOVE_PROPERTY", REMOVE_PROPERTY);
+            PERMISSION_LOOKUP.put("ADD_NODE", ADD_NODE);
+            PERMISSION_LOOKUP.put("REMOVE_NODE", REMOVE_NODE);
+            PERMISSION_LOOKUP.put("REMOVE", REMOVE);
+            PERMISSION_LOOKUP.put("MODIFY_CHILD_NODE_COLLECTION", MODIFY_CHILD_NODE_COLLECTION);
+            PERMISSION_LOOKUP.put("READ_ACCESS_CONTROL", READ_ACCESS_CONTROL);
+            PERMISSION_LOOKUP.put("MODIFY_ACCESS_CONTROL", MODIFY_ACCESS_CONTROL);
+            PERMISSION_LOOKUP.put("NODE_TYPE_MANAGEMENT", NODE_TYPE_MANAGEMENT);
+            PERMISSION_LOOKUP.put("VERSION_MANAGEMENT", VERSION_MANAGEMENT);
+            PERMISSION_LOOKUP.put("LOCK_MANAGEMENT", LOCK_MANAGEMENT);
+            PERMISSION_LOOKUP.put("LIFECYCLE_MANAGEMENT", LIFECYCLE_MANAGEMENT);
+            PERMISSION_LOOKUP.put("RETENTION_MANAGEMENT", RETENTION_MANAGEMENT);
+            PERMISSION_LOOKUP.put("NODE_TYPE_DEFINITION_MANAGEMENT", NODE_TYPE_DEFINITION_MANAGEMENT);
+            PERMISSION_LOOKUP.put("NAMESPACE_MANAGEMENT", NAMESPACE_MANAGEMENT);
+            PERMISSION_LOOKUP.put("WORKSPACE_MANAGEMENT", WORKSPACE_MANAGEMENT);
+            PERMISSION_LOOKUP.put("PRIVILEGE_MANAGEMENT", PRIVILEGE_MANAGEMENT);
+            PERMISSION_LOOKUP.put("USER_MANAGEMENT", USER_MANAGEMENT);
+            PERMISSION_LOOKUP.put("INDEX_DEFINITION_MANAGEMENT", INDEX_DEFINITION_MANAGEMENT);
+        }
+
     /**
      * Returns names of the specified permissions.
      *
@@ -262,7 +292,7 @@ public final class Permissions {
      */
     public static long getPermissions(String jcrActions, TreeLocation location,
                                       boolean isAccessControlContent) {
-        Set<String> actions = Sets.newHashSet(Arrays.asList(jcrActions.split(",")));
+        Set<String> actions = Sets.newHashSet(Text.explode(jcrActions, ',', false));
         long permissions = NO_PERMISSION;
         if (actions.remove(Session.ACTION_READ)) {
             if (isAccessControlContent) {
@@ -332,11 +362,12 @@ public final class Permissions {
 
     private static long getPermissions(@Nonnull Set<String> permissionNames) {
         long permissions = NO_PERMISSION;
-        Iterator<Map.Entry<Long, String>> entryItr = PERMISSION_NAMES.entrySet().iterator();
-        while (entryItr.hasNext() && !permissionNames.isEmpty()) {
-            Map.Entry<Long,String> entry = entryItr.next();
-            if (permissionNames.remove(entry.getValue())) {
-                permissions |= entry.getKey();
+        Iterator<String> it = permissionNames.iterator();
+        while (it.hasNext()) {
+            String name = it.next();
+            if (name != null && PERMISSION_LOOKUP.containsKey(name)) {
+                permissions |= PERMISSION_LOOKUP.get(name);
+                it.remove();
             }
         }
         return permissions;
