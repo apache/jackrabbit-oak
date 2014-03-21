@@ -37,7 +37,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.align;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -84,6 +83,15 @@ public class SegmentWriter {
         buffer[5] = 0; // refcount
         return buffer;
     }
+
+    private static int align(int value) {
+        return align(value, 1 << Segment.RECORD_ALIGN_BITS);
+    }
+
+    private static int align(int value, int boundary) {
+        return (value + boundary - 1) & ~(boundary - 1);
+    }
+
 
     private final SegmentTracker tracker;
 
@@ -151,7 +159,6 @@ public class SegmentWriter {
     public synchronized void flush() {
         if (length > 0) {
             int refcount = segment.getRefCount();
-            length += align(refcount * 16 + roots.size() * 3);
 
             int rootcount = roots.size();
             buffer[Segment.ROOT_COUNT_OFFSET] = (byte) (rootcount >> 8);
@@ -161,12 +168,24 @@ public class SegmentWriter {
             buffer[Segment.BLOBREF_COUNT_OFFSET] = (byte) (blobrefcount >> 8);
             buffer[Segment.BLOBREF_COUNT_OFFSET + 1] = (byte) blobrefcount;
 
+            length = align(
+                    refcount * 16 + rootcount * 3 + blobrefcount * 2 + length,
+                    16);
+
             int pos = refcount * 16;
-            if (length + pos > buffer.length) {
-                length = buffer.length;
-            } else {
+            if (pos + length <= buffer.length) {
+                // the whole segment fits to the space *after* the referenced
+                // segment identifiers we've already written, so we can safely
+                // copy those bits ahead even if concurrent code is still
+                // reading from that part of the buffer
                 System.arraycopy(buffer, 0, buffer, buffer.length-length, pos);
                 pos += buffer.length - length;
+            } else {
+                // this might leave some empty space between the header and
+                // the record data, but this case only occurs when the
+                // segment is >252kB in size and the maximum overhead is <<4kB,
+                // which is acceptable
+                length = buffer.length;
             }
 
             for (Map.Entry<RecordId, RecordType> entry : roots.entrySet()) {
@@ -225,10 +244,9 @@ public class SegmentWriter {
             refcount += segmentIds.size();
         }
 
-        int recordSize = Segment.align(size + ids.size() * RECORD_ID_BYTES);
-        int headerSize = Segment.align(
-                refcount * 16 + rootcount * 3 + blobrefcount * 2);
-        int segmentSize = headerSize + recordSize + length;
+        int recordSize = align(size + ids.size() * RECORD_ID_BYTES);
+        int headerSize = refcount * 16 + rootcount * 3 + blobrefcount * 2;
+        int segmentSize = align(headerSize + recordSize + length, 16);
         if (segmentSize > buffer.length - 1
                 || blobrefcount > 0xffff
                 || rootcount > 0xffff
@@ -266,7 +284,7 @@ public class SegmentWriter {
 
         int offset = recordId.getOffset();
         checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
-        checkState(offset == Segment.align(offset));
+        checkState(offset == align(offset));
 
         buffer[position++] = (byte) getSegmentRef(recordId.getSegmentId());
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
