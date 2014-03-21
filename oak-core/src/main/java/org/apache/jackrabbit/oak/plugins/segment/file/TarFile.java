@@ -100,12 +100,21 @@ class TarFile {
         }
     }
 
+    private final int getEntrySize(int size) {
+        return BLOCK_SIZE + (size + BLOCK_SIZE - 1) & ~(BLOCK_SIZE - 1);
+    }
+
     synchronized boolean writeEntry(
             UUID uuid, byte[] b, int offset, int size) throws IOException {
-        if (position + BLOCK_SIZE + size + 4 * BLOCK_SIZE > maxFileSize) {
+        int indexSize = entries.size() * 24 + 4;
+        if (position
+                + getEntrySize(size)      // this entry
+                + getEntrySize(indexSize) // index entry
+                + 2 * BLOCK_SIZE          // two zero blocks at the end
+                > maxFileSize) {
             writeEntryHeader(
                     indexEntryName, maxFileSize - 3 * BLOCK_SIZE - position);
-            ByteBuffer index = ByteBuffer.allocate(entries.size() * 24 + 4);
+            ByteBuffer index = ByteBuffer.allocate(indexSize);
             SortedMap<UUID, TarEntry> sorted = newTreeMap();
             sorted.putAll(entries);
             for (Map.Entry<UUID, TarEntry> entry : sorted.entrySet()) {
@@ -116,8 +125,9 @@ class TarFile {
             }
             index.putInt(sorted.size());
             access.write(
-                    maxFileSize - 2 * BLOCK_SIZE - index.capacity(),
-                    index.array(), 0, index.capacity());
+                    maxFileSize - 2 * BLOCK_SIZE - indexSize,
+                    index.array(), 0, indexSize);
+            position = maxFileSize - 2 * BLOCK_SIZE;
             return false;
         }
 
