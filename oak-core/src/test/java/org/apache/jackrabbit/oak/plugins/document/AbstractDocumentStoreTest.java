@@ -19,49 +19,32 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.mongodb.DB;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractDocumentStoreTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
-
+    protected String dsname;
     protected DocumentStore ds;
 
-    public AbstractDocumentStoreTest(DocumentStore ds) {
-        this.ds = ds;
+    public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
+        this.ds = dsf.getDocumentStore();
+        this.dsname = dsf.getName();
     }
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        result.add(new Object[] { new MemoryDocumentStore() });
-        result.add(new Object[] { new RDBDocumentStore(new DocumentMK.Builder()) });
-        DocumentStore md = getMongoDS();
-        if (md != null) {
-            result.add(new Object[] { md });
-        }
-        return result;
-    }
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
+                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG};
 
-    private static DocumentStore getMongoDS() {
-        String instance = "mongodb://localhost:27017/oak";
-        try {
-            MongoConnection connection = new MongoConnection(instance);
-            DB mongoDB = connection.getDB();
-            return new MongoDocumentStore(mongoDB, new DocumentMK.Builder());
-        } catch (Exception e) {
-            LOG.info("Mongo instance not available at " + instance + ", skipping tests...");
-            return null;
+        for (DocumentStoreFixture dsf : candidates) {
+            if (dsf.isAvailable()) {
+                result.add(new Object[] { dsf });
+            }
         }
+
+        return result;
     }
 }
