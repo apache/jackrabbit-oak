@@ -83,7 +83,9 @@ public final class ConfigurationParameters implements Map<String, Object> {
     public static ConfigurationParameters of(@Nonnull ConfigurationParameters... params) {
         Map<String, Object> m = new HashMap<String, Object>();
         for (ConfigurationParameters cp : params) {
-            m.putAll(cp.options);
+            if (cp != null) {
+                m.putAll(cp.options);
+            }
         }
         return m.isEmpty() ? EMPTY : new ConfigurationParameters(m);
     }
