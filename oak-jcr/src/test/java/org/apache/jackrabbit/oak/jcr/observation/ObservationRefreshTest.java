@@ -113,7 +113,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.addNode("n" + i);
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+            listener.waitFor(CONDITION_TIMEOUT, new Condition() {
                 @Override
                 public boolean evaluate() {
                     return listener.numAdded == 1000;
@@ -126,7 +126,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getNode("n" + i).remove();
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+            listener.waitFor(CONDITION_TIMEOUT, new Condition() {
                 @Override
                 public boolean evaluate() {
                     return listener.numRemoved == 1000;
@@ -139,7 +139,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, "foo");
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+            listener.waitFor(CONDITION_TIMEOUT, new Condition() {
                 @Override
                 public boolean evaluate() {
                     return listener.numPropsAdded == 1100;
@@ -152,7 +152,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test" + i, i);
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+            listener.waitFor(CONDITION_TIMEOUT, new Condition() {
                 @Override
                 public boolean evaluate() {
                     return listener.numPropsModified == 100;
@@ -165,21 +165,21 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.setProperty("test100", "foo");
                 n.getSession().save();
                 assertTrue("Gave up waiting for events",
-                    Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                        @Override
-                        public boolean evaluate() {
-                            return listener.test100Exists;
-                        }
-                    }));
+                        listener.waitFor(CONDITION_TIMEOUT, new Condition() {
+                            @Override
+                            public boolean evaluate() {
+                                return listener.test100Exists;
+                            }
+                        }));
                 n.getProperty("test100").remove();
                 n.getSession().save();
                 assertTrue("Gave up waiting for events",
-                    Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
-                        @Override
-                        public boolean evaluate() {
-                            return !listener.test100Exists;
-                        }
-                    }));
+                        listener.waitFor(CONDITION_TIMEOUT, new Condition() {
+                            @Override
+                            public boolean evaluate() {
+                                return !listener.test100Exists;
+                            }
+                        }));
             }
             assertEquals("", listener.error);
 
@@ -187,7 +187,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
                 n.getProperty("test" + i).remove();
                 n.getSession().save();
             }
-            Timer.waitFor(CONDITION_TIMEOUT, new Condition() {
+            listener.waitFor(CONDITION_TIMEOUT, new Condition() {
                 @Override
                 public boolean evaluate() {
                     return listener.numPropsRemoved == 1100;
@@ -203,19 +203,6 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
     private interface Condition {
         boolean evaluate();
-    }
-    private static class Timer {
-
-        public static boolean waitFor(long timeout, Condition c) throws InterruptedException {
-            long end = System.currentTimeMillis() + timeout;
-            while (System.currentTimeMillis() < end) {
-                if (c.evaluate()) {
-                    return true;
-                }
-                Thread.sleep(100);
-            }
-            return false;
-        }
     }
 
     private class MyListener implements EventListener {
@@ -235,7 +222,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         private volatile boolean test100Exists = false;
 
         @Override
-        public void onEvent(EventIterator events) {
+        public synchronized void onEvent(EventIterator events) {
             try {
                 while (events.hasNext()) {
                     Event event = events.nextEvent();
@@ -301,8 +288,24 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             } catch (Exception e) {
                 error = e.toString();
                 e.printStackTrace();
+            } finally {
+                notifyAll();
             }
-
         }
+
+        synchronized boolean waitFor(long timeout, Condition c)
+                throws InterruptedException {
+            long end = System.currentTimeMillis() + timeout;
+            long remaining = end - System.currentTimeMillis();
+            while (remaining > 0) {
+                if (c.evaluate()) {
+                    return true;
+                }
+                wait(remaining);
+                remaining = end - System.currentTimeMillis();
+            }
+            return false;
+        }
+
     }
 }
