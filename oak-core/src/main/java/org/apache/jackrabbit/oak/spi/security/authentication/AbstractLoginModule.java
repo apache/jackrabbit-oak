@@ -163,6 +163,12 @@ public abstract class AbstractLoginModule implements LoginModule {
      */
     public static final String SHARED_KEY_ATTRIBUTES = "javax.security.auth.login.attributes";
 
+    /**
+     * Key of the sharedState entry referring to pre authenticated login information that is shared
+     * between multiple login modules.
+     */
+    public static final String SHARED_KEY_PRE_AUTH_LOGIN = PreAuthenticatedLogin.class.getName();
+
     protected Subject subject;
     protected CallbackHandler callbackHandler;
     protected Map sharedState;
@@ -306,6 +312,20 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected String getSharedLoginName() {
         if (sharedState.containsKey(SHARED_KEY_LOGIN_NAME)) {
             return sharedState.get(SHARED_KEY_LOGIN_NAME).toString();
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * @return The pre authenticated login or {@code null}
+     * @see #SHARED_KEY_PRE_AUTH_LOGIN
+     */
+    @CheckForNull
+    protected PreAuthenticatedLogin getSharedPreAuthLogin() {
+        Object login = sharedState.get(SHARED_KEY_PRE_AUTH_LOGIN);
+        if (login instanceof PreAuthenticatedLogin) {
+            return (PreAuthenticatedLogin) login;
         } else {
             return null;
         }

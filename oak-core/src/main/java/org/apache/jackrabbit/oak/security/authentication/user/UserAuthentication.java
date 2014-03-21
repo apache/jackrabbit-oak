@@ -58,6 +58,8 @@ import org.slf4j.LoggerFactory;
  */
 class UserAuthentication implements Authentication {
 
+    static final Credentials PRE_AUTHENTICATED = new Credentials() { };
+
     private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
     private final String userId;
@@ -71,7 +73,7 @@ class UserAuthentication implements Authentication {
     //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(Credentials credentials) throws LoginException {
-        if (userId == null || userManager == null) {
+        if (userId == null || userManager == null || credentials == null) {
             return false;
         }
 
@@ -105,7 +107,7 @@ class UserAuthentication implements Authentication {
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
-                success = (credentials instanceof GuestCredentials);
+                success = (credentials instanceof GuestCredentials) || credentials == PRE_AUTHENTICATED;
             }
         } catch (RepositoryException e) {
             throw new LoginException(e.getMessage());

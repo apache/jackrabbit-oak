@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.slf4j.Logger;
@@ -111,23 +112,31 @@ public final class LoginModuleImpl extends AbstractLoginModule {
 
     @Override
     public boolean login() throws LoginException {
+        final boolean success;
         credentials = getCredentials();
-        userId = getUserId();
 
-        if (credentials == null || userId == null) {
-            log.debug("Could not extract userId/credentials");
-            return false;
+        // check if we have a pre authenticated login from a previous login module
+        PreAuthenticatedLogin preAuthLogin = getSharedPreAuthLogin();
+        if (preAuthLogin != null) {
+            userId = preAuthLogin.getUserId();
+            Authentication authentication = new UserAuthentication(userId, getUserManager());
+            success = authentication.authenticate(UserAuthentication.PRE_AUTHENTICATED);
+
+        } else {
+            userId = getUserId();
+            Authentication authentication = new UserAuthentication(userId, getUserManager());
+            success = authentication.authenticate(credentials);
         }
 
-        Authentication authentication = new UserAuthentication(userId, getUserManager());
-        boolean success = authentication.authenticate(credentials);
         if (success) {
             principals = getPrincipals(userId);
 
             log.debug("Adding Credentials to shared state.");
+            //noinspection unchecked
             sharedState.put(SHARED_KEY_CREDENTIALS, credentials);
 
             log.debug("Adding login name to shared state.");
+            //noinspection unchecked
             sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
         }
         return success;
