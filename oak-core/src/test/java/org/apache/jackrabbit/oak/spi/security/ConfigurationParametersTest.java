@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +32,7 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertSame;
 
 public class ConfigurationParametersTest {
 
@@ -41,6 +41,24 @@ public class ConfigurationParametersTest {
 
     @After
     public void tearDown() {}
+
+    @Test
+    public void testCreation() {
+        ConfigurationParameters params = ConfigurationParameters.of(
+                ConfigurationParameters.EMPTY,
+                null,
+                ConfigurationParameters.of(Collections.singletonMap("a", "a")));
+        assertFalse(params.isEmpty());
+        assertEquals(1, params.size());
+        assertTrue(params.contains("a"));
+    }
+
+    @Test
+    public void testCreationFromNull() {
+        ConfigurationParameters cp = null;
+        ConfigurationParameters params = ConfigurationParameters.of(new ConfigurationParameters[] {cp});
+        assertSame(ConfigurationParameters.EMPTY, params);
+    }
 
     @Test
     public void testContains() {
