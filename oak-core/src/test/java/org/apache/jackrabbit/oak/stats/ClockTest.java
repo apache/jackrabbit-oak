@@ -18,12 +18,9 @@ package org.apache.jackrabbit.oak.stats;
 
 import static junit.framework.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ClockTest {
@@ -32,29 +29,17 @@ public class ClockTest {
      * Helper for checking how accurate the system clock is.
      */
     public static void main(String[] args) {
-        List<Long> values = new ArrayList<Long>();
-        long end = System.currentTimeMillis() + 10000; // 10 seconds
-        long last = System.currentTimeMillis();
-        long current = last;
-
-        do {
-            current = System.currentTimeMillis();
-            if (current != last && current != last + 1) {
-                values.add(current);
-            }
-            last = current;
-        } while (current < end);
-        for (int i = 1; i < values.size(); i++) {
-            System.out.println(values.get(i) + " " + (values.get(i) - values.get(i - 1)));
-        }
+        System.out.println("average clock granularity: " + getAverageClockGranularity());
     }
 
     @Test
-    @Ignore("OAK-1564")  // FIXME OAK-1564 ClockTest on Windows fails
     public void testClockDrift() throws InterruptedException {
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
-        final long limit = 20;
+        final long granularity = getAverageClockGranularity();
+        final long limit = (2 * granularity) / 1000; // allow a drift twice as high
+        final String diag = "(estimated limit was " + limit + "ms, measured granularity was " + ( granularity / 1000f) + "ms)";
+
         try {
             Clock[] clocks = new Clock[] {
                     Clock.SIMPLE,
@@ -64,14 +49,14 @@ public class ClockTest {
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
-                assertTrue("unexpected drift: " + Math.abs(drift) + " (limit " + limit +")", Math.abs(drift) < limit); // Windows can have 15ms gaps
+                assertTrue("unexpected drift: " + Math.abs(drift) + "ms " + diag, Math.abs(drift) <= limit);
             }
 
             Thread.sleep(100);
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
-                assertTrue("unexpected drift: " + Math.abs(drift) + " (limit " + limit +")", Math.abs(drift) < limit);
+                assertTrue("unexpected drift: " + Math.abs(drift) + "ms " + diag, Math.abs(drift) <= limit);
             }
         } finally {
             executor.shutdown();
@@ -102,4 +87,29 @@ public class ClockTest {
         }
     }
 
+    /**
+     * On some systems (for instance Windows), the granularity of {@link System.currentTimeMillis} depends
+     * on system-wide settings that can change depending on what applications are running
+     * (see, for instance <a href="http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/">http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/</a>).
+     * This method tries to measure the granularity.
+     * @return average granularity of {@link System.currentTimeMillis} in 1/1000 of milliseconds
+     */
+    private static long getAverageClockGranularity() {
+        long sum = 0;
+        int samples = 20; // number of samples to take
+        long last = System.currentTimeMillis();
+
+        for (int i = 0; i < samples; i++) {
+            long now = System.currentTimeMillis();
+            while (now == last) {
+                // busy-wait until return value changes
+                now = System.currentTimeMillis();
+            }
+            sum += (now - last); // add the actual difference
+            last = now;
+        }
+
+        // return average in 1/1000ms
+        return (sum * 1000) / samples;
+    }
 }
