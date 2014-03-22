@@ -40,29 +40,29 @@ public class SegmentSizeTest {
     @Test
     public void testNodeSize() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        assertEquals(40, getSize(builder));
+        assertEquals(48, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertEquals(44, getSize(builder));
+        assertEquals(48, getSize(builder));
         assertEquals(8, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(60, getSize(builder));
+        assertEquals(64, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
-        assertEquals(60, getSize(builder));
+        assertEquals(64, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
         builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertEquals(88, getSize(builder));
+        assertEquals(96, getSize(builder));
         assertEquals(40, getAmortizedSize(builder));
     }
 
@@ -70,43 +70,55 @@ public class SegmentSizeTest {
     public void testDuplicateStrings() {
         String string = "More than just a few bytes of example content.";
 
-        NodeBuilder builder = EMPTY_NODE.builder();
+        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+        SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
+
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(1, string), Type.STRINGS));
-        int base = getSize(builder);
+        RecordId id1 = builder.getNodeState().getRecordId();
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(12, string), Type.STRINGS));
-        assertEquals(base + 12 * Segment.RECORD_ID_BYTES, getSize(builder));
+        RecordId id2 = builder.getNodeState().getRecordId();
+        assertEquals(16 + 12 * Segment.RECORD_ID_BYTES,
+                id1.getOffset() - id2.getOffset());
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(100, string), Type.STRINGS));
-        assertEquals(base + 100 * Segment.RECORD_ID_BYTES, getSize(builder));
+        RecordId id3 = builder.getNodeState().getRecordId();
+        assertEquals(16 + 100 * Segment.RECORD_ID_BYTES,
+                id2.getOffset() - id3.getOffset());
     }
 
     @Test
     public void testDuplicateDates() {
         String now = ISO8601.format(Calendar.getInstance());
 
-        NodeBuilder builder = EMPTY_NODE.builder();
+        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
+        SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
+
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(1, now), Type.DATES));
-        int base = getSize(builder);
+        RecordId id1 = builder.getNodeState().getRecordId();
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(12, now), Type.DATES));
-        assertEquals(base + 12 * Segment.RECORD_ID_BYTES, getSize(builder));
+        RecordId id2 = builder.getNodeState().getRecordId();
+        assertEquals(16 + 12 * Segment.RECORD_ID_BYTES,
+                id1.getOffset() - id2.getOffset());
 
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(100, now), Type.DATES));
-        assertEquals(base + 100 * Segment.RECORD_ID_BYTES, getSize(builder));
+        RecordId id3 = builder.getNodeState().getRecordId();
+        assertEquals(16 + 100 * Segment.RECORD_ID_BYTES,
+                id2.getOffset() - id3.getOffset());
     }
 
     @Test
     public void testAccessControlNodes() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
-        assertEquals(40, getSize(builder));
+        assertEquals(48, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
         NodeBuilder deny = builder.child("deny");
@@ -114,7 +126,7 @@ public class SegmentSizeTest {
         deny.setProperty("rep:principalName", "everyone");
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(164, getSize(builder));
+        assertEquals(176, getSize(builder));
         assertEquals(28, getAmortizedSize(builder));
 
         NodeBuilder allow = builder.child("allow");
@@ -122,7 +134,7 @@ public class SegmentSizeTest {
         allow.setProperty("rep:principalName", "administrators");
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(284, getSize(builder));
+        assertEquals(288, getSize(builder));
         assertEquals(72, getAmortizedSize(builder));
 
         NodeBuilder deny0 = builder.child("deny0");
@@ -131,7 +143,7 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(376, getSize(builder));
+        assertEquals(384, getSize(builder));
         assertEquals(108, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
@@ -169,30 +181,18 @@ public class SegmentSizeTest {
     }
 
     private int getSize(NodeBuilder builder) {
-        SegmentStore store = new MemoryStore();
-        SegmentWriter writer = store.getTracker().getWriter();
+        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
-        Segment segment = store.readSegment(id.getSegmentId());
-        return segment.size();
+        return id.getSegment().size();
     }
 
     private int getAmortizedSize(NodeBuilder builder) {
-        SegmentStore store = new MemoryStore();
-        SegmentWriter writer = store.getTracker().getWriter();
+        SegmentWriter writer = new MemoryStore().getTracker().getWriter();
         NodeState state = builder.getNodeState();
-        RecordId id = writer.writeNode(state).getRecordId();
-        writer.flush();
-        Segment segment = store.readSegment(id.getSegmentId());
-        int base = segment.size();
-
-        store = new MemoryStore(); // avoid cross-segment caching
-        writer = store.getTracker().getWriter();
-        writer.writeNode(state);
-        id = writer.writeNode(state).getRecordId();
-        writer.flush();
-        segment = store.readSegment(id.getSegmentId());
-        return segment.size() - base - 4;
+        RecordId id1 = writer.writeNode(state).getRecordId();
+        RecordId id2 = writer.writeNode(state).getRecordId();
+        return id1.getOffset() - id2.getOffset();
     }
 
 }
