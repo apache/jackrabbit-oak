@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.spi.state;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
@@ -204,10 +206,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     @Override
     public boolean childNodeAdded(String name, NodeState after) {
         if (builder.hasChildNode(name)) {
-            NodeState other = builder.child(name).getNodeState();
-            if (!other.equals(after)) {
-                addExistingNode(builder, name, other, after);
-            }
+            after.compareAgainstBaseState(EMPTY_NODE, createDiff(builder, name));
         } else {
             builder.setChildNode(name, after);
         }
@@ -215,8 +214,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     }
 
     @Override
-    public boolean childNodeChanged(
-            String name, NodeState before, NodeState after) {
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         if (builder.hasChildNode(name)) {
             after.compareAgainstBaseState(before, createDiff(builder, name));
         } else if (after.equals(before)) {
