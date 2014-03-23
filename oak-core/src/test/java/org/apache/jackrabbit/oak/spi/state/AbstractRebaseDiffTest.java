@@ -155,21 +155,93 @@ public class AbstractRebaseDiffTest {
     public void addExistingNode() {
         NodeBuilder headBuilder = base.builder();
         headBuilder.setChildNode("n");
-        headBuilder.setChildNode("m");
+        headBuilder.setChildNode("m").setChildNode("m1");
+        headBuilder.getChildNode("m").setProperty("a", 1);
+        headBuilder.getChildNode("m").setProperty("p", 1);
+        headBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm1");
         NodeState head = headBuilder.getNodeState();
 
         NodeBuilder branchBuilder = base.builder();
         branchBuilder.setChildNode("n");
-        branchBuilder.setChildNode("m").setChildNode("mm");
+        branchBuilder.setChildNode("m").setChildNode("m2");
+        branchBuilder.getChildNode("m").setProperty("a", 1);
+        branchBuilder.getChildNode("m").setProperty("q", 1);
+        branchBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm2");
         NodeState branch = branchBuilder.getNodeState();
 
-        RebaseDiff rebaseDiff = new RebaseDiff(head.builder()) {
+        NodeBuilder builder = head.builder();
+        RebaseDiff rebaseDiff = new RebaseDiff(builder);
+        branch.compareAgainstBaseState(base, rebaseDiff);
+
+        NodeBuilder expectedBuilder = base.builder();
+        expectedBuilder.setChildNode("n");
+        expectedBuilder.setChildNode("n");
+        expectedBuilder.setChildNode("m").setChildNode("m1");
+        expectedBuilder.getChildNode("m").setChildNode("m2");
+        expectedBuilder.getChildNode("m").setProperty("a", 1);
+        expectedBuilder.getChildNode("m").setProperty("p", 1);
+        expectedBuilder.getChildNode("m").setProperty("q", 1);
+        expectedBuilder.getChildNode("m").setChildNode("mm").setChildNode("mm1");
+        expectedBuilder.getChildNode("m").getChildNode("mm").setChildNode("mm2");
+
+        assertEquals(expectedBuilder.getNodeState(), builder.getNodeState());
+    }
+
+    @Test
+    public void addExistingNodeWithConflict() {
+        NodeBuilder headBuilder = base.builder();
+        headBuilder.setChildNode("n");
+        headBuilder.setChildNode("m").setChildNode("m1");
+        headBuilder.getChildNode("m").setProperty("p", 1);
+        headBuilder.getChildNode("m").setChildNode("mm").setChildNode("mmm").setProperty("pp", 1);
+        NodeState head = headBuilder.getNodeState();
+
+        NodeBuilder branchBuilder = base.builder();
+        branchBuilder.setChildNode("n");
+        branchBuilder.setChildNode("m").setChildNode("m2");
+        branchBuilder.getChildNode("m").setProperty("q", 1);
+        branchBuilder.getChildNode("m").setChildNode("mm").setChildNode("mmm").setProperty("pp", 2);
+        NodeState branch = branchBuilder.getNodeState();
+
+        NodeBuilder builder = head.builder();
+
+        class ConflictResolver extends RebaseDiff {
+            private final ConflictResolver parent;
+
+            private ConflictResolver(NodeBuilder builder) {
+                this(null, builder);
+            }
+
+            public ConflictResolver(ConflictResolver parent, NodeBuilder builder) {
+                super(builder);
+                this.parent = parent;
+            }
+
             @Override
-            protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
-                assertEquals("m", name);
+            protected void resolve() {
+                if (parent == null) {
+                    super.resolve();
+                } else {
+                    parent.resolve();
+                }
+            }
+
+            @Override
+            protected AbstractRebaseDiff createDiff(NodeBuilder builder, String name) {
+                return new ConflictResolver(
+                        this, builder.getChildNode(name));
+            }
+
+            @Override
+            protected void addExistingProperty(NodeBuilder builder,
+                    PropertyState before, PropertyState after) {
+                assertEquals(createProperty("pp", 1), before);
+                assertEquals(createProperty("pp", 2), after);
                 resolve();
             }
-        };
+        }
+
+        RebaseDiff rebaseDiff = new ConflictResolver(builder);
         branch.compareAgainstBaseState(base, rebaseDiff);
         assertTrue(rebaseDiff.isResolved());
     }
@@ -256,7 +328,7 @@ public class AbstractRebaseDiffTest {
 
         @Override
         protected AbstractRebaseDiff createDiff(NodeBuilder builder, String name) {
-            return this;
+            return new RebaseDiff(builder.getChildNode(name));
         }
 
         @Override

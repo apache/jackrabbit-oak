@@ -1602,8 +1602,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session1 = createAdminSession();
         Session session2 = createAdminSession();
         try {
-            session1.getRootNode().addNode("node");
-            session2.getRootNode().addNode("node").setProperty("p", "v");
+            session1.getRootNode().addNode("node").setProperty("p", "v1");
+            session2.getRootNode().addNode("node").setProperty("p", "v2");
             assertTrue(session1.getRootNode().hasNode("node"));
             assertTrue(session2.getRootNode().hasNode("node"));
 
