@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -42,15 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -250,7 +249,6 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         assertTrue(result.hasNext());
     }
 
-    @Ignore("OAK-1541")
     @Test
     public void testConcurrentCreateUser() throws Exception {
         final List<Exception> exceptions = new ArrayList<Exception>();
