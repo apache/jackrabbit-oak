@@ -526,8 +526,9 @@ public interface MicroKernel {
      *     <dd>A property has been changed while a property of the same name has been changed to a
      *         different value in trunk.</dd>
      *     <dt>addExistingNode:</dt>
-     *     <dd>A node has been added that is different from a node of them same name that has been added
-     *         to the trunk.</dd>
+     *     <dd>A node has been added that can't be merged with a node of them same name that has
+     *         been added to the trunk. How and whether merging takes place is up to the
+     *         implementation. Merging must not cause data to be lost however.</dd>
      *     <dt>deleteDeletedNode:</dt>
      *     <dd>A node has been removed while a node of the same name has been removed in trunk.</dd>
      *     <dt>deleteChangedNode:</dt>
