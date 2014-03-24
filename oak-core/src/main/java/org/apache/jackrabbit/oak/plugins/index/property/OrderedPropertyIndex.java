@@ -119,30 +119,32 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                 String propertyName = PathUtils.getName(pr.propertyName);
                 if (lookup.isIndexed(propertyName, "/", filter)) {
                     PropertyValue value = null;
-                    boolean createPlan = true;
+                    boolean createPlan = false;
                     if (pr.first == null && pr.last == null) {
                         // open query: [property] is not null
                         value = null;
+                        createPlan = true;
                     } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                                && pr.lastIncluding) {
                         // [property]=[value]
                         value = pr.first;
-// ----------- DISABLING RANGE QUERIES FOR NOW. EASYING THE INTEGRATION WITH OAK-622 [BEGIN]
-//                    } else if (pr.first != null && !pr.first.equals(pr.last)) {
-//                        // '>' & '>=' use cases
-//                        if (lookup.isAscending(root, propertyName, filter)) {
-//                            value = pr.first;
-//                        } else {
-//                            createPlan = false;
-//                        }
-//                    } else if (pr.last != null && !pr.last.equals(pr.first)) {
-//                        // '<' & '<='
-//                        if (!lookup.isAscending(root, propertyName, filter)) {
-//                            value = pr.last;
-//                        } else {
-//                            createPlan = false;
-//                        }
-// ----------- DISABLING RANGE QUERIES FOR NOW. EASYING THE INTEGRATION WITH OAK-622 [ END ]
+                        createPlan = true;
+                    } else if (pr.first != null && !pr.first.equals(pr.last)) {
+                        // '>' & '>=' use cases
+                        if (lookup.isAscending(root, propertyName, filter)) {
+                            value = pr.first;
+                            createPlan = true;
+                        } else {
+                            createPlan = false;
+                        }
+                    } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                        // '<' & '<='
+                        if (!lookup.isAscending(root, propertyName, filter)) {
+                            value = pr.last;
+                            createPlan = true;
+                        } else {
+                            createPlan = false;
+                        }
                     }
                     if (createPlan) {
                         // we always return a sorted set
@@ -174,7 +176,6 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
         LOG.debug("getPlanDescription() - plan: {}", plan);
         LOG.error("Not implemented yet");
         throw new UnsupportedOperationException("Not implemented yet.");
-//        return null;
     }
 
     @Override

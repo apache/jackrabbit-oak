@@ -87,6 +87,28 @@ public class ValuePathTuple implements Comparable<ValuePathTuple> {
 
     }
 
+    public static class BetweenPredicate implements Predicate<ValuePathTuple> {
+        private String start;
+        private String end;
+        private boolean includeStart;
+        private boolean includeEnd;
+        
+        public BetweenPredicate(String start, String end, boolean includeStart, boolean includeEnd) {
+            this.start = start;
+            this.end = end;
+            this.includeStart = includeStart;
+            this.includeEnd = includeEnd;
+        }
+
+        @Override
+        public boolean apply(ValuePathTuple arg0) {
+            String other = arg0.getValue();
+            return 
+                (start.compareTo(other) < 0 || (includeStart && start.equals(other)))
+                && (end.compareTo(other) > 0 || (includeEnd && end.equals(other)));
+        }
+    }
+
     ValuePathTuple(String value, String path) {
         this.value = value;
         this.path = path;

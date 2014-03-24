@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedC
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.text.DecimalFormat;
@@ -1359,5 +1360,230 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(store.count(ascendingMeta, pr, maxNodeCount) > 0);
         assertEquals(store.count(ascendingMeta, pr, maxNodeCount),
             descendingStore.count(descendingMeta, pr, maxNodeCount));
+    }
+    
+    @Test
+    public void seekEqualsNotFound() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+        String nonExisting = "dsrfgdrtfhg";
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        assertNull("The item should have not been found", OrderedContentMirrorStoreStrategy.seek(
+            index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(nonExisting)));
+    }
+
+    @Test
+    public void seekEquals() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n1;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor));
+
+        assertNotNull("we should have found an item", item);
+        assertEquals(searchFor, item.getName());
+    }
+
+    @Test
+    public void seekGreaterThanNotFound() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n1;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor));
+
+        assertNull("no item should have been found", item);
+    }
+
+    @Test
+    public void seekGreaterThan() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n2;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor));
+
+        assertNotNull("we should have found an item", item);
+        assertEquals(n1, item.getName());
+    }
+
+    @Test
+    public void seekGreaterThanEqualsNotFound() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = KEYS[3];
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor, true));
+
+        assertNull("we should have not found an item", item);
+    }
+
+    @Test
+    public void seekGreaterThanEquals() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy();
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n2;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor, true));
+
+        assertNotNull("we should have found an item", item);
+        assertEquals(n2, item.getName());
+    }
+
+    @Test
+    public void seekLessThanNotFound() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(
+            OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n3;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor));
+
+        assertNull("we should have not found an item", item);
+    }
+
+    @Test
+    public void seekLessThan() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(
+            OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n2 = KEYS[2];
+        String n3 = KEYS[0];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+
+        String searchFor = n2;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor));
+
+        assertNotNull("we should have found an item", item);
+        assertEquals(n0, item.getName());
+    }
+
+    @Test
+    public void seekLessThanEqualNotFound() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(
+            OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+
+        String searchFor = KEYS[0];
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor, true));
+
+        assertNull("we should have not found an item", item);
+    }
+
+    @Test
+    public void seekLessThanEqual() {
+        OrderedContentMirrorStoreStrategy store = new OrderedContentMirrorStoreStrategy(
+            OrderDirection.DESC);
+        NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
+        String n0 = KEYS[1];
+        String n1 = KEYS[3];
+        String n2 = KEYS[2];
+
+        // initialising the store
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+
+        String searchFor = n2;
+
+        ChildNodeEntry item = OrderedContentMirrorStoreStrategy.seek(index.getNodeState(),
+            new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor, true));
+
+        assertNotNull("we should have found an item", item);
+        assertEquals(n2, item.getName());
     }
 }

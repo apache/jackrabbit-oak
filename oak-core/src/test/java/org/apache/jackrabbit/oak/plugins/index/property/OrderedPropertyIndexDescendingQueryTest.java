@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -136,7 +135,7 @@ public class OrderedPropertyIndexDescendingQueryTest extends BasicOrderedPropert
      * test the range query in case of '>' condition
      * @throws Exception
      */
-    @Test @Ignore("Disabling for now. Integration with OAK-622 and prioritising.")
+    @Test
     public void queryGreaterThan() throws Exception {
         initWithProperProvider();
         setTravesalEnabled(false);
@@ -172,7 +171,7 @@ public class OrderedPropertyIndexDescendingQueryTest extends BasicOrderedPropert
      * test the range query in case of '>=' condition
      * @throws Exception
      */
-    @Test @Ignore("Disabling for now. Integration with OAK-622 and prioritising.")
+    @Test
     public void queryGreaterEqualThan() throws Exception {
         initWithProperProvider();
         setTravesalEnabled(false);
@@ -285,4 +284,40 @@ public class OrderedPropertyIndexDescendingQueryTest extends BasicOrderedPropert
         setTravesalEnabled(true);
     }
 
+    /**
+     * testing explicitly OAK-1561 use-case
+     * 
+     * @throws CommitFailedException
+     * @throws ParseException
+     */
+    @Test
+    public void queryGreaterThenWithCast() throws CommitFailedException, ParseException {
+
+        setTravesalEnabled(false);
+
+        final OrderDirection direction = OrderDirection.ASC;
+        final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY
+                             + "> cast('%s' as date)";
+
+        // index automatically created by the framework:
+        // {@code createTestIndexNode()}
+
+        // initialising the data
+        Tree rTree = root.getTree("/");
+        Tree test = rTree.addChild("test");
+        Calendar start = midnightFirstJan2013();
+        addChildNodes(generateOrderedDates(NUMBER_OF_NODES, direction, start), test, direction,
+            Type.DATE);
+        root.commit();
+
+        Calendar searchForCalendar = (Calendar) start.clone();
+        searchForCalendar.add(Calendar.HOUR_OF_DAY, 36);
+        String searchFor = ISO_8601_2000.format(searchForCalendar.getTime());
+        Iterator<? extends ResultRow> results = executeQuery(String.format(query, searchFor), SQL2,
+            null).getRows().iterator();
+        assertFalse("the index should not be used in this case", results.hasNext());
+
+        setTravesalEnabled(true);
+
+    }
 }
