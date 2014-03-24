@@ -425,7 +425,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return null;
         }
 
-        String value = getDeleted().get(newestRev);
+        // newest revision is likely in the local deleted map
+        String value = getLocalDeleted().get(newestRev);
+        if (value == null) {
+            // otherwise get from complete map
+            value = getDeleted().get(newestRev);
+        }
         if ("true".equals(value)) {
             // deleted in the newest revision
             return null;
