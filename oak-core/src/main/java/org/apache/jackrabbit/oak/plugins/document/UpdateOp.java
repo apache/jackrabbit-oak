@@ -113,6 +113,16 @@ public final class UpdateOp {
     }
 
     /**
+     * Checks if the UpdateOp has any change operation is registered with
+     * current update operation
+     *
+     * @return true if any change operation is created
+     */
+    public boolean hasChanges(){
+        return !changes.isEmpty();
+    }
+
+    /**
      * Add a new or update an existing map entry.
      * The property is a map of revisions / values.
      *

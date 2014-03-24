@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 
 /**
  * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
@@ -460,6 +461,7 @@ public class DocumentMK implements MicroKernel {
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
+        private Clock clock = Clock.SIMPLE;
 
         public Builder() {
             memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
@@ -715,6 +717,15 @@ public class DocumentMK implements MicroKernel {
         public Builder offHeapCacheSize(long offHeapCacheSize) {
             this.offHeapCacheSize = offHeapCacheSize;
             return this;
+        }
+
+        public Builder clock(Clock clock){
+            this.clock = clock;
+            return this;
+        }
+
+        public Clock getClock(){
+            return clock;
         }
 
         /**

@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -277,6 +278,10 @@ public final class DocumentNodeStore
         }
     };
 
+    private final Clock clock;
+
+    private final Checkpoints checkpoints;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -290,6 +295,7 @@ public final class DocumentNodeStore
             s = new LoggingDocumentStoreWrapper(s);
         }
         this.store = s;
+        this.clock = builder.getClock();
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
         if (cid == 0) {
@@ -327,6 +333,7 @@ public final class DocumentNodeStore
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
         diffCache = builder.getDiffCache();
+        checkpoints = new Checkpoints(this);
 
         // check if root node exists
         if (store.find(Collection.NODES, Utils.getIdFromPath("/")) == null) {
@@ -352,6 +359,7 @@ public final class DocumentNodeStore
             }
         }
         getRevisionComparator().add(headRevision, Revision.newRevision(0));
+
         dispatcher = new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this, dispatcher);
         batchCommitQueue = new BatchCommitQueue(store, revisionComparator);
@@ -1224,9 +1232,7 @@ public final class DocumentNodeStore
     @Nonnull
     @Override
     public String checkpoint(long lifetime) {
-        // FIXME: need to signal to the garbage collector that this revision
-        // should not be collected until the requested lifetime is over
-        return getHeadRevision().toString();
+        return checkpoints.create(lifetime).toString();
     }
 
     @CheckForNull
@@ -1370,7 +1376,7 @@ public final class DocumentNodeStore
                     NodeDocument after = store.find(Collection.NODES, op.getId());
                     if (after != null) {
                         LOG.info("Split operation on {}. Size before: {}, after: {}",
-                                new Object[]{id, before.getMemory(), after.getMemory()});
+                                id, before.getMemory(), after.getMemory());
                     }
                 }
             }
@@ -1630,5 +1636,13 @@ public final class DocumentNodeStore
 
     public DiffCache getDiffCache() {
         return diffCache;
+    }
+
+    public Clock getClock() {
+        return clock;
+    }
+
+    public Checkpoints getCheckpoints() {
+        return checkpoints;
     }
 }
