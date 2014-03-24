@@ -48,11 +48,15 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
 
     private DocumentNodeStore c1;
     private DocumentNodeStore c2;
+    private int initialCacheSizeC1;
+    private int initialCacheSizeC2;
 
     @Before
     public void prepareStores() throws Exception {
         c1 = createNS(1);
         c2 = createNS(2);
+        initialCacheSizeC1 = getCurrentCacheSize(c1);
+        initialCacheSizeC2 = getCurrentCacheSize(c2);
     }
 
     private int createScenario() throws CommitFailedException {
@@ -78,10 +82,10 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         createTree(root, paths);
         c1.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertEquals(totalPaths, Iterables.size(ds(c1).getCacheEntries()));
+        assertEquals(initialCacheSizeC1 + paths.length, getCurrentCacheSize(c1));
 
         runBgOps(c1, c2);
-        return totalPaths;
+        return paths.length;
     }
 
     @Test
@@ -101,7 +105,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         //Only 2 entries /a and /a/d would be invalidated
         // '/' would have been added to cache in start of backgroundRead
         //itself
-        assertEquals(totalPaths - 2, Iterables.size(ds(c1).getCacheEntries()));
+        assertEquals(initialCacheSizeC1+ totalPaths - 2, Iterables.size(ds(c1).getCacheEntries()));
     }
 
     @Test
@@ -127,7 +131,7 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         assertEquals(2, result.invalidationCount);
 
         //All excluding /a and /a/d would be updated. Also we exclude / from processing
-        assertEquals(totalPaths - 3, result.upToDateCount);
+        assertEquals(initialCacheSizeC1 + totalPaths - 3, result.upToDateCount);
 
         //3 queries would be fired for [/] [/a] [/a/b, /a/c, /a/d]
         assertEquals(2, result.queryCount);
@@ -195,14 +199,18 @@ public class CacheInvalidationIT extends AbstractMongoConnectionTest {
         assertEquals(2, result.invalidationCount);
 
         //All excluding /a and /a/d would be updated
-        assertEquals(totalPaths - 2, result.upToDateCount);
+        assertEquals(initialCacheSizeC1 + totalPaths - 2, result.upToDateCount);
 
         //Only one query would be fired
         assertEquals(1, result.queryCount);
 
         //Query would be done for all the cache entries
-        assertEquals(totalPaths, result.cacheEntriesProcessedCount);
+        assertEquals(initialCacheSizeC1 + totalPaths, result.cacheEntriesProcessedCount);
 
+    }
+
+    private int getCurrentCacheSize(DocumentNodeStore ds){
+        return Iterables.size(ds(ds).getCacheEntries());
     }
 
     private static void refreshHead(DocumentNodeStore store) {
