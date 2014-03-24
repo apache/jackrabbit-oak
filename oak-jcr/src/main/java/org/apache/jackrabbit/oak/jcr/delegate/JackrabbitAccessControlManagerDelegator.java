@@ -52,7 +52,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(final Principal principal)
             throws RepositoryException {
-        return delegate.perform(new SessionOperation<JackrabbitAccessControlPolicy[]>() {
+        return delegate.perform(
+                new SessionOperation<JackrabbitAccessControlPolicy[]>("getApplicablePolicies") {
             @Override
             public JackrabbitAccessControlPolicy[] perform() throws RepositoryException {
                 return jackrabbitACManager.getApplicablePolicies(principal);
@@ -63,7 +64,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(final Principal principal)
             throws RepositoryException {
-        return delegate.perform(new SessionOperation<JackrabbitAccessControlPolicy[]>() {
+        return delegate.perform(
+                new SessionOperation<JackrabbitAccessControlPolicy[]>("getPolicies") {
             @Override
             public JackrabbitAccessControlPolicy[] perform() throws RepositoryException {
                 return jackrabbitACManager.getPolicies(principal);
@@ -74,7 +76,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     @Override
     public AccessControlPolicy[] getEffectivePolicies(final Set<Principal> principals)
             throws RepositoryException {
-        return delegate.perform(new SessionOperation<AccessControlPolicy[]>() {
+        return delegate.perform(
+                new SessionOperation<AccessControlPolicy[]>("getEffectivePolicies") {
             @Override
             public AccessControlPolicy[] perform() throws RepositoryException {
                 return jackrabbitACManager.getEffectivePolicies(principals);
@@ -85,7 +88,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     @Override
     public boolean hasPrivileges(final String absPath, final Set<Principal> principals,
             final Privilege[] privileges) throws RepositoryException {
-        return delegate.perform(new SessionOperation<Boolean>() {
+        return delegate.perform(
+                new SessionOperation<Boolean>("hasPrivileges") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return jackrabbitACManager.hasPrivileges(absPath, principals, privileges);
@@ -96,7 +100,8 @@ public class JackrabbitAccessControlManagerDelegator implements JackrabbitAccess
     @Override
     public Privilege[] getPrivileges(final String absPath, final Set<Principal> principals)
             throws RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege[]>() {
+        return delegate.perform(
+                new SessionOperation<Privilege[]>("getPrivileges") {
             @Override
             public Privilege[] perform() throws RepositoryException {
                 return jackrabbitACManager.getPrivileges(absPath, principals);

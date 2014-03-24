@@ -24,7 +24,8 @@ public abstract class ItemOperation<U> extends SessionOperation<U> {
 
     protected final ItemDelegate item;
 
-    protected ItemOperation(ItemDelegate item) {
+    protected ItemOperation(ItemDelegate item, String name) {
+        super(name);
         this.item = item;
     }
 

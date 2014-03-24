@@ -261,21 +261,17 @@ public class SessionDelegate {
             if (sessionOperation.isUpdate()) {
                 Exception trace = new Exception(
                         "Stack trace of concurrent access to " + contentSession);
-                log.warn("Attempt to perform " + sessionOperation.description()
-                        + " while another thread is concurrently writing"
-                        + " to " + contentSession + ". Blocking until the other"
-                        + " thread is finished using this session. Please"
-                        + " review your code to avoid concurrent use of"
-                        + " a session.", trace);
+                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
+                        "concurrently writing to " + contentSession + ". Blocking until the " +
+                        "other thread is finished using this session. Please review your code " +
+                        "to avoid concurrent use of a session.", trace);
             } else if (log.isDebugEnabled()) {
                 Exception trace = new Exception(
                         "Stack trace of concurrent access to " + contentSession);
-                log.warn("Attempt to perform " + sessionOperation.description()
-                        + " while another thread is concurrently reading from "
-                        + contentSession + ". Blocking until the other thread"
-                        + " is finished using this session. Please"
-                        + " review your code to avoid concurrent use of"
-                        + " a session.", trace);
+                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
+                        "concurrently reading from " + contentSession + ". Blocking until the " +
+                        "other thread is finished using this session. Please review your code " +
+                        "to avoid concurrent use of a session.", trace);
             }
             lock.lock();
         }
@@ -639,15 +635,11 @@ public class SessionDelegate {
 
     //------------------------------------------------------------< internal >---
 
-    private static <T> void logOperationDetails(ContentSession session, SessionOperation<T> ops)
-            throws RepositoryException {
+    private static <T> void logOperationDetails(ContentSession session, SessionOperation<T> ops) {
         if (operationLogger.isDebugEnabled()){
-            String desc = ops.description();
-            if (desc != null){
-                Marker sessionMarker = MarkerFactory.getMarker(session.toString());
-                String sessionId = session.toString();
-                operationLogger.debug(sessionMarker,String.format("[%s] %s", sessionId, desc));
-            }
+            Marker sessionMarker = MarkerFactory.getMarker(session.toString());
+            String sessionId = session.toString();
+            operationLogger.debug(sessionMarker, String.format("[%s] %s", sessionId, ops));
         }
     }
 

@@ -25,15 +25,16 @@ import javax.jcr.RepositoryException;
  * @see org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate#perform(SessionOperation)
  */
 public abstract class SessionOperation<T> {
-
+    private final String name;
     private final boolean update;
 
-    protected SessionOperation(boolean update) {
+    protected SessionOperation(String name, boolean update) {
+        this.name = name;
         this.update = update;
     }
 
-    protected SessionOperation() {
-        this(false);
+    protected SessionOperation(String name) {
+        this(name, false);
     }
 
     /**
@@ -66,13 +67,13 @@ public abstract class SessionOperation<T> {
     public abstract T perform() throws RepositoryException;
 
     /**
-     * Provide details about the operation being performed
-     *
-     * @return operation description. Would return {@code null}
-     * if no description provided
+     * Provide details about the operation being performed.
+     * This default implementation just returns the
+     * name passed to the constructor.
      */
-    public String description() throws RepositoryException{
-        return null;
+    @Override
+    public String toString() {
+        return name;
     }
 
 }

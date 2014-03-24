@@ -89,8 +89,8 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
-        protected ItemWriteOperation() {
-            super(true);
+        protected ItemWriteOperation(String name) {
+            super(name, true);
         }
         @Override
         public void checkPreconditions() throws RepositoryException {
@@ -134,7 +134,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getName() throws RepositoryException {
-        String oakName = perform(new ItemOperation<String>(dlg) {
+        String oakName = perform(new ItemOperation<String>(dlg, "getName") {
             @Override
             public String perform() {
                 return item.getName();
@@ -150,7 +150,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getPath() throws RepositoryException {
-        return toJcrPath(perform(new ItemOperation<String>(dlg) {
+        return toJcrPath(perform(new ItemOperation<String>(dlg, "getPath") {
             @Override
             public String perform() {
                 return item.getPath();
@@ -172,7 +172,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
             return sessionContext.getSession().getRootNode();
         }
 
-        ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg) {
+        ItemDelegate ancestor = perform(new ItemOperation<ItemDelegate>(dlg, "getAncestor") {
             @Override
             public ItemDelegate perform() throws RepositoryException {
                 String path = item.getPath();
@@ -256,7 +256,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     public void save() throws RepositoryException {
         try {
-            perform(new ItemWriteOperation<Void>() {
+            perform(new ItemWriteOperation<Void>("save") {
                 @Override
                 public Void perform() throws RepositoryException {
                     dlg.save();
@@ -292,7 +292,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         if (!keepChanges) {
             log.warn("Item#refresh invokes Session#refresh!");
         }
-        perform(new SessionOperation<Void>() {
+        perform(new SessionOperation<Void>("refresh") {
             @Override
             public Void perform() throws InvalidItemStateException {
                 sessionDelegate.refresh(keepChanges);

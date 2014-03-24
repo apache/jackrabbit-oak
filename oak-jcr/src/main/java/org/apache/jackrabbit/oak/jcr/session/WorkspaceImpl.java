@@ -16,8 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.NamespaceRegistry;
@@ -51,9 +55,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * TODO document
@@ -136,7 +137,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.perform(new SessionOperation<Object>(true) {
+        sessionDelegate.perform(new SessionOperation<Object>("copy", true) {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -162,7 +163,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
 
-        sessionDelegate.perform(new SessionOperation<Object>(true) {
+        sessionDelegate.perform(new SessionOperation<Object>("clone", true) {
 
             @Override
             public void checkPreconditions() throws RepositoryException {

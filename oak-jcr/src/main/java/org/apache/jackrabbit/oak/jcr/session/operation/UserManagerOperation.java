@@ -26,7 +26,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 public abstract class UserManagerOperation<T> extends SessionOperation<T> {
     private final SessionDelegate delegate;
 
-    protected UserManagerOperation(SessionDelegate delegate) {
+    protected UserManagerOperation(SessionDelegate delegate, String name) {
+        super(name);
         this.delegate = delegate;
     }
 

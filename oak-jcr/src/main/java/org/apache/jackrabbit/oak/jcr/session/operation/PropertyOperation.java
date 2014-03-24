@@ -22,8 +22,8 @@ public abstract class PropertyOperation<U> extends ItemOperation<U> {
 
     protected final PropertyDelegate property;
 
-    protected PropertyOperation(PropertyDelegate property) {
-        super(property);
+    protected PropertyOperation(PropertyDelegate property, String name) {
+        super(property, name);
         this.property = property;
     }
 

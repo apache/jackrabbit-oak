@@ -45,7 +45,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @Override
     public Privilege[] getRegisteredPrivileges() throws RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege[]>() {
+        return delegate.perform(new SessionOperation<Privilege[]>("getRegisteredPrivileges") {
             @Override
             public Privilege[] perform() throws RepositoryException {
                 return pm.getRegisteredPrivileges();
@@ -55,7 +55,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @Override
     public Privilege getPrivilege(final String privilegeName) throws AccessControlException, RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege>() {
+        return delegate.perform(new SessionOperation<Privilege>("getPrivilege") {
             @Override
             public Privilege perform() throws RepositoryException {
                 return pm.getPrivilege(privilegeName);
@@ -65,7 +65,7 @@ public class PrivilegeManagerDelegator implements PrivilegeManager {
 
     @Override
     public Privilege registerPrivilege(final String privilegeName, final boolean isAbstract, final String[] declaredAggregateNames) throws AccessDeniedException, NamespaceException, RepositoryException {
-        return delegate.perform(new SessionOperation<Privilege>() {
+        return delegate.perform(new SessionOperation<Privilege>("registerPrivilege") {
             @Override
             public Privilege perform() throws RepositoryException {
                 return pm.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);

@@ -79,7 +79,7 @@ public class QueryImpl implements Query {
             return;
         }
         List<String> names = sessionContext.getSessionDelegate().perform(
-                new SessionOperation<List<String>>() {
+                new SessionOperation<List<String>>("parse") {
                     @Override
                     public List<String> perform() throws RepositoryException {
                         return manager.parse(statement, language);
@@ -95,7 +95,7 @@ public class QueryImpl implements Query {
     @Override
     public QueryResult execute() throws RepositoryException {
         return sessionContext.getSessionDelegate().perform(
-                new SessionOperation<QueryResult>() {
+                new SessionOperation<QueryResult>("execute") {
                     @Override
                     public QueryResult perform() throws RepositoryException {
                         return manager.executeQuery(statement, language, limit,
