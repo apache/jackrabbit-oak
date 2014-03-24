@@ -43,6 +43,7 @@ under the License.
       <item href="known_issues.html" name="Known Issues" />
       <item href="dos_and_donts.html" name="Dos and don'ts" />
       <item href="when_things_go_wrong.html" name="When things go wrong" />
+      <item href="osgi_config.html" name="Configuring Oak" />
     </menu>
     <menu name="Developing Oak">
       <item href="dev_getting_started.html" name="Getting Started" />
