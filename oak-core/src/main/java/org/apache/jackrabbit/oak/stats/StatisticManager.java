@@ -50,6 +50,7 @@ public class StatisticManager {
      * @param whiteboard   whiteboard for registering the individual statistics with
      */
     public StatisticManager(Whiteboard whiteboard, ScheduledExecutorService executor) {
+        queryStat.setEnabled(true);
         repoStats = new RepositoryStatisticsImpl(executor);
         maxQueueLength = new TimeSeriesMax(executor);
         registration = new CompositeRegistration(
