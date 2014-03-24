@@ -105,6 +105,7 @@ class Checkpoints {
     private void createIfNotExist() {
         if (store.find(NODES, ID) == null) {
             UpdateOp updateOp = new UpdateOp(ID, true);
+            updateOp.set(Document.ID, ID);
             store.createOrUpdate(NODES, updateOp);
         }
     }
