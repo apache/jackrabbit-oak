@@ -53,7 +53,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testAddAndRemove() {
-        String id = this.getClass().getName() + "-foobar";
+        String id = this.getClass().getName() + ".testAddAndRemove";
 
         // remove if present
         NodeDocument nd = super.ds.find(Collection.NODES, id);
@@ -96,10 +96,38 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         LOG.info("max id length for " + super.dsname + " was " + test);
     }
 
+    @Test
+    public void testMaxProperty() {
+        int min = 0;
+        int max = 1024 * 1024 * 4; // 32M
+        int test = 0;
+
+        while (max - min >= 256) {
+            test = (max + min) / 2;
+            String id = this.getClass().getName() + ".testMaxProperty-" + test;
+            String pval = generateId(test);
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("foo", pval);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            if (success) {
+                // check that we really can read it
+                NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                assertNotNull("failed to retrieve previously stored document", findme);
+                super.ds.remove(Collection.NODES, id);
+                min = test;
+            } else {
+                max = test;
+            }
+        }
+
+        LOG.info("max prop length for " + super.dsname + " was " + test);
+    }
+
     private static String generateId(int length) {
         StringBuffer buf = new StringBuffer();
         while (length-- > 0) {
-            buf.append('0' + (length % 10));
+            buf.append('A' + ((int)(26 * Math.random())));
         }
         return buf.toString();
     }
