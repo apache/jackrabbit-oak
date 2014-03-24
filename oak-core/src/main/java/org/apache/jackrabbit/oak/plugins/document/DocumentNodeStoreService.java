@@ -70,6 +70,7 @@ public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
     private static final int DEFAULT_OFF_HEAP_CACHE = 0;
+    private static final int DEFAULT_CHANGES_SIZE = 256;
     private static final String DEFAULT_DB = "oak";
     private static final String PREFIX = "oak.documentstore.";
 
@@ -100,6 +101,9 @@ public class DocumentNodeStoreService {
 
     @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
+
+    @Property(intValue =  DEFAULT_CHANGES_SIZE)
+    private static final String PROP_CHANGES_SIZE = "changesSize";
 
     /**
      * Boolean value indicating a blobStore is to be used
@@ -145,6 +149,7 @@ public class DocumentNodeStoreService {
 
         int offHeapCache = PropertiesUtil.toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = PropertiesUtil.toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
+        int changesSize = PropertiesUtil.toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         boolean useMK = PropertiesUtil.toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
 
@@ -155,8 +160,8 @@ public class DocumentNodeStoreService {
             // Take care around not logging the uri directly as it
             // might contain passwords
             String type = useMK ? "MK" : "NodeStore";
-            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}",
-                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache);
+            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
+                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize);
             log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
         }
 
@@ -173,7 +178,7 @@ public class DocumentNodeStoreService {
             mkBuilder.setBlobStore(blobStore);
         }
 
-        mkBuilder.setMongoDB(mongoDB);
+        mkBuilder.setMongoDB(mongoDB, changesSize);
 
         mk = mkBuilder.open();
 
