@@ -19,8 +19,11 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.security.Principal;
 import java.util.Iterator;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -32,8 +35,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Base class for {@link GroupDelegator} and {@link UserDelegator}.
@@ -71,7 +72,7 @@ abstract class AuthorizableDelegator implements Authorizable {
     //-------------------------------------------------------< Authorizable >---
     @Override
     public boolean isGroup() {
-        return sessionDelegate.safePerform(new SessionOperation<Boolean>() {
+        return sessionDelegate.safePerform(new SessionOperation<Boolean>("isGroup") {
             @Override
             public Boolean perform() {
                 return delegate.isGroup();
@@ -81,7 +82,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public String getID() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<String>() {
+        return sessionDelegate.perform(new SessionOperation<String>("getID") {
             @Override
             public String perform() throws RepositoryException {
                 return delegate.getID();
@@ -93,7 +94,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Principal getPrincipal() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Principal>() {
+        return sessionDelegate.perform(new SessionOperation<Principal>("getPrincipal") {
             @Override
             public Principal perform() throws RepositoryException {
                 return delegate.getPrincipal();
@@ -103,7 +104,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<Group>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<Group>>("declaredMemberOf") {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.declaredMemberOf();
@@ -120,7 +121,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<Group>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<Group>>("memberOf") {
             @Override
             public Iterator<Group> perform() throws RepositoryException {
                 Iterator<Group> groups = delegate.memberOf();
@@ -137,7 +138,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void remove() throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("remove") {
             @Override
             public Void perform() throws RepositoryException {
                 delegate.remove();
@@ -148,7 +149,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<String>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<String>>("getPropertyNames") {
             @Override
             public Iterator<String> perform() throws RepositoryException {
                 return delegate.getPropertyNames();
@@ -158,7 +159,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Iterator<String> getPropertyNames(final String relPath) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<String>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<String>>("getPropertyNames") {
             @Override
             public Iterator<String> perform() throws RepositoryException {
                 return delegate.getPropertyNames(relPath);
@@ -168,7 +169,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public boolean hasProperty(final String relPath) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("hasProperty") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return delegate.hasProperty(relPath);
@@ -178,7 +179,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void setProperty(final String relPath, final Value value) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("setProperty") {
             @Override
             public Void perform() throws RepositoryException {
                 delegate.setProperty(relPath, value);
@@ -189,7 +190,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public void setProperty(final String relPath, final Value[] value) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("setProperty") {
             @Override
             public Void perform() throws RepositoryException {
                 delegate.setProperty(relPath, value);
@@ -200,7 +201,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public Value[] getProperty(final String relPath) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Value[]>() {
+        return sessionDelegate.perform(new SessionOperation<Value[]>("getProperty") {
             @Override
             public Value[] perform() throws RepositoryException {
                 return delegate.getProperty(relPath);
@@ -210,7 +211,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public boolean removeProperty(final String relPath) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("removeProperty") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return delegate.removeProperty(relPath);
@@ -220,7 +221,7 @@ abstract class AuthorizableDelegator implements Authorizable {
 
     @Override
     public String getPath() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<String>() {
+        return sessionDelegate.perform(new SessionOperation<String>("getPath") {
             @Override
             public String perform() throws RepositoryException {
                 return delegate.getPath();

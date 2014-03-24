@@ -63,7 +63,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     //---------------------------------------------------------------< User >---
     @Override
     public boolean isAdmin() {
-        return sessionDelegate.safePerform(new SessionOperation<Boolean>() {
+        return sessionDelegate.safePerform(new SessionOperation<Boolean>("isAdmin") {
             @Override
             public Boolean perform() {
                 return getDelegate().isAdmin();
@@ -73,7 +73,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public Credentials getCredentials() {
-        return sessionDelegate.safePerform(new SessionOperation<Credentials>() {
+        return sessionDelegate.safePerform(new SessionOperation<Credentials>("getCredentials") {
             @Override
             public Credentials perform() throws RepositoryException {
                 return getDelegate().getCredentials();
@@ -83,7 +83,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public Impersonation getImpersonation() {
-        return sessionDelegate.safePerform(new SessionOperation<Impersonation>() {
+        return sessionDelegate.safePerform(new SessionOperation<Impersonation>("getImpersonation") {
             @Override
             public Impersonation perform() throws RepositoryException {
                 Impersonation impersonation = getDelegate().getImpersonation();
@@ -94,7 +94,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("changePassword") {
             @Override
             public Void perform() throws RepositoryException {
                 getDelegate().changePassword(password);
@@ -105,7 +105,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void changePassword(final String password, final String oldPassword) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("changePassword") {
             @Override
             public Void perform() throws RepositoryException {
                 getDelegate().changePassword(password, oldPassword);
@@ -116,7 +116,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public void disable(final String reason) throws RepositoryException {
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        sessionDelegate.perform(new SessionOperation<Void>("disable") {
             @Override
             public Void perform() throws RepositoryException {
                 getDelegate().disable(reason);
@@ -127,7 +127,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public boolean isDisabled() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isDisabled") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().isDisabled();
@@ -137,7 +137,7 @@ final class UserDelegator extends AuthorizableDelegator implements User {
 
     @Override
     public String getDisabledReason() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<String>() {
+        return sessionDelegate.perform(new SessionOperation<String>("getDisabledReason") {
             @Override
             public String perform() throws RepositoryException {
                 return getDelegate().getDisabledReason();

@@ -41,7 +41,7 @@ public class AccessManager {
     }
 
     public boolean hasPermissions(@Nonnull final String oakPath, @Nonnull final String actions) {
-        return delegate.safePerform(new SessionOperation<Boolean>() {
+        return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @Override
             public Boolean perform() {
                 permissionProvider.refresh();
@@ -51,7 +51,7 @@ public class AccessManager {
     }
 
     public boolean hasPermissions(@Nonnull final Tree tree, @Nullable final PropertyState property, final long permissions) throws RepositoryException {
-        return delegate.safePerform(new SessionOperation<Boolean>() {
+        return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @Override
             public Boolean perform() {
                 permissionProvider.refresh();

@@ -66,7 +66,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
     //--------------------------------------------------------------< Group >---
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>("getDeclaredMembers") {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getDeclaredMembers();
@@ -83,7 +83,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>() {
+        return sessionDelegate.perform(new SessionOperation<Iterator<Authorizable>>("getMembers") {
             @Override
             public Iterator<Authorizable> perform() throws RepositoryException {
                 Iterator<Authorizable> authorizables = getDelegate().getMembers();
@@ -100,7 +100,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @Override
     public boolean isDeclaredMember(final Authorizable authorizable) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isDeclaredMember") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().isDeclaredMember(unwrap(authorizable));
@@ -110,7 +110,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @Override
     public boolean isMember(final Authorizable authorizable) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("isMember") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().isMember(unwrap(authorizable));
@@ -120,7 +120,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @Override
     public boolean addMember(final Authorizable authorizable) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("addMember") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().addMember(unwrap(authorizable));
@@ -130,7 +130,7 @@ final class GroupDelegator extends AuthorizableDelegator implements Group {
 
     @Override
     public boolean removeMember(final Authorizable authorizable) throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return sessionDelegate.perform(new SessionOperation<Boolean>("removeMember") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return getDelegate().removeMember(unwrap(authorizable));

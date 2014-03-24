@@ -37,15 +37,16 @@ public abstract class LockOperation<T> extends SessionOperation<T> {
 
     private final String path;
 
-    public LockOperation(SessionDelegate session, NodeDelegate node)
-            throws PathNotFoundException {
+    protected LockOperation(SessionDelegate session, NodeDelegate node, String name) {
+        super(name);
         this.session = session;
         this.path = null;
         this.node = node;
     }
 
-    public LockOperation(SessionContext context, String absPath)
+    protected LockOperation(SessionContext context, String absPath, String name)
             throws PathNotFoundException {
+        super(name);
         this.session = context.getSessionDelegate();
         this.path = context.getOakPathOrThrowNotFound(absPath);
         this.node = null;

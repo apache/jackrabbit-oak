@@ -22,8 +22,8 @@ public abstract class NodeOperation<U> extends ItemOperation<U> {
 
     protected final NodeDelegate node;
 
-    protected NodeOperation(NodeDelegate node) {
-        super(node);
+    protected NodeOperation(NodeDelegate node, String name) {
+        super(node, name);
         this.node = node;
     }
 

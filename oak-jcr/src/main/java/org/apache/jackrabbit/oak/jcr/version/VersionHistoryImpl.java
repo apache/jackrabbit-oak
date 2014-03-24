@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static com.google.common.collect.Iterators.transform;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
 import javax.jcr.ReferentialIntegrityException;
@@ -40,8 +43,6 @@ import org.apache.jackrabbit.oak.jcr.session.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 
-import static com.google.common.collect.Iterators.transform;
-
 /**
  * {@code VersionHistoryImpl}...
  */
@@ -59,7 +60,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String getVersionableIdentifier() throws RepositoryException {
-        return perform(new SessionOperation<String>() {
+        return perform(new SessionOperation<String>("getVersionableIdentifier") {
             @Override
             public String perform() throws RepositoryException {
                 return dlg.getVersionableIdentifier();
@@ -69,7 +70,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public Version getRootVersion() throws RepositoryException {
-        return perform(new SessionOperation<Version>() {
+        return perform(new SessionOperation<Version>("getRootVersion") {
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getRootVersion(), sessionContext);
@@ -79,7 +80,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public VersionIterator getAllLinearVersions() throws RepositoryException {
-        return perform(new SessionOperation<VersionIterator>() {
+        return perform(new SessionOperation<VersionIterator>("getAllLinearVersions") {
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllLinearVersions(),
@@ -96,7 +97,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
-        return perform(new SessionOperation<VersionIterator>() {
+        return perform(new SessionOperation<VersionIterator>("getAllVersions") {
             @Override
             public VersionIterator perform() throws RepositoryException {
                 Iterator<Version> versions = transform(dlg.getAllVersions(),
@@ -124,7 +125,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersion(final String versionName)
             throws VersionException, RepositoryException {
-        return perform(new SessionOperation<Version>() {
+        return perform(new SessionOperation<Version>("getVersion") {
             @Override
             public Version perform() throws RepositoryException {
                 return new VersionImpl(dlg.getVersion(versionName), sessionContext);
@@ -135,7 +136,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersionByLabel(final String label)
             throws VersionException, RepositoryException {
-        return perform(new SessionOperation<Version>() {
+        return perform(new SessionOperation<Version>("getVersionByLabel") {
             @Override
             public Version perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -150,7 +151,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                                 final boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        perform(new SessionOperation<Void>(true) {
+        perform(new SessionOperation<Void>("addVersionLabel", true) {
             @Override
             public Void perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -165,7 +166,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public void removeVersionLabel(final String label)
             throws VersionException, RepositoryException {
-        perform(new SessionOperation<Void>(true) {
+        perform(new SessionOperation<Void>("removeVersionLabel", true) {
             @Override
             public Void perform() throws RepositoryException {
                 String oakLabel = sessionContext.getOakName(label);
@@ -188,7 +189,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        return perform(new SessionOperation<String[]>() {
+        return perform(new SessionOperation<String[]>("getVersionLabels") {
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();
@@ -207,7 +208,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             throw new VersionException("Version is not contained in this " +
                     "VersionHistory");
         }
-        return perform(new SessionOperation<String[]>() {
+        return perform(new SessionOperation<String[]>("getVersionLabels") {
             @Override
             public String[] perform() throws RepositoryException {
                 List<String> labels = new ArrayList<String>();
@@ -225,7 +226,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             UnsupportedRepositoryOperationException, VersionException,
             RepositoryException {
 
-        perform(new SessionOperation<Void>(true) {
+        perform(new SessionOperation<Void>("removeVersion", true) {
             @Override
             public Void perform() throws RepositoryException {
                 String oakName = sessionContext.getOakName(versionName);

@@ -101,6 +101,10 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     private abstract class ReadOperation<T> extends SessionOperation<T> {
+        protected ReadOperation(String name) {
+            super(name);
+        }
+
         @Override
         public void checkPreconditions() throws RepositoryException {
             sd.checkAlive();
@@ -108,14 +112,13 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     private abstract class WriteOperation<T> extends SessionOperation<T> {
-        @Override
-        public void checkPreconditions() throws RepositoryException {
-            sd.checkAlive();
+        protected WriteOperation(String name) {
+            super(name, true);
         }
 
         @Override
-        public boolean isUpdate() {
-            return true;
+        public void checkPreconditions() throws RepositoryException {
+            sd.checkAlive();
         }
     }
 
@@ -166,7 +169,7 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Node getNodeOrNull(final String absPath) throws RepositoryException {
-        return perform(new ReadOperation<Node>() {
+        return perform(new ReadOperation<Node>("getNodeOrNull") {
             @Override
             public Node perform() throws RepositoryException {
                 try {
@@ -197,7 +200,7 @@ public class SessionImpl implements JackrabbitSession {
             } catch (PathNotFoundException e) {
                 return null;
             }
-            return perform(new ReadOperation<Property>() {
+            return perform(new ReadOperation<Property>("getPropertyOrNull") {
                 @Override
                 public Property perform() throws RepositoryException {
                     PropertyDelegate pd = sd.getProperty(oakPath);
@@ -222,7 +225,7 @@ public class SessionImpl implements JackrabbitSession {
      */
     @CheckForNull
     public Item getItemOrNull(final String absPath) throws RepositoryException {
-        return perform(new ReadOperation<Item>() {
+        return perform(new ReadOperation<Item>("getItemOrNull") {
             @Override
             public Item perform() throws RepositoryException {
                 return getItemInternal(getOakPathOrThrow(absPath));
@@ -283,7 +286,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getRootNode() throws RepositoryException {
-        return perform(new ReadOperation<Node>() {
+        return perform(new ReadOperation<Node>("getRootNode") {
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate nd = sd.getRootNode();
@@ -311,7 +314,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Nonnull
     private Node getNodeById(final String id) throws RepositoryException {
-        return perform(new ReadOperation<Node>() {
+        return perform(new ReadOperation<Node>("getNodeById") {
             @Override
             public Node perform() throws RepositoryException {
                 NodeDelegate nd = sd.getNodeByIdentifier(id);
@@ -368,7 +371,7 @@ public class SessionImpl implements JackrabbitSession {
         checkIndexOnName(sessionContext, destAbsPath);
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
-        sd.perform(new WriteOperation<Void>() {
+        sd.perform(new WriteOperation<Void>("move") {
             @Override
             public void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
@@ -387,7 +390,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void removeItem(final String absPath) throws RepositoryException {
         final String oakPath = getOakPathOrThrowNotFound(absPath);
-        perform(new WriteOperation<Void>() {
+        perform(new WriteOperation<Void>("removeItem") {
             @Override
             public Void perform() throws RepositoryException {
                 ItemDelegate item = sd.getItem(oakPath);
@@ -408,7 +411,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void save() throws RepositoryException {
-        perform(new WriteOperation<Void>() {
+        perform(new WriteOperation<Void>("save") {
             @Override
             public Void perform() throws RepositoryException {
                 sd.save(null);
@@ -421,7 +424,7 @@ public class SessionImpl implements JackrabbitSession {
             }
 
             @Override
-            public String description() {
+            public String toString() {
                 return "Session saved";
             }
         });
@@ -429,7 +432,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void refresh(final boolean keepChanges) throws RepositoryException {
-        perform(new WriteOperation<Void>() {
+        perform(new WriteOperation<Void>("refresh") {
             @Override
             public Void perform() {
                 sd.refresh(keepChanges);
@@ -459,7 +462,7 @@ public class SessionImpl implements JackrabbitSession {
     public void logout() {
         if (sd.isAlive()) {
             sessionCounter.decrementAndGet();
-            safePerform(new SessionOperation<Void>() {
+            safePerform(new SessionOperation<Void>("logout") {
                 @Override
                 public Void perform() {
                     sessionContext.dispose();
@@ -605,7 +608,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public boolean hasPermission(String absPath, final String actions) throws RepositoryException {
         final String oakPath = getOakPathOrThrow(absPath);
-        return perform(new ReadOperation<Boolean>() {
+        return perform(new ReadOperation<Boolean>("hasPermission") {
             @Override
             public Boolean perform() throws RepositoryException {
                 return sessionContext.getAccessManager().hasPermissions(oakPath, actions);
