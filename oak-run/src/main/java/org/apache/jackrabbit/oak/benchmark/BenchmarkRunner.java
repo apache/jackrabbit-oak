@@ -185,6 +185,7 @@ public class BenchmarkRunner {
             ReadManyTest.uniform("UniformReadNodes", 1, ReadManyTest.NODES),
             new ConcurrentCreateNodesTest(),
             new SequentialCreateNodesTest(),
+            new CreateManyIndexedNodesTest(),
             new GetPoliciesTest(),
         };
 
