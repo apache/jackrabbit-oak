@@ -178,19 +178,29 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
       IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
     }
 
-
 ### The Lucene Full-Text Index
 
-The full-text index handles only the 'contains' type of queries.
+The full-text index handles the 'contains' type of queries:
 
     //*[jcr:contains(., 'text')]
 
-Not having a full-text index means that the full-text queries will not be able to work properly. Currently the query engine has a basic verification in place for full-text conditions, but that is brittle and can miss hits.
+If a full-text index is configured, then all queries that have a full-text condition
+use the full-text index, no matter if there are other conditions that are indexed,
+and no matter if there is a path restriction.
 
-The full-text index update is asynchronous via a background thread, see `Oak#withAsyncIndexing`.
-This means that some full-text searches will not work for a small window of time: the background thread runs every 5 seconds, plus the time is takes to run the diff and to run the text-extraction process. 
+If no full-text index is configured, then queries with full-text conditions
+may not work as expected. (The query engine has a basic verification in place 
+for full-text conditions, but it does not support all features that Lucene does,
+and it traverses all nodes if there are no indexed constraints).
 
-The async update status is now reflected on the `oak:index` node with the help of a few properties, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
+The full-text index update is asynchronous via a background thread, 
+see `Oak#withAsyncIndexing`.
+This means that some full-text searches will not work for a small window of time: 
+the background thread runs every 5 seconds, plus the time is takes to run the diff 
+and to run the text-extraction process. 
+
+The async update status is now reflected on the `oak:index` node with the help of 
+a few properties, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
 
 TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
 
@@ -198,7 +208,8 @@ The index definition node for a lucene-based full-text index:
 
 * must be of type `oak:QueryIndexDefinition`
 * must have the `type` property set to __`lucene`__
-* must contain the `async` property set to the value `async`, this is what sends the index update process to a background thread
+* must contain the `async` property set to the value `async`, this is what sends the 
+index update process to a background thread
 
 _Optionally_ you can add
 
