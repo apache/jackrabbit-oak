@@ -125,7 +125,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private static String generateId(int length) {
-        StringBuffer buf = new StringBuffer();
+        StringBuffer buf = new StringBuffer(length);
         while (length-- > 0) {
             buf.append('A' + ((int)(26 * Math.random())));
         }
