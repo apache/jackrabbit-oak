@@ -37,7 +37,7 @@ public abstract class AbstractDocumentStoreTest {
     public static Collection<Object[]> fixtures() {
         Collection<Object[]> result = new ArrayList<Object[]>();
         DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
-                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG};
+                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2 };
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {

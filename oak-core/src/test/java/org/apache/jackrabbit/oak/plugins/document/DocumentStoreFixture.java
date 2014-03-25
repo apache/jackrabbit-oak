@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.sql.SQLException;
-
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -37,6 +35,7 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
     public static final DocumentStoreFixture RDB_H2 = new RDBH2Fixture();
     public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
+    public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
 
     public abstract String getName();
@@ -87,8 +86,8 @@ public abstract class DocumentStoreFixture {
             try {
                 DataSource datas = RDBDataSourceFactory.forJdbcUrl(url, username, passwd);
                 this.ds = new RDBDocumentStore(datas, new DocumentMK.Builder());
-            } catch (SQLException ex) {
-                LOG.info("Postgres instance not available at " + url + ", skipping tests...");
+            } catch (Exception ex) {
+                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
             }
         }
 
