@@ -52,6 +52,8 @@
                             org.jboss.netty.*;resolution:=optional,
                             org.restlet.*;resolution:=optional,
                             org.joda.time.*;resolution:=optional,
+                            org.eclipse.*;resolution:=optional,
+                            javax.servlet.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Export-Package>
