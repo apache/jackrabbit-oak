@@ -16,22 +16,20 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
 
@@ -167,7 +165,10 @@ public class NamePathMapperImplTest {
                 "/foo/../..",
                 "foo::bar",
                 "foo:bar:baz",
-//                "foo:bar]baz",  FIXME OAK-1168
+                "foo:bar]baz",
+                "foo:bar[baz",
+                "foo:bar|baz",
+                "foo:bar*baz"
         };
 
         NamePathMapper[] mappers = {
