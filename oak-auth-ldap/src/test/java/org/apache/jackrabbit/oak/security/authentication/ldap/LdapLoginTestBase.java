@@ -333,13 +333,11 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
     }
 
     @Test
-    @Ignore("OAK-1541")
     public void testConcurrentLogin() throws Exception {
         concurrentLogin(CONCURRENT_TEST_USERS);
     }
 
     @Test
-    @Ignore("OAK-1541")
     public void testConcurrentLoginSameGroup() throws Exception {
         concurrentLogin(CONCURRENT_GROUP_TEST_USERS);
     }
