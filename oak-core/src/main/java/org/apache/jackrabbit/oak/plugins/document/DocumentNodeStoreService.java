@@ -131,17 +131,17 @@ public class DocumentNodeStoreService {
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
 
-        if(blobStore == null &&
-                PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)){
-            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when " +
-                    "BlobStore would be available");
-        }else{
+        if (blobStore == null &&
+                PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)) {
+            log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when "
+                    + "BlobStore would be available");
+        } else {
             registerNodeStore();
         }
     }
 
     protected void registerNodeStore() throws IOException {
-        if(context == null){
+        if (context == null) {
             log.info("Component still not activated. Ignoring the initialization call");
             return;
         }
@@ -235,7 +235,7 @@ public class DocumentNodeStoreService {
         registerNodeStore();
     }
 
-    protected void unbindBlobStore(BlobStore blobStore){
+    protected void unbindBlobStore(BlobStore blobStore) {
         this.blobStore = null;
         unregisterNodeStore();
     }

@@ -27,5 +27,5 @@ public interface CachingDocumentStore extends DocumentStore {
     /**
      * @return status information about the cache
      */
-    public CacheStats getCacheStats();
+    CacheStats getCacheStats();
 }

@@ -731,12 +731,12 @@ public class DocumentMK implements MicroKernel {
             return this;
         }
 
-        public Builder clock(Clock clock){
+        public Builder clock(Clock clock) {
             this.clock = clock;
             return this;
         }
 
-        public Clock getClock(){
+        public Clock getClock() {
             return clock;
         }
 

@@ -118,7 +118,7 @@ public final class UpdateOp {
      *
      * @return true if any change operation is created
      */
-    public boolean hasChanges(){
+    public boolean hasChanges() {
         return !changes.isEmpty();
     }
 
