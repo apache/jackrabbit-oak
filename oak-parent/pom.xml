@@ -34,7 +34,8 @@
   <packaging>pom</packaging>
 
   <properties>
-    <test.opts>-Xmx512m -XX:MaxPermSize=64m -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
+    <test.opts.memory>-Xmx512m -XX:MaxPermSize=64m</test.opts.memory>
+    <test.opts>${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
     <known.issues />
     <project.reporting.outputEncoding>
@@ -451,6 +452,15 @@
           <version>9.3-1100-jdbc4</version>
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>java8</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <properties>
+        <test.opts.memory>-Xmx512m</test.opts.memory>
+      </properties>
     </profile>
   </profiles>
 </project>
