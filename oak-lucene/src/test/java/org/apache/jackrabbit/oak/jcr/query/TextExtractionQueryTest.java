@@ -77,6 +77,7 @@ public class TextExtractionQueryTest extends AbstractQueryTest {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void assertContainsQuery(String statement, boolean match)
             throws InvalidQueryException, RepositoryException {
         StringBuffer stmt = new StringBuffer();
