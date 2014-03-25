@@ -16,23 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-
 import java.io.IOException;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -41,7 +30,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -54,12 +42,25 @@ import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 /**
  * TODO document
@@ -69,6 +70,7 @@ public class SessionDelegate {
     static final Logger operationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations");
 
     private final ContentSession contentSession;
+    private final SecurityProvider securityProvider;
     private final RefreshStrategy refreshStrategy;
     private boolean refreshAtNextAccess = false;
 
@@ -117,6 +119,8 @@ public class SessionDelegate {
 
     private String userData = null;
 
+    private PermissionProvider permissionProvider;
+
     /**
      * The lock used to guarantee synchronized execution of repository
      * operations. An explicit lock is used instead of normal Java
@@ -134,16 +138,19 @@ public class SessionDelegate {
      * dispatcher in order.
      *
      * @param contentSession  the content session
+     * @param securityProvider the security provider
      * @param refreshStrategy  the refresh strategy used for auto refreshing this session
      * @param statisticManager the statistics manager for tracking session operations
      */
     public SessionDelegate(
             @Nonnull ContentSession contentSession,
+            @Nonnull SecurityProvider securityProvider,
             @Nonnull RefreshStrategy refreshStrategy,
             @Nonnull ThreadLocal<Long> threadSaveCount,
             @Nonnull StatisticManager statisticManager,
             @Nonnull Clock clock) {
         this.contentSession = checkNotNull(contentSession);
+        this.securityProvider = checkNotNull(securityProvider);
         this.refreshStrategy = checkNotNull(refreshStrategy);
         this.threadSaveCount = checkNotNull(threadSaveCount);
         this.sessionSaveCount = getThreadSaveCount();
@@ -396,6 +403,9 @@ public class SessionDelegate {
             info.put(EventFactory.USER_DATA, userData);
         }
         root.commit(info.build());
+        if (permissionProvider != null) {
+            permissionProvider.refresh();
+        }
     }
 
     /**
@@ -554,6 +564,9 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
+        if (permissionProvider != null) {
+            permissionProvider.refresh();
+        }
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -613,6 +626,16 @@ public class SessionDelegate {
     @Nonnull
     public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
+    }
+
+    @Nonnull
+    public PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            permissionProvider = checkNotNull(securityProvider)
+                    .getConfiguration(AuthorizationConfiguration.class)
+                    .getPermissionProvider(root, getWorkspaceName(), getAuthInfo().getPrincipals());
+        }
+        return permissionProvider;
     }
 
     /**

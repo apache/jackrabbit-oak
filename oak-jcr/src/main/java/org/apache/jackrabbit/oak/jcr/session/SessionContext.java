@@ -16,17 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newTreeSet;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -62,7 +57,6 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -71,6 +65,10 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -98,7 +96,6 @@ public class SessionContext implements NamePathMapper {
     private SessionImpl session = null;
     private WorkspaceImpl workspace = null;
 
-    private PermissionProvider permissionProvider;
     private AccessControlManager accessControlManager;
     private AccessManager accessManager;
     private PrincipalManager principalManager;
@@ -270,7 +267,7 @@ public class SessionContext implements NamePathMapper {
             observationManager = new ObservationManagerImpl(
                 this,
                 ReadOnlyNodeTypeManager.getInstance(delegate.getRoot(), namePathMapper),
-                getPermissionProvider(), whiteboard, observationQueueLength, commitRateLimiter);
+                whiteboard, observationQueueLength, commitRateLimiter);
         }
         return observationManager;
     }
@@ -365,7 +362,7 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessManager getAccessManager() throws RepositoryException {
         if (accessManager == null) {
-            accessManager = new AccessManager(delegate, getPermissionProvider());
+            accessManager = new AccessManager(delegate, delegate.getPermissionProvider());
         }
         return accessManager;
     }
@@ -420,18 +417,6 @@ public class SessionContext implements NamePathMapper {
     @Nonnull
     private <T> T getConfig(Class<T> clss) {
         return securityProvider.getConfiguration(clss);
-    }
-
-    private PermissionProvider getPermissionProvider() {
-        // FIXME: review whether 'auto-refresh' should rather be made on a wrapping
-        //        permission provider instead of doing this in the access manager
-        //        since this permission provider is also passed to the observation manager.
-        if (permissionProvider == null) {
-            permissionProvider = checkNotNull(securityProvider)
-                    .getConfiguration(AuthorizationConfiguration.class)
-                    .getPermissionProvider(delegate.getRoot(), delegate.getWorkspaceName(), delegate.getAuthInfo().getPrincipals());
-        }
-        return permissionProvider;
     }
 
 }

@@ -44,7 +44,6 @@ public class AccessManager {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @Override
             public Boolean perform() {
-                permissionProvider.refresh();
                 return permissionProvider.isGranted(oakPath, actions);
             }
         });
@@ -54,7 +53,6 @@ public class AccessManager {
         return delegate.safePerform(new SessionOperation<Boolean>("hasPermissions") {
             @Override
             public Boolean perform() {
-                permissionProvider.refresh();
                 return permissionProvider.isGranted(tree, property, permissions);
             }
         });

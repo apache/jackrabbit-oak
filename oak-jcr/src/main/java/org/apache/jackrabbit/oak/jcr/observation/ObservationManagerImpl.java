@@ -18,17 +18,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
-import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -54,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
@@ -61,6 +56,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 public class ObservationManagerImpl implements JackrabbitObservationManager {
     private static final Logger LOG = LoggerFactory.getLogger(ObservationManagerImpl.class);
@@ -77,7 +77,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
 
     private final SessionDelegate sessionDelegate;
     private final ReadOnlyNodeTypeManager ntMgr;
-    private final PermissionProvider permissionProvider;
+    private final AuthorizationConfiguration authorizationConfig;
     private final NamePathMapper namePathMapper;
     private final Whiteboard whiteboard;
     private final StatisticManager statisticManager;
@@ -96,12 +96,11 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
      */
     public ObservationManagerImpl(
             SessionContext sessionContext, ReadOnlyNodeTypeManager nodeTypeManager,
-            PermissionProvider permissionProvider, Whiteboard whiteboard,
-            int queueLength, CommitRateLimiter commitRateLimiter) {
+            Whiteboard whiteboard, int queueLength, CommitRateLimiter commitRateLimiter) {
 
         this.sessionDelegate = sessionContext.getSessionDelegate();
+        this.authorizationConfig = sessionContext.getSecurityProvider().getConfiguration(AuthorizationConfiguration.class);
         this.ntMgr = nodeTypeManager;
-        this.permissionProvider = permissionProvider;
         this.namePathMapper = sessionContext;
         this.whiteboard = whiteboard;
         this.statisticManager = sessionContext.getStatisticManager();
@@ -138,7 +137,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             LOG.debug(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProviders);
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    permissionProvider, tracker, filterProviders, statisticManager, queueLength,
+                    createPermissionProvider(), tracker, filterProviders, statisticManager, queueLength,
                     commitRateLimiter);
             processors.put(listener, processor);
             processor.start(whiteboard);
@@ -298,6 +297,15 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     //------------------------------------------------------------< private >---
+    /**
+     * Create a new permission provider instance for the current revision of the
+     * {@code Root} associated with the {@code sessionDelegate}.
+     *
+     * @return a new permission provider.
+     */
+    private PermissionProvider createPermissionProvider() {
+        return authorizationConfig.getPermissionProvider(sessionDelegate.getRoot(), sessionDelegate.getWorkspaceName(), sessionDelegate.getAuthInfo().getPrincipals());
+    }
 
     /**
      * Validates the given node type names.
