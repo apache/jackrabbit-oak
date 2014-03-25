@@ -61,6 +61,12 @@ public class MemoryDocumentStore implements DocumentStore {
     private ConcurrentSkipListMap<String, Document> clusterNodes =
             new ConcurrentSkipListMap<String, Document>();
 
+    /**
+     * The 'settings' collection.
+     */
+    private ConcurrentSkipListMap<String, Document> settings =
+            new ConcurrentSkipListMap<String, Document>();
+
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     /**
@@ -169,6 +175,8 @@ public class MemoryDocumentStore implements DocumentStore {
             return (ConcurrentSkipListMap<String, T>) nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
             return (ConcurrentSkipListMap<String, T>) clusterNodes;
+        }else if (collection == Collection.SETTINGS) {
+            return (ConcurrentSkipListMap<String, T>) settings;
         } else {
             throw new IllegalArgumentException(
                     "Unknown collection: " + collection.toString());

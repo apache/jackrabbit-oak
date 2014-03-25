@@ -88,6 +88,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     private final DBCollection nodes;
     private final DBCollection clusterNodes;
+    private final DBCollection settings;
 
     /**
      * The sum of all milliseconds this class waited for MongoDB.
@@ -115,6 +116,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
                 Collection.CLUSTER_NODES.toString());
+        settings = db.getCollection(
+                Collection.SETTINGS.toString());
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -613,7 +616,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
             return nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
             return clusterNodes;
-        } else {
+        } else if (collection == Collection.SETTINGS) {
+            return settings;
+        }else {
             throw new IllegalArgumentException(
                     "Unknown collection: " + collection.toString());
         }
