@@ -75,9 +75,9 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
      * 
      */
     private static NodeAggregator getNodeAggregator() {
-        return new SimpleNodeAggregator().newRuleWithName(NT_FILE,
-                newArrayList(JCR_CONTENT, JCR_CONTENT + "/*")).newRuleWithName(
-                NT_FOLDER, newArrayList("myFile"));
+        return new SimpleNodeAggregator()
+            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
+            .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
     }
 
     /**
@@ -252,6 +252,38 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
         String matchContentDouble = "//*[( jcr:contains(., 'dog') and (@jcr:primaryType = 'nt:file' or @jcr:primaryType = 'nt:folder') )]";
         assertQuery(matchContentDouble, "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile"));
+    }
+
+    @Test
+    public void testNodeTypesDeep() throws Exception {
+
+        Tree folder = root.getTree("/").addChild("myFolder");
+        folder.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
+
+        Tree folder2 = folder.addChild("subfolder");
+        folder2.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+
+        Tree folder3 = folder2.addChild("subsubfolder");
+        folder3.setProperty(JCR_PRIMARYTYPE, "nt:unstructured", Type.NAME);
+        file(folder3, "file");
+
+        root.commit();
+
+        String xpath = "//element(*, nt:folder)[jcr:contains(., 'dog')]";
+        assertQuery(xpath, "xpath", ImmutableList.of("/myFolder"));
+    }
+
+    private static void file(Tree parent, String name) {
+        Tree file = parent.addChild(name);
+        file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
+
+        Tree resource = file.addChild(JCR_CONTENT);
+        resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
+        resource.setProperty("jcr:lastModified", Calendar.getInstance());
+        resource.setProperty("jcr:encoding", "UTF-8");
+        resource.setProperty("jcr:mimeType", "text/plain");
+        resource.setProperty(binaryProperty(JCR_DATA,
+                "the quick brown fox jumps over the lazy dog."));
     }
 
     @Test
