@@ -29,16 +29,22 @@ public class ClockTest {
      * Helper for checking how accurate the system clock is.
      */
     public static void main(String[] args) {
-        System.out.println("average clock granularity: " + getAverageClockGranularity());
+        System.out.println(
+                "average clock granularity: " + getAverageClockGranularity());
     }
 
     @Test
     public void testClockDrift() throws InterruptedException {
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
+
+        // Set the drift limit to twice as high as granularity,
+        // plus 3ms for Thread.sleep() inaccuracy in the fast clock
         final long granularity = getAverageClockGranularity();
-        final long limit = (2 * granularity) / 1000; // allow a drift twice as high
-        final String diag = "(estimated limit was " + limit + "ms, measured granularity was " + ( granularity / 1000f) + "ms)";
+        final long limit = (2 * granularity) / 1000 + 3;
+        final String diag =
+                "(estimated limit was " + limit + "ms,"
+                + " measured granularity was " + (granularity / 1000f) + "ms)";
 
         try {
             Clock[] clocks = new Clock[] {
@@ -49,14 +55,18 @@ public class ClockTest {
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
-                assertTrue("unexpected drift: " + Math.abs(drift) + "ms " + diag, Math.abs(drift) <= limit);
+                assertTrue(
+                        clock + " unexpected drift: " + drift + "ms " + diag,
+                        Math.abs(drift) <= limit);
             }
 
             Thread.sleep(100);
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
-                assertTrue("unexpected drift: " + Math.abs(drift) + "ms " + diag, Math.abs(drift) <= limit);
+                assertTrue(
+                        clock + " unexpected drift ater 100ms: " + drift + "ms " + diag,
+                        Math.abs(drift) <= limit);
             }
         } finally {
             executor.shutdown();
