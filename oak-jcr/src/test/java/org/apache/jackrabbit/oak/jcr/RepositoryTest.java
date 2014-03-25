@@ -18,16 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,8 +28,8 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.ImportUUIDBehavior;
@@ -66,6 +56,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -79,6 +70,15 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -349,30 +349,97 @@ public class RepositoryTest extends AbstractRepositoryTest {
         root.getNode("/foo");
     }
 
-    @Test(expected = RepositoryException.class)
-    public void testExceptionThrownForInvalidPath() throws RepositoryException {
-        Session session = getAdminSession();
-        session.itemExists("//jcr:content");
-    }
-
     @Test
-    @Ignore("OAK-1174")  // FIXME OAK-1174
-    public void testInvalidName() throws RepositoryException {
+    public void testInvalidPath() throws RepositoryException {
         Session session = getAdminSession();
 
-        RepositoryException exception = null;
-        try {
-            session.itemExists("/jcr:cont]ent");
-        } catch (RepositoryException e) {
-            exception = e;
+        List<String> invalid = ImmutableList.of(
+                "//jcr:content",
+                "/jcr:con]ent",
+                "/con]ent",
+                "/jcr:con*ent",
+                "/con*ent",
+                "/jcr:con|ent",
+                "/con|ent");
+        for (String path : invalid) {
+            try {
+                session.itemExists(path);
+                fail("Invalid path " + path);
+            } catch (RepositoryException e) {
+                // success
+            }
         }
 
         session.setNamespacePrefix("foo", "http://foo.bar");
-        try {
-            session.itemExists("/jcr:cont]ent");
-            assertNull(exception);
-        } catch (RepositoryException e) {
-            assertNotNull(exception);
+        for (String path : invalid) {
+            try {
+                session.itemExists(path);
+                fail("Invalid path " + path);
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testInvalidName() throws RepositoryException {
+        List<String> invalid = ImmutableList.of(
+                "/jcr:content",
+                "/content",
+                "jcr:con/ent",
+                "jc/r:content",
+                "con/ent",
+
+                "jcr:con:ent",
+
+                "jcr:content[1]",
+                "content[1]",
+                "jcr:conten[t]",
+                "conten[t]",
+
+                "jcr:con[]ent",
+                "jcr[]:content",
+                "con[]ent",
+                "jcr:con[t]ent",
+                "jc[t]r:content",
+                "con[t]ent",
+
+                "jcr:con]ent",
+                "jc]r:content",
+                "con]ent",
+
+                "jcr:con[ent",
+                "jc[r:content",
+                "con[ent",
+
+                "jcr:con*ent",
+                "jc*r:content",
+                "con*ent",
+
+                "jcr:con|ent",
+                "jc|r:content",
+                "con|ent");
+
+        Session session = getAdminSession();
+        for (String name : invalid) {
+            try {
+                session.getRootNode().addNode(name);
+                fail("Invalid name " + name);
+            } catch (RepositoryException e) {
+                // success
+            } finally {
+                session.refresh(false);
+            }
+        }
+
+        session.setNamespacePrefix("foo", "http://foo.bar");
+        for (String name : invalid) {
+            try {
+                session.getRootNode().addNode(name);
+                fail("Invalid name " + name);
+            } catch (RepositoryException e) {
+                // success
+            }
         }
     }
 

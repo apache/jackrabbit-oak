@@ -239,46 +239,49 @@ public class NamePathMapperImpl implements NamePathMapper {
         int colon = -1; // index of the last colon in the path
 
         switch (path.charAt(0)) {
-        case '{': // possibly an expanded name
-        case '[': // starts with an identifier
-        case '.': // possibly "." or ".."
-        case ':': // colon as the first character
-            return true;
-        case '/':
-            if (length == 1) {
-                return false; // the root path
-            }
-            slash = 0;
-            break;
+            case '{': // possibly an expanded name
+            case '[': // starts with an identifier
+            case '.': // possibly "." or ".."
+            case ':': // colon as the first character
+                return true;
+            case '/':
+                if (length == 1) {
+                    return false; // the root path
+                }
+                slash = 0;
+                break;
         }
 
         for (int i = 1; i < length; i++) {
             switch (path.charAt(i)) {
-            case '{': // possibly an expanded name
-            case '[': // possibly an index
-                return true;
-            case '.':
-                if (i == slash + 1) {
-                    return true; // possibly "." or ".."
-                }
-                break;
-            case ':':
-                if (i == slash + 1              // "x/:y"
-                        || i == colon + i       // "x::y"
-                        || colon > slash        // "x:y:z"
-                        || i + 1 == length) {   // "x:"
+                case '{': // possibly an expanded name
+                case '[': // possibly an index
+                case ']': // illegal character if not part of index
+                case '|': // illegal character
+                case '*': // illegal character
                     return true;
-                }
-                colon = i;
-                break;
-            case '/':
-                if (i == slash + 1              // "x//y"
-                        || i == colon + i       // "x:/y"
-                        || i + 1 == length) {   // "x/"
-                    return true;
-                }
-                slash = i;
-                break;
+                case '.':
+                    if (i == slash + 1) {
+                        return true; // possibly "." or ".."
+                    }
+                    break;
+                case ':':
+                    if (i == slash + 1              // "x/:y"
+                            || i == colon + i       // "x::y"
+                            || colon > slash        // "x:y:z"
+                            || i + 1 == length) {   // "x:"
+                        return true;
+                    }
+                    colon = i;
+                    break;
+                case '/':
+                    if (i == slash + 1              // "x//y"
+                            || i == colon + i       // "x:/y"
+                            || i + 1 == length) {   // "x/"
+                        return true;
+                    }
+                    slash = i;
+                    break;
             }
         }
 
