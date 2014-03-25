@@ -282,6 +282,8 @@ public final class DocumentNodeStore
 
     private final Checkpoints checkpoints;
 
+    private final VersionGarbageCollector versionGarbageCollector;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -311,6 +313,7 @@ public final class DocumentNodeStore
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
         this.asyncDelay = builder.getAsyncDelay();
+        this.versionGarbageCollector = new VersionGarbageCollector(this);
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
             public int getMemory() {
@@ -1644,5 +1647,9 @@ public final class DocumentNodeStore
 
     public Checkpoints getCheckpoints() {
         return checkpoints;
+    }
+
+    public VersionGarbageCollector getVersionGarbageCollector() {
+        return versionGarbageCollector;
     }
 }
