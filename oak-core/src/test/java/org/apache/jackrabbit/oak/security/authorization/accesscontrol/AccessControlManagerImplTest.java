@@ -47,6 +47,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -81,6 +82,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -1242,14 +1244,16 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree ace = children.next();
         assertEquals(NT_REP_GRANT_ACE, TreeUtil.getPrimaryTypeName(ace));
         assertEquals(testPrincipal.getName(), TreeUtil.getString(ace, REP_PRINCIPAL_NAME));
-        assertArrayEquals(testPrivileges, privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES)));
+        assertEquals(
+                newHashSet(testPrivileges),
+                newHashSet(privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES))));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
         Tree ace2 = children.next();
         assertEquals(NT_REP_DENY_ACE, TreeUtil.getPrimaryTypeName(ace2));
         assertEquals(EveryonePrincipal.NAME, ace2.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING));
         Privilege[] privs = privilegesFromNames(TreeUtil.getNames(ace2, REP_PRIVILEGES));
-        assertArrayEquals(testPrivileges, privs);
+        assertEquals(newHashSet(testPrivileges), newHashSet(privs));
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         Tree restr = ace2.getChild(REP_RESTRICTIONS);
         assertEquals("*/something", restr.getProperty(REP_GLOB).getValue(Type.STRING));
