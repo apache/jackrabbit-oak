@@ -58,6 +58,18 @@ public abstract class Collection<T extends Document> {
                 }
             };
 
+    /**
+     * The 'settings' collection contains setting/state data required for DocumentNodeStore
+     */
+    public static final Collection<Document> SETTINGS =
+            new Collection<Document>("settings") {
+                @Override
+                @Nonnull
+                public Document newDocument(DocumentStore store) {
+                    return new Document();
+                }
+            };
+
     private final String name;
 
     public Collection(String name) {

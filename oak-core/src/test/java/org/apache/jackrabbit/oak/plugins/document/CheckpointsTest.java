@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -30,10 +31,15 @@ import static org.junit.Assert.assertNull;
 
 public class CheckpointsTest {
 
-    private final Clock clock = new Clock.Virtual();
+    private Clock clock;
 
-    private final DocumentNodeStore store =
-            new DocumentMK.Builder().clock(clock).getNodeStore();
+    private DocumentNodeStore store;
+
+    @Before
+    public void setUp() throws InterruptedException {
+        clock = new Clock.Virtual();
+        store = new DocumentMK.Builder().clock(clock).getNodeStore();
+    }
 
     @Test
     public void testCheckpointPurge() throws Exception {
