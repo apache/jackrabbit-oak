@@ -40,6 +40,7 @@ import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.commons.query.sql2.SQL2QOMBuilder;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -266,13 +267,39 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             con.setAutoCommit(false);
 
-            Statement stmt = con.createStatement();
-            stmt.execute("create table if not exists CLUSTERNODES(ID varchar(1000) primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
-            stmt.execute("create table if not exists NODES(ID varchar(1000) primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
-            stmt.execute("create table if not exists SETTINGS(ID varchar(1000) primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
-            stmt.close();
+            for (String tableName : new String[] { "CLUSTERNODES", "NODES", "SETTINGS"}) {
+                try {
+                    PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
+                    stmt.setString(1, "0:/");
+                    stmt.executeQuery();
+                }
+                catch(SQLException ex) {
+                    // table does not appear to exist
+                    con.rollback();
 
-            con.commit();
+                    String dbtype = con.getMetaData().getDatabaseProductName();
+                    LOG.info("Attempting to create table " + tableName + " in " + dbtype);
+
+                    Statement stmt = con.createStatement();
+
+                    // the code below likely will need to be extended for new database types
+                    if ("PostgreSQL".equals(dbtype)) {
+                        stmt.execute("create table " + tableName
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA bytea)");
+                    }
+                    else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
+                        stmt.execute("create table " + tableName
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
+                    }
+                    else {
+                        stmt.execute("create table " + tableName
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
+                    }
+                    stmt.close();
+
+                    con.commit();
+                }
+            }
         } finally {
             con.close();
         }
