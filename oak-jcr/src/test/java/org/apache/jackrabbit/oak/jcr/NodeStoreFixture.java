@@ -19,10 +19,12 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
 import com.mongodb.DB;
+
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -78,13 +80,15 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:" + id + ";MVCC=true", "sa", "").getNodeStore();
+            String folder = (new File("target")).isDirectory() ? "target/" : "";
+            return new DocumentMK.Builder().setRDBConnection("jdbc:h2:file:" + folder + id + ";MVCC=true", "sa", "").getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                return new DocumentMK.Builder().setRDBConnection("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
+                String folder = (new File("target")).isDirectory() ? "target/" : "";
+                return new DocumentMK.Builder().setRDBConnection("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "").getNodeStore();
             } catch (Exception e) {
                 return null;
             }
