@@ -27,7 +27,6 @@ import javax.annotation.CheckForNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 /**
  * Checkpoints provide details around which revision are to be kept. Currently these
@@ -104,7 +103,7 @@ class Checkpoints {
     }
 
     private void createIfNotExist() {
-        if (store.find(NODES, ID) == null) {
+        if (store.find(Collection.SETTINGS, ID) == null) {
             UpdateOp updateOp = new UpdateOp(ID, true);
             updateOp.set(Document.ID, ID);
             store.createOrUpdate(Collection.SETTINGS, updateOp);
