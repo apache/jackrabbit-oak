@@ -169,7 +169,6 @@ public class KernelNodeStore implements NodeStore, Observable {
      * is a {@link KernelNodeBuilder} instance. Otherwise Otherwise it throws an
      * {@code IllegalArgumentException}.
      * @param builder  the builder to rebase
-     * @return
      */
     @Override
     public NodeState rebase(@Nonnull NodeBuilder builder) {
@@ -182,7 +181,6 @@ public class KernelNodeStore implements NodeStore, Observable {
      * is a {@link KernelNodeBuilder} instance. Otherwise it throws an
      * {@code IllegalArgumentException}.
      * @param builder  the builder to rebase
-     * @return
      */
     @Override
     public NodeState reset(@Nonnull NodeBuilder builder) {

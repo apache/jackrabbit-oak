@@ -57,7 +57,6 @@ public interface ChildNodeEntries extends Cloneable, CacheObject {
      * {@code this}.
      *
      * @param other
-     * @return
      */
     Iterator<ChildNodeEntry> getAdded(final ChildNodeEntries other);
 
@@ -66,7 +65,6 @@ public interface ChildNodeEntries extends Cloneable, CacheObject {
      * {@code other}.
      *
      * @param other
-     * @return
      */
     Iterator<ChildNodeEntry> getRemoved(final ChildNodeEntries other);
 
@@ -75,7 +73,6 @@ public interface ChildNodeEntries extends Cloneable, CacheObject {
      * {@code other} but with different {@code id}s.
      *
      * @param other
-     * @return
      */
     Iterator<ChildNodeEntry> getModified(final ChildNodeEntries other);
 

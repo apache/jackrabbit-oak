@@ -39,9 +39,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 /**
  * Source copied from a publicly available library.
- * @see <a
- *  href="https://code.google.com/p/externalsortinginjava/">https://code.google.com/p/externalsortinginjava</a>
- *  
+ * @see <a href="https://code.google.com/p/externalsortinginjava/">https://code.google.com/p/externalsortinginjava</a>
+ *
+ * <pre>
  * Goal: offer a generic external-memory sorting program in Java.
  * 
  * It must be : - hackable (easy to adapt) - scalable to large files - sensibly efficient.
@@ -63,6 +63,7 @@ import java.util.zip.GZIPOutputStream;
  * Grant, Daniel Haran, Daniel Lemire, Sugumaran Harikrishnan, Jerry Yang, First published:
  * April 2010 originally posted at
  * http://lemire.me/blog/archives/2010/04/01/external-memory-sorting-in-java/
+ * </pre>
  */
 public class ExternalSort {
 
@@ -178,7 +179,7 @@ public class ExternalSort {
      *            Pass <code>true</code> if duplicate lines should be discarded.
      * @param numHeader
      *            number of lines to preclude before sorting starts
-     * @parame usegzip use gzip compression for the temporary files
+     * @param usegzip use gzip compression for the temporary files
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,

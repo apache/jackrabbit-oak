@@ -64,8 +64,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * @param privilegeNames
-     * @return
+     * Returns the bits for the given privilege names
+     * @param privilegeNames the names
+     * @return the privilege bits
      */
     @Nonnull
     public PrivilegeBits getBits(@Nonnull String... privilegeNames) {
@@ -77,8 +78,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * @param privilegeNames
-     * @return
+     * Returns the bits for the given privilege names
+     * @param privilegeNames the names
+     * @return the privilege bits
      */
     @Nonnull
     public PrivilegeBits getBits(@Nonnull Iterable<String> privilegeNames) {
@@ -103,10 +105,11 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
+     * Returns the bits for the given privileges
      *
-     * @param privileges
-     * @param nameMapper
-     * @return
+     * @param privileges the privileges
+     * @param nameMapper the name mapper
+     * @return the privilege bits
      */
     @Nonnull
     public PrivilegeBits getBits(@Nonnull Privilege[] privileges, final @Nonnull NameMapper nameMapper) {

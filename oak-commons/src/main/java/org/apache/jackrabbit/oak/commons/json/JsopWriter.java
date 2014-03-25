@@ -42,7 +42,7 @@ public interface JsopWriter {
      * Append the key (in quotes) plus a colon. A comma is appended first if
      * needed.
      *
-     * @param name the key
+     * @param key the key
      * @return this
      */
     JsopWriter key(String key);
@@ -58,7 +58,7 @@ public interface JsopWriter {
     /**
      * Append an already encoded value. A comma is appended first if needed.
      *
-     * @param value the value
+     * @param raw the value
      * @return this
      */
     JsopWriter encodedValue(String raw);
@@ -86,9 +86,9 @@ public interface JsopWriter {
     JsopWriter tag(char tag);
 
     /**
-     * Append all entries of the given buffer.
+     * Append all entries of the given writer.
      *
-     * @param buffer the buffer
+     * @param diff the writer
      * @return this
      */
     JsopWriter append(JsopWriter diff);
@@ -96,7 +96,7 @@ public interface JsopWriter {
     /**
      * Append a number. A comma is appended first if needed.
      *
-     * @param value the value
+     * @param x the value
      * @return this
      */
     JsopWriter value(long x);
@@ -105,7 +105,7 @@ public interface JsopWriter {
      * Append the boolean value 'true' or 'false'. A comma is appended first if
      * needed.
      *
-     * @param value the value
+     * @param b the value
      * @return this
      */
     JsopWriter value(boolean b);

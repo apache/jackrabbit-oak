@@ -43,7 +43,7 @@ public interface CompiledPermissions {
      * @param parent
      * @param property
      * @param permissions
-     * @return
+     * @return {@code true} if granted.
      */
     boolean isGranted(@Nonnull ImmutableTree parent, @Nullable PropertyState property, long permissions);
 
@@ -51,7 +51,7 @@ public interface CompiledPermissions {
      *
      * @param path Path of an OAK tree
      * @param permissions
-     * @return
+     * @return {@code true} if granted.
      */
     boolean isGranted(@Nonnull String path, long permissions);
 
@@ -59,7 +59,7 @@ public interface CompiledPermissions {
      *
      *
      * @param tree
-     * @return
+     * @return the set of privileges
      */
     @Nonnull
     Set<String> getPrivileges(@Nullable ImmutableTree tree);
@@ -69,7 +69,7 @@ public interface CompiledPermissions {
      *
      * @param tree
      * @param privilegeNames
-     * @return
+     * @return {@code true} if the tree has privileges
      */
     boolean hasPrivileges(@Nullable ImmutableTree tree, @Nonnull String... privilegeNames);
 }

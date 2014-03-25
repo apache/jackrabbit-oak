@@ -38,7 +38,7 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * afterwards. A file based blob stores might simply rename the file, so
      * that no additional writes are necessary.
      *
-     * @param tempFilePath the temporary file
+     * @param tempFileName the temporary file name
      * @return the blob id
      */
     String writeBlob(String tempFileName) throws IOException;

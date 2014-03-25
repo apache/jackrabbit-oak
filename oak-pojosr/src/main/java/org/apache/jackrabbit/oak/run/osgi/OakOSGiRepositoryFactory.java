@@ -148,7 +148,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     /**
      * @param descriptors
-     * @return
+     * @return the bundle descriptors
      */
     protected List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors) {
         //If required sort the bundle descriptors such that configuration admin and file install bundle

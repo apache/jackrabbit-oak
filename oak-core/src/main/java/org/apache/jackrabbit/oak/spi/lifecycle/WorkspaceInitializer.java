@@ -45,7 +45,6 @@ public interface WorkspaceInitializer {
      * @param workspaceName The name of the workspace that is being initialized.
      * @param indexProvider The query index provider used within this workspace.
      * @param commitHook    The commit hook(s) defined for this workspace.
-     * @return The modified workspace root state.
      */
     void initialize(NodeBuilder builder, 
                          String workspaceName,

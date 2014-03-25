@@ -55,7 +55,7 @@ public interface OrderedIndex {
          * no-match
          * 
          * @param direction the direction of the sorting: ascending or descending
-         * @return
+         * @return the direction
          */
         @Nullable
         @CheckForNull

@@ -36,12 +36,8 @@ public abstract class BaseDiffCollector implements DiffCollector {
     protected boolean init = false;
 
     /**
-     * @param before
-     *            initial state
-     * @param after
-     *            after state
-     * @param filter
-     *            filter that verifies of a NodeState qualifies or not
+     * @param before initial state
+     * @param after after state
      */
     public BaseDiffCollector(NodeState before, NodeState after) {
         this.before = before;

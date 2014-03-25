@@ -39,7 +39,6 @@ public abstract class SessionOperation<T> {
 
     /**
      * Returns {@code true} if this operation updates the the transient
-     * @return
      */
     public boolean isUpdate() {
         return update;
@@ -47,7 +46,6 @@ public abstract class SessionOperation<T> {
 
     /**
      * Return {@code true} if this operation refreshed the transient space
-     * @return
      */
     public boolean isRefresh() {
         return false;

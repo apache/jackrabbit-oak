@@ -49,12 +49,9 @@ public interface GCPersistence extends Persistence {
      * Replace a commit. Introduced to replace dangling parent commits where
      * a parent commit might be collected.
      * 
-     * @param id
-     *            commit id
-     * @param 
-     * @return {@code true} if the commit was not marked before;
-     *         {@code false} otherwise
-     * 
+     * @param id commit id
+     * @param commit the commit
+     *
      * @throws Exception if an error occurs
      */
     void replaceCommit(Id id, Commit commit) throws Exception;

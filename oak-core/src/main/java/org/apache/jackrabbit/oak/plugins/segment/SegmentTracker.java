@@ -168,7 +168,7 @@ public class SegmentTracker {
      * 
      * @param msb
      * @param lsb
-     * @return
+     * @return the segment id
      */
     public SegmentId getSegmentId(long msb, long lsb) {
         int index = ((int) msb) & (tables.length - 1);

@@ -28,7 +28,7 @@ public class UpdateManyChildNodesTest extends AbstractTest {
     
     protected static final String ROOT_NODE_NAME = "update" + TEST_ID;
 
-    private static final int CHILD_COUNT = 10 * 1000;
+    protected static final int CHILD_COUNT = 10 * 1000;
 
     private Session session;
     private Node node;

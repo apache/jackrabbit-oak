@@ -43,8 +43,8 @@ import static org.apache.jackrabbit.oak.spi.state.ConflictType.DELETE_DELETED_PR
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
- * {@link Resolution#THEIRS} and in addition marks nodes where a conflict
- * occurred with the mixin {@code rep:MergeConflict}:
+ * {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#THEIRS} and in addition marks nodes where a
+ * conflict occurred with the mixin {@code rep:MergeConflict}:
  *
  * <pre>
  * [rep:MergeConflict]
