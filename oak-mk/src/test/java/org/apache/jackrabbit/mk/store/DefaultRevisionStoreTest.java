@@ -88,7 +88,7 @@ public class DefaultRevisionStoreTest {
      */
     @Test
     public void testRevisionHistory() {
-        mk.commit("/", "+\"a\" : { \"c\":{}, \"d\":{} }", mk.getHeadRevision(), null);
+        mk.commit("/", "+\"a\" : { \"c\":{ \"d\":{}  }}", mk.getHeadRevision(), null);
         mk.commit("/", "+\"b\" : {}", mk.getHeadRevision(), null);
         mk.commit("/b", "+\"e\" : {}", mk.getHeadRevision(), null);
         mk.commit("/a/c", "+\"f\" : {}", mk.getHeadRevision(), null);
