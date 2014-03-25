@@ -19,10 +19,7 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -32,13 +29,12 @@ import javax.annotation.Nullable;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 
 public class WhiteboardUtils {
 
@@ -51,7 +47,7 @@ public class WhiteboardUtils {
 
     public static Registration scheduleWithFixedDelay(
             Whiteboard whiteboard, Runnable runnable, long delayInSeconds, boolean runOnSingleClusterNode) {
-        ImmutableMap.Builder<String,Object> builder = ImmutableMap.<String,Object>builder()
+        ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object>builder()
                 .put("scheduler.period", delayInSeconds)
                 .put("scheduler.concurrent", false);
         if (runOnSingleClusterNode) {
