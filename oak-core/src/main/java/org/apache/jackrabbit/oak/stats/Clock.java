@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Mechanism for keeping track of time at millisecond accuracy.
@@ -130,6 +131,22 @@ public abstract class Clock {
     }
 
     /**
+     * Waits until the given point in time is reached. The current thread
+     * is suspended until the {@link #getTimeIncreasing()} method returns
+     * a time that's equal or greater than the given point in time.
+     *
+     * @param timestamp time in milliseconds since epoch
+     * @throws InterruptedException if the wait was interrupted
+     */
+    public void waitUntil(long timestamp) throws InterruptedException {
+        long now = getTimeIncreasing();
+        while (now < timestamp) {
+            Thread.sleep(timestamp - now);
+            now = getTimeIncreasing();
+        }
+    }
+
+    /**
      * Simple clock implementation based on {@link System#currentTimeMillis()},
      * which is known to be rather slow on some platforms.
      */
@@ -144,12 +161,20 @@ public abstract class Clock {
                 public synchronized long getTime() {
                     return System.currentTimeMillis() + random.nextInt(noise);
                 }
+                @Override
+                public String toString() {
+                    return "Clock.SIMPLE (with noise)";
+                }
             };
         } else {
             return new Clock() {
                 @Override
                 public long getTime() {
                     return System.currentTimeMillis();
+                }
+                @Override
+                public String toString() {
+                    return "Clock.SIMPLE";
                 }
             };
         }
@@ -168,16 +193,18 @@ public abstract class Clock {
         private long ns = System.nanoTime();
         @Override
         public synchronized long getTime() {
-            long nsIncrease = Math.max(System.nanoTime() - ns, 0); // >= 0
+            long nowns = System.nanoTime();
+            long nsIncrease = Math.max(nowns - ns, 0); // >= 0
+
             long msIncrease = nsIncrease / NS_IN_MS;
             if (ACCURATE_CLOCK_GRANULARITY > 1) {
                 msIncrease -= msIncrease % ACCURATE_CLOCK_GRANULARITY;
             }
 
-            long now = ms + msIncrease;
-            if (now > ms + SYNC_INTERVAL) {
-                ms = SIMPLE.getTime();
-                ns = System.nanoTime();
+            if (msIncrease < SYNC_INTERVAL) {
+                return ms + msIncrease;
+            } else {
+                long nowms = SIMPLE.getTime();
                 // Check whether the system time jumped ahead or back
                 // from what we'd expect based on the nanosecond interval.
                 // If the jump was small, it was probably caused by low
@@ -186,20 +213,26 @@ public abstract class Clock {
                 // This should still keep clock drift in check as long as
                 // the nanosecond timings drift on average less than 0.5ms
                 // per second.
-                long jump = ms - now;
+                long jump = nowms - (ms + msIncrease);
                 if (0 < jump && jump < 1000) {
-                    ms = now;
-                    ns -= NS_IN_MS / 2;
+                    ms += msIncrease;
+                    ns += msIncrease * NS_IN_MS - NS_IN_MS / 2;
                 } else if (0 > jump && jump > -1000) {
                     // Note that the Math.max(..., 0) above will cause the
                     // reported time to stay constant for a while instead
                     // of going backwards because of this.
-                    ms = now;
-                    ns += NS_IN_MS / 2;
+                    ms += msIncrease;
+                    ns += msIncrease * NS_IN_MS + NS_IN_MS / 2;
+                } else {
+                    ms = nowms;
+                    ns = nowns;
                 }
+                return ms;
             }
-
-            return now;
+        }
+        @Override
+        public String toString() {
+            return "Clock.ACCURATE";
         }
     };
 
@@ -226,6 +259,41 @@ public abstract class Clock {
             return time;
         }
 
+        @Override
+        public String toString() {
+            return "Clock.Fast";
+        }
+
     }
+
+    /**
+     * A virtual clock that has no connection to the actual system time.
+     * Instead the clock maintains an internal counter that's incremented
+     * atomically whenever the current time is requested. This guarantees
+     * that the reported time signal is always strictly increasing.
+     */
+    public static class Virtual extends Clock {
+
+        private final AtomicLong time = new AtomicLong();
+
+        @Override
+        public long getTime() {
+            return time.getAndIncrement();
+        }
+
+        @Override
+        public void waitUntil(long timestamp) {
+            long now = time.get();
+            while (now < timestamp && !time.compareAndSet(now, timestamp)) {
+                now = time.get();
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "Clock.Virtual";
+        }
+
+    };
 
 }
