@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.plugins.document;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -33,9 +30,10 @@ import static org.junit.Assert.assertNull;
 
 public class CheckpointsTest {
 
-    private final SimulatedClock clock = new SimulatedClock();
+    private final Clock clock = new Clock.Virtual();
 
-    private final DocumentNodeStore store = new DocumentMK.Builder().clock(clock).getNodeStore();
+    private final DocumentNodeStore store =
+            new DocumentMK.Builder().clock(clock).getNodeStore();
 
     @Test
     public void testCheckpointPurge() throws Exception {
@@ -44,7 +42,7 @@ public class CheckpointsTest {
         assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
 
         //Trigger expiry by forwarding the clock to future
-        clock.forwardPast(expiryTime);
+        clock.waitUntil(clock.getTime() + expiryTime + 1);
         assertNull(store.getCheckpoints().getOldestRevisionToKeep());
     }
 
@@ -65,29 +63,16 @@ public class CheckpointsTest {
         //r2 has the later expiry
         assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
 
+        long starttime = clock.getTime();
+
         //Trigger expiry by forwarding the clock to future e1
-        clock.forwardPast(et1);
+        clock.waitUntil(starttime + et1 + 1);
         assertEquals(r2, store.getCheckpoints().getOldestRevisionToKeep());
 
         //Trigger expiry by forwarding the clock to future e2
         //This time no valid checkpoint
-        clock.forwardPast(et2);
+        clock.waitUntil(starttime + et2 + 1);
         assertNull(store.getCheckpoints().getOldestRevisionToKeep());
     }
 
-    private static class SimulatedClock extends Clock {
-        private final AtomicLong time = new AtomicLong();
-
-        @Override
-        public long getTime() {
-            return time.incrementAndGet();
-        }
-
-        /**
-         * Fast forwards the clock to some future time past the given time
-         */
-        public void forwardPast(long futureTime) {
-            time.set(futureTime + 100);
-        }
-    }
 }
