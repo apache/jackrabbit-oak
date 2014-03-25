@@ -30,5 +30,6 @@ TODO: Document core concepts and architecture:
 * Search and indexing
 * Security
     * [Permission Evaluation](security/permission_eval.html)
+    * [Authentication / Login Modules](security/external_login_module.html)
 * [Oak Core](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md)
 * ...
