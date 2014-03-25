@@ -262,6 +262,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             Statement stmt = con.createStatement();
             stmt.execute("create table if not exists CLUSTERNODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
             stmt.execute("create table if not exists NODES(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
+            stmt.execute("create table if not exists SETTINGS(ID varchar primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar)");
             stmt.close();
 
             con.commit();
@@ -416,6 +417,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             return "CLUSTERNODES";
         } else if (collection == Collection.NODES) {
             return "NODES";
+        } else if (collection == Collection.SETTINGS) {
+            return "SETTINGS";
         } else {
             throw new IllegalArgumentException("Unknown collection: " + collection.toString());
         }
