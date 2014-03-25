@@ -425,10 +425,17 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return null;
         }
 
-        // newest revision is likely in the local deleted map
-        String value = getLocalDeleted().get(newestRev);
+        // the local deleted map contains the most recent revisions
+        SortedMap<Revision, String> deleted = getLocalDeleted();
+        String value = deleted.get(newestRev);
+        if (value == null && deleted.headMap(newestRev).isEmpty()) {
+            // newestRev is newer than most recent entry in local deleted
+            // no need to check previous docs
+            return newestRev;
+        }
+
         if (value == null) {
-            // otherwise get from complete map
+            // get from complete map
             value = getDeleted().get(newestRev);
         }
         if ("true".equals(value)) {
