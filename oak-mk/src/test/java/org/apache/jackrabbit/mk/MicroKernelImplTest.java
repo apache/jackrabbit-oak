@@ -259,9 +259,9 @@ public class MicroKernelImplTest {
         String branchNode = mk.getNodes("/x/y", branch, 0, 0, -1, null);
         assertTrue(branchNode.contains("\"p\":99"));
         String conflict = mk.getNodes("/x/y/:conflict", branch, 100, 0, -1, null);
-        assertEquals(
-                "{\":childNodeCount\":1,\"addExistingProperty\":{\"q\":42,\"p\":42,\":childNodeCount\":0}}",
-                conflict);
+        assertTrue(conflict,
+                conflict.equals("{\":childNodeCount\":1,\"addExistingProperty\":{\"q\":42,\"p\":42,\":childNodeCount\":0}}") ||
+                conflict.equals("{\":childNodeCount\":1,\"addExistingProperty\":{\"p\":42,\"q\":42,\":childNodeCount\":0}}"));
     }
 
     @Test
