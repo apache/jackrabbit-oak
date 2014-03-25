@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class VersionGarbageCollectorTest {
@@ -45,7 +44,6 @@ public class VersionGarbageCollectorTest {
         clock.waitUntil(Revision.getCurrentTimestamp());
     }
 
-    @Ignore("OAK-1341") // FIXME OAK-1341
     @Test
     public void gcIgnoredForCheckpoint() throws Exception {
         long expiryTime = 100, maxAge = 20;
@@ -54,7 +52,7 @@ public class VersionGarbageCollectorTest {
         gc.setMaxRevisionAge(maxAge);
 
         //Fast forward time to future but before expiry of checkpoint
-        clock.waitUntil(cp.getTimestamp() + maxAge);
+        clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc.gc();
         assertTrue(stats.ignoredGCDueToCheckPoint);
 
