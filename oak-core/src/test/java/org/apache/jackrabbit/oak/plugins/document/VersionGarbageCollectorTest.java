@@ -19,13 +19,14 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class VersionGarbageCollectorTest {
     private Clock clock;
@@ -44,6 +45,7 @@ public class VersionGarbageCollectorTest {
         clock.waitUntil(Revision.getCurrentTimestamp());
     }
 
+    @Ignore("OAK-1341") // FIXME OAK-1341
     @Test
     public void gcIgnoredForCheckpoint() throws Exception {
         long expiryTime = 100, maxAge = 20;
