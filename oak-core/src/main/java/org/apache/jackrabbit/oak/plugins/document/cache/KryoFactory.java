@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
  */
 public class KryoFactory {
 
-    public static Kryo createInstance(DocumentStore documentStore){
+    public static Kryo createInstance(DocumentStore documentStore) {
         Kryo kryo = new Kryo();
         kryo.setReferences(false);
         kryo.register(Revision.class, new Serializers.RevisionSerizlizer());

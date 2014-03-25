@@ -41,7 +41,7 @@ public interface DiffCache {
      * @return the diff or {@code null} if unknown.
      */
     @CheckForNull
-    public String getChanges(@Nonnull Revision from,
+    String getChanges(@Nonnull Revision from,
                              @Nonnull Revision to,
                              @Nonnull String path);
 
@@ -54,7 +54,7 @@ public interface DiffCache {
      * @return the cache entry.
      */
     @Nonnull
-    public Entry newEntry(@Nonnull Revision from,
+    Entry newEntry(@Nonnull Revision from,
                           @Nonnull Revision to);
 
     public interface Entry {
@@ -65,13 +65,13 @@ public interface DiffCache {
          * @param path the path of the parent node.
          * @param changes the child node changes.
          */
-        public void append(@Nonnull String path,
+        void append(@Nonnull String path,
                            @Nonnull String changes);
 
         /**
          * Called when all changes have been appended and the entry is ready
          * to be used by the cache.
          */
-        public void done();
+        void done();
     }
 }
