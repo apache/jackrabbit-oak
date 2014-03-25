@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.sun.xml.internal.xsom.impl.scd.Iterators;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.mk.store.NotFoundException;
@@ -404,8 +406,7 @@ public class StagedNodeTree {
 
             if (theirValue != null && !theirValue.equals(ourValue)) {
                 markConflict(stagedNode, "addExistingProperty", name, ourValue);
-            }
-            else {
+            } else {
                 stagedNode.getProperties().put(name, ourValue);
             }
         }
@@ -416,11 +417,9 @@ public class StagedNodeTree {
 
             if (theirDelta.getRemovedProperties().containsKey(name)) {
                 markConflict(stagedNode, "deleteDeletedProperty", name, ourValue);
-            }
-            else if (theirDelta.getChangedProperties().containsKey(name)) {
+            } else if (theirDelta.getChangedProperties().containsKey(name)) {
                 markConflict(stagedNode, "deleteChangedProperty", name, ourValue);
-            }
-            else {
+            } else {
                 stagedNode.getProperties().remove(name);
             }
         }
@@ -432,11 +431,9 @@ public class StagedNodeTree {
 
             if (theirDelta.getRemovedProperties().containsKey(name)) {
                 markConflict(stagedNode, "changeDeletedProperty", name, ourValue);
-            }
-            else if (theirValue != null && !theirValue.equals(ourValue)) {
+            } else if (theirValue != null && !theirValue.equals(ourValue)) {
                 markConflict(stagedNode, "changeChangedProperty", name, ourValue);
-            }
-            else {
+            } else {
                 stagedNode.getProperties().put(name, ourValue);
             }
         }
@@ -447,9 +444,17 @@ public class StagedNodeTree {
             Id theirId = theirDelta.getAddedChildNodes().get(name);
 
             if (theirId != null && !theirId.equals(ourId)) {
-                markConflict(stagedNode, "addExistingNode", name, ourId);
-            }
-            else {
+                // added nodes with same name but different content
+                try {
+                    // try to merge the added nodes
+                    StagedNode child = stagedNode.getStagedChildNode(name, true);
+                    StoredNode addedTo = getStoredChildNode(to, name);
+                    child.merge(addedTo, true);
+                } catch (Exception e) {
+                    // should never happen (conflicts are marked in content)
+                    throw new IllegalStateException(e);
+                }
+            } else {
                 stagedNode.add(new ChildNodeEntry(name, ourId));
             }
         }
@@ -460,11 +465,9 @@ public class StagedNodeTree {
 
             if (theirDelta.getRemovedChildNodes().containsKey(name)) {
                 markConflict(stagedNode, "deleteDeletedNode", name, ourId);
-            }
-            else if (theirDelta.getChangedChildNodes().containsKey(name)) {
+            } else if (theirDelta.getChangedChildNodes().containsKey(name)) {
                 markConflict(stagedNode, "deleteChangedNode", name, ourId);
-            }
-            else {
+            } else {
                 stagedNode.remove(name);
             }
         }
@@ -473,14 +476,14 @@ public class StagedNodeTree {
             String name = changed.getKey();
             Id ourId = changed.getValue();
 
-            StoredNode changedBase = getChildNode(base, name);
+            StoredNode changedBase = getStoredChildNode(base, name);
             if (changedBase == null) {
                 markConflict(stagedNode, "changeDeletedNode", name, ourId);
                 continue;
             }
 
-            StoredNode changedFrom = getChildNode(from, name);
-            StoredNode changedTo = getChildNode(to, name);
+            StoredNode changedFrom = getStoredChildNode(from, name);
+            StoredNode changedTo = getStoredChildNode(to, name);
             String changedPath = PathUtils.concat(path, name);
             rebaseNode(changedBase, changedFrom, changedTo, changedPath);
         }
@@ -508,15 +511,14 @@ public class StagedNodeTree {
         } else {
             try {
                 return parent.getStagedChildNode(name, true);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // should never happen
                 throw new IllegalStateException(e);
             }
         }
     }
 
-    private StoredNode getChildNode(StoredNode parent, String name) throws Exception {
+    private StoredNode getStoredChildNode(StoredNode parent, String name) throws Exception {
         ChildNodeEntry cne = parent.getChildNodeEntry(name);
         return cne == null ? null : store.getNode(cne.getId());
     }
@@ -567,14 +569,22 @@ public class StagedNodeTree {
                 case NODE_CONTENT_CONFLICT: {
                     if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
                         // modified subtrees
-                        StoredNode baseChild = store.getNode(baseNode.getChildNodeEntry(conflictName).getId());
-                        StoredNode ourChild = store.getNode(ourNode.getChildNodeEntry(conflictName).getId());
-                        StoredNode theirChild = store.getNode(theirNode.getChildNodeEntry(conflictName).getId());
+                        StoredNode baseChild = getStoredChildNode(baseNode, conflictName);
+                        StoredNode ourChild = getStoredChildNode(ourNode, conflictName);
+                        StoredNode theirChild = getStoredChildNode(theirNode, conflictName);
                         // merge the dirty subtrees recursively
                         mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
                     } else {
-                        // todo handle/merge colliding node creation
-                        throw new Exception("colliding concurrent node creation: " + conflictPath);
+                        // added nodes with same name but different content
+                        try {
+                            // try to merge the added nodes
+                            StagedNode child = stagedNode.getStagedChildNode(conflictName, true);
+                            StoredNode theirChild = getStoredChildNode(theirNode, conflictName);
+                            child.merge(theirChild, false);
+                        } catch (Exception e) {
+                            throw new Exception(String.format("colliding concurrent node creation: '%s'\n%s", conflictPath, e.getMessage()));
+                        }
+
                     }
                     break;
                 }
@@ -674,6 +684,79 @@ public class StagedNodeTree {
             // child id will be computed on persist
             add(new ChildNodeEntry(name, null));
             return node;
+        }
+
+        /**
+         * Merge the properties and nodes of another node with this node.
+         *
+         * @param other other node to be merged with this node.
+         * @param markConflicts if true, conflicts are marked in content; otherwise an exception is thrown on conflict.
+         * @throws Exception
+         */
+        void merge(final StoredNode other, final boolean markConflicts) throws Exception {
+            final List<String> conflicts = new ArrayList<String>();
+            final StagedNode thisNode = this;
+            this.diff(other, new NodeDiffHandler() {
+                @Override
+                public void propAdded(String propName, String value) {
+                    thisNode.getProperties().put(propName, value);
+                }
+
+                @Override
+                public void propChanged(String propName, String oldValue, String newValue) {
+                    if ((oldValue != null && !oldValue.equals(newValue)) || (oldValue != newValue)) {
+                        if (markConflicts) {
+                            markConflict(thisNode, "addExistingProperty", propName, newValue);
+                        } else {
+                            conflicts.add(String.format("property '%s': conflictying values '%s' and '%s'", propName, oldValue, newValue));
+                        }
+                    }
+                }
+
+                @Override
+                public void propDeleted(String propName, String value) {
+                    // irrelevant
+                }
+
+                @Override
+                public void childNodeAdded(ChildNodeEntry added) {
+                    thisNode.add(added);
+                }
+
+                @Override
+                public void childNodeDeleted(ChildNodeEntry deleted) {
+                    // irrelevant
+                }
+
+                @Override
+                public void childNodeChanged(ChildNodeEntry changed, Id newId) {
+                    // check if there's already been a conflict
+                    if ((markConflicts && thisNode.getChildNodeEntry(MicroKernel.CONFLICT) == null)
+                            || (!markConflicts && conflicts.isEmpty())) {
+                        // recurse
+                        try {
+                            StagedNode child = getStagedChildNode(changed.getName(), true);
+                            StoredNode otherChild = getStoredChildNode(other, changed.getName());
+                            child.merge(otherChild, markConflicts);
+                        } catch (Exception e) {
+                            // should never happen
+                            throw new IllegalStateException(e);
+                        }
+                    }
+                }
+            });
+
+            if (!markConflicts && !conflicts.isEmpty()) {
+                // report exceptions
+                StringBuffer sb = new StringBuffer();
+                for (String conflict : conflicts) {
+                    if (sb.length() > 0) {
+                        sb.append('\n');
+                    }
+                    sb.append(conflict);
+                }
+                throw new Exception(sb.toString());
+            }
         }
 
         void move(String name, String destPath) throws Exception {
