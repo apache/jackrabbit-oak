@@ -62,7 +62,7 @@ public class SimpleNodeAggregator implements NodeAggregator {
             for (String inc : r.includes) {
                 // check node name match
                 if (name.equals(getName(inc))) {
-                    levelsUp = 1;
+                    levelsUp = getDepth(inc);
                     primaryType.add(r.primaryType);
                     if (acceptStarIncludes) {
                         break;
