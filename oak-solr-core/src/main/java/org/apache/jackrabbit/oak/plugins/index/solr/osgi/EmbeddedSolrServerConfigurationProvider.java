@@ -47,18 +47,9 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
     @Property(value = SolrServerConfigurationDefaults.SOLR_CONFIG_PATH, label = "Path to specific Solr Core configuration")
     private static final String SOLR_CONFIG_FILE = "solr.config.path";
 
-    @Property(intValue = 0, label = "Solr HTTP Endpoint port (optional)")
-    private static final String SOLR_HTTP_PORT = "solr.http.port";
-
-    @Property(value = "", label = "Solr HTTP Endpoint context (optional)")
-    private static final String SOLR_CONTEXT = "solr.context";
-
     private String solrHome;
     private String solrConfigFile;
     private String solrCoreName;
-
-    private Integer solrHttpPort;
-    private String solrContext;
 
     private SolrServerConfiguration<EmbeddedSolrServerProvider> solrServerConfiguration;
 
@@ -73,23 +64,14 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
         solrConfigFile = String.valueOf(componentContext.getProperties().get(SOLR_CONFIG_FILE));
         solrCoreName = String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
 
-        String httpPort = String.valueOf(componentContext.getProperties().get(SOLR_HTTP_PORT));
-        if (httpPort != null && httpPort.length() > 0) {
-            solrHttpPort = Integer.valueOf(httpPort);
-        }
-        solrContext = String.valueOf(componentContext.getProperties().get(SOLR_CONTEXT));
-
-        solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrConfigFile, solrCoreName).
-                withHttpConfiguration(solrContext, solrHttpPort);
+        solrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome, solrConfigFile, solrCoreName);
     }
 
     @Deactivate
     protected void deactivate() throws Exception {
         solrHome = null;
-        solrHttpPort = null;
         solrConfigFile = null;
         solrCoreName = null;
-        solrContext = null;
     }
 
     @Override
