@@ -198,6 +198,13 @@ public class Revision {
         return new Revision(timestamp, c, clusterId, isBranch);
     }
 
+    /**
+     * Provides a readable string for given timestamp
+     */
+    public static String timestampToString(long timestamp){
+        return (new Timestamp(timestamp) + "00").substring(0, 23);
+    }
+
     @Override
     public String toString() {
         return toStringBuilder(new StringBuilder()).toString();
@@ -235,7 +242,7 @@ public class Revision {
         buff.append("revision: \"").append(toString()).append("\"");
         buff.append(", clusterId: ").append(clusterId);
         buff.append(", time: \"").
-            append((new Timestamp(timestamp) + "00").substring(0, 23)).
+            append(timestampToString(timestamp)).
             append("\"");
         if (counter > 0) {
             buff.append(", counter: ").append(counter);
