@@ -68,7 +68,7 @@ public interface Context {
      * Reveals if the specified {@code TreeLocation} is defined by the security
      * module that exposes this {@link Context} instance.
      *
-     * @param tree The tree location to be tested.
+     * @param location The tree location to be tested.
      * @return {@code true} if the specified tree location is related to or
      * defined by the security module.
      */

@@ -40,14 +40,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
  * the parent version. This selector selects the latest version that is equal
  * or older than the given date. if no such version exists, the initial one
  * is restored.<br/>
- * The {@code Node.restoreByLabel()} uses the
- * {@link LabelVersionSelector} which is initialized with the label of the
- * version to be restored. This selector selects the version with the same
- * label. if no such version exists, the initial one is restored.
  * <p/>
  *
  * @see DateVersionSelector
- * @see LabelVersionSelector
  * @see javax.jcr.version.VersionManager#restore
  */
 public interface VersionSelector {

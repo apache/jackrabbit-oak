@@ -28,10 +28,10 @@ import javax.jcr.Session;
 public class TransientManyChildNodesTest extends AbstractTest {
 
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
-    
-    private static final int CHILD_COUNT = 10 * 1000;
 
-    private static final int ITERATIONS = 10;
+    protected static final int CHILD_COUNT = 10 * 1000;
+
+    protected static final int ITERATIONS = 10;
 
     private Session session;
 

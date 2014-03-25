@@ -24,7 +24,7 @@ import org.apache.jackrabbit.util.XMLChar;
  * Parses and validates JCR names. Upon successful completion of
  * {@link #parse(String, Listener, int)}
  * the specified listener is informed about the (resulting) JCR name.
- * In case of failure {@link Listener#error(String)} is called indicating
+ * In case of failure {@link JcrNameParser.Listener#error(String)} is called indicating
  * the reason.
  */
 public final class JcrNameParser {

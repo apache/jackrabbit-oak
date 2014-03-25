@@ -31,12 +31,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class DefaultConflictHandler implements ConflictHandler {
 
     /**
-     * A {@code ConflictHandler} which always return {@link Resolution#OURS}.
+     * A {@code ConflictHandler} which always return {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#OURS}.
      */
     public static final ConflictHandler OURS = new DefaultConflictHandler(Resolution.OURS);
 
     /**
-     * A {@code ConflictHandler} which always return {@link Resolution#THEIRS}.
+     * A {@code ConflictHandler} which always return {@link org.apache.jackrabbit.oak.spi.commit.ConflictHandler.Resolution#THEIRS}.
      */
     public static final ConflictHandler THEIRS = new DefaultConflictHandler(Resolution.THEIRS);
 

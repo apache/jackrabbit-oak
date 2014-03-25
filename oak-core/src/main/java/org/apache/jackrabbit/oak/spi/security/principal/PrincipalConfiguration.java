@@ -38,7 +38,7 @@ public interface PrincipalConfiguration extends SecurityConfiguration {
      * @param root The target root.
      * @param namePathMapper The {@code NamePathMapper} to be used.
      * @return An instance of {@link PrincipalManager}.
-     * @see {@link org.apache.jackrabbit.api.JackrabbitSession#getPrincipalManager()}
+     * @see org.apache.jackrabbit.api.JackrabbitSession#getPrincipalManager()
      */
     @Nonnull
     PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper);

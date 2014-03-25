@@ -366,7 +366,7 @@ public class EffectiveNodeType {
      *
      * @param childName The internal oak name of the target node.
      * @param childEffective
-     * @return
+     * @return the node definition
      * @throws ConstraintViolationException
      */
     public NodeDefinition getNodeDefinition(

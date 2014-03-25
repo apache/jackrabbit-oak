@@ -41,9 +41,9 @@ import static org.jclouds.blobstore.options.ListContainerOptions.Builder.maxResu
 import static org.jclouds.blobstore.options.PutOptions.Builder.multipart;
 
 /**
- * Implementation of the {@link BlobStore} to store blobs in a cloud blob store.
+ * Implementation of the {@link org.apache.jackrabbit.oak.spi.blob.BlobStore} to store blobs in a cloud blob store.
  * <p>
- * Extends {@link AbstractBlobStore} and breaks the the binary to chunks for easier management.
+ * Extends {@link org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore} and breaks the the binary to chunks for easier management.
  */
 public class CloudBlobStore extends CachingBlobStore {
     /**
@@ -97,16 +97,7 @@ public class CloudBlobStore extends CachingBlobStore {
 
     /**
      * Instantiates a connection to the cloud blob store.
-     * 
-     * @param cloudProvider
-     *            the cloud provider
-     * @param accessKey
-     *            the access key
-     * @param secretKey
-     *            the secret key
-     * @param cloudContainer
-     *            the bucket
-     * @throws Exception
+     * @throws Exception if an error occurs
      */
     public void init() throws Exception {
         try {

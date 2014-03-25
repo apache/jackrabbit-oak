@@ -33,7 +33,7 @@ import javax.annotation.Nonnull;
  * <p>
  * Due to their nature blobs should not be used as keys in hash tables.
  * To highlight that and to ensure semantic correctness of the equality
- * contract across different blob implementations, the {@link #hashCode()}
+ * contract across different blob implementations, the {@link Object#hashCode()}
  * method of all blob instances should return zero.
  */
 public interface Blob {

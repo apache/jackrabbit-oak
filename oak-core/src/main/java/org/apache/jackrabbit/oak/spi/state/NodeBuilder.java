@@ -183,7 +183,7 @@ public interface NodeBuilder {
      * had been made after each update. Repeated calls to this method with
      * the same name will return the same child builder instance until an
      * explicit {@link #setChildNode(String, NodeState)} or
-     * {@link #remove())} call is made, at which point the link
+     * {@link #remove()} call is made, at which point the link
      * between this builder and a previously returned child builder for
      * that child node name will get broken.
      *
@@ -391,12 +391,8 @@ public interface NodeBuilder {
      * @param name  The name of this property
      * @param value  The value of this property
      * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
-     * @throws IllegalArgumentException if {@code T} is not one of the above types.
-     *
-     * @param name  name of the property
+     * @throws IllegalArgumentException if {@code T} is not one of the above types, or if the property name is empty or contains the forward slash character
      * @return this builder
-     * @throws IllegalArgumentException if the property name is empty
-     *                                  or contains the forward slash character
      */
     @Nonnull
     <T> NodeBuilder setProperty(String name, @Nonnull T value)

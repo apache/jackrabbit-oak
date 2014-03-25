@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Composite repository initializer that delegates the
- * {@link #initialize(NodeState)} call in sequence to all the
+ * {@link #initialize(NodeBuilder)} call in sequence to all the
  * component initializers.
  */
 public class CompositeInitializer implements RepositoryInitializer {

@@ -39,7 +39,7 @@ import com.mongodb.WriteResult;
 
 /**
  * Implementation of blob store for the MongoDB extending from
- * {@link AbstractBlobStore}. It saves blobs into a separate collection in
+ * {@link org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore}. It saves blobs into a separate collection in
  * MongoDB (not using GridFS) and it supports basic garbage collection.
  *
  * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is

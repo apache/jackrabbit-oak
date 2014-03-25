@@ -213,7 +213,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      * retrieve an Iterable for going through the index in the right order without the :start node
      * 
      * @param index the root of the index (:index)
-     * @return
+     * @return the iterable
      */
     @Override
     @Nonnull
@@ -251,7 +251,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      * @param indexName
      * @param indexMeta
      * @param pr
-     * @return
+     * @return the iterable
      */
     public Iterable<String> query(final Filter filter, final String indexName,
                                   final NodeState indexMeta, final PropertyRestriction pr) {
@@ -267,7 +267,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      * @param indexMeta
      * @param indexStorageNodeName
      * @param pr
-     * @return
+     * @return the iterable
      */
     public Iterable<String> query(final Filter filter, final String indexName,
                                   final NodeState indexMeta, final String indexStorageNodeName,

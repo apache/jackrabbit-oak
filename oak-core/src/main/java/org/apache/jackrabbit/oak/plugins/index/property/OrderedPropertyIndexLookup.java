@@ -89,7 +89,7 @@ public class OrderedPropertyIndexLookup extends PropertyIndexLookup {
      * @param filter
      * @param propertyName
      * @param pr
-     * @return the resultset
+     * @return the result set
      */
     public Iterable<String> query(Filter filter, String propertyName, PropertyRestriction pr) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
@@ -107,7 +107,7 @@ public class OrderedPropertyIndexLookup extends PropertyIndexLookup {
      * @param value
      * @param filter
      * @param pr
-     * @return
+     * @return the estimated count
      */
     public long getEstimatedEntryCount(String propertyName, PropertyValue value, Filter filter,
                                        PropertyRestriction pr) {

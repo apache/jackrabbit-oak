@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -44,8 +43,7 @@ public interface NodeStoreBranch {
      * Returns the head state of this branch.
      * The head state is the state resulting from the
      * base state by applying all subsequent modifications to this branch
-     * by {@link #setRoot(NodeState)}, {@link #move(String, String)},
-     * and {@link #copy(String, String)}.
+     * by {@link #setRoot(NodeState)}.
      *
      * @return root node state
      * @throws IllegalStateException if the branch is already merged
