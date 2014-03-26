@@ -283,21 +283,21 @@ public class Utils {
         return id.substring(index + 1);
     }
 
-    public static String getPreviousIdFor(String id, Revision r) {
-        StringBuilder sb = new StringBuilder(id.length() + REVISION_LENGTH + 3);
-        int index = id.indexOf(':');
-        int depth = 0;
-        for (int i = 0; i < index; i++) {
-            depth *= 10;
-            depth += Character.digit(id.charAt(i), 10);
+    public static String getPreviousPathFor(String path, Revision r, int height) {
+        if (!PathUtils.isAbsolute(path)) {
+            throw new IllegalArgumentException("path must be absolute: " + path);
         }
-        sb.append(depth + 1).append(":p");
-        sb.append(id, index + 1, id.length());
+        StringBuilder sb = new StringBuilder(path.length() + REVISION_LENGTH + 3);
+        sb.append("p").append(path);
         if (sb.charAt(sb.length() - 1) != '/') {
             sb.append('/');
         }
-        r.toStringBuilder(sb);
+        r.toStringBuilder(sb).append("/").append(height);
         return sb.toString();
+    }
+
+    public static String getPreviousIdFor(String path, Revision r, int height) {
+        return getIdFromPath(getPreviousPathFor(path, r, height));
     }
 
     /**

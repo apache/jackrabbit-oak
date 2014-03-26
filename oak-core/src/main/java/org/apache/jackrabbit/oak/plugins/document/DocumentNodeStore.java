@@ -1298,7 +1298,7 @@ public final class DocumentNodeStore
             if (isDisposed.get()) {
                 return;
             }
-            LOG.warn("Background operation failed: " + e.toString(), e);
+            throw e;
         }
     }
 
@@ -1622,7 +1622,11 @@ public final class DocumentNodeStore
                 }
                 DocumentNodeStore nodeStore = ref.get();
                 if (nodeStore != null) {
-                    nodeStore.runBackgroundOperations();
+                    try {
+                        nodeStore.runBackgroundOperations();
+                    } catch (Throwable t) {
+                        LOG.warn("Background operation failed: " + t.toString(), t);
+                    }
                     delay = nodeStore.getAsyncDelay();
                 } else {
                     // node store not in use anymore

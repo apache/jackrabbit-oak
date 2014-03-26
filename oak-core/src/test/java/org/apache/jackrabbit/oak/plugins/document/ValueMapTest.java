@@ -41,18 +41,19 @@ public class ValueMapTest {
 
     @Test
     public void previousDocs1() {
-        String rootId = Utils.getIdFromPath("/");
+        String rootPath = "/";
+        String rootId = Utils.getIdFromPath(rootPath);
         Revision r0 = new Revision(0, 0, 1);
         MemoryDocumentStore store = new MemoryDocumentStore();
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootId, r0), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r0, 0), true);
         op.set(ID, op.getId());
         op.setMapEntry("prop", r0, "0");
         NodeDocument.setRevision(op, r0, "c");
         store.createOrUpdate(NODES, op);
         Revision r1low = new Revision(1, 0, 1);
         Revision r1high = new Revision(1, 10, 1);
-        op = new UpdateOp(Utils.getPreviousIdFor(rootId, r1high), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r1high, 0), true);
         op.set(ID, op.getId());
         for (int i = r1low.getCounter(); i <= r1high.getCounter(); i++) {
             Revision r = new Revision(1, i, 1);
@@ -66,8 +67,8 @@ public class ValueMapTest {
         Revision r2 = new Revision(2, 0, 1);
         op.setMapEntry("prop", r2, "1");
         NodeDocument.setRevision(op, r2, "c");
-        NodeDocument.setPrevious(op, r0, r0);
-        NodeDocument.setPrevious(op, r1high, r1low);
+        NodeDocument.setPrevious(op, new Range(r0, r0, 0));
+        NodeDocument.setPrevious(op, new Range(r1high, r1low, 0));
         store.createOrUpdate(NODES, op);
 
         NodeDocument doc = store.find(NODES, rootId);
@@ -86,7 +87,8 @@ public class ValueMapTest {
     @Test
     public void previousDocs2() {
         MemoryDocumentStore store = new MemoryDocumentStore();
-        String rootId = Utils.getIdFromPath("/");
+        String rootPath = "/";
+        String rootId = Utils.getIdFromPath(rootPath);
         Revision r01 = new Revision(0, 0, 1);
         Revision r12 = new Revision(1, 0, 2);
         Revision r22 = new Revision(2, 0, 2);
@@ -94,7 +96,7 @@ public class ValueMapTest {
         Revision r42 = new Revision(4, 0, 2);
         Revision r51 = new Revision(5, 0, 1);
         // create previous docs
-        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootId, r31), true);
+        UpdateOp op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r31, 0), true);
         op.set(ID, op.getId());
         op.setMapEntry("p0", r01, "0");
         NodeDocument.setRevision(op, r01, "c");
@@ -102,7 +104,7 @@ public class ValueMapTest {
         NodeDocument.setRevision(op, r31, "c");
         store.createOrUpdate(NODES, op);
 
-        op = new UpdateOp(Utils.getPreviousIdFor(rootId, r42), true);
+        op = new UpdateOp(Utils.getPreviousIdFor(rootPath, r42, 0), true);
         op.set(ID, op.getId());
         op.setMapEntry("p1", r12, "0");
         NodeDocument.setRevision(op, r12, "c");
@@ -118,8 +120,8 @@ public class ValueMapTest {
         op.setMapEntry("p0", r51, "2");
         op.setMapEntry("p1", r51, "2");
         NodeDocument.setRevision(op, r51, "c");
-        NodeDocument.setPrevious(op, r42, r12);
-        NodeDocument.setPrevious(op, r31, r01);
+        NodeDocument.setPrevious(op, new Range(r42, r12, 0));
+        NodeDocument.setPrevious(op, new Range(r31, r01, 0));
         store.createOrUpdate(NODES, op);
 
         NodeDocument doc = store.find(NODES, rootId);
@@ -127,8 +129,8 @@ public class ValueMapTest {
         List<NodeDocument> prevDocs = Lists.newArrayList(
                 doc.getPreviousDocs("p1", null));
         assertEquals(2, prevDocs.size());
-        assertEquals(Utils.getPreviousIdFor(rootId, r31), prevDocs.get(0).getId());
-        assertEquals(Utils.getPreviousIdFor(rootId, r42), prevDocs.get(1).getId());
+        assertEquals(Utils.getPreviousIdFor(rootPath, r31, 0), prevDocs.get(0).getId());
+        assertEquals(Utils.getPreviousIdFor(rootPath, r42, 0), prevDocs.get(1).getId());
 
         List<Revision> revs = new ArrayList<Revision>();
         for (Revision r : doc.getValueMap("p1").keySet()) {

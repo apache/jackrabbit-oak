@@ -30,6 +30,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 
 /**
@@ -39,25 +40,32 @@ import com.google.common.collect.Iterators;
 class ValueMap {
 
     static final SortedMap<Revision, String> EMPTY = Collections.unmodifiableSortedMap(
-            new TreeMap<Revision, String>(StableRevisionComparator.INSTANCE));
+            new TreeMap<Revision, String>(StableRevisionComparator.REVERSE));
 
     @Nonnull
     static Map<Revision, String> create(@Nonnull final NodeDocument doc,
-                @Nonnull final String property) {
+                                        @Nonnull final String property) {
         final SortedMap<Revision, String> map = doc.getLocalMap(property);
         if (doc.getPreviousRanges().isEmpty()) {
             return map;
         }
-        final Comparator<? super Revision> c = map.comparator();
-        final Iterator<NodeDocument> docs = Iterators.concat(
-                Iterators.singletonIterator(doc),
-                doc.getPreviousDocs(property, null).iterator());
         final Set<Map.Entry<Revision, String>> entrySet
                 = new AbstractSet<Map.Entry<Revision, String>>() {
 
             @Override
             @Nonnull
             public Iterator<Map.Entry<Revision, String>> iterator() {
+
+                final Comparator<? super Revision> c = map.comparator();
+                final Iterator<NodeDocument> docs;
+                if (map.isEmpty()) {
+                    docs = doc.getPreviousDocs(property, null).iterator();
+                } else {
+                    docs = Iterators.concat(
+                            Iterators.singletonIterator(doc),
+                            doc.getPreviousDocs(property, null).iterator());
+                }
+
                 return new MergeSortedIterators<Map.Entry<Revision, String>>(
                         new Comparator<Map.Entry<Revision, String>>() {
                             @Override
@@ -69,7 +77,18 @@ class ValueMap {
                 ) {
                     @Override
                     public Iterator<Map.Entry<Revision, String>> nextIterator() {
-                        return docs.hasNext() ? docs.next().getLocalMap(property).entrySet().iterator() : null;
+                        NodeDocument d = docs.hasNext() ? docs.next() : null;
+                        if (d == null) {
+                            return null;
+                        }
+                        Map<Revision, String> values;
+                        if (Objects.equal(d.getId(), doc.getId())) {
+                            // return local map for main document
+                            values = d.getLocalMap(property);
+                        } else {
+                            values = d.getValueMap(property);
+                        }
+                        return values.entrySet().iterator();
                     }
 
                     @Override
@@ -83,7 +102,7 @@ class ValueMap {
             public int size() {
                 int size = map.size();
                 for (NodeDocument prev : doc.getPreviousDocs(property, null)) {
-                    size += prev.getLocalMap(property).size();
+                    size += prev.getValueMap(property).size();
                 }
                 return size;
             }
@@ -108,7 +127,7 @@ class ValueMap {
                 }
                 Revision r = (Revision) key;
                 for (NodeDocument prev : doc.getPreviousDocs(property, r)) {
-                    value = prev.getLocalMap(property).get(key);
+                    value = prev.getValueMap(property).get(key);
                     if (value != null) {
                         return value;
                     }
