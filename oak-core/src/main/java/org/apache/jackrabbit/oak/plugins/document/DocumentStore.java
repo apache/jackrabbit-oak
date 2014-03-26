@@ -25,6 +25,8 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 
 /**
  * The interface for the backend storage for documents.
+ * <p>
+ * For keys, the maximum length is 512 bytes in the UTF-8 representation.
  */
 public interface DocumentStore {
 
