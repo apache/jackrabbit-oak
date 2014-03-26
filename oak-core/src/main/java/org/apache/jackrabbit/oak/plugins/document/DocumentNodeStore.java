@@ -1213,7 +1213,8 @@ public final class DocumentNodeStore
     }
 
     /**
-     * Returns the {@link Blob} with the given blobId.
+     * Returns the {@link Blob} with the given reference. Note that this method is meant to
+     * be used with secure reference obtained from Blob#reference which is different from blobId
      *
      * @param reference the reference of the blob.
      * @return the blob.
@@ -1226,6 +1227,16 @@ public final class DocumentNodeStore
         }
         LOG.debug("No blobId found matching reference [{}]", reference);
         return null;
+    }
+
+    /**
+     * Returns the {@link Blob} with the given blobId.
+     *
+     * @param reference the reference of the blob.
+     * @return the blob.
+     */
+    public Blob getBlobFromBlobId(String blobId){
+        return new BlobStoreBlob(blobStore, blobId);
     }
 
     @Nonnull
