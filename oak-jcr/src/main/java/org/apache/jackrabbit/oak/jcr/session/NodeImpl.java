@@ -53,7 +53,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
-import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -68,7 +67,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -81,8 +79,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
-import org.apache.jackrabbit.oak.jcr.lock.LockImpl;
-import org.apache.jackrabbit.oak.jcr.lock.LockOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.ItemOperation;
 import org.apache.jackrabbit.oak.jcr.session.operation.NodeOperation;
 import org.apache.jackrabbit.oak.jcr.version.VersionHistoryImpl;
@@ -255,8 +251,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
         SessionImpl.checkIndexOnName(sessionContext, relPath);
         return perform(new ItemWriteOperation<Node>("addNode") {
-            private NodeDelegate nodeAdded;
-
             @Override
             public Node perform() throws RepositoryException {
                 String oakName = PathUtils.getName(oakPath);
@@ -293,14 +287,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (added == null) {
                     throw new ItemExistsException();
                 }
-                nodeAdded = added;
-
                 return createNode(added, sessionContext);
             }
 
             @Override
             public String toString() {
-                return String.format("Adding node [%s]", nodeAdded.getPath());
+                return String.format("Adding node [%s/%s]", dlg.getPath(), relPath);
             }
         });
     }
