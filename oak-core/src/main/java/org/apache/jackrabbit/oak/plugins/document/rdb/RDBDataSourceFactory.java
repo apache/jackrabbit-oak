@@ -24,7 +24,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.dbcp.BasicDataSource;
 
-public class RDBDataSourceFactory extends RDBMeta {
+public class RDBDataSourceFactory {
 
     public static DataSource forJdbcUrl(String url, String username, String passwd) throws SQLException {
         BasicDataSource bds = new BasicDataSource();
