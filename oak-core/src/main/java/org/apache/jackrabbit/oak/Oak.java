@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
@@ -508,6 +509,9 @@ public class Oak {
             registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name);
         }
+        
+        registerMBean(whiteboard, QueryEngineSettingsMBean.class,
+                queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings");
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
