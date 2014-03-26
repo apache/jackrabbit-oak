@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -131,7 +132,7 @@ public class ReferenceBinaryIT {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
-        File file = new File(new File("target"), "tar." + System.nanoTime());
+        File file = getTestDir("tar");
         SegmentStore segmentStore = new FileStore(createBlobStore(), file, 266, true);
 
         List<Object[]> fixtures = Lists.newArrayList();
@@ -139,6 +140,15 @@ public class ReferenceBinaryIT {
         if (segmentFixture.isAvailable()) {
             fixtures.add(new Object[] {segmentFixture});
         }
+
+        FileBlobStore fbs = new FileBlobStore(getTestDir("fbs1").getAbsolutePath());
+        fbs.setReferenceKeyPlainText("foobar");
+        SegmentStore segmentStoreWithFBS =  new FileStore(fbs, getTestDir("tar2"), 266, true);
+        NodeStoreFixture.SegmentFixture segmentFixtureFBS = new NodeStoreFixture.SegmentFixture(segmentStoreWithFBS);
+        if (segmentFixtureFBS.isAvailable()) {
+            fixtures.add(new Object[] {segmentFixtureFBS});
+        }
+
         DocumentFixture documentFixture = new DocumentFixture(DocumentFixture.DEFAULT_URI, false, createBlobStore());
         if (documentFixture.isAvailable()) {
             fixtures.add(new Object[]{documentFixture});
@@ -147,14 +157,18 @@ public class ReferenceBinaryIT {
     }
 
     private static BlobStore createBlobStore(){
-        File file = new File(new File("target"), "datastore." + System.nanoTime());
+        File file = getTestDir("datastore");
         OakFileDataStore fds = new OakFileDataStore();
         byte[] key = new byte[256];
         new Random().nextBytes(key);
-        fds.setSigningKey(BaseEncoding.base64().encode(key));
+        fds.setReferenceKeyEncoded(BaseEncoding.base64().encode(key));
         fds.setMinRecordLength(4092);
         fds.init(file.getAbsolutePath());
         return new DataStoreBlobStore(fds);
+    }
+
+    private static File getTestDir(String prefix) {
+        return new File(new File("target"), prefix+ "." + System.nanoTime());
     }
 
     private Session createAdminSession() throws RepositoryException {
