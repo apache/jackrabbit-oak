@@ -28,8 +28,12 @@ public interface TokenConfiguration extends SecurityConfiguration {
 
     String NAME = "org.apache.jackrabbit.oak.authentication.token";
 
-    String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.authentication.token";
-
+    /**
+     * Returns a new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+     *
+     * @param root The target root.
+     * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
+     */
     @Nonnull
     TokenProvider getTokenProvider(Root root);
 }
