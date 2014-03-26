@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
 
 /**
  * MBean for starting and monitoring the progress of
@@ -36,14 +37,14 @@ public interface RevisionGCMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
-    String startRevisionGC();
+    CompositeData startRevisionGC();
 
     /**
      * Revision garbage collection status
      *
      * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or {@code null} if none.
+     * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
-    String getRevisionGCStatus();
+    CompositeData getRevisionGCStatus();
 }
