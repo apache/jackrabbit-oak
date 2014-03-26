@@ -44,7 +44,7 @@ public class OrderedPropertyIndexLookup extends PropertyIndexLookup {
     /**
      * we're slightly more expensive than the standard PropertyIndex.
      */
-    private static final int COST_OVERHEAD = 3;
+    private static final double COST_OVERHEAD = 3;
     
     public OrderedPropertyIndexLookup(NodeState root) {
         super(root);
