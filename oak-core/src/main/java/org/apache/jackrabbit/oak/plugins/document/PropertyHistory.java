@@ -46,29 +46,30 @@ class PropertyHistory implements Iterable<NodeDocument> {
     private static final Logger LOG = LoggerFactory.getLogger(PropertyHistory.class);
 
     private final DocumentStore store;
-    private final NodeDocument main;
+    private final NodeDocument doc;
     private final String property;
-    private final String id;
+    // path of the main document
+    private final String mainPath;
 
     public PropertyHistory(@Nonnull DocumentStore store,
-                           @Nonnull NodeDocument main,
+                           @Nonnull NodeDocument doc,
                            @Nonnull String property) {
         this.store = checkNotNull(store);
-        this.main = checkNotNull(main);
+        this.doc = checkNotNull(doc);
         this.property = checkNotNull(property);
-        this.id = main.getId();
+        this.mainPath = doc.getMainPath();
     }
 
     @Override
     public Iterator<NodeDocument> iterator() {
-        return ensureOrder(filter(
-                transform(main.getPreviousRanges().entrySet(),
-                        new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
+        return ensureOrder(filter(transform(doc.getPreviousRanges().entrySet(),
+                new Function<Map.Entry<Revision, Range>, Map.Entry<Revision, NodeDocument>>() {
             @Nullable
             @Override
             public Map.Entry<Revision, NodeDocument> apply(Map.Entry<Revision, Range> input) {
                 Revision r = input.getKey();
-                String prevId = Utils.getPreviousIdFor(id, r);
+                int h = input.getValue().height;
+                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                 NodeDocument prev = store.find(Collection.NODES, prevId);
                 if (prev == null) {
                     LOG.warn("Document with previous revisions not found: " + prevId);
@@ -155,10 +156,11 @@ class PropertyHistory implements Iterable<NodeDocument> {
                     // check if the revision is actually in there
                     if (doc != null) {
                         Map<Revision, String> values = doc.getValueMap(property);
-                        if (!values.isEmpty()) {
+                        Iterator<Revision> revs = values.keySet().iterator();
+                        if (revs.hasNext()) {
                             // put into queue with first (highest) revision
                             // from value map
-                            queue.put(values.keySet().iterator().next(), doc);
+                            queue.put(revs.next(), doc);
                         }
                     }
                 }

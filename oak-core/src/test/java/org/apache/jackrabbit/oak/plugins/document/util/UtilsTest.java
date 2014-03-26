@@ -30,26 +30,26 @@ public class UtilsTest {
     @Test
     public void getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        String p = Utils.getIdFromPath("/");
-        assertEquals("1:p/" + r.toString(), Utils.getPreviousIdFor(p, r));
-        p = Utils.getIdFromPath("/test");
-        assertEquals("2:p/test/" + r.toString(), Utils.getPreviousIdFor(p, r));
-        p = Utils.getIdFromPath("/a/b/c/d/e/f/g/h/i/j/k/l/m");
-        assertEquals("14:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString(), Utils.getPreviousIdFor(p, r));
+        assertEquals("2:p/" + r.toString() + "/0",
+                Utils.getPreviousIdFor("/", r, 0));
+        assertEquals("3:p/test/" + r.toString() + "/1",
+                Utils.getPreviousIdFor("/test", r, 1));
+        assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
+                Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3));
     }
 
     @Ignore("Performance test")
     @Test
     public void performance_getPreviousIdFor() {
         Revision r = new Revision(System.currentTimeMillis(), 0, 0);
-        String id = Utils.getIdFromPath("/some/test/path/foo");
+        String path = "/some/test/path/foo";
         // warm up
         for (int i = 0; i < 1 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(id, r);
+            Utils.getPreviousIdFor(path, r, 0);
         }
         long time = System.currentTimeMillis();
         for (int i = 0; i < 10 * 1000 * 1000; i++) {
-            Utils.getPreviousIdFor(id, r);
+            Utils.getPreviousIdFor(path, r, 0);
         }
         time = System.currentTimeMillis() - time;
         System.out.println(time);

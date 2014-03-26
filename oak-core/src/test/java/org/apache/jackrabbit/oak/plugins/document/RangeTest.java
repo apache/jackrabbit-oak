@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -32,7 +33,7 @@ public class RangeTest {
         Revision r = new Revision(0x200, 0, 1);
         Revision other = new Revision(0x200, 0, 2);
 
-        Range range = new Range(high, low);
+        Range range = new Range(high, low, 0);
 
         // bounds are inclusive
         assertTrue(range.includes(low));
@@ -44,5 +45,14 @@ public class RangeTest {
         assertFalse(range.includes(higher));
         // other cluster id
         assertFalse(range.includes(other));
+    }
+
+    @Test
+    public void parse() {
+        Revision low = Revision.fromString("r1-0-1");
+        Revision high = Revision.fromString("r2-0-1");
+        Range r = new Range(high, low, 0);
+        assertEquals("r1-0-1/0", r.getLowValue());
+        assertEquals(r, Range.fromEntry(high, r.getLowValue()));
     }
 }

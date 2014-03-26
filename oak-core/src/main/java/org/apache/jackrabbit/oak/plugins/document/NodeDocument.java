@@ -44,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -90,6 +91,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * 30% of the data can be moved.
      */
     static final float SPLIT_RATIO = 0.3f;
+
+    /**
+     * Create an intermediate previous document when there are this many
+     * previous documents of equal height.
+     */
+    static final int PREV_SPLIT_FACTOR = 10;
 
     /**
      * Revision collision markers set by commits with modifications, which
@@ -169,8 +176,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Properties to ignore when a document is split.
      */
-    private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(ID, MOD_COUNT, MODIFIED, PREVIOUS,
-            LAST_REV, CHILDREN_FLAG, HAS_BINARY_FLAG);
+    private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
+            ID, MOD_COUNT, MODIFIED, PREVIOUS, LAST_REV, CHILDREN_FLAG,
+            HAS_BINARY_FLAG, PATH);
 
     public static final long HAS_BINARY_VAL = 1;
 
@@ -195,7 +203,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Required for serialization
      *
-     * @param store
+     * @param store the document store.
      * @param creationTime time at which it was created. Would be different from current time
      *                     in case of being resurrected from a serialized for
      */
@@ -215,8 +223,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @Nonnull
     public Map<Revision, String> getValueMap(@Nonnull String key) {
-        Object value = super.get(key);
-        if (IGNORE_ON_SPLIT.contains(key) || !(value instanceof Map)) {
+        if (IGNORE_ON_SPLIT.contains(key)) {
             return Collections.emptyMap();
         } else {
             return ValueMap.create(this, key);
@@ -236,7 +243,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     public boolean hasChildren() {
         Boolean childrenFlag = (Boolean) get(CHILDREN_FLAG);
-        return childrenFlag != null ? childrenFlag.booleanValue() : false;
+        return childrenFlag != null && childrenFlag;
     }
 
     /**
@@ -275,6 +282,27 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public int hasBinary() {
         Number flag = (Number) get(HAS_BINARY_FLAG);
         return flag != null ? flag.intValue() : 0;
+    }
+
+    /**
+     * Returns the path of the main document if this document is part of a _prev
+     * history tree. Otherwise this method simply returns {@link #getPath()}.
+     *
+     * @return the path of the main document.
+     */
+    @Nonnull
+    public String getMainPath() {
+        String p = getPath();
+        if (p.startsWith("p")) {
+            p = PathUtils.getAncestorPath(p, 2);
+            if (p.length() == 1) {
+                return "/";
+            } else {
+                return p.substring(1);
+            }
+        } else {
+            return p;
+        }
     }
 
     /**
@@ -658,17 +686,24 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @Nonnull
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context) {
+        SortedMap<Revision, Range> previous = getPreviousRanges();
         // only consider if there are enough commits,
         // unless document is really big
         if (getLocalRevisions().size() + getLocalCommitRoot().size() <= NUM_REVS_THRESHOLD
-                && getMemory() < DOC_SIZE_THRESHOLD) {
+                && getMemory() < DOC_SIZE_THRESHOLD
+                && previous.size() < PREV_SPLIT_FACTOR) {
             return Collections.emptyList();
         }
+        String path = getPath();
         String id = getId();
-        SortedMap<Revision, Range> previous = getPreviousRanges();
+        if (id == null) {
+            throw new IllegalStateException("document does not have an id: " + this);
+        }
         // what's the most recent previous revision?
         Revision recentPrevious = null;
-        for (Revision rev : previous.keySet()) {
+        Map<Integer, List<Range>> prevHisto = Maps.newHashMap();
+        for (Map.Entry<Revision, Range> entry : previous.entrySet()) {
+            Revision rev = entry.getKey();
             if (rev.getClusterId() != context.getClusterId()) {
                 continue;
             }
@@ -676,6 +711,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                     || isRevisionNewer(context, rev, recentPrevious)) {
                 recentPrevious = rev;
             }
+            Range r = entry.getValue();
+            List<Range> list = prevHisto.get(r.getHeight());
+            if (list == null) {
+                list = new ArrayList<Range>();
+                prevHisto.put(r.getHeight(), list);
+            }
+            list.add(r);
         }
         Map<String, NavigableMap<Revision, String>> splitValues
                 = new HashMap<String, NavigableMap<Revision, String>>();
@@ -703,7 +745,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
         }
 
-        List<UpdateOp> splitOps = Collections.emptyList();
+        List<UpdateOp> splitOps = Lists.newArrayList();
         int numValues = 0;
         Revision high = null;
         Revision low = null;
@@ -724,19 +766,20 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             numValues += splitMap.size();
         }
+        UpdateOp main = null;
         if (high != null && low != null
                 && (numValues >= NUM_REVS_THRESHOLD
                     || getMemory() > DOC_SIZE_THRESHOLD)) {
             // enough revisions to split off
-            splitOps = new ArrayList<UpdateOp>(2);
             // move to another document
-            UpdateOp main = new UpdateOp(id, false);
-            setPrevious(main, high, low);
-            UpdateOp old = new UpdateOp(Utils.getPreviousIdFor(id, high), true);
-            if (get(PATH) != null) {
-                old.set(PATH, get(PATH));
-            }
+            main = new UpdateOp(id, false);
+            setPrevious(main, new Range(high, low, 0));
+            String oldPath = Utils.getPreviousPathFor(path, high, 0);
+            UpdateOp old = new UpdateOp(Utils.getIdFromPath(oldPath), true);
             old.set(ID, old.getId());
+            if (Utils.isLongPath(oldPath)) {
+                old.set(PATH, oldPath);
+            }
             for (String property : splitValues.keySet()) {
                 NavigableMap<Revision, String> splitMap = splitValues.get(property);
                 for (Map.Entry<Revision, String> entry : splitMap.entrySet()) {
@@ -751,9 +794,50 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             // only split if half of the data can be moved to old document
             if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO) {
                 splitOps.add(old);
-                splitOps.add(main);
             }
         }
+
+        // check if we need to create intermediate previous documents
+        for (Map.Entry<Integer, List<Range>> entry : prevHisto.entrySet()) {
+            if (entry.getValue().size() >= PREV_SPLIT_FACTOR) {
+                if (main == null) {
+                    main = new UpdateOp(id, false);
+                }
+                // calculate range new range
+                Revision h = null;
+                Revision l = null;
+                for (Range r : entry.getValue()) {
+                    if (h == null || isRevisionNewer(context, r.high, h)) {
+                        h = r.high;
+                    }
+                    if (l == null || isRevisionNewer(context, l, r.low)) {
+                        l = r.low;
+                    }
+                    removePrevious(main, r);
+                }
+                if (h == null || l == null) {
+                    throw new IllegalStateException();
+                }
+                String prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
+                String prevId = Utils.getIdFromPath(prevPath);
+                UpdateOp intermediate = new UpdateOp(prevId, true);
+                intermediate.set(ID, prevId);
+                if (Utils.isLongPath(prevPath)) {
+                    intermediate.set(PATH, prevPath);
+                }
+                setPrevious(main, new Range(h, l, entry.getKey() + 1));
+                for (Range r : entry.getValue()) {
+                    setPrevious(intermediate, r);
+                }
+                splitOps.add(intermediate);
+            }
+        }
+
+        // main document must be updated last
+        if (main != null && !splitOps.isEmpty()) {
+            splitOps.add(main);
+        }
+
         return splitOps;
     }
 
@@ -773,9 +857,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
                         StableRevisionComparator.REVERSE);
                 for (Map.Entry<Revision, String> entry : map.entrySet()) {
-                    Revision high = entry.getKey();
-                    Revision low = Revision.fromString(entry.getValue());
-                    transformed.put(high, new Range(high, low));
+                    Range r = Range.fromEntry(entry.getKey(), entry.getValue());
+                    transformed.put(r.high, r);
                 }
                 previous = Maps.unmodifiableNavigableMap(transformed);
             }
@@ -803,10 +886,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         if (revision == null) {
             return new PropertyHistory(store, this, property);
         } else {
+            final String mainPath = getMainPath();
             // first try to lookup revision directly
-            Revision r = getPreviousRanges().floorKey(revision);
-            if (r != null) {
-                String prevId = Utils.getPreviousIdFor(getId(), r);
+            Map.Entry<Revision, Range> entry = getPreviousRanges().floorEntry(revision);
+            if (entry != null) {
+                Revision r = entry.getKey();
+                int h = entry.getValue().height;
+                String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                 NodeDocument prev = store.find(Collection.NODES, prevId);
                 if (prev != null) {
                     if (prev.getValueMap(property).containsKey(revision)) {
@@ -824,7 +910,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 public NodeDocument apply(Map.Entry<Revision, Range> input) {
                     if (input.getValue().includes(revision)) {
                         Revision r = input.getKey();
-                        String prevId = Utils.getPreviousIdFor(getId(), r);
+                        int h = input.getValue().height;
+                        String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                         NodeDocument prev = store.find(Collection.NODES, prevId);
                         if (prev != null) {
                             return prev;
@@ -881,7 +968,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setChildrenFlag(@Nonnull UpdateOp op,
                                        boolean hasChildNode) {
-        checkNotNull(op).set(CHILDREN_FLAG, Boolean.valueOf(hasChildNode));
+        checkNotNull(op).set(CHILDREN_FLAG, hasChildNode);
     }
 
     public static void setModified(@Nonnull UpdateOp op,
@@ -957,10 +1044,14 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     public static void setPrevious(@Nonnull UpdateOp op,
-                                   @Nonnull Revision high,
-                                   @Nonnull Revision low) {
-        checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(high),
-                checkNotNull(low).toString());
+                                   @Nonnull Range range) {
+        checkNotNull(op).setMapEntry(PREVIOUS, checkNotNull(range).high,
+                range.getLowValue());
+    }
+
+    public static void removePrevious(@Nonnull UpdateOp op,
+                                      @Nonnull Range range) {
+        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(range).high);
     }
 
     public static void setHasBinary(@Nonnull UpdateOp op) {
@@ -1190,11 +1281,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     private Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
-    }
-
-    @Nonnull
-    private Map<Revision, String> getCommitRoot() {
-        return ValueMap.create(this, COMMIT_ROOT);
     }
 
     /**
