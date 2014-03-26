@@ -29,14 +29,10 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Checkpoints provide details around which revision are to be kept. Currently these
- * are stored in NODES collection itself.
+ * Checkpoints provide details around which revision are to be kept. These
+ * are stored in Settings collection.
  */
 class Checkpoints {
-    /**
-     * Id of checkpoint document. It differs from normal convention of ID used for NodeDocument
-     * which back JCR Nodes as it is internal to DocumentNodeStore
-     */
     private static final String ID = "checkpoint";
 
     /**
