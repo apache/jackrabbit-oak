@@ -18,11 +18,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -56,11 +62,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import static com.google.common.collect.Lists.newArrayList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
-import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
 public class ObservationManagerImpl implements JackrabbitObservationManager {
     private static final Logger LOG = LoggerFactory.getLogger(ObservationManagerImpl.class);
@@ -224,6 +225,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         String[] nodeTypeName = filter.getNodeTypes();
         boolean noLocal = filter.getNoLocal();
         boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
+        boolean noInternal = false; // FIXME filter.getNoInternal(); once JCR-3759 is resolved
         List<String> absPaths = Lists.newArrayList(filter.getAdditionalPaths());
         String absPath = filter.getAbsPath();
         if (absPath != null) {
@@ -237,6 +239,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     .basePath(namePathMapper.getOakPath(path))
                     .includeSessionLocal(!noLocal)
                     .includeClusterExternal(!noExternal)
+                    .includeClusterLocal(!noInternal)
                     .condition(filterBuilder.all(
                             filterBuilder.deleteSubtree(),
                             filterBuilder.moveSubtree(),
