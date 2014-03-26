@@ -103,19 +103,39 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     private void initialize(Connection con) throws Exception {
         con.setAutoCommit(false);
 
-        try {
-            createTables(con, "binary");
-        } catch (SQLException ex) {
-            con.rollback();
-            LOG.debug("failed to create tables, retrying after getting DB metadata", ex);
-            // try to query database meta info for binary type
-            String btype = RDBMeta.findBinaryType(con.getMetaData());
-            if (btype == null) {
-                String message = "Could not determine binary type for " + RDBMeta.getDataBaseName(con.getMetaData());
-                LOG.error(message);
-                throw new Exception(message);
+        for (String tableName : new String[] { "DATASTORE_META", "DATASTORE_DATA" }) {
+            try {
+                PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
+                stmt.setString(1, "0");
+                stmt.executeQuery();
+            } catch (SQLException ex) {
+                // table does not appear to exist
+                con.rollback();
+
+                String dbtype = con.getMetaData().getDatabaseProductName();
+                LOG.info("Attempting to create table " + tableName + " in " + dbtype);
+
+                Statement stmt = con.createStatement();
+
+                if (tableName.equals("DATASTORE_META")) {
+                    stmt.execute("create table " + tableName
+                            + " (ID varchar(1000) not null primary key, LEVEL int, LASTMOD bigint)");
+                } else {
+                    // the code below likely will need to be extended for new
+                    // database types
+                    if ("PostgreSQL".equals(dbtype)) {
+                        stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA bytea)");
+                    } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
+                        stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob)");
+                    } else {
+                        stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob)");
+                    }
+                }
+
+                stmt.close();
+
+                con.commit();
             }
-            createTables(con, btype);
         }
 
         this.connection = con;
