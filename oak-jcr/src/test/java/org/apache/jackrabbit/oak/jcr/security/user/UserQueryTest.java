@@ -36,6 +36,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
 
 /**
@@ -611,12 +612,11 @@ public class UserQueryTest extends AbstractUserTest {
         final String adminPrincipalName = userMgr.getAuthorizable(superuser.getUserID()).getPrincipal().getName();
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(QueryBuilder<T> builder) {
-                builder.setCondition(builder.
-                        impersonates(adminPrincipalName));
+                builder.setCondition(builder.impersonates(adminPrincipalName));
             }
         });
 
-        Iterator<Authorizable> expected = userMgr.findAuthorizables("rep:principalName", null, UserManager.SEARCH_TYPE_USER);
+        Iterator<Authorizable> expected = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
         assertTrue(result.hasNext());
         assertSameElements(expected, result);
     }
