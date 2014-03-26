@@ -35,7 +35,7 @@ public class SQL2ParserTest {
     private final NodeState types =
             INITIAL_CONTENT.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
 
-    private final SQL2Parser p = new SQL2Parser(null, types);
+    private final SQL2Parser p = new SQL2Parser(null, types, new QueryEngineSettings());
 
     @Test
     public void testIgnoreSqlComment() throws ParseException {

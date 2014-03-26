@@ -101,8 +101,9 @@ public abstract class QueryEngineImpl implements QueryEngine {
         NodeState types = context.getBaseState()
                 .getChildNode(JCR_SYSTEM)
                 .getChildNode(JCR_NODE_TYPES);
+        QueryEngineSettings settings = context.getSettings();
 
-        SQL2Parser parser = new SQL2Parser(mapper, types);
+        SQL2Parser parser = new SQL2Parser(mapper, types, settings);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);

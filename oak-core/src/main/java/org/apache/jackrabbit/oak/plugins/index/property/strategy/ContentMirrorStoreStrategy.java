@@ -216,12 +216,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
          * Keep the returned path, to avoid returning duplicate entries.
          */
         private final Set<String> knownPaths = Sets.newHashSet();
+        private final long maxMemoryEntries;
 
         PathIterator(Filter filter, String indexName) {
             this.filter = filter;
             this.indexName = indexName;
             parentPath = "";
             currentPath = "/";
+            this.maxMemoryEntries = filter.getQueryEngineSettings().getLimitInMemory();
         }
 
         void enqueue(Iterator<? extends ChildNodeEntry> it) {
@@ -272,7 +274,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
                     readCount++;
                     if (readCount % 1000 == 0) {
-                        FilterIterators.checkReadLimit(readCount);
+                        FilterIterators.checkReadLimit(readCount, maxMemoryEntries);
                         LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter " + filter);
                     }
 

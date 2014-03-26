@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 
 /**
@@ -63,6 +64,8 @@ public interface Filter {
      * @return the condition (null if none)
      */
     FullTextExpression getFullTextConstraint();
+    
+    QueryEngineSettings getQueryEngineSettings();
     
     /**
      * Whether the filter contains a native condition.

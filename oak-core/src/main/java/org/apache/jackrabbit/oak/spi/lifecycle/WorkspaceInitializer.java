@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -33,6 +34,7 @@ public interface WorkspaceInitializer {
         @Override
         public void initialize(
                 NodeBuilder builder, String workspaceName,
+                QueryEngineSettings queryEngineSettings, 
                 QueryIndexProvider indexProvider, CommitHook commitHook) {
         }
     };
@@ -48,6 +50,7 @@ public interface WorkspaceInitializer {
      */
     void initialize(NodeBuilder builder, 
                          String workspaceName,
+                         QueryEngineSettings queryEngineSettings,
                          QueryIndexProvider indexProvider,
                          CommitHook commitHook);
 }

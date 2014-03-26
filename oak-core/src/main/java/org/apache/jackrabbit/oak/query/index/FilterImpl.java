@@ -32,6 +32,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.JoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.NativeFunctionImpl;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -50,6 +51,8 @@ public class FilterImpl implements Filter {
     private final SelectorImpl selector;
     
     private final String queryStatement;
+    
+    private final QueryEngineSettings settings;
 
     /**
      * Whether the filter is always false.
@@ -98,7 +101,7 @@ public class FilterImpl implements Filter {
     // TODO support "order by"
     
     public FilterImpl() {
-        this(null, null);
+        this(null, null, new QueryEngineSettings());
     }
 
     /**
@@ -107,11 +110,12 @@ public class FilterImpl implements Filter {
      * @param selector the selector for the given filter
      * @param queryStatement the query statement
      */
-    public FilterImpl(SelectorImpl selector, String queryStatement) {
+    public FilterImpl(SelectorImpl selector, String queryStatement, QueryEngineSettings settings) {
         this.selector = selector;
         this.queryStatement = queryStatement;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
+        this.settings = settings;
     }
 
     public FilterImpl(Filter filter) {
@@ -127,6 +131,7 @@ public class FilterImpl implements Filter {
         this.selector = impl.selector;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
+        this.settings = filter.getQueryEngineSettings();
     }
 
     public void setPreparing(boolean preparing) {
@@ -213,17 +218,17 @@ public class FilterImpl implements Filter {
 
     @Override @Nonnull
     public Set<String> getSupertypes() {
-        return selector.getSupertypes();
+        return selector == null ? null : selector.getSupertypes();
     }
 
     @Override @Nonnull
     public Set<String> getPrimaryTypes() {
-        return selector.getPrimaryTypes();
+        return selector == null ? null : selector.getPrimaryTypes();
     }
 
     @Override @Nonnull
     public Set<String> getMixinTypes() {
-        return selector.getMixinTypes();
+        return selector == null ? null : selector.getMixinTypes();
     }
 
     @Override
@@ -578,6 +583,11 @@ public class FilterImpl implements Filter {
 
     public void setMatchesAllTypes(boolean matchesAllTypes) {
         this.matchesAllTypes = matchesAllTypes;
+    }
+
+    @Override
+    public QueryEngineSettings getQueryEngineSettings() {
+        return settings;
     }
 
 }

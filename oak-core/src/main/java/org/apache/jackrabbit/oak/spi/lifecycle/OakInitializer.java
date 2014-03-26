@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -53,11 +54,12 @@ public final class OakInitializer {
                                   @Nonnull NodeStore store,
                                   @Nonnull String workspaceName,
                                   @Nonnull IndexEditorProvider indexEditor,
+                                  QueryEngineSettings queryEngineSettings,
                                   @Nonnull QueryIndexProvider indexProvider,
                                   @Nonnull CommitHook commitHook) {
         NodeBuilder builder = store.getRoot().builder();
         for (WorkspaceInitializer wspInit : initializer) {
-            wspInit.initialize(builder, workspaceName, indexProvider, commitHook);
+            wspInit.initialize(builder, workspaceName, queryEngineSettings, indexProvider, commitHook);
         }
         try {
             CommitHook hook = new EditorHook(new IndexUpdateProvider(indexEditor));

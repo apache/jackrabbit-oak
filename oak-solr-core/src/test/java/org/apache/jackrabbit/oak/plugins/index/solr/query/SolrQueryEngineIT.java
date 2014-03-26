@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -53,7 +54,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         root.commit();
 
         QueryIndex index = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictPath("/somenode", Filter.PathRestriction.EXACT);
         Cursor cursor = index.query(filter, store.getRoot());
         assertCursor(cursor, "/somenode");
@@ -72,7 +73,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         root.commit();
 
         QueryIndex index = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictPath("/somenode", Filter.PathRestriction.DIRECT_CHILDREN);
         Cursor cursor = index.query(filter, store.getRoot());
         assertCursor(cursor, "/somenode/child1", "/somenode/child2");
@@ -91,7 +92,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         root.commit();
 
         QueryIndex index = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictPath("/somenode", Filter.PathRestriction.ALL_CHILDREN);
         Cursor cursor = index.query(filter, store.getRoot());
         assertCursor(
@@ -109,7 +110,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         root.commit();
 
         QueryIndex index = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         Cursor cursor = index.query(filter, store.getRoot());
         assertCursor(cursor, "/somenode", "/anotherone");
@@ -129,7 +130,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         Set<String> primaryTypes = new HashSet<String>();
         primaryTypes.add("nt:folder");
         when(selector.getPrimaryTypes()).thenReturn(primaryTypes);
-        FilterImpl filter = new FilterImpl(selector, "select * from [nt:folder]");
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:folder]", new QueryEngineSettings());
         Cursor cursor = index.query(filter, store.getRoot());
         assertCursor(cursor, "/afoldernode");
     }

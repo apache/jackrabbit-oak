@@ -47,11 +47,13 @@ public class UnionQueryImpl implements Query {
     private long limit = Long.MAX_VALUE;
     private long offset;
     private long size = -1;
+    private final QueryEngineSettings settings;
     
-    UnionQueryImpl(boolean unionAll, Query left, Query right) {
+    UnionQueryImpl(boolean unionAll, Query left, Query right, QueryEngineSettings settings) {
         this.unionAll = unionAll;
         this.left = left;
         this.right = right;
+        this.settings = settings;
     }
 
     @Override
@@ -235,7 +237,7 @@ public class UnionQueryImpl implements Query {
         }
         boolean distinct = !unionAll;
         Comparator<ResultRowImpl> orderBy = ResultRowImpl.getComparator(orderings);
-        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, orderBy);
+        it = FilterIterators.newCombinedFilter(it, distinct, limit, offset, orderBy, settings);
         return it;     
     }
     

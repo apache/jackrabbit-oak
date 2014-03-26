@@ -32,6 +32,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -46,7 +47,7 @@ public class AsyncIndexUpdateTest {
 
     private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
-        return Sets.newHashSet(lookup.query(null, name,
+        return Sets.newHashSet(lookup.query(new FilterImpl(), name,
                 PropertyValues.newString(value)));
     }
 

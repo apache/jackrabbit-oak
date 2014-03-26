@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -101,7 +102,7 @@ public class NodeTypeIndexTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(nodeTypeName);
         SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]");
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
     }
 
     private static void checkCursor(Cursor cursor, String... matches) {

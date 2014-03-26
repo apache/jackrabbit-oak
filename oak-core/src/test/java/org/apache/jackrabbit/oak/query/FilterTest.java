@@ -38,7 +38,7 @@ public class FilterTest {
     private final NodeState types = INITIAL_CONTENT.getChildNode(JCR_SYSTEM)
             .getChildNode(JCR_NODE_TYPES);
 
-    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, types);
+    private final SQL2Parser p = new SQL2Parser(NamePathMapper.DEFAULT, types, new QueryEngineSettings());
 
     private Filter createFilter(String xpath) throws ParseException {
         String sql = new XPathToSQL2Converter().convert(xpath);

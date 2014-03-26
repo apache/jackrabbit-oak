@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -76,6 +77,8 @@ class MutableRoot implements Root {
     private final Subject subject;
 
     private final SecurityProvider securityProvider;
+    
+    private final QueryEngineSettings queryEngineSettings;
 
     private final QueryIndexProvider indexProvider;
 
@@ -142,6 +145,7 @@ class MutableRoot implements Root {
                  String workspaceName,
                  Subject subject,
                  SecurityProvider securityProvider,
+                 QueryEngineSettings queryEngineSettings,
                  QueryIndexProvider indexProvider,
                  ContentSessionImpl session) {
         this.store = checkNotNull(store);
@@ -149,6 +153,7 @@ class MutableRoot implements Root {
         this.workspaceName = checkNotNull(workspaceName);
         this.subject = checkNotNull(subject);
         this.securityProvider = checkNotNull(securityProvider);
+        this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
         this.session = checkNotNull(session);
 
@@ -303,7 +308,7 @@ class MutableRoot implements Root {
                             provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(), MutableRoot.this, provider);
+                        getBaseState(), MutableRoot.this, queryEngineSettings, provider);
             }
         };
     }
