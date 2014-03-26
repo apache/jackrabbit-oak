@@ -19,19 +19,29 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import java.util.Map;
+import com.google.common.io.BaseEncoding;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataStore;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.jackrabbit.core.data.DataStore;
-import org.osgi.service.component.ComponentContext;
-
-@Component(policy = ConfigurationPolicy.REQUIRE, name=FileDataStoreService.NAME)
-public class FileDataStoreService extends AbstractDataStoreService{
-    public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore";
+/**
+ *  Oak specific extension of JR2 FileDataStore which enables
+ *  provisioning the signing key via OSGi config
+ */
+public class OakFileDataStore extends FileDataStore {
+    private byte[] signingKey;
 
     @Override
-    protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
-        return new OakFileDataStore();
+    protected byte[] getOrCreateReferenceKey() throws DataStoreException {
+        if(signingKey != null){
+            return signingKey;
+        }
+        return super.getOrCreateReferenceKey();
+    }
+
+    /**
+     * Set Base64 encoded signing key
+     */
+    public void setSigningKey(String encodedKey) {
+        this.signingKey = BaseEncoding.base64().decode(encodedKey);
     }
 }
