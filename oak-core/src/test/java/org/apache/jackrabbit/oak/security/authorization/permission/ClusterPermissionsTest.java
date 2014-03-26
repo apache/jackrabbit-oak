@@ -59,10 +59,8 @@ import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore("OAK-1569") // FIXME OAK-1569: ClusterPermissionsTest occasionally fails on Windows
 public class ClusterPermissionsTest {
 
     private DocumentNodeStore ns1;
@@ -89,10 +87,10 @@ public class ClusterPermissionsTest {
         DocumentMK.Builder builder;
 
         builder = new DocumentMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         ns1 = builder.setClusterId(1).getNodeStore();
         builder = new DocumentMK.Builder();
-        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(1);
+        builder.setDocumentStore(ds).setBlobStore(bs).setAsyncDelay(0);
         ns2 = builder.setClusterId(2).getNodeStore();
 
         Oak oak = new Oak(ns1)
@@ -108,6 +106,9 @@ public class ClusterPermissionsTest {
         root1 = adminSession1.getLatestRoot();
         userManager1 = securityProvider1.getConfiguration(UserConfiguration.class).getUserManager(root1, namePathMapper);
         aclMgr1 = securityProvider1.getConfiguration(AuthorizationConfiguration.class).getAccessControlManager(root1, namePathMapper);
+
+        // make sure initial content is visible to ns2
+        syncClusterNodes();
 
         oak = new Oak(ns2)
                 .with(new InitialContent())
@@ -157,7 +158,7 @@ public class ClusterPermissionsTest {
     public void testCreateUser() throws Exception {
         userManager1.createUser("testUser", "testUser");
         root1.commit();
-        Thread.sleep(100);
+        syncClusterNodes();
         root2.refresh();
         assertNotNull("testUser must exist on 2nd cluster node", userManager2.getAuthorizable("testUser"));
     }
@@ -172,7 +173,7 @@ public class ClusterPermissionsTest {
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 
-        Thread.sleep(100);
+        syncClusterNodes();
         root2.refresh();
         JackrabbitAccessControlList acl2 = AccessControlUtils.getAccessControlList(aclMgr2, "/testNode");
         AccessControlEntry[] aces = acl2.getAccessControlEntries();
@@ -199,7 +200,7 @@ public class ClusterPermissionsTest {
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 
-        Thread.sleep(100);
+        syncClusterNodes();
         root2.refresh();
 
         // login with testUser1 and testUser2 (on cluster node 2)
@@ -218,7 +219,7 @@ public class ClusterPermissionsTest {
         aclMgr1.setPolicy("/testNode", acl1);
         root1.commit();
 
-        Thread.sleep(100);
+        syncClusterNodes();
         root2.refresh();
 
         // testUser1 can read /testNode
@@ -226,6 +227,11 @@ public class ClusterPermissionsTest {
 
         // testUser2 can also read /testNode
         assertTrue(session2.getLatestRoot().getTree("/testNode").exists());
+    }
+
+    private void syncClusterNodes() {
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
     }
 
 }
