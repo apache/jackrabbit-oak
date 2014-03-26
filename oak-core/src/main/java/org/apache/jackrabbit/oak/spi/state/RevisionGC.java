@@ -20,16 +20,16 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.RunnableFuture;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +39,12 @@ import org.slf4j.LoggerFactory;
 public class RevisionGC implements RevisionGCMBean {
     private static final Logger log = LoggerFactory.getLogger(RevisionGC.class);
 
+    public static final String OP_NAME = "Revision garbage collection";
+
     private final Runnable gc;
     private final Executor executor;
 
-    private RunnableFuture<Long> gcOp;
+    private ManagementOperation gcOp = done(OP_NAME, 0);
 
     /**
      * @param gc               Revision garbage collector
@@ -55,49 +57,26 @@ public class RevisionGC implements RevisionGCMBean {
         this.executor = checkNotNull(executor);
     }
 
-
     @Nonnull
     @Override
-    public String startRevisionGC() {
-        if (gcOp != null && !gcOp.isDone()) {
-            return "Garbage collection already running";
-        } else {
-            gcOp = new FutureTask<Long>(new Callable<Long>() {
+    public CompositeData startRevisionGC() {
+        if (gcOp.isDone()) {
+            gcOp = new ManagementOperation(OP_NAME, new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
-                    long t0 = System.nanoTime();
+                    long t0 = nanoTime();
                     gc.run();
-                    return System.nanoTime() - t0;
+                    return nanoTime() - t0;
                 }
             });
             executor.execute(gcOp);
-            return getRevisionGCStatus();
         }
+        return getRevisionGCStatus();
     }
 
     @Nonnull
     @Override
-    public String getRevisionGCStatus() {
-        if (gcOp == null) {
-            return "Garbage collection not started";
-        } else if (gcOp.isCancelled()) {
-            return "Garbage collection cancelled";
-        } else if (gcOp.isDone()) {
-            try {
-                return "Garbage collection completed in " + formatTime(gcOp.get());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "Garbage Collection status unknown: " + e.getMessage();
-            } catch (ExecutionException e) {
-                log.error("Garbage collection failed", e.getCause());
-                return "Garbage collection failed: " + e.getCause().getMessage();
-            }
-        } else {
-            return "Garbage collection running";
-        }
-    }
-
-    private static String formatTime(long nanos) {
-        return TimeUnit.MINUTES.convert(nanos, TimeUnit.NANOSECONDS) + " minutes";
+    public CompositeData getRevisionGCStatus() {
+        return gcOp.getStatus().toCompositeData();
     }
 }

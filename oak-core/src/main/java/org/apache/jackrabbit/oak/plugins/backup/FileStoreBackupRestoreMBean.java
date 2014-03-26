@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.backup;
 
 import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
 
 /**
  * MBean for backing up and restoring a {@code NodeStore}.
@@ -34,16 +35,16 @@ public interface FileStoreBackupRestoreMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
-    String startBackup();
+    CompositeData startBackup();
 
     /**
      * Backup status
      *
      * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or {@code null} if none.
+     * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
-    String getBackupStatus();
+    CompositeData getBackupStatus();
 
     /**
      * Initiate a restore operation.
@@ -51,16 +52,16 @@ public interface FileStoreBackupRestoreMBean {
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
-    String startRestore();
+    CompositeData startRestore();
 
     /**
      * Restore status
      *
      * @return  the status of the ongoing operation or if none the terminal
-     * status of the last operation or {@code null} if none.
+     * status of the last operation or <em>Status not available</em> if none.
      */
     @Nonnull
-    String getRestoreStatus();
+    CompositeData getRestoreStatus();
 
     /**
      * Creates a new checkpoint of the latest root of the tree. The checkpoint

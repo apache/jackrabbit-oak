@@ -1,0 +1,184 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.jackrabbit.oak.management;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.failed;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.fromCompositeData;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.succeeded;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.unavailable;
+
+import java.util.List;
+
+import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
+
+import com.google.common.base.Function;
+import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
+import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackupRestoreMBean;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+
+/**
+ * Default implementation of the {@link RepositoryManagementMBean} based
+ * on a {@link Whiteboard} instance, which is used to look up individual
+ * service providers for backup ({@link FileStoreBackupRestoreMBean}), data store
+ * garbage collections ({@link BlobGCMBean}) and revision store garbage
+ * collections ({@link RevisionGCMBean}).
+ */
+public class RepositoryManager implements RepositoryManagementMBean {
+    private final Whiteboard whiteboard;
+
+    public RepositoryManager(@Nonnull Whiteboard whiteboard) {
+        this.whiteboard = checkNotNull(whiteboard);
+    }
+
+    public String getName() {
+        return "repository manager";
+    }
+
+    private <T> Status execute(Class<T> serviceType, Function<T, Status> operation) {
+        Tracker<T> tracker = whiteboard.track(serviceType);
+        try {
+            List<T> services = tracker.getServices();
+            if (services.size() == 1) {
+                return operation.apply(services.get(0));
+            } else if (services.isEmpty()) {
+                return unavailable("Cannot perform operation: no service of type " +
+                        serviceType.getSimpleName() + " found."
+                );
+            } else {
+                return failed("Cannot perform operation: multiple services of type " +
+                        serviceType.getSimpleName() + " found."
+                );
+            }
+        } finally {
+            tracker.stop();
+        }
+    }
+
+    @Override
+    public CompositeData startBackup() {
+        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(FileStoreBackupRestoreMBean fileStoreBackupRestoreMBean) {
+                return fromCompositeData(fileStoreBackupRestoreMBean.startBackup());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getBackupStatus() {
+        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(FileStoreBackupRestoreMBean backupService) {
+                return fromCompositeData(backupService.getBackupStatus());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData startRestore() {
+        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(FileStoreBackupRestoreMBean backupService) {
+                return fromCompositeData(backupService.startRestore());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getRestoreStatus() {
+        return execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(FileStoreBackupRestoreMBean backupService) {
+                return fromCompositeData(backupService.getRestoreStatus());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData startDataStoreGC() {
+        return execute(BlobGCMBean.class, new Function<BlobGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(BlobGCMBean blobGCService) {
+                return fromCompositeData(blobGCService.startBlobGC());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getDataStoreGCStatus() {
+        return execute(BlobGCMBean.class, new Function<BlobGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(BlobGCMBean blobGCService) {
+                return fromCompositeData(blobGCService.getBlobGCStatus());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData startRevisionGC() {
+        return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(RevisionGCMBean revisionGCService) {
+                return fromCompositeData(revisionGCService.startRevisionGC());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getRevisionGCStatus() {
+        return execute(RevisionGCMBean.class, new Function<RevisionGCMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(RevisionGCMBean revisionGCService) {
+                return fromCompositeData(revisionGCService.getRevisionGCStatus());
+            }
+        }).toCompositeData();
+    }
+
+    @Override
+    public String checkpoint(final long lifetime) {
+        Status status = execute(FileStoreBackupRestoreMBean.class, new Function<FileStoreBackupRestoreMBean, Status>() {
+            @Nonnull
+            @Override
+            public Status apply(FileStoreBackupRestoreMBean backupService) {
+                String checkpoint = backupService.checkpoint(lifetime);
+                return succeeded(checkpoint);
+            }
+        });
+
+        return status.isSuccess()
+            ? status.getMessage()
+            : null;
+    }
+
+}

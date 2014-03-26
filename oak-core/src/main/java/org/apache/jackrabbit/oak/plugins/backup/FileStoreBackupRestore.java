@@ -20,17 +20,19 @@
 package org.apache.jackrabbit.oak.plugins.backup;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup.backup;
+import static org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore.restore;
 
 import java.io.File;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.RunnableFuture;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+import javax.management.openmbean.CompositeData;
 
+import org.apache.jackrabbit.oak.management.ManagementOperation;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +41,17 @@ import org.slf4j.LoggerFactory;
  * Default implementation of {@link FileStoreBackupRestoreMBean} based on a file.
  */
 public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
-
     private static final Logger log = LoggerFactory.getLogger(FileStoreBackupRestore.class);
+
+    public static final String BACKUP_OP_NAME = "Backup";
+    public static final String RESTORE_OP_NAME = "Restore";
 
     private final NodeStore store;
     private final File file;
     private final Executor executor;
 
-    private RunnableFuture<Long> backupOp;
-    private long backupEndTime;
-    private RunnableFuture<Long> restoreOp;
-    private long restoreEndTime;
+    private ManagementOperation backupOp = done(BACKUP_OP_NAME, 0);
+    private ManagementOperation restoreOp = done(RESTORE_OP_NAME, 0);
 
     /**
      * @param store  store to back up from or restore to
@@ -66,89 +68,50 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     }
 
     @Override
-    public synchronized String startBackup() {
-        if (backupOp != null && !backupOp.isDone()) {
-            return "Backup already running";
-        } else {
-            backupOp = new FutureTask<Long>(new Callable<Long>() {
+    public synchronized CompositeData startBackup() {
+        if (backupOp.isDone()) {
+            backupOp = new ManagementOperation("Backup", new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
-                    long t0 = System.nanoTime();
-                    FileStoreBackup.backup(store, file);
-                    return System.nanoTime() - t0;
+                    long t0 = nanoTime();
+                    backup(store, file);
+                    return nanoTime() - t0;
                 }
             });
             executor.execute(backupOp);
-            return getBackupStatus();
         }
+        return getBackupStatus();
     }
 
     @Override
-    public synchronized String getBackupStatus() {
-        if (backupOp == null) {
-            return "Backup not started";
-        } else if (backupOp.isCancelled()) {
-            return "Backup cancelled";
-        } else if (backupOp.isDone()) {
-            try {
-                return "Backup completed in " + formatTime(backupOp.get());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "Backup status unknown: " + e.getMessage();
-            } catch (ExecutionException e) {
-                log.error("Backup failed", e.getCause());
-                return "Backup failed: " + e.getCause().getMessage();
-            }
-        } else {
-            return "Backup running";
-        }
+    public synchronized CompositeData getBackupStatus() {
+        return backupOp.getStatus().toCompositeData();
     }
 
     @Override
-    public synchronized String startRestore() {
-        if (restoreOp != null && !restoreOp.isDone()) {
-            return "Restore already running";
-        } else {
-            restoreOp = new FutureTask<Long>(new Callable<Long>() {
+    public synchronized CompositeData startRestore() {
+        if (restoreOp.isDone()) {
+            restoreOp = new ManagementOperation("Restore", new Callable<Long>() {
                 @Override
                 public Long call() throws Exception {
-                    long t0 = System.nanoTime();
-                    FileStoreRestore.restore(file, store);
-                    return System.nanoTime() - t0;
+                    long t0 = nanoTime();
+                    restore(file, store);
+                    return nanoTime() - t0;
                 }
             });
             executor.execute(restoreOp);
-            return getRestoreStatus();
         }
+        return getRestoreStatus();
     }
 
     @Override
-    public synchronized String getRestoreStatus() {
-        if (restoreOp == null) {
-            return "Restore not started";
-        } else if (restoreOp.isCancelled()) {
-            return "Restore cancelled";
-        } else if (restoreOp.isDone()) {
-            try {
-                return "Restore completed in " + formatTime(restoreOp.get());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return "Restore status unknown: " + e.getMessage();
-            } catch (ExecutionException e) {
-                log.error("Restore failed", e.getCause());
-                return "Restore failed: " + e.getCause().getMessage();
-            }
-        } else {
-            return "Restore running";
-        }
-    }
-
-    private static String formatTime(long nanos) {
-        return TimeUnit.MINUTES.convert(nanos, TimeUnit.NANOSECONDS) + " minutes";
+    public synchronized CompositeData getRestoreStatus() {
+        return restoreOp.getStatus().toCompositeData();
     }
 
     @Override
     public String checkpoint(long lifetime) {
         return store.checkpoint(lifetime);
     }
+
 }
