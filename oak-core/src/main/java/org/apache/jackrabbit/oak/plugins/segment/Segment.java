@@ -229,7 +229,7 @@ public class Segment {
         for (int i = 0; i < blobrefcount; i++) {
             int offset = (data.getShort(blobrefpos + i * 2) & 0xffff) << 2;
             SegmentBlob blob = new SegmentBlob(new RecordId(id, offset));
-            collector.addReference(blob.getReference());
+            collector.addReference(blob.getBlobId());
         }
     }
 

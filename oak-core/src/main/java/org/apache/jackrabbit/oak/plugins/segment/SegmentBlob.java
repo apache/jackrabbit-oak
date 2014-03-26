@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import java.io.InputStream;
 
@@ -102,8 +103,24 @@ class SegmentBlob extends Record implements Blob {
         }
     }
 
-    @Override @CheckForNull
+    @Override
+    @CheckForNull
     public String getReference() {
+        String blobId = getBlobId();
+        if (blobId != null) {
+            BlobStore blobStore = getSegment().getSegmentId().getTracker().
+                    getStore().getBlobStore();
+            if (blobStore != null) {
+                return blobStore.getReference(blobId);
+            }else{
+                throw new IllegalStateException("Attempt to read external blob with blobId [" + blobId + "] " +
+                        "without specifying BlobStore");
+            }
+        }
+        return null;
+    }
+
+    public String getBlobId() {
         Segment segment = getSegment();
         int offset = getOffset();
         byte head = segment.readByte(offset);

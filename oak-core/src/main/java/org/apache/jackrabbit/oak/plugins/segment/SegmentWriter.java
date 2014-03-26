@@ -68,6 +68,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentWriter {
 
@@ -96,6 +98,8 @@ public class SegmentWriter {
     private final SegmentTracker tracker;
 
     private final SegmentStore store;
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * Cache of recently stored string and template records, used to
@@ -687,9 +691,14 @@ public class SegmentWriter {
         }
 
         String reference = blob.getReference();
-        if (reference != null) {
-            RecordId id = writeValueRecord(reference);
-            return new SegmentBlob(id);
+        if (reference != null && store.getBlobStore() != null) {
+            String blobId = store.getBlobStore().getBlobId(reference);
+            if(blobId != null) {
+                RecordId id = writeValueRecord(blobId);
+                return new SegmentBlob(id);
+            }else{
+                log.debug("No blobId found matching reference [{}]", reference);
+            }
         }
 
         return writeStream(blob.getNewStream());
