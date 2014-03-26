@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -343,8 +344,9 @@ public class LuceneIndex implements FulltextQueryIndex {
         // no relative property in the full-text constraint
         boolean nonFullTextConstraints = parent.isEmpty();
         Directory directory = newDirectory(root);
+        QueryEngineSettings settings = filter.getQueryEngineSettings();
         if (directory == null) {
-            return newPathCursor(Collections.<String> emptySet());
+            return newPathCursor(Collections.<String> emptySet(), settings);
         }
         long s = System.currentTimeMillis();
         try {
@@ -394,7 +396,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                     }
                     LOG.debug("query via {} took {} ms.", this,
                             System.currentTimeMillis() - s);
-                    return newPathCursor(paths);
+                    return newPathCursor(paths, settings);
                 } finally {
                     reader.close();
                 }
@@ -403,7 +405,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
         } catch (IOException e) {
             LOG.warn("query via {} failed.", this, e);
-            return newPathCursor(Collections.<String> emptySet());
+            return newPathCursor(Collections.<String> emptySet(), settings);
         }
     }
 

@@ -41,7 +41,7 @@ public abstract class DiffIndex implements QueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState rootState) {
-        return Cursors.newPathCursor(collector.getResults(filter));
+        return Cursors.newPathCursor(collector.getResults(filter), filter.getQueryEngineSettings());
     }
 
     @Override

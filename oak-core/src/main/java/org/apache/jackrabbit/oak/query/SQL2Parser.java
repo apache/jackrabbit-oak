@@ -102,6 +102,8 @@ public class SQL2Parser {
     private boolean supportSQL1;
 
     private NamePathMapper namePathMapper;
+    
+    private final QueryEngineSettings settings;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
@@ -109,9 +111,10 @@ public class SQL2Parser {
      * @param namePathMapper the name-path mapper to use
      * @param types the node with the node type information
      */
-    public SQL2Parser(NamePathMapper namePathMapper, NodeState types) {
+    public SQL2Parser(NamePathMapper namePathMapper, NodeState types, QueryEngineSettings settings) {
         this.namePathMapper = namePathMapper;
         this.types = checkNotNull(types);
+        this.settings = checkNotNull(settings);
     }
 
     /**
@@ -143,7 +146,7 @@ public class SQL2Parser {
             }
             boolean unionAll = readIf("ALL");
             QueryImpl q2 = parseSelect();
-            q = new UnionQueryImpl(unionAll, q, q2);
+            q = new UnionQueryImpl(unionAll, q, q2, settings);
         }
         OrderingImpl[] orderings = null;
         if (readIf("ORDER")) {
@@ -183,7 +186,7 @@ public class SQL2Parser {
             constraint = parseConstraint();
         }
         QueryImpl q = new QueryImpl(
-                statement, source, constraint, columnArray, namePathMapper);
+                statement, source, constraint, columnArray, namePathMapper, settings);
         q.setDistinct(distinct);
         return q;
     }

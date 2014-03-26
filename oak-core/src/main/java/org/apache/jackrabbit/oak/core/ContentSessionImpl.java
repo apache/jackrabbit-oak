@@ -28,6 +28,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -53,6 +54,7 @@ class ContentSessionImpl implements ContentSession {
     private final String workspaceName;
     private final NodeStore store;
     private final CommitHook hook;
+    private final QueryEngineSettings queryEngineSettings;
     private final QueryIndexProvider indexProvider;
     private final String sessionName;
 
@@ -67,12 +69,14 @@ class ContentSessionImpl implements ContentSession {
                               @Nonnull String workspaceName,
                               @Nonnull NodeStore store,
                               @Nonnull CommitHook hook,
+                              QueryEngineSettings queryEngineSettings,
                               @Nonnull QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
         this.store = store;
         this.hook = hook;
+        this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
         this.sessionName = "session-" + SESSION_COUNTER.incrementAndGet();
     }
@@ -104,7 +108,7 @@ class ContentSessionImpl implements ContentSession {
     public Root getLatestRoot() {
         checkLive();
         return new MutableRoot(store, hook, workspaceName, loginContext.getSubject(),
-                securityProvider, indexProvider, this);
+                securityProvider, queryEngineSettings, indexProvider, this);
     }
 
     //-----------------------------------------------------------< Closable >---

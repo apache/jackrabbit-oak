@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Descriptors;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -113,6 +114,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final String defaultWorkspaceName;
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
+    private final QueryEngineSettings queryEngineSettings;
 
     private GenericDescriptors descriptors;
     
@@ -129,12 +131,14 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(@Nonnull NodeStore nodeStore,
                                  @Nonnull CommitHook commitHook,
                                  @Nonnull String defaultWorkspaceName,
+                                 QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
                                  @Nonnull SecurityProvider securityProvider) {
         this.nodeStore = checkNotNull(nodeStore);
         this.commitHook = checkNotNull(commitHook);
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
         this.securityProvider = checkNotNull(securityProvider);
+        this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
     }
 
@@ -156,7 +160,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         loginContext.login();
 
         return new ContentSessionImpl(loginContext, securityProvider, workspaceName, nodeStore,
-                commitHook, indexProvider);
+                commitHook, queryEngineSettings, indexProvider);
     }
 
     public NodeStore getNodeStore() {

@@ -308,7 +308,7 @@ public class SelectorImpl extends SourceImpl {
     public void execute(NodeState rootState) {
         QueryIndex index = plan.getIndex();
         if (index == null) {
-            cursor = Cursors.newPathCursor(new ArrayList<String>());
+            cursor = Cursors.newPathCursor(new ArrayList<String>(), query.getSettings());
             return;
         }
         IndexPlan p = plan.getIndexPlan();
@@ -346,7 +346,7 @@ public class SelectorImpl extends SourceImpl {
      */
     @Override
     public FilterImpl createFilter(boolean preparing) {
-        FilterImpl f = new FilterImpl(this, query.getStatement());
+        FilterImpl f = new FilterImpl(this, query.getStatement(), query.getSettings());
         f.setPreparing(preparing);
         if (joinCondition != null) {
             joinCondition.restrict(f);

@@ -20,6 +20,7 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -51,22 +52,26 @@ public class SystemRoot extends MutableRoot {
 
     private SystemRoot(
             NodeStore store, CommitHook hook, String workspaceName,
-            SecurityProvider securityProvider, QueryIndexProvider indexProvider,
+            SecurityProvider securityProvider, 
+            QueryEngineSettings queryEngineSettings,
+            QueryIndexProvider indexProvider,
             ContentSessionImpl session) {
         super(store, hook, workspaceName, SystemSubject.INSTANCE,
-                securityProvider, indexProvider, session);
+                securityProvider, queryEngineSettings, indexProvider, session);
     }
 
     public SystemRoot(final NodeStore store, final CommitHook hook, final String workspaceName,
-            final SecurityProvider securityProvider, final QueryIndexProvider indexProvider) {
-        this(store, hook, workspaceName, securityProvider, indexProvider,
+            final SecurityProvider securityProvider, final QueryEngineSettings queryEngineSettings, 
+            final QueryIndexProvider indexProvider) {
+        this(store, hook, workspaceName, securityProvider, queryEngineSettings, indexProvider,
                 new ContentSessionImpl(
                         LOGIN_CONTEXT, securityProvider, workspaceName,
-                        store, hook, indexProvider) {
+                        store, hook, queryEngineSettings, indexProvider) {
                     @Override
                     public Root getLatestRoot() {
                         return new SystemRoot(
                                 store, hook, workspaceName, securityProvider,
+                                queryEngineSettings,
                                 indexProvider, this);
                     }
                 });
@@ -79,6 +84,7 @@ public class SystemRoot extends MutableRoot {
     public SystemRoot(NodeStore store, CommitHook hook) {
         // FIXME: define proper default or pass workspace name with the constructor
         this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, new OpenSecurityProvider(),
+                new QueryEngineSettings(),
                 new CompositeQueryIndexProvider());
     }
 

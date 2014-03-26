@@ -205,9 +205,9 @@ class PropertyIndex implements QueryIndex {
         if (paths == null) {
             throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
-        Cursor c = Cursors.newPathCursor(paths);
+        Cursor c = Cursors.newPathCursor(paths, filter.getQueryEngineSettings());
         if (depth > 1) {
-            c = Cursors.newAncestorCursor(c, depth - 1);
+            c = Cursors.newAncestorCursor(c, depth - 1, filter.getQueryEngineSettings());
         }
         return c;
     }

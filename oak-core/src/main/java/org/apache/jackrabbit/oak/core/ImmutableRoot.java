@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -117,6 +118,7 @@ public final class ImmutableRoot implements Root {
             protected ExecutionContext getExecutionContext() {
                 return new ExecutionContext(
                         rootTree.getNodeState(), ImmutableRoot.this,
+                        new QueryEngineSettings(),
                         new PropertyIndexProvider());
             }
         };

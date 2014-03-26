@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 import java.util.Set;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -59,7 +60,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictPath("/newnode", Filter.PathRestriction.EXACT);
         filter.restrictProperty("prop", Operator.EQUAL,
                 PropertyValues.newString("val"));
@@ -88,7 +89,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
         Cursor cursor = queryIndex.query(filter, indexed);
@@ -122,7 +123,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
 
         QueryIndex queryIndex = new SolrQueryIndex("solr", server, configuration);
-        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "");
+        FilterImpl filter = new FilterImpl(mock(SelectorImpl.class), "", new QueryEngineSettings());
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
         filter.restrictFulltextCondition("bar");

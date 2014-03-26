@@ -205,7 +205,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                 for (OrderEntry oe : sortOrder) {
                     String propertyName = PathUtils.getName(oe.getPropertyName());
                     if (lookup.isIndexed(propertyName, "/", null)) {
-                        paths = lookup.query(null, propertyName, new PropertyRestriction());
+                        paths = lookup.query(filter, propertyName, new PropertyRestriction());
                     }
                 }
             }
@@ -215,9 +215,9 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                     "OrderedPropertyIndex index is used even when no index is available for filter "
                         + filter);
             }
-            cursor = Cursors.newPathCursor(paths);
+            cursor = Cursors.newPathCursor(paths, filter.getQueryEngineSettings());
             if (depth > 1) {
-                cursor = Cursors.newAncestorCursor(cursor, depth - 1);
+                cursor = Cursors.newAncestorCursor(cursor, depth - 1, filter.getQueryEngineSettings());
             }
         } else {
             // if for some reasons it's not an Ordered Lookup we delegate up the chain

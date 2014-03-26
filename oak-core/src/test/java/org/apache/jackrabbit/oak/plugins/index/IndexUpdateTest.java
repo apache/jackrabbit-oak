@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -201,7 +202,7 @@ public class IndexUpdateTest {
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         NodeState type = types.getChildNode(NT_BASE);
         SelectorImpl selector = new SelectorImpl(type, NT_BASE);
-        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]");
+        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]", new QueryEngineSettings());
         return Sets.newHashSet(lookup.query(filter, name,
                 PropertyValues.newString(value)));
     }

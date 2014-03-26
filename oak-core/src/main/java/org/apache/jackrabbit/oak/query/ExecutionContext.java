@@ -39,13 +39,17 @@ public class ExecutionContext {
 
     private final Root root;
 
+    private final QueryEngineSettings settings;
+    
     private final QueryIndexProvider indexProvider;
 
     public ExecutionContext(
             NodeState baseState, Root root,
+            QueryEngineSettings settings,
             QueryIndexProvider indexProvider) {
         this.baseState = baseState;
         this.root = root;
+        this.settings = settings;
         this.indexProvider = indexProvider;
     }
 
@@ -79,4 +83,9 @@ public class ExecutionContext {
     public QueryIndexProvider getIndexProvider() {
         return indexProvider;
     }
+    
+    public QueryEngineSettings getSettings() {
+        return settings;
+    }
+    
 }

@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -57,8 +58,8 @@ public class Cursors {
      * @param paths the paths to iterate over (must return distinct paths)
      * @return the Cursor.
      */
-    public static Cursor newPathCursor(Iterable<String> paths) {
-        return new PathCursor(paths.iterator(), true);
+    public static Cursor newPathCursor(Iterable<String> paths, QueryEngineSettings settings) {
+        return new PathCursor(paths.iterator(), true, settings);
     }
     
     /**
@@ -68,8 +69,8 @@ public class Cursors {
      * @param paths the paths to iterate over (might contain duplicate entries)
      * @return the Cursor.
      */
-    public static Cursor newPathCursorDistinct(Iterable<String> paths) {
-        return new PathCursor(paths.iterator(), true);
+    public static Cursor newPathCursorDistinct(Iterable<String> paths, QueryEngineSettings settings) {
+        return new PathCursor(paths.iterator(), true, settings);
     }
 
     /**
@@ -96,10 +97,10 @@ public class Cursors {
      * @param level the ancestor level. Must be >= 1.
      * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
      */
-    public static Cursor newAncestorCursor(Cursor c, int level) {
+    public static Cursor newAncestorCursor(Cursor c, int level, QueryEngineSettings settings) {
         checkNotNull(c);
         checkArgument(level >= 1);
-        return new AncestorCursor(c, level);
+        return new AncestorCursor(c, level, settings);
     }
 
     /**
@@ -120,8 +121,8 @@ public class Cursors {
      */
     private static class AncestorCursor extends PathCursor {
 
-        public AncestorCursor(Cursor cursor, int level) {
-            super(transform(cursor, level), true);
+        public AncestorCursor(Cursor cursor, int level, QueryEngineSettings settings) {
+            super(transform(cursor, level), true, settings);
         }
 
         private static Iterator<String> transform(Cursor cursor, final int level) {
@@ -156,16 +157,17 @@ public class Cursors {
 
         private final Iterator<String> iterator;
 
-        public PathCursor(Iterator<String> paths, boolean distinct) {
+        public PathCursor(Iterator<String> paths, boolean distinct, final QueryEngineSettings settings) {
             Iterator<String> it = paths;
             if (distinct) {
                 it = Iterators.filter(it, new Predicate<String>() {
                     
                     private final HashSet<String> known = new HashSet<String>();
+                    private final long maxMemoryEntries = settings.getLimitInMemory();
 
                     @Override
                     public boolean apply(@Nullable String input) {
-                        FilterIterators.checkMemoryLimit(known.size());
+                        FilterIterators.checkMemoryLimit(known.size(), maxMemoryEntries);
                         // Set.add returns true for new entries
                         return known.add(input);
                     }
@@ -210,9 +212,12 @@ public class Cursors {
         private boolean init;
         
         private boolean closed;
+        
+        private final long maxReadEntries;
 
         public TraversingCursor(Filter filter, NodeState rootState) {
             this.filter = filter;
+            this.maxReadEntries = filter.getQueryEngineSettings().getLimitReads();
 
             String path = filter.getPath();
             parentPath = null;
@@ -294,7 +299,7 @@ public class Cursors {
 
                     readCount++;
                     if (readCount % 1000 == 0) {
-                        FilterIterators.checkReadLimit(readCount);
+                        FilterIterators.checkReadLimit(readCount, maxReadEntries);
                         LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
                     }
 

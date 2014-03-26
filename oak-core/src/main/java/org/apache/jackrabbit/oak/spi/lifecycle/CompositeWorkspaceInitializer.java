@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,9 +47,9 @@ public class CompositeWorkspaceInitializer implements WorkspaceInitializer {
     }
 
     @Override
-    public void initialize(NodeBuilder builder, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
+    public void initialize(NodeBuilder builder, String workspaceName, QueryEngineSettings queryEngineSettings, QueryIndexProvider indexProvider, CommitHook commitHook) {
         for (WorkspaceInitializer tracker : initializers) {
-            tracker.initialize(builder, workspaceName, indexProvider, commitHook);
+            tracker.initialize(builder, workspaceName, queryEngineSettings, indexProvider, commitHook);
         }
 
     }
