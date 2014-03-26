@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -176,7 +177,20 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override
     public Blob getBlob(@Nonnull String reference) {
-        return store.readBlob(reference);
+        //Use of 'reference' here is bit overloaded. In terms of NodeStore API
+        //a blob reference refers to the secure reference obtained from Blob#getReference()
+        //However in SegmentStore terminology a blob is referred via 'external reference'
+        //That 'external reference' would map to blobId obtained from BlobStore#getBlobId
+        BlobStore blobStore = store.getBlobStore();
+        if (blobStore != null) {
+            String blobId = blobStore.getBlobId(reference);
+            if (blobId != null) {
+                return store.readBlob(blobId);
+            }
+            return null;
+        }
+        throw new IllegalStateException("Attempt to read external blob with blobId [" + reference + "] " +
+                "without specifying BlobStore");
     }
 
     @Override @Nonnull

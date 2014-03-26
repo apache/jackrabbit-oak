@@ -399,11 +399,11 @@ public class FileStore implements SegmentStore {
     }
 
     @Override
-    public Blob readBlob(String reference) {
-        if(blobStore != null){
-            return new BlobStoreBlob(blobStore, reference);
+    public Blob readBlob(String blobId) {
+        if (blobStore != null) {
+            return new BlobStoreBlob(blobStore, blobId);
         }
-        throw new IllegalStateException("Attempt to read external reference ["+reference+"] " +
+        throw new IllegalStateException("Attempt to read external blob with blobId [" + blobId + "] " +
                 "without specifying BlobStore");
     }
 

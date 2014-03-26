@@ -69,14 +69,15 @@ public class ExternalBlobTest {
         new Random().nextBytes(data);
         Blob b1 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data)));
         assertTrue(b1 instanceof SegmentBlob);
-        assertNull(b1.getReference());
+        assertNull(((SegmentBlob) b1).getBlobId());
 
         //Test for Blob which need to be pushed to BlobStore
         byte[] data2 = new byte[Segment.MEDIUM_LIMIT + 1];
         new Random().nextBytes(data2);
         Blob b2 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data2)));
+        assertTrue(b2 instanceof SegmentBlob);
         assertNotNull(b2.getReference());
-        assertNotNull(dbs.getRecordIfStored(new DataIdentifier(b2.getReference())));
+        assertNotNull(dbs.getRecordIfStored(new DataIdentifier(((SegmentBlob) b2).getBlobId())));
     }
 
     public Blob testCreateAndRead(Blob blob) throws Exception {
@@ -155,6 +156,16 @@ public class ExternalBlobTest {
                 return fileBlob.getNewStream();
             }
             return null;
+        }
+
+        @Override
+        public String getBlobId(String reference) {
+            return reference;
+        }
+
+        @Override
+        public String getReference(String blobId) {
+            return blobId;
         }
     }
 }
