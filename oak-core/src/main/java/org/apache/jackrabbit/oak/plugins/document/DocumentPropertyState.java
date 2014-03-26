@@ -250,7 +250,7 @@ final class DocumentPropertyState implements PropertyState {
                     type = TypeCodes.decodeType(split, jsonString);
                     String value = TypeCodes.decodeName(split, jsonString);
                     if (type == PropertyType.BINARY) {
-                        values.add(store.getBlob(value));
+                        values.add(store.getBlobFromBlobId(value));
                     } else if (type == PropertyType.DOUBLE) {
                         values.add(Conversions.convert(value).toDouble());
                     } else if (type == PropertyType.DECIMAL) {
