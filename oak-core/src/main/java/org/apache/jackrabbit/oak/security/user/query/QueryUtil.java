@@ -22,6 +22,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -82,7 +83,7 @@ public final class QueryUtil {
      * @return escaped string
      */
     @Nonnull
-    public static String escapeNodeName(String string) {
+    public static String escapeNodeName(@Nonnull String string) {
         StringBuilder result = new StringBuilder();
 
         int k = 0;
@@ -107,11 +108,12 @@ public final class QueryUtil {
     }
 
     @Nonnull
-    public static String format(Value value) throws RepositoryException {
+    public static String format(@Nonnull Value value) throws RepositoryException {
+        String s;
         switch (value.getType()) {
             case PropertyType.STRING:
             case PropertyType.BOOLEAN:
-                return '\'' + value.getString() + '\'';
+                return '\'' + QueryUtil.escapeForQuery(value.getString()) + '\'';
 
             case PropertyType.LONG:
             case PropertyType.DOUBLE:
@@ -126,7 +128,12 @@ public final class QueryUtil {
     }
 
     @Nonnull
-    public static String escapeForQuery(String value) {
+    public static String escapeForQuery(@Nonnull String oakName, @Nonnull NamePathMapper namePathMapper) {
+        return escapeForQuery(namePathMapper.getJcrName(oakName));
+    }
+
+    @Nonnull
+    public static String escapeForQuery(@Nonnull String value) {
         StringBuilder ret = new StringBuilder();
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
@@ -142,7 +149,7 @@ public final class QueryUtil {
     }
 
     @Nonnull
-    public static RelationOp getCollation(QueryBuilder.Direction direction) throws RepositoryException {
+    public static RelationOp getCollation(@Nonnull QueryBuilder.Direction direction) throws RepositoryException {
         switch (direction) {
             case ASCENDING:
                 return RelationOp.GT;

@@ -47,9 +47,9 @@ class XPathConditionVisitor implements ConditionVisitor {
     public void visit(Condition.Node condition) throws RepositoryException {
         statement.append('(')
                 .append("jcr:like(@")
-                .append(namePathMapper.getJcrName(UserConstants.REP_PRINCIPAL_NAME))
+                .append(QueryUtil.escapeForQuery(UserConstants.REP_PRINCIPAL_NAME, namePathMapper))
                 .append(",'")
-                .append(condition.getPattern())
+                .append(QueryUtil.escapeForQuery(condition.getPattern()))
                 .append("')")
                 .append(" or ")
                 .append("jcr:like(fn:name(),'")
@@ -62,15 +62,15 @@ class XPathConditionVisitor implements ConditionVisitor {
     public void visit(Condition.Property condition) throws RepositoryException {
         RelationOp relOp = condition.getOp();
         if (relOp == RelationOp.EX) {
-            statement.append(condition.getRelPath());
+            statement.append(QueryUtil.escapeForQuery(condition.getRelPath()));
         } else if (relOp == RelationOp.LIKE) {
             statement.append("jcr:like(")
-                    .append(condition.getRelPath())
+                    .append(QueryUtil.escapeForQuery(condition.getRelPath()))
                     .append(",'")
-                    .append(condition.getPattern())
+                    .append(QueryUtil.escapeForQuery(condition.getPattern()))
                     .append("')");
         } else {
-            statement.append(condition.getRelPath())
+            statement.append(QueryUtil.escapeForQuery(condition.getRelPath()))
                     .append(condition.getOp().getOp())
                     .append(QueryUtil.format(condition.getValue()));
         }
@@ -79,9 +79,9 @@ class XPathConditionVisitor implements ConditionVisitor {
     @Override
     public void visit(Condition.Contains condition) {
         statement.append("jcr:contains(")
-                .append(condition.getRelPath())
+                .append(QueryUtil.escapeForQuery(condition.getRelPath()))
                 .append(",'")
-                .append(condition.getSearchExpr())
+                .append(QueryUtil.escapeForQuery(condition.getSearchExpr()))
                 .append("')");
     }
 
@@ -97,15 +97,15 @@ class XPathConditionVisitor implements ConditionVisitor {
         }
         if (isAdmin) {
             statement.append('@')
-                    .append(namePathMapper.getJcrName(JcrConstants.JCR_PRIMARYTYPE))
+                    .append(QueryUtil.escapeForQuery(JcrConstants.JCR_PRIMARYTYPE, namePathMapper))
                     .append("='")
-                    .append(namePathMapper.getJcrName(UserConstants.NT_REP_USER))
+                    .append(QueryUtil.escapeForQuery(UserConstants.NT_REP_USER, namePathMapper))
                     .append('\'');
         } else {
             statement.append('@')
-                    .append(namePathMapper.getJcrName(UserConstants.REP_IMPERSONATORS))
+                    .append(QueryUtil.escapeForQuery(UserConstants.REP_IMPERSONATORS, namePathMapper))
                     .append("='")
-                    .append(condition.getName())
+                    .append(QueryUtil.escapeForQuery(condition.getName()))
                     .append('\'');
         }
     }
