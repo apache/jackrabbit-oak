@@ -187,6 +187,7 @@ public class BenchmarkRunner {
             new SequentialCreateNodesTest(),
             new CreateManyIndexedNodesTest(),
             new GetPoliciesTest(),
+            new ConcurrentFileWriteTest(),
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
