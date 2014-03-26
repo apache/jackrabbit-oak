@@ -454,6 +454,27 @@
       </dependencies>
     </profile>
     <profile>
+      <!-- requires local copy of DB2 JDBC drivers -->
+      <!-- run with -Ddb2.jdbc=foldername where foldername contains the 2 JARs-->
+      <id>rdb-db2</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.example</groupId>
+          <artifactId>db2</artifactId>
+          <version>1.0</version>
+          <scope>system</scope>
+          <systemPath>${db2.jdbc}/db2jcc4.jar</systemPath>
+        </dependency>
+        <dependency>
+          <groupId>org.example</groupId>
+          <artifactId>db2-license</artifactId>
+          <version>1.0</version>
+          <scope>system</scope>
+          <systemPath>${db2.jdbc}/db2jcc_license_cu.jar</systemPath>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>java8</id>
       <activation>
         <jdk>[1.8,)</jdk>
