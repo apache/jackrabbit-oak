@@ -52,6 +52,10 @@ public class MongoDataStoreBlobStoreTest extends AbstractBlobStoreTest {
     }
 
     @Override
+    public void testEmptyIdentifier() throws Exception {
+    }
+
+    @Override
     @Test
     public void testGarbageCollection() throws Exception {
     }

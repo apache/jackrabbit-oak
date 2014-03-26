@@ -104,7 +104,6 @@ public abstract class AbstractBlobStoreTest {
         doTestRead(new byte[4], 4, combinedId);
     }
 
-    @Ignore("OAK-1554")
     @Test
     public void testEmptyIdentifier() throws Exception {
         byte[] data = new byte[1];
