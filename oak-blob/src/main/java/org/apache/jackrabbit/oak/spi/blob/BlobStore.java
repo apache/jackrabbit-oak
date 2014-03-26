@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * An interface to store and read large binary objects.
@@ -76,7 +77,7 @@ public interface BlobStore {
      * @return matching blobId, or {@code null}
      */
     @CheckForNull
-    String getBlobId(String reference);
+    String getBlobId(@Nonnull String reference);
 
     /**
      * Returns a secure reference to blob referred by blobid, or {@code null} if no such
@@ -86,6 +87,6 @@ public interface BlobStore {
      * @return binary reference, or {@code null}
      */
     @CheckForNull
-    String getReference(String blobId);
+    String getReference(@Nonnull String blobId);
 
 }

@@ -40,9 +40,11 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
 
 /**
  * Tests a BlobStore implementation.
@@ -268,6 +270,23 @@ public abstract class AbstractBlobStoreTest {
             }
         }
         assertTrue("failedCount: " + failedCount, failedCount > 0);
+    }
+
+    @Test
+    public void testReference() throws Exception {
+        assumeThat(store, instanceOf(AbstractBlobStore.class));
+        AbstractBlobStore abs = (AbstractBlobStore) store;
+        Random r = new Random();
+        byte[] key = new byte[256];
+        r.nextBytes(key);
+        abs.setReferenceKey(key);
+
+        byte[] data = new byte[1000];
+        r.nextBytes(data);
+        String blobId = store.writeBlob(new ByteArrayInputStream(data));
+        String reference = store.getReference(blobId);
+        String blobId2 = store.getBlobId(reference);
+        assertEquals(blobId, blobId2);
     }
 
     private void doTest(int maxLength, int count) throws Exception {

@@ -172,6 +172,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public String getBlobId(String reference) {
+        checkNotNull(reference);
         DataRecord record;
         try {
             record = delegate.getRecordFromReference(reference);
@@ -186,6 +187,12 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public String getReference(String blobId) {
+        checkNotNull(blobId);
+        //Reference are not created for in memory record
+        if(InMemoryDataRecord.isInstance(blobId)){
+            return null;
+        }
+
         DataRecord record;
         try {
             record = delegate.getRecord(new DataIdentifier(blobId));
