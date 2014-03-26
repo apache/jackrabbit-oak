@@ -72,7 +72,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
      */
     public RDBDocumentStore(DocumentMK.Builder builder) {
         try {
-            String jdbcurl = "jdbc:h2:file:oaknodes";
+            String jdbcurl = "jdbc:h2:file:./target/oaknodes";
             DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
             initialize(ds, builder);
         } catch (Exception ex) {
