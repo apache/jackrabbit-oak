@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.felix.scr.annotations.Component;
@@ -89,6 +90,17 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
                 case 2 : return new CompositePattern(patterns);
                 default : return  RestrictionPattern.EMPTY;
             }
+        }
+    }
+
+    @Override
+    public void validateRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+        super.validateRestrictions(oakPath, aceTree);
+
+        Tree restrictionsTree = getRestrictionsTree(aceTree);
+        PropertyState glob = restrictionsTree.getProperty(REP_GLOB);
+        if (glob != null) {
+            GlobPattern.validate(glob.getValue(Type.STRING));
         }
     }
 }
