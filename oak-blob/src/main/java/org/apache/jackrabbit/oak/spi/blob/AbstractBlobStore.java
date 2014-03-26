@@ -257,7 +257,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     }
 
     public void setReferenceKey(byte[] referenceKey) {
-        checkArgument(referenceKey == null, "Reference key already initialized by default means. " +
+        checkArgument(referenceKey != null, "Reference key already initialized by default means. " +
                 "To explicitly set it, setReferenceKey must be invoked before its first use");
         this.referenceKey = referenceKey;
     }
