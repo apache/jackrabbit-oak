@@ -185,16 +185,17 @@ public final class PasswordUtil {
         return false;
     }
     
+    //------------------------------------------------------------< private >---
     /**
      * Compare two strings. The comparison is constant time: it will always loop
      * over all characters and doesn't use conditional operations in the loop to
      * make sure an attacker can not use a timing attack.
-     * 
+     *
      * @param a
      * @param b
      * @return true if both parameters contain the same data.
      */
-    private static boolean compareSecure(String a, String b) {
+    private static boolean compareSecure(@Nullable String a, @Nullable String b) {
         if ((a == null) || (b == null)) {
             return (a == null) && (b == null);
         }
@@ -213,8 +214,6 @@ public final class PasswordUtil {
         }
         return bits == 0;
     }
-    
-    //------------------------------------------------------------< private >---
 
     private static String generateHash(@Nonnull String pwd, @Nonnull String algorithm,
                                        @Nullable String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
