@@ -167,18 +167,8 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
      */
     public void addEventListener(EventListener listener, FilterProvider filterProvider) {
         // FIXME Add support for FilterProvider in ListenerTracker
-        ListenerTracker tracker = new ListenerTracker(
-                listener, 0, null, true, null, null, false) {
-            @Override
-            protected void warn(String message) {
-                LOG.warn(DEPRECATED, message, initStackTrace);
-            }
-
-            @Override
-            protected void beforeEventDelivery() {
-                sessionDelegate.refreshAtNextAccess();
-            }
-        };
+        ListenerTracker tracker = new WarningListenerTracker(
+                true, listener, 0, null, true, null, null, false);
         addEventListener(listener, tracker, filterProvider);
     }
 
@@ -188,29 +178,21 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             throws RepositoryException {
 
         FilterBuilder filterBuilder = new FilterBuilder();
+        boolean includeExternal = !(listener instanceof ExcludeExternal);
         filterBuilder
             .basePath(namePathMapper.getOakPath(absPath))
             .includeSessionLocal(!noLocal)
-            .includeClusterExternal(!(listener instanceof ExcludeExternal))
+            .includeClusterExternal(includeExternal)
             .condition(filterBuilder.all(
-                filterBuilder.deleteSubtree(),
-                filterBuilder.moveSubtree(),
-                filterBuilder.path(isDeep ? STAR_STAR : STAR),
-                filterBuilder.eventType(eventTypes),
-                filterBuilder.uuid(Selectors.PARENT, uuids),
-                filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName))));
+                    filterBuilder.deleteSubtree(),
+                    filterBuilder.moveSubtree(),
+                    filterBuilder.path(isDeep ? STAR_STAR : STAR),
+                    filterBuilder.eventType(eventTypes),
+                    filterBuilder.uuid(Selectors.PARENT, uuids),
+                    filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName))));
 
-        ListenerTracker tracker = new ListenerTracker(
-                listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
-            @Override
-            protected void warn(String message) {
-                LOG.warn(DEPRECATED, message, initStackTrace);
-            }
-            @Override
-            protected void beforeEventDelivery() {
-                sessionDelegate.refreshAtNextAccess();
-            }
-        };
+        ListenerTracker tracker = new WarningListenerTracker(
+                includeExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
         addEventListener(listener, tracker, filterBuilder.build());
     }
@@ -247,22 +229,14 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                             filterBuilder.eventType(eventTypes),
                             filterBuilder.uuid(Selectors.PARENT, uuids),
                             filterBuilder.nodeType(Selectors.PARENT,
-                                    validateNodeTypeNames(nodeTypeName))));
+                                    validateNodeTypeNames(nodeTypeName))
+                    ));
             filterProviders.add(filterBuilder.build());
         }
 
         // FIXME support multiple path in ListenerTracker
-        ListenerTracker tracker = new ListenerTracker(
-                listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal) {
-            @Override
-            protected void warn(String message) {
-                LOG.warn(DEPRECATED, message, initStackTrace);
-            }
-            @Override
-            protected void beforeEventDelivery() {
-                sessionDelegate.refreshAtNextAccess();
-            }
-        };
+        ListenerTracker tracker = new WarningListenerTracker(
+                !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
         addEventListener(listener, tracker, filterProviders);
     }
@@ -339,6 +313,29 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             LOG.warn(OBSERVATION, "Timed out waiting for change processor to stop after " +
                     STOP_TIME_OUT + " milliseconds. Falling back to asynchronous stop.");
             processor.stop();
+        }
+    }
+
+    private class WarningListenerTracker extends ListenerTracker {
+        private final boolean enableWarning;
+
+        public WarningListenerTracker(
+                boolean enableWarning, EventListener listener, int eventTypes, String absPath,
+                boolean isDeep, String[] uuids, String[] nodeTypeName, boolean noLocal) {
+            super(listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
+            this.enableWarning = enableWarning;
+        }
+
+        @Override
+        protected void warn(String message) {
+            if (enableWarning) {
+                LOG.warn(DEPRECATED, message, initStackTrace);
+            }
+        }
+
+        @Override
+        protected void beforeEventDelivery() {
+            sessionDelegate.refreshAtNextAccess();
         }
     }
 
