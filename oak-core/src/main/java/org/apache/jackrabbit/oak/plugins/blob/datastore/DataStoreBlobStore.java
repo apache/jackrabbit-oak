@@ -43,6 +43,8 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -52,6 +54,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
 public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollectableBlobStore {
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     private final DataStore delegate;
 
     public DataStoreBlobStore(DataStore delegate) {
@@ -164,6 +168,36 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         } catch (DataStoreException e) {
             throw new IOException(e);
         }
+    }
+
+    @Override
+    public String getBlobId(String reference) {
+        DataRecord record;
+        try {
+            record = delegate.getRecordFromReference(reference);
+            if (record != null) {
+                return record.getIdentifier().toString();
+            }
+        } catch (DataStoreException e) {
+            log.warn("Unable to access the blobId for  [{}]", reference, e);
+        }
+        return null;
+    }
+
+    @Override
+    public String getReference(String blobId) {
+        DataRecord record;
+        try {
+            record = delegate.getRecord(new DataIdentifier(blobId));
+            if(record != null){
+                return record.getReference();
+            }else{
+                log.debug("No blob found for id [{}]", blobId);
+            }
+        } catch (DataStoreException e) {
+            log.warn("Unable to access the blobId for  [{}]", blobId, e);
+        }
+        return  null;
     }
 
     @Override

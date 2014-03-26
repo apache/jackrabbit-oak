@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.blob;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
+
 /**
  * An interface to store and read large binary objects.
  */
@@ -64,5 +66,26 @@ public interface BlobStore {
      * @return a new stream for given blobId
      */
     InputStream getInputStream(String blobId) throws IOException;
+
+    /**
+     * Returns the blobId that referred by the given binary reference.
+     * Returns {@code null} if the reference is invalid, for example if it
+     * points to a blob that does not exist.
+     *
+     * @param reference binary reference
+     * @return matching blobId, or {@code null}
+     */
+    @CheckForNull
+    String getBlobId(String reference);
+
+    /**
+     * Returns a secure reference to blob referred by blobid, or {@code null} if no such
+     * reference is available.
+     *
+     * @param blobId blobId referring the blob for which reference is required
+     * @return binary reference, or {@code null}
+     */
+    @CheckForNull
+    String getReference(String blobId);
 
 }
