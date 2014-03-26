@@ -54,6 +54,7 @@ public final class FilterBuilder {
 
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
+    private boolean includeClusterLocal = true;
     private String basePath = "/";
     private Condition condition = includeAll();
 
@@ -83,6 +84,18 @@ public final class FilterBuilder {
     @Nonnull
     public FilterBuilder includeClusterExternal(boolean include) {
         this.includeClusterExternal = include;
+        return this;
+    }
+
+    /**
+     * Whether to include cluster local changes. Defaults to {@code true}.
+     * @param include if {@code true} cluster local changes are included,
+     *                otherwise cluster local changes are not included.
+     * @return  this instance
+     */
+    @Nonnull
+    public FilterBuilder includeClusterLocal(boolean include) {
+        this.includeClusterLocal = include;
         return this;
     }
 
@@ -297,13 +310,15 @@ public final class FilterBuilder {
         return new FilterProvider() {
             final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
             final boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
+            final boolean includeClusterLocal = FilterBuilder.this.includeClusterLocal;
             final String basePath = FilterBuilder.this.basePath;
             final Condition condition = FilterBuilder.this.condition;
 
             @Override
             public boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info) {
                 return (includeSessionLocal || !isLocal(checkNotNull(sessionId), info))
-                    && (includeClusterExternal || !isExternal(info));
+                    && (includeClusterExternal || !isExternal(info))
+                    && (includeClusterLocal || isExternal(info));
             }
 
             @Nonnull
