@@ -22,7 +22,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
@@ -35,10 +37,19 @@ import java.util.NoSuchElementException;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.BaseEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -97,6 +108,18 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
      * large byte array each time a (potentially very small) binary is stored.
      */
     private AtomicReference<byte[]> blockBuffer = new AtomicReference<byte[]>();
+
+    /**
+     * Encryption algorithm used to encrypt blobId as references
+     */
+    private static final String ALGORITHM = "HmacSHA1";
+
+    /**
+     * Encryption key for creating secure references from blobId
+     */
+    private byte[] referenceKey;
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     public void setBlockSizeMin(int x) {
         validateBlockSize(x);
@@ -165,12 +188,62 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
 
     @Override
     public String getReference(String blobId) {
-        return null;
+        checkNotNull(blobId, "BlobId must be specified");
+        try {
+            Mac mac = Mac.getInstance(ALGORITHM);
+            mac.init(new SecretKeySpec(referenceKey, ALGORITHM));
+            byte[] hash = mac.doFinal(blobId.getBytes("UTF-8"));
+            return blobId + ':' + BaseEncoding.base32Hex().encode(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        } catch (InvalidKeyException e) {
+            throw new IllegalStateException(e);
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
     public String getBlobId(String reference) {
+        checkNotNull(reference, "BlobId must be specified");
+        int colon = reference.indexOf(':');
+        if (colon != -1) {
+            String blobId = reference.substring(0, colon);
+            if (reference.equals(getReference(blobId))) {
+                return blobId;
+            }else{
+                log.debug("Possibly invalid reference as blobId does not match {}", reference);
+            }
+        }
         return null;
+    }
+
+    public void setReferenceKey(byte[] referenceKey) {
+        this.referenceKey = referenceKey;
+    }
+
+    /**
+     * Set the referenceKey from Base64 encoded byte array
+     * @param encodedKey base64 encoded key
+     */
+    public void setReferenceKeyEncoded(String encodedKey) {
+        this.referenceKey = BaseEncoding.base64().decode(encodedKey);
+    }
+
+    /**
+     * Set the referenceKey from plain text. Key content would be
+     * UTF-8 encoding of the string.
+     *
+     * <p>This is useful when setting key via generic
+     *  bean property manipulation from string properties. User can specify the
+     *  key in plain text and that would be passed on this object via
+     *  {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
+     *
+     * @param textKey base64 encoded key
+     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
+     */
+    public void setReferenceKeyPlainText(String textKey) {
+        this.referenceKey = textKey.getBytes(Charsets.UTF_8);
     }
 
     protected void usesBlobId(String blobId) {

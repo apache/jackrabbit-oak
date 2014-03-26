@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -75,7 +76,7 @@ public class DataStoreBlobStoreTest {
         new Random().nextBytes(data);
 
         DataIdentifier testDI = new DataIdentifier("test");
-        DataRecord testDR = new ByteArrayDataRecord(data, testDI);
+        DataRecord testDR = new ByteArrayDataRecord(data, testDI, "testReference");
 
         DataStore mockedDS = mock(DataStore.class);
         when(mockedDS.getMinRecordLength()).thenReturn(maxInlineSize);
@@ -99,13 +100,37 @@ public class DataStoreBlobStoreTest {
         assertEquals(testDI.toString(), ds.writeBlob(new ByteArrayInputStream(data)));
     }
 
+    @Test
+    public void testReference() throws DataStoreException, IOException {
+        String reference = "testReference";
+        String blobId = "test";
+        DataIdentifier testDI = new DataIdentifier(blobId);
+        DataRecord testDR = new ByteArrayDataRecord("foo".getBytes(), testDI, reference);
+
+        DataStore mockedDS = mock(DataStore.class);
+        when(mockedDS.getRecordFromReference(reference)).thenReturn(testDR);
+        when(mockedDS.getRecord(testDI)).thenReturn(testDR);
+        DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
+
+        assertEquals(reference,ds.getReference(blobId));
+        assertEquals(blobId, ds.getBlobId(reference));
+
+        String inMemBlobId = InMemoryDataRecord.getInstance("foo".getBytes())
+                .getIdentifier().toString();
+
+        //For in memory record the reference should be null
+        assertNull(ds.getReference(inMemBlobId));
+    }
+
     private static class ByteArrayDataRecord implements DataRecord {
         private final byte[] data;
         private final DataIdentifier identifier;
+        private final String reference;
 
-        private ByteArrayDataRecord(byte[] data, DataIdentifier di) {
+        private ByteArrayDataRecord(byte[] data, DataIdentifier di, String reference) {
             this.data = data;
             this.identifier = di;
+            this.reference = reference;
         }
 
         @Override
@@ -115,7 +140,7 @@ public class DataStoreBlobStoreTest {
 
         @Override
         public String getReference() {
-            return null;
+            return reference;
         }
 
         @Override

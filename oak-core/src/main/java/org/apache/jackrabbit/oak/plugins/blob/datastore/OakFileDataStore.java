@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
@@ -28,12 +29,12 @@ import org.apache.jackrabbit.core.data.FileDataStore;
  *  provisioning the signing key via OSGi config
  */
 public class OakFileDataStore extends FileDataStore {
-    private byte[] signingKey;
+    private byte[] referenceKey;
 
     @Override
     protected byte[] getOrCreateReferenceKey() throws DataStoreException {
-        if(signingKey != null){
-            return signingKey;
+        if(referenceKey != null){
+            return referenceKey;
         }
         return super.getOrCreateReferenceKey();
     }
@@ -41,7 +42,27 @@ public class OakFileDataStore extends FileDataStore {
     /**
      * Set Base64 encoded signing key
      */
-    public void setSigningKey(String encodedKey) {
-        this.signingKey = BaseEncoding.base64().decode(encodedKey);
+    public void setReferenceKeyEncoded(String encodedKey) {
+        this.referenceKey = BaseEncoding.base64().decode(encodedKey);
+    }
+
+    /**
+     * Set the referenceKey from plain text. Key content would be
+     * UTF-8 encoding of the string.
+     *
+     * <p>This is useful when setting key via generic
+     *  bean property manipulation from string properties. User can specify the
+     *  key in plain text and that would be passed on this object via
+     *  {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
+     *
+     * @param textKey base64 encoded key
+     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
+     */
+    public void setReferenceKeyPlainText(String textKey) {
+        this.referenceKey = textKey.getBytes(Charsets.UTF_8);
+    }
+
+    public void setReferenceKey(byte[] referenceKey) {
+        this.referenceKey = referenceKey;
     }
 }
