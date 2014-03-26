@@ -175,7 +175,7 @@ public final class PasswordUtil {
                 }
 
                 String hash = generateHash(password, algorithm, salt, iterations);
-                return hashedPassword.equals(hash);
+                return compareSecure(hashedPassword, hash);
             } // hashedPassword is plaintext -> return false
         } catch (NoSuchAlgorithmException e) {
             log.warn(e.getMessage());
@@ -184,7 +184,36 @@ public final class PasswordUtil {
         }
         return false;
     }
-
+    
+    /**
+     * Compare two strings. The comparison is constant time: it will always loop
+     * over all characters and doesn't use conditional operations in the loop to
+     * make sure an attacker can not use a timing attack.
+     * 
+     * @param a
+     * @param b
+     * @return true if both parameters contain the same data.
+     */
+    private static boolean compareSecure(String a, String b) {
+        if ((a == null) || (b == null)) {
+            return (a == null) && (b == null);
+        }
+        int len = a.length();
+        if (len != b.length()) {
+            return false;
+        }
+        if (len == 0) {
+            return true;
+        }
+        // don't use conditional operations inside the loop
+        int bits = 0;
+        for (int i = 0; i < len; i++) {
+            // this will never reset any bits
+            bits |= a.charAt(i) ^ b.charAt(i);
+        }
+        return bits == 0;
+    }
+    
     //------------------------------------------------------------< private >---
 
     private static String generateHash(@Nonnull String pwd, @Nonnull String algorithm,
