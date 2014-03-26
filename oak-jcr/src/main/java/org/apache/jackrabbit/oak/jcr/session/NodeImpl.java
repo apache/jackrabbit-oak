@@ -54,6 +54,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
+import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -67,6 +68,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
@@ -1165,84 +1167,35 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return getVersionManager().getBaseVersion(getPath());
     }
 
+    private LockManager getLockManager() throws RepositoryException {
+        return getSession().getWorkspace().getLockManager();
+    }
+
     @Override
     public boolean isLocked() throws RepositoryException {
-        return perform(new LockOperation<Boolean>(sessionDelegate, dlg, "isLocked") {
-            @Override
-            public Boolean perform(NodeDelegate node) {
-                return node.isLocked();
-            }
-        });
+        return getLockManager().isLocked(getPath());
     }
 
     @Override
     public boolean holdsLock() throws RepositoryException {
-        return perform(new LockOperation<Boolean>(sessionDelegate, dlg, "holdsLock") {
-            @Override
-            public Boolean perform(NodeDelegate node) {
-                return node.holdsLock(false);
-            }
-        });
+        return getLockManager().holdsLock(getPath());
     }
 
     @Override @Nonnull
     public Lock getLock() throws RepositoryException {
-        NodeDelegate lock = perform(
-                new LockOperation<NodeDelegate>(sessionDelegate, dlg, "getLock") {
-                    @Override
-                    public NodeDelegate perform(NodeDelegate node) {
-                        return node.getLock();
-                    }
-                });
-        if (lock != null) {
-            return new LockImpl(sessionContext, lock);
-        } else {
-            throw new LockException("Node " + getPath() + " is not locked");
-        }
+        return getLockManager().getLock(getPath());
     }
 
     @Override @Nonnull
-    public Lock lock(final boolean isDeep, final boolean isSessionScoped)
+    public Lock lock(boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
-        perform(new LockOperation<Void>(sessionDelegate, dlg, "lock") {
-            @Override
-            public Void perform(NodeDelegate node) throws RepositoryException {
-                if (node.getStatus() != Status.UNCHANGED) {
-                    throw new LockException(
-                            "Unable to lock a node with pending changes");
-                }
-                node.lock(isDeep);
-                String path = node.getPath();
-                if (isSessionScoped) {
-                    sessionContext.getSessionScopedLocks().add(path);
-                } else {
-                    sessionContext.getOpenScopedLocks().add(path);
-                }
-                session.refresh(true);
-                return null;
-            }
-        });
-        return new LockImpl(sessionContext, dlg);
+        return getLockManager().lock(
+                getPath(), isDeep, isSessionScoped, Long.MAX_VALUE, null);
     }
 
     @Override
     public void unlock() throws RepositoryException {
-        perform(new LockOperation<Void>(sessionDelegate, dlg, "unlock") {
-            @Override
-            public Void perform(NodeDelegate node) throws RepositoryException {
-                String path = node.getPath();
-                if (sessionContext.getSessionScopedLocks().contains(path)
-                        || sessionContext.getOpenScopedLocks().contains(path)) {
-                    node.unlock();
-                    sessionContext.getSessionScopedLocks().remove(path);
-                    sessionContext.getOpenScopedLocks().remove(path);
-                    session.refresh(true);
-                    return null;
-                } else {
-                    throw new LockException("Not an owner of the lock " + path);
-                }
-            }
-        });
+        getLockManager().unlock(getPath());
     }
 
     @Override @Nonnull

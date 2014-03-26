@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.lock;
 
+import static java.lang.Boolean.TRUE;
+import static org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl.RELAXED_LOCKING;
+
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -167,8 +170,7 @@ public class LockManagerImpl implements LockManager {
             protected Void perform(NodeDelegate node)
                     throws RepositoryException {
                 String path = node.getPath();
-                if (sessionContext.getSessionScopedLocks().contains(path)
-                        || sessionContext.getOpenScopedLocks().contains(path)) {
+                if (canUnlock(path, node)) {
                     node.unlock();
                     sessionContext.getSessionScopedLocks().remove(path);
                     sessionContext.getOpenScopedLocks().remove(path);
@@ -176,6 +178,17 @@ public class LockManagerImpl implements LockManager {
                     return null;
                 } else {
                     throw new LockException("Not an owner of the lock " + path);
+                }
+            }
+            private boolean canUnlock(String path, NodeDelegate node) {
+                if (sessionContext.getSessionScopedLocks().contains(path)
+                        || sessionContext.getOpenScopedLocks().contains(path)) {
+                    return true;
+                } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
+                    String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
+                    return node.isLockOwner(user);
+                } else {
+                    return false;
                 }
             }
         });
