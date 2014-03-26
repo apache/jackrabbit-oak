@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -67,6 +68,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 final class GlobPattern implements RestrictionPattern {
 
     private static final char WILDCARD_CHAR = '*';
+    private static final int MAX_WILDCARD = 20;
 
     private final String path;
     private final String restriction;
@@ -100,6 +102,18 @@ final class GlobPattern implements RestrictionPattern {
 
     static GlobPattern create(@Nonnull String nodePath, @Nonnull String restrictions) {
         return new GlobPattern(nodePath, restrictions);
+    }
+
+    static void validate(@Nonnull String restriction) throws AccessControlException {
+        int cnt = 0;
+        for (int i = 0; i < restriction.length(); i++) {
+            if (WILDCARD_CHAR == restriction.charAt(i)) {
+                cnt++;
+            }
+            if (cnt > MAX_WILDCARD) {
+                throw new AccessControlException("Number of wildcards in rep:glob exceeds allowed complexity.");
+            }
+        }
     }
 
     //-------------------------------------------------< RestrictionPattern >---
@@ -204,7 +218,7 @@ final class GlobPattern implements RestrictionPattern {
             }
             char[] tm = (toMatch.endsWith("/")) ? toMatch.substring(0, toMatch.length()-1).toCharArray() : toMatch.toCharArray();
             // shortcut didn't reveal mismatch -> need to process the internal match method.
-            return matches(patternChars, 0, tm, 0);
+            return matches(patternChars, 0, tm, 0, MAX_WILDCARD);
         }
 
         /**
@@ -216,7 +230,12 @@ final class GlobPattern implements RestrictionPattern {
          * @return {@code true} if matches, {@code false} otherwise
          */
         private boolean matches(char[] pattern, int pOff,
-                                char[] s, int sOff) {
+                                char[] s, int sOff, int cnt) {
+
+            if (cnt <= 0) {
+                throw new IllegalArgumentException("Illegal glob pattern " + GlobPattern.this);
+            }
+
             int pLength = pattern.length;
             int sLength = s.length;
 
@@ -240,8 +259,9 @@ final class GlobPattern implements RestrictionPattern {
                         return true;
                     }
 
+                    cnt--;
                     while (true) {
-                        if (matches(pattern, pOff, s, sOff)) {
+                        if (matches(pattern, pOff, s, sOff, cnt)) {
                             return true;
                         }
                         if (sOff >= sLength) {
