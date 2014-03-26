@@ -163,6 +163,16 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
         return new BlobStoreInputStream(this, blobId, 0);
     }
 
+    @Override
+    public String getReference(String blobId) {
+        return null;
+    }
+
+    @Override
+    public String getBlobId(String reference) {
+        return null;
+    }
+
     protected void usesBlobId(String blobId) {
         inUse.put(blobId, new WeakReference<String>(blobId));
     }

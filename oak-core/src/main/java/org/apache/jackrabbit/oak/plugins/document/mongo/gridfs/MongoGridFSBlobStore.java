@@ -56,6 +56,16 @@ public class MongoGridFSBlobStore implements BlobStore {
     }
 
     @Override
+    public String getBlobId(String reference) {
+        return null;
+    }
+
+    @Override
+    public String getReference(String blobId) {
+        return null;
+    }
+
+    @Override
     public int readBlob(String blobId, long blobOffset, byte[] buffer, int bufferOffset, int length) throws IOException {
         Command<Integer> command = new ReadBlobCommandGridFS(gridFS, blobId, blobOffset,
                 buffer, bufferOffset, length);
