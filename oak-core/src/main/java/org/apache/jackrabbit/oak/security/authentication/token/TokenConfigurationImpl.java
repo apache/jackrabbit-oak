@@ -63,21 +63,13 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     /**
      * Returns a new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      *
-     * <h4>Configuration Options</h4>
-     * <ul>
-     *     <li>{@link #PARAM_TOKEN_OPTIONS}: The configuration parameters for
-     *     the token provider which allows to change the default expiration time
-     *     and the length of the generated token.</li>
-     * </ul>
-     *
      * @param root The target root.
      * @return A new instance of {@link org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider}.
      */
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root) {
-        ConfigurationParameters tokenOptions = getParameters().getConfigValue(PARAM_TOKEN_OPTIONS, ConfigurationParameters.EMPTY);
         UserConfiguration uc = getSecurityProvider().getConfiguration(UserConfiguration.class);
-        return new TokenProviderImpl(root, tokenOptions, uc);
+        return new TokenProviderImpl(root, getParameters(), uc);
     }
 }
