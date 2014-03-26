@@ -320,38 +320,43 @@ public class MongoDocumentStore implements CachingDocumentStore {
         long start = start();
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
-            List<T> list = new ArrayList<T>();
-            for (int i = 0; i < limit && cursor.hasNext(); i++) {
-                DBObject o = cursor.next();
-                T doc = convertFromDBObject(collection, o);
-                if (collection == Collection.NODES && doc != null) {
-                    doc.seal();
-                    String id = doc.getId();
-                    Lock lock = getAndLock(id);
-                    CacheValue cacheKey = new StringValue(id);
-                    try {
-                        // do not overwrite document in cache if the
-                        // existing one in the cache is newer
-                        NodeDocument cached = nodesCache.getIfPresent(cacheKey);
-                        if (cached != null && cached != NodeDocument.NULL) {
-                            // check mod count
-                            Number cachedModCount = cached.getModCount();
-                            Number modCount = doc.getModCount();
-                            if (cachedModCount == null || modCount == null) {
-                                throw new IllegalStateException(
-                                        "Missing " + Document.MOD_COUNT);
-                            }
-                            if (modCount.longValue() > cachedModCount.longValue()) {
+            List<T> list;
+            try {
+                list = new ArrayList<T>();
+                for (int i = 0; i < limit && cursor.hasNext(); i++) {
+                    DBObject o = cursor.next();
+                    T doc = convertFromDBObject(collection, o);
+                    if (collection == Collection.NODES && doc != null) {
+                        doc.seal();
+                        String id = doc.getId();
+                        Lock lock = getAndLock(id);
+                        CacheValue cacheKey = new StringValue(id);
+                        try {
+                            // do not overwrite document in cache if the
+                            // existing one in the cache is newer
+                            NodeDocument cached = nodesCache.getIfPresent(cacheKey);
+                            if (cached != null && cached != NodeDocument.NULL) {
+                                // check mod count
+                                Number cachedModCount = cached.getModCount();
+                                Number modCount = doc.getModCount();
+                                if (cachedModCount == null || modCount == null) {
+                                    throw new IllegalStateException(
+                                            "Missing " + Document.MOD_COUNT);
+                                }
+                                if (modCount.longValue() > cachedModCount.longValue()) {
+                                    nodesCache.put(cacheKey, (NodeDocument) doc);
+                                }
+                            } else {
                                 nodesCache.put(cacheKey, (NodeDocument) doc);
                             }
-                        } else {
-                            nodesCache.put(cacheKey, (NodeDocument) doc);
+                        } finally {
+                            lock.unlock();
                         }
-                    } finally {
-                        lock.unlock();
                     }
+                    list.add(doc);
                 }
-                list.add(doc);
+            } finally {
+                cursor.close();
             }
             return list;
         } finally {
