@@ -40,7 +40,6 @@ import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.commons.query.sql2.SQL2QOMBuilder;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -65,20 +64,6 @@ import com.google.common.cache.Cache;
 import com.google.common.util.concurrent.Striped;
 
 public class RDBDocumentStore implements CachingDocumentStore {
-
-    /**
-     * Creates a {@linkplain RDBDocumentStore} instance using an embedded H2
-     * database in in-memory mode.
-     */
-    public RDBDocumentStore(DocumentMK.Builder builder) {
-        try {
-            String jdbcurl = "jdbc:h2:file:./target/oaknodes";
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
-            initialize(ds, builder);
-        } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB document store", ex);
-        }
-    }
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using the provided
