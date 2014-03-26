@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -34,6 +35,7 @@ import javax.jcr.security.AccessControlException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -772,6 +774,10 @@ public class NodeDelegate extends ItemDelegate {
         } else {
             return null;
         }
+    }
+
+    public boolean isLockOwner(String user) {
+        return user != null && user.equals(getLockOwner());
     }
 
     public void lock(boolean isDeep) throws RepositoryException {

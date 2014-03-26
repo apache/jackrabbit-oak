@@ -98,18 +98,16 @@ public final class LockImpl implements Lock {
                     // another session of the lock owner will be able to
                     // acquire the lock token and thus release the lock.
                     return null;
-                }
-
-                String owner =
-                        context.getSessionDelegate().getAuthInfo().getUserID();
-                if (owner == null) {
-                    owner = "";
-                }
-                if (owner.equals(node.getLockOwner())) {
+                } else if (node.isLockOwner(
+                        context.getSessionDelegate().getAuthInfo().getUserID())) {
+                    // The JCR spec allows the implementation to return the
+                    // lock token even when the current session isn't already
+                    // holding it. We use this feature to allow all sessions
+                    // of the user who owns the lock to access its token.
                     return token;
+                } else {
+                    return null;
                 }
-
-                return null;
             }
         });
     }
