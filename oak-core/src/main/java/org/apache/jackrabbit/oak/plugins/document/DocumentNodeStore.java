@@ -1209,27 +1209,23 @@ public final class DocumentNodeStore
 
     @Override
     public Blob createBlob(InputStream inputStream) throws IOException {
-        String id;
-        try {
-            id = blobStore.writeBlob(inputStream);
-        } catch (IOException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new IOException("Could not write blob", e);
-        }
-        return new BlobStoreBlob(blobStore, id);
+        return new BlobStoreBlob(blobStore, blobStore.writeBlob(inputStream));
     }
 
     /**
      * Returns the {@link Blob} with the given blobId.
      *
-     * @param blobId the blobId of the blob.
+     * @param reference the reference of the blob.
      * @return the blob.
      */
     @Override
-    @Nonnull
-    public Blob getBlob(String blobId) {
-        return new BlobStoreBlob(blobStore, blobId);
+    public Blob getBlob(String reference) {
+        String blobId = blobStore.getBlobId(reference);
+        if(blobId != null){
+            return new BlobStoreBlob(blobStore, blobId);
+        }
+        LOG.debug("No blobId found matching reference [{}]", reference);
+        return null;
     }
 
     @Nonnull

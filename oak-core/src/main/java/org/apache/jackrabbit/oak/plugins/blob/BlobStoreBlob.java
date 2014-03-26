@@ -33,48 +33,48 @@ import org.apache.jackrabbit.oak.api.Blob;
 public class BlobStoreBlob implements Blob {
     
     private final BlobStore blobStore;
-    private final String id;
+    private final String blobId;
     
-    public BlobStoreBlob(BlobStore blobStore, String id) {
+    public BlobStoreBlob(BlobStore blobStore, String blobId) {
         this.blobStore = blobStore;
-        this.id = id;
+        this.blobId = blobId;
     }
 
     @Override
     @Nonnull
     public InputStream getNewStream() {
         try {
-            return blobStore.getInputStream(id);
+            return blobStore.getInputStream(blobId);
         } catch (IOException e) {
             throw new RuntimeException("Error occurred while obtaining " +
-                    "InputStream for blobId ["+id+"]",e);
+                    "InputStream for blobId ["+ blobId +"]",e);
         }
     }
 
     @Override
     public long length() {
         try {
-            return blobStore.getBlobLength(id);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid blob id: " + id, e);
+            return blobStore.getBlobLength(blobId);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Invalid blob id: " + blobId, e);
         }
     }
 
     @Override @CheckForNull
     public String getReference() {
-        return id;
+        return blobStore.getReference(blobId);
     }
 
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
-        return id;
+        return blobId;
     }
     
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return blobId.hashCode();
     }
 
     @Override
@@ -86,7 +86,7 @@ public class BlobStoreBlob implements Blob {
             BlobStoreBlob b = (BlobStoreBlob) other;
             // theoretically, the data could be the same  
             // even if the id is different
-            return b.id.equals(id);
+            return b.blobId.equals(blobId);
         }
         return false;
     }
