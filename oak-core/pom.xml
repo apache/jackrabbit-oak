@@ -89,6 +89,7 @@
               org.apache.jackrabbit.oak.spi.state,
               org.apache.jackrabbit.oak.spi.whiteboard,
               org.apache.jackrabbit.oak.spi.xml,
+              org.apache.jackrabbit.oak.query,
               org.apache.jackrabbit.oak.query.fulltext,
               org.apache.jackrabbit.oak.security
             </Export-Package>

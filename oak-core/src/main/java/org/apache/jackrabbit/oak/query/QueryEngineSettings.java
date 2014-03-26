@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
+
 /**
  * Settings of the query engine.
  */
-public class QueryEngineSettings {
+public class QueryEngineSettings implements QueryEngineSettingsMBean {
     
     private static final int DEFAULT_QUERY_LIMIT_IN_MEMORY = 
             Integer.getInteger("oak.queryLimitInMemory", 10000);
@@ -40,6 +42,7 @@ public class QueryEngineSettings {
      * 
      * @return the limit
      */
+    @Override
     public long getLimitInMemory() {
         return limitInMemory;
     }
@@ -49,6 +52,7 @@ public class QueryEngineSettings {
      * 
      * @param limitInMemory the new limit
      */
+    @Override
     public void setLimitInMemory(long limitInMemory) {
         this.limitInMemory = limitInMemory;
     }
@@ -60,6 +64,7 @@ public class QueryEngineSettings {
      * 
      * @return the limit
      */
+    @Override
     public long getLimitReads() {
         return limitReads;
     }
@@ -69,6 +74,7 @@ public class QueryEngineSettings {
      * 
      * @param limitReads the new limit
      */
+    @Override
     public void setLimitReads(long limitReads) {
         this.limitReads = limitReads;
     }
