@@ -306,7 +306,7 @@ public class DocumentMK implements MicroKernel {
     @Override
     public long getLength(String blobId) throws MicroKernelException {
         try {
-            return nodeStore.getBlob(blobId).length();
+            return nodeStore.getBlobStore().getBlobLength(blobId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
