@@ -65,6 +65,10 @@ public class BlobStoreBlob implements Blob {
         return blobStore.getReference(blobId);
     }
 
+    public String getBlobId() {
+        return blobId;
+    }
+
     //------------------------------------------------------------< Object >--
 
     @Override

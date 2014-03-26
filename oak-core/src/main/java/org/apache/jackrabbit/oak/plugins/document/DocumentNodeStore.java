@@ -266,11 +266,11 @@ public final class DocumentNodeStore
         @Override
         public String serialize(Blob blob) {
             if (blob instanceof BlobStoreBlob) {
-                return blob.toString();
+                return ((BlobStoreBlob) blob).getBlobId();
             }
             String id;
             try {
-                id = createBlob(blob.getNewStream()).toString();
+                id = createBlob(blob.getNewStream()).getBlobId();
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -1208,7 +1208,7 @@ public final class DocumentNodeStore
     }
 
     @Override
-    public Blob createBlob(InputStream inputStream) throws IOException {
+    public BlobStoreBlob createBlob(InputStream inputStream) throws IOException {
         return new BlobStoreBlob(blobStore, blobStore.writeBlob(inputStream));
     }
 
@@ -1232,7 +1232,7 @@ public final class DocumentNodeStore
     /**
      * Returns the {@link Blob} with the given blobId.
      *
-     * @param reference the reference of the blob.
+     * @param blobId the blobId of the blob.
      * @return the blob.
      */
     public Blob getBlobFromBlobId(String blobId){
