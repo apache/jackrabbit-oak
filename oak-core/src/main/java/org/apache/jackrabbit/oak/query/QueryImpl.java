@@ -795,6 +795,9 @@ public class QueryImpl implements Query {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index.getIndexName() + " is " + cost);
             }
+            if (cost < 0) {
+                LOG.error("cost below 0 for " + index.getIndexName() + " is " + cost);
+            }
             if (cost < bestCost) {
                 bestCost = cost;
                 bestIndex = index;
