@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeThat;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,20 +37,14 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * Tests a BlobStore implementation.
@@ -163,7 +163,6 @@ public abstract class AbstractBlobStoreTest {
 
     @Test
     public void testIllegalIdentifier2() throws Exception {
-        byte[] data = new byte[1];
         try {
             store.getBlobLength("ff");
             fail();
@@ -175,7 +174,6 @@ public abstract class AbstractBlobStoreTest {
     @Test
     public void testIllegalIdentifier3() throws Exception {
         if (store instanceof AbstractBlobStore) {
-            byte[] data = new byte[1];
             try {
                 ((AbstractBlobStore) store).mark("ff");
                 fail();
@@ -413,7 +411,7 @@ public abstract class AbstractBlobStoreTest {
     @Test
     public void delete() throws Exception {
         Set<String> ids = createArtifacts();
-        
+
         store.deleteChunks(Lists.newArrayList(ids), 0);
 
         Iterator<String> iter = store.getAllChunkIds(0);
