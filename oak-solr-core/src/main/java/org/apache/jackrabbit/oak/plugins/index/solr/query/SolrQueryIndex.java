@@ -229,12 +229,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             public boolean visit(FullTextOr or) {
                 fullTextString.append('(');
                 for (int i = 0; i < or.list.size(); i++) {
-                    FullTextExpression e = or.list.get(i);
-                    String orTerm = getFullTextQuery(e);
-                    fullTextString.append(orTerm);
                     if (i > 0 && i < or.list.size()) {
                         fullTextString.append(" OR ");
                     }
+                    FullTextExpression e = or.list.get(i);
+                    String orTerm = getFullTextQuery(e);
+                    fullTextString.append('(');
+                    fullTextString.append(orTerm);
+                    fullTextString.append(')');
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
@@ -245,12 +247,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             public boolean visit(FullTextAnd and) {
                 fullTextString.append('(');
                 for (int i = 0; i < and.list.size(); i++) {
-                    FullTextExpression e = and.list.get(i);
-                    String andTerm = getFullTextQuery(e);
-                    fullTextString.append(andTerm);
                     if (i > 0 && i < and.list.size()) {
                         fullTextString.append(" AND ");
                     }
+                    FullTextExpression e = and.list.get(i);
+                    String andTerm = getFullTextQuery(e);
+                    fullTextString.append('(');
+                    fullTextString.append(andTerm);
+                    fullTextString.append(')');
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
@@ -271,7 +275,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 }
                 fullTextString.append(p);
                 fullTextString.append(':');
-                fullTextString.append(term.getText());
+                fullTextString.append(partialEscape(term.getText()));
                 String boost = term.getBoost();
                 if (boost != null) {
                     fullTextString.append('^');
