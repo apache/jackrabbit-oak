@@ -1275,7 +1275,7 @@ public final class DocumentNodeStore
 
     //----------------------< background operations >---------------------------
 
-    public void runBackgroundOperations() {
+    public synchronized void runBackgroundOperations() {
         if (isDisposed.get()) {
             return;
         }
