@@ -41,7 +41,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
@@ -147,7 +146,6 @@ public class ConcurrentAddNodesClusterIT {
         }
     }
 
-    @Ignore("OAK-1579")
     @Test
     public void addNodes2() throws Exception {
         for (int i = 0; i < 3; i++) {
