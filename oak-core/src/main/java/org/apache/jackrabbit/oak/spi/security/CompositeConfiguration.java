@@ -53,9 +53,15 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     private final String name;
     private final SecurityProvider securityProvider;
 
+    private T defaultConfig;
+
     public CompositeConfiguration(@Nonnull String name, @Nonnull SecurityProvider securityProvider) {
         this.name = name;
         this.securityProvider = securityProvider;
+    }
+
+    public void setDefaultConfig(@Nonnull T defaultConfig) {
+        this.defaultConfig = defaultConfig;
     }
 
     public void addConfiguration(@Nonnull T configuration) {
@@ -67,7 +73,11 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     }
 
     protected List<T> getConfigurations() {
-        return ImmutableList.copyOf(configurations);
+        if (configurations.isEmpty() && defaultConfig != null) {
+            return ImmutableList.of(defaultConfig);
+        } else {
+            return ImmutableList.copyOf(configurations);
+        }
     }
 
     protected SecurityProvider getSecurityProvider() {
@@ -84,9 +94,10 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public ConfigurationParameters getParameters() {
-        ConfigurationParameters[] params = new ConfigurationParameters[configurations.size()];
-        for (int i = 0; i < configurations.size(); i++) {
-            params[i] = configurations.get(i).getParameters();
+        List<T> configs = getConfigurations();
+        ConfigurationParameters[] params = new ConfigurationParameters[configs.size()];
+        for (int i = 0; i < configs.size(); i++) {
+            params[i] = configs.get(i).getParameters();
         }
         return ConfigurationParameters.of(params);
     }
@@ -94,7 +105,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public WorkspaceInitializer getWorkspaceInitializer() {
-        return new CompositeWorkspaceInitializer(Lists.transform(configurations, new Function<T, WorkspaceInitializer>() {
+        return new CompositeWorkspaceInitializer(Lists.transform(getConfigurations(), new Function<T, WorkspaceInitializer>() {
             @Override
             public WorkspaceInitializer apply(T securityConfiguration) {
                 return securityConfiguration.getWorkspaceInitializer();
@@ -105,7 +116,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
-        return new CompositeInitializer(Lists.transform(configurations, new Function<T, RepositoryInitializer>() {
+        return new CompositeInitializer(Lists.transform(getConfigurations(), new Function<T, RepositoryInitializer>() {
             @Override
             public RepositoryInitializer apply(T securityConfiguration) {
                 return securityConfiguration.getRepositoryInitializer();
@@ -116,7 +127,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<? extends CommitHook> getCommitHooks(final String workspaceName) {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(configurations, new Function<T, List<? extends CommitHook>>() {
+        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends CommitHook>>() {
             @Override
             public List<? extends CommitHook> apply(T securityConfiguration) {
                 return securityConfiguration.getCommitHooks(workspaceName);
@@ -127,7 +138,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(final String workspaceName, final Set<Principal> principals, final MoveTracker moveTracker) {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(configurations, new Function<T, List<? extends ValidatorProvider>>() {
+        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ValidatorProvider>>() {
             @Override
             public List<? extends ValidatorProvider> apply(T securityConfiguration) {
                 return securityConfiguration.getValidators(workspaceName, principals, moveTracker);
@@ -138,7 +149,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     @Nonnull
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
-        return ImmutableList.copyOf(Iterables.concat(Lists.transform(configurations, new Function<T, List<? extends ProtectedItemImporter>>() {
+        return ImmutableList.copyOf(Iterables.concat(Lists.transform(getConfigurations(), new Function<T, List<? extends ProtectedItemImporter>>() {
             @Override
             public List<? extends ProtectedItemImporter> apply(T securityConfiguration) {
                 return securityConfiguration.getProtectedItemImporters();
@@ -148,11 +159,12 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
     @Override
     public Context getContext() {
+        final List<T> configs = getConfigurations();
         return new Context() {
 
             @Override
             public boolean definesProperty(@Nonnull Tree parent, @Nonnull PropertyState property) {
-                for (SecurityConfiguration sc : configurations) {
+                for (SecurityConfiguration sc : configs) {
                     if (sc.getContext().definesProperty(parent, property)) {
                         return true;
                     }
@@ -162,7 +174,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
             @Override
             public boolean definesContextRoot(@Nonnull Tree tree) {
-                for (SecurityConfiguration sc : configurations) {
+                for (SecurityConfiguration sc : configs) {
                     if (sc.getContext().definesContextRoot(tree)) {
                         return true;
                     }
@@ -172,7 +184,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
             @Override
             public boolean definesTree(@Nonnull Tree tree) {
-                for (SecurityConfiguration sc : configurations) {
+                for (SecurityConfiguration sc : configs) {
                     if (sc.getContext().definesTree(tree)) {
                         return true;
                     }
@@ -182,7 +194,7 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
 
             @Override
             public boolean definesLocation(@Nonnull TreeLocation location) {
-                for (SecurityConfiguration sc : configurations) {
+                for (SecurityConfiguration sc : configs) {
                     if (sc.getContext().definesLocation(location)) {
                         return true;
                     }
