@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document.blob;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
+import org.junit.Ignore;
 
 /**
  * Tests the RDBBlobStore implementation.
  */
+@Ignore("OAK-1626")
 public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
