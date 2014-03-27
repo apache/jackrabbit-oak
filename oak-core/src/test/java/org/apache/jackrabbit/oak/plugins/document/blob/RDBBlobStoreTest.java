@@ -16,29 +16,49 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.Before;
+
+import com.google.common.collect.Lists;
 
 /**
  * Tests the RDBBlobStore implementation.
  */
-@Ignore("OAK-1626")
 public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
 
+    @Before
+    @Override
     public void setUp() throws Exception {
         blobStore = new RDBBlobStore();
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
+        empty(blobStore);
     }
 
+    @After
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
         if (blobStore != null) {
+            empty(blobStore);
             blobStore.close();
         }
+    }
+
+    private static void empty(RDBBlobStore blobStore) throws Exception {
+        Iterator<String> iter = blobStore.getAllChunkIds(0);
+        List<String> ids = Lists.newArrayList();
+        while (iter.hasNext()) {
+            ids.add(iter.next());
+        }
+        blobStore.deleteChunks(ids, 0);
     }
 }
