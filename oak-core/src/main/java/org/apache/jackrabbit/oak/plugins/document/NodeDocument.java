@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -439,7 +438,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 Arrays.asList(revisions.keySet(), commitRoots.keySet()),
                 revisions.comparator())) {
             if (!r.equals(changeRev)) {
-                if (isValidRevision(context, r, null, changeRev, new HashSet<Revision>())) {
+                if (isValidRevision(context, r, null, changeRev, new HashMap<Revision, String>())) {
                     newestRev = r;
                     // found newest revision, no need to check more revisions
                     // revisions are sorted newest first
@@ -488,8 +487,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param commitValue the commit value of the revision to check or
      *                    <code>null</code> if unknown.
      * @param readRevision the read revision of the client.
-     * @param validRevisions set of revisions already checked against
-     *                       <code>readRevision</code> and considered valid.
+     * @param validRevisions map of revisions to commit value already checked
+     *                       against <code>readRevision</code> and considered
+     *                       valid.
      * @return <code>true</code> if the revision is valid; <code>false</code>
      *         otherwise.
      */
@@ -497,8 +497,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                             @Nonnull Revision rev,
                             @Nullable String commitValue,
                             @Nonnull Revision readRevision,
-                            @Nonnull Set<Revision> validRevisions) {
-        if (validRevisions.contains(rev)) {
+                            @Nonnull Map<Revision, String> validRevisions) {
+        if (validRevisions.containsKey(rev)) {
             return true;
         }
         NodeDocument doc = getCommitRoot(rev);
@@ -506,7 +506,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return false;
         }
         if (doc.isCommitted(context, rev, commitValue, readRevision)) {
-            validRevisions.add(rev);
+            validRevisions.put(rev, commitValue);
             return true;
         }
         return false;
@@ -529,7 +529,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public DocumentNodeState getNodeAtRevision(@Nonnull DocumentNodeStore nodeStore,
                                                @Nonnull Revision readRevision,
                                                @Nullable Revision lastModified) {
-        Set<Revision> validRevisions = new HashSet<Revision>();
+        Map<Revision, String> validRevisions = Maps.newHashMap();
         Revision min = getLiveRevision(nodeStore, readRevision, validRevisions);
         if (min == null) {
             // deleted
@@ -615,14 +615,14 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @param context the revision context
      * @param maxRev the maximum revision to return
-     * @param validRevisions the set of revisions already checked against maxRev
-     *            and considered valid.
+     * @param validRevisions the map of revisions to commit value already
+     *                       checked against maxRev and considered valid.
      * @return the earliest revision, or null if the node is deleted at the
      *         given revision
      */
     @CheckForNull
     public Revision getLiveRevision(RevisionContext context, Revision maxRev,
-                                    Set<Revision> validRevisions) {
+                                    Map<Revision, String> validRevisions) {
         // check local deleted map first
         Value value = getLatestValue(context, getLocalDeleted(),
                 null, maxRev, validRevisions);
@@ -1227,8 +1227,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param valueMap the sorted revision-value map
      * @param min the minimum revision (null meaning unlimited)
      * @param readRevision the maximum revision
-     * @param validRevisions set of revision considered valid against the given
-     *                       readRevision.
+     * @param validRevisions map of revision to commit value considered valid
+     *                       against the given readRevision.
      * @return the value, or null if not found
      */
     @CheckForNull
@@ -1236,7 +1236,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                  @Nonnull Map<Revision, String> valueMap,
                                  @Nullable Revision min,
                                  @Nonnull Revision readRevision,
-                                 @Nonnull Set<Revision> validRevisions) {
+                                 @Nonnull Map<Revision, String> validRevisions) {
         String value = null;
         Revision latestRev = null;
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
@@ -1246,14 +1246,17 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (isRevisionNewer(context, propRev, readRevision)) {
                 continue;
             }
-            // resolve revision
-            NodeDocument commitRoot = getCommitRoot(propRev);
-            if (commitRoot == null) {
-                continue;
-            }
-            String commitValue = commitRoot.getCommitValue(propRev);
+            String commitValue = validRevisions.get(propRev);
             if (commitValue == null) {
-                continue;
+                // resolve revision
+                NodeDocument commitRoot = getCommitRoot(propRev);
+                if (commitRoot == null) {
+                    continue;
+                }
+                commitValue = commitRoot.getCommitValue(propRev);
+                if (commitValue == null) {
+                    continue;
+                }
             }
             if (min != null && isRevisionNewer(context, min,
                     Utils.resolveCommitRevision(propRev, commitValue))) {
