@@ -29,7 +29,7 @@ public abstract class AbstractDocumentStoreTest {
     protected DocumentStore ds;
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
-        this.ds = dsf.getDocumentStore();
+        this.ds = dsf.createDocumentStore();
         this.dsname = dsf.getName();
     }
 

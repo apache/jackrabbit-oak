@@ -24,6 +24,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
+import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
@@ -31,6 +32,13 @@ import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 
 import static com.google.common.collect.Iterables.transform;
 
+/**
+ * Mongo specific version of VersionGCSupport which uses mongo queries
+ * to fetch required NodeDocuments
+ *
+ * <p>Version collection involves looking into old record and mostly unmodified
+ * documents. In such case read from secondaries are preferred</p>
+ */
 public class MongoVersionGCSupport extends VersionGCSupport {
     private final MongoDocumentStore store;
 
@@ -46,7 +54,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                                 .start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE)
                                 .put(NodeDocument.MODIFIED).lessThan(lastModifiedTime)
                         .get();
-        DBCursor cursor = getNodeCollection().find(query);
+        DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
             @Override
             public NodeDocument apply(DBObject input) {

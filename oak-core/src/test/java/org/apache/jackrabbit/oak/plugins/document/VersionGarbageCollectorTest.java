@@ -71,7 +71,7 @@ public class VersionGarbageCollectorTest {
         clock = new Clock.Virtual();
         store = new DocumentMK.Builder()
                 .clock(clock)
-                .setDocumentStore(fixture.getDocumentStore())
+                .setDocumentStore(fixture.createDocumentStore())
                 .getNodeStore();
         gc = store.getVersionGarbageCollector();
 
@@ -81,7 +81,7 @@ public class VersionGarbageCollectorTest {
 
     @After
     public void tearDown() throws Exception {
-        fixture.dispose();
+        store.dispose();
     }
 
     @Test
@@ -129,9 +129,4 @@ public class VersionGarbageCollectorTest {
         //TODO Add test scenario for deletion along with previous docs
     }
 
-
-    @Test
-    public void sample() throws Exception{
-
-    }
 }
