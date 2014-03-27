@@ -332,15 +332,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-//        if (log.isDebugEnabled()) {
-            log.info("converting filter {}", filter);
-//        }
+        if (log.isDebugEnabled()) {
+            log.debug("converting filter {}", filter);
+        }
         Cursor cursor;
         try {
             SolrQuery query = getQuery(filter);
-//            if (log.isDebugEnabled()) {
-                log.info("sending query {}", query);
-//            }
+            if (log.isDebugEnabled()) {
+                log.debug("sending query {}", query);
+            }
             QueryResponse queryResponse = solrServer.query(query);
             if (log.isDebugEnabled()) {
                 log.debug("getting response {}", queryResponse);
