@@ -114,6 +114,15 @@ public interface DocumentStore {
     <T extends Document> void remove(Collection<T> collection, String key);
 
     /**
+     * Batch remove documents with given key.
+     *
+     * @param <T> the document type
+     * @param collection the collection
+     * @param keys list of keys
+     */
+    <T extends Document> void remove(Collection<T> collection, List<String> keys);
+
+    /**
      * Try to create a list of documents.
      *
      * @param <T> the document type

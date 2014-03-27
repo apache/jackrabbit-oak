@@ -68,6 +68,13 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public synchronized <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+        for(String key : keys){
+            remove(collection, key);
+        }
+    }
+
+    @Override
     public synchronized <T extends Document> boolean create(final Collection<T> collection, final List<UpdateOp> updateOps) {
         return store.create(collection, updateOps);
     }
