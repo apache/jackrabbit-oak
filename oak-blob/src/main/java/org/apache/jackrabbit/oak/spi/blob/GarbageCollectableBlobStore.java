@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * A blob store that support garbage collection.
+ * A blob store that supports garbage collection.
  */
 public interface GarbageCollectableBlobStore extends BlobStore {
 
@@ -49,12 +49,12 @@ public interface GarbageCollectableBlobStore extends BlobStore {
      * @return the number of removed blocks
      */
     int sweep() throws IOException;
-    
+
     /**
      * Start the mark phase.
      */
     void startMark() throws IOException;
-    
+
     /**
      * Clear all objects marked as "transiently in use".
      */
