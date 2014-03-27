@@ -176,10 +176,10 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             if (i == 0) {
                 queryBuilder.append("(");
             }
-            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
-            if (i > 0 && i < pts.length - 1) {
+            if (i > 0 && i < pts.length) {
                 queryBuilder.append("OR ");
             }
+            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
             if (i == pts.length - 1) {
                 queryBuilder.append(")");
                 queryBuilder.append(' ');
@@ -332,15 +332,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        if (log.isDebugEnabled()) {
-            log.debug("converting filter {}", filter);
-        }
+//        if (log.isDebugEnabled()) {
+            log.info("converting filter {}", filter);
+//        }
         Cursor cursor;
         try {
             SolrQuery query = getQuery(filter);
-            if (log.isDebugEnabled()) {
-                log.debug("sending query {}", query);
-            }
+//            if (log.isDebugEnabled()) {
+                log.info("sending query {}", query);
+//            }
             QueryResponse queryResponse = solrServer.query(query);
             if (log.isDebugEnabled()) {
                 log.debug("getting response {}", queryResponse);
