@@ -75,6 +75,11 @@ class Checkpoints {
         Document cdoc = store.find(Collection.SETTINGS, ID, 0);
         SortedMap<Revision, String> checkpoints = (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
 
+        if(checkpoints == null){
+            log.debug("No checkpoint registered so far");
+            return null;
+        }
+
         final long currentTime = nodeStore.getClock().getTime();
         UpdateOp op = new UpdateOp(ID, false);
         Revision lastAliveRevision = null;
