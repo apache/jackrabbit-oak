@@ -139,6 +139,14 @@ public class MongoDocumentStore implements CachingDocumentStore {
         options.put("sparse", Boolean.TRUE);
         this.nodes.ensureIndex(index, options);
 
+        index = new BasicDBObject();
+        index.put(NodeDocument.DELETED_ONCE, 1);
+        options = new BasicDBObject();
+        options.put("unique", Boolean.FALSE);
+        options.put("sparse", Boolean.TRUE);
+        this.nodes.ensureIndex(index, options);
+
+
         // TODO expire entries if the parent was changed
         if (builder.useOffHeapCache()) {
             nodesCache = createOffHeapCache(builder);

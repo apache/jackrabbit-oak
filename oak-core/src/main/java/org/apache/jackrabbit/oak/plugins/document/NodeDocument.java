@@ -69,6 +69,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     static final Logger LOG = LoggerFactory.getLogger(NodeDocument.class);
 
     /**
+     * All NodeDocument ID value would be greater than this value
+     * It can be used as startKey in DocumentStore#query methods
+     */
+    public static final String MIN_ID_VALUE = "0000000";
+
+    /**
+     * All NodeDocument ID value would be less than this value
+     * It can be used as endKey in DocumentStore#query methods
+     */
+    public static final String MAX_ID_VALUE = ";";
+
+    /**
      * A size threshold after which to consider a document a split candidate.
      * TODO: check which value is the best one
      */
@@ -137,6 +149,16 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     private static final String DELETED = "_deleted";
 
     /**
+     * Flag indicating that whether this node was ever deleted.
+     * Its just used as a hint. If set to true then it indicates that
+     * node was once deleted.
+     *
+     * <p>Note that a true value does not mean that node should be considered
+     * deleted as it might have been resurrected in later revision</p>
+     */
+    public static final String DELETED_ONCE = "_deletedOnce";
+
+    /**
      * The list of recent revisions for this node, where this node is the
      * root of the commit.
      * <p>
@@ -177,7 +199,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
             ID, MOD_COUNT, MODIFIED, PREVIOUS, LAST_REV, CHILDREN_FLAG,
-            HAS_BINARY_FLAG, PATH);
+            HAS_BINARY_FLAG, PATH, DELETED_ONCE);
 
     public static final long HAS_BINARY_VAL = 1;
 
@@ -238,11 +260,33 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
-     * @return the approximate number of children for this node.
+     * Returns <tt>true</tt> if this node possibly has children
+     *
+     * @return <tt>true</tt> if this node has children
      */
     public boolean hasChildren() {
         Boolean childrenFlag = (Boolean) get(CHILDREN_FLAG);
         return childrenFlag != null && childrenFlag;
+    }
+
+    /**
+     * Returns <tt>true</tt> if this document was ever deleted in past.
+     */
+    public boolean wasDeletedOnce() {
+        Boolean deletedOnceFlag = (Boolean) get(DELETED_ONCE);
+        return deletedOnceFlag != null && deletedOnceFlag;
+    }
+
+    /**
+     * Checks if this document has been modified after the given lastModifiedTime
+     *
+     * @param lastModifiedTime time to compare against
+     * @return <tt>true</tt> if this document was modified after the given
+     *  lastModifiedTime
+     */
+    public boolean hasBeenModifiedSince(long lastModifiedTime){
+        Long modified = (Long) get(MODIFIED);
+        return modified != null && modified > lastModifiedTime;
     }
 
     /**
@@ -912,6 +956,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                         Revision r = input.getKey();
                         int h = input.getValue().height;
                         String prevId = Utils.getPreviousIdFor(mainPath, r, h);
+                        //TODO Use the maxAge variant such that in case of Mongo call for
+                        //previous doc are directed towards replicas first
                         NodeDocument prev = store.find(Collection.NODES, prevId);
                         if (prev != null) {
                             return prev;
@@ -928,6 +974,38 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 }
             });
         }
+    }
+
+    @Nonnull
+    Iterable<NodeDocument> getAllPreviousDocs() {
+        if (getPreviousRanges().isEmpty()) {
+            return Collections.emptyList();
+        }
+        final String mainPath = getMainPath();
+        return filter(transform(getPreviousRanges().entrySet(),
+                new Function<Map.Entry<Revision, Range>, NodeDocument>() {
+                    @Override
+                    public NodeDocument apply(Map.Entry<Revision, Range> input) {
+                        Revision r = input.getKey();
+                        int h = input.getValue().height;
+                        String prevId = Utils.getPreviousIdFor(mainPath, r, h);
+                        //TODO Use the maxAge variant such that in case of Mongo call for
+                        //previous doc are directed towards replicas first
+                        NodeDocument prev = store.find(Collection.NODES, prevId);
+                        if (prev != null) {
+                            return prev;
+                        } else {
+                            LOG.warn("Document with previous revisions not found: " + prevId);
+                        }
+                        return null;
+                    }
+                }
+        ), new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(@Nullable NodeDocument input) {
+                return input != null;
+            }
+        });
     }
 
     /**
@@ -1034,6 +1112,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static void setDeleted(@Nonnull UpdateOp op,
                                   @Nonnull Revision revision,
                                   boolean deleted) {
+        if(deleted) {
+            //DELETED_ONCE would be set upon every delete.
+            //possibly we can avoid that
+            checkNotNull(op).set(DELETED_ONCE, Boolean.TRUE);
+        }
         checkNotNull(op).setMapEntry(DELETED, checkNotNull(revision),
                 String.valueOf(deleted));
     }
