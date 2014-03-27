@@ -16,162 +16,115 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import java.util.Calendar;
+import static com.google.common.collect.Lists.newArrayList;
+
+import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.commons.io.output.NullOutputStream;
+import org.apache.jackrabbit.commons.JcrUtils;
+
 /**
- * Test case that writes blobs concurrently and concurrently reads the blobs back when available.
+ * Test case that writes blobs concurrently and concurrently reads
+ * the blobs back when available.
  */
 public class ConcurrentFileWriteTest extends AbstractTest {
 
-    private static final String NT_FOLDER = "nt:folder";
-    private static final String NT_FILE = "nt:file";
-    private static final String NT_RESOURCE = "nt:resource";
-    private static final String JCR_DATA = "jcr:data";
-    private static final String JCR_CONTENT = "jcr:content";
-    private static final String JCR_MIME_TYPE = "jcr:mimeType";
-    private static final String JCR_LAST_MOD = "jcr:lastModified";
-
     private static final int FILE_SIZE = Integer.getInteger("fileSize", 1900);
-
-    private static final int FILE_COUNT = Integer.getInteger("fileCount", 10);
 
     private static final int WRITERS = Integer.getInteger("fileWriters", 50);
 
     private static final int READERS = Integer.getInteger("fileReaders", 50);
 
-    protected static final String ROOT_NODE_NAME = "concurrentFileWriteTest" + TEST_ID;
+    protected static final String ROOT_NODE_NAME =
+            "concurrentFileWriteTest" + TEST_ID;
 
-    private Session session;
+    private final Random random = new Random();
+
+    private final List<String> paths = newArrayList();
+
+    private Writer writer;
 
     @Override
-    public void beforeTest() {
-        session = loginWriter();
-        try {
-            session.getRootNode().addNode(ROOT_NODE_NAME, NT_FOLDER);
-            session.save();
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void beforeSuite() throws RepositoryException {
+        Session session = loginWriter();
+        session.getRootNode().addNode(ROOT_NODE_NAME, "oak:Unstructured");
+        session.save();
+
+        this.writer = new Writer(0);
+        writer.run();
+
+        for (int i = 1; i < WRITERS; i++) {
+            addBackgroundJob(new Writer(i));
+        }
+        for (int i = 0; i < READERS; i++) {
+            addBackgroundJob(new Reader());
         }
     }
 
     @Override
     public void runTest() throws Exception {
-        // randomize the root folder for this run of the test
-        String runId = String.valueOf((new Random()).nextInt());
-        session.getRootNode().getNode(ROOT_NODE_NAME).addNode(runId, NT_FOLDER);
-        session.save();
-
-        CountDownLatch writersStopLatch = new CountDownLatch(WRITERS);
-        AtomicBoolean stopReadersFlag = new AtomicBoolean(false);
-
-        for (int i = 0; i < WRITERS; i++) {
-            Thread t = new Thread(new Writer(writersStopLatch, i, runId),
-                            "ConcurrentFileWriteTest-Writer-" + i);
-            t.start();
-        }
-
-        for (int i = 0; i < READERS; i++) {
-            Thread t = new Thread(new Reader(i, stopReadersFlag, runId),
-                            "ConcurrentFileWriteTest-Reader-" + i);
-            t.start();
-        }
-        writersStopLatch.await();
-        stopReadersFlag.set(true);
+        writer.run();
     }
 
-    @Override
-    public void afterTest() throws RepositoryException {
-        session.refresh(true);
-        if (session.getRootNode().hasNode(ROOT_NODE_NAME)) {
-            session.getRootNode().getNode(ROOT_NODE_NAME).remove();
-        }
-        session.save();
+    private synchronized String getRandomPath() {
+        return paths.get(random.nextInt(paths.size()));
     }
 
-    class Reader implements Runnable {
-        private int id;
-        private Session session;
-        private AtomicBoolean stopFlag;
-        private String runId;
+    private synchronized void addPath(String path) {
+        paths.add(path);
+    }
 
-        public Reader(int id, AtomicBoolean stopFlag, String runId) {
+    private class Reader implements Runnable {
+
+        private final Session session = loginWriter();
+
+        @Override
+        public void run() {
+            try {
+                String path = getRandomPath();
+                session.refresh(false);
+                JcrUtils.readFile(
+                        session.getNode(path), new NullOutputStream());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private class Writer implements Runnable {
+
+        private final Node parent;
+
+        private final int id;
+
+        private long counter = 0;
+
+        Writer(int id) throws RepositoryException {
+            this.parent = loginWriter().getRootNode().getNode(ROOT_NODE_NAME);
             this.id = id;
-            session = loginWriter();
-            this.stopFlag = stopFlag;
-            this.runId = runId;
         }
 
         @Override
         public void run() {
-            readFile();
-        }
-
-        private void readFile() {
-            for (int i = 0; i < FILE_COUNT && !stopFlag.get(); i++) {
-                try {
-                    Node fileRoot = session.getRootNode().getNode(ROOT_NODE_NAME);
-                    String fileid = "file" + id + "-" + i;
-
-                    while (!stopFlag.get() && !fileRoot.hasNode(fileid)) {
-                        Thread.sleep(50);
-                    }
-
-                    if (!stopFlag.get()) {
-                        session.getRootNode().getNode(ROOT_NODE_NAME).getNode(runId).getNode(fileid)
-                                .getNode(JCR_CONTENT).getProperty(JCR_DATA).getBinary();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            try {
+                parent.getSession().refresh(false);
+                Node file = JcrUtils.putFile(
+                        parent, "file" + id + "-" + counter++,
+                        "application/octet-stream",
+                        new TestInputStream(FILE_SIZE * 1024));
+                parent.getSession().save();
+                addPath(file.getPath());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
-    }
 
-    class Writer implements Runnable {
-        private Session session;
-        private CountDownLatch latch;
-        private int id;
-        private String runId;
-
-        public Writer(CountDownLatch stopLatch, int id, String runId) throws Exception {
-            latch = stopLatch;
-            session = loginWriter();
-            this.id = id;
-            this.runId = runId;
-        }
-
-        @Override
-        public void run() {
-            createFile();
-            latch.countDown();
-        }
-
-        @SuppressWarnings("deprecation")
-        private void createFile() {
-            for (int i = 0; i < FILE_COUNT; i++) {
-                try {
-                    session.refresh(false);
-
-                    Node file =
-                            session.getRootNode().getNode(ROOT_NODE_NAME).getNode(runId)
-                                    .addNode("file" + id + "-" + i, NT_FILE);
-                    Node content = file.addNode(JCR_CONTENT, NT_RESOURCE);
-                    content.setProperty(JCR_MIME_TYPE, "application/octet-stream");
-                    content.setProperty(JCR_LAST_MOD, Calendar.getInstance());
-                    content.setProperty(JCR_DATA, new TestInputStream(FILE_SIZE * 1024));
-                    session.save();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 
 }
