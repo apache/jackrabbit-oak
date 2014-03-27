@@ -19,9 +19,9 @@
 package org.apache.jackrabbit.oak.spi.security;
 
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.annotation.Nonnull;
 
@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
  */
 public abstract class CompositeConfiguration<T extends SecurityConfiguration> implements SecurityConfiguration {
 
-    private final List<T> configurations = new ArrayList<T>();
+    private final List<T> configurations = new CopyOnWriteArrayList<T>();
 
     private final String name;
     private final SecurityProvider securityProvider;
