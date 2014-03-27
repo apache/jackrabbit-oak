@@ -62,6 +62,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
     private static final String TEST_NODE = "test_node";
+    private static final String TEST_NODE_TYPE = "oak:Unstructured";
     private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
@@ -85,7 +86,7 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         mixTest.setMixin(true);
         ntMgr.registerNodeType(mixTest, false);
 
-        Node n = session.getRootNode().addNode(TEST_NODE);
+        Node n = session.getRootNode().addNode(TEST_NODE, TEST_NODE_TYPE);
         n.addMixin(TEST_TYPE);
         Node refNode = n.addNode(REFERENCEABLE_NODE);
         refNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
