@@ -29,6 +29,8 @@ import static org.junit.Assert.assertEquals;
 
 public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
+    private static final int DEFAULT_EXPIRATION = 2 * 3600 * 1000;
+
     private TokenConfigurationImpl tc;
 
     @Override
@@ -46,7 +48,13 @@ public class TokenConfigurationImplTest extends AbstractSecurityTest {
 
     @Test
     public void testConfigOptions() {
-        int exp = tc.getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, 2 * 3600 * 1000);
+        int exp = tc.getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, DEFAULT_EXPIRATION);
+        assertEquals(60, exp);
+    }
+
+    @Test
+    public void testConfigOptions2() {
+        int exp = getConfig(TokenConfiguration.class).getParameters().getConfigValue(TokenProvider.PARAM_TOKEN_EXPIRATION, DEFAULT_EXPIRATION);
         assertEquals(60, exp);
     }
 }
