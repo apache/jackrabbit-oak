@@ -46,7 +46,9 @@ public abstract class DocumentStoreFixture {
         return true;
     }
 
-    private static class MemoryFixture extends DocumentStoreFixture {
+    public void dispose() throws Exception {}
+
+    public static class MemoryFixture extends DocumentStoreFixture {
 
         DocumentStore ds = new MemoryDocumentStore();
 
@@ -61,7 +63,7 @@ public abstract class DocumentStoreFixture {
         }
     }
 
-    private static class RDBFixture extends DocumentStoreFixture {
+    public static class RDBFixture extends DocumentStoreFixture {
 
         DocumentStore ds;
         String name;
@@ -92,17 +94,22 @@ public abstract class DocumentStoreFixture {
         }
     }
 
-    private static class MongoFixture extends DocumentStoreFixture {
+    public static class MongoFixture extends DocumentStoreFixture {
+        public static final String DEFAULT_URI = "mongodb://localhost:27017/oak-test";
+        private DocumentStore ds;
+        private DB mongoDB;
 
-        DocumentStore ds;
+        public MongoFixture(){
+            this(DEFAULT_URI);
+        }
 
-        public MongoFixture(String db) {
+        public MongoFixture(String dbUri) {
             try {
-                MongoConnection connection = new MongoConnection(db);
-                DB mongoDB = connection.getDB();
+                MongoConnection connection = new MongoConnection(dbUri);
+                this.mongoDB = connection.getDB();
                 this.ds = new MongoDocumentStore(mongoDB, new DocumentMK.Builder());
             } catch (Exception e) {
-                LOG.info("Mongo instance not available at " + db + ", skipping tests...");
+                LOG.trace("Mongo instance not available at " + dbUri + ", skipping tests...");
             }
         }
 
@@ -119,6 +126,11 @@ public abstract class DocumentStoreFixture {
         @Override
         public boolean isAvailable() {
             return this.ds != null;
+        }
+
+        @Override
+        public void dispose() throws Exception {
+            mongoDB.dropDatabase();
         }
     }
 }

@@ -19,13 +19,20 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class VersionGarbageCollector {
     private final DocumentNodeStore nodeStore;
+    private final VersionGCSupport versionStore;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -33,24 +40,58 @@ class VersionGarbageCollector {
 
     VersionGarbageCollector(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
+
+        if(nodeStore.getDocumentStore() instanceof MongoDocumentStore){
+            this.versionStore =
+                    new MongoVersionGCSupport((MongoDocumentStore) nodeStore.getDocumentStore());
+        }else {
+            this.versionStore = new VersionGCSupport(nodeStore.getDocumentStore());
+        }
     }
 
     public VersionGCStats gc() {
         VersionGCStats stats = new VersionGCStats();
-        long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAge;
+        final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAge;
+        final Revision headRevision = nodeStore.getHeadRevision();
 
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
         if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
             log.info("Ignoring version gc as valid checkpoint [{}] found while " +
                             "need to collect versions older than [{}]", checkpoint.toReadableString(),
-                    oldestRevTimeStamp
+                    Revision.timestampToString(oldestRevTimeStamp)
             );
             stats.ignoredGCDueToCheckPoint = true;
             return stats;
         }
 
+        collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
+
         return stats;
+    }
+
+    private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp) {
+        List<String> docIdsToDelete = new ArrayList<String>();
+        Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
+        try {
+            for (NodeDocument doc : itr) {
+                //Check if node is actually deleted at current revision
+                //As node is not modified since oldestRevTimeStamp then
+                //this node has not be revived again in past maxRevisionAge
+                //So deleting it is safe
+                if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
+                    docIdsToDelete.add(doc.getId());
+                    //Collect id of all previous docs also
+                    for (NodeDocument prevDoc : doc.getAllPreviousDocs()) {
+                        docIdsToDelete.add(prevDoc.getId());
+                    }
+                }
+            }
+        } finally {
+            close(itr);
+        }
+        nodeStore.getDocumentStore().remove(Collection.NODES, docIdsToDelete);
+        stats.deletedDocCount += docIdsToDelete.size();
     }
 
     public void setMaxRevisionAge(long maxRevisionAge) {
@@ -59,5 +100,16 @@ class VersionGarbageCollector {
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
+        int deletedDocCount;
+    }
+
+    private void close(Object obj){
+        if(obj instanceof Closeable){
+           try{
+               ((Closeable) obj).close();
+           } catch (IOException e) {
+                log.warn("Error occurred while closing", e);
+           }
+        }
     }
 }
