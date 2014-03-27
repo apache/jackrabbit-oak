@@ -84,6 +84,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             unbind = "unbindPrincipalConfiguration",
             cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositePrincipalConfiguration compositePrincipalConfiguration = new CompositePrincipalConfiguration(this);
+    private volatile PrincipalConfiguration principalConfiguration;
 
     @Reference(referenceInterface = TokenConfiguration.class,
             name = "tokenConfiguration",
@@ -91,6 +92,8 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             unbind = "unbindTokenConfiguration",
             cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositeTokenConfiguration compositeTokenConfiguration = new CompositeTokenConfiguration(this);
+    private volatile TokenConfiguration tokenConfiguration;
+
 
     @Reference(referenceInterface = AuthorizableNodeName.class,
             name = "authorizableNodeName",
@@ -124,9 +127,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         authenticationConfiguration = new AuthenticationConfigurationImpl(this);
         authorizationConfiguration = new AuthorizationConfigurationImpl(this);
         userConfiguration = new UserConfigurationImpl(this);
-        compositePrincipalConfiguration.addConfiguration(new PrincipalConfigurationImpl(this));
+        principalConfiguration = new PrincipalConfigurationImpl(this);
         privilegeConfiguration = new PrivilegeConfigurationImpl();
-        compositeTokenConfiguration.addConfiguration(new TokenConfigurationImpl(this));
+        tokenConfiguration = new TokenConfigurationImpl(this);
     }
 
     @Override
@@ -161,9 +164,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         scs.add(authenticationConfiguration);
         scs.add(authorizationConfiguration);
         scs.add(userConfiguration);
-        scs.add(compositePrincipalConfiguration);
+        scs.add(principalConfiguration);
         scs.add(privilegeConfiguration);
-        scs.add(compositeTokenConfiguration);
+        scs.add(tokenConfiguration);
         return scs;
     }
 
@@ -178,11 +181,11 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         } else if (UserConfiguration.class == configClass) {
             return (T) userConfiguration;
         } else if (PrincipalConfiguration.class == configClass) {
-            return (T) compositePrincipalConfiguration;
+            return (T) principalConfiguration;
         } else if (PrivilegeConfiguration.class == configClass) {
             return (T) privilegeConfiguration;
         } else if (TokenConfiguration.class == configClass) {
-            return (T) compositeTokenConfiguration;
+            return (T) tokenConfiguration;
         } else {
             throw new IllegalArgumentException("Unsupported security configuration class " + configClass);
         }
@@ -221,6 +224,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         initConfiguration(userConfiguration, ConfigurationParameters.of(userMap));
 
         initConfiguration(privilegeConfiguration, ConfigurationParameters.EMPTY);
+
+        principalConfiguration = compositePrincipalConfiguration;
+        tokenConfiguration = compositeTokenConfiguration;
     }
 
     protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
