@@ -150,6 +150,13 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
+    @Override
+    public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+        for(String key : keys){
+            remove(collection, key);
+        }
+    }
+
     @CheckForNull
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)

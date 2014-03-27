@@ -140,6 +140,14 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+        //TODO Logging
+        for(String key : keys){
+            remove(collection, key);
+        }
+    }
+
+    @Override
     public <T extends Document> boolean create(final Collection<T> collection,
                                                final List<UpdateOp> updateOps) {
         try {

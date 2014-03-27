@@ -177,6 +177,14 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+        //TODO Timing
+        for(String key : keys){
+            remove(collection, key);
+        }
+    }
+
+    @Override
     public <T extends Document> boolean create(Collection<T> collection, List<UpdateOp> updateOps) {
         try {
             long start = now();
