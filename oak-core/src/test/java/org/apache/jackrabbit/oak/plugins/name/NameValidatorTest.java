@@ -49,6 +49,21 @@ public class NameValidatorTest {
         validator.childNodeAdded("invalid:name", EMPTY_NODE);
     }
 
+    @Test(expected = CommitFailedException.class)
+    public void testTrailingWhitespace() throws CommitFailedException {
+        validator.childNodeAdded("name ", EMPTY_NODE);
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testLeadingWhitespace() throws CommitFailedException {
+        validator.childNodeAdded(" name", EMPTY_NODE);
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testOnlyWhitespace() throws CommitFailedException {
+        validator.childNodeAdded(" ", EMPTY_NODE);
+    }
+
     @Test
     public void testValidPrefix() throws CommitFailedException {
         validator.childNodeAdded("valid:name", EMPTY_NODE);
