@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -353,38 +354,82 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-        PreparedStatement prep = null;
+        return new ChunkIdIterator(this.connection, maxLastModifiedTime);
+    }
 
-        if (maxLastModifiedTime > 0) {
-            prep = connection.prepareStatement(
-                    "select id from datastore_meta where lastMod <= ?");
-            prep.setLong(1, maxLastModifiedTime);
-        } else {
-            prep = connection.prepareStatement(
-                    "select id from datastore_meta");
+
+    /**
+     * Reads chunk IDs in batches.
+     */
+    private static class ChunkIdIterator extends AbstractIterator<String> {
+
+        private long maxLastModifiedTime;
+        private Connection connection;
+        private static int BATCHSIZE = 1024 * 256;
+        private List<String> results = new LinkedList<String>();
+        private String lastId = null;
+
+        public ChunkIdIterator(Connection connection, long maxLastModifiedTime) {
+            this.maxLastModifiedTime = maxLastModifiedTime;
+            this.connection = connection;
         }
 
-        final ResultSet rs = prep.executeQuery();
-
-        return new AbstractIterator<String>() {
-            protected String computeNext() {
-                try {
-                    if (rs.next()) {
-                        return rs.getString(1);
-                    } else {
-                        rs.close();
-                    }
-                } catch (SQLException e) {
-                    try {
-                        if ((rs != null) && !rs.isClosed()) {
-                            rs.close();
-                        }
-                    } catch (Exception e2) {
-                    }
-                    throw new RuntimeException(e);
+        @Override
+        protected String computeNext() {
+            if (!results.isEmpty()) {
+                return results.remove(0);
+            } else {
+                // need to refill
+                if (refill()) {
+                    return computeNext();
+                } else {
+                    return endOfData();
                 }
-                return endOfData();
             }
-        };
+        }
+
+        private boolean refill() {
+            StringBuffer query = new StringBuffer();
+            query.append("select id from datastore_meta");
+            if (maxLastModifiedTime > 0) {
+                query.append(" where lastMod <= ?");
+                if (lastId != null) {
+                    query.append(" and id > ?");
+                }
+            } else {
+                if (lastId != null) {
+                    query.append(" where id > ?");
+                }
+            }
+            query.append(" order by id limit " + BATCHSIZE);
+
+            try {
+                try {
+                    PreparedStatement prep = connection.prepareStatement(query.toString());
+                    int idx = 1;
+                    if (maxLastModifiedTime > 0) {
+                        prep.setLong(idx++, maxLastModifiedTime);
+                    }
+                    if (lastId != null) {
+                        prep.setString(idx++, lastId);
+                    }
+
+                    ResultSet rs = prep.executeQuery();
+                    while (rs.next()) {
+                        lastId = rs.getString(1);
+                        results.add(lastId);
+                    }
+                    return !results.isEmpty();
+                } finally {
+                    connection.commit();
+                }
+            } catch (SQLException ex) {
+                try {
+                    connection.rollback();
+                } catch (SQLException e) {
+                }
+                return false;
+            }
+        }
     }
 }
