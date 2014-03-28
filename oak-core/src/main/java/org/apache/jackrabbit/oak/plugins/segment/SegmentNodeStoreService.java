@@ -127,7 +127,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         }
 
         Dictionary<?, ?> properties = context.getProperties();
-        name = "" + properties.get(NAME);
+        name = String.valueOf(properties.get(NAME));
 
         String directory = lookup(context, DIRECTORY);
         if (directory == null) {
@@ -175,7 +175,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         if (blobStore instanceof GarbageCollectableBlobStore) {
             MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-//            gc.init(delegate);  FIXME OAK-1582 ClassCastException in MarkSweepGarbageCollector#init()
+            gc.init(new SegmentBlobReferenceRetriever(store.getTracker()), 
+                        (GarbageCollectableBlobStore) blobStore);
             blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Segment node store blob garbage collection");
         }

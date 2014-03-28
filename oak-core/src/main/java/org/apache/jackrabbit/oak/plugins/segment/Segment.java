@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 import com.google.common.base.Charsets;

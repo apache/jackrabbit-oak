@@ -31,9 +31,9 @@ import com.google.common.collect.Sets;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -92,9 +92,10 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
     public void gc() throws Exception {
         HashSet<String> set = setUp();
 
-        DocumentNodeStore s = mk.getNodeStore();
+        DocumentNodeStore store = mk.getNodeStore();
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-        gc.init(s, "./target", 2048, true, 2, 0);
+        gc.init(new DocumentBlobReferenceRetriever(store.getReferencedBlobsIterator()),
+                (GarbageCollectableBlobStore) store.getBlobStore(), "./target", 2048, true, 2, 0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();
@@ -109,7 +110,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
 
         Set<String> existing = Sets.newHashSet();
         while (cur.hasNext()) {
-            existing.add((String) cur.next());
+            existing.add(cur.next());
         }
         return existing;
     }

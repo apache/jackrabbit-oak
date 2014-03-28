@@ -26,6 +26,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+
 /**
  * Tracker of references to segment identifiers and segment instances
  * that are currently kept in memory.
