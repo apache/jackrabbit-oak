@@ -28,6 +28,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
@@ -122,9 +123,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     static final String COLLISIONS = "_collisions";
 
     /**
-     * The modified time (5 second resolution).
+     * The modified time in seconds (5 second resolution).
      */
-    public static final String MODIFIED = "_modified";
+    public static final String MODIFIED_IN_SECS = "_modified";
 
     private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
             Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>());
@@ -213,7 +214,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * Property name which refers to timestamp (long) of the latest revision kept
      * in the document
      */
-    public static final String SD_MAX_REV_TS = "_sdMaxRevTs";
+    public static final String SD_MAX_REV_TIME_IN_SECS = "_sdMaxRevTime";
 
     /**
      * A document which is created from splitting a main document can be classified
@@ -270,7 +271,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * Properties to ignore when a document is split.
      */
     private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
-            ID, MOD_COUNT, MODIFIED, PREVIOUS, LAST_REV, CHILDREN_FLAG,
+            ID, MOD_COUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
             HAS_BINARY_FLAG, PATH, DELETED_ONCE);
 
     public static final long HAS_BINARY_VAL = 1;
@@ -353,13 +354,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Checks if this document has been modified after the given lastModifiedTime
      *
-     * @param lastModifiedTime time to compare against
+     * @param lastModifiedTime time to compare against in millis
      * @return <tt>true</tt> if this document was modified after the given
      *  lastModifiedTime
      */
     public boolean hasBeenModifiedSince(long lastModifiedTime){
-        Long modified = (Long) get(MODIFIED);
-        return modified != null && modified > lastModifiedTime;
+        Long modified = (Long) get(MODIFIED_IN_SECS);
+        return modified != null && modified > TimeUnit.MILLISECONDS.toSeconds(lastModifiedTime);
     }
 
     /**
@@ -1142,7 +1143,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setModified(@Nonnull UpdateOp op,
                                    @Nonnull Revision revision) {
-        checkNotNull(op).set(MODIFIED, Commit.getModified(checkNotNull(revision).getTimestamp()));
+        checkNotNull(op).set(MODIFIED_IN_SECS, Commit.getModifiedInSecs(checkNotNull(revision).getTimestamp()));
     }
 
     public static void setRevision(@Nonnull UpdateOp op,
@@ -1241,7 +1242,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     private static void setSplitDocMaxRev(@Nonnull UpdateOp op,
                                           @Nonnull Revision maxRev) {
-        checkNotNull(op).set(SD_MAX_REV_TS, maxRev.getTimestamp());
+        checkNotNull(op).set(SD_MAX_REV_TIME_IN_SECS, Commit.getModifiedInSecs(maxRev.getTimestamp()));
     }
 
     //----------------------------< internal >----------------------------------

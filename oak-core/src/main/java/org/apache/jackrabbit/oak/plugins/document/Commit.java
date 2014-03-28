@@ -84,11 +84,16 @@ public class Commit {
         return op;
     }
 
-    public static long getModified(long timestamp) {
+    /**
+     * Return time in seconds with 5 second resolution
+     *
+     * @param timestamp time in millis to convert
+     * @return
+     */
+    public static long getModifiedInSecs(long timestamp) {
         // 5 second resolution
         long timeInSec = TimeUnit.MILLISECONDS.toSeconds(timestamp);
-        timeInSec = timeInSec - timeInSec % 5;
-        return TimeUnit.SECONDS.toMillis(timeInSec);
+        return timeInSec - timeInSec % 5;
     }
 
     /**

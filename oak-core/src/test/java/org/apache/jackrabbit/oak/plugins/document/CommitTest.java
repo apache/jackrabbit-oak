@@ -27,10 +27,10 @@ public class CommitTest {
 
     @Test
     public void testModifiedTime(){
-        assertEquals(10000, Commit.getModified(10000));
-        assertEquals(10000, Commit.getModified(10003));
-        assertEquals(10000, Commit.getModified(12000));
-        assertEquals(15000, Commit.getModified(15000));
-        assertEquals(15000, Commit.getModified(15006));
+        assertEquals(10, Commit.getModifiedInSecs(10000));
+        assertEquals(10, Commit.getModifiedInSecs(10003));
+        assertEquals(10, Commit.getModifiedInSecs(12000));
+        assertEquals(15, Commit.getModifiedInSecs(15000));
+        assertEquals(15, Commit.getModifiedInSecs(15006));
     }
 }
