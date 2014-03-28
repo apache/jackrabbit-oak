@@ -66,7 +66,6 @@ public class ConcurrentReadIT extends AbstractRepositoryTest {
                 futures.add(executorService.submit(new Callable<Void>() {
                     @Override
                     public Void call() throws Exception {
-                        // FIXME: OAK-1600
                         for (int k = 0; k < 10000; k++) {
                             session.refresh(false);
                             NodeIterator children = testRoot.getNodes();
