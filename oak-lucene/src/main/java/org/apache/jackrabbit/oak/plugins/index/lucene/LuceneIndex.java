@@ -51,12 +51,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -64,7 +68,10 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.Cursors.PathCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -354,7 +361,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                 IndexReader reader = DirectoryReader.open(directory);
                 try {
                     IndexSearcher searcher = new IndexSearcher(reader);
-                    Collection<String> paths = new ArrayList<String>();
+                    List<LuceneResultRow> rows = new ArrayList<LuceneResultRow>();
                     Query query = getQuery(filter, reader,
                             nonFullTextConstraints, analyzer);
 
@@ -390,13 +397,16 @@ public class LuceneIndex implements FulltextQueryIndex {
                                     seenPaths.add(path);
                                 }
 
-                                paths.add(path);
+                                LuceneResultRow r = new LuceneResultRow();
+                                r.path = path;
+                                r.score = doc.score;
+                                rows.add(r);
                             }
                         }
                     }
                     LOG.debug("query via {} took {} ms.", this,
                             System.currentTimeMillis() - s);
-                    return newPathCursor(paths, settings);
+                    return new LucenePathCursor(rows, settings);
                 } finally {
                     reader.close();
                 }
@@ -867,6 +877,81 @@ public class LuceneIndex implements FulltextQueryIndex {
     @Override
     public NodeAggregator getNodeAggregator() {
         return aggregator;
+    }
+    
+    static class LuceneResultRow {
+        String path;
+        double score;
+    }
+    
+    /**
+     * A cursor over Lucene results. The result includes the path,
+     * and the jcr:score pseudo-property as returned by Lucene.
+     */
+    static class LucenePathCursor implements Cursor {
+        
+        private final Cursor pathCursor;
+        LuceneResultRow currentRow;
+        
+        LucenePathCursor(List<LuceneResultRow> list, QueryEngineSettings settings) {
+            
+            final Iterator<LuceneResultRow> it = list.iterator();
+            
+            Iterator<String> pathIterator = new Iterator<String>() {
+
+                @Override
+                public boolean hasNext() {
+                    return it.hasNext();
+                }
+
+                @Override
+                public String next() {
+                    currentRow = it.next(); 
+                    return currentRow.path;
+                }
+
+                @Override
+                public void remove() {
+                    it.remove();
+                }
+                
+            };
+            pathCursor = new PathCursor(pathIterator, true, settings);
+        }
+        
+
+        @Override
+        public boolean hasNext() {
+            return pathCursor.hasNext();
+        }
+
+        @Override
+        public void remove() {
+            pathCursor.remove();
+        }
+
+        @Override
+        public IndexRow next() {
+            final IndexRow pathRow = pathCursor.next();
+            return new IndexRow() {
+
+                @Override
+                public String getPath() {
+                    return pathRow.getPath();
+                }
+
+                @Override
+                public PropertyValue getValue(String columnName) {
+                    // overlay the score
+                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                        return PropertyValues.newDouble(currentRow.score);
+                    }
+                    return pathRow.getValue(columnName);
+                }
+                
+            };
+        }
+        
     }
 
 }

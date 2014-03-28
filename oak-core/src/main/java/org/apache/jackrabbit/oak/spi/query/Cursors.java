@@ -153,7 +153,7 @@ public class Cursors {
      * <code>PathCursor</code> implements a simple {@link Cursor} that iterates
      * over a {@link String} based path {@link Iterable}.
      */
-    private static class PathCursor extends AbstractCursor {
+    public static class PathCursor extends AbstractCursor {
 
         private final Iterator<String> iterator;
 

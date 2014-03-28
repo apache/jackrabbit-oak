@@ -223,7 +223,11 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> executeQuery(String query, String language) {
-        return executeQuery(query, language, false);
+        boolean pathsOnly = false;
+        if (language.equals(QueryEngineImpl.XPATH)) {
+            pathsOnly = true;
+        }
+        return executeQuery(query, language, pathsOnly);
     }
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly) {

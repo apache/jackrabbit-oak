@@ -27,11 +27,11 @@
 commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
 
 xpath /jcr:root/test/a[rep:native('solr', 'name:(Hello OR World)')]
-/test/a, null, null
+/test/a
 
 xpath //*[rep:native('solr', 'name:(Hello OR World)')]
-/test/a, null, null
-/test/b, null, null
+/test/a
+/test/b
 
 select [jcr:path] from [nt:base]
   where native('solr', 'name:(Hello OR World)')

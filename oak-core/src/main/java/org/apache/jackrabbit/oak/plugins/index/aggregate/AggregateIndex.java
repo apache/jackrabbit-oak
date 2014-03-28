@@ -23,6 +23,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -165,9 +165,14 @@ public class AggregateIndex implements FulltextQueryIndex {
         private boolean closed;
 
         /**
-         * current item of the cursor
+         * the current row
          */
-        private String item;
+        private IndexRow currentRow;
+
+        /**
+         * the path of the current item of the cursor
+         */
+        private String currentPath;
 
         /**
          * all of the item's known aggregates
@@ -197,14 +202,14 @@ public class AggregateIndex implements FulltextQueryIndex {
 
         private void fetchNext() {
             if (aggregates != null && aggregates.hasNext()) {
-                item = aggregates.next();
+                currentPath = aggregates.next();
                 init = true;
                 return;
             }
             aggregates = null;
             if (cursor.hasNext()) {
-                IndexRow row = cursor.next();
-                String path = row.getPath();
+                currentRow = cursor.next();
+                String path = currentRow.getPath();
                 aggregates = Iterators.filter(Iterators.concat(
                         Iterators.singletonIterator(path),
                         aggregator.getParents(rootState, path)), Predicates
@@ -220,9 +225,27 @@ public class AggregateIndex implements FulltextQueryIndex {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            seenPaths.add(item);
+            seenPaths.add(currentPath);
             init = false;
-            return new IndexRowImpl(item);
+            if (currentRow.getPath().equals(currentPath)) {
+                return currentRow;
+            }
+            // create a new overlayed index row,
+            // where the path is different but all other
+            // properties are kept
+            return new IndexRow() {
+
+                @Override
+                public String getPath() {
+                    return currentPath;
+                }
+
+                @Override
+                public PropertyValue getValue(String columnName) {
+                    return currentRow.getValue(columnName);
+                }
+                
+            };
         }
     }
 
