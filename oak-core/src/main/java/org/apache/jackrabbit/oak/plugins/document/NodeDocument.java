@@ -1066,7 +1066,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
         //Currently this method would fire one query per previous doc
         //If that poses a problem we can try to find all prev doc by relying
-        //on property that all prevDoc id would starts <depth+2>:/path/to/node
+        //on property that all prevDoc id would starts <depth+2>:p/path/to/node
         return new AbstractIterator<NodeDocument>(){
             private Queue<Map.Entry<Revision, Range>> previousRanges =
                     Queues.newArrayDeque(getPreviousRanges().entrySet());
