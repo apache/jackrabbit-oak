@@ -133,7 +133,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
         // index on the _bin flag to faster access nodes with binaries for GC
         index = new BasicDBObject();
-        index.put(NodeDocument.HAS_BINARY_FLAG, Integer.valueOf(1));
+        index.put(NodeDocument.HAS_BINARY_FLAG, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
@@ -141,6 +141,13 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
         index = new BasicDBObject();
         index.put(NodeDocument.DELETED_ONCE, 1);
+        options = new BasicDBObject();
+        options.put("unique", Boolean.FALSE);
+        options.put("sparse", Boolean.TRUE);
+        this.nodes.ensureIndex(index, options);
+
+        index = new BasicDBObject();
+        index.put(NodeDocument.SD_TYPE, 1);
         options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         options.put("sparse", Boolean.TRUE);
