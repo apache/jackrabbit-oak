@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("0.18")
+@Version("0.19")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.plugins.index.solr.util;
 
