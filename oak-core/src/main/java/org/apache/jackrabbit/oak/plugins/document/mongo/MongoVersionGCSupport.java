@@ -19,19 +19,27 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.Set;
+
 import com.google.common.base.Function;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
+import com.mongodb.WriteResult;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Commit;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Iterables.transform;
+import static com.mongodb.QueryBuilder.start;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 
 /**
  * Mongo specific version of VersionGCSupport which uses mongo queries
@@ -41,6 +49,7 @@ import static com.google.common.collect.Iterables.transform;
  * documents. In such case read from secondaries are preferred</p>
  */
 public class MongoVersionGCSupport extends VersionGCSupport {
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final MongoDocumentStore store;
 
     public MongoVersionGCSupport(MongoDocumentStore store) {
@@ -51,8 +60,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public CloseableIterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
         //_deletedOnce == true && _modified < lastModifiedTime
-        DBObject query = QueryBuilder
-                                .start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE)
+        DBObject query =
+                start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE)
                                 .put(NodeDocument.MODIFIED_IN_SECS).lessThan(Commit.getModifiedInSecs(lastModifiedTime))
                         .get();
         DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
@@ -62,6 +71,28 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 return store.convertFromDBObject(Collection.NODES, input);
             }
         }), cursor);
+    }
+
+    @Override
+    public int deleteSplitDocuments(Set<SplitDocType> gcTypes, long oldestRevTimeStamp) {
+        //OR condition has to be first as we have a index for that
+        QueryBuilder orClause = start();
+        for(SplitDocType type : gcTypes){
+            orClause.or(start(NodeDocument.SD_TYPE).is(type.typeCode()).get());
+        }
+        DBObject query = start()
+                .and(
+                    orClause.get(),
+                    start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
+                        .lessThan(Commit.getModifiedInSecs(oldestRevTimeStamp))
+                        .get()
+                ).get();
+        WriteResult writeResult = getNodeCollection().remove(query, WriteConcern.SAFE);
+        if (writeResult.getError() != null) {
+            //TODO This might be temporary error or we fail fast and let next cycle try again
+            log.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
+        }
+        return writeResult.getN();
     }
 
     private DBCollection getNodeCollection(){

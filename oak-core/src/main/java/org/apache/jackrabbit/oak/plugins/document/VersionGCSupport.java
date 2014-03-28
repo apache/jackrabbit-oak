@@ -20,9 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 
 public class VersionGCSupport {
     private final DocumentStore store;
@@ -32,14 +36,29 @@ public class VersionGCSupport {
     }
 
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
-        //Fetch all documents.
-        List<NodeDocument> nodes = store.query(Collection.NODES,NodeDocument.MIN_ID_VALUE,
-                NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
-        return Iterables.filter(nodes, new Predicate<NodeDocument>() {
+        return Iterables.filter(getAllDocuments(), new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
                 return input.wasDeletedOnce() && !input.hasBeenModifiedSince(lastModifiedTime);
             }
         });
+    }
+
+    public int deleteSplitDocuments(Set<SplitDocType> gcTypes, long oldestRevTimeStamp) {
+        List<String> docsToDelete = Lists.newArrayList();
+        for(NodeDocument doc : getAllDocuments()){
+            SplitDocType splitType = doc.getSplitDocType();
+            if(gcTypes.contains(splitType) && doc.hasAllRevisionLessThan(oldestRevTimeStamp)){
+                docsToDelete.add(doc.getId());
+            }
+        }
+        store.remove(Collection.NODES, docsToDelete);
+        return docsToDelete.size();
+    }
+
+    private List<NodeDocument> getAllDocuments() {
+        //Fetch all documents.
+        return store.query(Collection.NODES,NodeDocument.MIN_ID_VALUE,
+                NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
     }
 }

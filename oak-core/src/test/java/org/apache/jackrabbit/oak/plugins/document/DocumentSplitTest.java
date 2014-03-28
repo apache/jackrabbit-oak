@@ -31,6 +31,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -322,6 +325,29 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
         assertEquals(SplitDocType.DEFAULT_NO_CHILD, prevDocs.get(0).getSplitDocType());
+    }
+
+    @Test
+    public void testSplitPropAndCommitOnly() throws Exception{
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        NodeBuilder b1 = ns.getRoot().builder();
+        b1.child("test").child("foo").child("bar");
+        ns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Commit on a node which has a child and where the commit root
+        // is parent
+        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+            b1 = ns.getRoot().builder();
+            b1.child("test").child("foo").setProperty("prop",i);
+            b1.child("test").setProperty("prop",i);
+            ns.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        ns.runBackgroundOperations();
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
+        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        assertEquals(SplitDocType.PROP_COMMIT_ONLY, prevDocs.get(0).getSplitDocType());
     }
 
     @Test
