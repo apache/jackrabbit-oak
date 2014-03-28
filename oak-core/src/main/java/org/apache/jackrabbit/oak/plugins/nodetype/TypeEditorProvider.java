@@ -19,11 +19,9 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
-import java.util.Collections;
 import java.util.Set;
 
 import org.apache.felix.scr.annotations.Component;
@@ -60,38 +58,32 @@ public class TypeEditorProvider implements EditorProvider {
         NodeState afterTypes =
                 after.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
 
-        Set<String> modifiedTypes = Collections.emptySet();
+        String primary = after.getName(JCR_PRIMARYTYPE);
+        Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
+
         TypeRegistration registration = new TypeRegistration();
         afterTypes.compareAgainstBaseState(beforeTypes, registration);
         if (registration.isModified()) {
             afterTypes = registration.apply(builder);
-            modifiedTypes = registration.getModifiedTypes(beforeTypes);
-        }
 
-        String primary = after.getName(JCR_PRIMARYTYPE);
-        Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
-
-        if (primary == null && afterTypes.hasChildNode("rep:root")) {
-            // no primary type on the root node, set the hardcoded default
-            primary = "rep:root";
-            builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
-        }
-
-        Editor editor = new VisibleEditor(
-                new TypeEditor(strict, afterTypes, primary, mixins, builder));
-        if (modifiedTypes.isEmpty()) {
-            return editor;
-        } else {
-            // Some node types were modified, so scan the entire repository
-            // to make sure that the modified type definitions still apply.
-            // TODO: Only check the content that uses the modified node types.
-            CommitFailedException exception =
-                    EditorDiff.process(editor, MISSING_NODE, after);
-            if (exception != null) {
-                throw exception;
+            Set<String> modifiedTypes =
+                    registration.getModifiedTypes(beforeTypes);
+            if (!modifiedTypes.isEmpty()) {
+                // Some node types were modified, so scan the repository
+                // to make sure that the modified definitions still apply.
+                Editor editor = new VisibleEditor(new TypeEditor(
+                        strict, modifiedTypes, afterTypes,
+                        primary, mixins, builder));
+                CommitFailedException exception =
+                        EditorDiff.process(editor, MISSING_NODE, after);
+                if (exception != null) {
+                    throw exception;
+                }
             }
-            return null;
         }
+
+        return new VisibleEditor(new TypeEditor(
+                strict, null, afterTypes, primary, mixins, builder));
     }
 
 }
