@@ -152,7 +152,7 @@ public class SegmentTracker {
         writer.flush(); // force the current segment to have root record info
         while (!queue.isEmpty()) {
             SegmentId id = queue.remove();
-            if (id.isDataSegmentId() && !processed.add(id)) {
+            if (id.isDataSegmentId() && processed.add(id)) {
                 Segment segment = id.getSegment();
 
                 segment.collectBlobReferences(collector);
