@@ -142,14 +142,6 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;
     }
 
-    private void createTables(Connection con, String binaryType) throws SQLException {
-        Statement stmt = con.createStatement();
-        stmt.execute("create table if not exists datastore_meta (id varchar primary key, level int, lastMod bigint)");
-        stmt.execute("create table if not exists datastore_data (id varchar primary key, data " + binaryType + ")");
-        stmt.close();
-        con.commit();
-    }
-
     private long minLastModified;
 
     @Override
