@@ -84,6 +84,33 @@
             <artifactId>oak-core</artifactId>
             <version>${project.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-jcr</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-jcr</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>jackrabbit-jcr-tests</artifactId>
+          <version>${jackrabbit.version}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>jackrabbit-core</artifactId>
+          <version>${jackrabbit.version}</version>
+          <classifier>tests</classifier>
+          <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
