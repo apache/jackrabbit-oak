@@ -58,7 +58,7 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(ImmutableTree parent, PropertyState property, long permissions) {
+    public boolean isGranted(ImmutableTree tree, PropertyState property, long permissions) {
         return true;
     }
 
