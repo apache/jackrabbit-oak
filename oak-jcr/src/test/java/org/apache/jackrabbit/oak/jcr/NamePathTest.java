@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
+
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -26,9 +30,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class NamePathTest extends AbstractRepositoryTest {
 
@@ -129,7 +130,7 @@ public class NamePathTest extends AbstractRepositoryTest {
 
     @Ignore("OAK-1174") // FIXME OAK-1174
     @Test
-    public void testAskeriskInName() throws RepositoryException {
+    public void testAsteriskInName() throws RepositoryException {
         List<String> names = ImmutableList.of(
                 "jcr:con*ent",
                 "jcr:*ontent",
