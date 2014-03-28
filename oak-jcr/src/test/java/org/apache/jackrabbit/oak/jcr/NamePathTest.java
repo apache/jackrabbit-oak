@@ -26,19 +26,27 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableList;
+
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class NamePathTest extends AbstractRepositoryTest {
+public class NamePathTest {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(NamePathTest.class);
+    private Session session;
 
-    public NamePathTest(NodeStoreFixture fixture) {
-        super(fixture);
+    @Before
+    public void setup() throws RepositoryException {
+        session = new Jcr()
+            .with(new OpenSecurityProvider())
+            .createRepository()
+            .login();
+    }
+
+    @After
+    public void teardown() throws RepositoryException {
+        session.logout();
     }
 
     @Test
@@ -47,7 +55,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "//jcr:content",
                 "//content"
         );
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
@@ -59,7 +67,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "jc/r:content",
                 "con/ent"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
@@ -67,7 +75,7 @@ public class NamePathTest extends AbstractRepositoryTest {
         List<String> paths = ImmutableList.of(
                 "/jcr:con:ent"
         );
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
@@ -75,7 +83,7 @@ public class NamePathTest extends AbstractRepositoryTest {
         List<String> names = ImmutableList.of(
                 "jcr:con:ent"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
@@ -85,7 +93,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "/jcr:con]ent",
                 "/con]ent"
         );
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
@@ -111,7 +119,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "jc[r:content",
                 "con[ent"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
@@ -124,7 +132,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "/*ontent",
                 "/conten*"
         );
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
@@ -134,10 +142,10 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "jcr:*ontent",
                 "jcr:conten*",
                 "con*ent",
-                "*ontent", // TODO fails
+                "*ontent",
                 "conten*"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
@@ -150,7 +158,7 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "/conten|",
                 "/con|ent"
                 );
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
@@ -160,10 +168,10 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "jcr:|ontent",
                 "jcr:conten|",
                 "con|ent",
-                "|ontent", //TODO fails
+                "|ontent",
                 "conten|"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
@@ -177,13 +185,13 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "con\tent"
         );
 
-        testPaths(paths, getAdminSession());
+        testPaths(paths);
     }
 
     @Test
     public void testWhitespaceInName() throws Exception {
         List<String> names = ImmutableList.of(
-//                "jcr:content ",  // FIXME OAK-1174
+                "jcr:content ",
                 "content ",
                 " content",
                 "jcr:content\t",
@@ -191,24 +199,23 @@ public class NamePathTest extends AbstractRepositoryTest {
                 "\tcontent",
                 "con\tent"
         );
-        testNames(names, getAdminSession());
+        testNames(names);
     }
 
     @Test
     public void testSpaceInNames() throws RepositoryException {
-        Session session = getAdminSession();
         Node n = session.getRootNode().addNode("c o n t e n t");
-        Node n2 = session.getNode(n.getPath());
+        session.getNode(n.getPath());
     }
 
 
-    private static void testPaths(List<String> paths, Session session) throws RepositoryException {
+    private void testPaths(List<String> paths) throws RepositoryException {
         for (String path : paths) {
-            testPath(path, session);
+            testPath(path);
         }
     }
 
-    private static void testPath(String path, Session session) throws RepositoryException {
+    private void testPath(String path) throws RepositoryException {
         RepositoryException exception = null;
         try {
             session.itemExists(path);
@@ -225,13 +232,13 @@ public class NamePathTest extends AbstractRepositoryTest {
         }
     }
 
-    private static void testNames(List<String> names, Session session) throws RepositoryException {
+    private void testNames(List<String> names) throws RepositoryException {
         for (String name : names) {
-            testName(name, session);
+            testName(name);
         }
     }
 
-    private static void testName(String name, Session session) throws RepositoryException {
+    private void testName(String name) throws RepositoryException {
         Exception exception = null;
         try {
             session.getRootNode().addNode(name);

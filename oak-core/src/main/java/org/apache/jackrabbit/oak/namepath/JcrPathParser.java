@@ -80,11 +80,7 @@ public final class JcrPathParser {
         while (pos <= len) {
             char c = pos == len ? EOF : jcrPath.charAt(pos);
             pos++;
-            // special check for whitespace
-            if (c != ' ' && Character.isWhitespace(c)) {
-                c = '\t';
-            }
-            
+
             switch (c) {
                 case '/':
                 case EOF:
@@ -205,24 +201,6 @@ public final class JcrPathParser {
                     }
                     break;
 
-                case ' ':
-                    if (state == STATE_PREFIX_START || state == STATE_NAME_START) {
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not valid name start");
-                        return false;
-                    } else if (state == STATE_INDEX_END) {
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not valid after index. '/' expected.");
-                        return false;
-                    } else if (state == STATE_DOT || state == STATE_DOTDOT) {
-                        state = STATE_PREFIX;
-                    }
-                    break;
-
-                case '\t':
-                    listener.error('\'' + jcrPath + "' is not a valid path. " +
-                            "Whitespace not a allowed in name.");
-                    return false;
                 case '*':
                 case '|':
                     listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
@@ -257,7 +235,7 @@ public final class JcrPathParser {
                         return false;
                     }
             }
-            wasSlash = c == ' ';
+            wasSlash = c == '/';
         }
         return true;
     }

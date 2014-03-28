@@ -92,7 +92,6 @@ public final class JcrNameParser {
         String prefix;
         int nameStart = 0;
         int state = STATE_PREFIX_START;
-        boolean trailingSpaces = false;
 
         for (int i = 0; i < len; i++) {
             char c = jcrName.charAt(i);
@@ -101,10 +100,6 @@ public final class JcrNameParser {
                     listener.error("Prefix must not be empty");
                     return false;
                 } else if (state == STATE_PREFIX) {
-                    if (trailingSpaces) {
-                        listener.error("Trailing spaces not allowed");
-                        return false;
-                    }
                     prefix = jcrName.substring(0, i);
                     if (!XMLChar.isValidNCName(prefix)) {
                         listener.error("Invalid name prefix: "+ prefix);
@@ -117,14 +112,7 @@ public final class JcrNameParser {
                     listener.error("'" + c + "' not allowed in name");
                     return false;
                 }
-                trailingSpaces = false;
-            } else if (c == ' ') {
-                if (state == STATE_PREFIX_START || state == STATE_NAME_START) {
-                    listener.error("'" + c + "' not valid name start");
-                    return false;
-                }
-                trailingSpaces = true;
-            } else if (Character.isWhitespace(c) || c == '[' || c == ']' || c == '*' || c == '|') {
+            } else if (c == '[' || c == ']' || c == '*' || c == '|') {
                 listener.error("'" + c + "' not allowed in name");
                 return false;
             } else if (c == '/') {
@@ -134,7 +122,6 @@ public final class JcrNameParser {
                     listener.error("'" + c + "' not allowed in name");
                     return false;
                 }
-                trailingSpaces = false;
             } else if (c == '{') {
                 if (state == STATE_PREFIX_START) {
                     state = STATE_URI_START;
@@ -147,7 +134,6 @@ public final class JcrNameParser {
                     state = STATE_NAME;
                     nameStart = i;
                 }
-                trailingSpaces = false;
             } else if (c == '}') {
                 if (state == STATE_URI_START || state == STATE_URI) {
                     String tmp = jcrName.substring(1, i);
@@ -178,7 +164,6 @@ public final class JcrNameParser {
                     state = STATE_NAME;
                     nameStart = i;
                 }
-                trailingSpaces = false;
             } else {
                 if (state == STATE_PREFIX_START) {
                     state = STATE_PREFIX; // prefix start
@@ -188,7 +173,6 @@ public final class JcrNameParser {
                 } else if (state == STATE_URI_START) {
                     state = STATE_URI;
                 }
-                trailingSpaces = false;
             }
         }
 
@@ -201,10 +185,6 @@ public final class JcrNameParser {
 
         if (nameStart == len || state == STATE_NAME_START) {
             listener.error("Local name must not be empty");
-            return false;
-        }
-        if (trailingSpaces) {
-            listener.error("Trailing spaces not allowed");
             return false;
         }
 

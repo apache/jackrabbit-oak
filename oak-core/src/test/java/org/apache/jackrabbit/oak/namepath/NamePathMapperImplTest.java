@@ -36,14 +36,13 @@ public class NamePathMapperImplTest {
     private static final Map<String, String> GLOBAL = ImmutableMap.of(
             "oak-jcr", "http://www.jcp.org/jcr/1.0",
             "oak-nt", "http://www.jcp.org/jcr/nt/1.0",
-            "oak-mix", "http://www.jcp.org/jcr/mix/1.0",
             "oak-foo", "http://www.example.com/foo",
-            "oak-quu", "http://www.example.com/quu");
+            "oak-quu", "http://www.example.com/quu",
+            "oak",     "http://jackrabbit.apache.org/oak/ns/1.0");
 
     private static final Map<String, String> LOCAL = ImmutableMap.of(
             "jcr-jcr", "http://www.jcp.org/jcr/1.0",
             "jcr-nt", "http://www.jcp.org/jcr/nt/1.0",
-            "jcr-mix", "http://www.jcp.org/jcr/mix/1.0",
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
@@ -217,6 +216,19 @@ public class NamePathMapperImplTest {
 
         for (String name : childNames) {
             assertEquals(name, npMapper.getOakName(name));
+        }
+    }
+
+    @Test
+    public void testWhitespace() {
+        String[] paths = new String[] {
+                " leading", "trailing\n", " ", "\t",
+                "oak: leading", "oak:trailing\n", "oak: ", "oak:\t" };
+        NamePathMapper noLocal = new NamePathMapperImpl(new LocalNameMapper(
+                GLOBAL, Collections.<String, String>emptyMap()));
+        for (String path : paths) {
+            assertEquals("without local mappings", path, noLocal.getOakPath(path));
+            assertEquals("with local mappings", path, npMapper.getOakPath(path));
         }
     }
 
