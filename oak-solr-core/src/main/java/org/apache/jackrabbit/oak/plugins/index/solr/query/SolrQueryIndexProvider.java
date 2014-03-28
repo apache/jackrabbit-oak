@@ -76,6 +76,11 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                                 solrServer,
                                 oakSolrConfigurationProvider.getConfiguration()));
                     }
+                    else {
+                        if (log.isWarnEnabled()) {
+                            log.warn("cannot create Solr query index as SolrServer {} is unreachable", solrServer);
+                        }
+                    }
                 } catch (Exception e) {
                     if (log.isErrorEnabled()) {
                         log.error("unable to create Solr query index at " + entry.getName(), e);

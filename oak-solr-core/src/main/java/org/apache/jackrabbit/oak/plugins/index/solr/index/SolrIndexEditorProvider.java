@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -26,8 +25,11 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.solr.client.solrj.SolrServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
 
 /**
  * Solr based {@link IndexEditorProvider}
@@ -57,10 +59,17 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
         if (SolrQueryIndex.TYPE.equals(type)
                 && isConfigurationOk()) {
             try {
-                return new SolrIndexEditor(
+              SolrServer solrServer = solrServerProvider.getSolrServer();
+              if (solrServer != null) {
+                  return new SolrIndexEditor(
                         definition,
-                        solrServerProvider.getSolrServer(),
+                        solrServer,
                         oakSolrConfigurationProvider.getConfiguration(), callback);
+              } else {
+                  if (log.isWarnEnabled()) {
+                      log.warn("null SolrServer provided, cannot index {}", definition);
+                  }
+              }
             } catch (Exception e) {
                 if (log.isErrorEnabled()) {
                     log.error("unable to create SolrIndexEditor", e);
