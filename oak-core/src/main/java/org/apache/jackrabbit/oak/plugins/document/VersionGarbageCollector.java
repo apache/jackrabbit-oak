@@ -98,6 +98,10 @@ class VersionGarbageCollector {
         this.maxRevisionAge = maxRevisionAge;
     }
 
+    public long getMaxRevisionAge() {
+        return maxRevisionAge;
+    }
+
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
         int deletedDocCount;

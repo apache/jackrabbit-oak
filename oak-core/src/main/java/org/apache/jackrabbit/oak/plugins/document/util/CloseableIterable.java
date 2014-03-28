@@ -31,6 +31,10 @@ public class CloseableIterable<T> implements Iterable<T>, Closeable {
         return new CloseableIterable<T>(iterable, closeable);
     }
 
+    public static <T> CloseableIterable<T> wrap(Iterable<T> iterable){
+        return new CloseableIterable<T>(iterable, null);
+    }
+
     public CloseableIterable(Iterable<T> iterable, Closeable closeable) {
         this.iterable = iterable;
         this.closeable = closeable;
@@ -38,7 +42,9 @@ public class CloseableIterable<T> implements Iterable<T>, Closeable {
 
     @Override
     public void close() throws IOException {
-        closeable.close();
+        if(closeable != null){
+            closeable.close();
+        }
     }
 
     @Override
