@@ -72,15 +72,15 @@ commit / - "test"
 commit / + "test": { "a": { "x": "1", "yes": { } }, "b": { "yes" : { } }, "c": { "x": "1", "no" : { } }}
 
 xpath test//yes/..[@x]
-/test/a, null, null
+/test/a
 
-select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score]
+select b.[jcr:path] as [jcr:path]
   from [nt:base] as a
   inner join [nt:base] as b on ischildnode(a, b)
   where name(a) = 'yes'
   and isdescendantnode(a, '/test')
   and b.[x] is not null
-/test/a, null
+/test/a
 
 commit / - "test"
 
