@@ -25,6 +25,7 @@ import junit.framework.Assert;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -41,6 +42,7 @@ public class ConcurrentBlobTest {
         store.setBlockSizeMin(50);
     }
 
+    @Ignore("OAK-1599")
     @Test
     public void test() throws Exception {
         final AtomicInteger id = new AtomicInteger();
