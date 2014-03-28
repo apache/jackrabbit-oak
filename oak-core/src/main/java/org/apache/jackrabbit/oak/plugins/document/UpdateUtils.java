@@ -70,6 +70,9 @@ public class UpdateUtils {
                         m = new TreeMap<Revision, Object>(comparator);
                         doc.put(k.getName(), m);
                     }
+                    if (k.getRevision() == null) {
+                        throw new IllegalArgumentException("Cannot set map entry " + k.getName() + " with null revision");
+                    }
                     m.put(k.getRevision(), op.value);
                     break;
                 }

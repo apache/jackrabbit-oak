@@ -800,7 +800,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                  @Nonnull Revision baseRevision,
                                  @Nonnull RevisionContext context) {
         // did existence of node change after baseRevision?
-        Map<Revision, String> deleted = getDeleted();
+        // only check local deleted map, which contains the most
+        // recent values
+        Map<Revision, String> deleted = getLocalDeleted();
         for (Map.Entry<Revision, String> entry : deleted.entrySet()) {
             if (isRevisionNewer(context, entry.getKey(), baseRevision)) {
                 return true;
@@ -852,17 +854,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         if (id == null) {
             throw new IllegalStateException("document does not have an id: " + this);
         }
-        // what's the most recent previous revision?
-        Revision recentPrevious = null;
+        // collect ranges and create a histogram of the height
         Map<Integer, List<Range>> prevHisto = Maps.newHashMap();
         for (Map.Entry<Revision, Range> entry : previous.entrySet()) {
             Revision rev = entry.getKey();
             if (rev.getClusterId() != context.getClusterId()) {
                 continue;
-            }
-            if (recentPrevious == null
-                    || isRevisionNewer(context, rev, recentPrevious)) {
-                recentPrevious = rev;
             }
             Range r = entry.getValue();
             List<Range> list = prevHisto.get(r.getHeight());
@@ -889,11 +886,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 if (rev.getClusterId() != context.getClusterId()) {
                     continue;
                 }
-                if (recentPrevious == null
-                        || isRevisionNewer(context, rev, recentPrevious)) {
-                    if (isCommitted(rev)) {
-                        splitMap.put(rev, entry.getValue());
-                    }
+                if (isCommitted(rev)) {
+                    splitMap.put(rev, entry.getValue());
                 }
             }
         }
