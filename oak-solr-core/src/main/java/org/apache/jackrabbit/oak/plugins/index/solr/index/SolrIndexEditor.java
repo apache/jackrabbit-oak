@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
@@ -38,6 +40,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
  * Index editor for keeping a Solr index up to date.
  */
 public class SolrIndexEditor implements IndexEditor {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final SolrIndexEditor parent;
@@ -167,12 +171,14 @@ public class SolrIndexEditor implements IndexEditor {
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        // TODO: Proper escaping
-        String path = PathUtils.concat(getPath(), name).replace("/", "\\/");
-
+        String path = partialEscape(PathUtils.concat(getPath(), name)).toString();
         try {
-            solrServer.deleteByQuery(String.format(
-                    "%s:%s*", configuration.getPathField(), path));
+          String formattedQuery = String.format(
+                  "%s:%s*", configuration.getPathField(), path);
+          if (log.isDebugEnabled()) {
+              log.debug("deleting by query {}", formattedQuery);
+          }
+          solrServer.deleteByQuery(formattedQuery);
             updateCallback.indexUpdate();
         } catch (SolrServerException e) {
             throw new CommitFailedException(
@@ -183,6 +189,21 @@ public class SolrIndexEditor implements IndexEditor {
         }
 
         return null; // no need to recurse down the removed subtree
+    }
+
+    private static CharSequence partialEscape(CharSequence s) {
+      StringBuilder sb = new StringBuilder();
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '\\' || c == '!' || c == '(' || c == ')' ||
+                c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
+                c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
+                c == '-' || c == ' ') {
+          sb.append('\\');
+        }
+        sb.append(c);
+      }
+      return sb;
     }
 
     private SolrInputDocument docFromState(NodeState state) {
