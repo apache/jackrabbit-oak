@@ -24,6 +24,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
@@ -35,6 +38,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -72,6 +76,10 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         // check if document is still there
         assertNotNull(ns.getNode("/", Revision.fromString(head)));
+
+        NodeDocument prevDoc = Iterators.getOnlyElement(doc.getAllPreviousDocs());
+        assertEquals(SplitDocType.DEFAULT, prevDoc.getSplitDocType());
+
         mk.commit("/", "+\"baz\":{}", null, null);
         ns.setAsyncDelay(0);
         mk.backgroundWrite();
@@ -143,7 +151,6 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     @Test
     public void splitPropertyRevisions() throws Exception {
         DocumentStore store = mk.getDocumentStore();
-        DocumentNodeStore ns = mk.getNodeStore();
         mk.commit("/", "+\"foo\":{}", null, null);
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
@@ -302,6 +309,22 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
     }
 
     @Test
+    public void testSplitDocNoChild() throws Exception{
+        DocumentStore store = mk.getDocumentStore();
+        DocumentNodeStore ns = mk.getNodeStore();
+        mk.commit("/", "+\"test\":{\"node\":{}}", null, null);
+        mk.commit("/test", "+\"foo\":{}+\"bar\":{}", null, null);
+        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+            mk.commit("/test/foo", "^\"prop\":" + i, null, null);
+        }
+        ns.runBackgroundOperations();
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
+        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        assertEquals(SplitDocType.DEFAULT_NO_CHILD, prevDocs.get(0).getSplitDocType());
+    }
+
+    @Test
     public void cascadingSplit() {
         cascadingSplit("/test/node");
     }
@@ -344,6 +367,17 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath(path));
         assertNotNull(doc);
         assertEquals(2, doc.getPreviousRanges().size());
+
+        List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
+        //1 intermediate and 11 previous doc
+        assertEquals(1 + 11, prevDocs.size());
+        assertTrue(Iterables.any(prevDocs, new Predicate<NodeDocument>() {
+            @Override
+            public boolean apply(NodeDocument input) {
+                return input.getSplitDocType() == SplitDocType.INTERMEDIATE;
+            }
+        }));
+
         for (String s : revs) {
             Revision r = Revision.fromString(s);
             if (doc.getLocalRevisions().containsKey(r)) {

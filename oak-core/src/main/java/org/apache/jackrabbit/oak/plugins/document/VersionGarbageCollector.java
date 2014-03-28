@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.slf4j.Logger;
@@ -82,7 +83,7 @@ class VersionGarbageCollector {
                 if (doc.getNodeAtRevision(nodeStore, headRevision, null) == null) {
                     docIdsToDelete.add(doc.getId());
                     //Collect id of all previous docs also
-                    for (NodeDocument prevDoc : doc.getAllPreviousDocs()) {
+                    for (NodeDocument prevDoc : ImmutableList.copyOf(doc.getAllPreviousDocs())) {
                         docIdsToDelete.add(prevDoc.getId());
                     }
                 }
