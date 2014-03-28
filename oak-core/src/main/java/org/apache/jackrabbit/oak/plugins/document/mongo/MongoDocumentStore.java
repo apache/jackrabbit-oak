@@ -126,7 +126,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         // the _id field is the primary key, so we don't need to define it
         DBObject index = new BasicDBObject();
         // modification time (descending)
-        index.put(NodeDocument.MODIFIED, -1L);
+        index.put(NodeDocument.MODIFIED_IN_SECS, -1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.FALSE);
         nodes.ensureIndex(index, options);

@@ -909,7 +909,7 @@ public final class DocumentNodeStore
         for (Map.Entry<Key, Operation> op : commit.getChanges().entrySet()) {
             String name = op.getKey().getName();
             if (NodeDocument.isRevisionsEntry(name)
-                    || NodeDocument.MODIFIED.equals(name)
+                    || NodeDocument.MODIFIED_IN_SECS.equals(name)
                     || NodeDocument.COLLISIONS.equals(name)) {
                 continue;
             }
@@ -1454,12 +1454,12 @@ public final class DocumentNodeStore
 
     private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
         long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
-        long minValue = Commit.getModified(minTimestamp);
+        long minValue = Commit.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
         Set<String> paths = Sets.newHashSet();
         for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
-                NodeDocument.MODIFIED, minValue, Integer.MAX_VALUE)) {
+                NodeDocument.MODIFIED_IN_SECS, minValue, Integer.MAX_VALUE)) {
             paths.add(doc.getPath());
         }
         // also consider nodes with not yet stored modifications (OAK-1107)
