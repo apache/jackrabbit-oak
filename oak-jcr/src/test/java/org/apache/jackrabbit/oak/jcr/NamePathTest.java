@@ -26,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,7 +127,6 @@ public class NamePathTest extends AbstractRepositoryTest {
         testPaths(paths, getAdminSession());
     }
 
-    @Ignore("OAK-1174") // FIXME OAK-1174
     @Test
     public void testAsteriskInName() throws RepositoryException {
         List<String> names = ImmutableList.of(
@@ -155,7 +153,6 @@ public class NamePathTest extends AbstractRepositoryTest {
         testPaths(paths, getAdminSession());
     }
 
-    @Ignore("OAK-1174") // FIXME OAK-1174
     @Test
     public void testVerticalLineInName() throws Exception {
         List<String> names = ImmutableList.of(
@@ -169,7 +166,6 @@ public class NamePathTest extends AbstractRepositoryTest {
         testNames(names, getAdminSession());
     }
 
-    @Ignore("OAK-1174") // FIXME OAK-1174
     @Test
     public void testWhitespaceInPath() throws Exception {
         List<String> paths = ImmutableList.of(
@@ -184,11 +180,10 @@ public class NamePathTest extends AbstractRepositoryTest {
         testPaths(paths, getAdminSession());
     }
 
-    @Ignore("OAK-1174") // FIXME OAK-1174
     @Test
     public void testWhitespaceInName() throws Exception {
         List<String> names = ImmutableList.of(
-                "jcr:content ",
+//                "jcr:content ",  // FIXME OAK-1174
                 "content ",
                 " content",
                 "jcr:content\t",
@@ -208,46 +203,50 @@ public class NamePathTest extends AbstractRepositoryTest {
 
 
     private static void testPaths(List<String> paths, Session session) throws RepositoryException {
-        RepositoryException exception = null;
         for (String path : paths) {
-            try {
-                session.itemExists(path);
-            } catch (RepositoryException e) {
-                exception = e;
-            }
+            testPath(path, session);
+        }
+    }
+
+    private static void testPath(String path, Session session) throws RepositoryException {
+        RepositoryException exception = null;
+        try {
+            session.itemExists(path);
+        } catch (RepositoryException e) {
+            exception = e;
         }
 
         session.setNamespacePrefix("foo", "http://foo.bar");
-        for (String path : paths) {
-            try {
-                session.itemExists(path);
-                assertNull("path = " + path, exception);
-            } catch (RepositoryException e) {
-                assertNotNull("path = " + path, exception);
-            }
+        try {
+            session.itemExists(path);
+            assertNull("path = " + path, exception);
+        } catch (RepositoryException e) {
+            assertNotNull("path = " + path, exception);
         }
     }
 
     private static void testNames(List<String> names, Session session) throws RepositoryException {
-        RepositoryException exception = null;
         for (String name : names) {
-            try {
-                session.getRootNode().addNode(name);
-            } catch (RepositoryException e) {
-                exception = e;
-            } finally {
-                session.refresh(false);
-            }
+            testName(name, session);
+        }
+    }
+
+    private static void testName(String name, Session session) throws RepositoryException {
+        Exception exception = null;
+        try {
+            session.getRootNode().addNode(name);
+        } catch (RepositoryException e) {
+            exception = e;
+        } finally {
+            session.refresh(false);
         }
 
         session.setNamespacePrefix("foo", "http://foo.bar");
-        for (String name : names) {
-            try {
-                session.getRootNode().addNode(name);
-                assertNull("name = " + name, exception);
-            } catch (RepositoryException e) {
-                assertNotNull("name = " + name, exception);
-            }
+        try {
+            session.getRootNode().addNode(name);
+            assertNull("name = " + name, exception);
+        } catch (RepositoryException e) {
+            assertNotNull("name = " + name, exception);
         }
     }
 }
