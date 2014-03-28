@@ -309,9 +309,10 @@ public class DocumentNodeStoreService {
         executor.start(wb);
         if (blobStore instanceof GarbageCollectableBlobStore) {
             MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-            gc.init(store);  // FIXME OAK-1582 ClassCastException in MarkSweepGarbageCollector#init() if using KernelNodeStore
+            gc.init(new DocumentBlobReferenceRetriever(store.getReferencedBlobsIterator()),
+                    (GarbageCollectableBlobStore) store.getBlobStore());
             registrations.add(registerMBean(wb, BlobGCMBean.class, new BlobGC(gc, executor),
-                    BlobGCMBean.TYPE, "Segment node store blob garbage collection"));
+                    BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
         RevisionGC revisionGC = new RevisionGC(new Runnable() {
