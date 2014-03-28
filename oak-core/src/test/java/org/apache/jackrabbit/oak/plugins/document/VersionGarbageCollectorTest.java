@@ -24,12 +24,17 @@ import java.util.*;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.*;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -117,7 +122,7 @@ public class VersionGarbageCollectorTest {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc();
-        assertEquals(0, stats.deletedDocCount);
+        assertEquals(0, stats.deletedDocGCCount);
 
         //Remove x/y
         NodeBuilder b2 = store.getRoot().builder();
@@ -132,13 +137,13 @@ public class VersionGarbageCollectorTest {
         gc.setMaxRevisionAge(maxAge*2);
         clock.waitUntil(clock.getTime() + delta);
         stats = gc.gc();
-        assertEquals(0, stats.deletedDocCount);
+        assertEquals(0, stats.deletedDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
         clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
 
         stats = gc.gc();
-        assertEquals(1, stats.deletedDocCount);
+        assertEquals(1, stats.deletedDocGCCount);
 
         //4. Check that a revived doc (deleted and created again) does not get gc
         NodeBuilder b3 = store.getRoot().builder();
@@ -151,9 +156,60 @@ public class VersionGarbageCollectorTest {
 
         clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
         stats = gc.gc();
-        assertEquals(0, stats.deletedDocCount);
+        assertEquals(0, stats.deletedDocGCCount);
 
-        //TODO Add test scenario for deletion along with previous docs
+    }
+
+    @Test
+    public void gcSplitDocs() throws Exception{
+        long maxAge = TimeUnit.HOURS.toMillis(1), delta = TimeUnit.MINUTES.toMillis(10);
+        gc.setMaxRevisionAge(maxAge);
+
+        NodeBuilder b1 = store.getRoot().builder();
+        b1.child("test").child("foo").child("bar");
+        b1.child("test2").child("foo");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Commit on a node which has a child and where the commit root
+        // is parent
+        for (int i = 0; i < NodeDocument.NUM_REVS_THRESHOLD; i++) {
+            b1 = store.getRoot().builder();
+            //This updates a middle node i.e. one which has child bar
+            //Should result in SplitDoc of type PROP_COMMIT_ONLY
+            b1.child("test").child("foo").setProperty("prop",i);
+
+            //This should result in SplitDoc of type DEFAULT_NO_CHILD
+            b1.child("test2").child("foo").setProperty("prop", i);
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        store.runBackgroundOperations();
+
+        List<NodeDocument> previousDocTestFoo =
+                ImmutableList.copyOf(getDoc("/test/foo").getAllPreviousDocs());
+        List<NodeDocument> previousDocTestFoo2 =
+                ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs());
+
+        assertEquals(1, previousDocTestFoo.size());
+        assertEquals(1, previousDocTestFoo2.size());
+
+        assertEquals(SplitDocType.PROP_COMMIT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
+        assertEquals(SplitDocType.DEFAULT_NO_CHILD, previousDocTestFoo2.get(0).getSplitDocType());
+
+        clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
+        VersionGCStats stats = gc.gc();
+        assertEquals(2, stats.splitDocGCCount);
+
+        //Previous doc should be removed
+        assertNull(getDoc(previousDocTestFoo.get(0).getPath()));
+        assertNull(getDoc(previousDocTestFoo2.get(0).getPath()));
+
+        //Following would not work for Mongo as the delete happened on the server side
+        //And entries from cache are not evicted
+        //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+    }
+
+    private NodeDocument getDoc(String path){
+        return store.getDocumentStore().find(NODES, Utils.getIdFromPath(path), 0);
     }
 
 }

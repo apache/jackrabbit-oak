@@ -253,6 +253,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             this.type = type;
         }
 
+        public int typeCode() {
+            return type;
+        }
+
         static SplitDocType valueOf(Integer type){
             if(type == null){
                 return NONE;
@@ -361,6 +365,19 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public boolean hasBeenModifiedSince(long lastModifiedTime){
         Long modified = (Long) get(MODIFIED_IN_SECS);
         return modified != null && modified > TimeUnit.MILLISECONDS.toSeconds(lastModifiedTime);
+    }
+
+    /**
+     * Checks if revision time of all entries in this document is less than the passed
+     * time
+     *
+     * @param maxRevisionTime timemstamp (in millis) of revision to check
+     * @return <tt>true</tt> if timestamp of maximum revision stored in this document
+     * is less than than the passed revision timestamp
+     */
+    public boolean hasAllRevisionLessThan(long maxRevisionTime){
+        Long maxRevTimeStamp = (Long) get(SD_MAX_REV_TIME_IN_SECS);
+        return maxRevTimeStamp != null && maxRevTimeStamp < TimeUnit.MILLISECONDS.toSeconds(maxRevisionTime);
     }
 
     /**

@@ -22,7 +22,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableList;
@@ -36,6 +38,14 @@ class VersionGarbageCollector {
     private final VersionGCSupport versionStore;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    /**
+     * Split document types which can be safely Garbage Collected
+     */
+    private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
+            NodeDocument.SplitDocType.DEFAULT_NO_CHILD,
+            NodeDocument.SplitDocType.PROP_COMMIT_ONLY,
+            NodeDocument.SplitDocType.INTERMEDIATE);
 
     private volatile long maxRevisionAge = TimeUnit.DAYS.toMillis(1);
 
@@ -67,8 +77,14 @@ class VersionGarbageCollector {
         }
 
         collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
+        collectSplitDocuments(stats, oldestRevTimeStamp);
 
         return stats;
+    }
+
+    private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
+        int count = versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp);
+        stats.splitDocGCCount += count;
     }
 
     private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp) {
@@ -92,7 +108,7 @@ class VersionGarbageCollector {
             close(itr);
         }
         nodeStore.getDocumentStore().remove(Collection.NODES, docIdsToDelete);
-        stats.deletedDocCount += docIdsToDelete.size();
+        stats.deletedDocGCCount += docIdsToDelete.size();
     }
 
     public void setMaxRevisionAge(long maxRevisionAge) {
@@ -105,7 +121,8 @@ class VersionGarbageCollector {
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
-        int deletedDocCount;
+        int deletedDocGCCount;
+        int splitDocGCCount;
     }
 
     private void close(Object obj){
