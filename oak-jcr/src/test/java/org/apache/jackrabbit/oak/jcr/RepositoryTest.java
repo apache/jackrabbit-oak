@@ -28,7 +28,6 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -56,7 +55,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.JackrabbitRepository;
@@ -347,100 +345,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     public void getNodeAbsolutePath() throws RepositoryException {
         Node root = getNode("/");
         root.getNode("/foo");
-    }
-
-    @Test
-    public void testInvalidPath() throws RepositoryException {
-        Session session = getAdminSession();
-
-        List<String> invalid = ImmutableList.of(
-                "//jcr:content",
-                "/jcr:con]ent",
-                "/con]ent",
-                "/jcr:con*ent",
-                "/con*ent",
-                "/jcr:con|ent",
-                "/con|ent");
-        for (String path : invalid) {
-            try {
-                session.itemExists(path);
-                fail("Invalid path " + path);
-            } catch (RepositoryException e) {
-                // success
-            }
-        }
-
-        session.setNamespacePrefix("foo", "http://foo.bar");
-        for (String path : invalid) {
-            try {
-                session.itemExists(path);
-                fail("Invalid path " + path);
-            } catch (RepositoryException e) {
-                // success
-            }
-        }
-    }
-
-    @Test
-    public void testInvalidName() throws RepositoryException {
-        List<String> invalid = ImmutableList.of(
-                "/jcr:content",
-                "/content",
-                "jcr:con/ent",
-                "jc/r:content",
-                "con/ent",
-
-                "jcr:con:ent",
-
-                "jcr:content[1]",
-                "content[1]",
-                "jcr:conten[t]",
-                "conten[t]",
-
-                "jcr:con[]ent",
-                "jcr[]:content",
-                "con[]ent",
-                "jcr:con[t]ent",
-                "jc[t]r:content",
-                "con[t]ent",
-
-                "jcr:con]ent",
-                "jc]r:content",
-                "con]ent",
-
-                "jcr:con[ent",
-                "jc[r:content",
-                "con[ent",
-
-                "jcr:con*ent",
-                "jc*r:content",
-                "con*ent",
-
-                "jcr:con|ent",
-                "jc|r:content",
-                "con|ent");
-
-        Session session = getAdminSession();
-        for (String name : invalid) {
-            try {
-                session.getRootNode().addNode(name);
-                fail("Invalid name " + name);
-            } catch (RepositoryException e) {
-                // success
-            } finally {
-                session.refresh(false);
-            }
-        }
-
-        session.setNamespacePrefix("foo", "http://foo.bar");
-        for (String name : invalid) {
-            try {
-                session.getRootNode().addNode(name);
-                fail("Invalid name " + name);
-            } catch (RepositoryException e) {
-                // success
-            }
-        }
     }
 
     @Test
@@ -2119,7 +2023,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void testReferenceBinary() throws RepositoryException {
         ValueFactory valueFactory = getAdminSession().getValueFactory();
-        Binary binary = valueFactory.createBinary(new RandomInputStream(1, 256*1024));
+        Binary binary = valueFactory.createBinary(new RandomInputStream(1, 256 * 1024));
 
         String reference = binary instanceof ReferenceBinary
             ? ((ReferenceBinary) binary).getReference()
