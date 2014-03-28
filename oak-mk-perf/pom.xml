@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>jackrabbit-oak</artifactId>
-        <version>0.9-SNAPSHOT</version>
+        <version>0.20-SNAPSHOT</version>
     </parent>
     <artifactId>oak-mk-perf</artifactId>
     <name>oak-mk-perf</name>
