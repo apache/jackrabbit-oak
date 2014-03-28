@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -85,7 +86,9 @@ public class Commit {
 
     public static long getModified(long timestamp) {
         // 5 second resolution
-        return timestamp / 1000 / 5;
+        long timeInSec = TimeUnit.MILLISECONDS.toSeconds(timestamp);
+        timeInSec = timeInSec - timeInSec % 5;
+        return TimeUnit.SECONDS.toMillis(timeInSec);
     }
 
     /**
@@ -212,8 +215,7 @@ public class Commit {
         DocumentStore store = this.nodeStore.getDocumentStore();
 
         for (String path : this.nodesWithBinaries) {
-            NodeDocument nd =
-                    (NodeDocument) store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
+            NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
             if ((nd == null) || (nd.hasBinary() != 1)) {
                 UpdateOp updateParentOp = getUpdateOperationForNode(path);
                 NodeDocument.setHasBinary(updateParentOp);
