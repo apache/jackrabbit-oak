@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 /**
- * RepositoryPermission... TODO
+ * The {@link RepositoryPermission} allows to evaluate permissions that have
+ * been defined on the repository level and which consequently are not bound
+ * to a particular item.
  *
  * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider#getRepositoryPermission()
  */

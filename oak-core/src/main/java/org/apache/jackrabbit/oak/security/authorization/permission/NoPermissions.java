@@ -57,7 +57,7 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(@Nonnull ImmutableTree parent, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull ImmutableTree tree, @Nullable PropertyState property, long permissions) {
         return false;
     }
 

@@ -20,9 +20,6 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 
-/**
- * AbstractCompositeConfigurationTest... TODO
- */
 public abstract class AbstractCompositeConfigurationTest<T extends SecurityConfiguration> extends AbstractSecurityTest {
 
     private CompositeConfiguration<T> compositeConfiguration;

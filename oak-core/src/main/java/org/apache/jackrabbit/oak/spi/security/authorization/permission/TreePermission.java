@@ -23,7 +23,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TreePermission... TODO
+ * The {@code TreePermission} allow to evaluate permissions defined for a given
+ * {@code Tree} and it's properties.
  *
  * @see PermissionProvider#getTreePermission(org.apache.jackrabbit.oak.api.Tree, TreePermission)
  */
