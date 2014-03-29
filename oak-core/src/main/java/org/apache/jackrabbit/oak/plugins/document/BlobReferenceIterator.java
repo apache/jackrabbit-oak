@@ -19,15 +19,9 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 /**
  * An iterator over all referenced binaries.
@@ -39,17 +33,17 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 public class BlobReferenceIterator implements Iterator<Blob> {
 
     private static final int BATCH_SIZE = 1000;
-    private final DocumentNodeStore nodeStore;
     private final DocumentStore docStore;
+    private final BlobCollector blobCollector;
     private HashSet<Blob> batch = new HashSet<Blob>();
     private Iterator<Blob> batchIterator;
     private boolean done;
-    private String fromKey = "0000000";
+    private String fromKey = NodeDocument.MIN_ID_VALUE;
 
     public BlobReferenceIterator(DocumentNodeStore nodeStore) {
-        this.nodeStore = nodeStore;
         this.docStore = nodeStore.getDocumentStore();
         batchIterator = batch.iterator();
+        this.blobCollector = new BlobCollector(nodeStore);
     }
 
     @Override
@@ -96,7 +90,7 @@ public class BlobReferenceIterator implements Iterator<Blob> {
     private boolean loadBatchQuery() {
         // read about BATCH_SIZE documents
         List<NodeDocument> list =
-                docStore.query(Collection.NODES, fromKey, ";", NodeDocument.HAS_BINARY_FLAG,
+                docStore.query(Collection.NODES, fromKey, NodeDocument.MAX_ID_VALUE, NodeDocument.HAS_BINARY_FLAG,
                         NodeDocument.HAS_BINARY_VAL,
                         BATCH_SIZE);
         boolean hasMore = false;
@@ -107,39 +101,11 @@ public class BlobReferenceIterator implements Iterator<Blob> {
             }
             hasMore = true;
             fromKey = doc.getId();
-            for (String key : doc.keySet()) {
-                if (!Utils.isPropertyName(key)) {
-                    continue;
-                }
-                Map<Revision, String> valueMap = doc.getLocalMap(key);
-                for (String v : valueMap.values()) {
-                    if (v != null) {
-                        loadValue(v);
-                    }
-                }
-            }
+            blobCollector.collect(doc, batch);
         }
         return hasMore;
     }
 
-    private void loadValue(String v) {
-        JsopReader reader = new JsopTokenizer(v);
-        PropertyState p;
-        if (reader.matches('[')) {
-            p = DocumentPropertyState.readArrayProperty("x", nodeStore, reader);
-            if (p.getType() == Type.BINARIES) {
-                for (int i = 0; i < p.count(); i++) {
-                    Blob b = p.getValue(Type.BINARY, i);
-                    batch.add(b);
-                }
-            }
-        } else {
-            p = DocumentPropertyState.readProperty("x", nodeStore, reader);
-            if (p.getType() == Type.BINARY) {
-                Blob b = p.getValue(Type.BINARY);
-                batch.add(b);
-            }
-        }
-    }
+
 
 }
