@@ -19,9 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -31,6 +39,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Commit;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
@@ -76,6 +85,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public int deleteSplitDocuments(Set<SplitDocType> gcTypes, long oldestRevTimeStamp) {
         //OR condition has to be first as we have a index for that
+        //((type == DEFAULT_NO_CHILD || type == PROP_COMMIT_ONLY ..) && _sdMaxRevTime < oldestRevTimeStamp(in secs)
         QueryBuilder orClause = start();
         for(SplitDocType type : gcTypes){
             orClause.or(start(NodeDocument.SD_TYPE).is(type.typeCode()).get());
@@ -87,12 +97,40 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                         .lessThan(Commit.getModifiedInSecs(oldestRevTimeStamp))
                         .get()
                 ).get();
+
+        if(log.isDebugEnabled()){
+            //if debug level logging is on then determine the id of documents to be deleted
+            //and log them
+            logSplitDocIdsTobeDeleted(query);
+        }
+
         WriteResult writeResult = getNodeCollection().remove(query, WriteConcern.SAFE);
         if (writeResult.getError() != null) {
             //TODO This might be temporary error or we fail fast and let next cycle try again
             log.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
         }
         return writeResult.getN();
+    }
+
+    private void logSplitDocIdsTobeDeleted(DBObject query) {
+        // Fetch only the id
+        final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
+        List<String> ids;
+        DBCursor cursor = getNodeCollection().find(query, keys)
+                .setReadPreference(ReadPreference.secondaryPreferred());
+        try {
+             ids = ImmutableList.copyOf(Iterables.transform(cursor, new Function<DBObject, String>() {
+                 @Override
+                 public String apply(@Nullable DBObject input) {
+                     return (String) input.get(Document.ID);
+                 }
+             }));
+        } finally {
+            cursor.close();
+        }
+        StringBuilder sb = new StringBuilder("Split documents with following ids were deleted as part of GC \n");
+        Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, ids);
+        log.debug(sb.toString());
     }
 
     private DBCollection getNodeCollection(){
