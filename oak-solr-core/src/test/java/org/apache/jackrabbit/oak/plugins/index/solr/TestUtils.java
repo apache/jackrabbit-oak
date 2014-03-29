@@ -58,9 +58,7 @@ public class TestUtils
     public static void cleanDataDir() {
         String path = TestUtils.class.getResource("/solr/oak/data").getFile();
         File file = new File(path);
-        System.err.println("checking data dir");
         if (file.exists()) {
-            System.err.println("deleting data dir");
             assertTrue(file.delete());
         }
     }
