@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobReferenceRetriever;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,25 +31,35 @@ import org.slf4j.LoggerFactory;
  * Implementation of {@link BlobReferenceRetriever} for the DocumentNodeStore.
  */
 public class DocumentBlobReferenceRetriever implements BlobReferenceRetriever {
-    public static final Logger LOG = LoggerFactory.getLogger(DocumentBlobReferenceRetriever.class);
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final DocumentNodeStore nodeStore;
 
-    private final Iterator<Blob> blobIterator;
-
-    public DocumentBlobReferenceRetriever(Iterator<Blob> iterator) {
-        this.blobIterator = iterator;
+    public DocumentBlobReferenceRetriever(DocumentNodeStore nodeStore) {
+        this.nodeStore = nodeStore;
     }
 
     @Override
-    public void getReferences(ReferenceCollector collector) throws Exception {
+    public void collectReferences(ReferenceCollector collector) {
         int referencesFound = 0;
+        Iterator<Blob> blobIterator = nodeStore.getReferencedBlobsIterator();
         while (blobIterator.hasNext()) {
             Blob blob = blobIterator.next();
-            if (blob.length() != 0) {
+            referencesFound++;
+
+            //TODO this mode would also add in memory blobId
+            //Would that be an issue
+
+            if (blob instanceof BlobStoreBlob) {
+                collector.addReference(((BlobStoreBlob) blob).getBlobId());
+            } else {
+                //TODO Should not rely on toString. Instead obtain
+                //secure reference and convert that to blobId using
+                //blobStore
+
                 collector.addReference(blob.toString());
             }
         }
-
-        LOG.debug("Blob references found (including chunk resolution) " + referencesFound);
+        log.debug("Total blob references found (including chunk resolution) [{}]", referencesFound);
     }
 }
 

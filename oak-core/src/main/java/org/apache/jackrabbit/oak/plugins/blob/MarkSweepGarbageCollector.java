@@ -448,7 +448,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     private void iterateNodeTree() throws Exception {
         final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
         try {
-            marker.getReferences(
+            marker.collectReferences(
                     new ReferenceCollector() {
                         private final List<String> idBatch = Lists
                                 .newArrayListWithCapacity(getBatchCount());
@@ -488,7 +488,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                             LOG.info("Marked Reference : " + count);
                         }
-                    });
+                    }
+            );
 
             // sort the marked references
             fs.sort(fs.getMarkedRefs());

@@ -34,7 +34,7 @@ public class SegmentBlobReferenceRetriever implements BlobReferenceRetriever {
     }
 
     @Override
-    public void getReferences(final ReferenceCollector collector) {
+    public void collectReferences(final ReferenceCollector collector) {
         tracker.collectBlobReferences(collector);
     }
 }

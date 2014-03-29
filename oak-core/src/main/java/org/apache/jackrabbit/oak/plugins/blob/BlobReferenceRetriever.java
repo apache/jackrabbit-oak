@@ -33,6 +33,6 @@ public interface BlobReferenceRetriever {
      * @return the references
      * @throws Exception the exception
      */
-    void getReferences(ReferenceCollector collector) throws Exception;
+    void collectReferences(ReferenceCollector collector);
 }
 
