@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
@@ -313,10 +312,8 @@ public class DocumentNodeStoreService {
 
         executor = new WhiteboardExecutor();
         executor.start(wb);
-        if (blobStore instanceof GarbageCollectableBlobStore) {
-            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-            gc.init(new DocumentBlobReferenceRetriever(store.getReferencedBlobsIterator()),
-                    (GarbageCollectableBlobStore) store.getBlobStore());
+        MarkSweepGarbageCollector gc = store.getBlobGarbageCollector();
+        if(gc != null){
             registrations.add(registerMBean(wb, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
