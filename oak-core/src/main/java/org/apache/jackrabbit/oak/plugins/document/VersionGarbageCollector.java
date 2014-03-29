@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
@@ -47,7 +50,6 @@ class VersionGarbageCollector {
             NodeDocument.SplitDocType.PROP_COMMIT_ONLY,
             NodeDocument.SplitDocType.INTERMEDIATE);
 
-    private volatile long maxRevisionAge = TimeUnit.DAYS.toMillis(1);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
@@ -60,10 +62,15 @@ class VersionGarbageCollector {
         }
     }
 
-    public VersionGCStats gc() {
+    public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) {
+        long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
+        Stopwatch sw = Stopwatch.createStarted();
         VersionGCStats stats = new VersionGCStats();
-        final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAge;
+        final long oldestRevTimeStamp = nodeStore.getClock().getTime() - maxRevisionAgeInMillis;
         final Revision headRevision = nodeStore.getHeadRevision();
+
+        log.info("Starting revision garbage collection. Revisions older than [{}] would be " +
+                "removed",Revision.timestampToString(oldestRevTimeStamp));
 
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
@@ -79,6 +86,8 @@ class VersionGarbageCollector {
         collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
         collectSplitDocuments(stats, oldestRevTimeStamp);
 
+        sw.stop();
+        log.info("Version garbage collected in {}. {}", sw, stats);
         return stats;
     }
 
@@ -107,22 +116,30 @@ class VersionGarbageCollector {
         } finally {
             close(itr);
         }
+
+        if(log.isDebugEnabled()) {
+            StringBuilder sb = new StringBuilder("Deleted document with following ids were deleted as part of GC \n");
+            Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, docIdsToDelete);
+            log.debug(sb.toString());
+        }
         nodeStore.getDocumentStore().remove(Collection.NODES, docIdsToDelete);
         stats.deletedDocGCCount += docIdsToDelete.size();
-    }
-
-    public void setMaxRevisionAge(long maxRevisionAge) {
-        this.maxRevisionAge = maxRevisionAge;
-    }
-
-    public long getMaxRevisionAge() {
-        return maxRevisionAge;
     }
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
         int deletedDocGCCount;
         int splitDocGCCount;
+
+
+        @Override
+        public String toString() {
+            return "VersionGCStats{" +
+                    "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
+                    ", deletedDocGCCount=" + deletedDocGCCount +
+                    ", splitDocGCCount=" + splitDocGCCount +
+                    '}';
+        }
     }
 
     private void close(Object obj){

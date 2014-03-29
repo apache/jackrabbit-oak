@@ -26,6 +26,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -35,6 +36,7 @@ import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
@@ -53,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
+import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
@@ -127,6 +130,14 @@ public class DocumentNodeStoreService {
     private ObserverTracker observerTracker;
     private ComponentContext context;
 
+
+    private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
+    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
+    /**
+     * Revisions older than this time would be garbage collected
+     */
+    private long versionGcMaxAgeInSecs = DEFAULT_VER_GC_MAX_AGE;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
@@ -138,6 +149,7 @@ public class DocumentNodeStoreService {
         } else {
             registerNodeStore();
         }
+        modified(config);
     }
 
     protected void registerNodeStore() throws IOException {
@@ -205,19 +217,13 @@ public class DocumentNodeStoreService {
         reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
     }
 
-    private Object prop(String propName) {
-        return prop(propName, PREFIX + propName);
-    }
 
-    private Object prop(String propName, String fwkPropName) {
-        //Prefer framework property first
-        Object value = context.getBundleContext().getProperty(fwkPropName);
-        if (value != null) {
-            return value;
-        }
-
-        //Fallback to one from config
-        return context.getProperties().get(propName);
+    /**
+     * At runtime DocumentNodeStore only pickup modification of certain properties
+     */
+    @Modified
+    protected void modified(Map<String, ?> config){
+        versionGcMaxAgeInSecs = PropertiesUtil.toLong(config.get(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
     }
 
     @Deactivate
@@ -318,10 +324,27 @@ public class DocumentNodeStoreService {
         RevisionGC revisionGC = new RevisionGC(new Runnable() {
             @Override
             public void run() {
-                store.getVersionGarbageCollector().gc();
+                store.getVersionGarbageCollector().gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
             }
         }, executor);
+        registrations.add(registerMBean(wb, RevisionGCMBean.class, revisionGC,
+                RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
         //TODO Register JMX bean for Off Heap Cache stats
+    }
+
+    private Object prop(String propName) {
+        return prop(propName, PREFIX + propName);
+    }
+
+    private Object prop(String propName, String fwkPropName) {
+        //Prefer framework property first
+        Object value = context.getBundleContext().getProperty(fwkPropName);
+        if (value != null) {
+            return value;
+        }
+
+        //Fallback to one from config
+        return context.getProperties().get(propName);
     }
 }

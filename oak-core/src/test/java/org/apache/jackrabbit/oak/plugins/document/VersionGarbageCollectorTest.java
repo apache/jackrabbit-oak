@@ -96,16 +96,15 @@ public class VersionGarbageCollectorTest {
         long expiryTime = 100, maxAge = 20;
 
         Revision cp = Revision.fromString(store.checkpoint(expiryTime));
-        gc.setMaxRevisionAge(maxAge);
 
         //Fast forward time to future but before expiry of checkpoint
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
-        VersionGCStats stats = gc.gc();
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertTrue(stats.ignoredGCDueToCheckPoint);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
-        stats = gc.gc();
+        stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
     }
 
@@ -117,11 +116,11 @@ public class VersionGarbageCollectorTest {
         b1.child("z");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        long maxAge = TimeUnit.HOURS.toMillis(1), delta = TimeUnit.MINUTES.toMillis(10);
-        gc.setMaxRevisionAge(maxAge);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc();
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
         //Remove x/y
@@ -134,15 +133,14 @@ public class VersionGarbageCollectorTest {
         //2. Check that a deleted doc is not collected before
         //maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
-        gc.setMaxRevisionAge(maxAge*2);
         clock.waitUntil(clock.getTime() + delta);
-        stats = gc.gc();
+        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
         //3. Check that deleted doc does get collected post maxAge
-        clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge*2) + delta);
 
-        stats = gc.gc();
+        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
         assertEquals(1, stats.deletedDocGCCount);
 
         //4. Check that a revived doc (deleted and created again) does not get gc
@@ -154,16 +152,16 @@ public class VersionGarbageCollectorTest {
         b4.child("z");
         store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
-        stats = gc.gc();
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge*2) + delta);
+        stats = gc.gc(maxAge*2, TimeUnit.HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
     }
 
     @Test
     public void gcSplitDocs() throws Exception{
-        long maxAge = TimeUnit.HOURS.toMillis(1), delta = TimeUnit.MINUTES.toMillis(10);
-        gc.setMaxRevisionAge(maxAge);
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
 
         NodeBuilder b1 = store.getRoot().builder();
         b1.child("test").child("foo").child("bar");
@@ -195,8 +193,8 @@ public class VersionGarbageCollectorTest {
         assertEquals(SplitDocType.PROP_COMMIT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
         assertEquals(SplitDocType.DEFAULT_NO_CHILD, previousDocTestFoo2.get(0).getSplitDocType());
 
-        clock.waitUntil(clock.getTime() + gc.getMaxRevisionAge() + delta);
-        VersionGCStats stats = gc.gc();
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
         assertEquals(2, stats.splitDocGCCount);
 
         //Previous doc should be removed
