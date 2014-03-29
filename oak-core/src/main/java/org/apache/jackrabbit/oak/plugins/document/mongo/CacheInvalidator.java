@@ -27,6 +27,7 @@ import java.util.Map;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.TreeTraverser;
@@ -163,6 +164,7 @@ abstract class CacheInvalidator {
                 return root.children();
             }
         };
+        public static final int IN_QUERY_BATCH_SIZE = 250;
 
         private final DBCollection nodes;
         private final MongoDocumentStore documentStore;
@@ -209,41 +211,48 @@ abstract class CacheInvalidator {
 
                 final boolean hasMore = pitr.hasNext();
 
-                // Change in level or last element
+                // Change in level of last element
                 if (!sameLevelNodes.isEmpty() &&
                         ((hasMore && tn.level() != pitr.peek().level()) || !hasMore)) {
+                    List<String> sameLevelNodeIds = new ArrayList<String>(sameLevelNodes.keySet());
+                    for(List<String> idBatch : Lists.partition(sameLevelNodeIds, IN_QUERY_BATCH_SIZE)) {
 
-                    QueryBuilder query = QueryBuilder.start(Document.ID)
-                            .in(sameLevelNodes.keySet());
+                        QueryBuilder query = QueryBuilder.start(Document.ID)
+                                .in(idBatch);
 
-                    // Fetch lastRev and modCount for each such nodes
-                    DBCursor cursor = nodes.find(query.get(), keys);
-                    LOG.debug(
-                            "Checking for changed nodes at level {} with {} paths",
-                            tn.level(), sameLevelNodes.size());
-                    result.queryCount++;
-                    for (DBObject obj : cursor) {
+                        // Fetch lastRev and modCount for each such nodes
+                        DBCursor cursor = nodes.find(query.get(), keys);
+                        LOG.debug(
+                                "Checking for changed nodes at level {} with {} paths",
+                                tn.level(), sameLevelNodes.size());
+                        result.queryCount++;
+                        try {
+                            for (DBObject obj : cursor) {
 
-                        result.cacheEntriesProcessedCount++;
+                                result.cacheEntriesProcessedCount++;
 
-                        Number latestModCount = (Number) obj.get(Document.MOD_COUNT);
-                        String id = (String) obj.get(Document.ID);
+                                Number latestModCount = (Number) obj.get(Document.MOD_COUNT);
+                                String id = (String) obj.get(Document.ID);
 
-                        final TreeNode tn2 = sameLevelNodes.get(id);
-                        CachedNodeDocument cachedDoc = tn2.getDocument();
-                        if (cachedDoc != null) {
-                            boolean noChangeInModCount = Objects.equal(latestModCount, cachedDoc.getModCount());
-                            if (noChangeInModCount) {
-                                result.upToDateCount++;
-                                tn2.markUptodate(startTime);
-                            } else {
-                                result.invalidationCount++;
-                                tn2.invalidate();
+                                final TreeNode tn2 = sameLevelNodes.get(id);
+                                CachedNodeDocument cachedDoc = tn2.getDocument();
+                                if (cachedDoc != null) {
+                                    boolean noChangeInModCount = Objects.equal(latestModCount, cachedDoc.getModCount());
+                                    if (noChangeInModCount) {
+                                        result.upToDateCount++;
+                                        tn2.markUptodate(startTime);
+                                    } else {
+                                        result.invalidationCount++;
+                                        tn2.invalidate();
+                                    }
+                                }
+
+                                // Remove the processed nodes
+                                sameLevelNodes.remove(tn2.getId());
                             }
+                        } finally {
+                            cursor.close();
                         }
-
-                        // Remove the processed nodes
-                        sameLevelNodes.remove(tn2.getId());
                     }
 
                     // NodeDocument present in cache but not in database
