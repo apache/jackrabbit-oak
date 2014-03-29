@@ -60,6 +60,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
@@ -1673,7 +1675,19 @@ public final class DocumentNodeStore
         return blobSerializer;
     }
 
+    /**
+     * Returns an iterator for all the blob present in the store.
+     *
+     * <p>In some cases the iterator might implement {@link java.io.Closeable}. So
+     * callers should check for such iterator and close them</p>
+     *
+     * @see org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator
+     * @return an iterator for all the blobs
+     */
     public Iterator<Blob> getReferencedBlobsIterator() {
+        if(store instanceof MongoDocumentStore){
+            return new MongoBlobReferenceIterator(this, (MongoDocumentStore) store);
+        }
         return new BlobReferenceIterator(this);
     }
 
