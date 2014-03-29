@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
+import java.io.File;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -25,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Utility class for tests
@@ -42,9 +46,24 @@ public class TestUtils
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
-        return new EmbeddedSolrServer(coreContainer, "oak");
+        EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, "oak");
+        try {
+            server.deleteByQuery("*:*");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return server;
     }
 
+    public static void cleanDataDir() {
+        String path = TestUtils.class.getResource("/solr/oak/data").getFile();
+        File file = new File(path);
+        System.err.println("checking data dir");
+        if (file.exists()) {
+            System.err.println("deleting data dir");
+            assertTrue(file.delete());
+        }
+    }
 
     public static OakSolrConfiguration getTestConfiguration() {
         return new OakSolrConfiguration() {
