@@ -61,7 +61,9 @@ public class MongoBlobReferenceIterator extends AbstractIterator<Blob> implement
 
     private void loadBatch() {
         initializeCursor();
-        if (cursor.hasNext()) {
+        //Some node which have the '_bin' flag set might not have any binaries in it
+        //so move forward if blobs is still empty and cursor has more elements
+        while (cursor.hasNext() && blobs.isEmpty()) {
             collectBinaries(documentStore.convertFromDBObject(Collection.NODES, cursor.next()));
         }
     }
