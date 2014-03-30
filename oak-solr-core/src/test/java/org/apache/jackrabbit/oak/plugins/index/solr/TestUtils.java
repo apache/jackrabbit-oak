@@ -49,6 +49,7 @@ public class TestUtils
         EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, "oak");
         try {
             server.deleteByQuery("*:*");
+            server.commit();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
