@@ -221,7 +221,7 @@ public class Commit {
 
         for (String path : this.nodesWithBinaries) {
             NodeDocument nd = store.getIfCached(Collection.NODES, Utils.getIdFromPath(path));
-            if ((nd == null) || (nd.hasBinary() != 1)) {
+            if ((nd == null) || !nd.hasBinary()) {
                 UpdateOp updateParentOp = getUpdateOperationForNode(path);
                 NodeDocument.setHasBinary(updateParentOp);
             }
