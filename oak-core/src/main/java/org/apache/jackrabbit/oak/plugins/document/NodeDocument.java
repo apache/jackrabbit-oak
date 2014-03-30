@@ -431,9 +431,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         return lastCheckTime.get();
     }
 
-    public int hasBinary() {
+    public boolean hasBinary() {
         Number flag = (Number) get(HAS_BINARY_FLAG);
-        return flag != null ? flag.intValue() : 0;
+        if(flag == null){
+            return false;
+        }
+        return flag.intValue() == HAS_BINARY_VAL;
     }
 
     /**
@@ -1322,6 +1325,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             type = SplitDocType.DEFAULT_NO_CHILD;
         } else if (oldDoc.getLocalRevisions().isEmpty()){
             type = SplitDocType.PROP_COMMIT_ONLY;
+        }
+
+        //Copy over the hasBinary flag
+        if(mainDoc.hasBinary()){
+            setHasBinary(old);
         }
 
         setSplitDocType(old,type);
