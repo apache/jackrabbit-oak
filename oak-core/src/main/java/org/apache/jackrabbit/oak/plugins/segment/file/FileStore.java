@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
+import static com.google.common.collect.Lists.newLinkedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -27,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -165,14 +167,24 @@ public class FileStore implements SegmentStore {
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
 
-        RecordId id = null;
+        LinkedList<RecordId> heads = newLinkedList();
         String line = journalFile.readLine();
         while (line != null) {
             int space = line.indexOf(' ');
             if (space != -1) {
-                id = RecordId.fromString(tracker, line.substring(0, space));
+                heads.add(RecordId.fromString(tracker, line.substring(0, space)));
             }
             line = journalFile.readLine();
+        }
+
+        RecordId id = null;
+        while (id == null && !heads.isEmpty()) {
+            RecordId last = heads.removeLast();
+            if (containsSegment(last.getSegmentId(), dataFiles)) {
+                id = last;
+            } else {
+                log.warn("Unable to committed revision {}, rewinding...", last);
+            }
         }
 
         if (id != null) {
@@ -333,12 +345,11 @@ public class FileStore implements SegmentStore {
     }
 
     private boolean containsSegment(SegmentId id, List<TarFile> files) {
-        UUID uuid = new UUID(
-                id.getMostSignificantBits(),
-                id.getLeastSignificantBits());
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
         for (TarFile file : files) {
             try {
-                ByteBuffer buffer = file.readEntry(uuid);
+                ByteBuffer buffer = file.readEntry(msb, lsb);
                 if (buffer != null) {
                     return true;
                 }
@@ -351,12 +362,11 @@ public class FileStore implements SegmentStore {
     }
 
     private Segment loadSegment(SegmentId id, List<TarFile> files) {
-        UUID uuid = new UUID(
-                id.getMostSignificantBits(),
-                id.getLeastSignificantBits());
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
         for (TarFile file : files) {
             try {
-                ByteBuffer buffer = file.readEntry(uuid);
+                ByteBuffer buffer = file.readEntry(msb, lsb);
                 if (buffer != null) {
                     return new Segment(tracker, id, buffer);
                 }

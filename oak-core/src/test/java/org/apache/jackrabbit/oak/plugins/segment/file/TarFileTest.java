@@ -51,12 +51,14 @@ public class TarFileTest {
     @Test
     public void testWriteAndRead() throws IOException {
         UUID id = UUID.randomUUID();
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
         TarFile tar = new TarFile(file, 10240, false);
         try {
             tar.writeEntry(id, data, 0, data.length);
-            assertEquals(ByteBuffer.wrap(data), tar.readEntry(id));
+            assertEquals(ByteBuffer.wrap(data), tar.readEntry(msb, lsb));
         } finally {
             tar.close();
         }
@@ -65,7 +67,7 @@ public class TarFileTest {
 
         tar = new TarFile(file, 10240, false);
         try {
-            assertEquals(ByteBuffer.wrap(data), tar.readEntry(id));
+            assertEquals(ByteBuffer.wrap(data), tar.readEntry(msb, lsb));
         } finally {
             tar.close();
         }
