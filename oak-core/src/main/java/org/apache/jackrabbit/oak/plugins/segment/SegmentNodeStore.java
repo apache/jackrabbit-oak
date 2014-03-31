@@ -194,7 +194,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override @Nonnull
-    public String checkpoint(long lifetime) {
+    public synchronized String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         String name = UUID.randomUUID().toString();
 

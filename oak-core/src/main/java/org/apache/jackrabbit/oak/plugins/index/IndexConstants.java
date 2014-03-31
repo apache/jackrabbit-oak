@@ -31,8 +31,12 @@ public interface IndexConstants {
 
     String REINDEX_PROPERTY_NAME = "reindex";
 
+    String REINDEX_ASYNC_PROPERTY_NAME = "reindex-async";
+
     String ASYNC_PROPERTY_NAME = "async";
-    
+
+    String ASYNC_REINDEX_VALUE = "async-reindex";
+
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
     /**
