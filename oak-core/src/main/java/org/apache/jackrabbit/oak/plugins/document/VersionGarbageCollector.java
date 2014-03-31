@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class VersionGarbageCollector {
+public class VersionGarbageCollector {
     private final DocumentNodeStore nodeStore;
     private final VersionGCSupport versionStore;
 
