@@ -16,38 +16,47 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.File;
+import java.util.Properties;
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.solr.client.solrj.SolrServer;
 
-import javax.jcr.RepositoryException;
-import java.util.Properties;
-
 public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
 
-  public SolrOakRepositoryStub(Properties settings)
-          throws RepositoryException {
-    super(settings);
-  }
+    public SolrOakRepositoryStub(Properties settings)
+            throws RepositoryException {
+        super(settings);
+    }
 
-  @Override
-  protected void preCreateRepository(Jcr jcr) {
-    final SolrServer solrServer = TestUtils.createSolrServer();
-    SolrServerProvider solrServerProvider = new SolrServerProvider() {
-      @Override
-      public SolrServer getSolrServer() throws Exception {
-        return solrServer;
-      }
-    };
-    OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
-    jcr.with(new SolrIndexInitializer(false))
-            .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
-            .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
-  }
+    @Override
+    protected void preCreateRepository(Jcr jcr) {
+        String path = getClass().getResource("/").getFile() + "/queryjcrtest";
+        File f = new File(path);
+        final SolrServer solrServer;
+        try {
+            solrServer = new EmbeddedSolrServerProvider(new EmbeddedSolrServerConfiguration(f.getPath(), "", "oak")).getSolrServer();
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+        SolrServerProvider solrServerProvider = new SolrServerProvider() {
+            @Override
+            public SolrServer getSolrServer() throws Exception {
+                return solrServer;
+            }
+        };
+        OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
+        jcr.with(new SolrIndexInitializer(false))
+                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
+                .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
+    }
 }

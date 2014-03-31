@@ -46,14 +46,7 @@ public class TestUtils
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
-        EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, "oak");
-        try {
-            server.deleteByQuery("*:*");
-            server.commit();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return server;
+        return new EmbeddedSolrServer(coreContainer, "oak");
     }
 
     public static void cleanDataDir() {
