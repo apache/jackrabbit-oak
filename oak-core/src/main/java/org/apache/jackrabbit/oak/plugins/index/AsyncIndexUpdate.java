@@ -23,8 +23,14 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -82,11 +88,28 @@ public class AsyncIndexUpdate implements Runnable {
 
     private final AsyncIndexStats indexStats = new AsyncIndexStats();
 
+    /** Flag to switch to synchronous updates once the index caught up to the repo */
+    private final boolean switchOnSync;
+
+    /**
+     * Set of reindexed definitions updated between runs because a single diff
+     * can report less definitions than there really are. Used in coordination
+     * with the switchOnSync flag, so we know which def need to be updated after
+     * a run with no changes.
+     */
+    private final Set<String> reindexedDefinitions = new HashSet<String>();
+
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
-            @Nonnull IndexEditorProvider provider) {
+            @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
         this.name = checkNotNull(name);
         this.store = checkNotNull(store);
         this.provider = checkNotNull(provider);
+        this.switchOnSync = switchOnSync;
+    }
+
+    public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
+            @Nonnull IndexEditorProvider provider) {
+        this(name, store, provider, false);
     }
 
     /**
@@ -113,8 +136,8 @@ public class AsyncIndexUpdate implements Runnable {
     public synchronized void run() {
         log.debug("Running background index task {}", name);
 
-        if(isAlreadyRunning(store)){
-            log.debug("Async job found to be already running. Skipping");
+        if (isAlreadyRunning(store, name)) {
+            log.debug("Async job '{}' found to be already running. Skipping", name);
             return;
         }
 
@@ -143,28 +166,45 @@ public class AsyncIndexUpdate implements Runnable {
 
         CommitFailedException exception = EditorDiff.process(indexUpdate,
                 before, after);
-        if (exception == null && callback.dirty) {
-            async.setProperty(name, checkpoint);
-            try {
-                store.merge(builder, new CommitHook() {
-                    @Override @Nonnull
-                    public NodeState processCommit(
-                            NodeState before, NodeState after, CommitInfo info)
-                            throws CommitFailedException {
-                        // check for concurrent updates by this async task
-                        PropertyState stateAfterRebase = before
-                                .getChildNode(ASYNC).getProperty(name);
-                        if (Objects.equal(state, stateAfterRebase)) {
-                            return postAsyncRunStatus(after.builder(), indexStats)
-                                    .getNodeState();
-                        } else {
-                            throw CONCURRENT_UPDATE;
-                        }
+        if (exception == null) {
+            if (callback.dirty) {
+                async.setProperty(name, checkpoint);
+                try {
+                    store.merge(builder, newCommitHook(name, state, indexStats),
+                            CommitInfo.EMPTY);
+                } catch (CommitFailedException e) {
+                    if (e != CONCURRENT_UPDATE) {
+                        exception = e;
                     }
-                }, CommitInfo.EMPTY);
-            } catch (CommitFailedException e) {
-                if (e != CONCURRENT_UPDATE) {
-                    exception = e;
+                }
+                if (switchOnSync) {
+                    reindexedDefinitions.addAll(indexUpdate
+                            .getReindexedDefinitions());
+                }
+            } else if (switchOnSync && !reindexedDefinitions.isEmpty()) {
+                log.debug("No changes detected after diff, will try to switch to synchronous updates on "
+                        + reindexedDefinitions);
+                async.setProperty(name, checkpoint);
+
+                // no changes after diff, switch to sync on the async defs
+                for (String path : reindexedDefinitions) {
+                    NodeBuilder c = builder;
+                    for (String p : elements(path)) {
+                        c = c.getChildNode(p);
+                    }
+                    if (c.exists() && !c.getBoolean(REINDEX_PROPERTY_NAME)) {
+                        c.removeProperty(ASYNC_PROPERTY_NAME);
+                    }
+                }
+
+                try {
+                    store.merge(builder, newCommitHook(name, state, indexStats),
+                            CommitInfo.EMPTY);
+                    reindexedDefinitions.clear();
+                } catch (CommitFailedException e) {
+                    if (e != CONCURRENT_UPDATE) {
+                        exception = e;
+                    }
                 }
             }
         }
@@ -182,15 +222,36 @@ public class AsyncIndexUpdate implements Runnable {
         }
     }
 
+    private static CommitHook newCommitHook(final String name,
+            final PropertyState state, final AsyncIndexStats indexStats)
+            throws CommitFailedException {
+        return new CommitHook() {
+            @Override
+            @Nonnull
+            public NodeState processCommit(NodeState before, NodeState after,
+                    CommitInfo info) throws CommitFailedException {
+                // check for concurrent updates by this async task
+                PropertyState stateAfterRebase = before.getChildNode(ASYNC)
+                        .getProperty(name);
+                if (Objects.equal(state, stateAfterRebase)) {
+                    return postAsyncRunStatus(after.builder(), indexStats, name)
+                            .getNodeState();
+                } else {
+                    throw CONCURRENT_UPDATE;
+                }
+            }
+        };
+    }
+
     private static void preAsyncRun(NodeStore store, String name,
             AsyncIndexStats stats) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
-        preAsyncRunStatus(builder, stats);
+        preAsyncRunStatus(builder, stats, name);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static boolean isAlreadyRunning(NodeStore store) {
-        NodeState indexState = store.getRoot().getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME);
+    private static boolean isAlreadyRunning(NodeStore store, String name) {
+        NodeState indexState = store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME);
 
         //Probably the first run
         if (!indexState.exists()) {
@@ -198,8 +259,8 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         //Check if already running or timed out
-        if (STATUS_RUNNING.equals(indexState.getString("async-status"))) {
-            PropertyState startTime = indexState.getProperty("async-start");
+        if (STATUS_RUNNING.equals(indexState.getString(name + "-status"))) {
+            PropertyState startTime = indexState.getProperty(name + "-start");
             Calendar start = Conversions.convert(startTime.getValue(Type.DATE)).toCalendar();
             Calendar now = Calendar.getInstance();
             long delta = now.getTimeInMillis() - start.getTimeInMillis();
@@ -218,23 +279,23 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     private static void preAsyncRunStatus(NodeBuilder builder,
-            AsyncIndexStats stats) {
+            AsyncIndexStats stats, String name) {
         String now = now();
         stats.start(now);
-        builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-                .setProperty("async-status", STATUS_RUNNING)
-                .setProperty("async-start", now, Type.DATE)
-                .removeProperty("async-done");
+        builder.getChildNode(INDEX_DEFINITIONS_NAME)
+                .setProperty(name + "-status", STATUS_RUNNING)
+                .setProperty(name + "-start", now, Type.DATE)
+                .removeProperty(name + "-done");
     }
 
     private static NodeBuilder postAsyncRunStatus(NodeBuilder builder,
-            AsyncIndexStats stats) {
+            AsyncIndexStats stats, String name) {
         String now = now();
         stats.done(now);
-        builder.getChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)
-                .setProperty("async-status", STATUS_DONE)
-                .setProperty("async-done", now, Type.DATE)
-                .removeProperty("async-start");
+        builder.getChildNode(INDEX_DEFINITIONS_NAME)
+                .setProperty(name + "-status", STATUS_DONE)
+                .setProperty(name + "-done", now, Type.DATE)
+                .removeProperty(name + "-start");
         return builder;
     }
 

@@ -19,13 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -35,7 +42,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
-import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -51,6 +57,15 @@ class IndexUpdate implements Editor {
 
     private final NodeBuilder builder;
 
+    /** Parent updater, or {@code null} if this is the root updater. */
+    private final IndexUpdate parent;
+
+    /** Name of this node, or {@code null} for the root node. */
+    private final String name;
+
+    /** Path of this editor, built lazily in {@link #getPath()}. */
+    private String path;
+
     /**
      * Editors for indexes that will be normally updated.
      */
@@ -59,7 +74,7 @@ class IndexUpdate implements Editor {
     /**
      * Editors for indexes that need to be re-indexed.
      */
-    private final List<Editor> reindex = newArrayList();
+    private final Map<String, Editor> reindex = new HashMap<String, Editor>();
 
     /**
      * Callback for the update events of the indexing job
@@ -70,6 +85,9 @@ class IndexUpdate implements Editor {
             IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder,
             IndexUpdateCallback updateCallback) {
+        this.parent = null;
+        this.name = null;
+        this.path = "/";
         this.provider = checkNotNull(provider);
         this.async = async;
         this.root = checkNotNull(root);
@@ -78,7 +96,8 @@ class IndexUpdate implements Editor {
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
-        checkNotNull(parent);
+        this.parent = checkNotNull(parent);
+        this.name = name;
         this.provider = parent.provider;
         this.async = parent.async;
         this.root = parent.root;
@@ -93,7 +112,7 @@ class IndexUpdate implements Editor {
 
         // no-op when reindex is empty
         CommitFailedException exception = EditorDiff.process(
-                CompositeEditor.compose(reindex), MISSING_NODE, after);
+                CompositeEditor.compose(reindex.values()), MISSING_NODE, after);
         if (exception != null) {
             throw exception;
         }
@@ -114,18 +133,35 @@ class IndexUpdate implements Editor {
                     // trigger reindexing when an indexer becomes available
                     definition.setProperty(REINDEX_PROPERTY_NAME, true);
                 } else if (definition.getBoolean(REINDEX_PROPERTY_NAME)) {
-                    definition.setProperty(REINDEX_PROPERTY_NAME, false);
-                    // as we don't know the index content node name
-                    // beforehand, we'll remove all child nodes
-                    for (String rm : definition.getChildNodeNames()) {
-                        definition.getChildNode(rm).remove();
+                    if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
+                            && definition.getString(ASYNC_PROPERTY_NAME) == null) {
+                        // switch index to an async update mode
+                        definition.setProperty(ASYNC_PROPERTY_NAME,
+                                ASYNC_REINDEX_VALUE);
+                    } else {
+                        definition.setProperty(REINDEX_PROPERTY_NAME, false);
+                        // as we don't know the index content node name
+                        // beforehand, we'll remove all child nodes
+                        for (String rm : definition.getChildNodeNames()) {
+                            definition.getChildNode(rm).remove();
+                        }
+                        reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), wrap(editor));
                     }
-                    reindex.add(VisibleEditor.wrap(editor));
                 } else {
-                    editors.add(VisibleEditor.wrap(editor));
+                    editors.add(wrap(editor));
                 }
             }
         }
+    }
+
+    /**
+     * Returns the path of this node, building it lazily when first requested.
+     */
+    private String getPath() {
+        if (path == null) {
+            path = concat(parent.getPath(), name);
+        }
+        return path;
     }
 
     @Override
@@ -200,6 +236,10 @@ class IndexUpdate implements Editor {
             }
         }
         return CompositeEditor.compose(children);
+    }
+
+    protected Set<String> getReindexedDefinitions() {
+        return reindex.keySet();
     }
 
 }
