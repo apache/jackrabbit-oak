@@ -30,6 +30,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Objects;
+import org.apache.jackrabbit.api.JackrabbitValue;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,7 +39,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 /**
  * Implementation of {@link Value} based on {@code PropertyState}.
  */
-public class ValueImpl implements Value {
+public class ValueImpl implements JackrabbitValue {
 
     public static Blob getBlob(Value value) {
         checkState(value instanceof ValueImpl);
@@ -256,6 +257,11 @@ public class ValueImpl implements Value {
     @Override
     public Binary getBinary() throws RepositoryException {
         return new BinaryImpl(this);
+    }
+
+    @Override
+    public String getContentIdentity() {
+        return getBlob().getReference();
     }
 
     //-------------------------------------------------------------< Object >---
