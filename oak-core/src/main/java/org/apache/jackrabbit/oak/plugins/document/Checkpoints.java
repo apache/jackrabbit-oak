@@ -110,7 +110,7 @@ class Checkpoints {
 
         if (op.hasChanges()) {
             store.findAndUpdate(Collection.SETTINGS, op);
-            log.info("Purged {} expired checkpoints", op.getChanges().size());
+            log.debug("Purged {} expired checkpoints", op.getChanges().size());
         }
 
         return lastAliveRevision;

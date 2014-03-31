@@ -112,15 +112,16 @@ public class AsyncIndexUpdate implements Runnable {
     @Override
     public synchronized void run() {
         log.debug("Running background index task {}", name);
+
+        if(isAlreadyRunning(store)){
+            log.debug("Async job found to be already running. Skipping");
+            return;
+        }
+
         String checkpoint = store.checkpoint(lifetime);
         NodeState after = store.retrieve(checkpoint);
         if (after == null) {
             log.debug("Unable to retrieve checkpoint {}", checkpoint);
-            return;
-        }
-
-        if(isAlreadyRunning(store)){
-            log.debug("Async job found to be already running. Skipping");
             return;
         }
 
