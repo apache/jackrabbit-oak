@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.memory.AbstractBlob.calculateSha256;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -261,7 +262,7 @@ public class ValueImpl implements JackrabbitValue {
 
     @Override
     public String getContentIdentity() {
-        return getBlob().getReference();
+        return calculateSha256(getBlob()).toString();
     }
 
     //-------------------------------------------------------------< Object >---
