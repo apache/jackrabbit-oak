@@ -99,7 +99,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     private final boolean debugMode = Boolean.getBoolean("debugModeGC") || LOG.isDebugEnabled();
 
     /** Flag to indicate the state of the gc **/
-    private String state;
+    private String state = NOT_RUNNING;
 
     /**
      * Gets the max last modified interval considered for garbage collection.
@@ -174,7 +174,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param maxLastModifiedInterval
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    public void init(
+    public MarkSweepGarbageCollector(
             BlobReferenceRetriever marker,
             GarbageCollectableBlobStore blobStore,
             String root,
@@ -183,12 +183,14 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             int maxSweeperThreads,
             long maxLastModifiedInterval)
             throws IOException {
+        this.blobStore = blobStore;
+        this.marker = marker;
         this.batchCount = batchCount;
         this.root = root;
         this.runConcurrently = runBackendConcurrently;
         this.numSweepers = maxSweeperThreads;
         this.maxLastModifiedInterval = maxLastModifiedInterval;
-        init(marker, blobStore);
+        fs = new GarbageCollectorFileState(root);        
     }
 
     /**
@@ -198,7 +200,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param blobStore
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    public void init(BlobReferenceRetriever marker, GarbageCollectableBlobStore blobStore)
+    public MarkSweepGarbageCollector(
+            BlobReferenceRetriever marker, 
+            GarbageCollectableBlobStore blobStore)
             throws IOException {
         Preconditions.checkState(!Strings.isNullOrEmpty(root));
 
@@ -357,7 +361,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 executorService.shutdown();
                 executorService.awaitTermination(100, TimeUnit.MINUTES);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                LOG.error("Exception while waiting for termination of the executor service", e);
+                LOG.error("Immediately shutdown");
+                executorService.shutdownNow();
             }
     
             count -= exceptionQueue.size();
@@ -372,7 +378,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 IOUtils.closeQuietly(writer);
             }
     
-            LOG.debug("Blobs deleted count - " + count);
+            LOG.info("Blobs deleted count - " + count);
             LOG.debug("Ending sweep phase of the garbage collector");
         } finally {
             fs.complete();
@@ -424,6 +430,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         @Override
         public void run() {
             try {
+                LOG.debug("Deleting blobs : " + ids);
                 boolean deleted =
                         blobStore.deleteChunks(ids,
                                         (maxLastModifiedInterval > 0 ? System.currentTimeMillis()
@@ -432,7 +439,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     exceptionQueue.addAll(ids);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Error in deleting blobs - " + ids, e);
                 exceptionQueue.addAll(ids);
             }
         }
@@ -539,7 +546,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 fs.sort(fs.getAvailableRefs());
                 LOG.debug("Ending retrieving all blobs : " + blobsCount);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Error retrieving available blob ids", e);
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }

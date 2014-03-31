@@ -121,9 +121,9 @@ public class SegmentDataStoreBlobGCTest {
     public void gc() throws Exception {
         HashSet<String> set = setUp();
 
-        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-        gc.init(new SegmentBlobReferenceRetriever(store.getTracker()),
-                (GarbageCollectableBlobStore) store.getBlobStore(), "./target", 2048, true, 2, 0);
+        MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
+                new SegmentBlobReferenceRetriever(store.getTracker()),
+                    (GarbageCollectableBlobStore) store.getBlobStore(), "./target", 2048, true, 2, 0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();

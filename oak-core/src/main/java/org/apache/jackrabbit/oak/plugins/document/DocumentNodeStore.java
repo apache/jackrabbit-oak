@@ -1615,10 +1615,11 @@ public final class DocumentNodeStore
     private MarkSweepGarbageCollector createBlobGarbageCollector(BlobStore blobStore) {
         MarkSweepGarbageCollector blobGC = null;
         if(blobStore instanceof GarbageCollectableBlobStore){
-            blobGC = new MarkSweepGarbageCollector();
+            blobGC = null;
             try {
-                blobGC.init(new DocumentBlobReferenceRetriever(this),
-                        (GarbageCollectableBlobStore) blobStore);
+                blobGC = new MarkSweepGarbageCollector(
+                        new DocumentBlobReferenceRetriever(this),
+                            (GarbageCollectableBlobStore) blobStore);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
                         "the MarkSweepGarbageCollector",e);
