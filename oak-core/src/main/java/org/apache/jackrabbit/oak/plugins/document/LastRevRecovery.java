@@ -20,17 +20,12 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,77 +42,44 @@ public class LastRevRecovery {
         this.nodeStore = nodeStore;
     }
 
-    public void recover(Iterator<NodeDocument> suspects, int clusterId) {
+    public int recover(Iterator<NodeDocument> suspects, int clusterId) {
         UnsavedModifications unsaved = new UnsavedModifications();
-
-        //Set of parent path whose lastRev has been updated based on
-        //last rev information obtained from suspects. Its possible
-        //that lastRev for such parents present in DS has
-        //higher value. So before persisting the changes for these
-        //paths we need to ensure that there actual lastRev is lesser
-        //than one being set via unsaved
-        Set<String> unverifiedParentPaths = Sets.newHashSet();
-
-        //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevs = Maps.newHashMap();
 
         while (suspects.hasNext()) {
             NodeDocument doc = suspects.next();
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
-            if (currentLastRev != null) {
-                knownLastRevs.put(doc.getPath(), currentLastRev);
-            }
-
             Revision lostLastRev = determineMissedLastRev(doc, clusterId);
 
-            //lastRev is consistent
-            if (lostLastRev == null) {
-                continue;
-            }
-
             //1. Update lastRev for this doc
-            unsaved.put(doc.getPath(), lostLastRev);
+            if (lostLastRev != null) {
+                unsaved.put(doc.getPath(), lostLastRev);
+            }
 
-            //2. Update lastRev for parent paths
-            String path = doc.getPath();
-            while (true) {
-                if (PathUtils.denotesRoot(path)) {
-                    break;
+            Revision lastRevForParents = lostLastRev != null ? lostLastRev : currentLastRev;
+
+            //If both currentLastRev and lostLastRev are null it means
+            //that no change is done by suspect cluster on this document
+            //so nothing needs to be updated. Probably it was only changed by
+            //other cluster nodes. If this node is parent of any child node which
+            //has been modified by cluster then that node roll up would
+            //add this node path to unsaved
+
+            //2. Update lastRev for parent paths aka rollup
+            if (lastRevForParents != null) {
+                String path = doc.getPath();
+                while (true) {
+                    if (PathUtils.denotesRoot(path)) {
+                        break;
+                    }
+                    path = PathUtils.getParentPath(path);
+                    unsaved.put(path, lastRevForParents);
                 }
-                path = PathUtils.getParentPath(path);
-                unsaved.put(path, lostLastRev);
-                unverifiedParentPaths.add(path);
             }
         }
 
-        //By now we have iterated over all suspects so remove entries for paths
-        //whose lastRev have been determined on the basis of state obtained from
-        //DS
-        Iterator<String> unverifiedParentPathsItr = unverifiedParentPaths.iterator();
-        while (unverifiedParentPathsItr.hasNext()) {
-            String unverifiedParentPath = unverifiedParentPathsItr.next();
-            Revision knownRevision = knownLastRevs.get(unverifiedParentPath);
-            if (knownRevision != null) {
-                unverifiedParentPathsItr.remove();
-                unsaved.put(unverifiedParentPath, knownRevision);
-            }
-        }
-
-        //Now for the left over unverifiedParentPaths determine the lastRev
-        //from DS and add them to unsaved. This ensures that we do not set lastRev
-        //to a lower value
-
-        //TODO For Mongo case we can fetch such documents more efficiently
-        //via batch fetch
-        for (String path : unverifiedParentPaths) {
-            NodeDocument doc = getDocument(path);
-            if (doc != null) {
-                Revision lastRev = doc.getLastRev().get(clusterId);
-                unsaved.put(path, lastRev);
-            }
-        }
-
+        //Note the size before persist as persist operation
+        //would empty the internal state
         int size = unsaved.getPaths().size();
 
         if (log.isDebugEnabled()) {
@@ -131,6 +93,8 @@ public class LastRevRecovery {
 
         log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
                 "cluster node [{}]", size, clusterId);
+
+        return size;
     }
 
     /**
@@ -154,9 +118,8 @@ public class LastRevRecovery {
         //Merge sort the revs for which changes have been made
         //to this doc
 
-        //TODO Would looking into the Local map be sufficient
-        //Probably yes as entries for a particular cluster node
-        //are split by that cluster only
+        //localMap always keeps the most recent valid commit entry
+        //per cluster node so looking into that should be sufficient
         Iterable<Revision> revs = mergeSorted(of(
                         filter(doc.getLocalCommitRoot().keySet(), cp),
                         filter(doc.getLocalRevisions().keySet(), cp)),
@@ -178,10 +141,6 @@ public class LastRevRecovery {
             }
         }
         return null;
-    }
-
-    private NodeDocument getDocument(String path) {
-        return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
     }
 
     private static class ClusterPredicate implements Predicate<Revision> {
