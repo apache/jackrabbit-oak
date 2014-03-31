@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -42,7 +43,11 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     public void setUpConnection() throws Exception {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
-        mk = new DocumentMK.Builder().setMongoDB(mongoConnection.getDB()).open();
+        mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB()).open();
+    }
+
+    protected Clock getTestClock() throws InterruptedException {
+        return Clock.SIMPLE;
     }
 
     @After

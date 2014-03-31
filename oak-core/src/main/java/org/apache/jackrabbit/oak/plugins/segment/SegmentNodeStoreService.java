@@ -174,8 +174,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
         if (blobStore instanceof GarbageCollectableBlobStore) {
-            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector();
-            gc.init(new SegmentBlobReferenceRetriever(store.getTracker()), 
+            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
+                    new SegmentBlobReferenceRetriever(store.getTracker()), 
                         (GarbageCollectableBlobStore) blobStore);
             blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Segment node store blob garbage collection");
