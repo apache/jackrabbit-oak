@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
  * Also, manages any temporary files needed as well as external sorting.
  * 
  */
-public class GarbageCollectorFileState {
+class GarbageCollectorFileState {
 
     private static final String GC_DIR = "gc";
 
