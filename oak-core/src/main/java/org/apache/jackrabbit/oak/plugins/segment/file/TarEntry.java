@@ -16,15 +16,61 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import java.util.Comparator;
+
 class TarEntry {
+
+    static final Comparator<TarEntry> REVERSE_OFFSET = new Comparator<TarEntry>() {
+        @Override
+        public int compare(TarEntry a, TarEntry b) {
+            if (a.offset > b.offset) {
+                return -1;
+            } else if (a.offset < b.offset) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    };
+
+    static final Comparator<TarEntry> IDENTIFIER = new Comparator<TarEntry>() {
+        @Override
+        public int compare(TarEntry a, TarEntry b) {
+            if (a.msb > b.msb) {
+                return 1;
+            } else if (a.msb < b.msb) {
+                return -1;
+            } else if (a.lsb > b.lsb) {
+                return 1;
+            } else if (a.lsb < b.lsb) {
+                return -1;
+            } else {
+                return 0;
+            }
+        }
+    };
+
+    private final long msb;
+
+    private final long lsb;
 
     private final int offset;
 
     private final int size;
 
-    TarEntry(int offset, int size) {
+    TarEntry(long msb, long lsb, int offset, int size) {
+        this.msb = msb;
+        this.lsb = lsb;
         this.offset = offset;
         this.size = size;
+    }
+
+    long msb() {
+        return msb;
+    }
+
+    long lsb() {
+        return lsb;
     }
 
     int offset() {

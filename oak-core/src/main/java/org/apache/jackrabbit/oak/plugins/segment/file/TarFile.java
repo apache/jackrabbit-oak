@@ -19,16 +19,16 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newTreeMap;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.zip.CRC32;
@@ -108,7 +108,19 @@ class TarFile {
     }
 
     Set<UUID> getUUIDs() {
-        return entries.keySet();
+        if (entries != null) {
+            return entries.keySet();
+        } else {
+            Set<UUID> uuids = newHashSet();
+            int position = index.position();
+            while (position < index.limit()) {
+                uuids.add(new UUID(
+                        index.getLong(position),
+                        index.getLong(position + 8)));
+                position += 24;
+            }
+            return uuids;
+        }
     }
 
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
@@ -142,13 +154,14 @@ class TarFile {
 
             ByteBuffer index = ByteBuffer.allocate(indexSize);
 
-            SortedMap<UUID, TarEntry> sorted = newTreeMap();
-            sorted.putAll(entries);
-            for (Map.Entry<UUID, TarEntry> entry : sorted.entrySet()) {
-                index.putLong(entry.getKey().getMostSignificantBits());
-                index.putLong(entry.getKey().getLeastSignificantBits());
-                index.putInt(entry.getValue().offset());
-                index.putInt(entry.getValue().size());
+            TarEntry[] sorted =
+                    entries.values().toArray(new TarEntry[entries.size()]);
+            Arrays.sort(sorted, TarEntry.IDENTIFIER);
+            for (TarEntry entry : sorted) {
+                index.putLong(entry.msb());
+                index.putLong(entry.lsb());
+                index.putInt(entry.offset());
+                index.putInt(entry.size());
             }
 
             CRC32 checksum = new CRC32();
@@ -167,7 +180,9 @@ class TarFile {
 
         writeEntryHeader(uuid.toString().getBytes(UTF_8), size);
         access.write(position + BLOCK_SIZE, b, offset, size);
-        entries.put(uuid, new TarEntry(position + BLOCK_SIZE, size));
+        entries.put(uuid, new TarEntry(
+                uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
+                position + BLOCK_SIZE, size));
         position += getEntrySize(size);
 
         return true;
@@ -227,6 +242,57 @@ class TarFile {
         access.write(position, header, 0, BLOCK_SIZE);
     }
 
+    public synchronized void cleanup(Set<UUID> referencedIds)
+            throws IOException {
+        TarEntry[] sorted;
+        if (entries != null) {
+            sorted = entries.values().toArray(new TarEntry[entries.size()]);
+        } else {
+            sorted = new TarEntry[index.remaining() / 24];
+            int position = index.position();
+            for (int i = 0; position < index.limit(); i++) {
+                sorted[i]  = new TarEntry(
+                        index.getLong(position),
+                        index.getLong(position + 8),
+                        index.getInt(position + 16),
+                        index.getInt(position + 20));
+                position += 24;
+            }
+        }
+        Arrays.sort(sorted, TarEntry.REVERSE_OFFSET);
+
+        int size = 0;
+        int count = 0;
+        for (int i = 0; i < sorted.length; i++) {
+            TarEntry entry = sorted[i];
+            UUID id = new UUID(entry.msb(), entry.lsb());
+            if (!referencedIds.remove(id)) {
+                // this segment is not referenced anywhere
+                sorted[i] = null;
+            } else if (isDataSegmentId(entry.lsb())) {
+                size += getEntrySize(entry.size());
+                count += 1;
+                // this is a referenced data segment, so follow the graph
+                ByteBuffer segment = access.read(
+                        entry.offset(),
+                        Math.min(entry.size(), 16 * 256));
+                int pos = segment.position();
+                int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+                int refend = pos + 16 * (refcount + 1);
+                for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                    referencedIds.add(new UUID(
+                            segment.getLong(refpos),
+                            segment.getLong(refpos + 8)));
+                }
+            }
+        }
+
+        // check if we could free up at least 25% of space
+        if (entries == null && size < access.length() * 3 / 4) {
+            // TODO: write new tar file
+        }
+    }
+
     public boolean flush() throws IOException {
         try {
             access.flush();
@@ -244,7 +310,6 @@ class TarFile {
             }
         }
     }
-
 
     void close() throws IOException {
         access.close();
@@ -292,6 +357,7 @@ class TarFile {
                 } else {
                     // found it!
                     return new TarEntry(
+                            msb, lsb,
                             index.getInt(position + 16),
                             index.getInt(position + 20));
                 }
@@ -410,7 +476,10 @@ class TarFile {
 
             try {
                 UUID id = UUID.fromString(name);
-                entries.put(id, new TarEntry(position + BLOCK_SIZE, size));
+                entries.put(id, new TarEntry(
+                        id.getMostSignificantBits(),
+                        id.getLeastSignificantBits(),
+                        position + BLOCK_SIZE, size));
             } catch (IllegalArgumentException e) {
                 break; // unexpected entry, truncate the file at this point
             }

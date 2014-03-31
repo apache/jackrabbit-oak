@@ -23,6 +23,15 @@ import java.util.UUID;
  */
 public class SegmentId implements Comparable<SegmentId> {
 
+    /**
+     * Checks whether this is a data segment identifier.
+     *
+     * @return {@code true} for a data segment, {@code false} otherwise
+     */
+    public static boolean isDataSegmentId(long lsb) {
+        return (lsb >>> 60) == 0xAL;
+    }
+
     private final SegmentTracker tracker;
 
     private final long msb;
@@ -48,7 +57,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @return {@code true} for a data segment, {@code false} otherwise
      */
     public boolean isDataSegmentId() {
-        return (lsb >>> 60) == 0xAL; 
+        return isDataSegmentId(lsb);
     }
 
     /**

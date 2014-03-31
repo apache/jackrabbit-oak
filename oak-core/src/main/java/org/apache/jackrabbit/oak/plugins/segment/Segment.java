@@ -88,7 +88,7 @@ public class Segment {
      */
     static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
-    static int REF_COUNT_OFFSET = 5;
+    public static int REF_COUNT_OFFSET = 5;
 
     static int ROOT_COUNT_OFFSET = 6;
 
