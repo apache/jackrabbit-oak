@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
 
@@ -40,11 +41,21 @@ class Checkpoints {
      */
     private static final String PROP_CHECKPOINT = "data";
 
+    /**
+     * Number of create calls after which old expired checkpoints entries would
+     * be removed
+     */
+    static final int CLEANUP_INTERVAL = 100;
+
     private final DocumentNodeStore nodeStore;
 
     private final DocumentStore store;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private final AtomicInteger createCounter = new AtomicInteger();
+
+    private final Object cleanupLock = new Object();
 
     Checkpoints(DocumentNodeStore store) {
         this.nodeStore = store;
@@ -54,6 +65,8 @@ class Checkpoints {
 
     public Revision create(long lifetimeInMillis) {
         Revision r = nodeStore.getHeadRevision();
+        createCounter.getAndIncrement();
+        performCleanupIfRequired();
         UpdateOp op = new UpdateOp(ID, false);
         long endTime = nodeStore.getClock().getTime() + lifetimeInMillis;
         op.setMapEntry(PROP_CHECKPOINT, r, Long.toString(endTime));
@@ -61,9 +74,10 @@ class Checkpoints {
         return r;
     }
 
-
     /**
      * Returns the oldest valid checkpoint registered.
+     *
+     * <p>It also performs cleanup of expired checkpoint
      *
      * @return oldest valid checkpoint registered. Might return null if no valid
      * checkpoint found
@@ -72,8 +86,7 @@ class Checkpoints {
     @CheckForNull
     public Revision getOldestRevisionToKeep() {
         //Get uncached doc
-        Document cdoc = store.find(Collection.SETTINGS, ID, 0);
-        SortedMap<Revision, String> checkpoints = (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
+        SortedMap<Revision, String> checkpoints = getCheckpoints();
 
         if(checkpoints == null){
             log.debug("No checkpoint registered so far");
@@ -101,6 +114,30 @@ class Checkpoints {
         }
 
         return lastAliveRevision;
+    }
+
+    @SuppressWarnings("unchecked")
+    @CheckForNull
+    private SortedMap<Revision, String> getCheckpoints() {
+        Document cdoc = store.find(Collection.SETTINGS, ID, 0);
+        return (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
+    }
+
+    int size(){
+        SortedMap<Revision, String> checkpoints = getCheckpoints();
+        return checkpoints == null ? 0 : checkpoints.size();
+    }
+
+    /**
+     * Triggers collection of expired checkpoints createCounter exceeds certain size
+     */
+    private void performCleanupIfRequired() {
+        if(createCounter.get() > CLEANUP_INTERVAL){
+            synchronized (cleanupLock){
+                getOldestRevisionToKeep();
+                createCounter.set(0);
+            }
+        }
     }
 
     private void createIfNotExist() {

@@ -18,11 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -50,6 +53,47 @@ public class CheckpointsTest {
         //Trigger expiry by forwarding the clock to future
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         assertNull(store.getCheckpoints().getOldestRevisionToKeep());
+    }
+
+    @Test
+    public void testCheckpointPurgeByCount() throws Exception {
+        long expiryTime = TimeUnit.HOURS.toMillis(1);
+        Revision r1 = null;
+        for(int i = 0; i < Checkpoints.CLEANUP_INTERVAL; i++){
+            r1 = Revision.fromString(store.checkpoint(expiryTime));
+            store.setHeadRevision(Revision.newRevision(0));
+        }
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+        assertEquals(Checkpoints.CLEANUP_INTERVAL, store.getCheckpoints().size());
+
+        //Trigger expiry by forwarding the clock to future
+        clock.waitUntil(clock.getTime() + expiryTime);
+
+        //Now creating the next checkpoint should trigger
+        //cleanup
+        store.checkpoint(expiryTime);
+        assertEquals(1, store.getCheckpoints().size());
+    }
+
+    @Ignore("OAK-1648")
+    @Test
+    public void multipleCheckpointOnSameRevision() throws Exception{
+        long e1 = TimeUnit.HOURS.toMillis(1);
+        long e2 = TimeUnit.HOURS.toMillis(3);
+
+        //Create CP with higher expiry first and then one with
+        //lower expiry
+        Revision r2 = Revision.fromString(store.checkpoint(e2));
+        Revision r1 = Revision.fromString(store.checkpoint(e1));
+
+        //Head revision has not changed so revision must be same
+        assertEquals(r1,r2);
+
+        clock.waitUntil(clock.getTime() + e1 + 1);
+
+        //The older checkpoint was for greater duration so checkpoint
+        //must not be GC
+        assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
     }
 
     @Test
