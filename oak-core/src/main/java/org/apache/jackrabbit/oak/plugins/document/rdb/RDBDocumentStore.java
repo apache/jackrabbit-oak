@@ -278,15 +278,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     // the code below likely will need to be extended for new database types
                     if ("PostgreSQL".equals(dbtype)) {
                         stmt.execute("create table " + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA bytea)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA bytea)");
                     }
                     else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
                         stmt.execute("create table " + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
                     }
                     else {
                         stmt.execute("create table " + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, DATA varchar(16384), BDATA blob)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
                     }
                     stmt.close();
 
@@ -651,7 +651,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbUpdate(Connection connection, String tableName, String id, Long modified, Long modcount, Long oldmodcount,
             String data) throws SQLException {
-        String t = "update " + tableName + " set MODIFIED = ?, MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?";
+        String t = "update " + tableName + " set MODIFIED = ?, MODCOUNT = ?, SIZE = ?, DATA = ?, BDATA = ? where ID = ?";
         if (oldmodcount != null) {
             t += " and MODCOUNT = ?";
         }
@@ -660,6 +660,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
+            stmt.setObject(si++, data.length(), Types.BIGINT);
 
             if (data.length() < DATALIMIT) {
                 stmt.setString(si++, data);
@@ -686,12 +687,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Long modcount, String data)
             throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName + " values(?, ?, ?, ?, ?)");
+        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName + " values(?, ?, ?, ?, ?, ?)");
         try {
             int si = 1;
             stmt.setString(si++, id);
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
+            stmt.setObject(si++, data.length(), Types.BIGINT);
             if (data.length() < DATALIMIT) {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
