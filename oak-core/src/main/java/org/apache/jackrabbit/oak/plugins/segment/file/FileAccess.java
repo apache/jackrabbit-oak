@@ -23,6 +23,8 @@ interface FileAccess {
 
     int length() throws IOException;
 
+    long crc32(int position, int size) throws IOException;
+
     ByteBuffer read(int position, int length) throws IOException;
 
     void write(int position, byte[] b, int offset, int length)

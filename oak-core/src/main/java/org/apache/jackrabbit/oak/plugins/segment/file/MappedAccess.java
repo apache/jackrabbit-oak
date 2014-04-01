@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.util.zip.CRC32;
 
 class MappedAccess implements FileAccess {
 
@@ -48,10 +49,23 @@ class MappedAccess implements FileAccess {
     }
 
     @Override
+    public long crc32(int position, int length) {
+        ByteBuffer entry = buffer.asReadOnlyBuffer();
+        entry.position(entry.position() + position);
+
+        byte[] data = new byte[length];
+        entry.get(data);
+
+        CRC32 checksum = new CRC32();
+        checksum.update(data);
+        return checksum.getValue();
+    }
+
+    @Override
     public ByteBuffer read(int position, int length) {
         ByteBuffer entry = buffer.asReadOnlyBuffer();
-        entry.position(position);
-        entry.limit(position + length);
+        entry.position(entry.position() + position);
+        entry.limit(entry.position() + length);
         return entry.slice();
     }
 
@@ -60,7 +74,7 @@ class MappedAccess implements FileAccess {
             int position, byte[] b, int offset, int length)
             throws IOException {
         ByteBuffer entry = buffer.duplicate();
-        entry.position(position);
+        entry.position(entry.position() + position);
         entry.put(b, offset, length);
         updated = true;
     }
