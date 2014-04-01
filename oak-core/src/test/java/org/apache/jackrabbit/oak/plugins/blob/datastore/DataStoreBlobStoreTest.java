@@ -22,8 +22,13 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -122,6 +127,26 @@ public class DataStoreBlobStoreTest {
         assertNull(ds.getReference(inMemBlobId));
     }
 
+    @Test
+    public void testGetAllChunks() throws Exception{
+        DataIdentifier d10 = new DataIdentifier("d-10");
+        DataIdentifier d20 = new DataIdentifier("d-20");
+        DataIdentifier d30 = new DataIdentifier("d-30");
+        List<DataIdentifier> dis = ImmutableList.of(d10, d20, d30);
+
+        DataStore mockedDS = mock(DataStore.class);
+        when(mockedDS.getAllIdentifiers()).thenReturn(dis.iterator());
+        when(mockedDS.getRecord(new DataIdentifier("d-10"))).thenReturn(new TimeDataRecord(d10));
+        when(mockedDS.getRecord(new DataIdentifier("d-20"))).thenReturn(new TimeDataRecord(d20));
+        when(mockedDS.getRecord(new DataIdentifier("d-30"))).thenReturn(new TimeDataRecord(d30));
+        DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
+
+        Iterator<String> chunks = ds.getAllChunkIds(25);
+        Set<String> expected = Sets.newHashSet("d-10","d-20");
+        assertEquals(expected, Sets.newHashSet(chunks));
+
+    }
+
     private static class ByteArrayDataRecord implements DataRecord {
         private final byte[] data;
         private final DataIdentifier identifier;
@@ -156,6 +181,39 @@ public class DataStoreBlobStoreTest {
         @Override
         public long getLastModified() {
             return 0;
+        }
+    }
+
+    private static class TimeDataRecord implements DataRecord {
+        private final DataIdentifier id;
+
+        private TimeDataRecord(DataIdentifier id) {
+            this.id = id;
+        }
+
+        @Override
+        public DataIdentifier getIdentifier() {
+            return id;
+        }
+
+        @Override
+        public String getReference() {
+            return id.toString();
+        }
+
+        @Override
+        public long getLength() throws DataStoreException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public InputStream getStream() throws DataStoreException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public long getLastModified() {
+            return Long.valueOf(id.toString().substring(id.toString().indexOf('-')+1));
         }
     }
 }
