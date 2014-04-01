@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -174,9 +175,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
         if (blobStore instanceof GarbageCollectableBlobStore) {
-            MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
-                    new SegmentBlobReferenceRetriever(store.getTracker()), 
-                        (GarbageCollectableBlobStore) blobStore);
+            BlobGarbageCollector gc = new BlobGarbageCollector() {
+                @Override
+                public void collectGarbage() throws Exception {
+                    MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
+                            new SegmentBlobReferenceRetriever(store.getTracker()),
+                            (GarbageCollectableBlobStore) blobStore,
+                            executor);
+                    gc.collectGarbage();
+                }
+            };
+
             blobGCRegistration = registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Segment node store blob garbage collection");
         }

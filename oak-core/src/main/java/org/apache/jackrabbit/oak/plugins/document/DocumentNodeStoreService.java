@@ -48,17 +48,17 @@ import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
-import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.RevisionGC;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -128,6 +128,7 @@ public class DocumentNodeStoreService {
     private DocumentMK mk;
     private ObserverTracker observerTracker;
     private ComponentContext context;
+    private Whiteboard whiteboard;
 
 
     private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
@@ -140,6 +141,9 @@ public class DocumentNodeStoreService {
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
+        this.whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        this.executor = new WhiteboardExecutor();
+        executor.start(whiteboard);
 
         if (blobStore == null &&
                 PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)) {
@@ -191,12 +195,12 @@ public class DocumentNodeStoreService {
         }
 
         mkBuilder.setMongoDB(mongoDB, changesSize);
-
+        mkBuilder.setExecutor(executor);
         mk = mkBuilder.open();
 
         log.info("Connected to database {}", mongoDB);
 
-        registerJMXBeans(mk.getNodeStore(), context.getBundleContext());
+        registerJMXBeans(mk.getNodeStore());
 
         NodeStore store;
         if (useMK) {
@@ -234,12 +238,14 @@ public class DocumentNodeStoreService {
         unregisterNodeStore();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
         log.info("Initializing DocumentNodeStore with BlobStore [{}]", blobStore);
         this.blobStore = blobStore;
         registerNodeStore();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobStore(BlobStore blobStore) {
         this.blobStore = null;
         unregisterNodeStore();
@@ -264,23 +270,22 @@ public class DocumentNodeStoreService {
         }
     }
 
-    private void registerJMXBeans(final DocumentNodeStore store, BundleContext context) throws IOException {
-        Whiteboard wb = new OsgiWhiteboard(context);
+    private void registerJMXBeans(final DocumentNodeStore store) throws IOException {
         registrations.add(
-                registerMBean(wb,
+                registerMBean(whiteboard,
                         CacheStatsMBean.class,
                         store.getNodeCacheStats(),
                         CacheStatsMBean.TYPE,
                         store.getNodeCacheStats().getName()));
         registrations.add(
-                registerMBean(wb,
+                registerMBean(whiteboard,
                         CacheStatsMBean.class,
                         store.getNodeChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
                         store.getNodeChildrenCacheStats().getName())
         );
         registrations.add(
-                registerMBean(wb,
+                registerMBean(whiteboard,
                         CacheStatsMBean.class,
                         store.getDocChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
@@ -290,7 +295,7 @@ public class DocumentNodeStoreService {
         if (cl instanceof MemoryDiffCache) {
             MemoryDiffCache mcl = (MemoryDiffCache) cl;
             registrations.add(
-                    registerMBean(wb,
+                    registerMBean(whiteboard,
                             CacheStatsMBean.class,
                             mcl.getDiffCacheStats(),
                             CacheStatsMBean.TYPE,
@@ -302,7 +307,7 @@ public class DocumentNodeStoreService {
         if (ds instanceof CachingDocumentStore) {
             CachingDocumentStore cds = (CachingDocumentStore) ds;
             registrations.add(
-                    registerMBean(wb,
+                    registerMBean(whiteboard,
                             CacheStatsMBean.class,
                             cds.getCacheStats(),
                             CacheStatsMBean.TYPE,
@@ -310,11 +315,16 @@ public class DocumentNodeStoreService {
             );
         }
 
-        executor = new WhiteboardExecutor();
-        executor.start(wb);
-        MarkSweepGarbageCollector gc = store.getBlobGarbageCollector();
-        if(gc != null){
-            registrations.add(registerMBean(wb, BlobGCMBean.class, new BlobGC(gc, executor),
+
+
+        if (blobStore instanceof GarbageCollectableBlobStore) {
+            BlobGarbageCollector gc = new BlobGarbageCollector() {
+                @Override
+                public void collectGarbage() throws Exception {
+                    store.createBlobGarbageCollector().collectGarbage();
+                }
+            };
+            registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
                     BlobGCMBean.TYPE, "Document node store blob garbage collection"));
         }
 
@@ -324,7 +334,7 @@ public class DocumentNodeStoreService {
                 store.getVersionGarbageCollector().gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
             }
         }, executor);
-        registrations.add(registerMBean(wb, RevisionGCMBean.class, revisionGC,
+        registrations.add(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
         //TODO Register JMX bean for Off Heap Cache stats

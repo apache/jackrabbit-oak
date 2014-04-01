@@ -33,6 +33,7 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -123,7 +124,9 @@ public class SegmentDataStoreBlobGCTest {
 
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store.getTracker()),
-                    (GarbageCollectableBlobStore) store.getBlobStore(), "./target", 2048, true, 2, 0);
+                    (GarbageCollectableBlobStore) store.getBlobStore(),
+                    MoreExecutors.sameThreadExecutor(),
+                    "./target", 2048, true,  0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();
