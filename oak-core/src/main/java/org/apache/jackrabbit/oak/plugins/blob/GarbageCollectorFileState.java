@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
@@ -31,55 +32,36 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
  * Also, manages any temporary files needed as well as external sorting.
  * 
  */
-class GarbageCollectorFileState {
-
-    private static final String GC_DIR = "gc";
-
-    private static final String MARKED_PREFIX = "marked";
-
-    private static final String AVAIL_PREFIX = "avail";
-
-    private static final String GC_CANDIDATE_PREFIX = "gccand";
-
-    private static final String GC_PREFIX = "gc";
-
-    /** The startTime which records the starting time. */
-    private long startTime;
-
+class GarbageCollectorFileState implements Closeable{
     /** The root of the gc file state directory. */
-    private File home;
+    private final File home;
 
     /** The marked references. */
-    private File markedRefs;
+    private final File markedRefs;
 
     /** The available references. */
-    private File availableRefs;
+    private final File availableRefs;
 
     /** The gc candidates. */
-    private File gcCandidates;
+    private final File gcCandidates;
 
     /** The garbage stores the garbage collection candidates which were not deleted . */
-    private File garbage;
+    private final File garbage;
 
     /**
      * Instantiates a new garbage collector file state.
      * 
-     * @param root
-     *            the root
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
+     * @param root path of the root directory under which the
+     *             files created during gc are stored
      */
     public GarbageCollectorFileState(String root) throws IOException {
-        init(root);
-    }
-
-    /**
-     * Gets the home directory.
-     * 
-     * @return the home
-     */
-    protected File getHome() {
-        return home;
+        long startTime = System.currentTimeMillis();
+        home = new File(root, "gcworkdir-" + startTime);
+        markedRefs = new File(home, "marked-" + startTime);
+        availableRefs = new File(home,"avail-" + startTime);
+        gcCandidates = new File(home, "gccand-" + startTime);
+        garbage = new File(home, "gc-" + startTime);
+        FileUtils.forceMkdir(home);
     }
 
     /**
@@ -87,8 +69,8 @@ class GarbageCollectorFileState {
      * 
      * @return the marked references
      */
-    protected File getMarkedRefs() {
-        return createMarkedRefsFile();
+    public File getMarkedRefs() {
+        return markedRefs;
     }
 
     /**
@@ -96,8 +78,8 @@ class GarbageCollectorFileState {
      * 
      * @return the available references
      */
-    protected File getAvailableRefs() {
-        return createAvailableRefsFile();
+    public File getAvailableRefs() {
+        return availableRefs;
     }
 
     /**
@@ -105,8 +87,8 @@ class GarbageCollectorFileState {
      * 
      * @return the gc candidates
      */
-    protected File getGcCandidates() {
-        return createGcCandidatesFile();
+    public File getGcCandidates() {
+        return gcCandidates;
     }
 
     /**
@@ -114,91 +96,8 @@ class GarbageCollectorFileState {
      * 
      * @return the garbage
      */
-    protected File getGarbage() {
-        return createGarbageFile();
-    }
-
-    /**
-     * Initialize the state.
-     * 
-     * @param root
-     *            the root
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
-     */
-    private void init(String root) throws IOException {
-        startTime = System.currentTimeMillis();
-
-        home = new File(root, GC_DIR);
-        FileUtils.forceMkdir(home);
-        home.deleteOnExit();
-    }
-
-    /**
-     * Creates the marked references file.
-     * 
-     * @return the file
-     */
-    private File createMarkedRefsFile() {
-        if (markedRefs == null) {
-            markedRefs = new File(home,
-                    MARKED_PREFIX + "-" + startTime);
-            markedRefs.deleteOnExit();
-        }
-        return markedRefs;
-    }
-
-    /**
-     * Creates the available references file.
-     * 
-     * @return the file
-     */
-    private File createAvailableRefsFile() {
-        if (availableRefs == null) {
-            availableRefs = new File(home,
-                    AVAIL_PREFIX + "-" + startTime);
-            availableRefs.deleteOnExit();
-        }
-        return availableRefs;
-    }
-
-    /**
-     * Creates the gc candidates file.
-     * 
-     * @return the file
-     */
-    private File createGcCandidatesFile() {
-        if (gcCandidates == null) {
-            gcCandidates = new File(home,
-                    GC_CANDIDATE_PREFIX + "-" + startTime);
-            gcCandidates.deleteOnExit();
-        }
-        return gcCandidates;
-    }
-
-    /**
-     * Creates the garbage file.
-     * 
-     * @return the file
-     */
-    private File createGarbageFile() {
-        if (garbage == null) {
-            garbage = new File(home,
-                    GC_PREFIX + "-" + startTime);
-            garbage.deleteOnExit();
-        }
+    public File getGarbage() {
         return garbage;
-    }
-
-    /**
-     * Creates a temp file.
-     * 
-     * @return the file
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
-     */
-    protected File createTempFile() throws IOException {
-        return File.createTempFile("temp", null, home);
     }
 
     /**
@@ -207,7 +106,7 @@ class GarbageCollectorFileState {
      * @throws IOException
      *             Signals that an I/O exception has occurred.
      */
-    protected void complete() throws IOException {
+    public void close() throws IOException {
         if (!getGarbage().exists() ||
                 FileUtils.sizeOf(getGarbage()) == 0) {
             FileUtils.deleteDirectory(home);
@@ -217,10 +116,7 @@ class GarbageCollectorFileState {
     /**
      * Sorts the given file externally.
      * 
-     * @param file
-     *            the file
-     * @throws IOException
-     *             Signals that an I/O exception has occurred.
+     * @param file file whose contents needs to be sorted
      */
     public void sort(File file) throws IOException {
         File sorted = createTempFile();
@@ -234,5 +130,9 @@ class GarbageCollectorFileState {
                 ExternalSort.sortInBatch(file, lexComparator, true),
                 sorted, lexComparator, true);
         Files.move(sorted, file);
+    }
+
+    private File createTempFile() throws IOException {
+        return File.createTempFile("temp", null, home);
     }
 }

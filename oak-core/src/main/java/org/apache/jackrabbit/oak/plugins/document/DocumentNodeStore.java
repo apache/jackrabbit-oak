@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -288,7 +289,7 @@ public final class DocumentNodeStore
 
     private final VersionGarbageCollector versionGarbageCollector;
 
-    private final MarkSweepGarbageCollector blobGarbageCollector;
+    private final Executor executor;
 
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
@@ -303,6 +304,7 @@ public final class DocumentNodeStore
             s = new LoggingDocumentStoreWrapper(s);
         }
         this.store = s;
+        this.executor = builder.getExecutor();
         this.clock = builder.getClock();
         int cid = builder.getClusterId();
         cid = Integer.getInteger("oak.documentMK.clusterId", cid);
@@ -320,7 +322,6 @@ public final class DocumentNodeStore
         this.branches = new UnmergedBranches(getRevisionComparator());
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(this);
-        this.blobGarbageCollector = createBlobGarbageCollector(blobStore);
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
             public int getMemory() {
@@ -1607,19 +1608,17 @@ public final class DocumentNodeStore
      * Creates and returns a MarkSweepGarbageCollector if the current BlobStore
      * supports garbage collection
      *
-     * @param blobStore the blobStore used by DocumentNodeStore
-     *
      * @return garbage collector of the BlobStore supports GC otherwise null
      */
-    @Nullable
-    private MarkSweepGarbageCollector createBlobGarbageCollector(BlobStore blobStore) {
+    @CheckForNull
+    public MarkSweepGarbageCollector createBlobGarbageCollector() {
         MarkSweepGarbageCollector blobGC = null;
         if(blobStore instanceof GarbageCollectableBlobStore){
-            blobGC = null;
             try {
                 blobGC = new MarkSweepGarbageCollector(
                         new DocumentBlobReferenceRetriever(this),
-                            (GarbageCollectableBlobStore) blobStore);
+                            (GarbageCollectableBlobStore) blobStore,
+                        executor);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
                         "the MarkSweepGarbageCollector",e);
@@ -1707,10 +1706,5 @@ public final class DocumentNodeStore
     @Nonnull
     public VersionGarbageCollector getVersionGarbageCollector() {
         return versionGarbageCollector;
-    }
-
-    @CheckForNull
-    public MarkSweepGarbageCollector getBlobGarbageCollector() {
-        return blobGarbageCollector;
     }
 }

@@ -28,6 +28,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import junit.framework.Assert;
 
 import com.google.common.collect.Lists;
@@ -122,11 +123,13 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         gc(set);
     }
 
-    private void gc(HashSet<String> set) throws IOException, Exception {
+    private void gc(HashSet<String> set) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
-                (GarbageCollectableBlobStore) store.getBlobStore(), "./target", 2048, true, 2, 0);
+                (GarbageCollectableBlobStore) store.getBlobStore(),
+                MoreExecutors.sameThreadExecutor(),
+                "./target", 2048, true, 0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();
