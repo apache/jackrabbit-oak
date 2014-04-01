@@ -19,8 +19,12 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -28,12 +32,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -55,7 +64,10 @@ public class FileStore implements SegmentStore {
 
     private static final int MB = 1024 * 1024;
 
-    private static final String FILE_NAME_FORMAT = "%s%05d%s.tar";
+    private static final Pattern FILE_NAME_PATTERN =
+            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})(a?).tar");
+
+    private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
@@ -72,9 +84,7 @@ public class FileStore implements SegmentStore {
 
     private final boolean memoryMapping;
 
-    private final List<TarFile> bulkFiles = newCopyOnWriteArrayList();
-
-    private final List<TarFile> dataFiles = newCopyOnWriteArrayList();
+    private final List<TarFile> files;
 
     private final RandomAccessFile journalFile;
 
@@ -136,33 +146,15 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
 
-        for (int i = 0; true; i++) {
-            String name = String.format(FILE_NAME_FORMAT, "bulk", i, "a");
-            File file = new File(directory, name);
-            if (!file.isFile()) {
-                name = String.format(FILE_NAME_FORMAT, "bulk", i, "");
-                file = new File(directory, name);
-            }
-            if (file.isFile()) {
-                bulkFiles.add(new TarFile(file, maxFileSize, memoryMapping));
-            } else {
-                break;
-            }
+        Map<Integer, File> map = collectFiles(directory);
+        List<TarFile> list = newArrayListWithCapacity(map.size());
+        Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
+        Arrays.sort(indices);
+        for (Integer index : indices) {
+            File file = map.get(index);
+            list.add(new TarFile(file, maxFileSize, memoryMapping));
         }
-
-        for (int i = 0; true; i++) {
-            String name = String.format(FILE_NAME_FORMAT, "data", i, "a");
-            File file = new File(directory, name);
-            if (!file.isFile()) {
-                name = String.format(FILE_NAME_FORMAT, "data", i, "");
-                file = new File(directory, name);
-            }
-            if (file.isFile()) {
-                dataFiles.add(new TarFile(file, maxFileSize, memoryMapping));
-            } else {
-                break;
-            }
-        }
+        this.files = newCopyOnWriteArrayList(list);
 
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
@@ -180,7 +172,10 @@ public class FileStore implements SegmentStore {
         RecordId id = null;
         while (id == null && !heads.isEmpty()) {
             RecordId last = heads.removeLast();
-            if (containsSegment(last.getSegmentId(), dataFiles)) {
+            SegmentId segmentId = last.getSegmentId();
+            if (containsSegment(
+                    segmentId.getMostSignificantBits(),
+                    segmentId.getLeastSignificantBits())) {
                 id = last;
             } else {
                 log.warn("Unable to committed revision {}, rewinding...", last);
@@ -223,6 +218,62 @@ public class FileStore implements SegmentStore {
         flushThread.start();
     }
 
+    static SortedMap<Integer, File> collectFiles(File directory) throws IOException {
+        SortedMap<Integer, File> dataFiles = newTreeMap();
+        Map<Integer, File> bulkFiles = newHashMap();
+
+        for (File file : directory.listFiles()) {
+            Matcher matcher = FILE_NAME_PATTERN.matcher(file.getName());
+            if (matcher.matches()) {
+                Integer index = Integer.parseInt(matcher.group(2));
+                if ("data".equals(matcher.group(1))) {
+                    checkState(dataFiles.put(index, file) == null);
+                } else {
+                    checkState(bulkFiles.put(index, file) == null);
+                }
+            }
+        }
+
+        if (!bulkFiles.isEmpty()) {
+            log.info("Upgrading TarMK file names in {}", directory);
+
+            if (!dataFiles.isEmpty()) {
+                // first put all the data segments at the end of the list
+                Integer[] indices =
+                        dataFiles.keySet().toArray(new Integer[dataFiles.size()]);
+                int position = Math.max(
+                        indices[indices.length - 1] + 1,
+                        bulkFiles.size());
+                for (Integer index : indices) {
+                    File file = dataFiles.remove(index);
+                    Integer newIndex = position++;
+                    File newFile = new File(
+                            directory, format(FILE_NAME_FORMAT, newIndex, "a"));
+                    log.info("Renaming {} to {}", file, newFile);
+                    file.renameTo(newFile);
+                    dataFiles.put(newIndex, newFile);
+                }
+            }
+
+            // then add all the bulk segments at the beginning of the list
+            Integer[] indices =
+                    bulkFiles.keySet().toArray(new Integer[bulkFiles.size()]);
+            Arrays.sort(indices);
+            int position = 0;
+            for (Integer index : indices) {
+                File file = bulkFiles.remove(index);
+                Integer newIndex = position++;
+                File newFile = new File(
+                        directory, format(FILE_NAME_FORMAT, newIndex, "a"));
+                log.info("Renaming {} to {}", file, newFile);
+                file.renameTo(newFile);
+                dataFiles.put(newIndex, newFile);
+            }
+        }
+
+        return dataFiles;
+    }
+
     public void flush() throws IOException {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
@@ -234,10 +285,7 @@ public class FileStore implements SegmentStore {
 
                 synchronized (this) {
                     boolean success = true;
-                    for (TarFile file : bulkFiles) {
-                        success = success && file.flush();
-                    }
-                    for (TarFile file : dataFiles) {
+                    for (TarFile file : files) {
                         success = success && file.flush();
                     }
                     if (!success) {
@@ -256,14 +304,7 @@ public class FileStore implements SegmentStore {
 
     public Iterable<SegmentId> getSegmentIds() {
         List<SegmentId> ids = newArrayList();
-        for (TarFile file : dataFiles) {
-            for (UUID uuid : file.getUUIDs()) {
-                ids.add(tracker.getSegmentId(
-                        uuid.getMostSignificantBits(),
-                        uuid.getLeastSignificantBits()));
-            }
-        }
-        for (TarFile file : bulkFiles) {
+        for (TarFile file : files) {
             for (UUID uuid : file.getUUIDs()) {
                 ids.add(tracker.getSegmentId(
                         uuid.getMostSignificantBits(),
@@ -307,14 +348,10 @@ public class FileStore implements SegmentStore {
 
                 journalFile.close();
 
-                for (TarFile file : bulkFiles) {
+                for (TarFile file : files) {
                     file.close();
                 }
-                bulkFiles.clear();
-                for (TarFile file : dataFiles) {
-                    file.close();
-                }
-                dataFiles.clear();
+                files.clear();
 
                 System.gc(); // for any memory-mappings that are no longer used
             }
@@ -328,42 +365,32 @@ public class FileStore implements SegmentStore {
     public boolean containsSegment(SegmentId id) {
         if (id.getTracker() == tracker) {
             return true;
-        } else if (id.isDataSegmentId()) {
-            return containsSegment(id, dataFiles);
-        } else {
-            return containsSegment(id, bulkFiles);
         }
-    }
 
-    @Override
-    public Segment readSegment(SegmentId id) {
-        if (id.isBulkSegmentId()) {
-            return loadSegment(id, bulkFiles);
-        } else {
-            return loadSegment(id, dataFiles);
-        }
-    }
-
-    private boolean containsSegment(SegmentId id, List<TarFile> files) {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
-        for (TarFile file : files) {
+        return containsSegment(msb, lsb);
+    }
+
+    private boolean containsSegment(long msb, long lsb) {
+        for (TarFile file : files.toArray(new TarFile[0])) {
             try {
                 ByteBuffer buffer = file.readEntry(msb, lsb);
                 if (buffer != null) {
                     return true;
                 }
             } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to access file " + file, e);
+                log.warn("Failed to access file " + file, e);
             }
         }
         return false;
     }
 
-    private Segment loadSegment(SegmentId id, List<TarFile> files) {
+    @Override
+    public Segment readSegment(SegmentId id) {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
+
         for (TarFile file : files) {
             try {
                 ByteBuffer buffer = file.readEntry(msb, lsb);
@@ -371,8 +398,7 @@ public class FileStore implements SegmentStore {
                     return new Segment(tracker, id, buffer);
                 }
             } catch (IOException e) {
-                throw new RuntimeException(
-                        "Failed to access file " + file, e);
+                log.warn("Failed to access file " + file, e);
             }
         }
 
@@ -382,22 +408,13 @@ public class FileStore implements SegmentStore {
     @Override
     public synchronized void writeSegment(
             SegmentId id, byte[] data, int offset, int length) {
-        // select whether to write a data or a bulk segment
-        List<TarFile> files = dataFiles;
-        String base = "data";
-        if (id.isBulkSegmentId()) {
-            files = bulkFiles;
-            base = "bulk";
-        }
-
         try {
             UUID uuid = new UUID(
                     id.getMostSignificantBits(),
                     id.getLeastSignificantBits());
             if (files.isEmpty() || !files.get(files.size() - 1).writeEntry(
                     uuid, data, offset, length)) {
-                String name = String.format(
-                        FILE_NAME_FORMAT, base, files.size(), "a");
+                String name = format(FILE_NAME_FORMAT, files.size(), "a");
                 File file = new File(directory, name);
                 TarFile last = new TarFile(file, maxFileSize, memoryMapping);
                 checkState(last.writeEntry(uuid, data, offset, length));
