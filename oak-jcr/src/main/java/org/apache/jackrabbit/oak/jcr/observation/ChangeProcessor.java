@@ -74,6 +74,18 @@ import org.slf4j.LoggerFactory;
 class ChangeProcessor implements Observer {
     private static final Logger LOG = LoggerFactory.getLogger(ChangeProcessor.class);
 
+    /**
+     * Fill ratio of the revision queue at which commits should be delayed
+     * (conditional of {@code commitRateLimiter} being non {@code null}).
+     */
+    public static final double DELAY_THRESHOLD = 0.8;
+
+    /**
+     * Maximal number of milli seconds a commit is delayed once {@code DELAY_THRESHOLD}
+     * kicks in.
+     */
+    public static final int MAX_DELAY = 10000;
+
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
     private final PermissionProvider permissionProvider;
@@ -150,21 +162,50 @@ class ChangeProcessor implements Observer {
 
     private BackgroundObserver createObserver(final WhiteboardExecutor executor) {
         return new BackgroundObserver(this, executor, queueLength) {
-            private volatile boolean warnWhenFull = true;
+            private volatile long delay;
+            private volatile boolean blocking;
 
             @Override
             protected void added(int queueSize) {
                 maxQueueLength.recordValue(queueSize);
-                if (warnWhenFull && queueSize == queueLength) {
-                    warnWhenFull = false;
+
+                if (queueSize == queueLength) {
                     if (commitRateLimiter != null) {
+                        if (!blocking) {
+                            LOG.warn("Revision queue is full. Further commits will be blocked.");
+                        }
                         commitRateLimiter.blockCommits();
+                    } else if (!blocking) {
+                        LOG.warn("Revision queue is full. Further revisions will be compacted.");
                     }
-                    LOG.warn("Revision queue is full. Further revisions will be compacted.");
-                } else if (queueSize <= 1) {
-                    warnWhenFull = true;
-                    if (commitRateLimiter != null) {
-                        commitRateLimiter.unblockCommits();
+                    blocking = true;
+                } else {
+                    double fillRatio = (double) queueSize / queueLength;
+                    if (fillRatio > DELAY_THRESHOLD) {
+                        if (commitRateLimiter != null) {
+                            if (delay == 0) {
+                                LOG.warn("Revision queue is becoming full. Further commits will be delayed.");
+                            }
+
+                            // Linear backoff proportional to the number of items exceeding
+                            // DELAY_THRESHOLD. Offset by 1 to trigger the log message in the
+                            // else branch once the queue falls below DELAY_THRESHOLD again.
+                            delay = 1 + (int) ((fillRatio - DELAY_THRESHOLD) / ( 1 - DELAY_THRESHOLD) * MAX_DELAY);
+                            commitRateLimiter.setDelay(delay);
+                        }
+                    } else {
+                        if (commitRateLimiter != null) {
+                            commitRateLimiter.setDelay(0);
+                            commitRateLimiter.unblockCommits();
+                            if (delay > 0) {
+                                LOG.debug("Revision queue becoming empty. Unblocking commits");
+                            }
+                            if (blocking) {
+                                LOG.debug("Revision queue becoming empty. Stop delaying commits.");
+                            }
+                        }
+                        delay = 0;
+                        blocking = false;
                     }
                 }
             }
