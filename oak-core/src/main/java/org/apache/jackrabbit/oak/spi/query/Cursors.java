@@ -20,6 +20,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -55,6 +56,10 @@ public class Cursors {
     
     public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryEngineSettings settings) {
         return new IntersectionCursor(a, b, settings);
+    }
+
+    public static Cursor newConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
+        return new ConcatCursor(cursors, settings);
     }
 
     /**
@@ -361,9 +366,13 @@ public class Cursors {
             if (!init) {
                 fetchNext();
                 init = true;
+                if (closed) {
+                    throw new IllegalStateException("This cursor is closed");
+                }
             }
             IndexRow result = current;
-            fetchNext();
+            // fetchNext();
+            init = false;
             return result;
         }
 
@@ -402,8 +411,7 @@ public class Cursors {
                     }
                     secondSet.put(p2, s);
                     FilterIterators.checkMemoryLimit(secondSet.size(), settings.getLimitInMemory());
-                }                    
-                closed = true;
+                }
             }
         }
         
@@ -413,5 +421,75 @@ public class Cursors {
         }
         
     }
-    
+
+    /**
+     * A cursor that combines multiple cursors into a single cursor.
+     */
+    private static class ConcatCursor extends AbstractCursor {
+
+        private final HashSet<String> seen = new HashSet<String>();
+        private final List<Cursor> cursors;
+        private final QueryEngineSettings settings;
+        private boolean init;
+        private boolean closed;
+
+        private Cursor currentCursor;
+        private IndexRow current;
+
+        ConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
+            this.cursors = cursors;
+            this.settings = settings;
+            this.currentCursor = cursors.remove(0);
+        }
+
+        @Override
+        public IndexRow next() {
+            if (closed) {
+                throw new IllegalStateException("This cursor is closed");
+            }
+            if (!init) {
+                fetchNext();
+                init = true;
+            }
+            IndexRow result = current;
+            fetchNext();
+            return result;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (!closed && !init) {
+                fetchNext();
+                init = true;
+            }
+            return !closed;
+        }
+
+        private void fetchNext() {
+            while (true) {
+                while (!currentCursor.hasNext()) {
+                    if (cursors.isEmpty()) {
+                        closed = true;
+                        return;
+                    } else {
+                        currentCursor = cursors.remove(0);
+                    }
+                }
+                IndexRow c = currentCursor.next();
+                String p = c.getPath();
+                if (seen.contains(p)) {
+                    continue;
+                }
+                current = c;
+                markSeen(p);
+                return;
+            }
+        }
+
+        private void markSeen(String path) {
+            seen.add(path);
+            FilterIterators.checkMemoryLimit(seen.size(), settings.getLimitInMemory());
+        }
+
+    }
 }
