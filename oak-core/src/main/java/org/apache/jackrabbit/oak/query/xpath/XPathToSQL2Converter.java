@@ -615,8 +615,12 @@ public class XPathToSQL2Converter {
             Expression.NativeFunction f = new Expression.NativeFunction(selectorName, language, expr);
             return f;
         } else if ("rep:similar".equals(functionName)) {
-             // TODO maybe support rep:similar
-             throw getSyntaxError("rep:similar is not supported");
+            Expression property = parseExpression();
+            read(",");
+            Expression path = parseExpression();
+            read(")");
+            Expression.Similar f = new Expression.Similar(property, path);
+            return f;
         } else if ("rep:spellcheck".equals(functionName)) {
             // TODO maybe support rep:spellcheck as in
             // /jcr:root[rep:spellcheck('${query}')]/(rep:spellcheck())            

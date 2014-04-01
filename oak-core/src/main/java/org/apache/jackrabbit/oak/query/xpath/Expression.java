@@ -358,7 +358,39 @@ abstract class Expression {
             return false;
         }
     
-    }    
+    } 
+    
+    /**
+     * A rep:similar condition.
+     */
+    static class Similar extends Expression {
+        
+        final Expression property, path;
+    
+        Similar(Expression property, Expression path) {
+            this.property = property;
+            this.path = path;
+        }
+    
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("similar(");
+            buff.append(property);
+            buff.append(", ").append(path).append(')');
+            return buff.toString();
+        }
+    
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+        
+        @Override
+        boolean isName() {
+            return false;
+        }
+    
+    } 
 
     /**
      * A function call.

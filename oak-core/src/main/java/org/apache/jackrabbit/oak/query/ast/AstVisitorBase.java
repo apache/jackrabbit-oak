@@ -69,6 +69,16 @@ public abstract class AstVisitorBase implements AstVisitor {
      */
     @Override
     public boolean visit(NativeFunctionImpl node) {
+        node.getNativeSearchExpression().accept(this);
+        return true;
+    }
+    
+    /**
+     * Calls accept on the static operand in the similar search constraint.
+     */
+    @Override
+    public boolean visit(SimilarImpl node) {
+        node.getPathExpression().accept(this);
         return true;
     }
 
