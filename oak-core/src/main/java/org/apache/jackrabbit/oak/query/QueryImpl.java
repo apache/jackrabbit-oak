@@ -816,6 +816,9 @@ public class QueryImpl implements Query {
         if (traversalEnabled) {
             QueryIndex traversal = new TraversingIndex();
             double cost = traversal.getCost(filter, rootState);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("cost for " + traversal.getIndexName() + " is " + cost);
+            }
             if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
                 bestCost = cost;
                 bestIndex = traversal;
