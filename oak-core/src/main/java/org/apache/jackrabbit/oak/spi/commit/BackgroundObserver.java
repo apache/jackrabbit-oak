@@ -77,11 +77,6 @@ public class BackgroundObserver implements Observer, Closeable {
      */
     private final BlockingQueue<ContentChange> queue;
 
-    /**
-     * Maximal number of elements before queue will start to block
-     */
-    private final int queueLength;
-
     private static class ContentChange {
         private final NodeState root;
         private final CommitInfo info;
@@ -150,7 +145,6 @@ public class BackgroundObserver implements Observer, Closeable {
         this.executor = checkNotNull(executor);
         this.exceptionHandler = checkNotNull(exceptionHandler);
         this.queue = newArrayBlockingQueue(queueLength);
-        this.queueLength = queueLength;
     }
 
     public BackgroundObserver(
