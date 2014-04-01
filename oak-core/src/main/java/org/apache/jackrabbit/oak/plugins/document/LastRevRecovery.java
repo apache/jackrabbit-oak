@@ -20,11 +20,13 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,11 +46,18 @@ public class LastRevRecovery {
 
     public int recover(Iterator<NodeDocument> suspects, int clusterId) {
         UnsavedModifications unsaved = new UnsavedModifications();
+        UnsavedModifications unsavedParents = new UnsavedModifications();
+
+        //Map of known last rev of checked paths
+        Map<String, Revision> knownLastRevs = Maps.newHashMap();
 
         while (suspects.hasNext()) {
             NodeDocument doc = suspects.next();
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
+            if (currentLastRev != null) {
+                knownLastRevs.put(doc.getPath(), currentLastRev);
+            }
             Revision lostLastRev = determineMissedLastRev(doc, clusterId);
 
             //1. Update lastRev for this doc
@@ -73,8 +82,21 @@ public class LastRevRecovery {
                         break;
                     }
                     path = PathUtils.getParentPath(path);
-                    unsaved.put(path, lastRevForParents);
+                    unsavedParents.put(path, lastRevForParents);
                 }
+            }
+        }
+
+        for(String parentPath : unsavedParents.getPaths()){
+            Revision calcLastRev = unsavedParents.get(parentPath);
+            Revision knownLastRev = knownLastRevs.get(parentPath);
+
+            //Copy the calcLastRev of parent only if they have changed
+            //In many case it might happen that parent have consistent lastRev
+            //This check ensures that unnecessary updates are not made
+            if(knownLastRev == null
+                    || calcLastRev.compareRevisionTime(knownLastRev) > 0){
+                unsaved.put(parentPath, calcLastRev);
             }
         }
 
