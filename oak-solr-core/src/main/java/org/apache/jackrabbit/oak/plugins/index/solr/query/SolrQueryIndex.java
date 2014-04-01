@@ -18,10 +18,12 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
 import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -295,6 +297,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     private void setDefaults(SolrQuery solrQuery) {
         solrQuery.setParam("q.op", "AND");
+        solrQuery.setParam("fl", "* score");
         String catchAllField = configuration.getCatchAllField();
         if (catchAllField != null && catchAllField.length() > 0) {
             solrQuery.setParam("df", catchAllField);
@@ -387,6 +390,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
                     @Override
                     public PropertyValue getValue(String columnName) {
+                        if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                            float score = 0f;
+                            Object scoreObj = doc.get("score");
+                            if (scoreObj != null) {
+                                score = (Float) scoreObj;
+                            }
+                            return PropertyValues.newDouble((double) score);
+                        }
                         Object o = doc.getFieldValue(columnName);
                         return o == null ? null : PropertyValues.newString(o.toString());
                     }
