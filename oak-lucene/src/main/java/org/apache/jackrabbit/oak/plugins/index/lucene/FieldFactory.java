@@ -41,6 +41,7 @@ public final class FieldFactory {
     static {
         OAK_TYPE.setIndexed(true);
         OAK_TYPE.setOmitNorms(true);
+        OAK_TYPE.setStored(true);
         OAK_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
         OAK_TYPE.setTokenized(true);
         OAK_TYPE.freeze();

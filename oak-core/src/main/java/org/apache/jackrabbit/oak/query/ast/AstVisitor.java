@@ -81,4 +81,6 @@ public interface AstVisitor {
 
     boolean visit(NativeFunctionImpl nativeFunctionImpl);
 
+    boolean visit(SimilarImpl similarImpl);
+
 }

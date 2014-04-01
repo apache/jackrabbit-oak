@@ -152,4 +152,9 @@ public class AstElementFactory {
         return new NativeFunctionImpl(selectorName, language, expression);
     }
 
+    public SimilarImpl similar(String selectorName, String propertyName,
+            StaticOperandImpl path) {
+        return new SimilarImpl(selectorName, propertyName, path);
+    }
+
 }

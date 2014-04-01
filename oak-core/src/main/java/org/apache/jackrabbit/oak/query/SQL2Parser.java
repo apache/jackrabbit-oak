@@ -516,6 +516,32 @@ public class SQL2Parser {
             } else {
                 c = factory.descendantNode(getOnlySelectorName(), name);
             }
+        } else if ("SIMILAR".equalsIgnoreCase(functionName)) {
+            if (readIf(".") || readIf("*")) {
+                read(",");
+                c = factory.similar(
+                        getOnlySelectorName(), null, parseStaticOperand());
+            } else {
+                String name = readName();
+                if (readIf(".")) {
+                    if (readIf("*")) {
+                        read(",");
+                        c = factory.fullTextSearch(
+                                name, null, parseStaticOperand());
+                    } else {
+                        String selector = name;
+                        name = readName();
+                        read(",");
+                        c = factory.fullTextSearch(
+                                selector, name, parseStaticOperand());
+                    }
+                } else {
+                    read(",");
+                    c = factory.fullTextSearch(
+                            getOnlySelectorName(), name,
+                            parseStaticOperand());
+                }
+            }
         } else if ("NATIVE".equalsIgnoreCase(functionName)) {
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
