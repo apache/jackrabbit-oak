@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -50,6 +51,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 public class Cursors {
 
     private Cursors() {
+    }
+    
+    public static Cursor newIntersectionCursor(Cursor a, Cursor b, QueryEngineSettings settings) {
+        return new IntersectionCursor(a, b, settings);
     }
 
     /**
@@ -328,4 +333,85 @@ public class Cursors {
         }
 
     }
+    
+    /**
+     * A cursor that intersects two cursors.
+     */
+    private static class IntersectionCursor extends AbstractCursor {
+
+        private final HashMap<String, IndexRow> secondSet = new HashMap<String, IndexRow>();
+        private final HashSet<String> seen = new HashSet<String>();
+        private final Cursor first, second;
+        private final QueryEngineSettings settings;
+        private boolean init;
+        private boolean closed;
+        private IndexRow current;
+        
+        IntersectionCursor(Cursor first, Cursor second, QueryEngineSettings settings) {
+            this.first = first;
+            this.second = second;
+            this.settings = settings;
+        }
+        
+        @Override
+        public IndexRow next() {
+            if (closed) {
+                throw new IllegalStateException("This cursor is closed");
+            }
+            if (!init) {
+                fetchNext();
+                init = true;
+            }
+            IndexRow result = current;
+            fetchNext();
+            return result;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if (!closed && !init) {
+                fetchNext();
+                init = true;
+            }
+            return !closed;
+        }
+        
+        private void fetchNext() {
+            while (true) {
+                if (!first.hasNext()) {
+                    closed = true;
+                    return;
+                }
+                IndexRow c = first.next();
+                String p = c.getPath();
+                if (seen.contains(p)) {
+                    continue;
+                }
+                if (secondSet.remove(p) != null) {
+                    current = c;
+                    markSeen(p);
+                    return;
+                }
+                while (second.hasNext()) {
+                    IndexRow s = second.next();
+                    String p2 = s.getPath();
+                    if (p.equals(p2)) {
+                        current = c;
+                        markSeen(p);
+                        return;
+                    }
+                    secondSet.put(p2, s);
+                    FilterIterators.checkMemoryLimit(secondSet.size(), settings.getLimitInMemory());
+                }                    
+                closed = true;
+            }
+        }
+        
+        private void markSeen(String path) {
+            seen.add(path);
+            FilterIterators.checkMemoryLimit(seen.size(), settings.getLimitInMemory());
+        }
+        
+    }
+    
 }
