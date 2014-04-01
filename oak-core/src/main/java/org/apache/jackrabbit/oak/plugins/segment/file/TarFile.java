@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 import org.slf4j.Logger;
@@ -44,6 +46,11 @@ class TarFile {
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC =
             ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
+
+    /** Pattern of the segment entry names */
+    private static final Pattern NAME_PATTERN = Pattern.compile(
+            "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
+            + "(\\.([0-9a-f]{8}))?");
 
     /** The tar file block size. */
     private static final int BLOCK_SIZE = 512;
@@ -149,36 +156,14 @@ class TarFile {
                 + getEntrySize(indexSize + 24) // index with one extra entry
                 + 2 * BLOCK_SIZE               // two zero blocks at the end
                 > length) {
-            int bytes = length - position - 3 * BLOCK_SIZE;
-            writeEntryHeader(indexEntryName, bytes);
-
-            ByteBuffer index = ByteBuffer.allocate(indexSize);
-
-            TarEntry[] sorted =
-                    entries.values().toArray(new TarEntry[entries.size()]);
-            Arrays.sort(sorted, TarEntry.IDENTIFIER);
-            for (TarEntry entry : sorted) {
-                index.putLong(entry.msb());
-                index.putLong(entry.lsb());
-                index.putInt(entry.offset());
-                index.putInt(entry.size());
-            }
-
-            CRC32 checksum = new CRC32();
-            checksum.update(index.array(), 0, index.position());
-            index.putInt((int) checksum.getValue());
-            index.putInt(entries.size());
-            index.putInt(bytes);
-            index.putInt(INDEX_MAGIC);
-
-            access.write(
-                    length - 2 * BLOCK_SIZE - indexSize,
-                    index.array(), 0, indexSize);
-            position = length - 2 * BLOCK_SIZE;
+            writeIndex();
             return false;
         }
 
-        writeEntryHeader(uuid.toString().getBytes(UTF_8), size);
+        CRC32 checksum = new CRC32();
+        checksum.update(b, offset, size);
+        String name = String.format("%s.%08x", uuid, checksum.getValue());
+        writeEntryHeader(name.getBytes(UTF_8), size);
         access.write(position + BLOCK_SIZE, b, offset, size);
         entries.put(uuid, new TarEntry(
                 uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
@@ -188,7 +173,40 @@ class TarFile {
         return true;
     }
 
-    protected void writeEntryHeader(byte[] name, int size) throws IOException {
+    private void writeIndex() throws IOException {
+        int length = access.length();
+        int indexSize = entries.size() * 24 + 16;
+        int bytes = length - position - 3 * BLOCK_SIZE;
+        writeEntryHeader(indexEntryName, bytes);
+
+        ByteBuffer index = ByteBuffer.allocate(indexSize);
+
+        TarEntry[] sorted =
+                entries.values().toArray(new TarEntry[entries.size()]);
+        Arrays.sort(sorted, TarEntry.IDENTIFIER);
+        for (TarEntry entry : sorted) {
+            index.putLong(entry.msb());
+            index.putLong(entry.lsb());
+            index.putInt(entry.offset());
+            index.putInt(entry.size());
+        }
+
+        CRC32 checksum = new CRC32();
+        checksum.update(index.array(), 0, index.position());
+        index.putInt((int) checksum.getValue());
+        index.putInt(entries.size());
+        index.putInt(bytes);
+        index.putInt(INDEX_MAGIC);
+
+        access.write(
+                length - 2 * BLOCK_SIZE - indexSize,
+                index.array(), 0, indexSize);
+        access.write(length - BLOCK_SIZE * 2, ZERO_BYTES, 0, BLOCK_SIZE);
+        access.write(length - BLOCK_SIZE,     ZERO_BYTES, 0, BLOCK_SIZE);
+        position = length;
+    }
+
+    private void writeEntryHeader(byte[] name, int size) throws IOException {
         byte[] header = new byte[BLOCK_SIZE];
 
         // File name
@@ -269,27 +287,47 @@ class TarFile {
             if (!referencedIds.remove(id)) {
                 // this segment is not referenced anywhere
                 sorted[i] = null;
-            } else if (isDataSegmentId(entry.lsb())) {
+            } else {
                 size += getEntrySize(entry.size());
                 count += 1;
-                // this is a referenced data segment, so follow the graph
-                ByteBuffer segment = access.read(
-                        entry.offset(),
-                        Math.min(entry.size(), 16 * 256));
-                int pos = segment.position();
-                int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
-                int refend = pos + 16 * (refcount + 1);
-                for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                    referencedIds.add(new UUID(
-                            segment.getLong(refpos),
-                            segment.getLong(refpos + 8)));
+                if (isDataSegmentId(entry.lsb())) {
+                    // this is a referenced data segment, so follow the graph
+                    ByteBuffer segment = access.read(
+                            entry.offset(),
+                            Math.min(entry.size(), 16 * 256));
+                    int pos = segment.position();
+                    int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+                    int refend = pos + 16 * (refcount + 1);
+                    for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                        referencedIds.add(new UUID(
+                                segment.getLong(refpos),
+                                segment.getLong(refpos + 8)));
+                    }
                 }
             }
         }
+        size += getEntrySize(24 * count + 16);
+        size += 2 * BLOCK_SIZE;
 
         // check if we could free up at least 25% of space
         if (entries == null && size < access.length() * 3 / 4) {
-            // TODO: write new tar file
+            String name = file.getName();
+            int pos = name.length() - "a.tar".length();
+            char generation = name.charAt(pos);
+            name = name.substring(0, pos) + (char) (generation + 1) + ".tar";
+            File newFile = new File(file.getParentFile(), name);
+            TarFile newTar = new TarFile(newFile, size, false);
+            for (int i = sorted.length - 1; i >= 0; i--) {
+                TarEntry entry = sorted[i];
+                if (entry != null) {
+                    byte[] buffer = new byte[entry.size()];
+                    access.read(entry.offset(), entry.size()).get(buffer);
+                    UUID id = new UUID(entry.msb(), entry.lsb());
+                    newTar.writeEntry(id, buffer, 0, buffer.length);
+                }
+            }
+            newTar.writeIndex();
+            newTar.close();
         }
     }
 
@@ -460,8 +498,9 @@ class TarFile {
         while (position + 2 * BLOCK_SIZE <= limit) {
             // read the tar header block
             ByteBuffer header = access.read(position, BLOCK_SIZE);
+            int pos = header.position();
             String name = readString(header, 100);
-            header.position(124);
+            header.position(pos + 124);
             int size = readNumber(header, 12);
 
             // TODO: verify the checksum, magic, etc.?
@@ -471,11 +510,26 @@ class TarFile {
             } else if (Arrays.equals(name.getBytes(UTF_8), indexEntryName)) {
                 break; // index entry encountered, so stop here
             } else if (position + BLOCK_SIZE + size > limit) {
+                log.warn("Invalid tar entry: " + name);
                 break; // invalid entry, truncate the file at this point
             }
 
+            Matcher matcher = NAME_PATTERN.matcher(name);
+            if (!matcher.matches()) {
+                log.warn("Unexpected tar entry name: " + name);
+                break;
+            }
+
+            String checksum = matcher.group(3);
+            if (checksum != null
+                    && Long.parseLong(checksum, 16)
+                    !=  access.crc32(position + BLOCK_SIZE, size)) {
+                log.warn("Checksum mismatch in tar entry: " + name);
+                break;
+            }
+
             try {
-                UUID id = UUID.fromString(name);
+                UUID id = UUID.fromString(matcher.group(1));
                 entries.put(id, new TarEntry(
                         id.getMostSignificantBits(),
                         id.getLeastSignificantBits(),

@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 import javax.annotation.Nonnull;
 
@@ -40,6 +41,13 @@ class RandomAccess implements FileAccess {
         long length = file.length();
         checkState(length < Integer.MAX_VALUE);
         return (int) length;
+    }
+
+    @Override
+    public long crc32(int position, int length) throws IOException {
+        CRC32 checksum = new CRC32();
+        checksum.update(read(position, length).array());
+        return checksum.getValue();
     }
 
     @Override

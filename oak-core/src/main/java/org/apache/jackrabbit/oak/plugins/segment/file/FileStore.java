@@ -178,7 +178,7 @@ public class FileStore implements SegmentStore {
                     segmentId.getLeastSignificantBits())) {
                 id = last;
             } else {
-                log.warn("Unable to committed revision {}, rewinding...", last);
+                log.warn("Unable to access revision {}, rewinding...", last);
             }
         }
 
