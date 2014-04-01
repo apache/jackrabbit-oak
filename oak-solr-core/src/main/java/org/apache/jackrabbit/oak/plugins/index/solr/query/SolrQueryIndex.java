@@ -191,6 +191,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         if (filter.getFullTextConstraint() != null) {
             queryBuilder.append(getFullTextQuery(filter.getFullTextConstraint()));
             queryBuilder.append(' ');
+        } else if (filter.getFulltextConditions() != null) {
+            Collection<String> fulltextConditions = filter.getFulltextConditions();
+            for (String fulltextCondition : fulltextConditions) {
+                queryBuilder.append(fulltextCondition).append(" ");
+            }
         }
 
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
@@ -205,10 +210,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
         }
 
-        Collection<String> fulltextConditions = filter.getFulltextConditions();
-        for (String fulltextCondition : fulltextConditions) {
-            queryBuilder.append(fulltextCondition).append(" ");
-        }
         if (queryBuilder.length() == 0) {
             queryBuilder.append("*:*");
         }
