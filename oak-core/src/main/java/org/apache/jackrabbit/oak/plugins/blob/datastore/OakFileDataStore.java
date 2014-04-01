@@ -19,8 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
+import java.io.File;
+import java.util.Iterator;
+
 import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.io.BaseEncoding;
+import com.google.common.io.Files;
+import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
 
@@ -30,6 +37,23 @@ import org.apache.jackrabbit.core.data.FileDataStore;
  */
 public class OakFileDataStore extends FileDataStore {
     private byte[] referenceKey;
+
+    @Override
+    public Iterator<DataIdentifier> getAllIdentifiers() {
+        return Files.fileTreeTraverser().postOrderTraversal(new File(getPath()))
+                .filter(new Predicate<File>() {
+                    @Override
+                    public boolean apply(File input) {
+                        return input.isFile();
+                    }
+                })
+                .transform(new Function<File, DataIdentifier>() {
+                    @Override
+                    public DataIdentifier apply(File input) {
+                        return new DataIdentifier(input.getName());
+                    }
+                }).iterator();
+    }
 
     @Override
     protected byte[] getOrCreateReferenceKey() throws DataStoreException {
