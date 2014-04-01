@@ -43,7 +43,7 @@ class TarFile {
 
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC =
-            '\n' << 24 + '0' << 16 + 'K' << 8 + '\n';
+            ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
 
     /** The tar file block size. */
     private static final int BLOCK_SIZE = 512;
