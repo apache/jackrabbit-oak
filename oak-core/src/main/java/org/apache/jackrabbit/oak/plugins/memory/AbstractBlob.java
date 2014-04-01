@@ -117,7 +117,12 @@ public abstract class AbstractBlob implements Blob {
         return null;
     }
 
-    //------------------------------------------------------------< Object >--
+    @Override
+    public String getContentIdentity() {
+        return null;
+    }
+
+//------------------------------------------------------------< Object >--
 
     /**
      * To {@code Blob} instances are considered equal iff they have the

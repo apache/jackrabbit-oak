@@ -65,6 +65,11 @@ public class BlobStoreBlob implements Blob {
         return blobStore.getReference(blobId);
     }
 
+    @Override
+    public String getContentIdentity() {
+        return blobId;
+    }
+
     public String getBlobId() {
         return blobId;
     }

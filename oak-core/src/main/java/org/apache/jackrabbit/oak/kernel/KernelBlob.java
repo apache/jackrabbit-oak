@@ -69,6 +69,11 @@ public class KernelBlob extends AbstractBlob {
         return binaryID;
     }
 
+    @Override
+    public String getContentIdentity() {
+        return binaryID;
+    }
+
     /**
      * This implementation delegates back to the underlying {@code Microkernel}
      * if other is also of type {@code KernelBlob}.
