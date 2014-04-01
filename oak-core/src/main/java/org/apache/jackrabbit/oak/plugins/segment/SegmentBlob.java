@@ -21,14 +21,14 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.io.InputStream;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import java.io.InputStream;
 
 class SegmentBlob extends Record implements Blob {
 
@@ -118,6 +118,12 @@ class SegmentBlob extends Record implements Blob {
             }
         }
         return null;
+    }
+
+
+    @Override
+    public String getContentIdentity() {
+        return getRecordId().toString();
     }
 
     public String getBlobId() {
