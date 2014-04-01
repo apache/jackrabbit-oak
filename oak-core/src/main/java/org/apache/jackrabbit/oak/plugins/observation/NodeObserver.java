@@ -26,7 +26,6 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -119,37 +118,45 @@ public abstract class NodeObserver implements Observer {
 
     @Override
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
-        try {
-            if (previousRoot != null) {
-                NamePathMapper namePathMapper = new NamePathMapperImpl(
-                        new GlobalNameMapper(new ImmutableRoot(root)));
+        if (previousRoot != null) {
+            NamePathMapper namePathMapper = new NamePathMapperImpl(
+                    new GlobalNameMapper(new ImmutableRoot(root)));
 
-                Set<String> oakPropertyNames = Sets.newHashSet();
-                for (String name : propertyNames) {
-                    oakPropertyNames.add(namePathMapper.getJcrName(name));
-                }
-                NodeState before = previousRoot;
-                NodeState after = root;
-                EventHandler handler = new FilteredHandler(
-                        new VisibleFilter(),
-                        new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
-                for (String name : PathUtils.elements(path)) {
-                    String oakName = namePathMapper.getOakName(name);
-                    before = before.getChildNode(oakName);
-                    after = after.getChildNode(oakName);
-                    handler = handler.getChildHandler(oakName, before, after);
-                }
-
-                EventGenerator generator = new EventGenerator(before, after, handler);
-                while (!generator.isDone()) {
-                    generator.generate();
+            Set<String> oakPropertyNames = Sets.newHashSet();
+            for (String name : propertyNames) {
+                String oakName = namePathMapper.getOakNameOrNull(name);
+                if (oakName == null) {
+                    LOG.warn("Ignoring invalid property name: {}", name);
+                } else {
+                    oakPropertyNames.add(oakName);
                 }
             }
 
-            previousRoot = root;
-        } catch (RepositoryException e) {
-            LOG.warn("Error while handling content change", e);
+            NodeState before = previousRoot;
+            NodeState after = root;
+            EventHandler handler = new FilteredHandler(
+                    new VisibleFilter(),
+                    new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
+
+            String oakPath = namePathMapper.getOakPath(path);
+            if (oakPath == null) {
+                LOG.warn("Cannot listen for changes on invalid path: {}", path);
+                return;
+            }
+
+            for (String oakName : PathUtils.elements(oakPath)) {
+                before = before.getChildNode(oakName);
+                after = after.getChildNode(oakName);
+                handler = handler.getChildHandler(oakName, before, after);
+            }
+
+            EventGenerator generator = new EventGenerator(before, after, handler);
+            while (!generator.isDone()) {
+                generator.generate();
+            }
         }
+
+        previousRoot = root;
     }
 
     private enum EventType {ADDED, DELETED, CHANGED}
