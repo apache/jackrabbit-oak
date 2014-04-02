@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import javax.annotation.CheckForNull;
 
@@ -113,7 +115,7 @@ public class SegmentStream extends InputStream {
     @Override
     public int read() {
         byte[] b = new byte[1];
-        if (read(b) != -1) {
+        if (read(b, 0, 1) != -1) {
             return b[0] & 0xff;
         } else {
             return -1;
@@ -121,38 +123,51 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) {
-        return read(b, 0, b.length);
-    }
-
-    @Override
     public int read(byte[] b, int off, int len) {
         checkNotNull(b);
         checkPositionIndexes(off, off + len, b.length);
+
         if (len == 0) {
             return 0;
         } else if (position == length) {
             return -1;
-        } else if (inline != null) {
-            if (position + len > length) {
-                len = (int) (length - position);
-            }
+        }
+
+        if (position + len > length) {
+            len = (int) (length - position); // > 0 given the earlier check
+        }
+
+        if (inline != null) {
             System.arraycopy(inline, (int) position, b, off, len);
             position += len;
             return len;
         } else {
-            int blockIndex = (int) (position / SegmentWriter.BLOCK_SIZE);
-            int blockOffset = (int) (position % SegmentWriter.BLOCK_SIZE);
+            int blockIndex = (int) (position / BLOCK_SIZE);
+            int blockOffset = (int) (position % BLOCK_SIZE);
+            int blockCount =
+                    Math.min(MAX_SEGMENT_SIZE, blockOffset + len + BLOCK_SIZE - 1) // round up
+                    / BLOCK_SIZE;
 
-            if (blockOffset + len > SegmentWriter.BLOCK_SIZE) {
-                len = SegmentWriter.BLOCK_SIZE - blockOffset;
-            }
-            if (position + len > length) {
-                len = (int) (length - position);
+            List<RecordId> ids = blocks.getEntries(blockIndex, blockCount);
+            RecordId first = ids.get(0); // guaranteed to contain at least one
+            SegmentId segmentId = first.getSegmentId();
+            int offset = first.getOffset();
+            int count = 1;
+            while (count < ids.size()) {
+                RecordId id = ids.get(count);
+                if (id.getSegmentId() == segmentId
+                        && id.getOffset() == offset + count * BLOCK_SIZE) {
+                    count++;
+                } else {
+                    break;
+                }
             }
 
-            BlockRecord block =
-                    new BlockRecord(blocks.getEntry(blockIndex), BLOCK_SIZE);
+            if (blockOffset + len > count * BLOCK_SIZE) {
+                len = count * BLOCK_SIZE - blockOffset;
+            }
+
+            BlockRecord block = new BlockRecord(first, blockOffset + len);
             len = block.read(blockOffset, b, off, len);
             position += len;
             return len;
