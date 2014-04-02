@@ -100,6 +100,11 @@ public class SegmentTracker {
 
     Segment getSegment(SegmentId id) {
         Segment segment = store.readSegment(id);
+        setSegment(id, segment);
+        return segment;
+    }
+
+    void setSegment(SegmentId id, Segment segment) {
         id.setSegment(segment);
 
         LinkedList<Segment> segments = dataSegments;
@@ -117,10 +122,7 @@ public class SegmentTracker {
                 currentSize -= remove.getCacheSize();
             }
         }
-
-        return segment;
     }
-
 
     /**
      * Returns all segment identifiers that are currently referenced in memory.
