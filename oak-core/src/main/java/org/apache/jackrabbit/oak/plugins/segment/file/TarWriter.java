@@ -28,6 +28,8 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -91,6 +93,8 @@ class TarWriter {
      */
     private final Map<UUID, TarEntry> index = newHashMap();
 
+    private MappedByteBuffer buffer = null;
+
     TarWriter(File file) {
         this.file = file;
     }
@@ -104,24 +108,20 @@ class TarWriter {
         return index.containsKey(new UUID(msb, lsb));
     }
 
-    synchronized ByteBuffer readEntry(long msb, long lsb) {
+    synchronized ByteBuffer readEntry(long msb, long lsb) throws IOException {
         checkState(!closed);
         TarEntry entry = index.get(new UUID(msb, lsb));
         if (entry != null) {
-            checkState(access != null); // implied by entry != null
-            try {
-                try {
-                    byte[] data = new byte[entry.size()];
-                    access.seek(entry.offset());
-                    access.readFully(data);
-                    return ByteBuffer.wrap(data);
-                } finally {
-                    access.seek(access.length());
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(
-                        "Unable to read from tar file " + file, e);
+            if (buffer == null
+                    || buffer.remaining() < entry.offset() + entry.size()) {
+                checkState(access != null); // implied by entry != null
+                buffer = access.getChannel().map(
+                        MapMode.READ_ONLY, 0, access.getFilePointer());
             }
+            ByteBuffer data = buffer.asReadOnlyBuffer();
+            data.position(entry.offset());
+            data.limit(data.position() + entry.size());
+            return data.slice();
         } else {
             return null;
         }
@@ -249,6 +249,7 @@ class TarWriter {
             access.write(ZERO_BYTES);
             access.write(ZERO_BYTES);
             access.close();
+            buffer = null;
         }
     }
 
