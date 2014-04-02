@@ -65,8 +65,6 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
         this.namePathMapper = namePathMapper;
     }
 
-
-
     //--------------------------------------------------------------------------
     @Nonnull
     public PrivilegeBits getPrivilegeBits() {
