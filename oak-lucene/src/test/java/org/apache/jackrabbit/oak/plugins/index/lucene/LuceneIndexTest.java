@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -25,8 +26,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
-
-import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -63,7 +62,8 @@ public class LuceneIndexTest {
     @Test
     public void testLucene() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "lucene", null);
+        newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(TYPENAME_STRING));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -85,7 +85,8 @@ public class LuceneIndexTest {
     @Test
     public void testLucene2() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "lucene", null);
+        newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(TYPENAME_STRING));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
@@ -116,7 +117,7 @@ public class LuceneIndexTest {
     public void testLucene3() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         newLuceneIndexDefinition(index, "lucene",
-                ImmutableSet.of(PropertyType.TYPENAME_STRING));
+                ImmutableSet.of(TYPENAME_STRING));
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
