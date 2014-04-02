@@ -90,7 +90,7 @@ public class LastRevRecoveryTest {
         //lastRev should not be updated for C #2
         assertNull(y1.getLastRev().get(2));
 
-        LastRevRecovery recovery = new LastRevRecovery(ds1);
+        LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds1);
 
         //Do not pass y1 but still y1 should be updated
         recovery.recover(Iterators.forArray(x1,z1), 2);

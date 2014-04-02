@@ -291,6 +291,8 @@ public final class DocumentNodeStore
 
     private final Executor executor;
 
+    private final LastRevRecoveryAgent lastRevRecoveryAgent;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -322,6 +324,7 @@ public final class DocumentNodeStore
         this.branches = new UnmergedBranches(getRevisionComparator());
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(this);
+        this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
             public int getMemory() {
@@ -378,9 +381,17 @@ public final class DocumentNodeStore
                 new BackgroundOperation(this, isDisposed),
                 "DocumentNodeStore background thread");
         backgroundThread.setDaemon(true);
+        checkLastRevRecovery();
         backgroundThread.start();
 
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);
+    }
+
+    /**
+     * Recover _lastRev recovery if needed.
+     */
+    private void checkLastRevRecovery() {
+        lastRevRecoveryAgent.recover(clusterId);
     }
 
     public void dispose() {
@@ -1706,5 +1717,9 @@ public final class DocumentNodeStore
     @Nonnull
     public VersionGarbageCollector getVersionGarbageCollector() {
         return versionGarbageCollector;
+    }
+    @Nonnull
+    public LastRevRecoveryAgent getLastRevRecoveryAgent() {
+        return lastRevRecoveryAgent;
     }
 }
