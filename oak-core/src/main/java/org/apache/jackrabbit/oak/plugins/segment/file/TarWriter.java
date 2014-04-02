@@ -28,8 +28,6 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel.MapMode;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -93,8 +91,6 @@ class TarWriter {
      */
     private final Map<UUID, TarEntry> index = newHashMap();
 
-    private MappedByteBuffer buffer = null;
-
     TarWriter(File file) {
         this.file = file;
     }
@@ -112,16 +108,12 @@ class TarWriter {
         checkState(!closed);
         TarEntry entry = index.get(new UUID(msb, lsb));
         if (entry != null) {
-            if (buffer == null
-                    || buffer.remaining() < entry.offset() + entry.size()) {
-                checkState(access != null); // implied by entry != null
-                buffer = access.getChannel().map(
-                        MapMode.READ_ONLY, 0, access.getFilePointer());
-            }
-            ByteBuffer data = buffer.asReadOnlyBuffer();
-            data.position(entry.offset());
-            data.limit(data.position() + entry.size());
-            return data.slice();
+            checkState(access != null); // implied by entry != null
+            ByteBuffer data = ByteBuffer.allocate(entry.size());
+            access.seek(entry.offset());
+            access.readFully(data.array());
+            access.seek(access.length());
+            return data;
         } else {
             return null;
         }
