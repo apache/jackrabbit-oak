@@ -32,7 +32,6 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
-import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Commit;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -52,24 +51,6 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     public MongoMissingLastRevSeeker(MongoDocumentStore store) {
         super(store);
         this.store = store;
-    }
-
-    @Override
-    public ClusterNodeInfoDocument getClusterNodeInfo(final int clusterId) {
-        DBObject query =
-                start(NodeDocument.ID).is(String.valueOf(clusterId)).get();
-        DBCursor cursor =
-                getClusterNodeCollection().find(query)
-                        .setReadPreference(ReadPreference.secondaryPreferred());
-        try {
-            if (cursor.hasNext()) {
-                DBObject obj = cursor.next();
-                return store.convertFromDBObject(Collection.CLUSTER_NODES, obj);
-            }
-        } finally {
-            cursor.close();
-        }
-        return null;
     }
 
     @Override

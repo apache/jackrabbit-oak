@@ -191,16 +191,30 @@ public class ClusterNodeInfo {
      */
     private RecoverLockState revRecoveryLock;
 
-    ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
-                    RecoverLockState revRecoveryLock) {
+    /**
+     * In memory flag indicating that this ClusterNode is entry is new and is being added to
+     * DocumentStore for the first time
+     *
+     * If false then it indicates that a previous entry for current node existed and that is being
+     * reused
+     */
+    private boolean newEntry;
+
+    private ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
+            RecoverLockState revRecoveryLock, Long leaseEnd, boolean newEntry) {
         this.id = id;
         this.startTime = getCurrentTime();
-        this.leaseEndTime = startTime;
+        if (leaseEnd == null) {
+            this.leaseEndTime = startTime;
+        } else {
+            this.leaseEndTime = leaseEnd;
+        }
         this.store = store;
         this.machineId = machineId;
         this.instanceId = instanceId;
         this.state = state;
         this.revRecoveryLock = revRecoveryLock;
+        this.newEntry = newEntry;
     }
 
     public int getId() {
@@ -214,7 +228,7 @@ public class ClusterNodeInfo {
      * @return the cluster node info
      */
     public static ClusterNodeInfo getInstance(DocumentStore store) {
-        return getInstance(store, MACHINE_ID, WORKING_DIR);
+        return getInstance(store, MACHINE_ID, WORKING_DIR, false);
     }
 
     /**
@@ -227,6 +241,20 @@ public class ClusterNodeInfo {
      */
     public static ClusterNodeInfo getInstance(DocumentStore store, String machineId,
             String instanceId) {
+        return getInstance(store, machineId, instanceId, true);
+    }
+
+    /**
+     * Create a cluster node info instance for the store.
+     *
+     * @param store the document store (for the lease)
+     * @param machineId the machine id (null for MAC address)
+     * @param instanceId the instance id (null for current working directory)
+     * @param updateLease whether to update the lease
+     * @return the cluster node info
+     */
+    public static ClusterNodeInfo getInstance(DocumentStore store, String machineId,
+            String instanceId, boolean updateLease) {
         if (machineId == null) {
             machineId = MACHINE_ID;
         }
@@ -239,13 +267,27 @@ public class ClusterNodeInfo {
             update.set(ID, String.valueOf(clusterNode.id));
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
-            update.set(LEASE_END_KEY, getCurrentTime() + clusterNode.leaseTime);
+            if (updateLease) {
+                update.set(LEASE_END_KEY, getCurrentTime() + clusterNode.leaseTime);
+            } else {
+                update.set(LEASE_END_KEY, clusterNode.leaseEndTime);
+            }
             update.set(INFO_KEY, clusterNode.toString());
             update.set(STATE, clusterNode.state.name());
             update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());
-            boolean success =
-                    store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
-            if (success) {
+
+            final boolean success;
+            if (clusterNode.newEntry) {
+                //For new entry do a create. This ensures that if two nodes create
+                //entry with same id then only one would succeed
+                success = store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
+            } else {
+                // No expiration of earlier cluster info, so update
+                store.createOrUpdate(Collection.CLUSTER_NODES, update);
+                success = true;
+            }
+
+            if(success){
                 return clusterNode;
             }
         }
@@ -262,6 +304,8 @@ public class ClusterNodeInfo {
         int clusterNodeId = 0;
         int maxId = 0;
         ClusterNodeState state = ClusterNodeState.NONE;
+        Long prevLeaseEnd = null;
+        boolean newEntry = false;
         for (Document doc : list) {
             String key = doc.getId();
             int id;
@@ -288,18 +332,28 @@ public class ClusterNodeInfo {
                 // a different machine or instance
                 continue;
             }
-            // remove expired matching entries
-            store.remove(Collection.CLUSTER_NODES, key);
+
+            //and cluster node which matches current machine identity but
+            //not being used
             if (clusterNodeId == 0 || id < clusterNodeId) {
                 // if there are multiple, use the smallest value
                 clusterNodeId = id;
                 state = ClusterNodeState.fromString((String) doc.get(STATE));
+                prevLeaseEnd = leaseEnd;
             }
         }
+
+        //No existing entry with matching signature found so
+        //create a new entry
         if (clusterNodeId == 0) {
             clusterNodeId = maxId + 1;
+            newEntry = true;
         }
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, RecoverLockState.NONE);
+
+        // Do not expire entries and stick on the earlier state, and leaseEnd so,
+        // that _lastRev recovery if needed is done.        
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, 
+                RecoverLockState.NONE, prevLeaseEnd, newEntry);
     }
 
     /**

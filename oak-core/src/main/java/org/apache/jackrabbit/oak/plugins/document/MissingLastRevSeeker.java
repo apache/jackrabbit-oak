@@ -39,7 +39,17 @@ public class MissingLastRevSeeker {
     public MissingLastRevSeeker(DocumentStore store) {
         this.store = store;
     }
-
+    
+    /**
+     * Gets the clusters which potentially need _lastRev recovery.
+     *
+     * @return the clusters
+     */
+    public Iterable<ClusterNodeInfoDocument> getAllClusters() {
+        return store.query(Collection.CLUSTER_NODES, ClusterNodeInfoDocument.MIN_ID_VALUE,
+                ClusterNodeInfoDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+    }
+    
     /**
      * Gets the cluster node info for the given cluster node id.
      *
@@ -48,24 +58,7 @@ public class MissingLastRevSeeker {
      */
     public ClusterNodeInfoDocument getClusterNodeInfo(final int clusterId) {
         // Fetch all documents.
-        List<ClusterNodeInfoDocument> nodes = store.query(Collection.CLUSTER_NODES, "0",
-                "a", Integer.MAX_VALUE);
-        Iterable<ClusterNodeInfoDocument> clusterIterable =
-                Iterables.filter(nodes,
-                        new Predicate<ClusterNodeInfoDocument>() {
-                            // Return cluster info for the required clusterId
-                            @Override
-                            public boolean apply(ClusterNodeInfoDocument input) {
-                                String id = input.getId();
-                                return (id.equals(String.valueOf(clusterId)));
-                            }
-                        });
-
-        if (clusterIterable.iterator().hasNext()) {
-            return clusterIterable.iterator().next();
-        }
-
-        return null;
+        return store.find(Collection.CLUSTER_NODES, String.valueOf(clusterId));
     }
 
     /**

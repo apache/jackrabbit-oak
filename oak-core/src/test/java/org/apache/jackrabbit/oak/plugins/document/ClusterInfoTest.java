@@ -24,6 +24,8 @@ import static org.junit.Assert.assertNull;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Test;
 
 import com.mongodb.ReadPreference;
@@ -38,6 +40,10 @@ public class ClusterInfoTest {
     public void readWriteMode() throws InterruptedException {
 
         MemoryDocumentStore mem = new MemoryDocumentStore();
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        ClusterNodeInfo.setClock(clock);
+
         DocumentNodeStore ns1 = new DocumentMK.Builder().
                 setDocumentStore(mem).
                 setAsyncDelay(0).
@@ -46,8 +52,13 @@ public class ClusterInfoTest {
                 setDocumentStore(mem).
                 setAsyncDelay(0).
                 getNodeStore();
+        // Bring the current time forward to after the leaseTime which would have been 
+        // updated in the DocumentNodeStore initialization.
+        clock.waitUntil(clock.getTime() + ns1.getClusterInfo().getLeaseTime());
+
         ns1.getClusterInfo().setLeaseTime(0);
         ns2.getClusterInfo().setLeaseTime(0);
+
         List<ClusterNodeInfoDocument> list = mem.query(
                 Collection.CLUSTER_NODES, "0", "a", Integer.MAX_VALUE);
         assertEquals(2, list.size());
@@ -79,4 +90,8 @@ public class ClusterInfoTest {
         ns2.dispose();
     }
 
+    @After
+    public void tearDown(){
+        ClusterNodeInfo.setClock(null);
+    }
 }

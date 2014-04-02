@@ -24,12 +24,14 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -74,10 +76,8 @@ public class LastRevRecoveryAgent {
             long leaseEnd = nodeInfo.getLeaseEndTime();
 
             // Check if _lastRev recovery needed for this cluster node
-            // state == null && recoveryLock not held by someone
-            if (nodeInfo.isActive()
-                    && !nodeInfo.isBeingRecovered()) {
-
+            // state is Active && recoveryLock not held by someone
+            if (isRecoveryNeeded(nodeInfo)) {            
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
@@ -260,7 +260,38 @@ public class LastRevRecoveryAgent {
         }
         return null;
     }
-
+    
+    /**
+     * Gets the _lastRev recovery candidate cluster nodes.
+     *
+     * @return the recovery candidate nodes
+     */
+    public List<String> getRecoveryCandidateNodes() {
+        Iterable<ClusterNodeInfoDocument> clusters = missingLastRevUtil.getAllClusters();
+        List<String> candidateClusterNodes = Lists.newArrayList();
+        
+        for (ClusterNodeInfoDocument nodeInfo : clusters) {
+            if (isRecoveryNeeded(nodeInfo)) {
+                candidateClusterNodes.add(nodeInfo.getId());
+            }
+        }
+        
+        return candidateClusterNodes;
+    }
+    
+    private boolean isRecoveryNeeded(ClusterNodeInfoDocument nodeInfo) {
+        if (nodeInfo != null) {
+            // Check if _lastRev recovery needed for this cluster node
+            // state is Active && currentTime past the leaseEnd time && recoveryLock not held by someone
+            if (nodeInfo.isActive()
+                    && nodeStore.getClock().getTime() > nodeInfo.getLeaseEndTime()
+                    && !nodeInfo.isBeingRecovered()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     private static class ClusterPredicate implements Predicate<Revision> {
         private final int clusterId;
 
