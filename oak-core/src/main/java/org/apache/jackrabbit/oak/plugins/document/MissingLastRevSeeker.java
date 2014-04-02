@@ -27,6 +27,8 @@ import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+
 /**
  * Utils to retrieve _lastRev missing update candidates.
  */
@@ -86,6 +88,21 @@ public class MissingLastRevSeeker {
                         && (modified < TimeUnit.MILLISECONDS.toSeconds(endTime)));
             }
         });
+    }
+
+    public boolean acquireRecoveryLock(int clusterId){
+        //This approach has a race condition where two different cluster nodes
+        //can acquire the lock simultaneously.
+        UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
+        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED);
+        store.createOrUpdate(Collection.CLUSTER_NODES, update);
+        return true;
+    }
+
+    public void releaseRecoveryLock(int clusterId){
+        UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
+        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, null);
+        store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
 
     public NodeDocument getRoot() {
