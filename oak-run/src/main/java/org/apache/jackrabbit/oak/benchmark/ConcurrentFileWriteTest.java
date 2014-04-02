@@ -52,7 +52,7 @@ public class ConcurrentFileWriteTest extends AbstractTest {
     @Override
     public void beforeSuite() throws RepositoryException {
         Session session = loginWriter();
-        session.getRootNode().addNode(ROOT_NODE_NAME, "oak:Unstructured");
+        session.getRootNode().addNode(ROOT_NODE_NAME);
         session.save();
 
         this.writer = new Writer(0);
@@ -101,13 +101,14 @@ public class ConcurrentFileWriteTest extends AbstractTest {
 
         private final Node parent;
 
-        private final int id;
-
         private long counter = 0;
 
         Writer(int id) throws RepositoryException {
-            this.parent = loginWriter().getRootNode().getNode(ROOT_NODE_NAME);
-            this.id = id;
+            this.parent = loginWriter()
+                    .getRootNode()
+                    .getNode(ROOT_NODE_NAME)
+                    .addNode("writer-" + id);
+            parent.getSession().save();
         }
 
         @Override
@@ -115,7 +116,7 @@ public class ConcurrentFileWriteTest extends AbstractTest {
             try {
                 parent.getSession().refresh(false);
                 Node file = JcrUtils.putFile(
-                        parent, "file" + id + "-" + counter++,
+                        parent, "file-" + counter++,
                         "application/octet-stream",
                         new TestInputStream(FILE_SIZE * 1024));
                 parent.getSession().save();
