@@ -91,6 +91,7 @@ public class SegmentId implements Comparable<SegmentId> {
                 }
             }
         }
+        segment.access();
         return segment;
     }
 

@@ -205,18 +205,19 @@ public class SegmentWriter {
                 buffer[pos++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
             }
 
-            store.writeSegment(
-                    segment.getSegmentId(),
-                    buffer, buffer.length - length, length);
+            SegmentId id = segment.getSegmentId();
+            store.writeSegment(id, buffer, buffer.length - length, length);
 
-            if (length < buffer.length / 2) {
-                byte[] data = new byte[length];
-                System.arraycopy(
-                        buffer, buffer.length - length, data, 0, length);
-                segment = new Segment(
-                        tracker, segment.getSegmentId(), ByteBuffer.wrap(data));
+            // Keep this segment in memory as it's likely to be accessed soon
+            ByteBuffer data;
+            if (buffer.length - length > 4096) {
+                data = ByteBuffer.allocate(length);
+                data.put(buffer, buffer.length - length, length);
+                data.rewind();
+            } else {
+                data = ByteBuffer.wrap(buffer);
             }
-            tracker.setSegment(segment.getSegmentId(), segment);
+            tracker.setSegment(id, new Segment(tracker, id, data));
 
             buffer = createNewBuffer();
             roots.clear();

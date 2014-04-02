@@ -433,9 +433,13 @@ public class FileStore implements SegmentStore {
         }
 
         synchronized (this) {
-            ByteBuffer buffer = writer.readEntry(msb, lsb);
-            if (buffer != null) {
-                return new Segment(tracker, id, buffer);
+            try {
+                ByteBuffer buffer = writer.readEntry(msb, lsb);
+                if (buffer != null) {
+                    return new Segment(tracker, id, buffer);
+                }
+            } catch (IOException e) {
+                log.warn("Failed to read from tar file " + writer, e);
             }
         }
 

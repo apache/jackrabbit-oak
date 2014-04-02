@@ -118,6 +118,8 @@ public class Segment {
      */
     private final ConcurrentMap<Integer, Template> templates = newConcurrentMap();
 
+    private volatile long accessed = 0;
+
     public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
@@ -142,6 +144,15 @@ public class Segment {
 
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
         refids[0] = id;
+    }
+
+    void access() {
+        accessed++;
+    }
+
+    boolean accessed() {
+        accessed >>>= 1;
+        return accessed != 0;
     }
 
     /**

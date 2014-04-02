@@ -21,6 +21,7 @@ import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newIdentityHashSet;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -70,9 +71,7 @@ public class SegmentTracker {
      */
     private final SegmentIdTable[] tables = new SegmentIdTable[32];
 
-    private final LinkedList<Segment> dataSegments = newLinkedList();
-
-    private final LinkedList<Segment> bulkSegments = newLinkedList();
+    private final LinkedList<Segment> segments = newLinkedList();
 
     private long currentSize = 0;
 
@@ -105,21 +104,21 @@ public class SegmentTracker {
     }
 
     void setSegment(SegmentId id, Segment segment) {
+        // done before synchronization to allow concurrent segment access
+        // while we update the cache below
         id.setSegment(segment);
 
-        LinkedList<Segment> segments = dataSegments;
-        if (id.isBulkSegmentId()) {
-            segments = bulkSegments;
-        }
-
         synchronized (this) {
-            // TODO: use a scan-resistant cache
             segments.addFirst(segment);
             currentSize += segment.getCacheSize();
-            while (currentSize > cacheSize / 2 && segments.size() > 1) {
-                Segment remove = segments.removeLast();
-                remove.getSegmentId().setSegment(null);
-                currentSize -= remove.getCacheSize();
+            while (currentSize > cacheSize && segments.size() > 1) {
+                Segment last = segments.removeLast();
+                if (last.accessed()) {
+                    segments.addFirst(last);
+                } else {
+                    last.getSegmentId().setSegment(null);
+                    currentSize -= last.getCacheSize();
+                }
             }
         }
     }
