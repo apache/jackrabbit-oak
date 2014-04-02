@@ -72,6 +72,9 @@ public class Revision {
      */
     static void setClock(Clock c) {
         clock = c;
+        if (c == null) {
+            lastTimestamp = System.currentTimeMillis();
+        }
     }
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
