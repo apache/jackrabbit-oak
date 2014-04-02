@@ -18,19 +18,24 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static com.google.common.collect.Iterables.isEmpty;
+import static com.google.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.jcr.observation.Event;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Event factory for generating JCR event instances that are optimized
@@ -97,20 +102,45 @@ public class EventFactory {
         };
     }
 
-    Event nodeAdded(String path, String name, String identifier) {
+    private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
+        if (isEmpty(mixinTypes)) {
+            return ImmutableMap.of(
+                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
+        } else {
+            List<String> jcrNames = Lists.newArrayList();
+            for (String name : mixinTypes) {
+                jcrNames.add(mapper.getJcrName(name));
+            }
+            return ImmutableMap.of(
+                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
+                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+        }
+    }
+
+    Event nodeAdded(final String primaryType, final Iterable<String> mixinTypes,
+            String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return NODE_ADDED;
             }
+            @Override
+            public Map<?, ?> getInfo() {
+                return createInfoMap(primaryType, mixinTypes);
+            }
         };
     }
 
-    Event nodeDeleted(String path, String name, String identifier) {
+    Event nodeDeleted(final String primaryType, final Iterable<String> mixinTypes,
+            String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return NODE_REMOVED;
+            }
+            @Override
+            public Map<?, ?> getInfo() {
+                return createInfoMap(primaryType, mixinTypes);
             }
         };
     }

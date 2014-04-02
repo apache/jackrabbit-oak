@@ -84,6 +84,10 @@ See the [query overview page](query.html) for details.
 
 Observation
 -----------
+* `Event.getInfo()` contains the primary and mixin node types of the added/removed node
+   in the case of `Event.NODE_ADDED` and `Event.NODE_REMOVED`. The key `jcr:primaryType`
+   maps to the primary type and the key `jcr:mixinTypes` maps to an array containing
+   the mixin types.
 
 * `Event.getUserId()`, `Event.getUserData()`and `Event.getDate()` will only be available for locally
   generated events (i.e. on the same cluster node). To help identifying potential trouble spots,

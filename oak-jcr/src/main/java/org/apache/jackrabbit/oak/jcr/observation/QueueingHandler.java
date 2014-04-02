@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.observation;
 
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.PathTracker;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierTracker;
@@ -103,11 +109,30 @@ class QueueingHandler extends DefaultEventHandler {
                 identifierTracker.getIdentifier()));
     }
 
+    private static String getPrimaryType(NodeState before) {
+        PropertyState primaryType = before.getProperty(JCR_PRIMARYTYPE);
+        if (primaryType != null && primaryType.getType() == NAME) {
+            return primaryType.getValue(NAME);
+        } else {
+            return null;
+        }
+    }
+
+    private static Iterable<String> getMixinTypes(NodeState before) {
+        PropertyState mixinTypes = before.getProperty(JCR_MIXINTYPES);
+        if (mixinTypes != null && mixinTypes.getType() == NAMES) {
+            return mixinTypes.getValue(NAMES);
+        } else {
+            return emptyList();
+        }
+    }
+
     @Override
     public void nodeAdded(String name, NodeState after) {
         IdentifierTracker tracker =
                 identifierTracker.getChildTracker(name, after);
         queue.addEvent(factory.nodeAdded(
+                getPrimaryType(after), getMixinTypes(after),
                 pathTracker.getPath(), name, tracker.getIdentifier()));
     }
 
@@ -115,7 +140,9 @@ class QueueingHandler extends DefaultEventHandler {
     public void nodeDeleted(String name, NodeState before) {
         IdentifierTracker tracker =
                 beforeIdentifierTracker.getChildTracker(name, before);
+
         queue.addEvent(factory.nodeDeleted(
+                getPrimaryType(before), getMixinTypes(before),
                 pathTracker.getPath(), name, tracker.getIdentifier()));
     }
 
