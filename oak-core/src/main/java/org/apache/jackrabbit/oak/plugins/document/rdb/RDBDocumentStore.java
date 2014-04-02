@@ -77,19 +77,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    /**
-     * Creates a {@linkplain RDBDocumentStore} instance using the provided JDBC
-     * connection information.
-     */
-    public RDBDocumentStore(String jdbcurl, String username, String password, DocumentMK.Builder builder) {
-        try {
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, username, password);
-            initialize(ds, builder);
-        } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB document store", ex);
-        }
-    }
-
     @Override
     public <T extends Document> T find(Collection<T> collection, String id) {
         return find(collection, id, Integer.MAX_VALUE);

@@ -39,32 +39,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.AbstractIterator;
 
 public class RDBBlobStore extends CachingBlobStore implements Closeable {
-    /**
-     * Creates a {@linkplain RDBBlobStore} instance using an embedded H2
-     * database in in-memory mode.
-     */
-    public RDBBlobStore() {
-        try {
-            String jdbcurl = "jdbc:h2:mem:oaknodes";
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, "sa", "");
-            initialize(ds);
-        } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB blob store", ex);
-        }
-    }
-
-    /**
-     * Creates a {@linkplain RDBBlobStore} instance using the provided JDBC
-     * connection information.
-     */
-    public RDBBlobStore(String jdbcurl, String username, String password) {
-        try {
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcurl, username, password);
-            initialize(ds);
-        } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB blob store", ex);
-        }
-    }
 
     /**
      * Creates a {@linkplain RDBBlobStore} instance using the provided
