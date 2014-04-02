@@ -25,6 +25,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -214,13 +215,16 @@ public class FileStore implements SegmentStore {
                 try {
                     timeToClose.await(1, SECONDS);
                     while (timeToClose.getCount() > 0) {
+                        long start = System.nanoTime();
                         try {
                             flush();
                         } catch (IOException e) {
                             log.warn("Failed to flush the TarMK at" +
                                     directory, e);
                         }
-                        timeToClose.await(5, SECONDS);
+                        long time = SECONDS.convert(
+                                System.nanoTime() - start, NANOSECONDS);
+                        timeToClose.await(Math.max(5, 2 * time), SECONDS);
                     }
                 } catch (InterruptedException e) {
                     log.warn("TarMK flush thread interrupted");
@@ -298,8 +302,11 @@ public class FileStore implements SegmentStore {
                 // avoid a deadlock with another thread flushing the writer
                 tracker.getWriter().flush();
 
+                // needs to happen outside the synchronization block below to
+                // prevent the flush from stopping concurrent reads and writes
+                writer.flush();
+
                 synchronized (this) {
-                    writer.flush();
                     journalFile.writeBytes(after + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
@@ -391,9 +398,22 @@ public class FileStore implements SegmentStore {
                 return true;
             }
         }
+
         synchronized (this) {
-            return writer.containsEntry(msb, lsb);
+            if (writer.containsEntry(msb, lsb)) {
+                return true;
+            }
         }
+
+        // the writer might have switched to a new file,
+        // so we need to re-check the readers
+        for (TarReader reader : readers) {
+            if (reader.containsEntry(msb, lsb)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -419,6 +439,8 @@ public class FileStore implements SegmentStore {
             }
         }
 
+        // the writer might have switched to a new file,
+        // so we need to re-check the readers
         for (TarReader reader : readers) {
             try {
                 ByteBuffer buffer = reader.readEntry(msb, lsb);

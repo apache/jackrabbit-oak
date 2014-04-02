@@ -24,6 +24,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -59,10 +60,35 @@ class TarWriter {
         }
     }
 
+    /**
+     * The file being written. This instance is also used as an additional
+     * synchronization point by {@link #flush()} and {@link #close()} to
+     * allow {@link #flush()} to work concurrently with normal reads and
+     * writes, but not with a concurrent {@link #close()}.
+     */
     private final File file;
 
+    /**
+     * File handle. Initialized lazily in
+     * {@link #writeEntry(long, long, byte[], int, int)} to avoid creating
+     * an extra empty file when just reading from the repository.
+     * Should only be accessed from synchronized code.
+     */
     private RandomAccessFile access = null;
 
+    /**
+     * Flag to indicate a closed writer. Accessing a closed writer is illegal.
+     * Should only be accessed from synchronized code.
+     */
+    private boolean closed = false;
+
+    /**
+     * Map of the entries that have already been written. Used by the
+     * {@link #containsEntry(long, long)} and {@link #readEntry(long, long)}
+     * methods to retrieve data from this file while it's still being written,
+     * and finally by the {@link #close()} method to generate the tar index.
+     * Should only be accessed from synchronized code;
+     */
     private final Map<UUID, TarEntry> index = newHashMap();
 
     TarWriter(File file) {
@@ -74,10 +100,12 @@ class TarWriter {
     }
 
     synchronized boolean containsEntry(long msb, long lsb) {
+        checkState(!closed);
         return index.containsKey(new UUID(msb, lsb));
     }
 
     synchronized ByteBuffer readEntry(long msb, long lsb) {
+        checkState(!closed);
         TarEntry entry = index.get(new UUID(msb, lsb));
         if (entry != null) {
             checkState(access != null); // implied by entry != null
@@ -118,6 +146,7 @@ class TarWriter {
     private synchronized long writeEntry(
             UUID uuid, byte[] header, byte[] data, int offset, int size)
             throws IOException {
+        checkState(!closed);
         if (access == null) {
             access = new RandomAccessFile(file, "rw");
         }
@@ -139,14 +168,55 @@ class TarWriter {
         return length;
     }
 
-    synchronized void flush() throws IOException {
-        if (access != null) {
-            access.getFD().sync();
+    /**
+     * Flushes the entries that have so far been written to the disk.
+     * This method is <em>not</em> synchronized to allow concurrent reads
+     * and writes to proceed while the file is being flushed. However,
+     * this method <em>is</em> carefully synchronized with {@link #close()}
+     * to prevent accidental flushing of an already closed file.
+     *
+     * @throws IOException if the tar file could not be flushed
+     */
+    void flush() throws IOException {
+        synchronized (file) {
+            FileDescriptor descriptor = null;
+
+            synchronized (this) {
+                if (access != null && !closed) {
+                    descriptor = access.getFD();
+                }
+            }
+
+            if (descriptor != null) {
+                descriptor.sync();
+            }
         }
     }
 
-    synchronized void close() throws IOException {
-        if (access != null) {
+    /**
+     * Closes this tar file.
+     *
+     * @throws IOException if the tar file could not be closed
+     */
+    void close() throws IOException {
+        // Mark this writer as closed. Note that we only need to synchronize
+        // this part, as no other synchronized methods should get invoked
+        // once close() has been initiated (see related checkState calls).
+        synchronized (this) {
+            checkState(!closed);
+            closed = true;
+        }
+
+        // If nothing was written to this file, then we're already done.
+        if (access == null) {
+            return;
+        }
+
+        // Complete the tar file by adding the index and the trailing two
+        // zero blocks. This code is synchronized on the file instance to
+        // ensure that no concurrent thread is still flushing the file when
+        // we close the file handle.
+        synchronized (file) {
             int indexSize = index.size() * 24 + 16;
             int padding = getPaddingSize(indexSize);
 
@@ -179,8 +249,6 @@ class TarWriter {
             access.write(ZERO_BYTES);
             access.write(ZERO_BYTES);
             access.close();
-
-            access = null;
         }
     }
 

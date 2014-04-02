@@ -208,7 +208,15 @@ public class SegmentWriter {
             store.writeSegment(
                     segment.getSegmentId(),
                     buffer, buffer.length - length, length);
-            segment.getSegmentId().setSegment(null);
+
+            if (length < buffer.length / 2) {
+                byte[] data = new byte[length];
+                System.arraycopy(
+                        buffer, buffer.length - length, data, 0, length);
+                segment = new Segment(
+                        tracker, segment.getSegmentId(), ByteBuffer.wrap(data));
+            }
+            tracker.setSegment(segment.getSegmentId(), segment);
 
             buffer = createNewBuffer();
             roots.clear();
