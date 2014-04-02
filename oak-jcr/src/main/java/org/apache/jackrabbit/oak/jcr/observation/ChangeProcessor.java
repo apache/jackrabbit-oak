@@ -190,22 +190,25 @@ class ChangeProcessor implements Observer {
                             // Linear backoff proportional to the number of items exceeding
                             // DELAY_THRESHOLD. Offset by 1 to trigger the log message in the
                             // else branch once the queue falls below DELAY_THRESHOLD again.
-                            delay = 1 + (int) ((fillRatio - DELAY_THRESHOLD) / ( 1 - DELAY_THRESHOLD) * MAX_DELAY);
-                            commitRateLimiter.setDelay(delay);
+                            int newDelay = 1 + (int) ((fillRatio - DELAY_THRESHOLD) / (1 - DELAY_THRESHOLD) * MAX_DELAY);
+                            if (newDelay > delay) {
+                                delay = newDelay;
+                                commitRateLimiter.setDelay(delay);
+                            }
                         }
                     } else {
                         if (commitRateLimiter != null) {
-                            commitRateLimiter.setDelay(0);
-                            commitRateLimiter.unblockCommits();
                             if (delay > 0) {
                                 LOG.debug("Revision queue becoming empty. Unblocking commits");
+                                commitRateLimiter.setDelay(0);
+                                delay = 0;
                             }
                             if (blocking) {
                                 LOG.debug("Revision queue becoming empty. Stop delaying commits.");
+                                commitRateLimiter.unblockCommits();
+                                blocking = false;
                             }
                         }
-                        delay = 0;
-                        blocking = false;
                     }
                 }
             }
