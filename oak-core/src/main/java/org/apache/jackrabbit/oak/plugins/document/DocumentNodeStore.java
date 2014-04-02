@@ -382,6 +382,9 @@ public final class DocumentNodeStore
                 "DocumentNodeStore background thread");
         backgroundThread.setDaemon(true);
         checkLastRevRecovery();
+        // Renew the lease because it may have been stale
+        backgroundRenewClusterIdLease();
+
         backgroundThread.start();
 
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);

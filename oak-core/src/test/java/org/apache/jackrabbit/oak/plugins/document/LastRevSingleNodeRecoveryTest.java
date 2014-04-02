@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -100,6 +101,8 @@ public class LastRevSingleNodeRecoveryTest {
 
     @Test
     public void testLastRevRestoreOnNodeStart() throws Exception {
+        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
+
         // pending updates
         setupScenario();
 
@@ -113,9 +116,6 @@ public class LastRevSingleNodeRecoveryTest {
         mk = openMK(0, mk.getNodeStore().getDocumentStore());
 
         int pendingCount = mk.getPendingWriteCount();
-
-        // so that the current time is more than the current lease end
-        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
         // Immediately check again, now should not have done any changes.
         LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
         /** Now there should have been pendingCount updates **/
@@ -124,6 +124,7 @@ public class LastRevSingleNodeRecoveryTest {
 
     @Test
     public void testLastRevRestore() throws Exception {
+        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
         setupScenario();
 
         int pendingCount = mk.getPendingWriteCount();
@@ -138,6 +139,7 @@ public class LastRevSingleNodeRecoveryTest {
 
     @Test
     public void testNoMissingUpdates() throws Exception {
+        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
         setupScenario();
         mk.backgroundWrite();
 
@@ -158,7 +160,21 @@ public class LastRevSingleNodeRecoveryTest {
         /** There should have been no updates **/
         assertEquals(pendingCount, recoveryAgent.recover(mk.getClusterInfo().getId()));
     }
+    
+    @Test
+    public void testNodeRecoveryNeeded() throws InterruptedException {
+        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
+        setupScenario();
 
+        // so that the current time is more than the current lease end
+        clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
+
+        LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
+        Iterator<String> iter = recoveryAgent.getRecoveryCandidateNodes().iterator();
+        assertEquals(String.valueOf(1), iter.next());
+        assertEquals(false, iter.hasNext());
+    }
+    
     private void setupScenario() throws InterruptedException {
         // add some nodes which won't be returned
         mk.commit("/", "+\"u\" : { \"v\": {}}", null, null);
@@ -210,4 +226,3 @@ public class LastRevSingleNodeRecoveryTest {
         fixture.dispose();
     }
 }
-
