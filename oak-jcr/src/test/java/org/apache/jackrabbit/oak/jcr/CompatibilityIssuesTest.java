@@ -31,7 +31,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
@@ -85,6 +88,83 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
 
     public CompatibilityIssuesTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    /**
+     * Trans-session isolation differs from Jackrabbit 2. Snapshot isolation can
+     * result in write skew as this test demonstrates: the check method enforces
+     * an application logic constraint which says that the sum of the properties
+     * p1 and p2 must not be negative. While session1 and session2 each enforce
+     * this constraint before saving, the constraint might not hold globally as
+     * can be seen in session3.
+     *
+     * @see <a href="http://wiki.apache.org/jackrabbit/Transactional%20model%20of%20the%20Microkernel%20based%20Jackrabbit%20prototype">
+     *     Transactional model of the Microkernel based Jackrabbit prototype</a>
+     */
+    @Test
+    public void sessionIsolation() throws RepositoryException, ExecutionException, InterruptedException {
+        // Execute all operations in serial but on different threads to ensure
+        // same thread session refreshing doesn't come into the way
+        final Session session0 = createAdminSession();
+        try {
+            FutureTask<Void> t0 = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    Node testNode = session0.getNode("/").addNode("testNode");
+                    testNode.setProperty("p1", 1);
+                    testNode.setProperty("p2", 1);
+                    session0.save();
+                    check(getAdminSession());
+                    return null;
+                }
+            });
+            new Thread(t0).start();
+            t0.get();
+        } finally {
+            session0.logout();
+        }
+
+        final Session session1 = createAdminSession();
+        final Session session2 = createAdminSession();
+        try {
+            FutureTask<Void> t1 = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    session1.getNode("/testNode").setProperty("p1", -1);
+                    check(session1);
+                    session1.save();
+                    return null;
+                }
+            });
+            new Thread(t1).start();
+            t1.get();
+
+            FutureTask<Void> t2 = new FutureTask<Void>(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    session2.getNode("/testNode").setProperty("p2", -1);
+                    check(session2);      // Throws on JR2, not on Oak
+                    session2.save();
+                    return null;
+                }
+            });
+            new Thread(t2).start();
+            t2.get();
+
+        } finally {
+            session1.logout();
+            session2.logout();
+        }
+
+        Session session3 = createAnonymousSession();
+        try {
+            check(session3);  // Throws on Oak
+            fail();
+        } catch (AssertionError e) {
+            // expected
+        } finally {
+            session3.logout();
+        }
     }
 
     private static void check(Session session) throws RepositoryException {
