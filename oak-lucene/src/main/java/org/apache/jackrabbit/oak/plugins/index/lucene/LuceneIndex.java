@@ -28,6 +28,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
@@ -56,6 +58,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -67,11 +71,11 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.Cursors.PathCursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -329,7 +333,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         // we only restrict non-full-text conditions if there is
         // no relative property in the full-text constraint
         boolean nonFullTextConstraints = parent.isEmpty();
-        String plan = getQuery(filter, null, nonFullTextConstraints, analyzer) + " ft:(" + ft + ")";
+        String plan = getQuery(filter, null, nonFullTextConstraints, analyzer, getIndexDef(root)) + " ft:(" + ft + ")";
         if (!parent.isEmpty()) {
             plan += " parent:" + parent;
         }
@@ -363,7 +367,7 @@ public class LuceneIndex implements FulltextQueryIndex {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     List<LuceneResultRow> rows = new ArrayList<LuceneResultRow>();
                     Query query = getQuery(filter, reader,
-                            nonFullTextConstraints, analyzer);
+                            nonFullTextConstraints, analyzer, getIndexDef(root));
 
                     // TODO OAK-828
                     HashSet<String> seenPaths = new HashSet<String>();
@@ -428,10 +432,11 @@ public class LuceneIndex implements FulltextQueryIndex {
      *            path, node type, and so on) should be added to the Lucene
      *            query
      * @param analyzer the Lucene analyzer used for building the fulltext query
+     * @param indexDefinition nodestate that contains the index definition
      * @return the Lucene query
      */
     private static Query getQuery(Filter filter, IndexReader reader,
-            boolean nonFullTextConstraints, Analyzer analyzer) {
+            boolean nonFullTextConstraints, Analyzer analyzer, NodeState indexDefinition) {
         List<Query> qs = new ArrayList<Query>();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
@@ -461,9 +466,9 @@ public class LuceneIndex implements FulltextQueryIndex {
                     throw new RuntimeException(e);
                 }
             }
-        }
-        else if (nonFullTextConstraints) {
-            addNonFullTextConstraints(qs, filter, reader, analyzer);
+        } else if (nonFullTextConstraints) {
+            addNonFullTextConstraints(qs, filter, reader, analyzer,
+                    indexDefinition);
         }
         if (qs.size() == 0) {
             return new MatchAllDocsQuery();
@@ -479,7 +484,7 @@ public class LuceneIndex implements FulltextQueryIndex {
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
-            Filter filter, IndexReader reader, Analyzer analyzer) {
+            Filter filter, IndexReader reader, Analyzer analyzer, NodeState indexDefinition) {
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(qs, filter);
         }
@@ -526,11 +531,12 @@ public class LuceneIndex implements FulltextQueryIndex {
                 continue;
             }
 
-            String name = pr.propertyName;
-            if (name.contains("/")) {
-                // lucene cannot handle child-level property restrictions
+            // check excluded properties and types
+            if (isExcludedProperty(pr, indexDefinition)) {
                 continue;
             }
+
+            String name = pr.propertyName;
             if ("rep:excerpt".equals(name)) {
                 continue;
             }
@@ -615,6 +621,44 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
         }
         return token;
+    }
+
+    private static boolean isExcludedProperty(PropertyRestriction pr,
+            NodeState definition) {
+        String name = pr.propertyName;
+        if (name.contains("/")) {
+            // lucene cannot handle child-level property restrictions
+            return true;
+        }
+
+        // check name
+        for (String e : definition.getStrings(EXCLUDE_PROPERTY_NAMES)) {
+            if (e.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+
+        // check type
+        Integer type = null;
+        if (pr.first != null) {
+            type = pr.first.getType().tag();
+        } else if (pr.last != null) {
+            type = pr.last.getType().tag();
+        } else if (pr.list != null && !pr.list.isEmpty()) {
+            type = pr.list.get(0).getType().tag();
+        }
+        if (type != null) {
+            boolean isIn = false;
+            for (String e : definition.getStrings(INCLUDE_PROPERTY_TYPES)) {
+                if (PropertyType.valueFromName(e) == type) {
+                    isIn = true;
+                }
+            }
+            if (!isIn) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void addReferenceConstraint(String uuid, List<Query> qs,
