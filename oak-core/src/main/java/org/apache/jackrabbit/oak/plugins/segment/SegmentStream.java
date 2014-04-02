@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
@@ -139,39 +139,46 @@ public class SegmentStream extends InputStream {
 
         if (inline != null) {
             System.arraycopy(inline, (int) position, b, off, len);
-            position += len;
-            return len;
         } else {
             int blockIndex = (int) (position / BLOCK_SIZE);
             int blockOffset = (int) (position % BLOCK_SIZE);
             int blockCount =
-                    Math.min(MAX_SEGMENT_SIZE, blockOffset + len + BLOCK_SIZE - 1) // round up
+                    (blockOffset + len + BLOCK_SIZE - 1) // round up
                     / BLOCK_SIZE;
 
+            int remaining = len;
             List<RecordId> ids = blocks.getEntries(blockIndex, blockCount);
             RecordId first = ids.get(0); // guaranteed to contain at least one
-            SegmentId segmentId = first.getSegmentId();
-            int offset = first.getOffset();
             int count = 1;
-            while (count < ids.size()) {
-                RecordId id = ids.get(count);
-                if (id.getSegmentId() == segmentId
-                        && id.getOffset() == offset + count * BLOCK_SIZE) {
+            for (int i = 1; i <= ids.size(); i++) {
+                RecordId id = null;
+                if (i < ids.size()) {
+                    id = ids.get(i);
+                }
+
+                if (id != null
+                        && id.getSegmentId() == first.getSegmentId()
+                        && id.getOffset() == first.getOffset() + count * BLOCK_SIZE) {
                     count++;
                 } else {
-                    break;
+                    int blockSize = Math.min(
+                            blockOffset + remaining, count * BLOCK_SIZE);
+                    BlockRecord block = new BlockRecord(first, blockSize);
+                    int n = blockSize - blockOffset;
+                    checkState(block.read(blockOffset, b, off, n) == n);
+                    off += n;
+                    remaining -= n;
+
+                    first = id;
+                    count = 1;
+                    blockOffset = 0;
                 }
             }
-
-            if (blockOffset + len > count * BLOCK_SIZE) {
-                len = count * BLOCK_SIZE - blockOffset;
-            }
-
-            BlockRecord block = new BlockRecord(first, blockOffset + len);
-            len = block.read(blockOffset, b, off, len);
-            position += len;
-            return len;
+            checkState(remaining == 0);
         }
+
+        position += len;
+        return len;
     }
 
     @Override
