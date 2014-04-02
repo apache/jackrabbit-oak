@@ -69,6 +69,8 @@
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testImplicitUnlock2
 
       <!-- Observation -->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testNodeAdded              <!-- OAK-1661 -->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testNodeRemoved            <!-- OAK-1661 -->
       org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove       <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
