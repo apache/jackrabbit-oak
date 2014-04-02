@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkElementIndex;
+import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -71,13 +72,27 @@ class ListRecord extends Record {
         if (index + count > size) {
             count = size - index;
         }
-        if (size == 0 || count == 0) {
+        if (count == 0) {
             return emptyList();
-        } else if (size == 1) {
-            return singletonList(getRecordId());
+        } else if (count == 1) {
+            return singletonList(getEntry(index));
         } else {
-            List<RecordId> list = newArrayListWithCapacity(count);
-            Segment segment = getSegment();
+            List<RecordId> ids = newArrayListWithCapacity(count);
+            getEntries(index, count, ids);
+            return ids;
+        }
+    }
+
+    private void getEntries(int index, int count, List<RecordId> ids) {
+        checkPositionIndexes(index, index + count, size);
+        Segment segment = getSegment();
+        if (size == 1) {
+            ids.add(getRecordId());
+        } else if (bucketSize == 1) {
+            for (int i = 0; i < count; i++) {
+                ids.add(segment.readRecordId(getOffset(0, index + i)));
+            }
+        } else {
             while (count > 0) {
                 int bucketIndex = index / bucketSize;
                 int bucketOffset = index % bucketSize;
@@ -85,11 +100,10 @@ class ListRecord extends Record {
                 ListRecord bucket = new ListRecord(
                         id, Math.min(bucketSize, size - bucketIndex * bucketSize));
                 int n = Math.min(bucket.size() - bucketOffset, count);
-                list.addAll(bucket.getEntries(bucketOffset, n));
+                bucket.getEntries(bucketOffset, n, ids);
                 index += n;
                 count -= n;
             }
-            return list;
         }
     }
 
