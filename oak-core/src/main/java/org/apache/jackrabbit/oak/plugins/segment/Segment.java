@@ -124,6 +124,10 @@ public class Segment {
         this.data = checkNotNull(data);
 
         if (id.isDataSegmentId()) {
+            checkState(data.get(0) == '0'
+                    && data.get(1) == 'a'
+                    && data.get(2) == 'K'
+                    && data.get(3) == '\n');
             this.refids = new SegmentId[getRefCount()];
             refids[0] = id;
         } else {

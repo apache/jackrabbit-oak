@@ -34,18 +34,7 @@ public class TarFileTest {
 
     @Before
     public void setUp() throws IOException {
-        file = File.createTempFile("TarFileTest", ".tar");
-    }
-
-    @After
-    public void tearDown() {
-        file.delete();
-    }
-
-    @Test
-    public void testOpenClose() throws IOException {
-        new TarFile(file, 10240, true).close();
-        new TarFile(file, 10240, false).close();
+        file = File.createTempFile("TarFileTest", ".tar", new File("target"));
     }
 
     @Test
@@ -55,21 +44,31 @@ public class TarFileTest {
         long lsb = id.getLeastSignificantBits();
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
-        TarFile tar = new TarFile(file, 10240, false);
+        TarWriter writer = new TarWriter(file);
         try {
-            tar.writeEntry(id, data, 0, data.length);
-            assertEquals(ByteBuffer.wrap(data), tar.readEntry(msb, lsb));
+            writer.writeEntry(
+                    id.getMostSignificantBits(),
+                    id.getLeastSignificantBits(),
+                    data, 0, data.length);
+            assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         } finally {
-            tar.close();
+            writer.close();
         }
 
-        assertEquals(10240, file.length());
+        assertEquals(3072, file.length());
 
-        tar = new TarFile(file, 10240, false);
+        TarReader reader = new TarReader(file, false);
         try {
-            assertEquals(ByteBuffer.wrap(data), tar.readEntry(msb, lsb));
+            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         } finally {
-            tar.close();
+            reader.close();
+        }
+
+        reader = new TarReader(file, false);
+        try {
+            assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
+        } finally {
+            reader.close();
         }
     }
 

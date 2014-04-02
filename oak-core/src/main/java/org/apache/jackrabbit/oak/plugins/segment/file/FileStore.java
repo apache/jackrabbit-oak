@@ -20,11 +20,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Lists.newCopyOnWriteArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static java.lang.String.format;
+import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -84,7 +84,13 @@ public class FileStore implements SegmentStore {
 
     private final boolean memoryMapping;
 
-    private final List<TarFile> files;
+    private volatile List<TarReader> readers;
+
+    private int writeNumber;
+
+    private File writeFile;
+
+    private TarWriter writer;
 
     private final RandomAccessFile journalFile;
 
@@ -147,14 +153,23 @@ public class FileStore implements SegmentStore {
         this.memoryMapping = memoryMapping;
 
         Map<Integer, File> map = collectFiles(directory);
-        List<TarFile> list = newArrayListWithCapacity(map.size());
+        this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
-        for (Integer index : indices) {
-            File file = map.get(index);
-            list.add(new TarFile(file, maxFileSize, memoryMapping));
+        for (int i = indices.length - 1; i >= 0; i--) {
+            readers.add(TarReader.open(
+                    singletonMap('a', map.get(indices[i])), memoryMapping));
         }
-        this.files = newCopyOnWriteArrayList(list);
+
+        if (indices.length > 0) {
+            this.writeNumber = indices[indices.length - 1] + 1;
+        } else {
+            this.writeNumber = 0;
+        }
+        this.writeFile = new File(
+                directory,
+                String.format(FILE_NAME_FORMAT, writeNumber, "a"));
+        this.writer = new TarWriter(writeFile);
 
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
@@ -284,16 +299,7 @@ public class FileStore implements SegmentStore {
                 tracker.getWriter().flush();
 
                 synchronized (this) {
-                    boolean success = true;
-                    for (TarFile file : files) {
-                        success = success && file.flush();
-                    }
-                    if (!success) {
-                        log.warn("Failed to sync one ore more tar files with"
-                                + " the underlying file system, possibly because of"
-                                + " http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6539707."
-                                + " Will retry later.");
-                    }
+                    writer.flush();
                     journalFile.writeBytes(after + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
@@ -302,10 +308,15 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    public Iterable<SegmentId> getSegmentIds() {
+    public synchronized Iterable<SegmentId> getSegmentIds() {
         List<SegmentId> ids = newArrayList();
-        for (TarFile file : files) {
-            for (UUID uuid : file.getUUIDs()) {
+        for (UUID uuid : writer.getUUIDs()) {
+            ids.add(tracker.getSegmentId(
+                    uuid.getMostSignificantBits(),
+                    uuid.getLeastSignificantBits()));
+        }
+        for (TarReader reader : readers) {
+            for (UUID uuid : reader.getUUIDs()) {
                 ids.add(tracker.getSegmentId(
                         uuid.getMostSignificantBits(),
                         uuid.getLeastSignificantBits()));
@@ -346,12 +357,14 @@ public class FileStore implements SegmentStore {
             synchronized (this) {
                 flush();
 
+                writer.close();
                 journalFile.close();
 
-                for (TarFile file : files) {
-                    file.close();
+                List<TarReader> list = readers;
+                readers = newArrayList();
+                for (TarReader reader : list) {
+                    reader.close();
                 }
-                files.clear();
 
                 System.gc(); // for any memory-mappings that are no longer used
             }
@@ -373,17 +386,14 @@ public class FileStore implements SegmentStore {
     }
 
     private boolean containsSegment(long msb, long lsb) {
-        for (TarFile file : files.toArray(new TarFile[0])) {
-            try {
-                ByteBuffer buffer = file.readEntry(msb, lsb);
-                if (buffer != null) {
-                    return true;
-                }
-            } catch (IOException e) {
-                log.warn("Failed to access file " + file, e);
+        for (TarReader reader : readers) {
+            if (reader.containsEntry(msb, lsb)) {
+                return true;
             }
         }
-        return false;
+        synchronized (this) {
+            return writer.containsEntry(msb, lsb);
+        }
     }
 
     @Override
@@ -391,14 +401,32 @@ public class FileStore implements SegmentStore {
         long msb = id.getMostSignificantBits();
         long lsb = id.getLeastSignificantBits();
 
-        for (TarFile file : files) {
+        for (TarReader reader : readers) {
             try {
-                ByteBuffer buffer = file.readEntry(msb, lsb);
+                ByteBuffer buffer = reader.readEntry(msb, lsb);
                 if (buffer != null) {
                     return new Segment(tracker, id, buffer);
                 }
             } catch (IOException e) {
-                log.warn("Failed to access file " + file, e);
+                log.warn("Failed to read from tar file " + reader, e);
+            }
+        }
+
+        synchronized (this) {
+            ByteBuffer buffer = writer.readEntry(msb, lsb);
+            if (buffer != null) {
+                return new Segment(tracker, id, buffer);
+            }
+        }
+
+        for (TarReader reader : readers) {
+            try {
+                ByteBuffer buffer = reader.readEntry(msb, lsb);
+                if (buffer != null) {
+                    return new Segment(tracker, id, buffer);
+                }
+            } catch (IOException e) {
+                log.warn("Failed to read from tar file " + reader, e);
             }
         }
 
@@ -409,16 +437,24 @@ public class FileStore implements SegmentStore {
     public synchronized void writeSegment(
             SegmentId id, byte[] data, int offset, int length) {
         try {
-            UUID uuid = new UUID(
+            long size = writer.writeEntry(
                     id.getMostSignificantBits(),
-                    id.getLeastSignificantBits());
-            if (files.isEmpty() || !files.get(files.size() - 1).writeEntry(
-                    uuid, data, offset, length)) {
-                String name = format(FILE_NAME_FORMAT, files.size(), "a");
-                File file = new File(directory, name);
-                TarFile last = new TarFile(file, maxFileSize, memoryMapping);
-                checkState(last.writeEntry(uuid, data, offset, length));
-                files.add(last);
+                    id.getLeastSignificantBits(),
+                    data, offset, length);
+            if (size >= maxFileSize) {
+                writer.close();
+
+                List<TarReader> list =
+                        newArrayListWithCapacity(1 + readers.size());
+                list.add(new TarReader(writeFile, memoryMapping));
+                list.addAll(readers);
+                readers = list;
+
+                writeNumber++;
+                writeFile = new File(
+                        directory,
+                        String.format(FILE_NAME_FORMAT, writeNumber, "a"));
+                writer = new TarWriter(writeFile);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);

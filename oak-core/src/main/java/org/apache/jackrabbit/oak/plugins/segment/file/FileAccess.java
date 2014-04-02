@@ -16,22 +16,130 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static com.google.common.base.Preconditions.checkState;
+import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
+
+import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.util.zip.CRC32;
 
-interface FileAccess {
+abstract class FileAccess {
 
-    int length() throws IOException;
+    static FileAccess open(File file, boolean memoryMapping)
+            throws IOException {
+        RandomAccessFile access = new RandomAccessFile(file, "r");
+        if (memoryMapping) {
+            return new Mapped(access);
+        } else {
+            return new Random(access);
+        }
+    }
 
-    long crc32(int position, int size) throws IOException;
+    abstract boolean isMemoryMapped();
 
-    ByteBuffer read(int position, int length) throws IOException;
+    abstract int length() throws IOException;
 
-    void write(int position, byte[] b, int offset, int length)
-            throws IOException;
+    abstract long crc32(int position, int size) throws IOException;
 
-    void flush() throws IOException;
+    abstract ByteBuffer read(int position, int length) throws IOException;
 
-    void close() throws IOException;
+    abstract void close() throws IOException;
+
+    //-----------------------------------------------------------< private >--
+
+    private static class Mapped extends FileAccess {
+
+        private final MappedByteBuffer buffer;
+
+        Mapped(RandomAccessFile file) throws IOException {
+            try {
+                buffer = file.getChannel().map(READ_ONLY, 0, file.length());
+            } finally {
+                file.close();
+            }
+        }
+
+        @Override
+        boolean isMemoryMapped() {
+            return true;
+        }
+
+        @Override
+        public int length() {
+            return buffer.remaining();
+        }
+
+        @Override
+        public long crc32(int position, int length) {
+            ByteBuffer entry = buffer.asReadOnlyBuffer();
+            entry.position(entry.position() + position);
+
+            byte[] data = new byte[length];
+            entry.get(data);
+
+            CRC32 checksum = new CRC32();
+            checksum.update(data);
+            return checksum.getValue();
+        }
+
+        @Override
+        public ByteBuffer read(int position, int length) {
+            ByteBuffer entry = buffer.asReadOnlyBuffer();
+            entry.position(entry.position() + position);
+            entry.limit(entry.position() + length);
+            return entry.slice();
+        }
+
+        @Override
+        public void close() {
+        }
+
+    }
+
+    private static class Random extends FileAccess {
+
+        private final RandomAccessFile file;
+
+        Random(RandomAccessFile file) {
+            this.file = file;
+        }
+
+        @Override
+        boolean isMemoryMapped() {
+            return false;
+        }
+
+        @Override
+        public int length() throws IOException {
+            long length = file.length();
+            checkState(length < Integer.MAX_VALUE);
+            return (int) length;
+        }
+
+        @Override
+        public long crc32(int position, int length) throws IOException {
+            CRC32 checksum = new CRC32();
+            checksum.update(read(position, length).array());
+            return checksum.getValue();
+        }
+
+        @Override
+        public synchronized ByteBuffer read(int position, int length)
+                throws IOException {
+            ByteBuffer entry = ByteBuffer.allocate(length);
+            file.seek(position);
+            file.readFully(entry.array());
+            return entry;
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            file.close();
+        }
+
+    }
 
 }

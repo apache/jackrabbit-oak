@@ -20,20 +20,20 @@ import java.util.Comparator;
 
 class TarEntry {
 
-    static final Comparator<TarEntry> REVERSE_OFFSET = new Comparator<TarEntry>() {
+    static final Comparator<TarEntry> OFFSET_ORDER = new Comparator<TarEntry>() {
         @Override
         public int compare(TarEntry a, TarEntry b) {
             if (a.offset > b.offset) {
-                return -1;
-            } else if (a.offset < b.offset) {
                 return 1;
+            } else if (a.offset < b.offset) {
+                return -1;
             } else {
                 return 0;
             }
         }
     };
 
-    static final Comparator<TarEntry> IDENTIFIER = new Comparator<TarEntry>() {
+    static final Comparator<TarEntry> IDENTIFIER_ORDER = new Comparator<TarEntry>() {
         @Override
         public int compare(TarEntry a, TarEntry b) {
             if (a.msb > b.msb) {
