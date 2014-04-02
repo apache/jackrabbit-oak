@@ -107,7 +107,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         // same thread session refreshing doesn't come into the way
         final Session session0 = createAdminSession();
         try {
-            FutureTask<Void> t0 = new FutureTask<Void>(new Callable<Void>() {
+            run(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     Node testNode = session0.getNode("/").addNode("testNode");
@@ -118,8 +118,6 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
                     return null;
                 }
             });
-            new Thread(t0).start();
-            t0.get();
         } finally {
             session0.logout();
         }
@@ -127,7 +125,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         final Session session1 = createAdminSession();
         final Session session2 = createAdminSession();
         try {
-            FutureTask<Void> t1 = new FutureTask<Void>(new Callable<Void>() {
+            run(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     session1.getNode("/testNode").setProperty("p1", -1);
@@ -136,10 +134,8 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
                     return null;
                 }
             });
-            new Thread(t1).start();
-            t1.get();
 
-            FutureTask<Void> t2 = new FutureTask<Void>(new Callable<Void>() {
+            run(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
                     session2.getNode("/testNode").setProperty("p2", -1);
@@ -148,9 +144,6 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
                     return null;
                 }
             });
-            new Thread(t2).start();
-            t2.get();
-
         } finally {
             session1.logout();
             session2.logout();
@@ -165,6 +158,12 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         } finally {
             session3.logout();
         }
+    }
+
+    private static void run(Callable<Void> callable) throws InterruptedException, ExecutionException {
+        FutureTask<Void> task = new FutureTask<Void>(callable);
+        new Thread(task).start();
+        task.get();
     }
 
     private static void check(Session session) throws RepositoryException {
