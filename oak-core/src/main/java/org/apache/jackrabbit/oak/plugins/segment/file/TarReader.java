@@ -325,7 +325,10 @@ class TarReader {
         size += getEntrySize(24 * count + 16);
         size += 2 * BLOCK_SIZE;
 
-        if (size >= access.length() * 3 / 4) {
+        if (count == 0) {
+            // none of the entries within this tar file are referenceable
+            return null;
+        } else if (size >= access.length() * 3 / 4) {
             // the space savings are not worth it at less than 25%
             return this;
         }
@@ -356,8 +359,9 @@ class TarReader {
         return new TarReader(newFile, access.isMemoryMapped());
     }
 
-    void close() throws IOException {
+    File close() throws IOException {
         access.close();
+        return file;
     }
 
     //-----------------------------------------------------------< private >--

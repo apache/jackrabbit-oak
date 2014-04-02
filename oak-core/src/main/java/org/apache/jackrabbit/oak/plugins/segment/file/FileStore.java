@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -111,6 +114,16 @@ public class FileStore implements SegmentStore {
      * once every five seconds.
      */
     private final Thread flushThread;
+
+    /**
+     * Flag to request revision cleanup during the next flush.
+     */
+    private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
+
+    /**
+     * List of old tar file generations that are waiting to be removed.
+     */
+    private final LinkedList<File> toBeRemoved = newLinkedList();
 
     /**
      * Synchronization aid used by the background flush thread to stop itself
@@ -310,6 +323,39 @@ public class FileStore implements SegmentStore {
                     journalFile.writeBytes(after + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
+
+                    if (cleanupNeeded.getAndSet(false)) {
+                        Set<UUID> ids = newHashSet();
+                        for (SegmentId id : tracker.getReferencedSegmentIds()) {
+                            ids.add(new UUID(
+                                    id.getMostSignificantBits(),
+                                    id.getLeastSignificantBits()));
+                        }
+
+                        List<TarReader> list =
+                                newArrayListWithCapacity(readers.size());
+                        for (TarReader reader : readers) {
+                            TarReader cleaned = reader.cleanup(ids);
+                            if (cleaned == reader) {
+                                list.add(reader);
+                            } else {
+                                if (cleaned != null) {
+                                    list.add(cleaned);
+                                }
+                                toBeRemoved.addLast(reader.close());
+                            }
+                        }
+                        readers = list;
+                    }
+                }
+
+                // remove all obsolete tar generations
+                Iterator<File> iterator = toBeRemoved.iterator();
+                while (iterator.hasNext()) {
+                    File file = iterator.next();
+                    if (!file.exists() || file.delete()) {
+                        iterator.remove();
+                    }
                 }
             }
         }
@@ -476,6 +522,9 @@ public class FileStore implements SegmentStore {
                 list.addAll(readers);
                 readers = list;
 
+                // trigger revision cleanup after next flush
+                cleanupNeeded.set(true);
+
                 writeNumber++;
                 writeFile = new File(
                         directory,
@@ -504,7 +553,6 @@ public class FileStore implements SegmentStore {
     @Override
     public void gc() {
         System.gc();
-        Set<SegmentId> ids = tracker.getReferencedSegmentIds();
-        // TODO reclaim unreferenced segments
+        cleanupNeeded.set(true);
     }
 }
