@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.junit.After;
 import org.junit.Before;
@@ -36,7 +37,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
     @Before
     @Override
     public void setUp() throws Exception {
-        blobStore = new RDBBlobStore();
+        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oakblobs", "sa", ""));
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;

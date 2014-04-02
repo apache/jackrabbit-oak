@@ -32,6 +32,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -87,7 +88,7 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
         DocumentNodeStore m = new DocumentMK.Builder()
                 .setClusterId(1)
                 .memoryCacheSize(64 * 1024 * 1024)
-                .setRDBConnection(url, username, password)
+                .setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password))
                 .getNodeStore();
         return new Jcr(m).createRepository();
     }

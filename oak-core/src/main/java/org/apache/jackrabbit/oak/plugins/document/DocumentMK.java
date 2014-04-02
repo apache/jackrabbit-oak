@@ -506,31 +506,6 @@ public class DocumentMK implements MicroKernel {
         }
 
         /**
-         * Sets a JDBC connection URL to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(String jdbcurl, String username, String password) {
-            this.documentStore = new RDBDocumentStore(jdbcurl, username, password, this);
-            this.blobStore = new RDBBlobStore(jdbcurl, username, password);
-            return this;
-        }
-
-        /**
-         * Sets a JDBC connection URLs to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(String dsjdbcurl, String dsusername, String dspassword, String bsjdbcurl,
-                String bsusername, String bspassword) {
-            this.documentStore = new RDBDocumentStore(dsjdbcurl, dsusername, dspassword, this);
-            this.blobStore = new RDBBlobStore(bsjdbcurl, bsusername, bspassword);
-            return this;
-        }
-
-        /**
          * Sets a {@link DataSource} to use for the RDB document and blob
          * stores.
          *

@@ -23,16 +23,21 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 
 public class RDBDataSourceFactory {
 
-    public static DataSource forJdbcUrl(String url, String username, String passwd) throws SQLException {
-        BasicDataSource bds = new BasicDataSource();
-        Driver d = DriverManager.getDriver(url);
-        bds.setDriverClassName(d.getClass().getName());
-        bds.setUsername(username);
-        bds.setPassword(passwd);
-        bds.setUrl(url);
-        return bds;
+    public static DataSource forJdbcUrl(String url, String username, String passwd) {
+        try {
+            BasicDataSource bds = new BasicDataSource();
+            Driver d = DriverManager.getDriver(url);
+            bds.setDriverClassName(d.getClass().getName());
+            bds.setUsername(username);
+            bds.setPassword(passwd);
+            bds.setUrl(url);
+            return bds;
+        } catch (SQLException ex) {
+            throw new MicroKernelException("trying to obtain driver for " + url, ex);
+        }
     }
 }
