@@ -508,8 +508,14 @@ public class Oak {
             scheduleWithFixedDelay(whiteboard, task, 5, true);
             registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name);
+
+            name = "async-reindex";
+            task = new AsyncIndexUpdate(name, store, indexEditors, true);
+            scheduleWithFixedDelay(whiteboard, task, 5, true);
+            registerMBean(whiteboard, IndexStatsMBean.class,
+            task.getIndexStats(), IndexStatsMBean.TYPE, name);
         }
-        
+
         registerMBean(whiteboard, QueryEngineSettingsMBean.class,
                 queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings");
 
