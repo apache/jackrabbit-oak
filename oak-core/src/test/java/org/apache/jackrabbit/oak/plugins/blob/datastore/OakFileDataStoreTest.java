@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.core.data.FileDataStore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class OakFileDataStoreTest {
 
@@ -59,5 +61,13 @@ public class OakFileDataStoreTest {
         Set<String> expectedNames = Sets.newHashSet("a","b","c");
         assertEquals(expectedNames, fileNames);
         FileUtils.cleanDirectory(testDir);
+    }
+
+    @Test
+    public void testNoOpMap() throws Exception{
+        Map<String, String> noop = new OakFileDataStore.NoOpMap<String, String>();
+        noop.put("a","b");
+        noop.remove("foo");
+        assertTrue(noop.isEmpty());
     }
 }
