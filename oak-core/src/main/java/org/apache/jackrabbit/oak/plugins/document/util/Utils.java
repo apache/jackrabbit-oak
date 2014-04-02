@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,6 +39,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -43,6 +48,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Utility methods.
  */
 public class Utils {
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
     /**
      * Approximate length of a Revision string.
@@ -97,14 +103,6 @@ public class Utils {
             }
         }
         return depth;
-    }
-
-    public static <K, V> Map<K, V> newMap() {
-        return new TreeMap<K, V>();
-    }
-
-    public static <E> Set<E> newSet() {
-        return new HashSet<E>();
     }
 
     @SuppressWarnings("unchecked")
@@ -380,5 +378,28 @@ public class Utils {
                                                  @Nonnull String tag) {
         return checkNotNull(tag).startsWith("c-") ?
                 Revision.fromString(tag.substring(2)) : rev;
+    }
+
+    /**
+     * Closes the obj its of type {@link java.io.Closeable}. It is mostly
+     * used to close Iterator/Iterables which are backed by say DBCursor
+     *
+     * @param obj object to close
+     */
+    public static void closeIfCloseable(Object obj){
+        if(obj instanceof Closeable){
+            try{
+                ((Closeable) obj).close();
+            } catch (IOException e) {
+                LOG.warn("Error occurred while closing {}", obj, e);
+            }
+        }
+    }
+
+    /**
+     * Provides a readable string for given timestamp
+     */
+    public static String timestampToString(long timestamp){
+        return (new Timestamp(timestamp) + "00").substring(0, 23);
     }
 }

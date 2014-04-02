@@ -19,8 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -33,6 +31,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,14 +69,14 @@ public class VersionGarbageCollector {
         final Revision headRevision = nodeStore.getHeadRevision();
 
         log.info("Starting revision garbage collection. Revisions older than [{}] would be " +
-                "removed",Revision.timestampToString(oldestRevTimeStamp));
+                "removed", Utils.timestampToString(oldestRevTimeStamp));
 
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = nodeStore.getCheckpoints().getOldestRevisionToKeep();
         if (checkpoint != null && checkpoint.getTimestamp() < oldestRevTimeStamp) {
             log.info("Ignoring version gc as valid checkpoint [{}] found while " +
                             "need to collect versions older than [{}]", checkpoint.toReadableString(),
-                    Revision.timestampToString(oldestRevTimeStamp)
+                    Utils.timestampToString(oldestRevTimeStamp)
             );
             stats.ignoredGCDueToCheckPoint = true;
             return stats;
@@ -114,7 +113,7 @@ public class VersionGarbageCollector {
                 }
             }
         } finally {
-            close(itr);
+            Utils.closeIfCloseable(itr);
         }
 
         if(log.isDebugEnabled()) {
@@ -139,16 +138,6 @@ public class VersionGarbageCollector {
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     '}';
-        }
-    }
-
-    private void close(Object obj){
-        if(obj instanceof Closeable){
-           try{
-               ((Closeable) obj).close();
-           } catch (IOException e) {
-                log.warn("Error occurred while closing", e);
-           }
         }
     }
 }
