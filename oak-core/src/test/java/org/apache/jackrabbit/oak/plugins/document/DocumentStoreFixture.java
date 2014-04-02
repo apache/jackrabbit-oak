@@ -134,5 +134,14 @@ public abstract class DocumentStoreFixture {
                 return false;
             }
         }
+        
+        @Override
+        public void dispose() {
+            try{
+                MongoConnection connection = new MongoConnection(uri);
+                connection.getDB().dropDatabase();
+            } catch(Exception ignore) {
+            }
+        }
     }
 }

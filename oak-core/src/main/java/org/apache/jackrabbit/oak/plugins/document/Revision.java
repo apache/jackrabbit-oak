@@ -24,6 +24,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.jackrabbit.oak.stats.Clock;
 /**
  * A revision.
  */
@@ -58,6 +59,20 @@ public class Revision {
      */
     private final boolean branch;
 
+    /** Only set for testing */
+    private static Clock clock;
+
+    /**
+     * <b>
+     * Only to be used for testing.
+     * Do Not Use Otherwise
+     * </b>
+     * 
+     * @param c - the clock
+     */
+    static void setClock(Clock c) {
+        clock = c;
+    }
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
     }
@@ -150,6 +165,9 @@ public class Revision {
      */
     public static long getCurrentTimestamp() {
         long timestamp = System.currentTimeMillis();
+        if (clock != null) {
+            timestamp = clock.getTime();
+        }
         if (timestamp < lastTimestamp) {
             // protect against decreases in the system time,
             // time machines, and other fluctuations in the time continuum

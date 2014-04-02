@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+
 import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
@@ -26,10 +28,9 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 
 /**
  * Information about a cluster node.
@@ -57,7 +58,28 @@ public class ClusterNodeInfo {
     /**
      * The end of the lease.
      */
-    private static final String LEASE_END_KEY = "leaseEnd";
+    protected static final String LEASE_END_KEY = "leaseEnd";
+
+    /**
+     * The state of the cluster.
+     * On proper shutdown the state should be cleared.
+     */
+    protected static final String STATE = "state";
+
+    /**
+     * Flag to indicate whether the _lastRev recovery is in progress.
+     */
+    protected static final String REV_RECOVERY_LOCK = "revLock";
+
+    /**
+     * Active State.
+     */
+    private static final String ACTIVE_STATE = "active";
+
+    /**
+     * _lastRev recovery in progress
+     */
+    protected static final String REV_RECOVERY_ON = "true";
 
     /**
      * Additional info, such as the process id, for support.
@@ -83,6 +105,11 @@ public class ClusterNodeInfo {
      * The current working directory.
      */
     private static final String WORKING_DIR = System.getProperty("user.dir", "");
+
+    /**
+     * <b>Only Used For Testing</b>
+     */
+    private static Clock clock;
 
     /**
      * The number of milliseconds for a lease (1 minute by default, and
@@ -130,13 +157,35 @@ public class ClusterNodeInfo {
      */
     private String readWriteMode;
 
+    /**
+     * The state of the cluter node.
+     */
+    private String state;
+
+    /**
+     * The revLock value of the cluster;
+     */
+    private String revRecoveryLock;
+
     ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId) {
         this.id = id;
-        this.startTime = System.currentTimeMillis();
+        this.startTime = (clock == null ? System.currentTimeMillis() : clock.getTime());
         this.leaseEndTime = startTime;
         this.store = store;
         this.machineId = machineId;
         this.instanceId = instanceId;
+    }
+
+    ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, String state,
+            String revRecoveryLock) {
+        this.id = id;
+        this.startTime = (clock == null ? System.currentTimeMillis() : clock.getTime());
+        this.leaseEndTime = startTime;
+        this.store = store;
+        this.machineId = machineId;
+        this.instanceId = instanceId;
+        this.state = state;
+        this.revRecoveryLock = revRecoveryLock;
     }
 
     public int getId() {
@@ -144,8 +193,15 @@ public class ClusterNodeInfo {
     }
 
     /**
+     * <b>Only Used For Testing</b>
+     */
+    static void setClock(Clock c) {
+        clock = c;
+    }
+
+    /**
      * Create a cluster node info instance for the store, with the
-     *
+     * 
      * @param store the document store (for the lease)
      * @return the cluster node info
      */
@@ -155,13 +211,14 @@ public class ClusterNodeInfo {
 
     /**
      * Create a cluster node info instance for the store.
-     *
+     * 
      * @param store the document store (for the lease)
      * @param machineId the machine id (null for MAC address)
      * @param instanceId the instance id (null for current working directory)
      * @return the cluster node info
      */
-    public static ClusterNodeInfo getInstance(DocumentStore store, String machineId, String instanceId) {
+    public static ClusterNodeInfo getInstance(DocumentStore store, String machineId,
+            String instanceId) {
         if (machineId == null) {
             machineId = MACHINE_ID;
         }
@@ -174,9 +231,14 @@ public class ClusterNodeInfo {
             update.set(ID, String.valueOf(clusterNode.id));
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
-            update.set(LEASE_END_KEY, System.currentTimeMillis() + clusterNode.leaseTime);
+            update.set(LEASE_END_KEY,
+                    (clock == null ? System.currentTimeMillis() : clock.getTime())
+                            + clusterNode.leaseTime);
             update.set(INFO_KEY, clusterNode.toString());
-            boolean success = store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
+            update.set(STATE, clusterNode.state);
+            update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock);
+            boolean success =
+                    store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
             if (success) {
                 return clusterNode;
             }
@@ -184,13 +246,15 @@ public class ClusterNodeInfo {
         throw new MicroKernelException("Could not get cluster node info");
     }
 
-    private static ClusterNodeInfo createInstance(DocumentStore store, String machineId, String instanceId) {
-        long now = System.currentTimeMillis();
+    private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,
+            String instanceId) {
+        long now = (clock == null ? System.currentTimeMillis() : clock.getTime());
         // keys between "0" and "a" includes all possible numbers
         List<ClusterNodeInfoDocument> list = store.query(Collection.CLUSTER_NODES,
                 "0", "a", Integer.MAX_VALUE);
         int clusterNodeId = 0;
         int maxId = 0;
+        String state = null;
         for (Document doc : list) {
             String key = doc.getId();
             int id;
@@ -222,28 +286,30 @@ public class ClusterNodeInfo {
             if (clusterNodeId == 0 || id < clusterNodeId) {
                 // if there are multiple, use the smallest value
                 clusterNodeId = id;
+                state = (String) doc.get(STATE);
             }
         }
         if (clusterNodeId == 0) {
             clusterNodeId = maxId + 1;
         }
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId);
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, null);
     }
 
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     *
+     * 
      * @param nextCheckMillis the millisecond offset
      */
     public void renewLease(long nextCheckMillis) {
-        long now = System.currentTimeMillis();
+        long now = (clock == null ? System.currentTimeMillis() : clock.getTime());
         if (now + nextCheckMillis + nextCheckMillis < leaseEndTime) {
             return;
         }
         UpdateOp update = new UpdateOp("" + id, true);
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
+        update.set(STATE, ACTIVE_STATE);
         ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
         String mode = (String) doc.get(READ_WRITE_MODE_KEY);
         if (mode != null && !mode.equals(readWriteMode)) {
@@ -263,6 +329,8 @@ public class ClusterNodeInfo {
     public void dispose() {
         UpdateOp update = new UpdateOp("" + id, true);
         update.set(LEASE_END_KEY, null);
+        update.set(STATE, null);
+        update.set(REV_RECOVERY_LOCK, null);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
     }
 
@@ -273,8 +341,10 @@ public class ClusterNodeInfo {
                 "machineId: " + machineId + ",\n" +
                 "instanceId: " + instanceId + ",\n" +
                 "pid: " + PROCESS_ID + ",\n" +
-                "uuid: " + uuid +",\n" +
-                "readWriteMode: " + readWriteMode;
+                "uuid: " + uuid + ",\n" +
+                "readWriteMode: " + readWriteMode + ",\n" +
+                "state: " + state + ",\n" +
+                "revLock: " + revRecoveryLock;
     }
 
     private static long getProcessId() {
@@ -290,7 +360,7 @@ public class ClusterNodeInfo {
     /**
      * Calculate the unique machine id. This is the lowest MAC address if
      * available. As an alternative, a randomly generated UUID is used.
-     *
+     * 
      * @return the unique id
      */
     private static String getMachineId() {
