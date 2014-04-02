@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import static com.google.common.collect.Iterables.transform;
+import static com.mongodb.QueryBuilder.start;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
 
 import com.google.common.base.Function;
@@ -56,8 +57,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     @Override
     public ClusterNodeInfoDocument getClusterNodeInfo(final int clusterId) {
         DBObject query =
-                QueryBuilder
-                        .start(NodeDocument.ID).is(String.valueOf(clusterId)).get();
+                start(NodeDocument.ID).is(String.valueOf(clusterId)).get();
         DBCursor cursor =
                 getClusterNodeCollection().find(query)
                         .setReadPreference(ReadPreference.secondaryPreferred());
@@ -76,8 +76,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     public CloseableIterable<NodeDocument> getCandidates(final long startTime,
             final long endTime) {
         DBObject query =
-                QueryBuilder
-                        .start(NodeDocument.MODIFIED_IN_SECS).lessThanEquals(
+                start(NodeDocument.MODIFIED_IN_SECS).lessThanEquals(
                                 Commit.getModifiedInSecs(endTime))
                         .put(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
                                 Commit.getModifiedInSecs(startTime))
@@ -99,9 +98,11 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
 
     @Override
     public boolean acquireRecoveryLock(int clusterId) {
-        QueryBuilder query = QueryBuilder.start(Document.ID)
-                .is(Integer.toString(clusterId))
-                .put(ClusterNodeInfo.REV_RECOVERY_LOCK).is(RecoverLockState.ACQUIRED.name());
+        QueryBuilder query =
+                start().and(
+                        start(Document.ID).is(Integer.toString(clusterId)).get(),
+                        start(ClusterNodeInfo.REV_RECOVERY_LOCK).notEquals(RecoverLockState.ACQUIRED.name()).get()
+                );
 
         DBObject returnFields = new BasicDBObject();
         returnFields.put("_id", 1);
