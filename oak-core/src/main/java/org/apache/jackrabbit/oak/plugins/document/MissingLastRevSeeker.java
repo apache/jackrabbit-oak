@@ -94,7 +94,7 @@ public class MissingLastRevSeeker {
         //This approach has a race condition where two different cluster nodes
         //can acquire the lock simultaneously.
         UpdateOp update = new UpdateOp(Integer.toString(clusterId), true);
-        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED);
+        update.set(ClusterNodeInfo.REV_RECOVERY_LOCK, RecoverLockState.ACQUIRED.name());
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
         return true;
     }
