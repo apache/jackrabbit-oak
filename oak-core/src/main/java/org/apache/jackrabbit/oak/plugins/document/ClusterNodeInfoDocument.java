@@ -16,11 +16,44 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+
 /**
  * A document storing cluster node info. See also {@link ClusterNodeInfo}.
  */
 public class ClusterNodeInfoDocument extends Document {
 
-    // marker interface
+    /**
+     * All ClusterNodeInfoDocument ID value would be greater than this value
+     * It can be used as startKey in DocumentStore#query methods
+     */
+    public static final String MIN_ID_VALUE = "0";
 
+    /**
+     * All ClusterNodeInfoDocument ID value would be less than this value
+     * It can be used as endKey in DocumentStore#query methods
+     */
+    public static final String MAX_ID_VALUE = "a";
+
+    public long getLeaseEndTime(){
+        return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
+    }
+
+    public boolean isActive(){
+        return getState() == ClusterNodeState.ACTIVE;
+    }
+
+    public boolean isBeingRecovered(){
+        return getRecoveryState() == RecoverLockState.ACQUIRED;
+    }
+
+    private ClusterNodeState getState(){
+        return ClusterNodeState.fromString((String) get(ClusterNodeInfo.STATE));
+    }
+
+    private RecoverLockState getRecoveryState(){
+        return RecoverLockState.fromString((String) get(ClusterNodeInfo.REV_RECOVERY_LOCK));
+    }
 }

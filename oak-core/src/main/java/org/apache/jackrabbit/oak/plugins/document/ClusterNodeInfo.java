@@ -61,25 +61,48 @@ public class ClusterNodeInfo {
     protected static final String LEASE_END_KEY = "leaseEnd";
 
     /**
-     * The state of the cluster.
-     * On proper shutdown the state should be cleared.
+     * The state of the cluster. On proper shutdown the state should be cleared.
+     *
+     * @see org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState
      */
-    protected static final String STATE = "state";
+    public static final String STATE = "state";
+
+    public static enum ClusterNodeState {
+        NONE,
+        /**
+         * Indicates that cluster node is currently active
+         */
+        ACTIVE;
+
+        static ClusterNodeState fromString(String state){
+            if(state == null){
+                return NONE;
+            }
+            return valueOf(state);
+        }
+    }
 
     /**
      * Flag to indicate whether the _lastRev recovery is in progress.
+     *
+     * @see RecoverLockState
      */
-    protected static final String REV_RECOVERY_LOCK = "revLock";
+    public static final String REV_RECOVERY_LOCK = "recoveryLock";
 
-    /**
-     * Active State.
-     */
-    private static final String ACTIVE_STATE = "active";
+    public static enum RecoverLockState {
+        NONE,
+        /**
+         * _lastRev recovery in progress
+         */
+        ACQUIRED;
 
-    /**
-     * _lastRev recovery in progress
-     */
-    protected static final String REV_RECOVERY_ON = "true";
+        static RecoverLockState fromString(String state){
+            if(state == null){
+                return NONE;
+            }
+            return valueOf(state);
+        }
+    }
 
     /**
      * Additional info, such as the process id, for support.
@@ -87,7 +110,8 @@ public class ClusterNodeInfo {
     private static final String INFO_KEY = "info";
 
     /**
-     * The read/write mode key.
+     * The read/write mode key. Specifies the read/write preference to be used with
+     * DocumentStore
      */
     private static final String READ_WRITE_MODE_KEY = "readWriteMode";
 
@@ -109,7 +133,7 @@ public class ClusterNodeInfo {
     /**
      * <b>Only Used For Testing</b>
      */
-    private static Clock clock;
+    private static Clock clock = Clock.SIMPLE;
 
     /**
      * The number of milliseconds for a lease (1 minute by default, and
@@ -160,26 +184,17 @@ public class ClusterNodeInfo {
     /**
      * The state of the cluter node.
      */
-    private String state;
+    private ClusterNodeState state;
 
     /**
      * The revLock value of the cluster;
      */
-    private String revRecoveryLock;
+    private RecoverLockState revRecoveryLock;
 
-    ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId) {
+    ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, ClusterNodeState state,
+                    RecoverLockState revRecoveryLock) {
         this.id = id;
-        this.startTime = (clock == null ? System.currentTimeMillis() : clock.getTime());
-        this.leaseEndTime = startTime;
-        this.store = store;
-        this.machineId = machineId;
-        this.instanceId = instanceId;
-    }
-
-    ClusterNodeInfo(int id, DocumentStore store, String machineId, String instanceId, String state,
-            String revRecoveryLock) {
-        this.id = id;
-        this.startTime = (clock == null ? System.currentTimeMillis() : clock.getTime());
+        this.startTime = getCurrentTime();
         this.leaseEndTime = startTime;
         this.store = store;
         this.machineId = machineId;
@@ -190,13 +205,6 @@ public class ClusterNodeInfo {
 
     public int getId() {
         return id;
-    }
-
-    /**
-     * <b>Only Used For Testing</b>
-     */
-    static void setClock(Clock c) {
-        clock = c;
     }
 
     /**
@@ -231,12 +239,10 @@ public class ClusterNodeInfo {
             update.set(ID, String.valueOf(clusterNode.id));
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
-            update.set(LEASE_END_KEY,
-                    (clock == null ? System.currentTimeMillis() : clock.getTime())
-                            + clusterNode.leaseTime);
+            update.set(LEASE_END_KEY, getCurrentTime() + clusterNode.leaseTime);
             update.set(INFO_KEY, clusterNode.toString());
-            update.set(STATE, clusterNode.state);
-            update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock);
+            update.set(STATE, clusterNode.state.name());
+            update.set(REV_RECOVERY_LOCK, clusterNode.revRecoveryLock.name());
             boolean success =
                     store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
             if (success) {
@@ -248,13 +254,14 @@ public class ClusterNodeInfo {
 
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,
             String instanceId) {
-        long now = (clock == null ? System.currentTimeMillis() : clock.getTime());
+        long now = getCurrentTime();
         // keys between "0" and "a" includes all possible numbers
         List<ClusterNodeInfoDocument> list = store.query(Collection.CLUSTER_NODES,
-                "0", "a", Integer.MAX_VALUE);
+                ClusterNodeInfoDocument.MIN_ID_VALUE, ClusterNodeInfoDocument.MAX_ID_VALUE,
+                Integer.MAX_VALUE);
         int clusterNodeId = 0;
         int maxId = 0;
-        String state = null;
+        ClusterNodeState state = ClusterNodeState.NONE;
         for (Document doc : list) {
             String key = doc.getId();
             int id;
@@ -286,13 +293,13 @@ public class ClusterNodeInfo {
             if (clusterNodeId == 0 || id < clusterNodeId) {
                 // if there are multiple, use the smallest value
                 clusterNodeId = id;
-                state = (String) doc.get(STATE);
+                state = ClusterNodeState.fromString((String) doc.get(STATE));
             }
         }
         if (clusterNodeId == 0) {
             clusterNodeId = maxId + 1;
         }
-        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, null);
+        return new ClusterNodeInfo(clusterNodeId, store, machineId, instanceId, state, RecoverLockState.NONE);
     }
 
     /**
@@ -302,14 +309,14 @@ public class ClusterNodeInfo {
      * @param nextCheckMillis the millisecond offset
      */
     public void renewLease(long nextCheckMillis) {
-        long now = (clock == null ? System.currentTimeMillis() : clock.getTime());
+        long now = getCurrentTime();
         if (now + nextCheckMillis + nextCheckMillis < leaseEndTime) {
             return;
         }
         UpdateOp update = new UpdateOp("" + id, true);
         leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
-        update.set(STATE, ACTIVE_STATE);
+        update.set(STATE, ClusterNodeState.ACTIVE.name());
         ClusterNodeInfoDocument doc = store.createOrUpdate(Collection.CLUSTER_NODES, update);
         String mode = (String) doc.get(READ_WRITE_MODE_KEY);
         if (mode != null && !mode.equals(readWriteMode)) {
@@ -345,6 +352,19 @@ public class ClusterNodeInfo {
                 "readWriteMode: " + readWriteMode + ",\n" +
                 "state: " + state + ",\n" +
                 "revLock: " + revRecoveryLock;
+    }
+
+    /**
+     * Specify a custom clock to be used for determining current time.
+     * If passed clock is null then clock would be set to the default clock
+     *
+     * <b>Only Used For Testing</b>
+     */
+    static void setClock(Clock c) {
+        if(c == null){
+            c = Clock.SIMPLE;
+        }
+        clock = c;
     }
 
     private static long getProcessId() {
@@ -386,6 +406,10 @@ public class ClusterNodeInfo {
             LOG.error("Error calculating the machine id", e);
         }
         return RANDOM_PREFIX + UUID.randomUUID().toString();
+    }
+
+    private static long getCurrentTime() {
+        return clock.getTime();
     }
 
 }
