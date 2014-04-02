@@ -1210,7 +1210,7 @@ public final class DocumentNodeStore
     @Override
     public NodeState merge(@Nonnull NodeBuilder builder,
                            @Nonnull CommitHook commitHook,
-                           @Nullable CommitInfo info)
+                           @Nonnull CommitInfo info)
             throws CommitFailedException {
         return asDocumentRootBuilder(builder).merge(commitHook, info);
     }
