@@ -34,7 +34,7 @@ public abstract class DocumentStoreFixture {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentStoreFixture.class);
 
     public static final DocumentStoreFixture MEMORY = new MemoryFixture();
-    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-Postgres", "jdbc:h2:file:./target/ds-test", "sa", "");
+    public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
     public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
@@ -134,7 +134,7 @@ public abstract class DocumentStoreFixture {
                 return false;
             }
         }
-        
+
         @Override
         public void dispose() {
             try{

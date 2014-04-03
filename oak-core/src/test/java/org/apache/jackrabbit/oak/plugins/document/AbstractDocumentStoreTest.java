@@ -18,7 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.junit.After;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -27,10 +30,22 @@ public abstract class AbstractDocumentStoreTest {
 
     protected String dsname;
     protected DocumentStore ds;
+    protected Set<String> removeMe = new HashSet<String>();
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.ds = dsf.createDocumentStore();
         this.dsname = dsf.getName();
+    }
+
+    @After
+    public void cleanUp() {
+        for (String id : removeMe) {
+            try {
+                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
+            } catch (Exception ex) {
+                // best effort
+            }
+        }
     }
 
     @Parameterized.Parameters
