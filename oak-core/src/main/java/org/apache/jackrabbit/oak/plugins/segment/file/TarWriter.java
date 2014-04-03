@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -298,6 +300,33 @@ class TarWriter {
         header[154] = 0;
 
         return header;
+    }
+
+    synchronized void cleanup(Set<UUID> referencedIds) throws IOException {
+        TarEntry[] sorted = index.values().toArray(new TarEntry[index.size()]);
+        Arrays.sort(sorted, TarEntry.OFFSET_ORDER);
+
+        for (int i = sorted.length - 1; i >= 0; i--) {
+            TarEntry entry = sorted[i];
+            UUID id = new UUID(entry.msb(), entry.lsb());
+            if (referencedIds.remove(id) && isDataSegmentId(entry.lsb())) {
+                // this is a referenced data segment, so follow the graph
+                ByteBuffer segment = ByteBuffer.allocate(
+                        Math.min(entry.size(), 16 * 256));
+                access.seek(entry.offset());
+                access.readFully(segment.array());
+                int pos = segment.position();
+                int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+                int refend = pos + 16 * (refcount + 1);
+                for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                    referencedIds.add(new UUID(
+                            segment.getLong(refpos),
+                            segment.getLong(refpos + 8)));
+                }
+            }
+        }
+
+        access.seek(access.length());
     }
 
     //------------------------------------------------------------< Object >--

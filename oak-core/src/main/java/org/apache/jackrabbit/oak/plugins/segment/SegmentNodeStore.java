@@ -38,6 +38,8 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -197,6 +199,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     public synchronized String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         String name = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
 
         // try 5 times
         for (int i = 0; i < 5; i++) {
@@ -205,11 +208,21 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     refreshHead();
 
                     SegmentNodeState state = head.get();
-
                     SegmentNodeBuilder builder = state.builder();
-                    NodeBuilder cp = builder.child(name);
-                    cp.setProperty("timestamp", System.currentTimeMillis()
-                            + lifetime);
+
+                    NodeBuilder checkpoints = builder.child("checkpoints");
+                    for (String n : checkpoints.getChildNodeNames()) {
+                        NodeBuilder cp = checkpoints.getChildNode(n);
+                        PropertyState ts = cp.getProperty("timestamp");
+                        if (ts == null
+                                || ts.getType() != Type.LONG
+                                || now > ts.getValue(Type.LONG)) {
+                            cp.remove();
+                        }
+                    }
+
+                    NodeBuilder cp = checkpoints.child(name);
+                    cp.setProperty("timestamp",  now + lifetime);
                     cp.setChildNode(ROOT, state.getChildNode(ROOT));
 
                     if (store.setHead(state, builder.getNodeState())) {
@@ -228,7 +241,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @CheckForNull
     public NodeState retrieve(@Nonnull String checkpoint) {
-        NodeState cp = head.get().getChildNode(checkpoint).getChildNode(ROOT);
+        NodeState cp = head.get()
+                .getChildNode("checkpoints")
+                .getChildNode(checkpoint)
+                .getChildNode(ROOT);
         if (cp.exists()) {
             return cp;
         }

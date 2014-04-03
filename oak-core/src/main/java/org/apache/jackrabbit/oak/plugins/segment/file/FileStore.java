@@ -331,6 +331,7 @@ public class FileStore implements SegmentStore {
                                     id.getMostSignificantBits(),
                                     id.getLeastSignificantBits()));
                         }
+                        writer.cleanup(ids);
 
                         List<TarReader> list =
                                 newArrayListWithCapacity(readers.size());
