@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TarFileTest {
@@ -38,20 +36,16 @@ public class TarFileTest {
         file = File.createTempFile("TarFileTest", ".tar", new File("target"));
     }
 
-    @Ignore
     @Test
     public void testWriteAndRead() throws IOException {
         UUID id = UUID.randomUUID();
         long msb = id.getMostSignificantBits();
-        long lsb = id.getLeastSignificantBits();
+        long lsb = id.getLeastSignificantBits() & (-1 >>> 4); // OAK-1672
         byte[] data = "Hello, World!".getBytes(UTF_8);
 
         TarWriter writer = new TarWriter(file);
         try {
-            writer.writeEntry(
-                    id.getMostSignificantBits(),
-                    id.getLeastSignificantBits(),
-                    data, 0, data.length);
+            writer.writeEntry(msb, lsb, data, 0, data.length);
             assertEquals(ByteBuffer.wrap(data), writer.readEntry(msb, lsb));
         } finally {
             writer.close();
