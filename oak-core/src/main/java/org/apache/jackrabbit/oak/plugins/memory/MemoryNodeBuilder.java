@@ -703,7 +703,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 // to unconnected and connect again if necessary.
                 // No need to pass base() instead of base as the subsequent
                 // call to update will take care of updating to the latest state.
-                builder.head = new UnconnectedHead(builder, state);
+                builder.head = new UnconnectedHead(builder, builder.base);
                 return builder.head.update();
             } else {
                 return this;
