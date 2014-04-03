@@ -39,6 +39,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -1628,16 +1629,18 @@ public final class DocumentNodeStore
      * supports garbage collection
      *
      * @return garbage collector of the BlobStore supports GC otherwise null
+     * @param blobGcMaxAgeInSecs
      */
     @CheckForNull
-    public MarkSweepGarbageCollector createBlobGarbageCollector() {
+    public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs) {
         MarkSweepGarbageCollector blobGC = null;
         if(blobStore instanceof GarbageCollectableBlobStore){
             try {
                 blobGC = new MarkSweepGarbageCollector(
                         new DocumentBlobReferenceRetriever(this),
                             (GarbageCollectableBlobStore) blobStore,
-                        executor);
+                        executor,
+                        TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs));
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
                         "the MarkSweepGarbageCollector",e);

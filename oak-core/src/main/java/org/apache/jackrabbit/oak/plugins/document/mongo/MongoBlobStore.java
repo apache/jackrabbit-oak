@@ -231,6 +231,7 @@ public class MongoBlobStore extends CachingBlobStore {
                 collection.find(builder.get(), fields).hint(fields)
                         .addOption(Bytes.QUERYOPTION_SLAVEOK);
 
+        //TODO The cursor needs to be closed
         return new AbstractIterator<String>() {
             @Override
             protected String computeNext() {

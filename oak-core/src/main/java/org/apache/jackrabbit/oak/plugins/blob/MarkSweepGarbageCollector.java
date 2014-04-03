@@ -20,6 +20,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -124,10 +126,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /**
      * Instantiates a new blob garbage collector.
-     * 
-     * @param marker
-     * @param blobStore
-     * @throws IOException Signals that an I/O exception has occurred.
      */
     public MarkSweepGarbageCollector(
             BlobReferenceRetriever marker, 
@@ -135,6 +133,15 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             Executor executor)
             throws IOException {
         this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, true, TimeUnit.HOURS.toMillis(24));
+    }
+
+    public MarkSweepGarbageCollector(
+            BlobReferenceRetriever marker,
+            GarbageCollectableBlobStore blobStore,
+            Executor executor,
+            long maxLastModifiedInterval)
+            throws IOException {
+        this(marker, blobStore, executor, TEMP_DIR, DEFAULT_BATCH_COUNT, true, maxLastModifiedInterval);
     }
 
     @Override
@@ -297,6 +304,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         return batchCount;
     }
 
+    private long getLastMaxModifiedTime(){
+        return maxLastModifiedInterval > 0 ?
+                System.currentTimeMillis() - maxLastModifiedInterval : 0;
+
+    }
+
     /**
      * Save batch to file.
      */
@@ -327,10 +340,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         public void run() {
             try {
                 LOG.debug("Blob ids to be deleted {}", ids);
-                boolean deleted =
-                        blobStore.deleteChunks(ids,
-                                        (maxLastModifiedInterval > 0 ? System.currentTimeMillis()
-                                                - maxLastModifiedInterval : 0));
+                boolean deleted = blobStore.deleteChunks(ids,getLastMaxModifiedTime());
                 if (!deleted) {
                     exceptionQueue.addAll(ids);
                 }
@@ -346,12 +356,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      */
     private void iterateNodeTree() throws IOException {
         final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
+        final AtomicInteger count = new AtomicInteger();
         try {
             marker.collectReferences(
                     new ReferenceCollector() {
                         private final List<String> idBatch = Lists.newArrayListWithCapacity(getBatchCount());
-
-                        private int count = 0;
 
                         private final boolean debugMode = LOG.isTraceEnabled();
 
@@ -375,7 +384,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                     if (debugMode) {
                                         LOG.trace("chunkId : {}",id);
                                     }
-                                    count++;
+                                    count.getAndIncrement();
                                 }
 
                                 if (!idBatch.isEmpty()) {
@@ -385,13 +394,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                             } catch (Exception e) {
                                 throw new RuntimeException("Error in retrieving references", e);
                             }
-
-                            LOG.info("Number of valid blob references marked under mark phase of " +
-                                    "Blob garbage collection [{}]",count);
                         }
                     }
             );
-
+            LOG.info("Number of valid blob references marked under mark phase of " +
+                    "Blob garbage collection [{}]",count.get());
             // sort the marked references
             fs.sort(fs.getMarkedRefs());
         } finally {
@@ -412,7 +419,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             try {
                 bufferWriter = new BufferedWriter(
                         new FileWriter(fs.getAvailableRefs()));
-                Iterator<String> idsIter = blobStore.getAllChunkIds(maxLastModifiedInterval);
+                Iterator<String> idsIter = blobStore.getAllChunkIds(getLastMaxModifiedTime());
                 
                 List<String> ids = Lists.newArrayList();
 
@@ -431,7 +438,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 // sort the file
                 fs.sort(fs.getAvailableRefs());
-                LOG.debug("Ending retrieving all blobs : {}", blobsCount);
+                LOG.debug("Number of blobs present in BlobStore : [{}] which have " +
+                        "been last modified before [{}]", blobsCount, timestampToString(getLastMaxModifiedTime()));
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }
@@ -574,5 +582,12 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         public void remove() {
             throw new UnsupportedOperationException();
         }
+    }
+
+    /**
+     * Provides a readable string for given timestamp
+     */
+    private static String timestampToString(long timestamp){
+        return (new Timestamp(timestamp) + "00").substring(0, 23);
     }
 }

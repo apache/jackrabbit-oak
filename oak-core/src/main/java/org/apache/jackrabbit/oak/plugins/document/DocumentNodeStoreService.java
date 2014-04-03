@@ -132,14 +132,21 @@ public class DocumentNodeStoreService {
     private Whiteboard whiteboard;
 
 
-    private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
-    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
     /**
      * Revisions older than this time would be garbage collected
      */
+    private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
+    public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
     private long versionGcMaxAgeInSecs = DEFAULT_VER_GC_MAX_AGE;
 
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
+
+    /**
+     * Blob modified before this time duration would be considered for Blob GC
+     */
+    private static final long DEFAULT_BLOB_GC_MAX_AGE = TimeUnit.HOURS.toMillis(24);
+    public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
+    private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
 
 
     @Activate
@@ -231,6 +238,7 @@ public class DocumentNodeStoreService {
     @Modified
     protected void modified(Map<String, ?> config){
         versionGcMaxAgeInSecs = PropertiesUtil.toLong(config.get(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+        blobGcMaxAgeInSecs = PropertiesUtil.toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
     }
 
     @Deactivate
@@ -323,7 +331,7 @@ public class DocumentNodeStoreService {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
                 public void collectGarbage() throws Exception {
-                    store.createBlobGarbageCollector().collectGarbage();
+                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs).collectGarbage();
                 }
             };
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
