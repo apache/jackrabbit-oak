@@ -92,7 +92,7 @@ public class FileStoreTest {
         new FileOutputStream(new File(directory, "bulk00002.tar")).close();
         new FileOutputStream(new File(directory, "bulk00005a.tar")).close();
 
-        Map<Integer, File> files = FileStore.collectFiles(directory);
+        Map<Integer, ?> files = FileStore.collectFiles(directory);
         assertEquals(newArrayList(0, 1, 31, 32, 33), newArrayList(files.keySet()));
 
         assertTrue(new File(directory, "data00000a.tar").isFile());

@@ -22,7 +22,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
@@ -40,7 +39,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -69,7 +67,7 @@ public class FileStore implements SegmentStore {
     private static final int MB = 1024 * 1024;
 
     private static final Pattern FILE_NAME_PATTERN =
-            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})(a?).tar");
+            Pattern.compile("(data|bulk)((0|[1-9][0-9]*)[0-9]{4})([a-z])?.tar");
 
     private static final String FILE_NAME_FORMAT = "data%05d%s.tar";
 
@@ -166,13 +164,12 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
 
-        Map<Integer, File> map = collectFiles(directory);
+        Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
         for (int i = indices.length - 1; i >= 0; i--) {
-            readers.add(TarReader.open(
-                    singletonMap('a', map.get(indices[i])), memoryMapping));
+            readers.add(TarReader.open(map.get(indices[i]), memoryMapping));
         }
 
         if (indices.length > 0) {
@@ -250,8 +247,9 @@ public class FileStore implements SegmentStore {
         flushThread.start();
     }
 
-    static SortedMap<Integer, File> collectFiles(File directory) throws IOException {
-        SortedMap<Integer, File> dataFiles = newTreeMap();
+    static Map<Integer, Map<Character, File>> collectFiles(File directory)
+            throws IOException {
+        Map<Integer, Map<Character, File>> dataFiles = newHashMap();
         Map<Integer, File> bulkFiles = newHashMap();
 
         for (File file : directory.listFiles()) {
@@ -259,7 +257,16 @@ public class FileStore implements SegmentStore {
             if (matcher.matches()) {
                 Integer index = Integer.parseInt(matcher.group(2));
                 if ("data".equals(matcher.group(1))) {
-                    checkState(dataFiles.put(index, file) == null);
+                    Map<Character, File> files = dataFiles.get(index);
+                    if (files == null) {
+                        files = newHashMap();
+                        dataFiles.put(index, files);
+                    }
+                    Character generation = 'a';
+                    if (matcher.group(4) != null) {
+                        generation = matcher.group(4).charAt(0);
+                    }
+                    checkState(files.put(generation, file) == null);
                 } else {
                     checkState(bulkFiles.put(index, file) == null);
                 }
@@ -273,17 +280,23 @@ public class FileStore implements SegmentStore {
                 // first put all the data segments at the end of the list
                 Integer[] indices =
                         dataFiles.keySet().toArray(new Integer[dataFiles.size()]);
+                Arrays.sort(indices);
                 int position = Math.max(
                         indices[indices.length - 1] + 1,
                         bulkFiles.size());
                 for (Integer index : indices) {
-                    File file = dataFiles.remove(index);
+                    Map<Character, File> files = dataFiles.remove(index);
                     Integer newIndex = position++;
-                    File newFile = new File(
-                            directory, format(FILE_NAME_FORMAT, newIndex, "a"));
-                    log.info("Renaming {} to {}", file, newFile);
-                    file.renameTo(newFile);
-                    dataFiles.put(newIndex, newFile);
+                    for (Character generation : newHashSet(files.keySet())) {
+                        File file = files.get(generation);
+                        File newFile = new File(
+                                directory,
+                                format(FILE_NAME_FORMAT, newIndex, generation));
+                        log.info("Renaming {} to {}", file, newFile);
+                        file.renameTo(newFile);
+                        files.put(generation, newFile);
+                    }
+                    dataFiles.put(newIndex, files);
                 }
             }
 
@@ -299,7 +312,7 @@ public class FileStore implements SegmentStore {
                         directory, format(FILE_NAME_FORMAT, newIndex, "a"));
                 log.info("Renaming {} to {}", file, newFile);
                 file.renameTo(newFile);
-                dataFiles.put(newIndex, newFile);
+                dataFiles.put(newIndex, singletonMap('a', newFile));
             }
         }
 
