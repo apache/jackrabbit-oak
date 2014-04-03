@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TarFileTest {
@@ -37,6 +38,7 @@ public class TarFileTest {
         file = File.createTempFile("TarFileTest", ".tar", new File("target"));
     }
 
+    @Ignore
     @Test
     public void testWriteAndRead() throws IOException {
         UUID id = UUID.randomUUID();
