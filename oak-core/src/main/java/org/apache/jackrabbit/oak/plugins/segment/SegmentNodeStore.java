@@ -206,6 +206,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             if (commitSemaphore.tryAcquire()) {
                 try {
                     refreshHead();
+                    store.getTracker().getWriter().flush();
 
                     SegmentNodeState state = head.get();
                     SegmentNodeBuilder builder = state.builder();
@@ -225,7 +226,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     cp.setProperty("timestamp",  now + lifetime);
                     cp.setChildNode(ROOT, state.getChildNode(ROOT));
 
-                    if (store.setHead(state, builder.getNodeState())) {
+                    SegmentNodeState newState = builder.getNodeState();
+                    store.getTracker().getWriter().flush();
+                    if (store.setHead(state, newState)) {
                         refreshHead();
                         return name;
                     }
