@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newTreeSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -93,7 +94,9 @@ public class FileStoreTest {
         new FileOutputStream(new File(directory, "bulk00005a.tar")).close();
 
         Map<Integer, ?> files = FileStore.collectFiles(directory);
-        assertEquals(newArrayList(0, 1, 31, 32, 33), newArrayList(files.keySet()));
+        assertEquals(
+                newArrayList(0, 1, 31, 32, 33),
+                newArrayList(newTreeSet(files.keySet())));
 
         assertTrue(new File(directory, "data00000a.tar").isFile());
         assertTrue(new File(directory, "data00001a.tar").isFile());
@@ -102,7 +105,9 @@ public class FileStoreTest {
         assertTrue(new File(directory, "data00033a.tar").isFile());
 
         files = FileStore.collectFiles(directory);
-        assertEquals(newArrayList(0, 1, 31, 32, 33), newArrayList(files.keySet()));
+        assertEquals(
+                newArrayList(0, 1, 31, 32, 33),
+                newArrayList(newTreeSet(files.keySet())));
     }
 
 }
