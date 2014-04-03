@@ -247,7 +247,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         assertTrue(strings.hasNext());
         assertEquals("/test/a", strings.next());
         assertTrue(strings.hasNext());
-        assertEquals("/test/b", strings.next());
+        assertEquals("/test/c", strings.next());
         assertFalse(strings.hasNext());
     }
 
