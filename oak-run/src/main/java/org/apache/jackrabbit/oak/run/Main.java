@@ -27,6 +27,8 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.jcr.Repository;
 
@@ -44,16 +46,20 @@ import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
 import org.apache.jackrabbit.server.remoting.davex.JcrRemotingServlet;
@@ -172,6 +178,7 @@ public class Main {
                             dataCount++;
                             dataSize += segment.size();
                             idmap.put(id, segment.getReferencedIds());
+                            System.out.println(id + " -> " + idmap.get(id));
                         } else if (id.isBulkSegmentId()) {
                             bulkCount++;
                             bulkSize += id.getSegment().size();
@@ -216,12 +223,35 @@ public class Main {
                             "%6dMB in %6d bulk segments%n",
                             bulkSize / (1024 * 1024), bulkCount);
                 } else {
+                    Pattern pattern = Pattern.compile(
+                            "([0-9a-f-]+)|([0-9a-f-]+:[0-9a-f]+)?(/.*)?");
                     for (int i = 1; i < args.length; i++) {
-                        UUID uuid = UUID.fromString(args[i]);
-                        SegmentId id = store.getTracker().getSegmentId(
-                                uuid.getMostSignificantBits(),
-                                uuid.getLeastSignificantBits());
-                        System.out.println(id.getSegment());
+                        Matcher matcher = pattern.matcher(args[i]);
+                        if (!matcher.matches()) {
+                            System.err.println("Unknown argument: " + args[i]);
+                        } else if (matcher.group(1) != null) {
+                            UUID uuid = UUID.fromString(matcher.group(1));
+                            SegmentId id = store.getTracker().getSegmentId(
+                                    uuid.getMostSignificantBits(),
+                                    uuid.getLeastSignificantBits());
+                            System.out.println(id.getSegment());
+                        } else {
+                            RecordId id = store.getHead().getRecordId();
+                            if (matcher.group(2) != null) {
+                                id = RecordId.fromString(
+                                        store.getTracker(), matcher.group(2));
+                            }
+                            String path = "/";
+                            if (matcher.group(3) != null) {
+                                path = matcher.group(3);
+                            }
+                            NodeState node = new SegmentNodeState(id);
+                            System.out.println("/ -> " + node);
+                            for (String name : PathUtils.elements(path)) {
+                                node = node.getChildNode(name);
+                                System.out.println(" " + name  + " -> " + node);
+                            }
+                        }
                     }
                 }
             } finally {
