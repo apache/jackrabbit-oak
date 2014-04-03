@@ -1079,6 +1079,8 @@
                     startup="lazy"
                     class="solr.FieldAnalysisRequestHandler" />
 
+    <requestHandler name="/mlt" class="solr.MoreLikeThisHandler">
+    </requestHandler>
 
     <!-- Document Analysis Handler
 

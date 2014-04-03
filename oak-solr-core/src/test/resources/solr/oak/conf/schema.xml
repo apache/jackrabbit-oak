@@ -110,6 +110,7 @@
         <field name="ignored" type="ignored" multiValued="true"/>
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true"/>
         <field name="_version_" type="long" indexed="true" stored="true"/>
+        <field name=":path" type="string" indexed="true" stored="false"/>
 
         <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
         <dynamicField name="*_is" type="int"    indexed="true"  stored="true"  multiValued="true"/>
@@ -146,5 +147,6 @@
     <copyField source="path_exact" dest="path_anc"/>
     <copyField source="path_exact" dest="path_des"/>
     <copyField source="path_exact" dest="path_child"/>
+    <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
 </schema>

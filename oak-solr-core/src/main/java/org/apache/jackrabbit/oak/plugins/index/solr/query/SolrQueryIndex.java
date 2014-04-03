@@ -52,6 +52,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 public class SolrQueryIndex implements FulltextQueryIndex {
 
     private static final String NATIVE_SOLR_QUERY = "native*solr";
+    private static final String NATIVE_LUCENE_QUERY = "native*lucene";
 
     public static final String TYPE = "solr";
 
@@ -109,12 +110,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
                 // native query support
-                if (NATIVE_SOLR_QUERY.equals(pr.propertyName)) {
+                if (NATIVE_SOLR_QUERY.equals(pr.propertyName) || NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
                     String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
                     if (isSupportedHttpRequest(nativeQueryString)) {
                         // pass through the native HTTP Solr request
                         String requestHandlerString = nativeQueryString.substring(0, nativeQueryString.indexOf('?'));
                         if (!"select".equals(requestHandlerString)) {
+                            if (requestHandlerString.charAt(0) != '/') {
+                                requestHandlerString = "/" + requestHandlerString;
+                            }
                             solrQuery.setRequestHandler(requestHandlerString);
                         }
                         String parameterString = nativeQueryString.substring(nativeQueryString.indexOf('?') + 1);
@@ -123,6 +127,23 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             if (kv.length != 2) {
                                 throw new RuntimeException("Unparsable native HTTP Solr query");
                             } else {
+                                if ("stream.body".equals(kv[0])) {
+                                    kv[0] = "q";
+                                    String mltFlString = "mlt.fl=";
+                                    int mltFlIndex = parameterString.indexOf(mltFlString);
+                                    if (mltFlIndex > -1) {
+                                        int beginIndex = mltFlIndex + mltFlString.length();
+                                        int endIndex = parameterString.indexOf('&',beginIndex);
+                                        String fields;
+                                        if (endIndex > beginIndex) {
+                                            fields = parameterString.substring(beginIndex, endIndex);
+                                        }
+                                        else {
+                                            fields = parameterString.substring(beginIndex);
+                                        }
+                                        kv[1] = "_query_:\"{!dismax qf="+fields+" q.op=OR}"+kv[1]+"\"";
+                                    }
+                                }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
                         }
