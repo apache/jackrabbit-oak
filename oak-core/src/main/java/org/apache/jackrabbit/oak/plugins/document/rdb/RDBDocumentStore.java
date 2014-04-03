@@ -155,8 +155,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        //TODO Use batch delete
-        for(String key : keys){
+        // TODO Use batch delete
+        for (String key : keys) {
             remove(collection, key);
         }
     }
@@ -234,6 +234,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // string length at which we switch to BLOB storage
     private static int DATALIMIT = 16384 / 4;
 
+    // number of retries for updates
+    private static int RETRIES = 10;
+
     private void initialize(DataSource ds, DocumentMK.Builder builder) throws Exception {
 
         this.ds = ds;
@@ -247,13 +250,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             con.setAutoCommit(false);
 
-            for (String tableName : new String[] { "CLUSTERNODES", "NODES", "SETTINGS"}) {
+            for (String tableName : new String[] { "CLUSTERNODES", "NODES", "SETTINGS" }) {
                 try {
                     PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
                     stmt.setString(1, "0:/");
                     stmt.executeQuery();
-                }
-                catch(SQLException ex) {
+                } catch (SQLException ex) {
                     // table does not appear to exist
                     con.rollback();
 
@@ -262,17 +264,19 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
                     Statement stmt = con.createStatement();
 
-                    // the code below likely will need to be extended for new database types
+                    // the code below likely will need to be extended for new
+                    // database types
                     if ("PostgreSQL".equals(dbtype)) {
-                        stmt.execute("create table " + tableName
+                        stmt.execute("create table "
+                                + tableName
                                 + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA bytea)");
-                    }
-                    else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                        stmt.execute("create table " + tableName
+                    } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
+                        stmt.execute("create table "
+                                + tableName
                                 + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
-                    }
-                    else {
-                        stmt.execute("create table " + tableName
+                    } else {
+                        stmt.execute("create table "
+                                + tableName
                                 + " (ID varchar(1000) not null primary key, MODIFIED bigint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
                     }
                     stmt.close();
@@ -325,15 +329,32 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             update.increment(MODCOUNT, 1);
             UpdateUtils.applyChanges(doc, update, comparator);
-            insertDocument(collection, doc);
-            addToCache(collection, doc);
-        } else {
-            T doc = applyChanges(collection, oldDoc, update, checkConditions);
-            if (doc == null) {
-                return null;
+            try {
+                insertDocument(collection, doc);
+                addToCache(collection, doc);
+                return oldDoc;
             }
+            catch (MicroKernelException ex) {
+                // may have failed due to a race condition; try update instead
+                oldDoc = readDocument(collection, update.getId());
+                if (oldDoc == null) {
+                    // something else went wrong
+                    throw(ex);
+                }
+                return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
+            }
+        } else {
+            return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
+        }
+    }
 
-            int retries = 5; // TODO
+    @CheckForNull
+    private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
+            int retries) {
+        T doc = applyChanges(collection, oldDoc, update, checkConditions);
+        if (doc == null) {
+            return null;
+        } else {
             boolean success = false;
 
             while (!success && retries > 0) {
@@ -354,9 +375,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (!success) {
                 throw new MicroKernelException("failed update (race?)");
             }
-        }
 
-        return oldDoc;
+            return oldDoc;
+        }
     }
 
     @CheckForNull
@@ -541,6 +562,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             dbInsert(connection, tableName, document.getId(), modified, modcount, data);
             connection.commit();
         } catch (SQLException ex) {
+            LOG.debug("insert of " + document.getId() + " failed", ex);
             try {
                 connection.rollback();
             } catch (SQLException e) {

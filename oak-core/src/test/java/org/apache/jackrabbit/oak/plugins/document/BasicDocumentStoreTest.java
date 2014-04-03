@@ -20,11 +20,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -34,21 +31,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(BasicDocumentStoreTest.class);
 
-    private Set<String> removeMe = new HashSet<String>();
-
     public BasicDocumentStoreTest(DocumentStoreFixture dsf) {
         super(dsf);
-    }
-
-    @After
-    public void cleanUp() {
-        for (String id : removeMe) {
-            try {
-                super.ds.remove(Collection.NODES, id);
-            } catch (Exception ex) {
-                // best effort
-            }
-        }
     }
 
     @Test
@@ -78,7 +62,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         while (max - min >= 2) {
             test = (max + min) / 2;
-            String id = generateId(test);
+            String id = generateString(test);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -105,7 +89,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         while (max - min >= 256) {
             test = (max + min) / 2;
             String id = this.getClass().getName() + ".testMaxProperty-" + test;
-            String pval = generateId(test);
+            String pval = generateString(test);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", pval);
@@ -124,10 +108,72 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         LOG.info("max prop length for " + super.dsname + " was " + test);
     }
 
-    private static String generateId(int length) {
+    @Test
+    public void testCreatePerfSmall() {
+        createPerf(16);
+    }
+
+    @Test
+    public void testCreatePerfBig() {
+        createPerf(32 * 1024);
+    }
+
+    private void createPerf(int size) {
+        String pval = generateString(size);
+        long duration = 1000;
+        long end = System.currentTimeMillis() + duration;
+        long cnt = 0;
+
+        while (System.currentTimeMillis() < end) {
+            String id = this.getClass().getName() + ".testCreatePerf-" + size + "-" + cnt;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("foo", pval);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("document with " + id + " nit created", success);
+            removeMe.add(id);
+            cnt += 1;
+        }
+
+        LOG.info("document creation with property of size " + size + " for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
+                + (cnt / (duration / 1000f)) + "/s)");
+    }
+
+    @Test
+    public void testUpdatePerfSmall() {
+        updatePerf(16);
+    }
+
+    @Test
+    public void testUpdatePerfBig() {
+        updatePerf(32 * 1024);
+    }
+
+    private void updatePerf(int size) {
+        String pval = generateString(size);
+        long duration = 1000;
+        long end = System.currentTimeMillis() + duration;
+        long cnt = 0;
+
+        String id = this.getClass().getName() + ".testUpdatePerf-" + size;
+        removeMe.add(id);
+
+        while (System.currentTimeMillis() < end) {
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("foo", pval);
+            super.ds.createOrUpdate(Collection.NODES, up);
+            cnt += 1;
+        }
+
+        LOG.info("document updates with property of size " + size + " for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
+                + (cnt / (duration / 1000f)) + "/s)");
+    }
+
+    private static String generateString(int length) {
         StringBuffer buf = new StringBuffer(length);
         while (length-- > 0) {
-            buf.append('A' + ((int)(26 * Math.random())));
+            buf.append('A' + ((int) (26 * Math.random())));
         }
         return buf.toString();
     }
