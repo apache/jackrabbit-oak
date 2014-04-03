@@ -101,6 +101,16 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
         return oldNode != null;
     }
 
+    @Override
+    public boolean isRecoveryNeeded(long currentTime) {
+        QueryBuilder query =
+                start(ClusterNodeInfo.STATE).is(ClusterNodeInfo.ClusterNodeState.ACTIVE.name())
+                .put(ClusterNodeInfo.LEASE_END_KEY).lessThan(currentTime)
+                .put(ClusterNodeInfo.REV_RECOVERY_LOCK).notEquals(RecoverLockState.ACQUIRED.name());
+
+        return getClusterNodeCollection().findOne(query.get()) != null;
+    }
+
     private DBCollection getNodeCollection() {
         return store.getDBCollection(Collection.NODES);
     }

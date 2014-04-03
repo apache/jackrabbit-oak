@@ -19,85 +19,122 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import java.io.IOException;
+import java.util.List;
+
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
-public class LastRevRecoveryTest {
+@RunWith(Parameterized.class)
+public class LastRevRecoveryAgentTest {
+    private final DocumentStoreFixture fixture;
+
     private DocumentNodeStore ds1;
     private DocumentNodeStore ds2;
     private int c1Id;
     private int c2Id;
-    private MemoryDocumentStore sharedStore;
+    private DocumentStore sharedStore;
+    private Clock clock;
+
+    public LastRevRecoveryAgentTest(DocumentStoreFixture fixture) {
+        this.fixture = fixture;
+    }
+
+    //----------------------------------------< Set Up >
+
+    @Parameterized.Parameters
+    public static java.util.Collection<Object[]> fixtures() throws IOException {
+        List<Object[]> fixtures = Lists.newArrayList();
+        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+
+        DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
+        if(mongo.isAvailable()){
+            fixtures.add(new Object[] {mongo});
+        }
+        return fixtures;
+    }
 
     @Before
-    public void setUp(){
-        sharedStore = new MemoryDocumentStore();
+    public void setUp() throws InterruptedException {
+        clock = new Clock.Virtual();
+
+        //Quite a bit of logic relies on timestamp converted
+        // to 5 sec resolutions
+        clock.waitUntil(System.currentTimeMillis());
+
+        ClusterNodeInfo.setClock(clock);
+        Revision.setClock(clock);
+        sharedStore = fixture.createDocumentStore();
         ds1 = new DocumentMK.Builder()
                 .setAsyncDelay(0)
+                .clock(clock)
                 .setDocumentStore(sharedStore)
                 .getNodeStore();
         c1Id = ds1.getClusterId();
 
         ds2 = new DocumentMK.Builder()
                 .setAsyncDelay(0)
+                .clock(clock)
                 .setDocumentStore(sharedStore)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
     }
 
+    @After
+    public void tearDown(){
+        sharedStore.dispose();
+        ClusterNodeInfo.resetClockToDefault();
+        Revision.resetClockToDefault();
+    }
+
+    //~------------------------------------------< Test Case >
 
     @Test
-    public void testRecover() throws Exception {
+    public void testIsRecoveryRequired() throws Exception{
         //1. Create base structure /x/y
         NodeBuilder b1 = ds1.getRoot().builder();
         b1.child("x").child("y");
         ds1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         ds1.runBackgroundOperations();
 
-        //lastRev are persisted directly for new nodes. In case of
-        // updates they are persisted via background jobs
-
-        //1.2 Get last rev populated for root node for ds2
         ds2.runBackgroundOperations();
+
+        //2. Add a new node /x/y/z in C2
         NodeBuilder b2 = ds2.getRoot().builder();
-        b2.child("x").setProperty("f1","b1");
-        ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        ds2.runBackgroundOperations();
-
-        //2. Add a new node /x/y/z
-        b2 = ds2.getRoot().builder();
         b2.child("x").child("y").child("z").setProperty("foo", "bar");
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        //Refresh DS1
+        NodeDocument z1 = getDocument(ds1, "/x/y/z");
+        Revision zlastRev2 = z1.getLastRev().get(c2Id);
+
+        long leaseTime = ds1.getClusterInfo().getLeaseTime();
         ds1.runBackgroundOperations();
 
-        NodeDocument z1 = getDocument(ds1, "/x/y/z");
-        NodeDocument y1 = getDocument(ds1, "/x/y");
-        NodeDocument x1 = getDocument(ds1, "/x");
+        clock.waitUntil(clock.getTime() + leaseTime + 10);
 
-        Revision zlastRev2 = z1.getLastRev().get(c2Id);
-        assertNotNull(zlastRev2);
+        //Renew the lease for C1
+        ds1.getClusterInfo().renewLease(3*leaseTime);
 
-        //lastRev should not be updated for C #2
-        assertNull(y1.getLastRev().get(c2Id));
+        assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
-        LastRevRecoveryAgent recovery = new LastRevRecoveryAgent(ds1);
+        List<Integer> cids = ds1.getLastRevRecoveryAgent().getRecoveryCandidateNodes();
+        assertEquals(1, cids.size());
+        assertEquals(c2Id, cids.get(0).intValue());
 
-        //Do not pass y1 but still y1 should be updated
-        recovery.recover(Iterators.forArray(x1,z1), c2Id);
+        ds1.getLastRevRecoveryAgent().recover(cids.get(0));
 
-        //Post recovery the lastRev should be updated for /x/y and /x
         assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));
         assertEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));

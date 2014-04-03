@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 
 import java.lang.management.ManagementFactory;
@@ -58,7 +59,7 @@ public class ClusterNodeInfo {
     /**
      * The end of the lease.
      */
-    protected static final String LEASE_END_KEY = "leaseEnd";
+    public static final String LEASE_END_KEY = "leaseEnd";
 
     /**
      * The state of the cluster. On proper shutdown the state should be cleared.
@@ -135,11 +136,14 @@ public class ClusterNodeInfo {
      */
     private static Clock clock = Clock.SIMPLE;
 
+
+    public static final int DEFAULT_LEASE_DURATION_MILLIS = 1000 * 60;
+
     /**
      * The number of milliseconds for a lease (1 minute by default, and
      * initially).
      */
-    private long leaseTime = 1000 * 60;
+    private long leaseTime = DEFAULT_LEASE_DURATION_MILLIS;
 
     /**
      * The assigned cluster id.
@@ -410,15 +414,19 @@ public class ClusterNodeInfo {
 
     /**
      * Specify a custom clock to be used for determining current time.
-     * If passed clock is null then clock would be set to the default clock
      *
      * <b>Only Used For Testing</b>
      */
     static void setClock(Clock c) {
-        if(c == null){
-            c = Clock.SIMPLE;
-        }
+        checkNotNull(c);
         clock = c;
+    }
+
+    /**
+     * Resets the clock to the default
+     */
+    static void resetClockToDefault(){
+        clock = Clock.SIMPLE;
     }
 
     private static long getProcessId() {

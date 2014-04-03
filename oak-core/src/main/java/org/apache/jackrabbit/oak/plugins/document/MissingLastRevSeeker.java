@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -77,8 +76,8 @@ public class MissingLastRevSeeker {
             public boolean apply(NodeDocument input) {
                 Long modified = (Long) input.get(NodeDocument.MODIFIED_IN_SECS);
                 return (modified != null
-                        && (modified > TimeUnit.MILLISECONDS.toSeconds(startTime))
-                        && (modified < TimeUnit.MILLISECONDS.toSeconds(endTime)));
+                        && (modified >= Commit.getModifiedInSecs(startTime))
+                        && (modified <= Commit.getModifiedInSecs(endTime)));
             }
         });
     }
@@ -100,6 +99,19 @@ public class MissingLastRevSeeker {
 
     public NodeDocument getRoot() {
         return store.find(Collection.NODES, Utils.getIdFromPath(ROOT_PATH));
+    }
+
+    public boolean isRecoveryNeeded(long currentTime) {
+        for(ClusterNodeInfoDocument nodeInfo : getAllClusters()){
+            // Check if _lastRev recovery needed for this cluster node
+            // state is Active && currentTime past the leaseEnd time && recoveryLock not held by someone
+            if (nodeInfo.isActive()
+                    && currentTime > nodeInfo.getLeaseEndTime()
+                    && !nodeInfo.isBeingRecovered()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
