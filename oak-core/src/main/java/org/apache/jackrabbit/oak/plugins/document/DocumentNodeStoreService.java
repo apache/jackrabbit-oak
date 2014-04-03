@@ -319,7 +319,7 @@ public class DocumentNodeStoreService {
             );
         }
 
-        if (blobStore instanceof GarbageCollectableBlobStore) {
+        if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
                 public void collectGarbage() throws Exception {
