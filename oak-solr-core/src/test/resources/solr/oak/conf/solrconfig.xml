@@ -48,7 +48,7 @@
        If a "./lib" directory exists in your instanceDir, all files
        found in it are included as if you had used the following
        syntax...
-       
+
               <lib dir="./lib" />
     -->
 
@@ -82,7 +82,7 @@
     <lib dir="/total/crap/dir/ignored"/>
 
     <!-- an exact 'path' can be used instead of a 'dir' to specify a
-       specific file.  This will cause a serious error to be logged if 
+       specific file.  This will cause a serious error to be logged if
        it can't be loaded.
     -->
     <!--
@@ -100,7 +100,7 @@
 
 
     <!-- The DirectoryFactory to use for indexes.
-       
+
        solr.StandardDirectoryFactory is filesystem
        based and tries to pick the best implementation for the current
        JVM and platform.  solr.NRTCachingDirectoryFactory, the default,
@@ -273,7 +273,7 @@ Lucene will flush based on whichever limit is hit first.  -->
 
 
     <!-- JMX
-       
+
        This example enables JMX if and only if an existing MBeanServer
        is found, use this if you want to configure JMX through JVM
        parameters. Remove this to disable exposing Solr configuration
@@ -283,7 +283,7 @@ Lucene will flush based on whichever limit is hit first.  -->
     -->
     <jmx/>
     <!-- If you want to connect to a particular server, specify the
-       agentId 
+       agentId
     -->
     <!-- <jmx agentId="myAgent" /> -->
     <!-- If you want to start a new MBeanServer, specify the serviceUrl -->
@@ -400,7 +400,7 @@ Lucene will flush based on whichever limit is hit first.  -->
        be specified.
     -->
     <!--
-     <indexReaderFactory name="IndexReaderFactory" 
+     <indexReaderFactory name="IndexReaderFactory"
                          class="solr.StandardIndexReaderFactory">
        <int name="setTermIndexDivisor">12</int>
      </indexReaderFactory >
@@ -729,7 +729,7 @@ Lucene will flush based on whichever limit is hit first.  -->
        like so: http://host/app/[core/]select?qt=name  If no qt is
        given, then the requestHandler that declares default="true" will be
        used or the one named "standard".
-       
+
        If a Request Handler is declared with startup="lazy", then it will
        not be initialized until the first request that uses it.
 
@@ -830,7 +830,7 @@ current implementation relies on the updateLog feature being enabled. -->
 
 
     <!-- A Robust Example
-       
+
        This example SearchHandler declaration shows off usage of the
        SearchHandler with many defaults declared
 
@@ -934,7 +934,7 @@ current implementation relies on the updateLog feature being enabled. -->
 
 
     <!-- Update Request Handler.
-       
+
        http://wiki.apache.org/solr/UpdateXmlMessages
 
        The canonical Request Handler for Modifying the Index through
@@ -943,11 +943,11 @@ current implementation relies on the updateLog feature being enabled. -->
        Note: Since solr1.1 requestHandlers requires a valid content
        type header if posted in the body. For example, curl now
        requires: -H 'Content-type:text/xml; charset=utf-8'
-       
-       To override the request content type and force a specific 
-       Content-type, use the request parameter: 
+
+       To override the request content type and force a specific
+       Content-type, use the request parameter:
          ?update.contentType=text/csv
-       
+
        This handler will pick a response format to match the input
        if the 'wt' parameter is not explicit
     -->
@@ -977,7 +977,7 @@ current implementation relies on the updateLog feature being enabled. -->
 
     <!-- Solr Cell Update Request Handler
 
-       http://wiki.apache.org/solr/ExtractingRequestHandler 
+       http://wiki.apache.org/solr/ExtractingRequestHandler
 
     -->
     <requestHandler name="/update/extract"
@@ -1055,7 +1055,7 @@ current implementation relies on the updateLog feature being enabled. -->
     <!-- Admin Handlers
 
        Admin Handlers - This will register all the standard admin
-       RequestHandlers.  
+       RequestHandlers.
     -->
     <requestHandler name="/admin/"
                     class="solr.admin.AdminHandlers"/>
@@ -1069,14 +1069,14 @@ current implementation relies on the updateLog feature being enabled. -->
      <requestHandler name="/admin/file"       class="solr.admin.ShowFileRequestHandler" >
     -->
     <!-- If you wish to hide files under ${solr.home}/conf, explicitly
-       register the ShowFileRequestHandler using: 
+       register the ShowFileRequestHandler using:
     -->
     <!--
-     <requestHandler name="/admin/file" 
+     <requestHandler name="/admin/file"
                      class="solr.admin.ShowFileRequestHandler" >
        <lst name="invariants">
-         <str name="hidden">synonyms.txt</str> 
-         <str name="hidden">anotherfile.txt</str> 
+         <str name="hidden">synonyms.txt</str>
+         <str name="hidden">anotherfile.txt</str>
        </lst>
      </requestHandler>
     -->
@@ -1110,10 +1110,10 @@ current implementation relies on the updateLog feature being enabled. -->
        The SolrReplicationHandler supports replicating indexes from a
        "master" used for indexing and "slaves" used for queries.
 
-       http://wiki.apache.org/solr/SolrReplication 
+       http://wiki.apache.org/solr/SolrReplication
 
-       It is also neccessary for SolrCloud to function (in Cloud mode, the 
-       replication handler is used to bulk transfer segments when nodes 
+       It is also neccessary for SolrCloud to function (in Cloud mode, the
+       replication handler is used to bulk transfer segments when nodes
        are added or need to recover).
 
        https://wiki.apache.org/solr/SolrCloud/
@@ -1280,7 +1280,7 @@ current implementation relies on the updateLog feature being enabled. -->
 
        IN OTHER WORDS, THERE IS REALLY GOOD CHANCE THE SETUP BELOW IS
        NOT WHAT YOU WANT FOR YOUR PRODUCTION SYSTEM!
-       
+
        See http://wiki.apache.org/solr/SpellCheckComponent for details
        on the request parameters.
     -->
@@ -1318,8 +1318,8 @@ current implementation relies on the updateLog feature being enabled. -->
 
        This is purely as an example.
 
-       In reality you will likely want to add the component to your 
-       already specified request handlers. 
+       In reality you will likely want to add the component to your
+       already specified request handlers.
     -->
     <requestHandler name="/tvrh" class="solr.SearchHandler" startup="lazy">
         <lst name="defaults">
@@ -1411,8 +1411,8 @@ current implementation relies on the updateLog feature being enabled. -->
 
        This is purely as an example.
 
-       In reality you will likely want to add the component to your 
-       already specified request handlers. 
+       In reality you will likely want to add the component to your
+       already specified request handlers.
     -->
     <requestHandler name="/clustering"
                     startup="lazy"
@@ -1600,8 +1600,8 @@ current implementation relies on the updateLog feature being enabled. -->
        on the fly based on the hash code of some other fields.  This
        example has overwriteDupes set to false since we are using the
        id field as the signatureField and Solr will maintain
-       uniqueness based on that anyway.  
-       
+       uniqueness based on that anyway.
+
     -->
     <!--
      <updateRequestProcessorChain name="dedupe">
@@ -1672,7 +1672,7 @@ current implementation relies on the updateLog feature being enabled. -->
        overridden...
     -->
     <!--
-     <queryResponseWriter name="xml" 
+     <queryResponseWriter name="xml"
                           default="true"
                           class="solr.XMLResponseWriter" />
      <queryResponseWriter name="json" class="solr.JSONResponseWriter"/>
@@ -1700,7 +1700,7 @@ current implementation relies on the updateLog feature being enabled. -->
 
     <!-- XSLT response writer transforms the XML output by any xslt file found
        in Solr's conf/xslt directory.  Changes to xslt files are checked for
-       every xsltCacheLifetimeSeconds.  
+       every xsltCacheLifetimeSeconds.
     -->
     <queryResponseWriter name="xslt" class="solr.XSLTResponseWriter">
         <int name="xsltCacheLifetimeSeconds">5</int>
@@ -1728,7 +1728,7 @@ current implementation relies on the updateLog feature being enabled. -->
     -->
     <!-- example of registering a custom function parser  -->
     <!--
-     <valueSourceParser name="myfunc" 
+     <valueSourceParser name="myfunc"
                         class="com.mycompany.MyValueSourceParser" />
     -->
 
@@ -1741,12 +1741,12 @@ current implementation relies on the updateLog feature being enabled. -->
      <transformer name="db" class="com.mycompany.LoadFromDatabaseTransformer" >
        <int name="connection">jdbc://....</int>
      </transformer>
-     
+
      To add a constant value to all docs, use:
      <transformer name="mytrans2" class="org.apache.solr.response.transform.ValueAugmenterFactory" >
        <int name="value">5</int>
      </transformer>
-     
+
      If you want the user to still be able to change it with _value:something_ use this:
      <transformer name="mytrans3" class="org.apache.solr.response.transform.ValueAugmenterFactory" >
        <double name="defaultValue">5</double>

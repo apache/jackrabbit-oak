@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -66,6 +67,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         solrServer = provider.getSolrServer();
         try {
             return new Oak().with(new InitialContent())
+                    .with(new SolrIndexInitializer())
                     .with(new OpenSecurityProvider())
                     .with(new CompositeQueryIndexProvider(
                             new SolrQueryIndexProvider(provider, provider),
@@ -181,7 +183,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         Tree test = tree.addChild("test");
         test.addChild("a").setProperty("name", "Hello");
         test.addChild("b").setProperty("name", "World");
-        tree.addChild("c");
+        test.addChild("c");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
@@ -212,14 +214,14 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    public void testNativeSolrNestedQuery() throws Exception {
+    public void testNativeSolrLocalParams() throws Exception {
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', '_query_:\"{!dismax qf=catch_all q.op=OR}hello world\"')";
 
         Tree tree = root.getTree("/");
         Tree test = tree.addChild("test");
         test.addChild("a").setProperty("name", "Hello");
         test.addChild("b").setProperty("name", "World");
-        tree.addChild("c");
+        test.addChild("c");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
@@ -238,7 +240,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         Tree test = tree.addChild("test");
         test.addChild("a").setProperty("name", "Hello World, today weather is nice");
         test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
-        tree.addChild("c");
+        test.addChild("c").setProperty("name", "Halo Welt, today sky is cloudy");
         root.commit();
 
         Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
@@ -250,7 +252,27 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testNativeMLTQueryWithStream() throws Exception {
+        String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
+
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        test.addChild("a").setProperty("name", "Hello World, today weather is nice");
+        test.addChild("b").setProperty("name", "Cheers World, today weather is quite nice");
+        test.addChild("c").setProperty("name", "Halo Welt, today sky is cloudy");
+        root.commit();
+
+        Iterator<String> strings = executeQuery(nativeQueryString, "JCR-SQL2").iterator();
+        assertTrue(strings.hasNext());
+        assertEquals("/test/a", strings.next());
+        assertTrue(strings.hasNext());
+        assertEquals("/test/c", strings.next());
+        assertFalse(strings.hasNext());
+    }
+
+    @Test
     public void nativeSolr() throws Exception {
         test("native_solr.txt");
     }
+
 }
