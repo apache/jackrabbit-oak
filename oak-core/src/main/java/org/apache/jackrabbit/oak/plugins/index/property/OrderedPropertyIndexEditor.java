@@ -70,8 +70,8 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
             if (Strings.isNullOrEmpty(value)) {
                 LOG.warn("Empty value passed as propertyNames. Index not properly configured. Ignoring.");
             } else {
-                if (names.isArray()) {
-                    LOG.warn("Only single value supported. '{}' only will be used.", value);
+                if (names.isArray() && names.count() > 1) {
+                    LOG.debug("Only single value supported. '{}' only will be used.", value);
                 }
                 pns = Collections.singleton(value);
                 this.properlyConfigured = true;
@@ -82,7 +82,7 @@ public class OrderedPropertyIndexEditor extends PropertyIndexEditor {
         // configuring direction
         String propertyDirection = definition.getString(OrderedIndex.DIRECTION);
         if (propertyDirection == null) {
-            LOG.info("Using default direction for sorting: {}", this.direction);
+            // LOG.debug("Using default direction for sorting: {}", this.direction);
         } else {
             OrderDirection dir = OrderDirection.fromString(propertyDirection);
             if (dir == null) {
