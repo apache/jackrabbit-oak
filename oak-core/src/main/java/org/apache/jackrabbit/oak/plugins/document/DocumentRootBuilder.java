@@ -41,7 +41,7 @@ class DocumentRootBuilder extends MemoryNodeBuilder {
      * Number of content updates that need to happen before the updates
      * are automatically purged to the private branch.
      */
-    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 1000);
+    static final int UPDATE_LIMIT = Integer.getInteger("update.limit", 10000);
 
     /**
      * The underlying store
