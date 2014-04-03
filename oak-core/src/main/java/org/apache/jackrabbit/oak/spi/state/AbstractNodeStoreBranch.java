@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -36,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
+import com.google.common.collect.Maps;
+
 /**
  * A base implementation of a node store branch, which supports partially
  * persisted branches.
@@ -48,7 +52,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     private static final Random RANDOM = new Random();
 
-    private static final long MIN_BACKOFF = 100;
+    private static final long MIN_BACKOFF = 50;
+
+    protected static final ConcurrentMap<Thread, AbstractNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
 
     /** The underlying store to which this branch belongs */
     protected final S store;
@@ -72,7 +78,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                                    ChangeDispatcher dispatcher,
                                    Lock mergeLock,
                                    N base) {
-        this(kernelNodeStore, dispatcher, mergeLock, base,
+        this(kernelNodeStore, dispatcher, mergeLock, base, null,
                 MILLISECONDS.convert(10, SECONDS));
     }
 
@@ -80,11 +86,16 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                                    ChangeDispatcher dispatcher,
                                    Lock mergeLock,
                                    N base,
+                                   N head,
                                    long maximumBackoff) {
         this.store = checkNotNull(kernelNodeStore);
         this.dispatcher = dispatcher;
         this.mergeLock = checkNotNull(mergeLock);
-        branchState = new Unmodified(checkNotNull(base));
+        if (head == null) {
+            this.branchState = new Unmodified(checkNotNull(base));
+        } else {
+            this.branchState = new Persisted(checkNotNull(base), head);
+        }
         this.maximumBackoff = Math.max(maximumBackoff, MIN_BACKOFF);
     }
 
@@ -336,7 +347,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
          * Persist this branch to an underlying branch in the {@code MicroKernel}.
          */
         Persisted persist() {
-            Persisted p = new Persisted(base, getHead());
+            Persisted p = new Persisted(base);
+            p.persistTransientHead(getHead());
             branchState = p;
             return p;
         }
@@ -519,10 +531,15 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
             return "Persisted[" + base + ", " + head + ']';
         }
 
-        Persisted(N base, NodeState head) {
+        Persisted(N base) {
             super(base);
             this.head = createBranch(base);
-            persistTransientHead(head);
+        }
+
+        Persisted(N base, N head) {
+            super(base);
+            createBranch(base);
+            this.head = head;
         }
 
         void move(String source, String target) {
@@ -564,38 +581,54 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         @Nonnull
-        NodeState merge(@Nonnull CommitHook hook, @Nonnull CommitInfo info)
+        NodeState merge(@Nonnull final CommitHook hook,
+                        @Nonnull final CommitInfo info)
                 throws CommitFailedException {
+            boolean success = false;
+            N previousHead = head;
             try {
                 rebase();
+                previousHead = head;
                 dispatcher.contentChanged(base, null);
-                NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
-                N newRoot = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
-                boolean success = false;
-                try {
-                    newRoot = AbstractNodeStoreBranch.this.merge(newRoot, info);
-                    success = true;
-                } finally {
-                    if (!success) {
-                        try {
-                            AbstractNodeStoreBranch.this.reset(newRoot, head);
-                        } catch (Exception e) {
-                            CommitFailedException ex = new CommitFailedException(
-                                            OAK, 100, "Branch reset failed", e);
-                            branchState = new ResetFailed(base, ex);
-                        }
+                N newRoot = withCurrentBranch(new Callable<N>() {
+                    @Override
+                    public N call() throws Exception {
+                        NodeState toCommit = checkNotNull(hook).processCommit(base, head, info);
+                        head = AbstractNodeStoreBranch.this.persist(toCommit, head, info);
+                        return AbstractNodeStoreBranch.this.merge(head, info);
                     }
-                }
+                });
                 branchState = new Merged(base);
+                success = true;
                 dispatcher.contentChanged(newRoot, info);
                 return newRoot;
+            } catch (Exception e) {
+                if (e instanceof CommitFailedException) {
+                    throw (CommitFailedException) e;
+                } else {
+                    throw new CommitFailedException(MERGE, 1,
+                            "Failed to merge changes to the underlying store", e);
+                }
             } finally {
+                if (!success) {
+                    resetBranch(head, previousHead);
+                }
                 dispatcher.contentChanged(getRoot(), null);
             }
         }
 
         private void persistTransientHead(NodeState newHead) {
             head = AbstractNodeStoreBranch.this.persist(newHead, head, null);
+        }
+
+        private void resetBranch(N branchHead, N ancestor) {
+            try {
+                head = AbstractNodeStoreBranch.this.reset(branchHead, ancestor);
+            } catch (Exception e) {
+                CommitFailedException ex = new CommitFailedException(
+                        OAK, 100, "Branch reset failed", e);
+                branchState = new ResetFailed(base, ex);
+            }
         }
     }
 
@@ -686,4 +719,15 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         }
     }
 
+    private <T> T withCurrentBranch(Callable<T> callable) throws Exception {
+        Thread t = Thread.currentThread();
+        Object previous = BRANCHES.putIfAbsent(t, this);
+        try {
+            return callable.call();
+        } finally {
+            if (previous == null) {
+                BRANCHES.remove(t, this);
+            }
+        }
+    }
 }

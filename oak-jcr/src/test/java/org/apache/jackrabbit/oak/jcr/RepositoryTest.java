@@ -2040,6 +2040,25 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Test
+    public void manyTransientChanges() throws RepositoryException {
+        // test for OAK-1670, run with -Dupdate.limit=100
+        Session session = getAdminSession();
+        Node test = session.getRootNode().getNode(TEST_NODE);
+        Node foo = test.addNode("foo");
+        session.save();
+        test.setProperty("p", "value");
+        for (int i = 0; i < 76; i++) {
+            test.addNode("n" + i);
+        }
+        Node t = foo.addNode("test");
+        t.setProperty("prop", "value");
+        session.getNode(TEST_PATH + "/foo/test").setProperty("prop", "value");
+        session.save();
+
+        session.logout();
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {

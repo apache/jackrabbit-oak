@@ -79,11 +79,6 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     private final DocumentNodeStore store;
 
-    /**
-     * TODO: OAK-1056
-     */
-    private boolean isBranch;
-
     DocumentNodeState(@Nonnull DocumentNodeStore store, @Nonnull String path,
                       @Nonnull Revision rev) {
         this(store, path, rev, false);
@@ -99,15 +94,6 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     Revision getRevision() {
         return rev;
-    }
-
-    DocumentNodeState setBranch() {
-        isBranch = true;
-        return this;
-    }
-
-    boolean isBranch() {
-        return isBranch;
     }
 
     //--------------------------< NodeState >-----------------------------------
@@ -217,10 +203,21 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
     @Nonnull
     @Override
     public NodeBuilder builder() {
-        if (isBranch) {
-            return new MemoryNodeBuilder(this);
-        } else if ("/".equals(getPath())) {
-            return new DocumentRootBuilder(this, store);
+        if ("/".equals(getPath())) {
+            if (rev.isBranch()) {
+                // check if this node state is head of a branch
+                Branch b = store.getBranches().getBranch(rev);
+                if (b == null) {
+                    throw new IllegalStateException("No branch for revision: " + rev);
+                }
+                if (b.isHead(rev)) {
+                    return new DocumentRootBuilder(this, store);
+                } else {
+                    return new MemoryNodeBuilder(this);
+                }
+            } else {
+                return new DocumentRootBuilder(this, store);
+            }
         } else {
             return new MemoryNodeBuilder(this);
         }
