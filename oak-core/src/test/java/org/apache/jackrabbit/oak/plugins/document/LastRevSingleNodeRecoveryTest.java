@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -54,7 +53,6 @@ public class LastRevSingleNodeRecoveryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
         if (mongo.isAvailable()) {
             fixtures.add(new Object[] {mongo});
@@ -170,9 +168,10 @@ public class LastRevSingleNodeRecoveryTest {
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
 
         LastRevRecoveryAgent recoveryAgent = mk.getNodeStore().getLastRevRecoveryAgent();
-        Iterator<String> iter = recoveryAgent.getRecoveryCandidateNodes().iterator();
-        assertEquals(String.valueOf(1), iter.next());
-        assertEquals(false, iter.hasNext());
+        List<Integer> cids = recoveryAgent.getRecoveryCandidateNodes();
+
+        assertEquals(1, cids.size());
+        assertEquals(Integer.valueOf(1), cids.get(0));
     }
     
     private void setupScenario() throws InterruptedException {
@@ -220,8 +219,8 @@ public class LastRevSingleNodeRecoveryTest {
 
     @After
     public void tearDown() throws Exception {
-        Revision.setClock(null);
-        ClusterNodeInfo.setClock(null);
+        Revision.resetClockToDefault();
+        ClusterNodeInfo.resetClockToDefault();
         mk.dispose();
         fixture.dispose();
     }

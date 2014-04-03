@@ -72,6 +72,11 @@ public class LastRevRecoveryAgent {
     public int recover(int clusterId) {
         ClusterNodeInfoDocument nodeInfo = missingLastRevUtil.getClusterNodeInfo(clusterId);
 
+        //TODO Currently leaseTime remains same per cluster node. If this
+        //is made configurable then it should be read from DB entry
+        final long leaseTime = ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
+        final long asyncDelay = nodeStore.getAsyncDelay();
+
         if (nodeInfo != null) {
             long leaseEnd = nodeInfo.getLeaseEndTime();
 
@@ -83,10 +88,17 @@ public class LastRevRecoveryAgent {
                 Revision lastRev = root.getLastRev().get(clusterId);
 
                 // start time is the _lastRev timestamp of this cluster node
-                long startTime = lastRev.getTimestamp();
+                final long startTime;
+                //lastRev can be null if other cluster node did not got
+                //chance to perform lastRev rollup even once
+                if (lastRev != null) {
+                    startTime = lastRev.getTimestamp();
+                } else {
+                    startTime = leaseEnd - leaseTime - asyncDelay;
+                }
 
                 // Endtime is the leaseEnd + the asyncDelay
-                long endTime = leaseEnd + nodeStore.getAsyncDelay();
+                long endTime = leaseEnd + asyncDelay;
 
                 log.info("Recovering candidates modified in time range : [{},{}] for clusterId [{}]",
                         Utils.timestampToString(startTime),
@@ -260,19 +272,40 @@ public class LastRevRecoveryAgent {
         }
         return null;
     }
+
+    /**
+     * Determines if any of the cluster node failed to renew its lease and
+     * did not properly shutdown. If any such cluster node is found then are potential
+     * candidates for last rev recovery
+     *
+     * @return true if last rev recovery needs to be performed for any of the cluster nodes
+     */
+    public boolean isRecoveryNeeded(){
+        return missingLastRevUtil.isRecoveryNeeded(nodeStore.getClock().getTime());
+    }
+
+    public void performRecoveryIfNeeded(){
+        if(isRecoveryNeeded()){
+            List<Integer> clusterIds = getRecoveryCandidateNodes();
+            log.info("Starting last revision recovery for following clusterId {}", clusterIds);
+            for(int clusterId : clusterIds){
+                recover(clusterId);
+            }
+        }
+    }
     
     /**
      * Gets the _lastRev recovery candidate cluster nodes.
      *
      * @return the recovery candidate nodes
      */
-    public List<String> getRecoveryCandidateNodes() {
+    public List<Integer> getRecoveryCandidateNodes() {
         Iterable<ClusterNodeInfoDocument> clusters = missingLastRevUtil.getAllClusters();
-        List<String> candidateClusterNodes = Lists.newArrayList();
+        List<Integer> candidateClusterNodes = Lists.newArrayList();
         
         for (ClusterNodeInfoDocument nodeInfo : clusters) {
             if (isRecoveryNeeded(nodeInfo)) {
-                candidateClusterNodes.add(nodeInfo.getId());
+                candidateClusterNodes.add(Integer.valueOf(nodeInfo.getId()));
             }
         }
         

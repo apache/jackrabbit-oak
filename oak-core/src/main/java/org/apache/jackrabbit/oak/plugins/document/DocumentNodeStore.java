@@ -538,6 +538,7 @@ public final class DocumentNodeStore
         return asyncDelay;
     }
 
+    @CheckForNull
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
     }

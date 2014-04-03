@@ -92,6 +92,6 @@ public class ClusterInfoTest {
 
     @After
     public void tearDown(){
-        ClusterNodeInfo.setClock(null);
+        ClusterNodeInfo.resetClockToDefault();
     }
 }

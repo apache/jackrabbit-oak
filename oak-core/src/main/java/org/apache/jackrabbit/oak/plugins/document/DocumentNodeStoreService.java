@@ -59,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -138,6 +139,9 @@ public class DocumentNodeStoreService {
      */
     private long versionGcMaxAgeInSecs = DEFAULT_VER_GC_MAX_AGE;
 
+    public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
+
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
@@ -201,6 +205,7 @@ public class DocumentNodeStoreService {
         log.info("Connected to database {}", mongoDB);
 
         registerJMXBeans(mk.getNodeStore());
+        registerLastRevRecoveryJob(mk.getNodeStore());
 
         NodeStore store;
         if (useMK) {
@@ -219,7 +224,6 @@ public class DocumentNodeStoreService {
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
         reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
     }
-
 
     /**
      * At runtime DocumentNodeStore only pickup modification of certain properties
@@ -315,8 +319,6 @@ public class DocumentNodeStoreService {
             );
         }
 
-
-
         if (blobStore instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
@@ -338,6 +340,19 @@ public class DocumentNodeStoreService {
                 RevisionGCMBean.TYPE, "Document node store revision garbage collection"));
 
         //TODO Register JMX bean for Off Heap Cache stats
+    }
+
+    private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
+        long leaseTime = PropertiesUtil.toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
+                ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
+        Runnable recoverJob = new Runnable() {
+            @Override
+            public void run() {
+                nodeStore.getLastRevRecoveryAgent().performRecoveryIfNeeded();
+            }
+        };
+        registrations.add(WhiteboardUtils.scheduleWithFixedDelay(whiteboard,
+                recoverJob, TimeUnit.MILLISECONDS.toSeconds(leaseTime)));
     }
 
     private Object prop(String propName) {

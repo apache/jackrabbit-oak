@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * A revision.
  */
@@ -71,10 +74,14 @@ public class Revision {
      * @param c - the clock
      */
     static void setClock(Clock c) {
+        checkNotNull(c);
         clock = c;
-        if (c == null) {
-            lastTimestamp = System.currentTimeMillis();
-        }
+    }
+
+    static void resetClockToDefault(){
+        clock = Clock.SIMPLE;
+        lastTimestamp = clock.getTime();
+
     }
     public Revision(long timestamp, int counter, int clusterId) {
         this(timestamp, counter, clusterId, false);
