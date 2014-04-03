@@ -183,7 +183,7 @@ class Branch {
      * @param mergeCommit the revision of the merge commit.
      */
     public void applyTo(@Nonnull UnsavedModifications trunk,
-                                     @Nonnull Revision mergeCommit) {
+                        @Nonnull Revision mergeCommit) {
         checkNotNull(trunk);
         for (BranchCommit c : commits.values()) {
             c.getModifications().applyTo(trunk, mergeCommit);
@@ -214,6 +214,17 @@ class Branch {
             }
         }
         return null;
+    }
+
+    /**
+     * @param rev the revision to check.
+     * @return {@code true} if the given revision is the head of this branch,
+     *          {@code false} otherwise.
+     */
+    public boolean isHead(@Nonnull Revision rev) {
+        checkArgument(checkNotNull(rev).isBranch(),
+                "Not a branch revision: %s", rev);
+        return checkNotNull(rev).equals(commits.lastKey());
     }
 
     /**

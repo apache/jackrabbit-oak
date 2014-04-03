@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -33,18 +35,17 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 /**
  * Implementation of a DocumentMK based node store branch.
  */
-public class DocumentNodeStoreBranch
+class DocumentNodeStoreBranch
         extends AbstractNodeStoreBranch<DocumentNodeStore, DocumentNodeState> {
 
     /** Lock for coordinating concurrent merge operations */
     private final ReadWriteLock mergeLock;
 
-    public DocumentNodeStoreBranch(DocumentNodeStore store,
-                                   DocumentNodeState base,
-                                   ReadWriteLock mergeLock) {
-        // maximum back off is twice the async delay, but at least 2 seconds.
+    DocumentNodeStoreBranch(DocumentNodeStore store,
+                            DocumentNodeState base,
+                            ReadWriteLock mergeLock) {
         super(store, new ChangeDispatcher(store.getRoot()), mergeLock.readLock(),
-                base, Math.max(store.getAsyncDelay(), 1000) * 2);
+                base, null, getMaxBackoffMillis(store));
         this.mergeLock = mergeLock;
     }
 
@@ -55,13 +56,13 @@ public class DocumentNodeStoreBranch
 
     @Override
     protected DocumentNodeState createBranch(DocumentNodeState state) {
-        return store.getRoot(state.getRevision().asBranchRevision()).setBranch();
+        return store.getRoot(state.getRevision().asBranchRevision());
     }
 
     @Override
     protected DocumentNodeState rebase(DocumentNodeState branchHead,
                                     DocumentNodeState base) {
-        return store.getRoot(store.rebase(branchHead.getRevision(), base.getRevision())).setBranch();
+        return store.getRoot(store.rebase(branchHead.getRevision(), base.getRevision()));
     }
 
     @Override
@@ -74,25 +75,20 @@ public class DocumentNodeStoreBranch
     @Override
     protected DocumentNodeState reset(@Nonnull DocumentNodeState branchHead,
                                    @Nonnull DocumentNodeState ancestor) {
-        return store.getRoot(store.reset(branchHead.getRevision(),
-                ancestor.getRevision())).setBranch();
+        return store.getRoot(store.reset(branchHead.getRevision(), ancestor.getRevision()));
     }
 
     @Override
     protected DocumentNodeState persist(final NodeState toPersist,
                                      final DocumentNodeState base,
                                      final CommitInfo info) {
-        DocumentNodeState state = persist(new Changes() {
+        return persist(new Changes() {
             @Override
             public void with(Commit c) {
                 toPersist.compareAgainstBaseState(base,
                         new CommitDiff(store, c, store.getBlobSerializer()));
             }
         }, base, info);
-        if (base.isBranch()) {
-            state.setBranch();
-        }
-        return state;
     }
 
     @Override
@@ -146,7 +142,12 @@ public class DocumentNodeStoreBranch
         }
     }
 
-//------------------------------< internal >--------------------------------
+    //------------------------------< internal >--------------------------------
+
+    private static long getMaxBackoffMillis(DocumentNodeStore store) {
+        // maximum back off is twice the async delay, but at least 2 seconds.
+        return Math.max(store.getAsyncDelay(), 1000) * 2;
+    }
 
     /**
      * Persist some changes on top of the given base state.
@@ -184,5 +185,22 @@ public class DocumentNodeStoreBranch
     private interface Changes {
 
         void with(Commit c);
+    }
+
+    /**
+     * Returns the branch instance in use by the current thread or
+     * <code>null</code> if there is none.
+     * <p>
+     * See also {@link AbstractNodeStoreBranch#withCurrentBranch(Callable)}.
+     *
+     * @return
+     */
+    @CheckForNull
+    static DocumentNodeStoreBranch getCurrentBranch() {
+        AbstractNodeStoreBranch b = BRANCHES.get(Thread.currentThread());
+        if (b instanceof DocumentNodeStoreBranch) {
+            return (DocumentNodeStoreBranch) b;
+        }
+        return null;
     }
 }

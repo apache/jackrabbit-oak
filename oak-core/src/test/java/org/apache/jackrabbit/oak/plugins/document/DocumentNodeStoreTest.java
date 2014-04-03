@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -26,28 +27,38 @@ import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class DocumentNodeStoreTest {
 
@@ -266,5 +277,116 @@ public class DocumentNodeStoreTest {
 
         ns1.dispose();
         ns2.dispose();
+    }
+
+    @Test
+    public void commitHookChangesOnBranch() throws Exception {
+        final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
+        final int NUM_PROPS = 10;
+        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < NUM_NODES; i++) {
+            NodeBuilder c = builder.child("n" + i);
+            for (int j = 0; j < NUM_PROPS; j++) {
+                c.setProperty("q" + j, "value");
+                c.setProperty("p" + j, "value");
+            }
+        }
+        try {
+            ns.merge(builder, CompositeHook.compose(
+                    Arrays.asList(new TestHook("p"), new TestHook("q"), FAILING_HOOK)),
+                    CommitInfo.EMPTY);
+            fail("merge must fail and reset changes done by commit hooks");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+        for (int i = 0; i < NUM_NODES; i++) {
+            NodeBuilder c = builder.getChildNode("n" + i);
+            assertTrue(c.exists());
+            for (int j = 0; j < NUM_PROPS; j++) {
+                PropertyState p = c.getProperty("p" + j);
+                assertNotNull(p);
+                // must still see initial values before failed merge
+                assertEquals("value", p.getValue(Type.STRING));
+                // same for property 'qX'
+                p = c.getProperty("q" + j);
+                assertNotNull(p);
+                // must still see initial values before failed merge
+                assertEquals("value", p.getValue(Type.STRING));
+            }
+        }
+        ns.merge(builder, CompositeHook.compose(
+                Arrays.<CommitHook>asList(new TestHook("p"), new TestHook("q"))),
+                CommitInfo.EMPTY);
+
+        builder = ns.getRoot().builder();
+        // must see properties changed by commit hook
+        for (int i = 0; i < NUM_NODES; i++) {
+            NodeBuilder c = builder.getChildNode("n" + i);
+            assertTrue(c.exists());
+            for (int j = 0; j < NUM_PROPS; j++) {
+                PropertyState p = c.getProperty("p" + j);
+                assertNotNull(p);
+                assertEquals("test", p.getValue(Type.STRING));
+                p = c.getProperty("q" + j);
+                assertNotNull(p);
+                assertEquals("test", p.getValue(Type.STRING));
+            }
+        }
+
+        ns.dispose();
+    }
+
+    private static class TestHook extends EditorHook {
+
+        TestHook(final String prefix) {
+            super(new EditorProvider() {
+                @CheckForNull
+                @Override
+                public Editor getRootEditor(NodeState before,
+                                            NodeState after,
+                                            NodeBuilder builder,
+                                            CommitInfo info)
+                        throws CommitFailedException {
+                    return new TestEditor(builder, prefix);
+                }
+            });
+        }
+    }
+
+    private static final CommitHook FAILING_HOOK = new CommitHook() {
+        @Nonnull
+        @Override
+        public NodeState processCommit(NodeState before,
+                                       NodeState after,
+                                       CommitInfo info)
+                throws CommitFailedException {
+            throw new CommitFailedException(CONSTRAINT, 0, "fail");
+        }
+    };
+
+    private static class TestEditor extends DefaultEditor {
+
+        private final NodeBuilder builder;
+        private final String prefix;
+
+        TestEditor(NodeBuilder builder, String prefix) {
+            this.builder = builder;
+            this.prefix = prefix;
+        }
+
+        @Override
+        public Editor childNodeAdded(String name, NodeState after)
+                throws CommitFailedException {
+            return new TestEditor(builder.child(name), prefix);
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after)
+                throws CommitFailedException {
+            if (after.getName().startsWith(prefix)) {
+                builder.setProperty(after.getName(), "test");
+            }
+        }
     }
 }
