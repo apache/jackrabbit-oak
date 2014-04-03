@@ -310,7 +310,8 @@ public class FileStore implements SegmentStore {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
             RecordId after = head.get();
-            if (!after.equals(before)) {
+            boolean cleanup = cleanupNeeded.getAndSet(false);
+            if (cleanup || !after.equals(before)) {
                 // needs to happen outside the synchronization block below to
                 // avoid a deadlock with another thread flushing the writer
                 tracker.getWriter().flush();
@@ -324,7 +325,7 @@ public class FileStore implements SegmentStore {
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
 
-                    if (cleanupNeeded.getAndSet(false)) {
+                    if (cleanup) {
                         Set<UUID> ids = newHashSet();
                         for (SegmentId id : tracker.getReferencedSegmentIds()) {
                             ids.add(new UUID(

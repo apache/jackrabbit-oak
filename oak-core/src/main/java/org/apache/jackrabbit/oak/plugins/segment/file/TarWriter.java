@@ -93,6 +93,8 @@ class TarWriter {
      */
     private final Map<UUID, TarEntry> index = newHashMap();
 
+    private final Set<UUID> references = newHashSet();
+
     TarWriter(File file) {
         this.file = file;
     }
@@ -158,6 +160,18 @@ class TarWriter {
                 uuid.getMostSignificantBits(), uuid.getLeastSignificantBits(),
                 (int) (length - size - padding), size);
         index.put(uuid, entry);
+
+        if (isDataSegmentId(uuid.getLeastSignificantBits())) {
+            ByteBuffer segment = ByteBuffer.wrap(data, offset, size);
+            int pos = segment.position();
+            int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+            int refend = pos + 16 * (refcount + 1);
+            for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                references.add(new UUID(
+                        segment.getLong(refpos),
+                        segment.getLong(refpos + 8)));
+            }
+        }
 
         return length;
     }
@@ -303,30 +317,8 @@ class TarWriter {
     }
 
     synchronized void cleanup(Set<UUID> referencedIds) throws IOException {
-        TarEntry[] sorted = index.values().toArray(new TarEntry[index.size()]);
-        Arrays.sort(sorted, TarEntry.OFFSET_ORDER);
-
-        for (int i = sorted.length - 1; i >= 0; i--) {
-            TarEntry entry = sorted[i];
-            UUID id = new UUID(entry.msb(), entry.lsb());
-            if (referencedIds.remove(id) && isDataSegmentId(entry.lsb())) {
-                // this is a referenced data segment, so follow the graph
-                ByteBuffer segment = ByteBuffer.allocate(
-                        Math.min(entry.size(), 16 * 256));
-                access.seek(entry.offset());
-                access.readFully(segment.array());
-                int pos = segment.position();
-                int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
-                int refend = pos + 16 * (refcount + 1);
-                for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                    referencedIds.add(new UUID(
-                            segment.getLong(refpos),
-                            segment.getLong(refpos + 8)));
-                }
-            }
-        }
-
-        access.seek(access.length());
+        referencedIds.removeAll(index.keySet());
+        referencedIds.addAll(references);
     }
 
     //------------------------------------------------------------< Object >--
