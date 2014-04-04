@@ -337,7 +337,6 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
         concurrentLogin(CONCURRENT_TEST_USERS);
     }
 
-    @Ignore("OAK-1679") // FIXME OAK-1679
     @Test
     public void testConcurrentLoginSameGroup() throws Exception {
         concurrentLogin(CONCURRENT_GROUP_TEST_USERS);
