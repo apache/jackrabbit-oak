@@ -18,6 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,6 +38,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.ImportUUIDBehavior;
@@ -68,15 +78,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -564,6 +565,21 @@ public class RepositoryTest extends AbstractRepositoryTest {
         } finally {
             session2.logout();
         }
+    }
+
+    @Ignore("OAK-1674")  // FIXME OAK-1674
+    @Test
+    public void testIsNew() throws RepositoryException, InterruptedException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        Node node1 = root.addNode("node1");
+        session.save();
+
+        node1.remove();
+        Node node2 = root.addNode("node2");
+        assertTrue("The Node is just added", node2.isNew());
+        Node node1Again = root.addNode("node1");
+        assertTrue("The Node is just added but has a remove in same commit", node1Again.isNew());
     }
 
     @Test
