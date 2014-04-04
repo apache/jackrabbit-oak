@@ -85,54 +85,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> T find(final Collection<T> collection, final String id, int maxCacheAge) {
-        if (collection != Collection.NODES) {
-            return readDocument(collection, id);
-        } else {
-            CacheValue cacheKey = new StringValue(id);
-            NodeDocument doc;
-            if (maxCacheAge > 0) {
-                // first try without lock
-                doc = nodesCache.getIfPresent(cacheKey);
-                if (doc != null) {
-                    if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
-                        return castAsT(unwrap(doc));
-                    }
-                }
-            }
-            try {
-                Lock lock = getAndLock(id);
-                try {
-                    if (maxCacheAge == 0) {
-                        invalidateCache(collection, id);
-                    }
-                    while (true) {
-                        doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
-                            @Override
-                            public NodeDocument call() throws Exception {
-                                NodeDocument doc = (NodeDocument) readDocument(collection, id);
-                                if (doc != null) {
-                                    doc.seal();
-                                }
-                                return wrap(doc);
-                            }
-                        });
-                        if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
-                            break;
-                        }
-                        if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
-                            break;
-                        }
-                        // too old: invalidate, try again
-                        invalidateCache(collection, id);
-                    }
-                } finally {
-                    lock.unlock();
-                }
-                return castAsT(unwrap(doc));
-            } catch (ExecutionException e) {
-                throw new IllegalStateException("Failed to load document with " + id, e);
-            }
-        }
+        return readDocumentCached(collection, id, maxCacheAge);
     }
 
     @Override
@@ -297,6 +250,57 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
+    private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
+        if (collection != Collection.NODES) {
+            return readDocumentUncached(collection, id);
+        } else {
+            CacheValue cacheKey = new StringValue(id);
+            NodeDocument doc;
+            if (maxCacheAge > 0) {
+                // first try without lock
+                doc = nodesCache.getIfPresent(cacheKey);
+                if (doc != null) {
+                    if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                        return castAsT(unwrap(doc));
+                    }
+                }
+            }
+            try {
+                Lock lock = getAndLock(id);
+                try {
+                    if (maxCacheAge == 0) {
+                        invalidateCache(collection, id);
+                    }
+                    while (true) {
+                        doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
+                            @Override
+                            public NodeDocument call() throws Exception {
+                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id);
+                                if (doc != null) {
+                                    doc.seal();
+                                }
+                                return wrap(doc);
+                            }
+                        });
+                        if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
+                            break;
+                        }
+                        if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                            break;
+                        }
+                        // too old: invalidate, try again
+                        invalidateCache(collection, id);
+                    }
+                } finally {
+                    lock.unlock();
+                }
+                return castAsT(unwrap(doc));
+            } catch (ExecutionException e) {
+                throw new IllegalStateException("Failed to load document with " + id, e);
+            }
+        }
+    }
+
     @CheckForNull
     private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
         try {
@@ -316,7 +320,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     @CheckForNull
     private <T extends Document> T internalCreateOrUpdate(Collection<T> collection, UpdateOp update, boolean allowCreate,
             boolean checkConditions) {
-        T oldDoc = readDocument(collection, update.getId());
+        T oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
 
         if (oldDoc == null) {
             if (!allowCreate) {
@@ -337,7 +341,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             catch (MicroKernelException ex) {
                 // may have failed due to a race condition; try update instead
-                oldDoc = readDocument(collection, update.getId());
+                oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                 if (oldDoc == null) {
                     // something else went wrong
                     throw(ex);
@@ -363,7 +367,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 if (!success) {
                     // retry with a fresh document
                     retries -= 1;
-                    oldDoc = readDocument(collection, update.getId());
+                    oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                     doc = applyChanges(collection, oldDoc, update, checkConditions);
                     if (doc == null) {
                         return null;
@@ -501,7 +505,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private <T extends Document> T readDocument(Collection<T> collection, String id) {
+    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id) {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
