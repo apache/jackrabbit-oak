@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Striped;
 
 public class RDBDocumentStore implements CachingDocumentStore {
@@ -154,11 +155,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @Override
-    public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
-        // TODO Use batch delete
-        for (String key : keys) {
-            remove(collection, key);
+    public <T extends Document> void remove(Collection<T> collection, List<String> ids) {
+        for (String id : ids) {
+            invalidateCache(collection, id);
         }
+        delete(collection, ids);
     }
 
     @Override
@@ -519,12 +520,34 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         try {
             connection = getConnection();
-            dbDelete(connection, tableName, id);
+            boolean success = dbDelete(connection, tableName, id);
             connection.commit();
+            if (!success) {
+                throw new MicroKernelException("not deleted: " + id);
+            }
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
         } finally {
             closeConnection(connection);
+        }
+    }
+
+    private <T extends Document> void delete(Collection<T> collection, List<String> ids) {
+        for (List<String> sublist : Lists.partition(ids, 64)) {
+            Connection connection = null;
+            String tableName = getTable(collection);
+            try {
+                connection = getConnection();
+                boolean success = dbDelete(connection, tableName, sublist);
+                connection.commit();
+                if (!success) {
+                    throw new MicroKernelException("not deleted: " + ids);
+                }
+            } catch (Exception ex) {
+                throw new MicroKernelException(ex);
+            } finally {
+                closeConnection(connection);
+            }
         }
     }
 
@@ -731,6 +754,31 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 LOG.debug("DB delete failed for " + tableName + "/" + id);
             }
             return result == 1;
+        } finally {
+            stmt.close();
+        }
+    }
+
+    private boolean dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
+        StringBuilder inClause = new StringBuilder();
+        int cnt = ids.size();
+        for (int i = 0; i < cnt; i++) {
+            inClause.append('?');
+            if (i != cnt - 1) {
+                inClause.append(',');
+            }
+        }
+        PreparedStatement stmt = connection.prepareStatement("delete from " + tableName + " where ID in (" + inClause.toString()
+                + ")");
+        try {
+            for (int i = 0; i < cnt; i++) {
+                stmt.setString(i + 1, ids.get(i));
+            }
+            int result = stmt.executeUpdate();
+            if (result != cnt) {
+                LOG.debug("DB delete failed for " + tableName + "/" + ids);
+            }
+            return result == cnt;
         } finally {
             stmt.close();
         }
