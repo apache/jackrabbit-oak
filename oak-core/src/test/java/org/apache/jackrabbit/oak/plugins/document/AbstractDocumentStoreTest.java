@@ -17,20 +17,26 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractDocumentStoreTest {
 
     protected String dsname;
     protected DocumentStore ds;
-    protected Set<String> removeMe = new HashSet<String>();
+    protected List<String> removeMe = new ArrayList<String>();
+
+    static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.ds = dsf.createDocumentStore();
@@ -39,11 +45,24 @@ public abstract class AbstractDocumentStoreTest {
 
     @After
     public void cleanUp() {
-        for (String id : removeMe) {
+        if (!removeMe.isEmpty()) {
+            long start = System.nanoTime();
             try {
-                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
+                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
             } catch (Exception ex) {
-                // best effort
+                // retry one by one
+                for (String id : removeMe) {
+                    try {
+                        ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
+                    } catch (Exception ex2) {
+                        // best effort
+                    }
+                }
+            }
+            if (removeMe.size() > 1) {
+                long elapsed = (System.nanoTime() - start) / (1000 * 1000);
+                float rate = (((float)removeMe.size()) / (elapsed == 0 ? 1 : elapsed));
+                LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
             }
         }
     }
