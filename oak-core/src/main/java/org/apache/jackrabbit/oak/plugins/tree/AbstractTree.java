@@ -204,7 +204,7 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public Status getStatus() {
-        if (nodeBuilder.isNew()) {
+        if (nodeBuilder.isNew() || nodeBuilder.isReplaced()) {
             return NEW;
         } else if (nodeBuilder.isModified()) {
             return MODIFIED;
