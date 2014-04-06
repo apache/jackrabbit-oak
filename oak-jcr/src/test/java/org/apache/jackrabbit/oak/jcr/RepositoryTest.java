@@ -567,7 +567,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
-    @Ignore("OAK-1674")  // FIXME OAK-1674
     @Test
     public void testIsNew() throws RepositoryException, InterruptedException {
         Session session = getAdminSession();

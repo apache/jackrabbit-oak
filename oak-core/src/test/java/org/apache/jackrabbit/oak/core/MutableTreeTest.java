@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
 import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -313,7 +312,6 @@ public class MutableTreeTest extends OakBaseTest {
         assertFalse(y.exists());
     }
 
-    @Ignore("OAK-1674")  // FIXME OAK-1674
     @Test
     public void isNew() throws CommitFailedException {
         Tree tree = root.getTree("/");
