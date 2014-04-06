@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
+import org.junit.Assume;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * {@code AutoCreatedItemsTest} checks if auto-created nodes and properties
@@ -38,6 +39,7 @@ public class AutoCreatedItemsTest extends AbstractRepositoryTest {
 
     @Test
     public void autoCreatedItems() throws Exception {
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
         Session s = getAdminSession();
         new TestContentLoader().loadTestContent(s);
         Node test = s.getRootNode().addNode("test", "test:autoCreate");
