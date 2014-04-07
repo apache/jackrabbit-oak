@@ -400,30 +400,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     private <T extends Document> void internalUpdate(Collection<T> collection, List<String> ids, UpdateOp update) {
-        Connection connection = null;
-        String tableName = getTable(collection);
-        try {
-            connection = getConnection();
-            for (String id : ids) {
-                String in = dbRead(connection, tableName, id);
-                if (in == null) {
-                    throw new MicroKernelException(tableName + " " + id + " not found");
-                }
-                T doc = fromString(collection, in);
-                Long oldmodcount = (Long) doc.get(MODCOUNT);
-                update.increment(MODCOUNT, 1);
-                UpdateUtils.applyChanges(doc, update, comparator);
-                String data = asString(doc);
-                Long modified = (Long) doc.get(MODIFIED);
-                Long modcount = (Long) doc.get(MODCOUNT);
-                dbUpdate(connection, tableName, id, modified, modcount, oldmodcount, data);
-                invalidateCache(collection, id); // TODO
-            }
-            connection.commit();
-        } catch (Exception ex) {
-            throw new MicroKernelException(ex);
-        } finally {
-            closeConnection(connection);
+
+        for (String id : ids) {
+            UpdateOp up = update.copy();
+            up = up.shallowCopy(id);
+            internalCreateOrUpdate(collection, up, false, true);
         }
     }
 

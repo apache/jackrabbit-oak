@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -133,6 +134,32 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // id-2 should be removed
         Document d = ds.find(Collection.NODES, id + "-2");
         assertTrue(d == null);
+    }
+
+    @Test
+    public void testUpdateMultiple() {
+        String id = this.getClass().getName() + ".testUpdateMultiple";
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        // update a non-existing one and this one
+        List<String> toupdate = new ArrayList<String>();
+        toupdate.add(id + "-" + UUID.randomUUID());
+        toupdate.add(id);
+
+        UpdateOp up2 = new UpdateOp(id, false);
+        up2.set("foo", "bar");
+        ds.update(Collection.NODES, toupdate, up2);
+
+        // id should be updated
+        ds.invalidateCache();
+        Document d = ds.find(Collection.NODES, id);
+        assertNotNull(d);
+        assertEquals(d.get("foo").toString(), "bar");
     }
 
     @Test
