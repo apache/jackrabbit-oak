@@ -59,6 +59,9 @@ public class ExternalLoginModule extends AbstractLoginModule {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
+    // todo: make configurable
+    private static final int MAX_SYNC_ATTEMPTS = 50;
+
     /**
      * Name of the parameter that configures the name of the external identity provider.
      */
@@ -283,32 +286,39 @@ public class ExternalLoginModule extends AbstractLoginModule {
      * @throws SyncException if an error occurs
      */
     private void syncUser(@Nonnull ExternalUser user) throws SyncException {
-        SyncContext context = null;
-        try {
-            Root root = getRoot();
-            if (root == null) {
-                throw new SyncException("Cannot synchronize user. root == null");
-            }
-            UserManager userManager = getUserManager();
-            if (userManager == null) {
-                throw new SyncException("Cannot synchronize user. userManager == null");
-            }
-            DebugTimer timer = new DebugTimer();
-            context = syncHandler.createContext(idp, userManager, root);
-            context.sync(user);
-            timer.mark("sync");
-            root.commit();
-            timer.mark("commit");
-            if (log.isDebugEnabled()) {
-                log.debug("syncUser({}) {}", user.getId(), timer.getString());
-            }
-        } catch (CommitFailedException e) {
-            throw new SyncException("User synchronization failed during commit.", e);
-        } finally {
-            if (context != null) {
-                context.close();
+        Root root = getRoot();
+        if (root == null) {
+            throw new SyncException("Cannot synchronize user. root == null");
+        }
+        UserManager userManager = getUserManager();
+        if (userManager == null) {
+            throw new SyncException("Cannot synchronize user. userManager == null");
+        }
+
+        int numAttempt = 0;
+        while (numAttempt++ < MAX_SYNC_ATTEMPTS) {
+            SyncContext context = null;
+            try {
+                DebugTimer timer = new DebugTimer();
+                context = syncHandler.createContext(idp, userManager, root);
+                context.sync(user);
+                timer.mark("sync");
+                root.commit();
+                timer.mark("commit");
+                if (log.isDebugEnabled()) {
+                    log.debug("syncUser({}) {}", user.getId(), timer.getString());
+                }
+                return;
+            } catch (CommitFailedException e) {
+                log.warn("User synchronization failed during commit: {}. (attempt {}/{})", e.toString(), numAttempt, MAX_SYNC_ATTEMPTS);
+                root.refresh();
+            } finally {
+                if (context != null) {
+                    context.close();
+                }
             }
         }
+        throw new SyncException("User synchronization failed during commit after " + MAX_SYNC_ATTEMPTS + " attempts");
     }
 
     /**
