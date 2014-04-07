@@ -21,32 +21,8 @@ All known issues are listed in the Apache [JIRA](https://issues.apache.org/jira/
 Changes with respect to Jackrabbit-core are collected in [OAK-14]
 (https://issues.apache.org/jira/browse/OAK-14) and its sub-tasks.
 
-* Locking:
-    * Locking and unlocking of nodes is not implemented yet. You will not see an exception as long as
-      the [TODO](https://issues.apache.org/jira/browse/OAK-193)-flag prevents the implementation from
-      throwing UnsupportedOperationException, but the node *will not* be locked.
-      See [OAK-150](https://issues.apache.org/jira/browse/OAK-150)
-
-
-* Versioning [OAK-168](https://issues.apache.org/jira/browse/OAK-168):
-    * `VersionHistory#removeVersion()` is not implemented yet
-    * `VersionManager#merge()` is not implemented yet
-    * `VersionManager#restore()` with version-array is not implemented yet
-    * Activities are not implemented
-    * Configurations are not implemented
-
-
-* Query:
-    * Known issue with OR statements in full text queries
-      See [OAK-902](https://issues.apache.org/jira/browse/OAK-902)
-
-
 * Workspace Operations:
     * Cross workspace operations are not implemented yet
-      See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
+      See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
     * Workspace Management (creating/deleting workspaces) is not implemented yet
-      See [OAK-916](https://issues.apache.org/jira/browse/OAK-916)
-
-
-In some cases Oak throws Runtime exceptions instead of a properly typed exception. We are working
-on correcting this. Please do not work around this by adapting catch clauses in your application.
+      See [OAK-118](https://issues.apache.org/jira/browse/OAK-118)
