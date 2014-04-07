@@ -21,5 +21,5 @@ The latest Oak sources are available for checkout from [svn]
 (https://svn.apache.org/repos/asf/jackrabbit/oak/trunk), or you can [fork them]
 (https://github.com/apache/jackrabbit-oak) on GitHub.
 
-See also our [monthly releases](http://jackrabbit.apache.org/downloads.html) on the Jackrabbit
+See also our [frequent releases](http://jackrabbit.apache.org/downloads.html) on the Jackrabbit
 download page for slightly more stable versions of the codebase.

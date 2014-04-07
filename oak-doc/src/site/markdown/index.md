@@ -21,8 +21,7 @@ Jackrabbit Oak - the next generation content repository
 Jackrabbit Oak is an effort to implement a scalable and performant hierarchical content repository
 for use as the foundation of modern world-class web sites and other demanding content applications.
 The Oak effort is a part of the [Apache Jackrabbit project](http://jackrabbit.apache.org/). Apache
-Jackrabbit is a project of the [Apache Software Foundation](http://www.apache.org/). Oak is
-currently alpha-level software. Use at your own risk with no stability or compatibility guarantees.
+Jackrabbit is a project of the [Apache Software Foundation](http://www.apache.org/).
 
 Why Oak
 -------
@@ -47,7 +46,7 @@ See the Jackrabbit Wiki for an initial list of [goals and non goals]
 
 Work in Progress
 ----------------
-This documentation is very much work in progress. Currently much of the information on Oak is
+This documentation is still work in progress. Currently much of the information on Oak is
 somewhat spread over different places. If you don't find something here you could also try
 
 * the [Jackrabbit Oak Wiki Page](http://wiki.apache.org/jackrabbit/Jackrabbit%203),
