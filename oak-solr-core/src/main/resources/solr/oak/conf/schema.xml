@@ -131,7 +131,7 @@
 
     <dynamicField name="*_pi"  type="pint"    indexed="true"  stored="true"/>
     <dynamicField name="*_c"   type="currency" indexed="true"  stored="true"/>
-    <dynamicField name="*" type="text_keepcase" indexed="true" stored="true" multiValued="true"/>
+    <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
   </fields>
   <uniqueKey>path_exact</uniqueKey>
   <copyField source="path_exact" dest="path_anc"/>

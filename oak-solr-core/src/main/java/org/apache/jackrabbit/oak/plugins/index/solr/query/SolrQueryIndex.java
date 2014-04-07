@@ -133,15 +133,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                                     int mltFlIndex = parameterString.indexOf(mltFlString);
                                     if (mltFlIndex > -1) {
                                         int beginIndex = mltFlIndex + mltFlString.length();
-                                        int endIndex = parameterString.indexOf('&',beginIndex);
+                                        int endIndex = parameterString.indexOf('&', beginIndex);
                                         String fields;
                                         if (endIndex > beginIndex) {
                                             fields = parameterString.substring(beginIndex, endIndex);
-                                        }
-                                        else {
+                                        } else {
                                             fields = parameterString.substring(beginIndex);
                                         }
-                                        kv[1] = "_query_:\"{!dismax qf="+fields+" q.op=OR}"+kv[1]+"\"";
+                                        kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
                                     }
                                 }
                                 solrQuery.setParam(kv[0], kv[1]);
@@ -258,9 +257,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     }
                     FullTextExpression e = or.list.get(i);
                     String orTerm = getFullTextQuery(e);
-                    fullTextString.append('(');
                     fullTextString.append(orTerm);
-                    fullTextString.append(')');
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
@@ -276,9 +273,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     }
                     FullTextExpression e = and.list.get(i);
                     String andTerm = getFullTextQuery(e);
-                    fullTextString.append('(');
                     fullTextString.append(andTerm);
-                    fullTextString.append(')');
                 }
                 fullTextString.append(')');
                 fullTextString.append(' ');
@@ -299,7 +294,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 }
                 fullTextString.append(p);
                 fullTextString.append(':');
-                fullTextString.append(partialEscape(term.getText()));
+                String termText = term.getText();
+                if (termText.indexOf(' ') > 0) {
+                    fullTextString.append('"');
+                }
+                fullTextString.append(termText.replace("/", "\\/").replace(":", "\\:"));
+                if (termText.indexOf(' ') > 0) {
+                    fullTextString.append('"');
+                }
                 String boost = term.getBoost();
                 if (boost != null) {
                     fullTextString.append('^');
