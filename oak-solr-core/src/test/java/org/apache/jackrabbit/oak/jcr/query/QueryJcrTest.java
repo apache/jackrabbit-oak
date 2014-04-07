@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.jcr.query;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.apache.jackrabbit.core.query.FulltextQueryTest;
+import org.apache.jackrabbit.core.query.JoinTest;
 import org.apache.jackrabbit.core.query.LimitAndOffsetTest;
 import org.apache.jackrabbit.core.query.PathQueryNodeTest;
 import org.apache.jackrabbit.core.query.SQL2OffsetLimitTest;
@@ -36,7 +38,7 @@ public class QueryJcrTest extends TestCase {
     public static Test suite() {
         TestSuite suite = new ConcurrentTestSuite(
                 "Jackrabbit query tests using a Solr based index");
-//        suite.addTestSuite(FulltextQueryTest.class); // fail
+        suite.addTestSuite(FulltextQueryTest.class);
         suite.addTestSuite(SQLTest.class);
 //        suite.addTestSuite(JoinTest.class); // fail
         suite.addTestSuite(SkipDeletedNodesTest.class);
