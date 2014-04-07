@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -338,13 +339,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 insertDocument(collection, doc);
                 addToCache(collection, doc);
                 return oldDoc;
-            }
-            catch (MicroKernelException ex) {
+            } catch (MicroKernelException ex) {
                 // may have failed due to a race condition; try update instead
                 oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                 if (oldDoc == null) {
                     // something else went wrong
-                    throw(ex);
+                    throw (ex);
                 }
                 return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
             }
@@ -524,11 +524,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         try {
             connection = getConnection();
-            boolean success = dbDelete(connection, tableName, id);
+            dbDelete(connection, tableName, Collections.singletonList(id));
             connection.commit();
-            if (!success) {
-                throw new MicroKernelException("not deleted: " + id);
-            }
         } catch (Exception ex) {
             throw new MicroKernelException(ex);
         } finally {
@@ -542,11 +539,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             String tableName = getTable(collection);
             try {
                 connection = getConnection();
-                boolean success = dbDelete(connection, tableName, sublist);
+                dbDelete(connection, tableName, sublist);
                 connection.commit();
-                if (!success) {
-                    throw new MicroKernelException("not deleted: " + ids);
-                }
             } catch (Exception ex) {
                 throw new MicroKernelException(ex);
             } finally {
@@ -749,31 +743,24 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private boolean dbDelete(Connection connection, String tableName, String id) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("delete from " + tableName + " where ID = ?");
-        try {
-            stmt.setString(1, id);
-            int result = stmt.executeUpdate();
-            if (result != 1) {
-                LOG.debug("DB delete failed for " + tableName + "/" + id);
-            }
-            return result == 1;
-        } finally {
-            stmt.close();
-        }
-    }
+    private void dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
 
-    private boolean dbDelete(Connection connection, String tableName, List<String> ids) throws SQLException {
-        StringBuilder inClause = new StringBuilder();
+        PreparedStatement stmt;
         int cnt = ids.size();
-        for (int i = 0; i < cnt; i++) {
-            inClause.append('?');
-            if (i != cnt - 1) {
-                inClause.append(',');
+
+        if (cnt == 1) {
+            stmt = connection.prepareStatement("delete from " + tableName + " where ID=?");
+        } else {
+            StringBuilder inClause = new StringBuilder();
+            for (int i = 0; i < cnt; i++) {
+                inClause.append('?');
+                if (i != cnt - 1) {
+                    inClause.append(',');
+                }
             }
+            stmt = connection.prepareStatement("delete from " + tableName + " where ID in (" + inClause.toString() + ")");
         }
-        PreparedStatement stmt = connection.prepareStatement("delete from " + tableName + " where ID in (" + inClause.toString()
-                + ")");
+
         try {
             for (int i = 0; i < cnt; i++) {
                 stmt.setString(i + 1, ids.get(i));
@@ -782,7 +769,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (result != cnt) {
                 LOG.debug("DB delete failed for " + tableName + "/" + ids);
             }
-            return result == cnt;
         } finally {
             stmt.close();
         }

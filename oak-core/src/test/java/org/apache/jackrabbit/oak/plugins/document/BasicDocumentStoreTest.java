@@ -19,7 +19,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.junit.Assume;
@@ -106,6 +109,30 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         LOG.info("max prop length for " + super.dsname + " was " + test);
+    }
+
+    @Test
+    public void testDeleteNonExisting() {
+        String id = this.getClass().getName() + ".testDeleteNonExisting-" + UUID.randomUUID();
+        // delete is best effort
+        ds.remove(Collection.NODES, id);
+    }
+
+    @Test
+    public void testDeleteNonExistingMultiple() {
+        String id = this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id + "-2");
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        List<String> todelete = new ArrayList<String>();
+        todelete.add(id + "-2");
+        todelete.add(id);
+        ds.remove(Collection.NODES, todelete);
+        // id-2 should be removed
+        Document d = ds.find(Collection.NODES, id + "-2");
+        assertTrue(d == null);
     }
 
     @Test
