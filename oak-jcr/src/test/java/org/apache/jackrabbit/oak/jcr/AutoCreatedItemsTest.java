@@ -24,7 +24,6 @@ import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -39,7 +38,6 @@ public class AutoCreatedItemsTest extends AbstractRepositoryTest {
 
     @Test
     public void autoCreatedItems() throws Exception {
-        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
         Session s = getAdminSession();
         new TestContentLoader().loadTestContent(s);
         Node test = s.getRootNode().addNode("test", "test:autoCreate");
