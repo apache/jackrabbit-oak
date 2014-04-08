@@ -344,6 +344,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                 if (oldDoc == null) {
                     // something else went wrong
+                    LOG.error("insert failed, but document " + update.getId() + " is not present, aborting", ex);
                     throw (ex);
                 }
                 return internalUpdate(collection, update, oldDoc, checkConditions, RETRIES);
@@ -355,13 +356,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
-            int retries) {
+            int maxRetries) {
         T doc = applyChanges(collection, oldDoc, update, checkConditions);
         if (doc == null) {
             return null;
         } else {
             boolean success = false;
 
+            int retries = maxRetries;
             while (!success && retries > 0) {
                 success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
                 if (!success) {
@@ -378,7 +380,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
 
             if (!success) {
-                throw new MicroKernelException("failed update (race?)");
+                throw new MicroKernelException("failed update (race?) after " + maxRetries + " retries");
             }
 
             return oldDoc;
