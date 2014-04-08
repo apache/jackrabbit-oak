@@ -692,17 +692,17 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         @Nonnull
         @Override
         NodeState getHead() {
-            throw new IllegalStateException("Branch with failed reset");
+            throw new IllegalStateException("Branch with failed reset", ex);
         }
 
         @Override
         void setRoot(NodeState root) {
-            throw new IllegalStateException("Branch with failed reset");
+            throw new IllegalStateException("Branch with failed reset", ex);
         }
 
         @Override
         void rebase() {
-            throw new IllegalStateException("Branch with failed reset");
+            throw new IllegalStateException("Branch with failed reset", ex);
         }
 
         /**
