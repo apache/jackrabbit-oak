@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -42,11 +43,17 @@ import com.google.common.collect.Sets;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomStream;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_RATIO;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Check correct splitting of documents (OAK-926 & OAK-1342).
@@ -477,6 +484,67 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
             doc.put(NodeDocument.ID, id);
             assertEquals(path, doc.getMainPath());
         }
+    }
+
+    @Test
+    public void cascadingWithSplitRatio() {
+        String id = Utils.getIdFromPath("/test");
+        mk.commit("/", "+\"test\":{}", null, null);
+        DocumentStore store = mk.getDocumentStore();
+        int clusterId = mk.getNodeStore().getClusterId();
+
+        UpdateOp op = new UpdateOp(id, false);
+        // create some baggage
+        for (int i = 0; i < NUM_REVS_THRESHOLD / SPLIT_RATIO; i++) {
+            Revision r = Revision.newRevision(2);
+            op.setMapEntry("prop", r, "test value");
+            NodeDocument.setRevision(op, r, "c");
+        }
+        // these will be considered for a split
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            Revision r = Revision.newRevision(clusterId);
+            op.setMapEntry("prop", r, "value");
+            NodeDocument.setRevision(op, r, "c");
+        }
+        // some fake previous doc references to trigger UpdateOp
+        // for an intermediate document
+        TreeSet<Revision> prev = Sets.newTreeSet(mk.getNodeStore().getRevisionComparator());
+        for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
+            Revision low = Revision.newRevision(clusterId);
+            Revision high = Revision.newRevision(clusterId);
+            prev.add(high);
+            NodeDocument.setPrevious(op, new Range(high, low, 0));
+        }
+        store.findAndUpdate(NODES, op);
+
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        assertEquals(2, splitOps.size());
+        // first update op is for the new intermediate doc
+        op = splitOps.get(0);
+        String newPrevId = Utils.getPreviousIdFor("/test", prev.last(), 1);
+        assertEquals(newPrevId, op.getId());
+        // second update op is for the main document
+        op = splitOps.get(1);
+        assertEquals(id, op.getId());
+        for (Map.Entry<UpdateOp.Key, UpdateOp.Operation> entry : op.getChanges().entrySet()) {
+            Revision r = entry.getKey().getRevision();
+            assertNotNull(r);
+            assertEquals(clusterId, r.getClusterId());
+            if (entry.getKey().getName().equals("_prev")) {
+                if (entry.getValue().type == REMOVE_MAP_ENTRY) {
+                    assertTrue(prev.contains(r));
+                } else if (entry.getValue().type == SET_MAP_ENTRY) {
+                    assertEquals(newPrevId, Utils.getPreviousIdFor("/test", r, 1));
+                } else {
+                    fail("unexpected update operation " + entry);
+                }
+            } else {
+                fail("unexpected update operation " + entry);
+            }
+        }
+
     }
 
     private void syncMKs(List<DocumentMK> mks, int idx) {
