@@ -50,6 +50,8 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
 import com.google.common.collect.Lists;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
@@ -61,6 +63,7 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DocumentFixture;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.SegmentFixture;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -157,6 +160,12 @@ public class LargeOperationIT {
 
     @Before
     public void setup() throws RepositoryException {
+        // Disable noisy logging we want to ignore for these tests
+        ((LoggerContext)LoggerFactory.getILoggerFactory())
+                .getLogger(DocumentNodeStore.class).setLevel(Level.ERROR);
+        ((LoggerContext)LoggerFactory.getILoggerFactory())
+                .getLogger("org.apache.jackrabbit.oak.jcr.observation.ChangeProcessor").setLevel(Level.ERROR);
+
         nodeStore = fixture.createNodeStore();
         repository  = new Jcr(nodeStore).createRepository();
         session = createAdminSession();
