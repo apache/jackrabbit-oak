@@ -20,7 +20,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
 /**
- * An {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration} for the embedded Solr server
+ * Default {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration}
  */
 public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
