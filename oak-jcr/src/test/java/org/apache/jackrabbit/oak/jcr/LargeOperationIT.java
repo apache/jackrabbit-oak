@@ -312,7 +312,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1415
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
         assertOnLgn("large move", scales, executionTimes, knownIssue);
     }
 
@@ -387,7 +387,8 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        assertOnLgn("large number of pending events", scales, executionTimes, false);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        assertOnLgn("large number of pending events", scales, executionTimes, knownIssue);
     }
 
     @Test
@@ -409,7 +410,8 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            assertOnLgn("slow listeners", scales, executionTimes, false);
+            boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+            assertOnLgn("slow listeners", scales, executionTimes, knownIssue);
         } finally {
             delayedEventHandling.stop();
             result.get();
