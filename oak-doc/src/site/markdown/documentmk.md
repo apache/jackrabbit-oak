@@ -18,7 +18,7 @@
 Oak DocumentMK
 ==============
 
-One of the plugins in Oak stores data in a document oriented format. The plugin implementes two low level APIs, the `MicroKernel` and `NodeStore` interface.
+One of the plugins in Oak stores data in a document oriented format. The plugin implements two low level APIs, the `MicroKernel` and `NodeStore` interface.
 
 Backend implementations
 -----------------------
