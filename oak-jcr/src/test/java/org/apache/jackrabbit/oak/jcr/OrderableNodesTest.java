@@ -29,11 +29,14 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
 
     public OrderableNodesTest(NodeStoreFixture fixture) {
         super(fixture);
+        // OAK-1690
+        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
     }
 
     @Test
