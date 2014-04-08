@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -84,16 +83,14 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            String folder = (new File("target")).isDirectory() ? "target/" : "";
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + id + ";MVCC=true", "sa", "");
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id + ";MVCC=true", "sa", "");
             return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                String folder = (new File("target")).isDirectory() ? "target/" : "";
-                DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "");
+                DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "");
                 return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
             } catch (Exception e) {
                 return null;
