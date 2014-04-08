@@ -34,8 +34,33 @@
 
     <properties>
         <known.issues>
-            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                    <!-- different ranking -->
-            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                                <!-- wildcards with multi byte support -->
+            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- different ranking -->
+            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                               <!-- wildcards with multi byte support -->
+            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4                                      <!-- OAK-955 -->
+            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5                                      <!-- OAK-955 -->
+            org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest#testLowerLocalNameOrContains            <!-- OAK-957 -->
+            org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest#testUpperLocalNameOrContains            <!-- OAK-957 -->
+            org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
+            org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
+            org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
+            org.apache.jackrabbit.core.query.SelectClauseTest#testSameNameSiblingSQL                       <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testRelationQuery                          <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testRelationQueryDeep                      <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testMultiRelation                          <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testLike                                   <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testContains                               <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testStarNameTest                           <!-- OAK-203 -->
+            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testNotIsDescendantNodeQuery               <!-- OAK-203? -->
+            org.apache.jackrabbit.core.query.SQL2PathEscapingTest                                          <!-- ? -->
+            org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest                                       <!-- ? -->
+            org.apache.jackrabbit.core.query.SimpleQueryTest                                               <!-- ? -->
+            org.apache.jackrabbit.core.query.XPathAxisTest                                                 <!-- ? -->
+            org.apache.jackrabbit.core.query.DerefTest                                                     <!-- ? -->
+            org.apache.jackrabbit.core.query.ParentNodeTest                                                <!-- ? -->
+            org.apache.jackrabbit.core.query.QueryResultTest                                               <!-- ? -->
+            org.apache.jackrabbit.core.query.ExcerptTest                                                   <!-- ? -->
+            org.apache.jackrabbit.core.query.SQL2OuterJoinTest                                             <!-- ? -->
+            org.apache.jackrabbit.core.query.MixinTest                                                     <!-- ? -->
         </known.issues>
     </properties>
 
