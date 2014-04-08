@@ -281,8 +281,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1414
-        assertOnLgn("large copy", scales, executionTimes, knownIssue);
+        assertOnLgn("large copy", scales, executionTimes, false);
     }
 
     /**
