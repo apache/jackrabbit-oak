@@ -1413,9 +1413,11 @@ public final class DocumentNodeStore
                 if (before != null) {
                     NodeDocument after = store.find(Collection.NODES, op.getId());
                     if (after != null) {
-                        LOG.info("Split operation on {}. Size before: {}, after: {}",
+                        LOG.debug("Split operation on {}. Size before: {}, after: {}",
                                 id, before.getMemory(), after.getMemory());
                     }
+                } else {
+                    LOG.debug("Split operation created {}", op.getId());
                 }
             }
             it.remove();
