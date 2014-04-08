@@ -32,6 +32,13 @@
     <description>Oak support for Apache Solr indexing and search</description>
     <packaging>bundle</packaging>
 
+    <properties>
+        <known.issues>
+            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                    <!-- different ranking -->
+            org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                                <!-- wildcards with multi byte support -->
+        </known.issues>
+    </properties>
+
     <build>
         <plugins>
             <plugin>

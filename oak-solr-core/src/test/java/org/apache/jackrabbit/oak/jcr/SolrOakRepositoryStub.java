@@ -21,8 +21,11 @@ import java.util.Properties;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
@@ -54,7 +57,20 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
                 return solrServer;
             }
         };
-        OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider();
+        try {
+            // safely remove any previous document on the index
+            solrServer.deleteByQuery("*:*");
+            solrServer.commit();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public CommitPolicy getCommitPolicy() {
+                return CommitPolicy.HARD;
+            }
+        };
+        OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(configuration);
         jcr.with(new SolrIndexInitializer(false))
                 .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
                 .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
