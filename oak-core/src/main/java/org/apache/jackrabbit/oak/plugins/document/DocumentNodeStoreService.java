@@ -312,7 +312,6 @@ public class DocumentNodeStoreService {
                             mcl.getDiffCacheStats(),
                             CacheStatsMBean.TYPE,
                             mcl.getDiffCacheStats().getName()));
-            
         }
 
         DocumentStore ds = store.getDocumentStore();
