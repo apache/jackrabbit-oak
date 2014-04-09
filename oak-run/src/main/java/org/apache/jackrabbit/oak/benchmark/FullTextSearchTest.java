@@ -88,7 +88,8 @@ public class FullTextSearchTest extends AbstractTest {
         @Override
         public Integer call() throws Exception {
             QueryManager qm = session.getWorkspace().getQueryManager();
-            Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + word + "')] order by jcr:score()", Query.XPATH);
+            //TODO verify why "order by jcr:score()" accounts for what looks like > 20% of the perf lost in Collections.sort
+            Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + word + "')] ", Query.XPATH);
             QueryResult r = q.execute();
             RowIterator it = r.getRows();
             checkArgument(it.hasNext(), "Not able to find entry with text [%s]", word);
