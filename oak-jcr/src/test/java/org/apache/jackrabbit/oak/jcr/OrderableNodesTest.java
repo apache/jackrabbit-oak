@@ -35,8 +35,6 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     public OrderableNodesTest(NodeStoreFixture fixture) {
         super(fixture);
-        // OAK-1690
-        assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
     }
 
     @Test
