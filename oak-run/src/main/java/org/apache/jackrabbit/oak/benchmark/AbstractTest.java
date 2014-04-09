@@ -133,7 +133,7 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
         }
         for (RepositoryFixture fixture : fixtures) {
             try {
-                Repository[] cluster = fixture.setUpCluster(1);
+                Repository[] cluster = createRepository(fixture);
                 try {
                     runTest(fixture, cluster[0], concurrencyLevels);
                 } finally {
@@ -433,6 +433,13 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
         };
         thread.start();
         threads.add(thread);
+    }
+
+    /**
+     * Customize the repository creation process by custom fixture handling
+     */
+    protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
+        return fixture.setUpCluster(1);
     }
 
 }

@@ -379,7 +379,7 @@ public class Main {
             if (baseFile == null) {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
-            oakFixture = OakFixture.getTar(baseFile, 256, cacheSize, mmap.value(options));
+            oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_H2)) {
             File baseFile = base.value(options);
             if (baseFile == null) {

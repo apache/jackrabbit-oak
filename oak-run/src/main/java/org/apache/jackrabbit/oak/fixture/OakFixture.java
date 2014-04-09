@@ -22,6 +22,8 @@ import java.util.Map;
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
+import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
@@ -31,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -44,11 +47,13 @@ public abstract class OakFixture {
     public static final String OAK_MEMORY_MK = "Oak-MemoryMK";
 
     public static final String OAK_MONGO = "Oak-Mongo";
+    public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
     public static final String OAK_MONGO_MK = "Oak-MongoMK";
 
     public static final String OAK_H2 = "Oak-H2";
     public static final String OAK_TAR = "Oak-Tar";
+    public static final String OAK_TAR_FDS = "Oak-Tar-FDS";
 
 
     private final String name;
@@ -120,30 +125,40 @@ public abstract class OakFixture {
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO, false, host, port, database,
-                dropDBAfterTest, cacheSize);
+                dropDBAfterTest, cacheSize, false, null);
     }
 
     public static OakFixture getMongoMK(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO_MK, true, host, port, database,
-                dropDBAfterTest, cacheSize);
+                dropDBAfterTest, cacheSize, false, null);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO_NS, false, host, port, database,
-                dropDBAfterTest, cacheSize);
+                dropDBAfterTest, cacheSize, false, null);
     }
 
     public static OakFixture getMongo(String name, final boolean useMk, final String host,
                                       final int port, final String database,
-                                      final boolean dropDBAfterTest, final long cacheSize) {
+                                      final boolean dropDBAfterTest, final long cacheSize,
+                                      final boolean useFileDataStore,
+                                      final File base) {
         return new OakFixture(name) {
             private String dbName = database != null ? database : unique;
             private DocumentMK[] kernels;
             private BlobStore blobStore;
+            private File blobStoreDir;
 
             private BlobStore getBlobStore() {
+                if(useFileDataStore){
+                    FileDataStore fds = new FileDataStore();
+                    fds.setMinRecordLength(4092);
+                    blobStoreDir = new File(base, "datastore"+unique);
+                    fds.init(blobStoreDir.getAbsolutePath());
+                    return new DataStoreBlobStore(fds);
+                }
 
                 try {
                     String className = System.getProperty("dataStore");
@@ -243,16 +258,19 @@ public abstract class OakFixture {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
+                    FileUtils.deleteQuietly(blobStoreDir);
                 }
             }
         };
     }
 
     public static OakFixture getTar(
-            final File base, final int maxFileSizeMB, final int cacheSizeMB,
-            final boolean memoryMapping) {
-        return new OakFixture(OAK_TAR) {
+            final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
+            final boolean memoryMapping, final boolean useBlobStore) {
+        return new OakFixture(name) {
             private SegmentStore[] stores;
+            private BlobStore[] blobStores = new BlobStore[0];
+            private String blobStoreDir = "datastore"+unique;
 
             @Override
             public Oak getOak(int clusterId) throws Exception {
@@ -264,9 +282,20 @@ public abstract class OakFixture {
             public Oak[] setUpCluster(int n) throws Exception {
                 Oak[] cluster = new Oak[n];
                 stores = new FileStore[cluster.length];
+                if (useBlobStore) {
+                    blobStores = new BlobStore[cluster.length];
+                }
+
                 for (int i = 0; i < cluster.length; i++) {
-                    stores[i] = new FileStore(
+                    BlobStore blobStore = null;
+                    if (useBlobStore) {
+                        blobStore = createBlobStore();
+                        blobStores[i] = blobStore;
+                    }
+
+                    stores[i] = new FileStore(blobStore,
                             new File(base, unique),
+                            EmptyNodeState.EMPTY_NODE,
                             maxFileSizeMB, cacheSizeMB, memoryMapping);
                     cluster[i] = new Oak(new SegmentNodeStore(stores[i]));
                 }
@@ -277,10 +306,29 @@ public abstract class OakFixture {
                 for (SegmentStore store : stores) {
                     store.close();
                 }
+                for(BlobStore blobStore : blobStores){
+                    if(blobStore instanceof DataStore){
+                        try {
+                            ((DataStore) blobStore).close();
+                        } catch (DataStoreException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
                 FileUtils.deleteQuietly(new File(base, unique));
+                FileUtils.deleteQuietly(new File(base, blobStoreDir));
+            }
+
+            private BlobStore createBlobStore(){
+                FileDataStore fds = new FileDataStore();
+                fds.setMinRecordLength(4092);
+                fds.init(new File(base, blobStoreDir).getAbsolutePath());
+                return new DataStoreBlobStore(fds);
             }
         };
     }
+
+
 
     public static OakFixture getH2MK(final File base, final long cacheSize) {
         return new OakFixture(OAK_H2) {

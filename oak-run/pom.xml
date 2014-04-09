@@ -53,6 +53,9 @@
                 <includes>
                   <include>*</include>
                 </includes>
+                <excludes>
+                  <exclude>${lucene.exclude}</exclude>
+                </excludes>
               </artifactSet>
               <filters>
                 <filter>
@@ -136,6 +139,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-lucene</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-remote</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -157,6 +165,12 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
       <version>${jackrabbit.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -201,4 +215,64 @@
     </dependency>
     
   </dependencies>
+
+  <profiles>
+    <profile>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <id>oak-run-jr2</id>
+      <properties>
+        <lucene.exclude>org.apache.jackrabbit:oak-lucene</lucene.exclude>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+          <version>3.6.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>oak-run-oak</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <!--
+        Lucene classes are already part of oak-lucene so exclude
+        them in maven-shade-plugin. Otherwise it causes duplicate
+        classes warning
+        -->
+        <lucene.exclude>org.apache.lucene:*</lucene.exclude>
+      </properties>
+      <dependencies>
+        <!--
+         oak-lucene embeds the Lucene jar. However when running in IDE
+         the IDE use the module classpath. So need to explicitly list the
+         lucene jars
+        -->
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-analyzers-common</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-queryparser</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-queries</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 </project>

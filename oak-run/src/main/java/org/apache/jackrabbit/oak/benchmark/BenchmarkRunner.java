@@ -89,6 +89,11 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
+                OakRepositoryFixture.getMongoWithFDS(
+                        host.value(options), port.value(options),
+                        dbName.value(options), dropDBAfterTest.value(options),
+                        cacheSize * MB,
+                        base.value(options)),
                 OakRepositoryFixture.getMongoNS(
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
@@ -98,6 +103,8 @@ public class BenchmarkRunner {
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
                 OakRepositoryFixture.getTar(
+                        base.value(options), 256, cacheSize, mmap.value(options)),
+                OakRepositoryFixture.getTarWithBlobStore(
                         base.value(options), 256, cacheSize, mmap.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
@@ -200,7 +207,10 @@ public class BenchmarkRunner {
                     flatStructure.value(options)),
             new GetPrincipalTest(
                     numberOfUsers.value(options),
-                    flatStructure.value(options))
+                    flatStructure.value(options)),
+            new FullTextSearchTest(
+                    wikipedia.value(options),
+                    report.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
