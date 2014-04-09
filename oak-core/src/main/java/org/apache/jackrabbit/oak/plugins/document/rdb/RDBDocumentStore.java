@@ -364,29 +364,37 @@ public class RDBDocumentStore implements CachingDocumentStore {
         if (doc == null) {
             return null;
         } else {
-            boolean success = false;
+            Lock l = getAndLock(update.getId());
+            try {
+                boolean success = false;
 
-            int retries = maxRetries;
-            while (!success && retries > 0) {
-                success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
-                if (!success) {
-                    // retry with a fresh document
-                    retries -= 1;
-                    oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
-                    doc = applyChanges(collection, oldDoc, update, checkConditions);
-                    if (doc == null) {
-                        return null;
+                int retries = maxRetries;
+                while (!success && retries > 0) {
+                    success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
+                    if (!success) {
+                        // retry with a fresh document
+                        retries -= 1;
+                        oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
+                        doc = applyChanges(collection, oldDoc, update, checkConditions);
+                        if (doc == null) {
+                            return null;
+                        }
+                    } else {
+                        if (collection == Collection.NODES) {
+                            applyToCache((NodeDocument) oldDoc, (NodeDocument) doc);
+                        }
                     }
-                } else {
-                    applyToCache(collection, oldDoc, doc);
                 }
-            }
 
-            if (!success) {
-                throw new MicroKernelException("failed update (race?) after " + maxRetries + " retries");
-            }
+                if (!success) {
+                    throw new MicroKernelException("failed update (race?) after " + maxRetries + " retries");
+                }
 
-            return oldDoc;
+                return oldDoc;
+            }
+            finally {
+                l.unlock();
+            }
         }
     }
 

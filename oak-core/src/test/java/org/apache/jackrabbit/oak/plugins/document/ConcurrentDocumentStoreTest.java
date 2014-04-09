@@ -37,9 +37,9 @@ public class ConcurrentDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testConcurrentUpdate() throws Exception {
-        int workers = 8; // TODO: this test is going to fail if the number of
-                         // workers exceeds the number of retries done by
-                         // RDBDocumentStore
+        int workers = 20; // TODO: this test is going to fail if the number of
+                          // workers exceeds the number of retries done by
+                          // RDBDocumentStore
         String id = this.getClass().getName() + ".testConcurrentUpdate";
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
