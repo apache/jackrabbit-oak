@@ -358,7 +358,8 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Adding 100 siblings next to {} siblings took {} ns/node", scale, t);
         }
-        assertOnLgn("many siblings", scales, executionTimes, false);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        assertOnLgn("many siblings", scales, executionTimes, knownIssue);
     }
 
     /**
