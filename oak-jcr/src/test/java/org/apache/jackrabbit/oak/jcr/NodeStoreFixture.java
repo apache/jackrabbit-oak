@@ -83,7 +83,7 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id + ";MVCC=true", "sa", "");
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id, "sa", "");
             return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
         }
 
