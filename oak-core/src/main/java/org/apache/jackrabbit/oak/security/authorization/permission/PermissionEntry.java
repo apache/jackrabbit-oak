@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -26,14 +25,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.util.Text;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 final class PermissionEntry implements Comparable<PermissionEntry>, PermissionConstants {
 
@@ -62,22 +57,19 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
      */
     final RestrictionPattern restriction;
 
-    PermissionEntry(String path, Tree entryTree, RestrictionProvider restrictionsProvider) {
-        this.path = path;
-        isAllow = entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN);
-        index = Integer.parseInt(entryTree.getName());
-        privilegeBits = PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGE_BITS));
-        restriction = restrictionsProvider.getPattern(path, entryTree);
+    PermissionEntry(@Nonnull String path, @Nonnull Tree entryTree, @Nonnull RestrictionProvider restrictionsProvider) {
+        this(path, entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN),
+                Integer.parseInt(entryTree.getName()),
+                PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGE_BITS)),
+                restrictionsProvider.getPattern(path, entryTree));
     }
 
-    static void write(NodeBuilder parent, boolean isAllow, int index, PrivilegeBits privilegeBits, Set<Restriction> restrictions) {
-        NodeBuilder n = parent.child(String.valueOf(index))
-                .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS, Type.NAME)
-                .setProperty(REP_IS_ALLOW, isAllow)
-                .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGE_BITS));
-        for (Restriction restriction : restrictions) {
-            n.setProperty(restriction.getProperty());
-        }
+    PermissionEntry(@Nonnull String path, boolean isAllow, int index, @Nonnull PrivilegeBits privilegeBits, @Nonnull RestrictionPattern restriction) {
+        this.path = path;
+        this.isAllow = isAllow;
+        this.index = index;
+        this.privilegeBits = privilegeBits;
+        this.restriction = restriction;
     }
 
     public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
