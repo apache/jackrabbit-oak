@@ -59,6 +59,7 @@ public class FullTextSearchTest extends AbstractTest {
     private List<String> sampleSet;
     private Random random;
     private Reader reader;
+    private int maxRowsToFetch = Integer.getInteger("maxRowsToFetch",10000);
 
     public FullTextSearchTest(File dump, boolean doReport) {
         this.dump = dump;
@@ -71,6 +72,7 @@ public class FullTextSearchTest extends AbstractTest {
         Session importSession = loginWriter();
         sampleSet = importWikipedia(importSession);
         reader = new Reader();
+        Thread.sleep(60*3*100);
     }
 
     @Override
@@ -78,19 +80,28 @@ public class FullTextSearchTest extends AbstractTest {
         reader.call();
     }
 
-    private class Reader implements Callable<Boolean> {
+    private class Reader implements Callable<Integer> {
         private final Session session = loginWriter();
         private final String word = Text.escapeIllegalJcrChars(sampleSet.get(random.nextInt(sampleSet.size())));
 
         @SuppressWarnings("deprecation")
         @Override
-        public Boolean call() throws Exception {
+        public Integer call() throws Exception {
             QueryManager qm = session.getWorkspace().getQueryManager();
             Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + word + "')] order by jcr:score()", Query.XPATH);
             QueryResult r = q.execute();
             RowIterator it = r.getRows();
             checkArgument(it.hasNext(), "Not able to find entry with text [%s]", word);
-            return it.hasNext();
+            int rowCount = 0;
+            while(it.hasNext() && (++rowCount < maxRowsToFetch)){
+                Node n = it.nextRow().getNode();
+                n.getProperty("text");
+                n.getProperty("title");
+                //assert fails at times becomes of fuzzy matching
+//                checkArgument(n.getProperty("text").getString().contains(word),
+//                        "[%s] does not contain [%s]", n.getProperty("text").getString(), word);
+            }
+            return rowCount;
         }
     }
 
