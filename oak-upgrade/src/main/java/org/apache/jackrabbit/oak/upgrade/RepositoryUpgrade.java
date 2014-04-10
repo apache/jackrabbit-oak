@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
@@ -47,7 +46,6 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -71,7 +69,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Arrays.asList;
@@ -225,8 +222,7 @@ public class RepositoryUpgrade {
 
             NodeState root = builder.getNodeState();
             copyVersionStore(builder, root, uriToPrefix, idxToPrefix);
-            String workspaceName =
-                    copyWorkspaces(builder, root, uriToPrefix, idxToPrefix);
+            copyWorkspaces(builder, root, uriToPrefix, idxToPrefix);
 
             logger.info("Applying default commit hooks");
             String groupsPath;
@@ -237,15 +233,14 @@ public class RepositoryUpgrade {
                 groupsPath = UserConstants.DEFAULT_GROUP_PATH;
             }
             // TODO: default hooks?
-            List<CommitHook> hooks = newArrayList();
-            hooks.add(new EditorHook(new CompositeEditorProvider(
-                            new GroupEditorProvider(groupsPath),
+            CommitHook hook = new CompositeHook(
+                    new EditorHook(new GroupEditorProvider(groupsPath)),
+                    new EditorHook(new CompositeEditorProvider(
                             new TypeEditorProvider(false),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
                                     new ReferenceEditorProvider(),
                                     new PropertyIndexEditorProvider())))));
-            hooks.addAll(new AuthorizationConfigurationImpl().getCommitHooks(workspaceName));
-            target.merge(builder, CompositeHook.compose(hooks), CommitInfo.EMPTY);
+            target.merge(builder, hook, CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
@@ -562,7 +557,7 @@ public class RepositoryUpgrade {
                 "/jcr:system/jcr:activities", copyBinariesByReference));
     }   
 
-    private String copyWorkspaces(
+    private void copyWorkspaces(
             NodeBuilder builder, NodeState root,
             Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
@@ -587,7 +582,7 @@ public class RepositoryUpgrade {
             }
         }
 
-        return name;
+        // TODO: Copy all the active open-scoped locks
     }
 
 
