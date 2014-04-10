@@ -223,15 +223,17 @@ class PermissionValidator extends DefaultValidator {
             return;
         }
         long toTest = getPermission(parent, property, defaultPermission);
-        boolean isGranted;
-        if (Permissions.isRepositoryPermission(toTest)) {
-            isGranted = permissionProvider.getRepositoryPermission().isGranted(toTest);
-        } else {
-            isGranted = parentPermission.isGranted(toTest, property);
-        }
+        if (toTest != Permissions.NO_PERMISSION) {
+            boolean isGranted;
+            if (Permissions.isRepositoryPermission(toTest)) {
+                isGranted = permissionProvider.getRepositoryPermission().isGranted(toTest);
+            } else {
+                isGranted = parentPermission.isGranted(toTest, property);
+            }
 
-        if (!isGranted) {
-            throw new CommitFailedException(ACCESS, 0, "Access denied");
+            if (!isGranted) {
+                throw new CommitFailedException(ACCESS, 0, "Access denied");
+            }
         }
     }
 
