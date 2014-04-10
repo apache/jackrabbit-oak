@@ -24,8 +24,6 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import com.mongodb.DB;
-
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -37,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import com.mongodb.DB;
 
 /**
  * NodeStore fixture for parametrized tests.
@@ -50,7 +50,7 @@ public abstract class NodeStoreFixture {
         public NodeStore createNodeStore() {
             return new CloseableNodeStore(new DocumentMK.Builder().open());
         }
-        
+
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             MongoConnection connection;
@@ -80,18 +80,21 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
 
     public static final NodeStoreFixture DOCUMENT_JDBC = new NodeStoreFixture() {
+
+        private DataSource ds;
+
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id, "sa", "");
-            return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
+            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id, "sa", "");
+            return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
+                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "");
+                return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -101,6 +104,13 @@ public abstract class NodeStoreFixture {
         public void dispose(NodeStore nodeStore) {
             if (nodeStore instanceof DocumentNodeStore) {
                 ((DocumentNodeStore) nodeStore).dispose();
+            }
+            if (this.ds instanceof Closeable) {
+                try {
+                    ((Closeable)this.ds).close();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         }
     };
