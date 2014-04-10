@@ -178,7 +178,6 @@ public class Main {
                             dataCount++;
                             dataSize += segment.size();
                             idmap.put(id, segment.getReferencedIds());
-                            System.out.println(id + " -> " + idmap.get(id));
                         } else if (id.isBulkSegmentId()) {
                             bulkCount++;
                             bulkSize += id.getSegment().size();
@@ -246,10 +245,15 @@ public class Main {
                                 path = matcher.group(3);
                             }
                             NodeState node = new SegmentNodeState(id);
-                            System.out.println("/ -> " + node);
+                            System.out.println("/ (" + id + ") -> " + node);
                             for (String name : PathUtils.elements(path)) {
                                 node = node.getChildNode(name);
-                                System.out.println(" " + name  + " -> " + node);
+                                RecordId nid = null;
+                                if (node instanceof SegmentNodeState) {
+                                    nid = ((SegmentNodeState) node).getRecordId();
+                                }
+                                System.out.println(
+                                        "  " + name  + " (" + nid + ") -> " + node);
                             }
                         }
                     }
