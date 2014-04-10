@@ -565,7 +565,7 @@ class TarReader {
             return reader;
         } else {
             log.warn("Failed to open cleaned up tar file {}", file);
-            return null;
+            return this;
         }
     }
 
