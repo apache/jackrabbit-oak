@@ -23,7 +23,6 @@ import java.io.File;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import javax.jcr.Node;
 import javax.jcr.Repository;
@@ -52,14 +51,14 @@ import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class FullTextSearchTest extends AbstractTest {
+public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestContext> {
     private int maxSampleSize = 100;
     private final File dump;
     private final boolean doReport;
     private List<String> sampleSet;
     private Random random;
-    private Reader reader;
     private int maxRowsToFetch = Integer.getInteger("maxRowsToFetch",10000);
+    private TestContext defaultContext;
 
     public FullTextSearchTest(File dump, boolean doReport) {
         this.dump = dump;
@@ -71,39 +70,42 @@ public class FullTextSearchTest extends AbstractTest {
         random = new Random(42); //fixed seed
         Session importSession = loginWriter();
         sampleSet = importWikipedia(importSession);
-        reader = new Reader();
-        Thread.sleep(60*3*100);
+        defaultContext = new TestContext();
+    }
+
+    @Override
+    protected TestContext prepareThreadExecutionContext() {
+        return new TestContext();
     }
 
     @Override
     protected void runTest() throws Exception {
-        reader.call();
+        runTest(defaultContext);
     }
 
-    private class Reader implements Callable<Integer> {
-        private final Session session = loginWriter();
-        private final String word = Text.escapeIllegalJcrChars(sampleSet.get(random.nextInt(sampleSet.size())));
-
-        @SuppressWarnings("deprecation")
-        @Override
-        public Integer call() throws Exception {
-            QueryManager qm = session.getWorkspace().getQueryManager();
-            //TODO verify why "order by jcr:score()" accounts for what looks like > 20% of the perf lost in Collections.sort
-            Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + word + "')] ", Query.XPATH);
-            QueryResult r = q.execute();
-            RowIterator it = r.getRows();
-            checkArgument(it.hasNext(), "Not able to find entry with text [%s]", word);
-            int rowCount = 0;
-            while(it.hasNext() && (++rowCount < maxRowsToFetch)){
-                Node n = it.nextRow().getNode();
-                n.getProperty("text");
-                n.getProperty("title");
-                //assert fails at times becomes of fuzzy matching
-//                checkArgument(n.getProperty("text").getString().contains(word),
-//                        "[%s] does not contain [%s]", n.getProperty("text").getString(), word);
-            }
-            return rowCount;
+    @SuppressWarnings("deprecation")
+    @Override
+    protected void runTest(TestContext ec)  throws Exception {
+        QueryManager qm = ec.session.getWorkspace().getQueryManager();
+        //TODO verify why "order by jcr:score()" accounts for what looks like > 20% of the perf lost in Collections.sort
+        Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + ec.word + "')] ", Query.XPATH);
+        QueryResult r = q.execute();
+        RowIterator it = r.getRows();
+        checkArgument(it.hasNext(), "Not able to find entry with text [%s]", ec.word);
+        int rowCount = 0;
+        while(it.hasNext() && (++rowCount < maxRowsToFetch)){
+            Node n = it.nextRow().getNode();
+            n.getProperty("text");
+            n.getProperty("title");
+            //assert fails at times becomes of fuzzy matching
+            //checkArgument(n.getProperty("text").getString().contains(word),
+            //        "[%s] does not contain [%s]", n.getProperty("text").getString(), word);
         }
+    }
+
+    class TestContext {
+        final Session session = loginWriter();
+        final String word = Text.escapeIllegalJcrChars(sampleSet.get(random.nextInt(sampleSet.size())));
     }
 
     @Override
@@ -131,8 +133,7 @@ public class FullTextSearchTest extends AbstractTest {
         if (doReport) {
             System.out.format("Importing %s...%n", dump);
         }
-        Node wikipedia = session.getRootNode().addNode(
-                "wikipedia", "nt:unstructured");
+        Node wikipedia = session.getRootNode().addNode("wikipedia", "nt:unstructured");
 
         String title = null;
         String text = null;
