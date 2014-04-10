@@ -126,7 +126,7 @@ public class AsyncIndexUpdate implements Runnable {
         public void indexUpdate() throws CommitFailedException {
             if (!dirty) {
                 dirty = true;
-                preAsyncRun(store, name, indexStats);
+                preAsyncRun(store, name);
             }
         }
 
@@ -161,6 +161,7 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         AsyncUpdateCallback callback = new AsyncUpdateCallback();
+        preAsyncRunStatsStats(indexStats);
         IndexUpdate indexUpdate = new IndexUpdate(provider, name, after,
                 builder, callback);
 
@@ -170,7 +171,7 @@ public class AsyncIndexUpdate implements Runnable {
             if (callback.dirty) {
                 async.setProperty(name, checkpoint);
                 try {
-                    store.merge(builder, newCommitHook(name, state, indexStats),
+                    store.merge(builder, newCommitHook(name, state),
                             CommitInfo.EMPTY);
                 } catch (CommitFailedException e) {
                     if (e != CONCURRENT_UPDATE) {
@@ -180,8 +181,10 @@ public class AsyncIndexUpdate implements Runnable {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(indexUpdate
                             .getReindexedDefinitions());
+                } else {
+                    postAsyncRunStatsStatus(indexStats);
                 }
-            } else if (switchOnSync && !reindexedDefinitions.isEmpty()) {
+            } else if (switchOnSync) {
                 log.debug("No changes detected after diff, will try to switch to synchronous updates on "
                         + reindexedDefinitions);
                 async.setProperty(name, checkpoint);
@@ -198,9 +201,10 @@ public class AsyncIndexUpdate implements Runnable {
                 }
 
                 try {
-                    store.merge(builder, newCommitHook(name, state, indexStats),
+                    store.merge(builder, newCommitHook(name, state),
                             CommitInfo.EMPTY);
                     reindexedDefinitions.clear();
+                    postAsyncRunStatsStatus(indexStats);
                 } catch (CommitFailedException e) {
                     if (e != CONCURRENT_UPDATE) {
                         exception = e;
@@ -223,8 +227,7 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     private static CommitHook newCommitHook(final String name,
-            final PropertyState state, final AsyncIndexStats indexStats)
-            throws CommitFailedException {
+            final PropertyState state) throws CommitFailedException {
         return new CommitHook() {
             @Override
             @Nonnull
@@ -234,7 +237,7 @@ public class AsyncIndexUpdate implements Runnable {
                 PropertyState stateAfterRebase = before.getChildNode(ASYNC)
                         .getProperty(name);
                 if (Objects.equal(state, stateAfterRebase)) {
-                    return postAsyncRunStatus(after.builder(), indexStats, name)
+                    return postAsyncRunNodeStatus(after.builder(), name)
                             .getNodeState();
                 } else {
                     throw CONCURRENT_UPDATE;
@@ -243,10 +246,9 @@ public class AsyncIndexUpdate implements Runnable {
         };
     }
 
-    private static void preAsyncRun(NodeStore store, String name,
-            AsyncIndexStats stats) throws CommitFailedException {
+    private static void preAsyncRun(NodeStore store, String name) throws CommitFailedException {
         NodeBuilder builder = store.getRoot().builder();
-        preAsyncRunStatus(builder, stats, name);
+        preAsyncRunNodeStatus(builder, name);
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -278,25 +280,30 @@ public class AsyncIndexUpdate implements Runnable {
         return false;
     }
 
-    private static void preAsyncRunStatus(NodeBuilder builder,
-            AsyncIndexStats stats, String name) {
+    private static void preAsyncRunNodeStatus(NodeBuilder builder, String name) {
         String now = now();
-        stats.start(now);
         builder.getChildNode(INDEX_DEFINITIONS_NAME)
                 .setProperty(name + "-status", STATUS_RUNNING)
                 .setProperty(name + "-start", now, Type.DATE)
                 .removeProperty(name + "-done");
     }
 
-    private static NodeBuilder postAsyncRunStatus(NodeBuilder builder,
-            AsyncIndexStats stats, String name) {
+    private static void preAsyncRunStatsStats(AsyncIndexStats stats) {
+        stats.start(now());
+    }
+
+    private static NodeBuilder postAsyncRunNodeStatus(NodeBuilder builder,
+            String name) {
         String now = now();
-        stats.done(now);
         builder.getChildNode(INDEX_DEFINITIONS_NAME)
                 .setProperty(name + "-status", STATUS_DONE)
                 .setProperty(name + "-done", now, Type.DATE)
                 .removeProperty(name + "-start");
         return builder;
+    }
+
+    private static void postAsyncRunStatsStatus(AsyncIndexStats stats) {
+        stats.done(now());
     }
 
     private static String now() {
@@ -305,6 +312,10 @@ public class AsyncIndexUpdate implements Runnable {
 
     public AsyncIndexStats getIndexStats() {
         return indexStats;
+    }
+
+    public boolean isFinished() {
+        return indexStats.getStatus() == STATUS_DONE;
     }
 
     private static final class AsyncIndexStats implements IndexStatsMBean {
@@ -338,6 +349,12 @@ public class AsyncIndexUpdate implements Runnable {
         @Override
         public String getStatus() {
             return status;
+        }
+
+        @Override
+        public String toString() {
+            return "AsyncIndexStats [start=" + start + ", done=" + done
+                    + ", status=" + status + "]";
         }
     }
 

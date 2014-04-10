@@ -175,4 +175,23 @@ public interface RepositoryManagementMBean {
     @CheckForNull
     String checkpoint(long lifetime);
 
+    /**
+     * Initiate a reindex operation for the property indexes marked for
+     * reindexing
+     * 
+     * @return the status of the operation right after it was initiated
+     */
+    @Nonnull
+    CompositeData startPropertyIndexAsyncReindex();
+
+    /**
+     * Asynchronous Property Index reindexing status
+     * 
+     * @return the status of the ongoing operation or if none the terminal
+     *         status of the last operation or <em>Status not available</em> if
+     *         none.
+     */
+    @Nonnull
+    CompositeData getPropertyIndexAsyncReindexStatus();
+
 }

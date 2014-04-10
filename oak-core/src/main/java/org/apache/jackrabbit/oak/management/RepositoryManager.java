@@ -35,6 +35,7 @@ import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackupRestoreMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -179,6 +180,32 @@ public class RepositoryManager implements RepositoryManagementMBean {
         return status.isSuccess()
             ? status.getMessage()
             : null;
+    }
+
+    @Override
+    public CompositeData startPropertyIndexAsyncReindex() {
+        return execute(PropertyIndexAsyncReindexMBean.class,
+                new Function<PropertyIndexAsyncReindexMBean, Status>() {
+                    @Nonnull
+                    @Override
+                    public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
+                        return fromCompositeData(reindexer
+                                .startPropertyIndexAsyncReindex());
+                    }
+                }).toCompositeData();
+    }
+
+    @Override
+    public CompositeData getPropertyIndexAsyncReindexStatus() {
+        return execute(PropertyIndexAsyncReindexMBean.class,
+                new Function<PropertyIndexAsyncReindexMBean, Status>() {
+                    @Nonnull
+                    @Override
+                    public Status apply(PropertyIndexAsyncReindexMBean reindexer) {
+                        return fromCompositeData(reindexer
+                                .getPropertyIndexAsyncReindexStatus());
+                    }
+                }).toCompositeData();
     }
 
 }

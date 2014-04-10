@@ -62,6 +62,8 @@ import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindex;
+import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -514,6 +516,12 @@ public class Oak {
             scheduleWithFixedDelay(whiteboard, task, 5, true);
             registerMBean(whiteboard, IndexStatsMBean.class,
             task.getIndexStats(), IndexStatsMBean.TYPE, name);
+
+            PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
+                    new AsyncIndexUpdate("async-reindex", store, indexEditors,
+                            true), executor);
+            registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class,
+                    asyncPI, PropertyIndexAsyncReindexMBean.TYPE, name);
         }
 
         registerMBean(whiteboard, QueryEngineSettingsMBean.class,
