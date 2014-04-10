@@ -150,7 +150,13 @@ controls the bundle cache size in Jackrabbit, the KernelNodeState
 cache size in MongoMK and the default H2 MK, and the segment cache
 size in SegmentMK.
 
-The `--concurrency` levels can be specified as comma separated list of values, eg: `--concurrency 1,4,8`, which will execute the same test with the number of respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed before and after the concurrency loop. eg. in the example above, the execution order is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`. Tests that create their own background threads, should be executed with `--concurrency 1` which is the default.
+The `--concurrency` levels can be specified as comma separated list of values,
+eg: `--concurrency 1,4,8`, which will execute the same test with the number of
+respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed
+before and after the concurrency loop. eg. in the example above, the execution order
+is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`.
+Tests that create their own background threads, should be executed with
+`--concurrency 1` which is the default.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 benchmark environment. It's also possible to attach the JVM to a
