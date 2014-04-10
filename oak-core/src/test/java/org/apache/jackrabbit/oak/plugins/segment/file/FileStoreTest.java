@@ -22,12 +22,15 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Map;
+import java.util.Random;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.junit.Before;
@@ -43,6 +46,41 @@ public class FileStoreTest {
                 "FileStoreTest", "dir", new File("target"));
         directory.delete();
         directory.mkdir();
+    }
+
+    @Test
+    public void testRestartAndGCWithoutMM() throws IOException {
+        testRestartAndGC(false);
+    }
+
+    @Test
+    public void testRestartAndGCWithMM() throws IOException {
+        testRestartAndGC(true);
+    }
+
+    public void testRestartAndGC(boolean memoryMapping) throws IOException {
+        FileStore store = new FileStore(directory, 1, memoryMapping);
+        store.close();
+
+        store = new FileStore(directory, 1, memoryMapping);
+        SegmentNodeState base = store.getHead();
+        SegmentNodeBuilder builder = base.builder();
+        byte[] data = new byte[10 * 1024 * 1024];
+        new Random().nextBytes(data);
+        Blob blob = builder.createBlob(new ByteArrayInputStream(data));
+        builder.setProperty("foo", blob);
+        store.setHead(base, builder.getNodeState());
+        store.flush();
+        store.setHead(store.getHead(), base);
+        store.close();
+
+        store = new FileStore(directory, 1, memoryMapping);
+        store.gc();
+        store.flush();
+        store.close();
+
+        store = new FileStore(directory, 1, memoryMapping);
+        store.close();
     }
 
     @Test

@@ -533,7 +533,7 @@ public class FileStore implements SegmentStore {
 
                 List<TarReader> list =
                         newArrayListWithCapacity(1 + readers.size());
-                list.add(new TarReader(writeFile, memoryMapping));
+                list.add(TarReader.open(writeFile, memoryMapping));
                 list.addAll(readers);
                 readers = list;
 

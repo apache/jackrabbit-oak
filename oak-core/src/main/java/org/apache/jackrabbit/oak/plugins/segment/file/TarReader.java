@@ -17,23 +17,31 @@
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
+import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,10 +53,13 @@ class TarReader {
     /** Magic byte sequence at the end of the index block. */
     private static final int INDEX_MAGIC = TarWriter.INDEX_MAGIC;
 
-    /** Pattern of the segment entry names */
+    /**
+     * Pattern of the segment entry names. Note the trailing (\\..*)? group
+     * that's included for compatibility with possible future extensions.
+     */
     private static final Pattern NAME_PATTERN = Pattern.compile(
             "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-            + "(\\.([0-9a-f]{8}))?");
+            + "(\\.([0-9a-f]{8}))?(\\..*)?");
 
     /** The tar file block size. */
     private static final int BLOCK_SIZE = TarWriter.BLOCK_SIZE;
@@ -57,58 +68,65 @@ class TarReader {
         return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
     }
 
+    static TarReader open(File file, boolean memoryMapping) throws IOException {
+        TarReader reader = openFirstFileWithValidIndex(
+                singletonList(file), memoryMapping);
+        if (reader != null) {
+            return reader;
+        } else {
+            throw new IOException("Failed to open tar file " + file);
+        }
+    }
+
+    /**
+     * Creates a TarReader instance for reading content from a tar file.
+     * If there exist multiple generations of the same tar file, they are
+     * all passed to this method. The latest generation with a valid tar
+     * index (which is a good indication of general validity of the file)
+     * is opened and the other generations are removed to clean things up.
+     * If none of the generations has a valid index, then something must have
+     * gone wrong and we'll try recover as much content as we can from the
+     * existing tar generations.
+     *
+     * @param files
+     * @param memoryMapping
+     * @return
+     * @throws IOException
+     */
     static TarReader open(Map<Character, File> files, boolean memoryMapping)
             throws IOException {
-        Character[] generations =
-                files.keySet().toArray(new Character[files.size()]);
-        Arrays.sort(generations);
-        for (int i = generations.length - 1; i >= 0; i--) {
-            File file = files.get(generations[i]);
-            try {
-                TarReader reader = new TarReader(file, memoryMapping);
-                if (reader.index != null) {
-                    // found a generation with a valid index, drop the others
-                    for (File other : files.values()) {
-                        if (other != file) {
-                            log.info("Removing unused tar file {}", other);
-                            other.delete();
-                        }
-                    }
-                    return reader;
-                } else {
-                    reader.close();
-                }
-            } catch (IOException e) {
-                log.warn("Failed to access tar file " + file, e);
-            }
+        SortedMap<Character, File> sorted = newTreeMap();
+        sorted.putAll(files);
+
+        List<File> list = newArrayList(sorted.values());
+        Collections.reverse(list);
+
+        TarReader reader = openFirstFileWithValidIndex(list, memoryMapping);
+        if (reader != null) {
+            return reader;
         }
 
         // no generation has a valid index, so recover as much as we can
+        log.warn("Could not find a valid tar index in {}, recovering...", list);
         LinkedHashMap<UUID, byte[]> entries = newLinkedHashMap();
-        for (File file : files.values()) {
+        for (File file : sorted.values()) {
+            log.info("Recovering segments from tar file {}", file);
             try {
-                FileAccess access = FileAccess.open(file, memoryMapping);
+                RandomAccessFile access = new RandomAccessFile(file, "r");
                 try {
                     recoverEntries(file, access, entries);
                 } finally {
                     access.close();
                 }
             } catch (IOException e) {
-                log.warn("Failed to access tar file " + file, e);
+                log.warn("Could not read tar file " + file + ", skipping...", e);
             }
+
+            backupSafely(file);
         }
 
         // regenerate the first generation based on the recovered data
-        File file = files.get(generations[0]);
-        File backup = new File(file.getParentFile(), file.getName() + ".bak");
-        if (backup.exists()) {
-            log.info("Removing old backup file " + backup);
-            backup.delete();
-        }
-        if (!file.renameTo(backup)) {
-            throw new IOException("Could not backup tar file " + file);
-        }
-
+        File file = sorted.values().iterator().next();
         log.info("Regenerating tar file " + file);
         TarWriter writer = new TarWriter(file);
         for (Map.Entry<UUID, byte[]> entry : entries.entrySet()) {
@@ -121,42 +139,224 @@ class TarReader {
         }
         writer.close();
 
-        log.info("Tar file regenerated, removing backup file " + backup);
-        backup.delete();
-        for (File other : files.values()) {
-            if (other != file) {
-                log.info("Removing unused tar file {}", other);
-                other.delete();
+        reader = openFirstFileWithValidIndex(singletonList(file), memoryMapping);
+        if (reader != null) {
+            return reader;
+        } else {
+            throw new IOException("Failed to open recoved tar file " + file);
+        }
+    }
+
+    /**
+     * Backup this tar file for manual inspection. Something went
+     * wrong earlier so we want to prevent the data from being
+     * accidentally removed or overwritten.
+     *
+     * @param file
+     * @throws IOException
+     */
+    private static void backupSafely(File file) throws IOException {
+        File parent = file.getParentFile();
+        String name = file.getName();
+
+        File backup = new File(parent, name + ".bak");
+        for (int i = 2; backup.exists(); i++) {
+            backup = new File(parent, name + "." + i + ".bak");
+        }
+
+        log.info("Backing up " + file + " to " + backup.getName());
+        if (!file.renameTo(backup)) {
+            log.warn("Renaming failed, so using copy to backup {}", file);
+            FileUtils.copyFile(file, backup);
+            if (!file.delete()) {
+                throw new IOException(
+                        "Could not remove broken tar file " + file);
+            }
+        }
+    }
+
+    private static TarReader openFirstFileWithValidIndex(
+            List<File> files, boolean memoryMapping) throws IOException {
+        for (File file : files) {
+            try {
+                RandomAccessFile access = new RandomAccessFile(file, "r");
+                try {
+                    ByteBuffer index = loadAndValidateIndex(access);
+                    if (index == null) {
+                        log.warn("No tar index found in {}, skipping...", file);
+                    } else {
+                        // found a file with a valid index, drop the others
+                        for (File other : files) {
+                            if (other != file) {
+                                log.info("Removing unused tar file {}", other);
+                                other.delete();
+                            }
+                        }
+
+                        if (memoryMapping) {
+                            FileAccess mapped = new FileAccess.Mapped(access);
+                            // re-read the index, now with memory mapping
+                            int indexSize = index.remaining();
+                            index = mapped.read(
+                                    mapped.length() - indexSize - 16 - 1024,
+                                    indexSize);
+                            return new TarReader(file, mapped, index);
+                        } else {
+                            FileAccess random = new FileAccess.Random(access);
+                            // prevent the finally block from closing the file
+                            // as the returned TarReader will take care of that
+                            access = null;
+                            return new TarReader(file, random, index);
+                        }
+                    }
+                } finally {
+                    if (access != null) {
+                        access.close();
+                    }
+                }
+            } catch (IOException e) {
+                log.warn("Could not read file " + file + ", skipping...", e);
             }
         }
 
-        return new TarReader(file, memoryMapping);
+        return null;
+    }
+
+    /**
+     * Tries to read an existing index from the given tar file. The index is
+     * returned if it is found and looks valid (correct checksum, passes
+     * sanity checks).
+     *
+     * @return tar index, or {@code null} if not found or not valid
+     * @throws IOException if the tar file could not be read
+     */
+    private static ByteBuffer loadAndValidateIndex(RandomAccessFile file)
+            throws IOException {
+        long length = file.length();
+        if (length % BLOCK_SIZE != 0
+                || length < 6 * BLOCK_SIZE
+                || length > Integer.MAX_VALUE) {
+            log.warn("Unexpected size {} of tar file {}", length, file);
+            return null; // unexpected file size
+        }
+
+        // read the index metadata just before the two final zero blocks
+        ByteBuffer meta = ByteBuffer.allocate(16);
+        file.seek(length - 2 * BLOCK_SIZE - 16);
+        file.readFully(meta.array());
+        int crc32 = meta.getInt();
+        int count = meta.getInt();
+        int bytes = meta.getInt();
+        int magic = meta.getInt();
+
+        if (magic != INDEX_MAGIC) {
+            log.warn("No index found in tar file {}", file);
+            return null; // magic byte mismatch
+        }
+
+        if (count < 1 || bytes < count * 24 + 16 || bytes % BLOCK_SIZE != 0) {
+            log.warn("Invalid index metadata in tar file {}", file);
+            return null; // impossible entry and/or byte counts
+        }
+
+        // this involves seeking backwards in the file, which might not
+        // perform well, but that's OK since we only do this once per file
+        ByteBuffer index = ByteBuffer.allocate(count * 24);
+        file.seek(length - 2 * BLOCK_SIZE - 16 - count * 24);
+        file.readFully(index.array());
+        index.mark();
+
+        CRC32 checksum = new CRC32();
+        long limit = length - 2 * BLOCK_SIZE - bytes - BLOCK_SIZE;
+        long lastmsb = Long.MIN_VALUE;
+        long lastlsb = Long.MIN_VALUE;
+        byte[] entry = new byte[24];
+        for (int i = 0; i < count; i++) {
+            index.get(entry);
+            checksum.update(entry);
+
+            ByteBuffer buffer = ByteBuffer.wrap(entry);
+            long msb   = buffer.getLong();
+            long lsb   = buffer.getLong();
+            int offset = buffer.getInt();
+            int size   = buffer.getInt();
+
+            if (lastmsb > msb || (lastmsb == msb && lastlsb > lsb)) {
+                log.warn("Incorrect index ordering in tar file {}", file);
+                return null;
+            } else if (lastmsb == msb && lastlsb == lsb && i > 0) {
+                log.warn("Duplicate index entry in tar file {}", file);
+                return null;
+            } else if (offset < 0 || offset % BLOCK_SIZE != 0) {
+                log.warn("Invalid index entry offset in tar file {}", file);
+                return null;
+            } else if (size < 1 || offset + size > limit) {
+                log.warn("Invalid index entry size in tar file {}", file);
+                return null;
+            }
+
+            lastmsb = msb;
+            lastlsb = lsb;
+        }
+
+        if (crc32 != (int) checksum.getValue()) {
+            log.warn("Invalid index checksum in tar file {}", file);
+            return null; // checksum mismatch
+        }
+
+        index.reset();
+        return index;
     }
 
     /**
      * Scans through the tar file, looking for all segment entries.
      *
-     * @return map of all segment entries in this tar file
      * @throws IOException if the tar file could not be read
      */
     private static void recoverEntries(
-            File file, FileAccess access, LinkedHashMap<UUID, byte[]> entries)
-            throws IOException {
-        int position = 0;
-        int length = access.length();
-        while (position + TarWriter.BLOCK_SIZE <= length) {
+            File file, RandomAccessFile access,
+            LinkedHashMap<UUID, byte[]> entries) throws IOException {
+        byte[] header = new byte[BLOCK_SIZE];
+        while (access.getFilePointer() + BLOCK_SIZE <= access.length()) {
             // read the tar header block
-            ByteBuffer header = access.read(position, BLOCK_SIZE);
-            int pos = header.position();
-            String name = readString(header, 100);
-            header.position(pos + 124);
-            int size = readNumber(header, 12);
+            access.readFully(header);
 
-            if (name.isEmpty() && size == 0) {
-                return; // no more entries in this file
-            } else if (position + BLOCK_SIZE + size > length) {
-                log.warn("Invalid entry {} in tar file {}", name, file);
-                return; // invalid entry, stop here
+            // compute the header checksum
+            int sum = 0;
+            for (int i = 0; i < BLOCK_SIZE; i++) {
+                sum += header[i] & 0xff;
+            }
+
+            // identify possible zero block
+            if (sum == 0 && access.getFilePointer() + 2 * BLOCK_SIZE == access.length()) {
+                return; // found the zero blocks at the end of the file
+            }
+
+            // replace the actual stored checksum with spaces for comparison
+            for (int i = 148; i < 148 + 8; i++) {
+                sum -= header[i] & 0xff;
+                sum += ' ';
+            }
+
+            byte[] checkbytes = String.format("%06o  ", sum).getBytes(UTF_8);
+            checkbytes[7] = 0;
+            for (int i = 0; i < checkbytes.length; i++) {
+                if (checkbytes[i] != header[148 + i]) {
+                    log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
+                            access.getFilePointer() - BLOCK_SIZE, file);
+                    continue;
+                }
+            }
+
+            // The header checksum passes, so read the entry name and size
+            ByteBuffer buffer = ByteBuffer.wrap(header);
+            String name = readString(buffer, 100);
+            buffer.position(124);
+            int size = readNumber(buffer, 12);
+            if (access.getFilePointer() + size > access.length()) {
+                // checksum was correct, so the size field should be accurate
+                log.warn("Partial entry {} in tar file {}, ignoring...", name, file);
+                return;
             }
 
             Matcher matcher = NAME_PATTERN.matcher(name);
@@ -164,30 +364,39 @@ class TarReader {
                 UUID id = UUID.fromString(matcher.group(1));
 
                 String checksum = matcher.group(3);
-                if (checksum == null && entries.containsKey(id)) {
-                    // entry already loaded, so skip
-                } else {
+                if (checksum != null || !entries.containsKey(id)) {
                     byte[] data = new byte[size];
-                    access.read(position + BLOCK_SIZE, size).get(data);
+                    access.readFully(data);
 
-                    if (checksum == null) {
-                        entries.put(id, data);
-                    } else {
+                    // skip possible padding to stay at block boundaries
+                    long position = access.getFilePointer();
+                    long remainder = position % BLOCK_SIZE;
+                    if (remainder != 0) {
+                        access.seek(position + (BLOCK_SIZE - remainder));
+                    }
+
+                    if (checksum != null) {
                         CRC32 crc = new CRC32();
                         crc.update(data);
-                        if (crc.getValue() == Long.parseLong(checksum, 16)) {
-                            entries.put(id, data);
-                        } else {
-                            log.warn("Checksum mismatch in entry {} of tar file {}", name, file);
+                        if (crc.getValue() != Long.parseLong(checksum, 16)) {
+                            log.warn("Checksum mismatch in entry {} of tar file {}, skipping...",
+                                    name, file);
+                            continue;
                         }
                     }
+
+                    entries.put(id, data);
                 }
             } else if (!name.equals(file.getName() + ".idx")) {
-                log.warn("Ignoring unexpected entry {} in tar file {}",
+                log.warn("Unexpected entry {} in tar file {}, skipping...",
                         name, file);
+                long position = access.getFilePointer() + size;
+                long remainder = position % BLOCK_SIZE;
+                if (remainder != 0) {
+                    position += BLOCK_SIZE - remainder;
+                }
+                access.seek(position);
             }
-
-            position += getEntrySize(size);
         }
     }
 
@@ -197,16 +406,10 @@ class TarReader {
 
     private final ByteBuffer index;
 
-    TarReader(File file, boolean memoryMapping) throws IOException {
+    private TarReader(File file, FileAccess access, ByteBuffer index)
+            throws IOException {
         this.file = file;
-        this.access = FileAccess.open(file, memoryMapping);
-
-        ByteBuffer index = null;
-        try {
-            index = loadAndValidateIndex();
-        } catch (IOException e) {
-            log.warn("Unable to access tar file " + file, e);
-        }
+        this.access = access;
         this.index = index;
     }
 
@@ -356,7 +559,14 @@ class TarReader {
         }
         writer.close();
 
-        return new TarReader(newFile, access.isMemoryMapped());
+        TarReader reader = openFirstFileWithValidIndex(
+                singletonList(newFile), access.isMemoryMapped());
+        if (reader != null) {
+            return reader;
+        } else {
+            log.warn("Failed to open cleaned up tar file {}", file);
+            return null;
+        }
     }
 
     File close() throws IOException {
@@ -365,87 +575,6 @@ class TarReader {
     }
 
     //-----------------------------------------------------------< private >--
-
-    /**
-     * Tries to read an existing index from the tar file. The index is
-     * returned if it is found and looks valid (correct checksum, passes
-     * sanity checks).
-     *
-     * @return tar index, or {@code null} if not found or not valid
-     * @throws IOException if the tar file could not be read
-     */
-    private ByteBuffer loadAndValidateIndex() throws IOException {
-        long length = file.length();
-        if (length % BLOCK_SIZE != 0
-                || length < 6 * BLOCK_SIZE
-                || length > Integer.MAX_VALUE) {
-            log.warn("Unexpected size {} of tar file {}", length, file);
-            return null; // unexpected file size
-        }
-
-        // read the index metadata just before the two final zero blocks
-        ByteBuffer meta = access.read((int) (length - 2 * BLOCK_SIZE - 16), 16);
-        int crc32 = meta.getInt();
-        int count = meta.getInt();
-        int bytes = meta.getInt();
-        int magic = meta.getInt();
-
-        if (magic != INDEX_MAGIC) {
-            log.warn("No index found in tar file {}", file);
-            return null; // magic byte mismatch
-        }
-
-        if (count < 1 || bytes < count * 24 + 16 || bytes % BLOCK_SIZE != 0) {
-            log.warn("Invalid index metadata in tar file {}", file);
-            return null; // impossible entry and/or byte counts
-        }
-
-        ByteBuffer index = access.read(
-                (int) (length - 2 * BLOCK_SIZE - 16 - count * 24),
-                count * 24);
-        index.mark();
-
-        CRC32 checksum = new CRC32();
-        long limit = length - 2 * BLOCK_SIZE - bytes - BLOCK_SIZE;
-        long lastmsb = Long.MIN_VALUE;
-        long lastlsb = Long.MIN_VALUE;
-        byte[] entry = new byte[24];
-        for (int i = 0; i < count; i++) {
-            index.get(entry);
-            checksum.update(entry);
-
-            ByteBuffer buffer = ByteBuffer.wrap(entry);
-            long msb   = buffer.getLong();
-            long lsb   = buffer.getLong();
-            int offset = buffer.getInt();
-            int size   = buffer.getInt();
-
-            if (lastmsb > msb || (lastmsb == msb && lastlsb > lsb)) {
-                log.warn("Incorrect index ordering in tar file {}", file);
-                return null;
-            } else if (lastmsb == msb && lastlsb == lsb && i > 0) {
-                log.warn("Duplicate index entry in tar file {}", file);
-                return null;
-            } else if (offset < 0 || offset % BLOCK_SIZE != 0) {
-                log.warn("Invalid index entry offset in tar file {}", file);
-                return null;
-            } else if (size < 1 || offset + size > limit) {
-                log.warn("Invalid index entry size in tar file {}", file);
-                return null;
-            }
-
-            lastmsb = msb;
-            lastlsb = lsb;
-        }
-
-        if (crc32 != (int) checksum.getValue()) {
-            log.warn("Invalid index checksum in tar file {}", file);
-            return null; // checksum mismatch
-        }
-
-        index.reset();
-        return index;
-    }
 
     private static String readString(ByteBuffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
