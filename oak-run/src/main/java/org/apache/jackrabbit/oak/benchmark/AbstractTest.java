@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 /**
  * Abstract base class for individual performance benchmarks.
  */
-abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
+abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
 
     /**
      * A random string to guarantee concurrently running tests don't overwrite
@@ -208,14 +208,17 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
 
         @Override
         public void run() {
+            T context = null;
             try {
+                context = prepareThreadExecutionContext();
                 while (running) {
-                    statistics.addValue(execute());
+                    statistics.addValue(execute(context));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                disposeThreadExecutionContext(context);
             }
-
         }
     }
 
@@ -278,6 +281,23 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
             afterTest();
         }
     }
+
+    private long execute(T executionContext) throws Exception {
+        if(executionContext == null){
+            return execute();
+        }
+
+        beforeTest(executionContext);
+        try {
+            long start = System.currentTimeMillis();
+            // System.out.println("execute " + this);
+            runTest(executionContext);
+            return System.currentTimeMillis() - start;
+        } finally {
+            afterTest(executionContext);
+        }
+    }
+
     /**
      * Cleans up after this performance benchmark.
      *
@@ -332,6 +352,36 @@ abstract class AbstractTest extends Benchmark implements CSVResultGenerator {
      * @throws Exception if an error occurs
      */
     protected void afterSuite() throws Exception {
+    }
+
+    /**
+     * Invoked before the thread starts. If the test later requires
+     * some thread local context e.g. JCR session per thread then sub
+     * classes can return a context instance. That instance would be
+     * passed as part of runTest call
+     *
+     * @return context instance to be used for runTest call for the
+     * current thread
+     */
+    protected T prepareThreadExecutionContext() {
+        return null;
+    }
+
+    protected void disposeThreadExecutionContext(T context) {
+
+    }
+
+    protected void afterTest(T executionContext) {
+
+    }
+
+    protected void runTest(T executionContext)  throws Exception {
+        throw new IllegalStateException("If thread execution context is used then subclass must " +
+                "override this method");
+    }
+
+    protected void beforeTest(T executionContext) {
+
     }
 
     protected void failOnRepositoryVersions(String... versions)
