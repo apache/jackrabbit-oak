@@ -242,7 +242,8 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
             for (Thread t: threads) {
                 t.start();
             }
-            System.out.printf("Started %d threads%n", threads.size());
+
+            //System.out.printf("Started %d threads%n", threads.size());
 
             // Run test iterations, and capture the execution times
             long runtimeEnd = System.currentTimeMillis() + RUNTIME;
