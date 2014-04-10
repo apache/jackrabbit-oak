@@ -223,7 +223,7 @@ public class UnionQueryImpl implements Query {
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
                     new PropertyValue[] { PropertyValues.newString(plan)},
-                    null);
+                    null, null);
             return Arrays.asList(r).iterator();
         }
         if (LOG.isDebugEnabled()) {

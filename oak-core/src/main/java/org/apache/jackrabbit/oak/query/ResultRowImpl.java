@@ -35,13 +35,28 @@ public class ResultRowImpl implements ResultRow {
 
     private final Query query;
     private final Tree[] trees;
+    
+    /**
+     * The column values.
+     */
     private final PropertyValue[] values;
+    
+    /**
+     * Whether the value at the given index is used for comparing rows (used
+     * within hashCode and equals). If null, all columns are distinct.
+     */
+    private final boolean[] distinctValues;
+    
+    /**
+     * The values used for ordering.
+     */
     private final PropertyValue[] orderValues;
 
-    ResultRowImpl(Query query, Tree[] trees, PropertyValue[] values, PropertyValue[] orderValues) {
+    ResultRowImpl(Query query, Tree[] trees, PropertyValue[] values, boolean[] distinctValues, PropertyValue[] orderValues) {
         this.query = query;
         this.trees = trees;
         this.values = values;
+        this.distinctValues = distinctValues;
         this.orderValues = orderValues;
     }
     
@@ -137,7 +152,18 @@ public class ResultRowImpl implements ResultRow {
     public int hashCode() {
         int result = 1;
         result = 31 * result + Arrays.hashCode(getPaths());
-        result = 31 * result + Arrays.hashCode(values);
+        result = 31 * result + hashCodeOfValues();
+        return result;
+    }
+    
+    private int hashCodeOfValues() {
+        int result = 1;
+        for (int i = 0; i < values.length; i++) {
+            if (distinctValues == null || distinctValues[i]) {
+                PropertyValue v = values[i];
+                result = 31 * result + (v == null ? 0 : v.hashCode());
+            }
+        }
         return result;
     }
 
@@ -153,8 +179,19 @@ public class ResultRowImpl implements ResultRow {
         ResultRowImpl other = (ResultRowImpl) obj;
         if (!Arrays.equals(getPaths(), other.getPaths())) {
             return false;
-        } else if (!Arrays.equals(values, other.values)) {
+        } else if (!Arrays.equals(distinctValues, other.distinctValues)) {
             return false;
+        }
+        // if distinctValues are equals, then the number of values
+        // is also equal
+        for (int i = 0; i < values.length; i++) {
+            if (distinctValues == null || distinctValues[i]) {
+                Object o1 = values[i];
+                Object o2 = other.values[i];
+                if (!(o1 == null ? o2 == null : o1.equals(o2))) {
+                    return false;
+                }
+            }
         }
         return true;
     }
