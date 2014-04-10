@@ -32,7 +32,6 @@ import javax.jcr.nodetype.NodeType;
 
 import com.google.common.collect.Iterators;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,7 +75,6 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
     @SuppressWarnings("unchecked")
     @Test
     public void addReferences() throws Exception {
-        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1472
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
