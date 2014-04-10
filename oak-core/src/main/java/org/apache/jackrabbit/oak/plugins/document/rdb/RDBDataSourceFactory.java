@@ -23,6 +23,8 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -83,7 +85,7 @@ public class RDBDataSourceFactory {
 
         @Override
         public <T> T unwrap(Class<T> c) throws SQLException {
-            return this.unwrap(c);
+            return this.ds.unwrap(c);
         }
 
         @Override
@@ -103,6 +105,12 @@ public class RDBDataSourceFactory {
         @Override
         public Connection getConnection(String user, String passwd) throws SQLException {
             return this.ds.getConnection(user, passwd);
+        }
+
+        // needed in Java 7...
+        @SuppressWarnings("unused")
+        public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+            throw new SQLFeatureNotSupportedException();
         }
     }
 }
