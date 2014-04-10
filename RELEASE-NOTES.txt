@@ -10,8 +10,6 @@ world-class web sites and  other demanding content applications.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Jackrabbit Oak 0.20.0 is to alpha-level software. Use at your own risk.
-
 Changes in Oak 0.20.0
 ---------------------
 
