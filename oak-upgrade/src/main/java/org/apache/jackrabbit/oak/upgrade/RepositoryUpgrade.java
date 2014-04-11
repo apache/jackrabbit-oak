@@ -22,14 +22,17 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.core.RepositoryContext;
+import org.apache.jackrabbit.core.config.BeanConfig;
+import org.apache.jackrabbit.core.config.LoginModuleConfig;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.core.config.UserManagerConfig;
+import org.apache.jackrabbit.core.config.SecurityConfig;
 import org.apache.jackrabbit.core.fs.FileSystem;
 import org.apache.jackrabbit.core.fs.FileSystemException;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
@@ -46,12 +49,16 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -68,7 +75,10 @@ import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Arrays.asList;
@@ -211,8 +221,16 @@ public class RepositoryUpgrade {
         try {
             NodeBuilder builder = target.getRoot().builder();
 
+            String workspace =
+                    source.getRepositoryConfig().getDefaultWorkspaceName();
+            SecurityProviderImpl security = new SecurityProviderImpl(
+                    mapSecurityConfig(config.getSecurityConfig()));
+
             // init target repository first
             new InitialContent().initialize(builder);
+            for (SecurityConfiguration sc : security.getConfigurations()) {
+                sc.getWorkspaceInitializer().initialize(builder, workspace);
+            }
 
             Map<String, String> uriToPrefix = newHashMap();
             Map<Integer, String> idxToPrefix = newHashMap();
@@ -222,28 +240,65 @@ public class RepositoryUpgrade {
 
             NodeState root = builder.getNodeState();
             copyVersionStore(builder, root, uriToPrefix, idxToPrefix);
-            copyWorkspaces(builder, root, uriToPrefix, idxToPrefix);
+            copyWorkspace(builder, root, workspace, uriToPrefix, idxToPrefix);
 
             logger.info("Applying default commit hooks");
-            String groupsPath;
-            UserManagerConfig userConfig = config.getSecurityConfig().getSecurityManagerConfig().getUserManagerConfig();
-            if (userConfig != null) {
-                groupsPath = userConfig.getParameters().getProperty(UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.DEFAULT_GROUP_PATH);
-            } else {
-                groupsPath = UserConstants.DEFAULT_GROUP_PATH;
-            }
             // TODO: default hooks?
-            CommitHook hook = new CompositeHook(
-                    new EditorHook(new GroupEditorProvider(groupsPath)),
-                    new EditorHook(new CompositeEditorProvider(
+            List<CommitHook> hooks = newArrayList();
+
+            UserConfiguration userConf =
+                    security.getConfiguration(UserConfiguration.class);
+            String groupsPath = userConf.getParameters().getConfigValue(
+                    UserConstants.PARAM_GROUP_PATH,
+                    UserConstants.DEFAULT_GROUP_PATH);
+            hooks.add(new EditorHook(new GroupEditorProvider(groupsPath)));
+            hooks.add(new EditorHook(new CompositeEditorProvider(
+                            new GroupEditorProvider(groupsPath),
                             new TypeEditorProvider(false),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
                                     new ReferenceEditorProvider(),
                                     new PropertyIndexEditorProvider())))));
-            target.merge(builder, hook, CommitInfo.EMPTY);
+
+            for (SecurityConfiguration sc : security.getConfigurations()) {
+                hooks.addAll(sc.getCommitHooks(workspace));
+            }
+
+            target.merge(builder, CompositeHook.compose(hooks), CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
+    }
+
+    private ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
+        ConfigurationParameters loginConfig = mapConfigurationParameters(
+                config.getLoginModuleConfig(),
+                LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
+                LoginModuleConfig.PARAM_ANONYMOUS_ID, UserConstants.PARAM_ANONYMOUS_ID);
+        ConfigurationParameters userConfig = mapConfigurationParameters(
+                config.getSecurityManagerConfig().getUserManagerConfig(),
+                UserManagerImpl.PARAM_USERS_PATH, UserConstants.PARAM_USER_PATH,
+                UserManagerImpl.PARAM_GROUPS_PATH, UserConstants.PARAM_GROUP_PATH,
+                UserManagerImpl.PARAM_DEFAULT_DEPTH, UserConstants.PARAM_DEFAULT_DEPTH,
+                UserManagerImpl.PARAM_PASSWORD_HASH_ALGORITHM, UserConstants.PARAM_PASSWORD_HASH_ALGORITHM,
+                UserManagerImpl.PARAM_PASSWORD_HASH_ITERATIONS, UserConstants.PARAM_PASSWORD_HASH_ITERATIONS);
+        return ConfigurationParameters.of(ImmutableMap.of(
+                UserConfiguration.NAME,
+                ConfigurationParameters.of(loginConfig, userConfig)));
+    }
+
+    private ConfigurationParameters mapConfigurationParameters(
+            BeanConfig config, String... mapping) {
+        Map<String, String> map = newHashMap();
+        if (config != null) {
+            Properties properties = config.getParameters();
+            for (int i = 0; i + 1 < mapping.length; i += 2) {
+                String value = properties.getProperty(mapping[i]);
+                if (value != null) {
+                    map.put(mapping[i + 1], value);
+                }
+            }
+        }
+        return ConfigurationParameters.of(map);
     }
 
     private String getOakName(Name name) throws NamespaceException {
@@ -557,15 +612,11 @@ public class RepositoryUpgrade {
                 "/jcr:system/jcr:activities", copyBinariesByReference));
     }   
 
-    private void copyWorkspaces(
-            NodeBuilder builder, NodeState root,
+    private String copyWorkspace(
+            NodeBuilder builder, NodeState root, String name,
             Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
             throws RepositoryException, IOException {
-        logger.info("Copying default workspace");
-
-        // Copy all the default workspace content
-        RepositoryConfig config = source.getRepositoryConfig();
-        String name = config.getDefaultWorkspaceName();
+        logger.info("Copying workspace {}", name);
 
         PersistenceManager pm =
                 source.getWorkspaceInfo(name).getPersistenceManager();
@@ -582,7 +633,7 @@ public class RepositoryUpgrade {
             }
         }
 
-        // TODO: Copy all the active open-scoped locks
+        return name;
     }
 
 

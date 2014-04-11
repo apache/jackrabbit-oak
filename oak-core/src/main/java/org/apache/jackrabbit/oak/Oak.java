@@ -531,9 +531,8 @@ public class Oak {
                                 return sc.getWorkspaceInitializer();
                             }
                         });
-        OakInitializer.initialize(workspaceInitializers, store,
-                defaultWorkspaceName, indexEditors, queryEngineSettings, indexProvider,
-                CompositeHook.compose(initHooks));
+        OakInitializer.initialize(
+                workspaceInitializers, store, defaultWorkspaceName, indexEditors);
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
         with(new IndexUpdateProvider(indexEditors));
