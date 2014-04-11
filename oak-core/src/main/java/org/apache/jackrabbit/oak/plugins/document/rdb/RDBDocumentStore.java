@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
@@ -35,6 +36,9 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.zip.Deflater;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -591,12 +595,20 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // low level operations
 
+    private static byte[] GZIPSIG = {31, -117};
+    private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
+
     private String getData(ResultSet rs, int stringIndex, int blobIndex) throws SQLException {
         try {
             String data = rs.getString(stringIndex);
             byte[] bdata = rs.getBytes(blobIndex);
             if (bdata == null) {
                 return data;
+            } else if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
+                // GZIP
+                ByteArrayInputStream bis = new ByteArrayInputStream(bdata);
+                GZIPInputStream gis = new GZIPInputStream(bis, 65536);
+                return IOUtils.toString(gis, "UTF-8");
             } else {
                 return IOUtils.toString(bdata, "UTF-8");
             }
@@ -605,12 +617,33 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private static ByteArrayInputStream asInputStream(String data) {
+    private static byte[] asBytes(String data) {
+        byte[] bytes;
         try {
-            return new ByteArrayInputStream(data.getBytes("UTF-8"));
+            bytes = data.getBytes("UTF-8");
         } catch (UnsupportedEncodingException ex) {
-            LOG.error("This REALLY is not supposed to happen", ex);
-            return null;
+            LOG.error("UTF-8 not supported??", ex);
+            throw new MicroKernelException(ex);
+        }
+
+        if (NOGZIP) {
+            return bytes;
+        } else {
+            try {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(data.length());
+                GZIPOutputStream gos = new GZIPOutputStream(bos) {
+                    {
+                        // TODO: make this configurable
+                        this.def.setLevel(Deflater.BEST_SPEED);
+                    }
+                };
+                gos.write(bytes);
+                gos.close();
+                return bos.toByteArray();
+            } catch (IOException ex) {
+                LOG.error("Error while gzipping contents", ex);
+                throw new MicroKernelException(ex);
+            }
         }
     }
 
@@ -691,8 +724,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setBinaryStream(si++, null, 0);
             } else {
                 stmt.setString(si++, "truncated...:" + data.substring(0, 1023));
-                ByteArrayInputStream bis = asInputStream(data);
-                stmt.setBinaryStream(si++, bis, bis.available());
+                byte[] bytes = asBytes(data);
+                stmt.setBytes(si++, bytes);
             }
 
             stmt.setString(si++, id);
@@ -723,8 +756,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setBinaryStream(si++, null, 0);
             } else {
                 stmt.setString(si++, "truncated...:" + data.substring(0, 1023));
-                ByteArrayInputStream bis = asInputStream(data);
-                stmt.setBinaryStream(si++, bis, bis.available());
+                byte[] bytes = asBytes(data);
+                stmt.setBytes(si++, bytes);
             }
 
             int result = stmt.executeUpdate();
