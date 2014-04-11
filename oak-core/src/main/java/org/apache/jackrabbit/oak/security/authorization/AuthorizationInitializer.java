@@ -20,11 +20,8 @@ import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -44,10 +41,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 class AuthorizationInitializer implements WorkspaceInitializer, AccessControlConstants, PermissionConstants {
 
     @Override
-    public void initialize(
-            NodeBuilder builder, String workspaceName,
-            QueryEngineSettings queryEngineSettings,
-            QueryIndexProvider indexProvider, CommitHook commitHook) {
+    public void initialize(NodeBuilder builder, String workspaceName) {
         // property index for rep:principalName stored in ACEs
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(builder);
         if (!index.hasChildNode("acPrincipalName")) {
