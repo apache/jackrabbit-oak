@@ -72,7 +72,7 @@ public class BenchmarkRunner {
                         .defaultsTo(Boolean.FALSE);
         OptionSpec<File> csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
                 .withOptionalArg().ofType(File.class);
-        OptionSpec<Boolean> flatStructure = parser.accepts("flatStructure", "Whether user/group should be setup with a flat structure or not.")
+        OptionSpec<Boolean> flatStructure = parser.accepts("flatStructure", "Whether the test should use a flat structure or not.")
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
@@ -138,7 +138,10 @@ public class BenchmarkRunner {
             new CreateManyNodesTest(),
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
-            new WikipediaImport(wikipedia.value(options)),
+            new WikipediaImport(
+                    wikipedia.value(options),
+                    flatStructure.value(options),
+                    report.value(options)),
             new CreateNodesBenchmark(),
             new ManyNodes(),
             new ObservationTest(),
@@ -210,6 +213,7 @@ public class BenchmarkRunner {
                     flatStructure.value(options)),
             new FullTextSearchTest(
                     wikipedia.value(options),
+                    flatStructure.value(options),
                     report.value(options))
         };
 
