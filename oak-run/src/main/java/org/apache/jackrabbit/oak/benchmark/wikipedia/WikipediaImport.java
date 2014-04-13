@@ -96,7 +96,9 @@ public class WikipediaImport extends Benchmark {
         int count = 0;
         int code = 0;
 
-        System.out.format("Importing %s...%n", dump);
+        if(doReport) {
+            System.out.format("Importing %s...%n", dump);
+        }
 
         String type = "nt:unstructured";
         if (flat) {
