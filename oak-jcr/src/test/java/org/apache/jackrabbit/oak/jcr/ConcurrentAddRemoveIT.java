@@ -28,7 +28,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -47,7 +46,6 @@ public class ConcurrentAddRemoveIT extends AbstractRepositoryTest {
 
     @Test
     public void concurrent() throws Exception {
-        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1488
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
         Node test = getAdminSession().getRootNode().addNode("test");
         List<Thread> worker = new ArrayList<Thread>();
