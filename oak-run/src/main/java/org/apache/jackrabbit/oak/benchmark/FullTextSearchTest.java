@@ -53,7 +53,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
      * imported Wikipedia pages.
      */
     private static final Pattern WORD_PATTERN =
-            Pattern.compile("\\p{IsLetterOrDigit}{3,}");
+            Pattern.compile("\\p{LD}{3,}");
 
     private int maxSampleSize = 100;
 
@@ -63,13 +63,14 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
 
     private final Random random = new Random(42); //fixed seed
 
+    private int count = 0;
+
     private int maxRowsToFetch = Integer.getInteger("maxRowsToFetch",10000);
 
     private TestContext defaultContext;
 
     public FullTextSearchTest(File dump, boolean flat, boolean doReport) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
-            private int count = 0;
             @Override
             protected void pageAdded(String title, String text) {
                 count++;
@@ -93,6 +94,10 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
 
     @Override
     public void beforeSuite() throws Exception {
+        random.setSeed(42);
+        sampleSet.clear();
+        count = 0;
+
         importer.importWikipedia(loginWriter());
         Thread.sleep(5); // allow some time for the indexer to catch up
 
