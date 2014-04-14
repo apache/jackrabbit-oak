@@ -158,14 +158,17 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     // (1) find the previous element
                     ChildNodeEntry previous = findPrevious(
                             index.getNodeState(), node.getNodeState());
-                    LOG.debug("previous: {}", previous);
-                    // (2) find the next element
-                    String next = node.getString(NEXT); 
-                    if (next == null) {
-                        next = "";
+                    if (previous == null) {
+                        LOG.debug("previous not found. Already deleted in the meanwhile. Skipping re-link");
+                    } else {
+                        // (2) find the next element
+                        String next = node.getString(NEXT); 
+                        if (next == null) {
+                            next = "";
+                        }
+                        // (3) re-link the previous to the next
+                        index.getChildNode(previous.getName()).setProperty(NEXT, next);
                     }
-                    // (3) re-link the previous to the next
-                    index.getChildNode(previous.getName()).setProperty(NEXT, next); 
                 } 
                 node.remove();
             }
