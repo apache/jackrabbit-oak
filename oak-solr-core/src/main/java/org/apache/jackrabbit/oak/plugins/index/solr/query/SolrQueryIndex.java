@@ -106,6 +106,16 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
         StringBuilder queryBuilder = new StringBuilder();
 
+        if (filter.getFullTextConstraint() != null) {
+            queryBuilder.append(getFullTextQuery(filter.getFullTextConstraint()));
+            queryBuilder.append(' ');
+        } else if (filter.getFulltextConditions() != null) {
+            Collection<String> fulltextConditions = filter.getFulltextConditions();
+            for (String fulltextCondition : fulltextConditions) {
+                queryBuilder.append(fulltextCondition).append(" ");
+            }
+        }
+
         Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
@@ -172,16 +182,21 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         queryBuilder.append(':');
                         queryBuilder.append(first);
                     } else {
-                        queryBuilder.append(fieldName).append(':');
                         if (pr.first != null && pr.last != null && pr.first.equals(pr.last)) {
+                            queryBuilder.append(fieldName).append(':');
                             queryBuilder.append(first);
                         } else if (pr.first == null && pr.last == null) {
-                            queryBuilder.append('*');
+                            if (!queryBuilder.toString().contains(fieldName + ":")) {
+                                queryBuilder.append(fieldName).append(':');
+                                queryBuilder.append('*');
+                            }
                         } else if ((pr.first != null && pr.last == null) || (pr.last != null && pr.first == null) || (!pr.first.equals(pr.last))) {
                             // TODO : need to check if this works for all field types (most likely not!)
+                            queryBuilder.append(fieldName).append(':');
                             queryBuilder.append(createRangeQuery(first, last, pr.firstIncluding, pr.lastIncluding));
                         } else if (pr.isLike) {
                             // TODO : the current parameter substitution is not expected to work well
+                            queryBuilder.append(fieldName).append(':');
                             queryBuilder.append(partialEscape(String.valueOf(pr.first.getValue(pr.first.getType())).replace('%', '*').replace('_', '?')));
                         } else {
                             throw new RuntimeException("[unexpected!] not handled case");
@@ -208,16 +223,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
         }
 
-        if (filter.getFullTextConstraint() != null) {
-            queryBuilder.append(getFullTextQuery(filter.getFullTextConstraint()));
-            queryBuilder.append(' ');
-        } else if (filter.getFulltextConditions() != null) {
-            Collection<String> fulltextConditions = filter.getFulltextConditions();
-            for (String fulltextCondition : fulltextConditions) {
-                queryBuilder.append(fulltextCondition).append(" ");
-            }
-        }
-
         Filter.PathRestriction pathRestriction = filter.getPathRestriction();
         if (pathRestriction != null) {
             String path = purgePath(filter);
@@ -226,7 +231,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 queryBuilder.append(fieldName);
                 queryBuilder.append(':');
                 queryBuilder.append(path);
-                queryBuilder.append(' ');
             }
         }
 
