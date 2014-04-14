@@ -63,6 +63,7 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DocumentFixture;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.SegmentFixture;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -165,6 +166,8 @@ public class LargeOperationIT {
                 .getLogger(DocumentNodeStore.class).setLevel(Level.ERROR);
         ((LoggerContext)LoggerFactory.getILoggerFactory())
                 .getLogger("org.apache.jackrabbit.oak.jcr.observation.ChangeProcessor").setLevel(Level.ERROR);
+        ((LoggerContext)LoggerFactory.getILoggerFactory())
+                .getLogger(RefreshStrategy.class).setLevel(Level.ERROR);
 
         nodeStore = fixture.createNodeStore();
         repository  = new Jcr(nodeStore).createRepository();
@@ -290,7 +293,8 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        assertOnLgn("large copy", scales, executionTimes, false);
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        assertOnLgn("large copy", scales, executionTimes, knownIssue);
     }
 
     /**
