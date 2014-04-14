@@ -118,6 +118,13 @@ public class QueryImpl implements Query {
 
     private OrderingImpl[] orderings;
     private ColumnImpl[] columns;
+    
+    /**
+     * The columns that make a row distinct. This is all columns
+     * except for "jcr:score".
+     */
+    private boolean[] distinctColumns;
+    
     private boolean explain, measure;
     private boolean distinct;
     private long limit = Long.MAX_VALUE;
@@ -347,6 +354,15 @@ public class QueryImpl implements Query {
         for (ColumnImpl column : columns) {
             column.bindSelector(source);
         }
+        distinctColumns = new boolean[columns.length];
+        for (int i = 0; i < columns.length; i++) {
+            ColumnImpl c = columns[i];
+            boolean distinct = true;
+            if (JCR_SCORE.equals(c.getPropertyName())) {
+                distinct = false;
+            }
+            distinctColumns[i] = distinct;
+        }
     }
 
     @Override
@@ -409,7 +425,7 @@ public class QueryImpl implements Query {
             ResultRowImpl r = new ResultRowImpl(this,
                     Tree.EMPTY_ARRAY,
                     new PropertyValue[] { PropertyValues.newString(plan)},
-                    null);
+                    null, null);
             return Arrays.asList(r).iterator();
         }
         if (LOG.isDebugEnabled()) {
@@ -474,7 +490,7 @@ public class QueryImpl implements Query {
                             PropertyValues.newString("query"),
                             PropertyValues.newLong(rowIt.getReadCount())
                         },
-                    null);
+                    null, null);
             list.add(r);
             for (SelectorImpl selector : selectors) {
                 r = new ResultRowImpl(this,
@@ -483,7 +499,7 @@ public class QueryImpl implements Query {
                                 PropertyValues.newString(selector.getSelectorName()),
                                 PropertyValues.newLong(selector.getScanCount()),
                             },
-                        null);
+                        null, null);
                 list.add(r);
             }
             it = list.iterator();
@@ -676,7 +692,7 @@ public class QueryImpl implements Query {
                 orderValues[i] = orderings[i].getOperand().currentProperty();
             }
         }
-        return new ResultRowImpl(this, trees, values, orderValues);
+        return new ResultRowImpl(this, trees, values, distinctColumns, orderValues);
     }
 
     @Override
