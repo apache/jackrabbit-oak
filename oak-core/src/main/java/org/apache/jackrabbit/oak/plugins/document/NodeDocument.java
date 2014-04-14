@@ -51,10 +51,12 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.disjoint;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 
@@ -1339,7 +1341,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         setSplitDocMaxRev(old, maxRev);
 
         SplitDocType type = SplitDocType.DEFAULT;
-        if(!mainDoc.hasChildren()){
+        if(!mainDoc.hasChildren() && !referencesOldDocAfterSplit(mainDoc, oldDoc)){
             type = SplitDocType.DEFAULT_NO_CHILD;
         } else if (oldDoc.getLocalRevisions().isEmpty()){
             type = SplitDocType.PROP_COMMIT_ONLY;
@@ -1351,6 +1353,31 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
 
         setSplitDocType(old,type);
+    }
+
+    /**
+     * Checks if the main document has changes referencing {@code oldDoc} after
+     * the split.
+     *
+     * @param mainDoc the main document before the split.
+     * @param oldDoc  the old document created by the split.
+     * @return {@code true} if the main document contains references to the
+     *         old document after the split; {@code false} otherwise.
+     */
+    private static boolean referencesOldDocAfterSplit(NodeDocument mainDoc,
+                                                      NodeDocument oldDoc) {
+        Set<Revision> revs = oldDoc.getLocalRevisions().keySet();
+        for (String property : mainDoc.data.keySet()) {
+            if (IGNORE_ON_SPLIT.contains(property)) {
+                continue;
+            }
+            Set<Revision> changes = Sets.newHashSet(mainDoc.getLocalMap(property).keySet());
+            changes.removeAll(oldDoc.getLocalMap(property).keySet());
+            if (!disjoint(changes, revs)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

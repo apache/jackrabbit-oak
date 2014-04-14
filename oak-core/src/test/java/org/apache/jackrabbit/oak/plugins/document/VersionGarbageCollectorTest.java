@@ -20,15 +20,19 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
-import java.util.*;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.jackrabbit.oak.plugins.document.Collection.*;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -204,6 +208,53 @@ public class VersionGarbageCollectorTest {
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
         //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+    }
+
+    // OAK-1729
+    @Test
+    public void gcIntermediateDocs() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        NodeBuilder b1 = store.getRoot().builder();
+        // adding the foo node will cause the commit root to be placed
+        // on the rood document, because the children flag is set on the
+        // root document
+        b1.child("foo");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // adding test afterwards will use the new test document as the
+        // commit root. this what we want for the test.
+        b1.child("test");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        assertTrue(!getDoc("/test").getLocalRevisions().isEmpty());
+
+        for (int i = 0; i < PREV_SPLIT_FACTOR + 1; i++) {
+            for (int j = 0; j < NUM_REVS_THRESHOLD; j++) {
+                b1 = store.getRoot().builder();
+                b1.child("test").setProperty("prop", i * NUM_REVS_THRESHOLD + j);
+                store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            }
+            store.runBackgroundOperations();
+        }
+
+        Map<Revision, Range> prevRanges = getDoc("/test").getPreviousRanges();
+        boolean hasIntermediateDoc = false;
+        for (Map.Entry<Revision, Range> entry : prevRanges.entrySet()) {
+            if (entry.getValue().getHeight() > 0) {
+                hasIntermediateDoc = true;
+                break;
+            }
+        }
+        assertTrue("Test data does not have intermediate previous docs",
+                hasIntermediateDoc);
+
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        assertEquals(10, stats.splitDocGCCount);
+
+        DocumentNodeState test = getDoc("/test").getNodeAtRevision(
+                store, store.getHeadRevision(), null);
+        assertNotNull(test);
     }
 
     private NodeDocument getDoc(String path){

@@ -51,8 +51,6 @@ public abstract class DocumentStoreFixture {
 
     public static class MemoryFixture extends DocumentStoreFixture {
 
-        DocumentStore ds = new MemoryDocumentStore();
-
         @Override
         public String getName() {
             return "Memory";
@@ -60,7 +58,7 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public DocumentStore createDocumentStore() {
-            return ds;
+            return new MemoryDocumentStore();
         }
     }
 
@@ -75,7 +73,7 @@ public abstract class DocumentStoreFixture {
                 DataSource datas = RDBDataSourceFactory.forJdbcUrl(url, username, passwd);
                 this.ds = new RDBDocumentStore(datas, new DocumentMK.Builder());
             } catch (Exception ex) {
-                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.info("Database instance not available at " + url + ", skipping tests...");
             }
         }
 
