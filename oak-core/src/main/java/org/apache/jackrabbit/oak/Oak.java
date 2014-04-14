@@ -511,12 +511,6 @@ public class Oak {
             registerMBean(whiteboard, IndexStatsMBean.class,
                     task.getIndexStats(), IndexStatsMBean.TYPE, name);
 
-            name = "async-reindex";
-            task = new AsyncIndexUpdate(name, store, indexEditors, true);
-            scheduleWithFixedDelay(whiteboard, task, 5, true);
-            registerMBean(whiteboard, IndexStatsMBean.class,
-            task.getIndexStats(), IndexStatsMBean.TYPE, name);
-
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate("async-reindex", store, indexEditors,
                             true), executor);
