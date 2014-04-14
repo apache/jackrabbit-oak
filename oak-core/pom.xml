@@ -38,13 +38,10 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Embed-Dependency>commons-dbcp,commons-pool,h2,json-simple</Embed-Dependency>
+            <Embed-Dependency>commons-dbcp,commons-pool,h2,json-simple,postgresql,db2,db2-license</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
-              org.apache.lucene.*;resolution:=optional,
-              org.osgi.service.jdbc.*;resolution:=optional,
-              com.vividsolutions.jts.*;resolution:=optional,
-              *
+              *;resolution:=optional
             </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak,

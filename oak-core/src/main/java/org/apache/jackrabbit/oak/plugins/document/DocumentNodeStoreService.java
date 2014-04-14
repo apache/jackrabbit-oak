@@ -196,8 +196,6 @@ public class DocumentNodeStoreService {
 
         String jdbcuri = System.getProperty("oak.jdbc.connection.uri", "");
 
-        log.info("jdbcuri {}", jdbcuri);
-
         if (!jdbcuri.isEmpty()) {
             // FIXME
             String username = System.getProperty("oak.jdbc.username", "");
@@ -205,11 +203,12 @@ public class DocumentNodeStoreService {
             String driver = System.getProperty("oak.jdbc.driver.class", "");
 
             if (driver.length() > 0) {
+                log.info("trying to load {}", driver);
+
                 try {
                     Class.forName(driver);
-                } catch (ClassNotFoundException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                } catch (ClassNotFoundException ex) {
+                    log.error("driver not loaded", ex);
                 }
             }
 
