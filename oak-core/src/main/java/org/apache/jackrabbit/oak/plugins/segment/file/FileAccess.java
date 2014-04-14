@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.channels.FileChannel.MapMode.READ_ONLY;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -27,16 +26,6 @@ import java.nio.MappedByteBuffer;
 import java.util.zip.CRC32;
 
 abstract class FileAccess {
-
-    static FileAccess open(File file, boolean memoryMapping)
-            throws IOException {
-        RandomAccessFile access = new RandomAccessFile(file, "r");
-        if (memoryMapping) {
-            return new Mapped(access);
-        } else {
-            return new Random(access);
-        }
-    }
 
     abstract boolean isMemoryMapped();
 
@@ -50,16 +39,12 @@ abstract class FileAccess {
 
     //-----------------------------------------------------------< private >--
 
-    private static class Mapped extends FileAccess {
+    static class Mapped extends FileAccess {
 
         private final MappedByteBuffer buffer;
 
         Mapped(RandomAccessFile file) throws IOException {
-            try {
-                buffer = file.getChannel().map(READ_ONLY, 0, file.length());
-            } finally {
-                file.close();
-            }
+            this.buffer = file.getChannel().map(READ_ONLY, 0, file.length());
         }
 
         @Override
@@ -99,7 +84,7 @@ abstract class FileAccess {
 
     }
 
-    private static class Random extends FileAccess {
+    static class Random extends FileAccess {
 
         private final RandomAccessFile file;
 

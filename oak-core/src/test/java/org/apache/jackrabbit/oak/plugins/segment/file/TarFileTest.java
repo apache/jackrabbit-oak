@@ -53,14 +53,14 @@ public class TarFileTest {
 
         assertEquals(3072, file.length());
 
-        TarReader reader = new TarReader(file, false);
+        TarReader reader = TarReader.open(file, false);
         try {
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         } finally {
             reader.close();
         }
 
-        reader = new TarReader(file, false);
+        reader = TarReader.open(file, false);
         try {
             assertEquals(ByteBuffer.wrap(data), reader.readEntry(msb, lsb));
         } finally {
