@@ -25,13 +25,12 @@ import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import javax.sql.DataSource;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -65,6 +65,11 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoClientURI;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
@@ -179,22 +184,6 @@ public class DocumentNodeStoreService {
         int changesSize = PropertiesUtil.toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         boolean useMK = PropertiesUtil.toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
-
-        MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
-        MongoClientURI mongoURI = new MongoClientURI(uri, builder);
-
-        if (log.isInfoEnabled()) {
-            // Take care around not logging the uri directly as it
-            // might contain passwords
-            String type = useMK ? "MK" : "NodeStore";
-            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
-                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize);
-            log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
-        }
-
-        MongoClient client = new MongoClient(mongoURI);
-        DB mongoDB = client.getDB(db);
-
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
@@ -205,11 +194,59 @@ public class DocumentNodeStoreService {
             mkBuilder.setBlobStore(blobStore);
         }
 
-        mkBuilder.setMongoDB(mongoDB, changesSize);
+        String jdbcuri = System.getProperty("oak.jdbc.connection.uri", "");
+
+        log.info("jdbcuri {}", jdbcuri);
+
+        if (!jdbcuri.isEmpty()) {
+            // FIXME
+            String username = System.getProperty("oak.jdbc.username", "");
+            String passwd = System.getProperty("oak.jdbc.password", "");
+            String driver = System.getProperty("oak.jdbc.driver.class", "");
+
+            if (driver.length() > 0) {
+                try {
+                    Class.forName(driver);
+                } catch (ClassNotFoundException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+
+            if (log.isInfoEnabled()) {
+                String type = useMK ? "MK" : "NodeStore";
+                log.info("Starting Document{} with uri={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
+                        type, jdbcuri, cacheSize, offHeapCache, changesSize);
+            }
+
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, username, passwd);
+            mkBuilder.setRDBConnection(ds);
+
+            log.info("Connected to datasource {}", ds);
+        }
+        else {
+            MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
+            MongoClientURI mongoURI = new MongoClientURI(uri, builder);
+
+            if (log.isInfoEnabled()) {
+                // Take care around not logging the uri directly as it
+                // might contain passwords
+                String type = useMK ? "MK" : "NodeStore";
+                log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
+                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize);
+                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+            }
+
+            MongoClient client = new MongoClient(mongoURI);
+            DB mongoDB = client.getDB(db);
+
+            mkBuilder.setMongoDB(mongoDB, changesSize);
+
+            log.info("Connected to database {}", mongoDB);
+        }
+
         mkBuilder.setExecutor(executor);
         mk = mkBuilder.open();
-
-        log.info("Connected to database {}", mongoDB);
 
         registerJMXBeans(mk.getNodeStore());
         registerLastRevRecoveryJob(mk.getNodeStore());

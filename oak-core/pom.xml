@@ -38,7 +38,12 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Embed-Dependency>commons-dbcp,commons-pool,h2,json-simple</Embed-Dependency>
+            <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
+              org.apache.lucene.*;resolution:=optional,
+              org.osgi.service.jdbc.*;resolution:=optional,
+              com.vividsolutions.jts.*;resolution:=optional,
               *
             </Import-Package>
             <Export-Package>
@@ -212,7 +217,7 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1.1</version>
-      <optional>true</optional>
+      <!--<optional>true</optional>-->
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -277,14 +282,17 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>1.3.175</version>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>commons-dbcp</groupId>
       <artifactId>commons-dbcp</artifactId>
       <version>1.4</version>
-      <optional>true</optional>
     </dependency>
+    <!--<dependency>
+      <groupId>commons-pool</groupId>
+      <artifactId>commons-pool</artifactId>
+      <version>1.6</version>
+    </dependency>-->
 
     <!-- Logging -->
     <dependency>
