@@ -39,6 +39,10 @@ public class ColumnImpl extends AstElement {
     public String getColumnName() {
         return columnName;
     }
+    
+    public String getPropertyName() {
+        return propertyName;
+    }
 
     @Override
     boolean accept(AstVisitor v) {
