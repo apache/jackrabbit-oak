@@ -459,14 +459,14 @@
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
-          <groupId>org.example</groupId>
+          <groupId>com.ibm.db2.jcc</groupId>
           <artifactId>db2</artifactId>
           <version>1.0</version>
           <scope>system</scope>
           <systemPath>${db2.jdbc}/db2jcc4.jar</systemPath>
         </dependency>
         <dependency>
-          <groupId>org.example</groupId>
+          <groupId>com.ibm.db2.jcc</groupId>
           <artifactId>db2-license</artifactId>
           <version>1.0</version>
           <scope>system</scope>
