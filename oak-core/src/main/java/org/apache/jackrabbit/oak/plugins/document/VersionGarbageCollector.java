@@ -46,8 +46,7 @@ public class VersionGarbageCollector {
      */
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
             NodeDocument.SplitDocType.DEFAULT_NO_CHILD,
-            NodeDocument.SplitDocType.PROP_COMMIT_ONLY,
-            NodeDocument.SplitDocType.INTERMEDIATE);
+            NodeDocument.SplitDocType.PROP_COMMIT_ONLY);
 
 
     VersionGarbageCollector(DocumentNodeStore nodeStore) {
