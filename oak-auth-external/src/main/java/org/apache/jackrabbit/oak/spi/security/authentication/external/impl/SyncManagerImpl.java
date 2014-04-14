@@ -17,17 +17,11 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;

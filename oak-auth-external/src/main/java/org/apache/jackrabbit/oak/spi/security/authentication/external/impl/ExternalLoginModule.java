@@ -33,6 +33,8 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
@@ -300,7 +302,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
             SyncContext context = null;
             try {
                 DebugTimer timer = new DebugTimer();
-                context = syncHandler.createContext(idp, userManager, root);
+                context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
                 context.sync(user);
                 timer.mark("sync");
                 root.commit();
@@ -337,7 +339,7 @@ public class ExternalLoginModule extends AbstractLoginModule {
                 throw new SyncException("Cannot synchronize user. userManager == null");
             }
             DebugTimer timer = new DebugTimer();
-            context = syncHandler.createContext(idp, userManager, root);
+            context = syncHandler.createContext(idp, userManager, new ValueFactoryImpl(root, NamePathMapper.DEFAULT));
             context.sync(id);
             timer.mark("sync");
             root.commit();

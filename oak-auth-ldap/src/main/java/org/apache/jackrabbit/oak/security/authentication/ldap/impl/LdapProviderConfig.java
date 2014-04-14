@@ -862,7 +862,7 @@ public class LdapProviderConfig {
      * @param value Right hand side of "attrId=value" assertion occurring in an LDAP search filter.
      * @return Escaped version of <code>value</code>
      */
-    private static String encodeFilterValue(String value) {
+    public static String encodeFilterValue(String value) {
         StringBuilder sb = null;
         for (int i = 0; i < value.length(); i++) {
             char ch = value.charAt(i);
