@@ -25,23 +25,61 @@ import javax.annotation.Nonnull;
 public interface SyncContext {
 
     /**
+     * Defines if synchronization keeps missing external identities on synchronization of authorizables. Default
+     * is {@code false}.
+     * @return {@code true} if keep missing.
+     */
+    boolean isKeepMissing();
+
+    /**
+     * See {@link #isKeepMissing()}
+     */
+    @Nonnull
+    SyncContext setKeepMissing(boolean keep);
+
+    /**
+     * Defines if synchronization of users always will perform, i.e. ignores the last synced properties.
+     * @return {@code true} if forced syncing users
+     */
+    boolean isForceUserSync();
+
+    /**
+     * See {@link #isForceUserSync()}
+     */
+    @Nonnull
+    SyncContext setForceUserSync(boolean force);
+
+    /**
+     * Defines if synchronization of groups always will perform, i.e. ignores the last synced properties.
+     * @return {@code true} if forced syncing groups
+     */
+    boolean isForceGroupSync();
+
+    /**
+     * See {@link #isForceGroupSync()}
+     */
+    @Nonnull
+    SyncContext setForceGroupSync(boolean force);
+
+    /**
      * Synchronizes an external identity with the repository based on the respective configuration.
      *
      * @param identity the identity to sync.
-     * @return {@code true} if the given identity was synced; {@code false} for no change.
+     * @return the result of the operation
      * @throws SyncException if an error occurrs
      */
-    boolean sync(@Nonnull ExternalIdentity identity) throws SyncException;
+    SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException;
 
     /**
      * Synchronizes an authorizable with the corresponding external identity with the repository based on the respective
      * configuration.
      *
      * @param id the id of the authorizable
-     * @return {@code true} if the given identity was synced; {@code false} for no change.
+     * @return the result of the operation
      * @throws SyncException if an error occurrs
      */
-    boolean sync(@Nonnull String id) throws SyncException;
+    SyncResult sync(@Nonnull String id) throws SyncException;
+
 
     /**
      * Closes this context and releases any resources bound to it. Note that an implementation must not commit the
@@ -49,4 +87,5 @@ public interface SyncContext {
      * application.
      */
     void close();
+
 }
