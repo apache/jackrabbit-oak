@@ -33,6 +33,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileLock;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -95,6 +96,8 @@ public class FileStore implements SegmentStore {
     private TarWriter writer;
 
     private final RandomAccessFile journalFile;
+
+    private final FileLock journalLock;
 
     /**
      * The latest head state.
@@ -164,6 +167,10 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
 
+        journalFile = new RandomAccessFile(
+                new File(directory, JOURNAL_FILE_NAME), "rw");
+        journalLock = journalFile.getChannel().lock();
+
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
@@ -181,9 +188,6 @@ public class FileStore implements SegmentStore {
                 directory,
                 String.format(FILE_NAME_FORMAT, writeNumber, "a"));
         this.writer = new TarWriter(writeFile);
-
-        journalFile = new RandomAccessFile(
-                new File(directory, JOURNAL_FILE_NAME), "rw");
 
         LinkedList<RecordId> heads = newLinkedList();
         String line = journalFile.readLine();
@@ -245,6 +249,12 @@ public class FileStore implements SegmentStore {
         flushThread.setDaemon(true);
         flushThread.setPriority(Thread.MIN_PRIORITY);
         flushThread.start();
+
+        if (memoryMapping) {
+            log.info("TarMK opened with memory-mapping: {}", directory);
+        } else {
+            log.info("TarMK opened: {}", directory);
+        }
     }
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory)
@@ -357,7 +367,9 @@ public class FileStore implements SegmentStore {
                                 if (cleaned != null) {
                                     list.add(cleaned);
                                 }
-                                toBeRemoved.addLast(reader.close());
+                                File file = reader.close();
+                                log.info("TarMK GC: Cleaned up file {}", file);
+                                toBeRemoved.addLast(file);
                             }
                         }
                         readers = list;
@@ -426,7 +438,6 @@ public class FileStore implements SegmentStore {
                 flush();
 
                 writer.close();
-                journalFile.close();
 
                 List<TarReader> list = readers;
                 readers = newArrayList();
@@ -434,12 +445,17 @@ public class FileStore implements SegmentStore {
                     reader.close();
                 }
 
+                journalLock.release();
+                journalFile.close();
+
                 System.gc(); // for any memory-mappings that are no longer used
             }
         } catch (IOException e) {
             throw new RuntimeException(
                     "Failed to close the TarMK at " + directory, e);
         }
+
+        log.info("TarMK closed: {}", directory);
     }
 
     @Override
