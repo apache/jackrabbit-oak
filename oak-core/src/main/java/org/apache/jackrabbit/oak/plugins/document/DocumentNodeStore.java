@@ -211,6 +211,12 @@ public final class DocumentNodeStore
     private Thread backgroundThread;
 
     /**
+     * Background thread performing the clusterId lease renew.
+     * Will be {@code null} if {@link #clusterNodeInfo} is {@code null}.
+     */
+    private Thread leaseUpdateThread;
+
+    /**
      * Read/Write lock for background operations. Regular commits will acquire
      * a shared lock, while a background write acquires an exclusive lock.
      */
@@ -384,9 +390,16 @@ public final class DocumentNodeStore
         backgroundThread.setDaemon(true);
         checkLastRevRecovery();
         // Renew the lease because it may have been stale
-        backgroundRenewClusterIdLease();
+        renewClusterIdLease();
 
         backgroundThread.start();
+
+        if (clusterNodeInfo != null) {
+            leaseUpdateThread = new Thread(
+                    new BackgroundLeaseUpdate(this, isDisposed),
+                    "DocumentNodeStore lease update thread");
+            leaseUpdateThread.start();
+        }
 
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
@@ -408,6 +421,13 @@ public final class DocumentNodeStore
                 backgroundThread.join();
             } catch (InterruptedException e) {
                 // ignore
+            }
+            if (leaseUpdateThread != null) {
+                try {
+                    leaseUpdateThread.join();
+                } catch (InterruptedException e) {
+                    // ignore
+                }
             }
             if (clusterNodeInfo != null) {
                 clusterNodeInfo.dispose();
@@ -1307,7 +1327,6 @@ public final class DocumentNodeStore
         if (isDisposed.get()) {
             return;
         }
-        backgroundRenewClusterIdLease();
         if (simpleRevisionCounter != null) {
             // only when using timestamp
             return;
@@ -1330,11 +1349,11 @@ public final class DocumentNodeStore
         }
     }
 
-    private void backgroundRenewClusterIdLease() {
+    void renewClusterIdLease() {
         if (clusterNodeInfo == null) {
             return;
         }
-        clusterNodeInfo.renewLease(asyncDelay);
+        clusterNodeInfo.renewLease();
     }
 
     /**
@@ -1651,19 +1670,18 @@ public final class DocumentNodeStore
         return blobGC;
     }
 
-    /**
-     * A background thread.
-     */
-    static class BackgroundOperation implements Runnable {
+    static abstract class NodeStoreTask implements Runnable {
         final WeakReference<DocumentNodeStore> ref;
         private final AtomicBoolean isDisposed;
         private int delay;
 
-        BackgroundOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
+        NodeStoreTask(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
             ref = new WeakReference<DocumentNodeStore>(nodeStore);
             delay = nodeStore.getAsyncDelay();
             this.isDisposed = isDisposed;
         }
+
+        protected abstract void execute(@Nonnull DocumentNodeStore nodeStore);
 
         @Override
         public void run() {
@@ -1678,7 +1696,7 @@ public final class DocumentNodeStore
                 DocumentNodeStore nodeStore = ref.get();
                 if (nodeStore != null) {
                     try {
-                        nodeStore.runBackgroundOperations();
+                        execute(nodeStore);
                     } catch (Throwable t) {
                         LOG.warn("Background operation failed: " + t.toString(), t);
                     }
@@ -1688,6 +1706,35 @@ public final class DocumentNodeStore
                     break;
                 }
             }
+        }
+    }
+
+    /**
+     * Background operations.
+     */
+    static class BackgroundOperation extends NodeStoreTask {
+
+        BackgroundOperation(DocumentNodeStore nodeStore,
+                            AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed);
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            nodeStore.runBackgroundOperations();
+        }
+    }
+
+    static class BackgroundLeaseUpdate extends NodeStoreTask {
+
+        BackgroundLeaseUpdate(DocumentNodeStore nodeStore,
+                              AtomicBoolean isDisposed) {
+            super(nodeStore, isDisposed);
+        }
+
+        @Override
+        protected void execute(@Nonnull DocumentNodeStore nodeStore) {
+            nodeStore.renewClusterIdLease();
         }
     }
 
