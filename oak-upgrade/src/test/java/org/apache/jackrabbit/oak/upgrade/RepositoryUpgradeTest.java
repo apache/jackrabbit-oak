@@ -22,7 +22,6 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -84,11 +83,20 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             template.setName("test:unstructured");
             template.setDeclaredSuperTypeNames(
                     new String[] {"nt:unstructured"});
-            PropertyDefinitionTemplate pDef = nodeTypeManager.createPropertyDefinitionTemplate();
-            pDef.setName("default");
-            pDef.setRequiredType(PropertyType.STRING);
-            pDef.setDefaultValues(new Value[]{session.getValueFactory().createValue("defaultValue")});
-            template.getPropertyDefinitionTemplates().add(pDef);
+            PropertyDefinitionTemplate pDef1 = nodeTypeManager.createPropertyDefinitionTemplate();
+            pDef1.setName("defaultString");
+            pDef1.setRequiredType(PropertyType.STRING);
+            Value stringValue = session.getValueFactory().createValue("stringValue");
+            pDef1.setDefaultValues(new Value[] {stringValue});
+            template.getPropertyDefinitionTemplates().add(pDef1);
+
+            PropertyDefinitionTemplate pDef2 = nodeTypeManager.createPropertyDefinitionTemplate();
+            pDef2.setName("defaultPath");
+            pDef2.setRequiredType(PropertyType.PATH);
+            Value pathValue = session.getValueFactory().createValue("/jcr:path/nt:value", PropertyType.PATH);
+            pDef2.setDefaultValues(new Value[] {pathValue});
+            template.getPropertyDefinitionTemplates().add(pDef2);
+
             nodeTypeManager.registerNodeType(template, false);
 
             Node root = session.getRootNode();
@@ -188,16 +196,25 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             NodeType type = manager.getNodeType("test:unstructured");
             assertFalse(type.isMixin());
             assertTrue(type.isNodeType("nt:unstructured"));
+            boolean foundDefaultString = false;
+            boolean foundDefaultPath = false;
             for (PropertyDefinition pDef : type.getPropertyDefinitions()) {
-                if ("default".equals(pDef.getName())) {
-// FIXME uncomment once OAK-1731 is fixed
-//                    assertNotNull(pDef.getDefaultValues());
-//                    assertEquals(1, pDef.getDefaultValues().length);
-//                    assertEquals("defaultValue", pDef.getDefaultValues()[0].getString());
-                    break;
+                if ("defaultString".equals(pDef.getName())) {
+                    assertEquals(PropertyType.STRING, pDef.getRequiredType());
+                    assertNotNull(pDef.getDefaultValues());
+                    assertEquals(1, pDef.getDefaultValues().length);
+                    assertEquals("stringValue", pDef.getDefaultValues()[0].getString());
+                    foundDefaultString = true;
+                } else if ("defaultPath".equals(pDef.getName())) {
+                    assertEquals(PropertyType.PATH, pDef.getRequiredType());
+                    assertNotNull(pDef.getDefaultValues());
+                    assertEquals(1, pDef.getDefaultValues().length);
+                    assertEquals("/jcr:path/nt:value", pDef.getDefaultValues()[0].getString());
+                    foundDefaultPath = true;
                 }
-                fail("Expected property definition with name \"default\"");
             }
+            assertTrue("Expected property definition with name \"defaultString\"", foundDefaultString);
+            assertTrue("Expected property definition with name \"defaultPath\"", foundDefaultPath);
         } finally {
             session.logout();
         }

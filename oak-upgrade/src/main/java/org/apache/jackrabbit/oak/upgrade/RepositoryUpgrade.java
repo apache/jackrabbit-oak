@@ -16,18 +16,83 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
+import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
+import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_ONPARENTVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
+import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
+import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
+import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
+import static org.apache.jackrabbit.oak.api.Type.LONGS;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.PATHS;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGE;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_BITS;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_NEXT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
+import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import javax.jcr.NamespaceException;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
 import org.apache.jackrabbit.core.config.LoginModuleConfig;
@@ -41,6 +106,8 @@ import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -68,6 +135,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
 import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.Path;
+import org.apache.jackrabbit.spi.Path.Element;
 import org.apache.jackrabbit.spi.QItemDefinition;
 import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
@@ -76,59 +145,6 @@ import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
-
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMap;
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
-import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
-import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_ONPARENTVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
-import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
-import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
-import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.core.RepositoryImpl.ACTIVITIES_NODE_ID;
-import static org.apache.jackrabbit.core.RepositoryImpl.ROOT_NODE_ID;
-import static org.apache.jackrabbit.core.RepositoryImpl.VERSION_STORAGE_NODE_ID;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.addCustomMapping;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGE;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_BITS;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_NEXT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
-import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 public class RepositoryUpgrade {
 
@@ -236,10 +252,10 @@ public class RepositoryUpgrade {
                 sc.getWorkspaceInitializer().initialize(builder, workspace);
             }
 
-            Map<String, String> uriToPrefix = newHashMap();
+            HashBiMap<String, String> uriToPrefix = HashBiMap.create();
             Map<Integer, String> idxToPrefix = newHashMap();
             copyNamespaces(builder, uriToPrefix, idxToPrefix);
-            copyNodeTypes(builder);
+            copyNodeTypes(builder, uriToPrefix.inverse());
             copyPrivileges(builder);
 
             NodeState root = builder.getNodeState();
@@ -458,7 +474,8 @@ public class RepositoryUpgrade {
         return bits;
     }
 
-    private void copyNodeTypes(NodeBuilder root) throws RepositoryException {
+    private void copyNodeTypes(NodeBuilder root, Map<String, String> prefixToUri)
+            throws RepositoryException {
         NodeTypeRegistry sourceRegistry = source.getNodeTypeRegistry();
         NodeBuilder system = root.child(JCR_SYSTEM);
         NodeBuilder types = system.child(JCR_NODE_TYPES);
@@ -470,13 +487,14 @@ public class RepositoryUpgrade {
             if (!types.hasChildNode(oakName)) {
                 QNodeTypeDefinition def = sourceRegistry.getNodeTypeDef(name);
                 NodeBuilder type = types.child(oakName);
-                copyNodeType(def, type);
+                copyNodeType(def, type, prefixToUri);
             }
         }
     }
 
-    private void copyNodeType(QNodeTypeDefinition def, NodeBuilder builder)
-            throws NamespaceException {
+    private void copyNodeType(
+            QNodeTypeDefinition def, NodeBuilder builder, Map<String, String> prefixToUri)
+            throws RepositoryException {
         builder.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, NAME);
 
         // - jcr:nodeTypeName (NAME) protected mandatory
@@ -510,7 +528,7 @@ public class RepositoryUpgrade {
         QPropertyDefinition[] properties = def.getPropertyDefs();
         for (int i = 0; i < properties.length; i++) {
             String name = JCR_PROPERTYDEFINITION + '[' + (i + 1) + ']';
-            copyPropertyDefinition(properties[i], builder.child(name));
+            copyPropertyDefinition(properties[i], builder.child(name), prefixToUri);
         }
 
         // + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
@@ -522,8 +540,8 @@ public class RepositoryUpgrade {
     }
 
     private void copyPropertyDefinition(
-            QPropertyDefinition def, NodeBuilder builder)
-            throws NamespaceException {
+            QPropertyDefinition def, NodeBuilder builder, Map<String, String> prefixToUri)
+            throws RepositoryException {
         builder.setProperty(JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, NAME);
 
         copyItemDefinition(def, builder);
@@ -545,9 +563,9 @@ public class RepositoryUpgrade {
             builder.setProperty(JCR_VALUECONSTRAINTS, strings, STRINGS);
         }
         // - jcr:defaultValues (UNDEFINED) protected multiple
-        QValue[] values = def.getDefaultValues();
-        if (values != null) {
-            // TODO
+        QValue[] qValues = def.getDefaultValues();
+        if (qValues != null) {
+            copyDefaultValues(qValues, builder, new GlobalNameMapper(prefixToUri));
         }
         // - jcr:multiple (BOOLEAN) protected mandatory
         builder.setProperty(JCR_MULTIPLE, def.isMultiple());
@@ -559,6 +577,99 @@ public class RepositoryUpgrade {
                 JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
         // - jcr:isQueryOrderable (BOOLEAN) protected mandatory
         builder.setProperty(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
+    }
+
+    private static void copyDefaultValues(QValue[] qValues, NodeBuilder builder,
+            NameMapper nameMapper) throws RepositoryException {
+        if (qValues.length == 0) {
+            builder.setProperty(JCR_DEFAULTVALUES, Collections.<String>emptyList(), STRINGS);
+        } else {
+            int type = qValues[0].getType();
+            switch (type) {
+                case PropertyType.STRING:
+                    List<String> strings = newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        strings.add(qValue.getString());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, strings, STRINGS));
+                    return;
+                case PropertyType.LONG:
+                    List<Long> longs = newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        longs.add(qValue.getLong());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, longs, LONGS));
+                    return;
+                case PropertyType.DOUBLE:
+                    List<Double> doubles = newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        doubles.add(qValue.getDouble());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, doubles, DOUBLES));
+                    return;
+                case PropertyType.BOOLEAN:
+                    List<Boolean> booleans = Lists.newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        booleans.add(qValue.getBoolean());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, booleans, BOOLEANS));
+                    return;
+                case PropertyType.NAME:
+                    List<String> names = Lists.newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        names.add(nameMapper.getOakName(qValue.getName().toString()));
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, names, NAMES));
+                    return;
+                case PropertyType.PATH:
+                    List<String> paths = Lists.newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        paths.add(getOakPath(qValue.getPath(), nameMapper));
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, paths, PATHS));
+                    return;
+                case PropertyType.DECIMAL:
+                    List<BigDecimal> decimals = Lists.newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        decimals.add(qValue.getDecimal());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, decimals, DECIMALS));
+                    return;
+                case PropertyType.DATE:
+                case PropertyType.URI:
+                    List<String> values = newArrayListWithCapacity(qValues.length);
+                    for (QValue qValue : qValues) {
+                        values.add(qValue.getString());
+                    }
+                    builder.setProperty(createProperty(JCR_DEFAULTVALUES, values, Type.fromTag(type, true)));
+                    return;
+                default:
+                    throw new UnsupportedRepositoryOperationException(
+                            "Cannot copy default value of type " + Type.fromTag(type, true));
+            }
+        }
+    }
+
+    private static String getOakPath(Path path, NameMapper nameMapper)
+            throws RepositoryException {
+        StringBuilder oakPath = new StringBuilder();
+        String sep = "";
+        for (Element element: path.getElements()) {
+            if (element.denotesRoot()) {
+                oakPath.append('/');
+                continue;
+            } else if (element.denotesName()) {
+                oakPath.append(sep).append(nameMapper.getOakName(element.getString()));
+            } else if (element.denotesCurrent()) {
+                oakPath.append(sep).append('.');
+            } else if (element.denotesParent()) {
+                oakPath.append(sep).append("..");
+            } else {
+                throw new UnsupportedRepositoryOperationException("Cannot copy default value " + path);
+            }
+            sep = "/";
+        }
+        return oakPath.toString();
     }
 
     private void copyChildNodeDefinition(
