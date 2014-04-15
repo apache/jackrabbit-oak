@@ -92,7 +92,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         NodeBuilder rootAfter = after.builder();
 
         permissionRoot = getPermissionRoot(rootAfter);
-        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before));
+        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(after));
 
         isACL = new TypePredicate(after, NT_REP_ACL);
         isACE = new TypePredicate(after, NT_REP_ACE);
