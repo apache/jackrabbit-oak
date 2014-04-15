@@ -14,9 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("1.0")
-@Export
-package org.apache.jackrabbit.oak.spi.security.authentication.external;
+package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import aQute.bnd.annotation.Version;
-import aQute.bnd.annotation.Export;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
+
+/**
+* {@code SyncResultImpl}...
+*/
+public class SyncResultImpl implements SyncResult {
+
+    private final SyncedIdentityImpl id;
+
+    private Status status = Status.NOP;
+
+    public SyncResultImpl(SyncedIdentityImpl id, Status status) {
+        this.id = id;
+        this.status = status;
+    }
+
+    public SyncedIdentityImpl getIdentity() {
+        return id;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+}

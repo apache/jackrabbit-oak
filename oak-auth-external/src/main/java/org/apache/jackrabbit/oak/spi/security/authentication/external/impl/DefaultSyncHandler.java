@@ -46,9 +46,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -59,6 +57,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.slf4j.Logger;
@@ -133,9 +132,9 @@ public class DefaultSyncHandler implements SyncHandler {
      */
     @Nonnull
     @Override
-    public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager, @Nonnull Root root)
-            throws SyncException {
-        return new ContextImpl(idp, userManager, root);
+    public SyncContext createContext(@Nonnull ExternalIdentityProvider idp, @Nonnull UserManager userManager,
+                                     @Nonnull ValueFactory valueFactory) throws SyncException {
+        return new ContextImpl(idp, userManager, valueFactory);
     }
 
     /**
@@ -144,17 +143,54 @@ public class DefaultSyncHandler implements SyncHandler {
     @Override
     public SyncedIdentity findIdentity(@Nonnull UserManager userManager, @Nonnull String id)
             throws RepositoryException {
-        Authorizable auth = userManager.getAuthorizable(id);
-        if (auth == null) {
+        return createSyncedIdentity(userManager.getAuthorizable(id));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Iterator<SyncedIdentity> listIdentities(@Nonnull UserManager userManager) throws RepositoryException {
+        final Iterator<Authorizable> iter = userManager.findAuthorizables("jcr:primaryType", null);
+        return new AbstractLazyIterator<SyncedIdentity>() {
+
+            @Override
+            protected SyncedIdentity getNext() {
+                while (iter.hasNext()) {
+                    try {
+                        SyncedIdentity id = createSyncedIdentity(iter.next());
+                        if (id != null) {
+                            return id;
+                        }
+                    } catch (RepositoryException e) {
+                        log.error("Error while fetching authorizables", e);
+                        break;
+                    }
+                }
+                return null;
+            }
+        };
+    }
+
+    /**
+     * Creates a synced identity from the given authorizable.
+     * @param auth the authorizable
+     * @return the id
+     * @throws RepositoryException if an error occurrs
+     */
+    @CheckForNull
+    private static SyncedIdentityImpl createSyncedIdentity(@Nullable Authorizable auth) throws RepositoryException {
+        ExternalIdentityRef ref = auth == null ? null : getIdentityRef(auth);
+        if (ref == null) {
             return null;
+        } else {
+            Value[] lmValues = auth.getProperty(REP_LAST_SYNCED);
+            long lastModified = -1;
+            if (lmValues != null && lmValues.length > 0) {
+                lastModified = lmValues[0].getLong();
+            }
+            return new SyncedIdentityImpl(auth.getID(), ref, auth.isGroup(), lastModified);
         }
-        ExternalIdentityRef ref = getIdentityRef(auth);
-        Value[] lmValues = auth.getProperty(REP_LAST_SYNCED);
-        long lastModified = -1;
-        if (lmValues != null && lmValues.length > 0) {
-            lastModified = lmValues[0].getLong();
-        }
-        return new SyncedIdentityImpl(id, ref, auth.isGroup(), lastModified);
     }
 
     /**
@@ -168,14 +204,20 @@ public class DefaultSyncHandler implements SyncHandler {
 
         private final ValueFactory valueFactory;
 
+        private boolean keepMissing;
+
+        private boolean forceUserSync;
+
+        private boolean forceGroupSync;
+
         // we use the same wall clock for the entire context
         private final long now;
         private final Value nowValue;
 
-        private ContextImpl(ExternalIdentityProvider idp, UserManager userManager, Root root) {
+        private ContextImpl(ExternalIdentityProvider idp, UserManager userManager, ValueFactory valueFactory) {
             this.idp = idp;
             this.userManager = userManager;
-            valueFactory = new ValueFactoryImpl(root, NamePathMapper.DEFAULT);
+            this.valueFactory = valueFactory;
 
             // initialize 'now'
             final Calendar nowCal = Calendar.getInstance();
@@ -195,16 +237,65 @@ public class DefaultSyncHandler implements SyncHandler {
          * {@inheritDoc}
          */
         @Override
-        public boolean sync(@Nonnull ExternalIdentity identity) throws SyncException {
+        public boolean isKeepMissing() {
+            return keepMissing;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public SyncContext setKeepMissing(boolean keepMissing) {
+            this.keepMissing = keepMissing;
+            return this;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean isForceUserSync() {
+            return forceUserSync;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public SyncContext setForceUserSync(boolean forceUserSync) {
+            this.forceUserSync = forceUserSync;
+            return this;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean isForceGroupSync() {
+            return forceGroupSync;
+        }
+
+        public SyncContext setForceGroupSync(boolean forceGroupSync) {
+            this.forceGroupSync = forceGroupSync;
+            return this;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public SyncResult sync(@Nonnull ExternalIdentity identity) throws SyncException {
             try {
                 DebugTimer timer = new DebugTimer();
-                boolean ret;
+                SyncResultImpl ret;
+                boolean created = false;
                 if (identity instanceof ExternalUser) {
                     User user = getAuthorizable(identity, User.class);
                     timer.mark("find");
                     if (user == null) {
                         user = createUser((ExternalUser) identity);
                         timer.mark("create");
+                        created = true;
                     }
                     ret = syncUser((ExternalUser) identity, user);
                     timer.mark("sync");
@@ -214,6 +305,7 @@ public class DefaultSyncHandler implements SyncHandler {
                     if (group == null) {
                         group = createGroup((ExternalGroup) identity);
                         timer.mark("create");
+                        created = true;
                     }
                     ret = syncGroup((ExternalGroup) identity, group);
                     timer.mark("sync");
@@ -222,6 +314,9 @@ public class DefaultSyncHandler implements SyncHandler {
                 }
                 if (log.isDebugEnabled()) {
                     log.debug("sync({}) -> {} {}", identity.getExternalId().getString(), identity.getId(), timer.getString());
+                }
+                if (created) {
+                    ret.setStatus(SyncResult.Status.ADD);
                 }
                 return ret;
             } catch (RepositoryException e) {
@@ -233,19 +328,19 @@ public class DefaultSyncHandler implements SyncHandler {
          * {@inheritDoc}
          */
         @Override
-        public boolean sync(@Nonnull String id) throws SyncException {
+        public SyncResult sync(@Nonnull String id) throws SyncException {
             try {
                 DebugTimer timer = new DebugTimer();
-                boolean ret = false;
+                SyncResultImpl ret;
                 // find authorizable
                 Authorizable auth = userManager.getAuthorizable(id);
                 if (auth == null) {
-                    return false;
+                    return new SyncResultImpl(new SyncedIdentityImpl(id, null, false, -1), SyncResult.Status.NO_SUCH_AUTHORIZABLE);
                 }
                 // check if we need to deal with this authorizable
                 ExternalIdentityRef ref = getIdentityRef(auth);
                 if (ref == null || !idp.getName().equals(ref.getProviderName())) {
-                    return false;
+                    return new SyncResultImpl(new SyncedIdentityImpl(id, null, false, -1), SyncResult.Status.FOREIGN);
                 }
 
                 if (auth instanceof Group) {
@@ -253,13 +348,18 @@ public class DefaultSyncHandler implements SyncHandler {
                     ExternalGroup external = idp.getGroup(id);
                     timer.mark("retrieve");
                     if (external == null) {
+                        SyncedIdentityImpl syncId = createSyncedIdentity(auth);
                         if (group.getDeclaredMembers().hasNext()) {
                             log.info("won't remove local group with members: {}", id);
-                        } else {
+                            ret = new SyncResultImpl(syncId, SyncResult.Status.NOP);
+                        } else if (!keepMissing) {
                             auth.remove();
                             log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
                             timer.mark("remove");
-                            ret = true;
+                            ret = new SyncResultImpl(syncId, SyncResult.Status.DELETE);
+                        } else {
+                            ret = new SyncResultImpl(syncId, SyncResult.Status.MISSING);
+                            log.info("external identity missing for {}, but purge == false.", id);
                         }
                     } else {
                         ret = syncGroup(external, group);
@@ -269,10 +369,16 @@ public class DefaultSyncHandler implements SyncHandler {
                     ExternalUser external = idp.getUser(id);
                     timer.mark("retrieve");
                     if (external == null) {
-                        auth.remove();
-                        log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
-                        timer.mark("remove");
-                        ret = true;
+                        SyncedIdentityImpl syncId = createSyncedIdentity(auth);
+                        if (!keepMissing) {
+                            auth.remove();
+                            log.debug("removing authorizable '{}' that no longer exists on IDP {}", id, idp.getName());
+                            timer.mark("remove");
+                            ret = new SyncResultImpl(syncId, SyncResult.Status.DELETE);
+                        } else {
+                            ret = new SyncResultImpl(syncId, SyncResult.Status.MISSING);
+                            log.info("external identity missing for {}, but purge == false.", id);
+                        }
                     } else {
                         ret = syncUser(external, (User) auth);
                         timer.mark("sync");
@@ -357,11 +463,11 @@ public class DefaultSyncHandler implements SyncHandler {
         }
 
 
-        private boolean syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
+        private SyncResultImpl syncUser(@Nonnull ExternalUser external, @Nonnull User user) throws RepositoryException {
             // first check if user is expired
-            // todo: add "forceSync" property for potential background sync
-            if (!isExpired(user, config.user().getExpirationTime(), "Properties")) {
-                return false;
+            if (!forceUserSync && !isExpired(user, config.user().getExpirationTime(), "Properties")) {
+                SyncedIdentityImpl syncId = createSyncedIdentity(user);
+                return new SyncResultImpl(syncId, SyncResult.Status.NOP);
             }
 
             // synchronize the properties
@@ -377,14 +483,15 @@ public class DefaultSyncHandler implements SyncHandler {
 
             // finally "touch" the sync property
             user.setProperty(REP_LAST_SYNCED, nowValue);
-            return true;
+            SyncedIdentityImpl syncId = createSyncedIdentity(user);
+            return new SyncResultImpl(syncId, SyncResult.Status.UPDATE);
         }
 
-        private boolean syncGroup(ExternalGroup external, Group group) throws RepositoryException {
+        private SyncResultImpl syncGroup(ExternalGroup external, Group group) throws RepositoryException {
             // first check if user is expired
-            // todo: add "forceSync" property for potential background sync
-            if (!isExpired(group, config.group().getExpirationTime(), "Properties")) {
-                return false;
+            if (!forceGroupSync && !isExpired(group, config.group().getExpirationTime(), "Properties")) {
+                SyncedIdentityImpl syncId = createSyncedIdentity(group);
+                return new SyncResultImpl(syncId, SyncResult.Status.NOP);
             }
 
             // synchronize the properties
@@ -395,7 +502,8 @@ public class DefaultSyncHandler implements SyncHandler {
 
             // finally "touch" the sync property
             group.setProperty(REP_LAST_SYNCED, nowValue);
-            return true;
+            SyncedIdentityImpl syncId = createSyncedIdentity(group);
+            return new SyncResultImpl(syncId, SyncResult.Status.UPDATE);
         }
 
         /**
@@ -694,42 +802,4 @@ public class DefaultSyncHandler implements SyncHandler {
         return result.length() == 0 ? null : result.toString();
     }
 
-    private static class SyncedIdentityImpl implements SyncedIdentity {
-
-        private final String id;
-
-        private final ExternalIdentityRef ref;
-
-        private final boolean isGroup;
-
-        private final long lastSynced;
-
-        private SyncedIdentityImpl(String id, ExternalIdentityRef ref, boolean isGroup, long lastSynced) {
-            this.id = id;
-            this.ref = ref;
-            this.isGroup = isGroup;
-            this.lastSynced = lastSynced;
-        }
-
-        @Nonnull
-        @Override
-        public String getId() {
-            return id;
-        }
-
-        @Override
-        public ExternalIdentityRef getExternalIdRef() {
-            return ref;
-        }
-
-        @Override
-        public boolean isGroup() {
-            return false;
-        }
-
-        @Override
-        public long lastSynced() {
-            return lastSynced;
-        }
-    }
 }
