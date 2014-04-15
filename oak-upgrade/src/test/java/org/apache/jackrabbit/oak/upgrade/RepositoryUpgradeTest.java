@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -35,6 +41,8 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -43,11 +51,6 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 
 public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -80,7 +83,12 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
             template.setName("test:unstructured");
             template.setDeclaredSuperTypeNames(
-                    new String[] { "nt:unstructured" });
+                    new String[] {"nt:unstructured"});
+            PropertyDefinitionTemplate pDef = nodeTypeManager.createPropertyDefinitionTemplate();
+            pDef.setName("default");
+            pDef.setRequiredType(PropertyType.STRING);
+            pDef.setDefaultValues(new Value[]{session.getValueFactory().createValue("defaultValue")});
+            template.getPropertyDefinitionTemplates().add(pDef);
             nodeTypeManager.registerNodeType(template, false);
 
             Node root = session.getRootNode();
@@ -180,7 +188,16 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             NodeType type = manager.getNodeType("test:unstructured");
             assertFalse(type.isMixin());
             assertTrue(type.isNodeType("nt:unstructured"));
-
+            for (PropertyDefinition pDef : type.getPropertyDefinitions()) {
+                if ("default".equals(pDef.getName())) {
+// FIXME uncomment once OAK-1731 is fixed
+//                    assertNotNull(pDef.getDefaultValues());
+//                    assertEquals(1, pDef.getDefaultValues().length);
+//                    assertEquals("defaultValue", pDef.getDefaultValues()[0].getString());
+                    break;
+                }
+                fail("Expected property definition with name \"default\"");
+            }
         } finally {
             session.logout();
         }
