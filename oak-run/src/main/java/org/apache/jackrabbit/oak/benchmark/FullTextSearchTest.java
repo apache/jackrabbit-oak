@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -101,7 +100,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
         count = 0;
 
         importer.importWikipedia(loginWriter());
-        Thread.sleep(5); // allow some time for the indexer to catch up
+        Thread.sleep(10); // allow some time for the indexer to catch up
 
         defaultContext = new TestContext();
     }
@@ -120,25 +119,33 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
     @Override
     protected void runTest(TestContext ec)  throws Exception {
         QueryManager qm = ec.session.getWorkspace().getQueryManager();
-        //TODO verify why "order by jcr:score()" accounts for what looks like > 20% of the perf lost in Collections.sort
-        Query q = qm.createQuery("/jcr:root//*[jcr:contains(@text, '" + ec.word + "')] ", Query.XPATH);
-        QueryResult r = q.execute();
-        RowIterator it = r.getRows();
-        checkArgument(it.hasNext(), "Not able to find entry with text [%s]", ec.word);
-        int rowCount = 0;
-        while(it.hasNext() && (++rowCount < maxRowsToFetch)){
-            Node n = it.nextRow().getNode();
-            n.getProperty("text");
-            n.getProperty("title");
-            //assert fails at times becomes of fuzzy matching
-            //checkArgument(n.getProperty("text").getString().contains(word),
-            //        "[%s] does not contain [%s]", n.getProperty("text").getString(), word);
+        // TODO verify why "order by jcr:score()" accounts for what looks
+        // like > 20% of the perf lost in Collections.sort
+        for (String word : ec.words) {
+            Query q = qm.createQuery("//*[jcr:contains(@text, '" + word + "')] ", Query.XPATH);
+            QueryResult r = q.execute();
+            RowIterator it = r.getRows();
+            for (int rows = 0; it.hasNext() && rows < maxRowsToFetch; rows++) {
+                Node n = it.nextRow().getNode();
+                ec.hash += n.getProperty("text").getString().hashCode();
+                ec.hash += n.getProperty("title").getString().hashCode();
+            }
         }
     }
 
     class TestContext {
         final Session session = loginWriter();
-        final String word = newArrayList(sampleSet).get(random.nextInt(sampleSet.size()));
+        final String[] words = getRandomWords();
+        int hash = 0; // summary variable to prevent JIT compiler tricks
+    }
+
+    private String[] getRandomWords() {
+        List<String> samples = newArrayList(sampleSet);
+        String[] words = new String[100];
+        for (int i = 0; i < words.length; i++) {
+            words[i] = samples.get(random.nextInt(samples.size()));
+        }
+        return words;
     }
 
     @Override
