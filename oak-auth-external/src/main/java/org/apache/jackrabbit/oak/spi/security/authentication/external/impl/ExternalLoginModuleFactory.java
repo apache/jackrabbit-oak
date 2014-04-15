@@ -16,17 +16,35 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import java.util.Map;
+import java.util.Hashtable;
 
+import javax.jcr.Repository;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.felix.jaas.LoginModuleFactory;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SynchronizationMBean;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.osgi.service.component.ComponentContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Implements a LoginModuleFactory that creates {@link ExternalLoginModule}s and allows to configure login modules
@@ -40,6 +58,11 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 )
 @Service
 public class ExternalLoginModuleFactory implements LoginModuleFactory {
+
+    /**
+     * default logger
+     */
+    private static final Logger log = LoggerFactory.getLogger(ExternalLoginModuleFactory.class);
 
     @Property(
             intValue = 50,
@@ -79,18 +102,62 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
     )
     public static final String PARAM_SYNC_HANDLER_NAME = ExternalLoginModule.PARAM_SYNC_HANDLER_NAME;
 
+    @Reference
+    SyncManager syncManager;
+
+    @Reference
+    ExternalIdentityProviderManager idpManager;
+
+    @Reference
+    SecurityProvider securityProvider;
+
+    @Reference
+    Repository repository;
+
     /**
      * default configuration for the login modules
      */
     private ConfigurationParameters osgiConfig;
 
     /**
+     * whiteboard registration handle of the manager mbean
+     */
+    private Registration mbeanRegistration;
+
+    /**
      * Activates the LoginModuleFactory service
-     * @param properties the OSGi config
+     * @param context the component context
      */
     @Activate
-    protected void activate(Map<String, Object> properties) {
-        osgiConfig = ConfigurationParameters.of(properties);
+    private void activate(ComponentContext context) {
+        //noinspection unchecked
+        osgiConfig = ConfigurationParameters.of(context.getProperties());
+        String idpName = osgiConfig.getConfigValue(PARAM_IDP_NAME, "");
+        String sncName = osgiConfig.getConfigValue(PARAM_SYNC_HANDLER_NAME, "");
+
+        Whiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        try {
+            SyncMBeanImpl bean = new SyncMBeanImpl(repository, syncManager, sncName, idpManager, idpName);
+            Hashtable<String, String> table = new Hashtable<String, String>();
+            table.put("type", "UserManagement");
+            table.put("name", "External Identity Synchronization Management");
+            table.put("handler", ObjectName.quote(sncName));
+            table.put("idp", ObjectName.quote(idpName));
+            mbeanRegistration = whiteboard.register(SynchronizationMBean.class, bean, ImmutableMap.of(
+                    "jmx.objectname",
+                    new ObjectName("org.apache.jackrabbit.oak", table))
+            );
+        } catch (MalformedObjectNameException e) {
+            log.error("Unable to register SynchronizationMBean.", e);
+        }
+    }
+
+    @Deactivate
+    private void deactivate() {
+        if (mbeanRegistration != null) {
+            mbeanRegistration.unregister();
+            mbeanRegistration = null;
+        }
     }
 
     /**

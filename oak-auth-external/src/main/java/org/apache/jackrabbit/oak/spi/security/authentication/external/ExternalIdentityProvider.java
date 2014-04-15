@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import java.util.Iterator;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -78,4 +80,20 @@ public interface ExternalIdentityProvider {
      */
     @CheckForNull
     ExternalGroup getGroup(@Nonnull String name) throws ExternalIdentityException;
+
+    /**
+     * List all external users.
+     * @return an iterator over all external users
+     * @throws ExternalIdentityException if an error occurs.
+     */
+    @Nonnull
+    Iterator<ExternalUser> listUsers() throws ExternalIdentityException;
+
+    /**
+     * List all external groups.
+     * @return an iterator over all external groups
+     * @throws ExternalIdentityException if an error occurs.
+     */
+    @Nonnull
+    Iterator<ExternalGroup> listGroups() throws ExternalIdentityException;
 }
