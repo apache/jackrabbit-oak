@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -35,6 +40,8 @@ import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -43,11 +50,6 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
 
 public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
@@ -80,7 +82,21 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             NodeTypeTemplate template = nodeTypeManager.createNodeTypeTemplate();
             template.setName("test:unstructured");
             template.setDeclaredSuperTypeNames(
-                    new String[] { "nt:unstructured" });
+                    new String[] {"nt:unstructured"});
+            PropertyDefinitionTemplate pDef1 = nodeTypeManager.createPropertyDefinitionTemplate();
+            pDef1.setName("defaultString");
+            pDef1.setRequiredType(PropertyType.STRING);
+            Value stringValue = session.getValueFactory().createValue("stringValue");
+            pDef1.setDefaultValues(new Value[] {stringValue});
+            template.getPropertyDefinitionTemplates().add(pDef1);
+
+            PropertyDefinitionTemplate pDef2 = nodeTypeManager.createPropertyDefinitionTemplate();
+            pDef2.setName("defaultPath");
+            pDef2.setRequiredType(PropertyType.PATH);
+            Value pathValue = session.getValueFactory().createValue("/jcr:path/nt:value", PropertyType.PATH);
+            pDef2.setDefaultValues(new Value[] {pathValue});
+            template.getPropertyDefinitionTemplates().add(pDef2);
+
             nodeTypeManager.registerNodeType(template, false);
 
             Node root = session.getRootNode();
@@ -180,7 +196,25 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             NodeType type = manager.getNodeType("test:unstructured");
             assertFalse(type.isMixin());
             assertTrue(type.isNodeType("nt:unstructured"));
-
+            boolean foundDefaultString = false;
+            boolean foundDefaultPath = false;
+            for (PropertyDefinition pDef : type.getPropertyDefinitions()) {
+                if ("defaultString".equals(pDef.getName())) {
+                    assertEquals(PropertyType.STRING, pDef.getRequiredType());
+                    assertNotNull(pDef.getDefaultValues());
+                    assertEquals(1, pDef.getDefaultValues().length);
+                    assertEquals("stringValue", pDef.getDefaultValues()[0].getString());
+                    foundDefaultString = true;
+                } else if ("defaultPath".equals(pDef.getName())) {
+                    assertEquals(PropertyType.PATH, pDef.getRequiredType());
+                    assertNotNull(pDef.getDefaultValues());
+                    assertEquals(1, pDef.getDefaultValues().length);
+                    assertEquals("/jcr:path/nt:value", pDef.getDefaultValues()[0].getString());
+                    foundDefaultPath = true;
+                }
+            }
+            assertTrue("Expected property definition with name \"defaultString\"", foundDefaultString);
+            assertTrue("Expected property definition with name \"defaultPath\"", foundDefaultPath);
         } finally {
             session.logout();
         }
