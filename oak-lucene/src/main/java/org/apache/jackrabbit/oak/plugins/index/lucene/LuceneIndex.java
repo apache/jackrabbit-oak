@@ -34,7 +34,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFull
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
 import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.Cursors.newPathCursor;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
@@ -44,6 +43,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -52,6 +52,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -145,6 +148,11 @@ public class LuceneIndex implements FulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
+
+    /**
+     * Batch size for fetching results from Lucene queries.
+     */
+    static final int LUCENE_QUERY_BATCH_SIZE = 50;
 
     private final IndexTracker tracker;
 
@@ -265,8 +273,8 @@ public class LuceneIndex implements FulltextQueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, NodeState root) {
-        IndexNode index = tracker.getIndexNode("/");
+    public Cursor query(final Filter filter, final NodeState root) {
+        final IndexNode index = tracker.getIndexNode("/");
         checkState(index != null, "The Lucene index is not available");
 
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -274,73 +282,107 @@ public class LuceneIndex implements FulltextQueryIndex {
         if (relPaths.size() > 1) {
             return new MultiLuceneIndex(filter, root, relPaths).query();
         }
-        String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
+        final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
         // we only restrict non-full-text conditions if there is
         // no relative property in the full-text constraint
-        boolean nonFullTextConstraints = parent.isEmpty();
+        final boolean nonFullTextConstraints = parent.isEmpty();
+        final int parentDepth = getDepth(parent);
         QueryEngineSettings settings = filter.getQueryEngineSettings();
-        try {
-            List<LuceneResultRow> rows = new ArrayList<LuceneResultRow>();
+        Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
+            private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
+            private final Set<String> seenPaths = Sets.newHashSet();
+            private ScoreDoc lastDoc;
 
-            long s = System.currentTimeMillis();
-
-            IndexSearcher searcher = index.acquireSearcher();
-            try {
-                Query query = getQuery(
-                        filter, searcher.getIndexReader(),
-                        nonFullTextConstraints, analyzer,
-                        index.getDefinition());
-
-                // TODO OAK-828
-                HashSet<String> seenPaths = new HashSet<String>();
-                int parentDepth = getDepth(parent);
-                if (query != null) {
-                    // OAK-925
-                    // TODO how to best avoid loading all entries in memory?
-                    // (memory problem and performance problem)
-                    TopDocs docs = searcher.search(query, Integer.MAX_VALUE);
-                    for (ScoreDoc doc : docs.scoreDocs) {
-                        String path = searcher.getIndexReader().document(
-                                doc.doc, PATH_SELECTOR).get(PATH);
-                        if (path != null) {
-                            if ("".equals(path)) {
-                                path = "/";
-                            }
-                            if (!parent.isEmpty()) {
-                                // TODO OAK-828 this breaks node aggregation
-                                // get the base path
-                                // ensure the path ends with the given
-                                // relative path
-                                // if (!path.endsWith("/" + parent)) {
-                                // continue;
-                                // }
-                                path = getAncestorPath(path, parentDepth);
-                                // avoid duplicate entries
-                                if (seenPaths.contains(path)) {
-                                    continue;
-                                }
-                                seenPaths.add(path);
-                            }
-
-                            LuceneResultRow r = new LuceneResultRow();
-                            r.path = path;
-                            r.score = doc.score;
-                            rows.add(r);
-                        }
-                    }
+            @Override
+            protected LuceneResultRow computeNext() {
+                while (!queue.isEmpty() || loadDocs()) {
+                    return queue.remove();
                 }
-            } finally {
-                index.releaseSearcher();
+                return endOfData();
             }
 
-            LOG.debug("query via {} took {} ms.", this,
-                    System.currentTimeMillis() - s);
+            private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher) throws IOException {
+                String path = searcher.getIndexReader().document(doc.doc,
+                        PATH_SELECTOR).get(PATH);
+                if (path != null) {
+                    if ("".equals(path)) {
+                        path = "/";
+                    }
+                    if (!parent.isEmpty()) {
+                        // TODO OAK-828 this breaks node aggregation
+                        // get the base path
+                        // ensure the path ends with the given
+                        // relative path
+                        // if (!path.endsWith("/" + parent)) {
+                        // continue;
+                        // }
+                        path = getAncestorPath(path, parentDepth);
+                        // avoid duplicate entries
+                        if (seenPaths.contains(path)) {
+                            return null;
+                        }
+                        seenPaths.add(path);
+                    }
 
-            return new LucenePathCursor(rows, settings);
-        } catch (IOException e) {
-            LOG.warn("query via {} failed.", this, e);
-            return newPathCursor(Collections.<String> emptySet(), settings);
-        }
+                    return new LuceneResultRow(path, doc.score);
+                }
+                return null;
+            }
+
+            /**
+             * Loads the lucene documents in batches
+             * @return true if any document is loaded
+             */
+            private boolean loadDocs() {
+                IndexNode indexNode = null;
+                IndexSearcher searcher = null;
+                ScoreDoc lastDocToRecord = null;
+                try {
+                    indexNode = acquire();
+                    searcher = indexNode.acquireSearcher();
+                    Query query = getQuery(filter, searcher.getIndexReader(),
+                            nonFullTextConstraints, analyzer, index.getDefinition());
+                    TopDocs docs;
+                    if (lastDoc != null) {
+                        docs = searcher.searchAfter(lastDoc, query, LUCENE_QUERY_BATCH_SIZE);
+                    } else {
+                        docs = searcher.search(query, LUCENE_QUERY_BATCH_SIZE);
+                    }
+
+                    for (ScoreDoc doc : docs.scoreDocs) {
+                        LuceneResultRow row = convertToRow(doc, searcher);
+                        if(row != null) {
+                            queue.add(row);
+                        }
+                        lastDocToRecord = doc;
+                    }
+                } catch (IOException e) {
+                    LOG.warn("query via {} failed.", LuceneIndex.this, e);
+                } finally {
+                    release(indexNode, searcher);
+                }
+                if (lastDocToRecord != null) {
+                    this.lastDoc = lastDocToRecord;
+                }
+                return !queue.isEmpty();
+            }
+
+            private IndexNode acquire() {
+                return tracker.getIndexNode("/");
+            }
+
+            private void release(IndexNode indexNode, IndexSearcher searcher){
+                try {
+                    if(searcher != null){
+                        indexNode.releaseSearcher();
+                    }
+                } catch (IOException e) {
+                    LOG.warn("Error occurred while releasing/closing the " +
+                            "IndexSearcher", e);
+                }
+            }
+        };
+        return new LucenePathCursor(itr, settings);
     }
 
     /**
@@ -844,8 +886,18 @@ public class LuceneIndex implements FulltextQueryIndex {
     }
     
     static class LuceneResultRow {
-        String path;
-        double score;
+        final String path;
+        final double score;
+
+        LuceneResultRow(String path, double score) {
+            this.path = path;
+            this.score = score;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s (%1.2f)", path, score);
+        }
     }
     
     /**
@@ -857,10 +909,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         private final Cursor pathCursor;
         LuceneResultRow currentRow;
         
-        LucenePathCursor(List<LuceneResultRow> list, QueryEngineSettings settings) {
-            
-            final Iterator<LuceneResultRow> it = list.iterator();
-            
+        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings) {
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
