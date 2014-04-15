@@ -67,7 +67,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
 
     private int count = 0;
 
-    private int maxRowsToFetch = Integer.getInteger("maxRowsToFetch",10000);
+    private int maxRowsToFetch = Integer.getInteger("maxRowsToFetch",100);
 
     private TestContext defaultContext;
 
