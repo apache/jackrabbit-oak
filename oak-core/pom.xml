@@ -279,12 +279,6 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- RDB blob/document store -->
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
-    </dependency>
     <dependency>
       <groupId>commons-dbcp</groupId>
       <artifactId>commons-dbcp</artifactId>
@@ -341,6 +335,12 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
