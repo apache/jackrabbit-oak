@@ -125,7 +125,7 @@ public class LastRevRecoveryAgentTest {
         clock.waitUntil(clock.getTime() + leaseTime + 10);
 
         //Renew the lease for C1
-        ds1.getClusterInfo().renewLease(3*leaseTime);
+        ds1.getClusterInfo().renewLease();
 
         assertTrue(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
 
