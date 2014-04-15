@@ -23,6 +23,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -38,6 +39,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -48,11 +51,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
  * Basic in-memory node store implementation. Useful as a base class for
  * more complex functionality.
  */
-public class MemoryNodeStore implements NodeStore {
+public class MemoryNodeStore implements NodeStore, Observable {
 
     private final AtomicReference<NodeState> root;
 
     private final Map<String, NodeState> checkpoints = newHashMap();
+
+    private final Map<Closeable, Observer> observers = newHashMap();
 
     public MemoryNodeStore(NodeState state) {
         this.root = new AtomicReference<NodeState>(state);
@@ -67,6 +72,30 @@ public class MemoryNodeStore implements NodeStore {
      */
     public String toString() {
         return getRoot().toString();
+    }
+
+    @Override
+    public synchronized Closeable addObserver(Observer observer) {
+        observer.contentChanged(getRoot(), null);
+
+        Closeable closeable = new Closeable() {
+            @Override
+            public void close() throws IOException {
+                synchronized (MemoryNodeStore.this) {
+                    observers.remove(this);
+                }
+            }
+        };
+        observers.put(closeable, observer);
+        return closeable;
+    }
+
+    private synchronized void setRoot(NodeState root, CommitInfo info) {
+        this.root.getAndSet(root);
+
+        for (Observer observer : observers.values()) {
+            observer.contentChanged(root, info);
+        }
     }
 
     @Override
@@ -215,7 +244,7 @@ public class MemoryNodeStore implements NodeStore {
             // TODO: rebase();
             checkNotMerged();
             NodeState merged = squeeze(hook.processCommit(base, root, info));
-            store.root.set(merged);
+            store.setRoot(merged, info);
             root = null; // Mark as merged
             return merged;
         }

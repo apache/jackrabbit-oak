@@ -45,6 +45,8 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestContext> {
 
@@ -145,9 +147,11 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
                 @Override
                 public Jcr customize(Jcr jcr) {
-                    jcr.with(new LuceneIndexProvider())
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", null));
+                    LuceneIndexProvider provider = new LuceneIndexProvider();
+                    jcr.with((QueryIndexProvider) provider)
+                       .with((Observer) provider)
+                       .with(new LuceneIndexEditorProvider())
+                       .with(new LuceneInitializerHelper("luceneGlobal", null));
                     return jcr;
                 }
             });
