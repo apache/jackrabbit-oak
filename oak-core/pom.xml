@@ -38,7 +38,12 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Embed-Dependency>commons-dbcp,commons-pool,h2,json-simple,postgresql,db2,db2-license</Embed-Dependency>
+            <Embed-Dependency>
+              <!-- OAK-1708 TODO: temporary workaround for embedding code for DocumentNodeStoreService-->
+              commons-dbcp,commons-pool,h2,json-simple,
+              <!-- OAK-1708 TODO: note these below will only embedded when build with the respective profiles from oak-parent -->
+              postgresql,db2,db2-license
+            </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
               *;resolution:=optional
