@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -65,6 +66,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.security.GroupEditorProvider;
+import org.apache.jackrabbit.oak.upgrade.security.RestrictionEditorProvider;
 import org.apache.jackrabbit.spi.Name;
 import org.apache.jackrabbit.spi.QItemDefinition;
 import org.apache.jackrabbit.spi.QNodeDefinition;
@@ -173,7 +175,7 @@ public class RepositoryUpgrade {
             throws RepositoryException {
         RepositoryContext context = RepositoryContext.create(source);
         try {
-            new RepositoryUpgrade(context, target).copy();
+            new RepositoryUpgrade(context, target).copy(null);
         } finally {
             context.getRepository().shutdown();
         }
@@ -206,15 +208,14 @@ public class RepositoryUpgrade {
      * The source repository <strong>must not be modified</strong> while
      * the copy operation is running to avoid an inconsistent copy.
      * <p>
-     * This method leaves the search indexes of the target repository in
-     * an 
      * Note that both the source and the target repository must be closed
      * during the copy operation as this method requires exclusive access
      * to the repositories.
      *
+     * @param initializer optional extra repository initializer to use
      * @throws RepositoryException if the copy operation fails
      */
-    public void copy() throws RepositoryException {
+    public void copy(RepositoryInitializer initializer) throws RepositoryException {
         RepositoryConfig config = source.getRepositoryConfig();
         logger.info(
                 "Copying repository content from {} to Oak", config.getHomeDir());
@@ -228,6 +229,9 @@ public class RepositoryUpgrade {
 
             // init target repository first
             new InitialContent().initialize(builder);
+            if (initializer != null) {
+                initializer.initialize(builder);
+            }
             for (SecurityConfiguration sc : security.getConfigurations()) {
                 sc.getWorkspaceInitializer().initialize(builder, workspace);
             }
@@ -251,17 +255,23 @@ public class RepositoryUpgrade {
             String groupsPath = userConf.getParameters().getConfigValue(
                     UserConstants.PARAM_GROUP_PATH,
                     UserConstants.DEFAULT_GROUP_PATH);
-            hooks.add(new EditorHook(new GroupEditorProvider(groupsPath)));
+
+            // hooks specific to the upgrade, need to run first
             hooks.add(new EditorHook(new CompositeEditorProvider(
-                            new GroupEditorProvider(groupsPath),
+                    new RestrictionEditorProvider(),
+                    new GroupEditorProvider(groupsPath))));
+
+            // security-related hooks
+            for (SecurityConfiguration sc : security.getConfigurations()) {
+                hooks.addAll(sc.getCommitHooks(workspace));
+            }
+
+            // type validation, reference and indexing hooks
+            hooks.add(new EditorHook(new CompositeEditorProvider(
                             new TypeEditorProvider(false),
                             new IndexUpdateProvider(new CompositeIndexEditorProvider(
                                     new ReferenceEditorProvider(),
                                     new PropertyIndexEditorProvider())))));
-
-            for (SecurityConfiguration sc : security.getConfigurations()) {
-                hooks.addAll(sc.getCommitHooks(workspace));
-            }
 
             target.merge(builder, CompositeHook.compose(hooks), CommitInfo.EMPTY);
         } catch (Exception e) {
@@ -269,7 +279,7 @@ public class RepositoryUpgrade {
         }
     }
 
-    private ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
+    protected ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
         ConfigurationParameters loginConfig = mapConfigurationParameters(
                 config.getLoginModuleConfig(),
                 LoginModuleConfig.PARAM_ADMIN_ID, UserConstants.PARAM_ADMIN_ID,
@@ -286,7 +296,7 @@ public class RepositoryUpgrade {
                 ConfigurationParameters.of(loginConfig, userConfig)));
     }
 
-    private ConfigurationParameters mapConfigurationParameters(
+    protected ConfigurationParameters mapConfigurationParameters(
             BeanConfig config, String... mapping) {
         Map<String, String> map = newHashMap();
         if (config != null) {
