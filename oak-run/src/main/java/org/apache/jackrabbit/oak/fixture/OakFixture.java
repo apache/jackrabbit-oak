@@ -61,7 +61,11 @@ public abstract class OakFixture {
 
     protected OakFixture(String name) {
         this.name = name;
-        this.unique = String.format("%s-%d", name, System.currentTimeMillis());
+        this.unique = getUniqueDatabaseName(name);
+    }
+    
+    private static String getUniqueDatabaseName(String name) {
+        return String.format("%s-%d", name, System.currentTimeMillis());
     }
 
     public abstract Oak getOak(int clusterId) throws Exception;
@@ -141,12 +145,23 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getMongo(String name, final boolean useMk, final String host,
-                                      final int port, final String database,
+                                      final int port, String database,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
                                       final File base) {
+        if (database == null) {
+            database = getUniqueDatabaseName(name);
+        }
+        String uri = "mongodb://" + host + ":" + port + "/" + database;
+        return getMongo(name, uri, useMk, dropDBAfterTest, cacheSize, useFileDataStore, base);
+    }
+
+    public static OakFixture getMongo(final String name, final String uri, 
+            final boolean useMk, 
+            final boolean dropDBAfterTest, final long cacheSize,
+            final boolean useFileDataStore,
+            final File base) {
         return new OakFixture(name) {
-            private String dbName = database != null ? database : unique;
             private DocumentMK[] kernels;
             private BlobStore blobStore;
             private File blobStoreDir;
@@ -192,7 +207,7 @@ public abstract class OakFixture {
 
             @Override
             public Oak getOak(int clusterId) throws Exception {
-                MongoConnection mongo = new MongoConnection(host, port, dbName);
+                MongoConnection mongo = new MongoConnection(uri);
                 BlobStore blobStore = getBlobStore();
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                         setMongoDB(mongo.getDB()).
@@ -216,7 +231,7 @@ public abstract class OakFixture {
                 Oak[] cluster = new Oak[n];
                 kernels = new DocumentMK[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
-                    MongoConnection mongo = new MongoConnection(host, port, dbName);
+                    MongoConnection mongo = new MongoConnection(uri);
                     BlobStore blobStore = getBlobStore();
                     DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
                             setMongoDB(mongo.getDB()).
@@ -245,7 +260,7 @@ public abstract class OakFixture {
                 if (dropDBAfterTest) {
                     try {
                         MongoConnection mongo =
-                                new MongoConnection(host, port, dbName);
+                                new MongoConnection(uri);
                         mongo.getDB().dropDatabase();
                         mongo.close();
                         if (blobStore instanceof CloudBlobStore) {
