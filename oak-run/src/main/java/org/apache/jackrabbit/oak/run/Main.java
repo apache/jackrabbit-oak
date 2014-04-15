@@ -295,7 +295,7 @@ public class Main {
                                     new RepositoryUpgrade(source, target);
                             upgrade.setCopyBinariesByReference(
                                     options.has("datastore"));
-                            upgrade.copy();
+                            upgrade.copy(null);
                         } finally {
                             target.dispose();
                         }
@@ -310,7 +310,7 @@ public class Main {
                                 new RepositoryUpgrade(source, target);
                         upgrade.setCopyBinariesByReference(
                                 options.has("datastore"));
-                        upgrade.copy();
+                        upgrade.copy(null);
                     } finally {
                         store.close();
                     }
