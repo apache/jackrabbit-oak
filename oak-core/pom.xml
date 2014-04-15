@@ -279,22 +279,17 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- db blob store -->
+    <!-- RDB blob/document store -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.3.175</version>
+      <version>${h2.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-dbcp</groupId>
       <artifactId>commons-dbcp</artifactId>
       <version>1.4</version>
     </dependency>
-    <!--<dependency>
-      <groupId>commons-pool</groupId>
-      <artifactId>commons-pool</artifactId>
-      <version>1.6</version>
-    </dependency>-->
 
     <!-- Logging -->
     <dependency>
