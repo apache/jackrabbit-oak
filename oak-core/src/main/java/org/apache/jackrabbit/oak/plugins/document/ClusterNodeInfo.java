@@ -363,12 +363,12 @@ public class ClusterNodeInfo {
     /**
      * Renew the cluster id lease. This method needs to be called once in a while,
      * to ensure the same cluster id is not re-used by a different instance.
-     * 
-     * @param nextCheckMillis the millisecond offset
+     * The lease is only renewed when half of the lease time passed. That is,
+     * with a lease time of 60 seconds, the lease is renewed every 30 seconds.
      */
-    public void renewLease(long nextCheckMillis) {
+    public void renewLease() {
         long now = getCurrentTime();
-        if (now + nextCheckMillis + nextCheckMillis < leaseEndTime) {
+        if (now + leaseTime / 2 < leaseEndTime) {
             return;
         }
         UpdateOp update = new UpdateOp("" + id, true);

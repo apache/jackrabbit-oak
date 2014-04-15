@@ -106,7 +106,7 @@ public class LastRevSingleNodeRecoveryTest {
 
         // renew lease
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 10);
-        mk.getClusterInfo().renewLease(0);
+        mk.getClusterInfo().renewLease();
 
         // so that the current time is more than the current lease end
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime() + 1000);
@@ -148,7 +148,7 @@ public class LastRevSingleNodeRecoveryTest {
         mk.backgroundWrite();
 
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime());
-        mk.getClusterInfo().renewLease(0);
+        mk.getClusterInfo().renewLease();
 
         // Should be 0
         int pendingCount = mk.getPendingWriteCount();
@@ -194,7 +194,7 @@ public class LastRevSingleNodeRecoveryTest {
 
         // renew lease one last time
         clock.waitUntil(clock.getTime() + mk.getClusterInfo().getLeaseTime());
-        mk.getClusterInfo().renewLease(0);
+        mk.getClusterInfo().renewLease();
 
         clock.waitUntil(clock.getTime() + 5000);
         // add nodes won't trigger _lastRev updates
