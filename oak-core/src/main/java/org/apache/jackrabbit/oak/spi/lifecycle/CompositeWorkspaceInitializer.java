@@ -20,19 +20,15 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 
 import java.util.Arrays;
 import java.util.Collection;
+
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
  * Composite repository initializer that delegates the
- * {@link #initialize(org.apache.jackrabbit.oak.spi.state.NodeBuilder, String,
- * org.apache.jackrabbit.oak.spi.query.QueryIndexProvider,
- * org.apache.jackrabbit.oak.spi.commit.CommitHook)} calls in sequence to all the
- * component initializers.
+ * {@link #initialize(org.apache.jackrabbit.oak.spi.state.NodeBuilder, String)}
+ * calls in sequence to all the component initializers.
  */
 public class CompositeWorkspaceInitializer implements WorkspaceInitializer {
 
@@ -47,9 +43,9 @@ public class CompositeWorkspaceInitializer implements WorkspaceInitializer {
     }
 
     @Override
-    public void initialize(NodeBuilder builder, String workspaceName, QueryEngineSettings queryEngineSettings, QueryIndexProvider indexProvider, CommitHook commitHook) {
+    public void initialize(NodeBuilder builder, String workspaceName) {
         for (WorkspaceInitializer tracker : initializers) {
-            tracker.initialize(builder, workspaceName, queryEngineSettings, indexProvider, commitHook);
+            tracker.initialize(builder, workspaceName);
         }
 
     }
