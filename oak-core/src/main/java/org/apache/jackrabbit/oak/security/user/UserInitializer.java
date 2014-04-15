@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -86,14 +86,13 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
     //-----------------------------------------------< WorkspaceInitializer >---
 
     @Override
-    public void initialize(
-            NodeBuilder builder, String workspaceName,
-            QueryEngineSettings queryEngineSettings,
-            QueryIndexProvider indexProvider, CommitHook commitHook) {
+    public void initialize(NodeBuilder builder, String workspaceName) {
         NodeState base = builder.getNodeState();
         MemoryNodeStore store = new MemoryNodeStore(base);
 
-        Root root = new SystemRoot(store, commitHook, workspaceName, securityProvider, queryEngineSettings, indexProvider);
+        Root root = new SystemRoot(
+                store, EmptyHook.INSTANCE, workspaceName, securityProvider,
+                new QueryEngineSettings(), new CompositeQueryIndexProvider());
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
