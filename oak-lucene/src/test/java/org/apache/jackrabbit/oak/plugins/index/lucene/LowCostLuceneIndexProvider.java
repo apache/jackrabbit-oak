@@ -30,13 +30,13 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
     @Override
     protected LuceneIndex newLuceneIndex() {
-        return new LowCostLuceneIndex(analyzer, aggregator);
+        return new LowCostLuceneIndex(tracker, analyzer, aggregator);
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
 
-        public LowCostLuceneIndex(Analyzer analyzer, NodeAggregator aggregator) {
-            super(analyzer, aggregator);
+        public LowCostLuceneIndex(IndexTracker tracker, Analyzer analyzer, NodeAggregator aggregator) {
+            super(tracker, analyzer, aggregator);
         }
 
         @Override

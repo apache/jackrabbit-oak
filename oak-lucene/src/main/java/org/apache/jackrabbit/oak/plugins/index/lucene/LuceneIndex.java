@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -24,18 +25,10 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_OAK;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -46,7 +39,6 @@ import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -78,14 +70,11 @@ import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
@@ -106,8 +95,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
@@ -159,11 +146,16 @@ public class LuceneIndex implements FulltextQueryIndex {
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
 
+    private final IndexTracker tracker;
+
     private final Analyzer analyzer;
 
     private final NodeAggregator aggregator;
 
-    public LuceneIndex(Analyzer analyzer, NodeAggregator aggregator) {
+    public LuceneIndex(
+            IndexTracker tracker, Analyzer analyzer,
+            NodeAggregator aggregator) {
+        this.tracker = tracker;
         this.analyzer = analyzer;
         this.aggregator = aggregator;
     }
@@ -175,7 +167,7 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        if (!isLive(root)) {
+        if (tracker.getIndexNode("/") == null) {
             // unusable index
             return Double.POSITIVE_INFINITY;
         }
@@ -251,79 +243,11 @@ public class LuceneIndex implements FulltextQueryIndex {
         return relPaths;
     }
 
-    private static boolean isLive(NodeState root) {
-        NodeState def = getIndexDef(root);
-        if (def == null) {
-            return false;
-        }
-        String type = def.getString(PERSISTENCE_NAME);
-        if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
-            return getIndexDataNode(def) != null;
-        }
-
-        if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            return def.getString(PERSISTENCE_PATH) != null;
-        }
-
-        return false;
-    }
-
-    private static Directory newDirectory(NodeState root) {
-        NodeState def = getIndexDef(root);
-        if (def == null) {
-            return null;
-        }
-
-        String type = def.getString(PERSISTENCE_NAME);
-        if (type == null || PERSISTENCE_OAK.equalsIgnoreCase(type)) {
-            NodeState index = getIndexDataNode(def);
-            if (index == null) {
-                return null;
-            }
-            return new OakDirectory(new ReadOnlyBuilder(index));
-        }
-
-        if (PERSISTENCE_FILE.equalsIgnoreCase(type)) {
-            String fs = def.getString(PERSISTENCE_PATH);
-            if (fs == null) {
-                return null;
-            }
-            File f = new File(fs);
-            if (!f.exists()) {
-                return null;
-            }
-            try {
-                // TODO lock factory
-                return FSDirectory.open(f);
-            } catch (IOException e) {
-                LOG.error("Unable to open directory {}", fs);
-            }
-        }
-
-        return null;
-    }
-
-    private static NodeState getIndexDef(NodeState node) {
-        NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            NodeState ns = entry.getNodeState();
-            if (TYPE_LUCENE.equals(ns.getString(TYPE_PROPERTY_NAME))) {
-                return ns;
-            }
-        }
-        return null;
-    }
-
-    private static NodeState getIndexDataNode(NodeState node) {
-        if (node.hasChildNode(INDEX_DATA_CHILD_NAME)) {
-            return node.getChildNode(INDEX_DATA_CHILD_NAME);
-        }
-        // unusable index (not initialized yet)
-        return null;
-    }
-
     @Override
     public String getPlan(Filter filter, NodeState root) {
+        IndexNode index = tracker.getIndexNode("/");
+        checkState(index != null, "The Lucene index is not available");
+
         FullTextExpression ft = filter.getFullTextConstraint();
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
@@ -333,7 +257,7 @@ public class LuceneIndex implements FulltextQueryIndex {
         // we only restrict non-full-text conditions if there is
         // no relative property in the full-text constraint
         boolean nonFullTextConstraints = parent.isEmpty();
-        String plan = getQuery(filter, null, nonFullTextConstraints, analyzer, getIndexDef(root)) + " ft:(" + ft + ")";
+        String plan = getQuery(filter, null, nonFullTextConstraints, analyzer, index.getDefinition()) + " ft:(" + ft + ")";
         if (!parent.isEmpty()) {
             plan += " parent:" + parent;
         }
@@ -342,9 +266,9 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        if (!isLive(root)) {
-            throw new IllegalStateException("Lucene index is not live");
-        }
+        IndexNode index = tracker.getIndexNode("/");
+        checkState(index != null, "The Lucene index is not available");
+
         FullTextExpression ft = filter.getFullTextConstraint();
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
@@ -354,69 +278,65 @@ public class LuceneIndex implements FulltextQueryIndex {
         // we only restrict non-full-text conditions if there is
         // no relative property in the full-text constraint
         boolean nonFullTextConstraints = parent.isEmpty();
-        Directory directory = newDirectory(root);
         QueryEngineSettings settings = filter.getQueryEngineSettings();
-        if (directory == null) {
-            return newPathCursor(Collections.<String> emptySet(), settings);
-        }
-        long s = System.currentTimeMillis();
         try {
+            List<LuceneResultRow> rows = new ArrayList<LuceneResultRow>();
+
+            long s = System.currentTimeMillis();
+
+            IndexSearcher searcher = index.acquireSearcher();
             try {
-                IndexReader reader = DirectoryReader.open(directory);
-                try {
-                    IndexSearcher searcher = new IndexSearcher(reader);
-                    List<LuceneResultRow> rows = new ArrayList<LuceneResultRow>();
-                    Query query = getQuery(filter, reader,
-                            nonFullTextConstraints, analyzer, getIndexDef(root));
+                Query query = getQuery(
+                        filter, searcher.getIndexReader(),
+                        nonFullTextConstraints, analyzer,
+                        index.getDefinition());
 
-                    // TODO OAK-828
-                    HashSet<String> seenPaths = new HashSet<String>();
-                    int parentDepth = getDepth(parent);
-                    if (query != null) {
-                        // OAK-925
-                        // TODO how to best avoid loading all entries in memory?
-                        // (memory problem and performance problem)
-                        TopDocs docs = searcher
-                                .search(query, Integer.MAX_VALUE);
-                        for (ScoreDoc doc : docs.scoreDocs) {
-                            String path = reader.document(doc.doc,
-                                    PATH_SELECTOR).get(PATH);
-                            if (path != null) {
-                                if ("".equals(path)) {
-                                    path = "/";
-                                }
-                                if (!parent.isEmpty()) {
-                                    // TODO OAK-828 this breaks node aggregation
-                                    // get the base path
-                                    // ensure the path ends with the given
-                                    // relative path
-                                    // if (!path.endsWith("/" + parent)) {
-                                    // continue;
-                                    // }
-                                    path = getAncestorPath(path, parentDepth);
-                                    // avoid duplicate entries
-                                    if (seenPaths.contains(path)) {
-                                        continue;
-                                    }
-                                    seenPaths.add(path);
-                                }
-
-                                LuceneResultRow r = new LuceneResultRow();
-                                r.path = path;
-                                r.score = doc.score;
-                                rows.add(r);
+                // TODO OAK-828
+                HashSet<String> seenPaths = new HashSet<String>();
+                int parentDepth = getDepth(parent);
+                if (query != null) {
+                    // OAK-925
+                    // TODO how to best avoid loading all entries in memory?
+                    // (memory problem and performance problem)
+                    TopDocs docs = searcher.search(query, Integer.MAX_VALUE);
+                    for (ScoreDoc doc : docs.scoreDocs) {
+                        String path = searcher.getIndexReader().document(
+                                doc.doc, PATH_SELECTOR).get(PATH);
+                        if (path != null) {
+                            if ("".equals(path)) {
+                                path = "/";
                             }
+                            if (!parent.isEmpty()) {
+                                // TODO OAK-828 this breaks node aggregation
+                                // get the base path
+                                // ensure the path ends with the given
+                                // relative path
+                                // if (!path.endsWith("/" + parent)) {
+                                // continue;
+                                // }
+                                path = getAncestorPath(path, parentDepth);
+                                // avoid duplicate entries
+                                if (seenPaths.contains(path)) {
+                                    continue;
+                                }
+                                seenPaths.add(path);
+                            }
+
+                            LuceneResultRow r = new LuceneResultRow();
+                            r.path = path;
+                            r.score = doc.score;
+                            rows.add(r);
                         }
                     }
-                    LOG.debug("query via {} took {} ms.", this,
-                            System.currentTimeMillis() - s);
-                    return new LucenePathCursor(rows, settings);
-                } finally {
-                    reader.close();
                 }
             } finally {
-                directory.close();
+                index.releaseSearcher();
             }
+
+            LOG.debug("query via {} took {} ms.", this,
+                    System.currentTimeMillis() - s);
+
+            return new LucenePathCursor(rows, settings);
         } catch (IOException e) {
             LOG.warn("query via {} failed.", this, e);
             return newPathCursor(Collections.<String> emptySet(), settings);
