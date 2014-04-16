@@ -75,7 +75,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
             @Override
             protected void pageAdded(String title, String text) {
                 count++;
-                if (count % 1000 == 0
+                if (count % 100 == 0
                         && sampleSet.size() < maxSampleSize
                         && text != null) {
                     List<String> words = newArrayList();
