@@ -27,6 +27,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHel
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -40,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.tika.metadata.Metadata;
@@ -188,7 +191,7 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
-        Document document = new Document();
+        List<Field> fields = new ArrayList<Field>();
         boolean dirty = false;
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
@@ -197,15 +200,15 @@ public class LuceneIndexEditor implements IndexEditor {
                             .tag())) != 0 && context.includeProperty(pname)) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     this.context.indexUpdate();
-                    addBinaryValue(document, property, state);
+                    fields.addAll(newBinary(property, state));
                     dirty = true;
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
                         this.context.indexUpdate();
-                        document.add(newPropertyField(pname, value,
+                        fields.add(newPropertyField(pname, value,
                                 !skipTokenization(pname),
                                 context.isStored(pname)));
-                        document.add(newFulltextField(value));
+                        fields.add(newFulltextField(value));
                         dirty = true;
                     }
                 }
@@ -216,10 +219,14 @@ public class LuceneIndexEditor implements IndexEditor {
             // updated the state but had no relevant changes
             return null;
         }
+        Document document = new Document();
         document.add(newPathField(path));
         String name = getName(path);
         if (name != null) {
             document.add(newFulltextField(name));
+        }
+        for (Field f : fields) {
+            document.add(f);
         }
         return document;
     }
@@ -228,8 +235,9 @@ public class LuceneIndexEditor implements IndexEditor {
         return name.charAt(0) != ':';
     }
 
-    private void addBinaryValue(
-            Document doc, PropertyState property, NodeState state) {
+    private List<Field> newBinary(
+            PropertyState property, NodeState state) {
+        List<Field> fields = new ArrayList<Field>();
         Metadata metadata = new Metadata();
         if (JCR_DATA.equals(property.getName())) {
             String type = state.getString(JcrConstants.JCR_MIMETYPE);
@@ -243,8 +251,9 @@ public class LuceneIndexEditor implements IndexEditor {
         }
 
         for (Blob v : property.getValue(Type.BINARIES)) {
-            doc.add(newFulltextField(parseStringValue(v, metadata)));
+            fields.add(newFulltextField(parseStringValue(v, metadata)));
         }
+        return fields;
     }
 
     private String parseStringValue(Blob v, Metadata metadata) {
