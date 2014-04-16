@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -236,14 +235,14 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[(*/@prop > 1000)]", "xpath", new ArrayList<String>());
     }
 
-    @Test @Ignore("OAK-1379")
+    @Test
     public void testMultipleRelativeProperties() throws Exception {
         Tree content = root.getTree("/").addChild("content");
-        
+
         content.addChild("node1").setProperty("a", 128);
         content.addChild("node2").setProperty("a", "abc");
         content.addChild("node3").setProperty("a", "1280");
-        
+
         content.addChild("node1").setProperty("b", 128);
         content.addChild("node2").setProperty("b", 1024);
         content.addChild("node3").setProperty("b", 2048);
@@ -256,16 +255,15 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         content.addChild("node2").setProperty("d", 10);
         content.addChild("node3").setProperty("d", Arrays.asList(1L, 2L), Type.LONGS);
 
-
         root.commit();
 
-        assertQuery("//*[*/@a > 2]", "xpath", Arrays.<String>asList());
+        assertQuery("//*[*/@a > 2]", "xpath", Arrays.asList("/content"));
         assertQuery("//*[*/@a > '1']", "xpath", Arrays.asList("/content"));
-        assertQuery("//*[*/@a > 'abb']", "xpath", Arrays.<String>asList());
+        assertQuery("//*[*/@a > 'abd']", "xpath", Arrays.<String>asList());
         assertQuery("//*[*/@a = 'abc']", "xpath", Arrays.asList("/content"));
-        // this may be unexpected: it is evalucated as
+        // this may be unexpected: it is evaluated as
         // ['128', 'abc', '1280'] >= 'abc'
-        assertQuery("//*[*/@a >= 'abc']", "xpath", Arrays.<String>asList());
+        assertQuery("//*[*/@a >= 'abc']", "xpath", Arrays.asList("/content"));
 
         assertQuery("//*[*/@b > 2]", "xpath", Arrays.asList("/content"));
         assertQuery("//*[*/@b > 2048]", "xpath", Arrays.<String>asList());
@@ -281,9 +279,9 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[*/@d > 11]", "xpath", Arrays.asList("/content"));
         assertQuery("//*[*/@d > '1']", "xpath", Arrays.asList("/content"));
         assertQuery("//*[*/@d = 10]", "xpath", Arrays.asList("/content"));
-        // this may be unexpected: it is evalucated as
-        // ['x', 'y', '10', '1', '2'] < '3'     
-        assertQuery("//*[*/@d < 3]", "xpath", Arrays.<String>asList());
-}
-    
+        // this may be unexpected: it is evaluated as
+        // ['x', 'y', '10', '1', '2'] < '3'
+        assertQuery("//*[*/@d < 3]", "xpath", Arrays.asList("/content"));
+    }
+
 }
