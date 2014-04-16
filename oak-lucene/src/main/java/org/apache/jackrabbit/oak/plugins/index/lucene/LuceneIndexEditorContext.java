@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
@@ -105,6 +106,8 @@ public class LuceneIndexEditorContext {
 
     private long indexedNodes;
 
+    private boolean storageEnabled = true;
+
     private final IndexUpdateCallback updateCallback;
 
     LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
@@ -131,6 +134,8 @@ public class LuceneIndexEditorContext {
         } else {
             excludes = ImmutableSet.of();
         }
+        PropertyState storage = definition.getProperty(EXPERIMENTAL_STORAGE);
+        storageEnabled = storage == null || storage.getValue(Type.BOOLEAN);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
     }
@@ -174,6 +179,14 @@ public class LuceneIndexEditorContext {
 
     void indexUpdate() throws CommitFailedException {
         updateCallback.indexUpdate();
+    }
+
+    /**
+     * Checks if a given property should be stored in the lucene index or not
+     * 
+     */
+    public boolean isStored(String name) {
+        return storageEnabled;
     }
 
 }

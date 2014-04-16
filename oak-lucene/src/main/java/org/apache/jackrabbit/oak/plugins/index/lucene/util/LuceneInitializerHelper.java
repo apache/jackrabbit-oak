@@ -37,30 +37,37 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
 
     private String async = null;
 
+    private Boolean storageEnabled;
+
     public LuceneInitializerHelper(String name) {
-        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES, null, null);
+        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES, null, null, null);
+    }
+
+    public LuceneInitializerHelper(String name, Boolean storageEnabled) {
+        this(name, LuceneIndexHelper.JR_PROPERTY_INCLUDES, null, null, storageEnabled);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes) {
-        this(name, propertyTypes, null, null);
+        this(name, propertyTypes, null, null, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
             Set<String> excludes) {
-        this(name, propertyTypes, excludes, null);
+        this(name, propertyTypes, excludes, null, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
             String filePath) {
-        this(name, propertyTypes, null, filePath);
+        this(name, propertyTypes, null, filePath, null);
     }
 
     public LuceneInitializerHelper(String name, Set<String> propertyTypes,
-            Set<String> excludes, String filePath) {
+            Set<String> excludes, String filePath, Boolean storageEnabled) {
         this.name = name;
         this.propertyTypes = propertyTypes;
         this.excludes = excludes;
         this.filePath = filePath;
+        this.storageEnabled = storageEnabled;
     }
 
     public LuceneInitializerHelper async() {
@@ -74,9 +81,8 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
                 && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
             // do nothing
         } else if (filePath == null) {
-            newLuceneIndexDefinition(
-                    builder.child(INDEX_DEFINITIONS_NAME),
-                    name, propertyTypes, excludes, async);
+            newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                    name, propertyTypes, excludes, async, storageEnabled);
         } else {
             newLuceneFileIndexDefinition(
                     builder.child(INDEX_DEFINITIONS_NAME),
