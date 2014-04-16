@@ -26,7 +26,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -55,6 +54,7 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -78,8 +78,10 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -302,8 +304,10 @@ public class LuceneIndex implements FulltextQueryIndex {
             }
 
             private LuceneResultRow convertToRow(ScoreDoc doc, IndexSearcher searcher) throws IOException {
-                String path = searcher.getIndexReader().document(doc.doc,
-                        PATH_SELECTOR).get(PATH);
+                IndexReader reader = searcher.getIndexReader();
+                PathStoredFieldVisitor visitor = new PathStoredFieldVisitor();
+                reader.document(doc.doc, visitor);
+                String path = visitor.getPath();
                 if (path != null) {
                     if ("".equals(path)) {
                         path = "/";
@@ -964,7 +968,33 @@ public class LuceneIndex implements FulltextQueryIndex {
                 
             };
         }
-        
+    }
+
+    private static class PathStoredFieldVisitor extends StoredFieldVisitor {
+
+        private String path;
+        private boolean pathVisited;
+
+        @Override
+        public Status needsField(FieldInfo fieldInfo) throws IOException {
+            if (PATH.equals(fieldInfo.name)) {
+                return Status.YES;
+            }
+            return pathVisited ? Status.STOP : Status.NO;
+        }
+
+        @Override
+        public void stringField(FieldInfo fieldInfo, String value)
+                throws IOException {
+            if (PATH.equals(fieldInfo.name)) {
+                path = value;
+                pathVisited = true;
+            }
+        }
+
+        public String getPath() {
+            return path;
+        }
     }
 
 }
