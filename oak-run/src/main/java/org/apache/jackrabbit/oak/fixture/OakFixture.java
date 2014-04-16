@@ -129,38 +129,39 @@ public abstract class OakFixture {
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO, false, host, port, database,
-                dropDBAfterTest, cacheSize, false, null);
+                dropDBAfterTest, cacheSize, false, null,0);
     }
 
     public static OakFixture getMongoMK(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO_MK, true, host, port, database,
-                dropDBAfterTest, cacheSize, false, null);
+                dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO_NS, false, host, port, database,
-                dropDBAfterTest, cacheSize, false, null);
+                dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static OakFixture getMongo(String name, final boolean useMk, final String host,
                                       final int port, String database,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
-                                      final File base) {
+                                      final File base,
+                                      final int fdsCacheInMB) {
         if (database == null) {
             database = getUniqueDatabaseName(name);
         }
         String uri = "mongodb://" + host + ":" + port + "/" + database;
-        return getMongo(name, uri, useMk, dropDBAfterTest, cacheSize, useFileDataStore, base);
+        return getMongo(name, uri, useMk, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
     }
 
-    public static OakFixture getMongo(final String name, final String uri, 
-            final boolean useMk, 
-            final boolean dropDBAfterTest, final long cacheSize,
-            final boolean useFileDataStore,
-            final File base) {
+    public static OakFixture getMongo(final String name, final String uri,
+                                      final boolean useMk,
+                                      final boolean dropDBAfterTest, final long cacheSize,
+                                      final boolean useFileDataStore,
+                                      final File base, final int fdsCacheInMB) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStore blobStore;
@@ -172,7 +173,7 @@ public abstract class OakFixture {
                     fds.setMinRecordLength(4092);
                     blobStoreDir = new File(base, "datastore"+unique);
                     fds.init(blobStoreDir.getAbsolutePath());
-                    return new DataStoreBlobStore(fds);
+                    return new DataStoreBlobStore(fds, true, fdsCacheInMB);
                 }
 
                 try {
