@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 
 import java.util.Properties;
+import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
@@ -43,7 +44,8 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
     @Override
     protected void preCreateRepository(Jcr jcr) {
         LuceneIndexProvider provider = new LowCostLuceneIndexProvider();
-        jcr.with(new LuceneInitializerHelper("luceneGlobal", null))
+        jcr.with(
+                new LuceneInitializerHelper("luceneGlobal", (Set<String>) null))
                 .with(AggregateIndexProvider.wrap(provider.with(getNodeAggregator())))
                 .with((Observer) provider)
                 .with(new LuceneIndexEditorProvider());
