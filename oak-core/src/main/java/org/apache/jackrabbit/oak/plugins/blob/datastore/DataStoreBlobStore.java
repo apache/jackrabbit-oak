@@ -27,21 +27,27 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Weigher;
 import com.google.common.collect.Iterators;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
@@ -73,13 +79,38 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
      */
     private final boolean encodeLengthInId;
 
+    protected final LoadingCache<String, byte[]> cache;
+
+    public static final int DEFAULT_CACHE_SIZE = 16;
+
+    /**
+     * Max size of binary whose content would be cached. We keep it greater than
+     * Lucene blob size OakDirectory#BLOB_SIZE such that Lucene index blobs are cached
+     */
+    private int maxCachedBinarySize = 17 * 1024;
+
+
     public DataStoreBlobStore(DataStore delegate) {
-        this(delegate, true);
+        this(delegate, true, DEFAULT_CACHE_SIZE);
     }
 
     public DataStoreBlobStore(DataStore delegate, boolean encodeLengthInId) {
+        this(delegate, encodeLengthInId, DEFAULT_CACHE_SIZE);
+    }
+
+    public DataStoreBlobStore(DataStore delegate, boolean encodeLengthInId, int cacheSizeInMB) {
         this.delegate = delegate;
         this.encodeLengthInId = encodeLengthInId;
+
+        this.cache = CacheLIRS.newBuilder()
+                .maximumWeight(cacheSizeInMB * FileUtils.ONE_MB)
+                .weigher(new Weigher<String, byte[]>() {
+                    @Override
+                    public int weigh(String key, byte[] value) {
+                        return value.length;
+                    }
+                })
+                .build();
     }
 
     //~----------------------------------< DataStore >
@@ -142,6 +173,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     @Override
     public void close() throws DataStoreException {
         delegate.close();
+        cache.invalidateAll();
     }
 
     //~-------------------------------------------< BlobStore >
@@ -234,8 +266,32 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     }
 
     @Override
-    public InputStream getInputStream(String encodedBlobId) throws IOException {
-        return getStream(extractBlobId(encodedBlobId));
+    public InputStream getInputStream(final String encodedBlobId) throws IOException {
+        final BlobId blobId = BlobId.of(encodedBlobId);
+        if (encodeLengthInId
+                && blobId.hasLengthInfo()
+                && blobId.length <= maxCachedBinarySize) {
+            try {
+                byte[] content = cache.get(blobId.blobId, new Callable<byte[]>() {
+                    @Override
+                    public byte[] call() throws Exception {
+                        boolean threw = true;
+                        InputStream stream = getStream(blobId.blobId);
+                        try {
+                            byte[] result = IOUtils.toByteArray(stream);
+                            threw = false;
+                            return result;
+                        } finally {
+                            Closeables.close(stream, threw);
+                        }
+                    }
+                });
+                return new ByteArrayInputStream(content);
+            } catch (ExecutionException e) {
+                log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId);
+            }
+        }
+        return getStream(blobId.blobId);
     }
 
     //~-------------------------------------------< GarbageCollectableBlobStore >
@@ -339,14 +395,24 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         return Iterators.singletonIterator(blobId);
     }
 
+    //~---------------------------------------------< Object >
+
     @Override
     public String toString() {
         return String.format("DataStore backed BlobStore [%s]", delegate.getClass().getName());
     }
 
+    //~---------------------------------------------< Properties >
+
     public DataStore getDataStore() {
         return delegate;
     }
+
+    public void setMaxCachedBinarySize(int maxCachedBinarySize) {
+        this.maxCachedBinarySize = maxCachedBinarySize;
+    }
+
+    //~---------------------------------------------< Internal >
 
     private InputStream getStream(String blobId) throws IOException {
         try {
