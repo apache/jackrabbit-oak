@@ -59,7 +59,7 @@ public abstract class AbstractDataStoreService {
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
-        PropertiesUtil.populate(ds, config, false);
+        PropertiesUtil.populate(dataStore, config, false);
 
         Dictionary<String, String> props = new Hashtable<String, String>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
