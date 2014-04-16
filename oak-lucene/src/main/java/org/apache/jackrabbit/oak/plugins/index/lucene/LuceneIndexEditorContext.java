@@ -60,6 +60,7 @@ public class LuceneIndexEditorContext {
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             config.setMergeScheduler(new SerialMergeScheduler());
+            config.setCodec(new OakCodec());
             return config;
         } finally {
             thread.setContextClassLoader(loader);
