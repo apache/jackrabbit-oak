@@ -197,7 +197,8 @@ public class DocumentNodeStoreService {
         String jdbcuri = System.getProperty("oak.jdbc.connection.uri", "");
 
         if (!jdbcuri.isEmpty()) {
-            // FIXME
+            // OAK-1708 - this is temporary until we figure out parametrization,
+            // and how to pass in DataSources directly
             String username = System.getProperty("oak.jdbc.username", "");
             String passwd = System.getProperty("oak.jdbc.password", "");
             String driver = System.getProperty("oak.jdbc.driver.class", "");
@@ -210,11 +211,14 @@ public class DocumentNodeStoreService {
                 } catch (ClassNotFoundException ex) {
                     log.error("driver not loaded", ex);
                 }
+            } else {
+                log.info("System property oak.jdbc.driver.class not set.");
             }
 
             if (log.isInfoEnabled()) {
                 String type = useMK ? "MK" : "NodeStore";
-                log.info("Starting Document{} with uri={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
+                log.info(
+                        "Starting Document{} with uri={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
                         type, jdbcuri, cacheSize, offHeapCache, changesSize);
             }
 
@@ -222,8 +226,7 @@ public class DocumentNodeStoreService {
             mkBuilder.setRDBConnection(ds);
 
             log.info("Connected to datasource {}", ds);
-        }
-        else {
+        } else {
             MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
             MongoClientURI mongoURI = new MongoClientURI(uri, builder);
 
