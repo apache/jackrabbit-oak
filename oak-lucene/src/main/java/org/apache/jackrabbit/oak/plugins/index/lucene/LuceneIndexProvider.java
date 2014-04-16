@@ -21,8 +21,11 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -34,28 +37,41 @@ import com.google.common.collect.ImmutableList;
  * A provider for Lucene indexes.
  * 
  * @see LuceneIndex
- * 
  */
 @Component
-@Service(QueryIndexProvider.class)
-public class LuceneIndexProvider implements QueryIndexProvider,
-        LuceneIndexConstants {
+@Service({ QueryIndexProvider.class, Observer.class })
+public class LuceneIndexProvider implements QueryIndexProvider, Observer {
+
+    protected final IndexTracker tracker = new IndexTracker();
 
     /**
      * TODO how to inject this in an OSGi friendly way?
      */
-    protected Analyzer analyzer = ANALYZER;
+    protected Analyzer analyzer = LuceneIndexConstants.ANALYZER;
 
     protected NodeAggregator aggregator = null;
 
+    @Deactivate
+    public void close() {
+        tracker.close();
+    }
+
+    //----------------------------------------------------------< Observer >--
+
     @Override
-    @Nonnull
+    public void contentChanged(NodeState root, CommitInfo info) {
+        tracker.update(root);
+    }
+
+    //------------------------------------------------< QueryIndexProvider >--
+
+    @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
         return ImmutableList.<QueryIndex> of(newLuceneIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
-        return new LuceneIndex(analyzer, aggregator);
+        return new LuceneIndex(tracker, analyzer, aggregator);
     }
 
     /**
