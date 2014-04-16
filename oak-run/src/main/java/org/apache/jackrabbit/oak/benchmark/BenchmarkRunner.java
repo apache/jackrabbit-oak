@@ -57,9 +57,12 @@ public class BenchmarkRunner {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         OptionSpec<Integer> fdsCache = parser.accepts("blobCache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(32);
-        OptionSpec<File> wikipedia =
-                parser.accepts("wikipedia", "Wikipedia dump")
-                .withRequiredArg().ofType(File.class);
+        OptionSpec<File> wikipedia = parser
+                .accepts("wikipedia", "Wikipedia dump").withRequiredArg()
+                .ofType(File.class);
+        OptionSpec<Boolean> withStorage = parser
+                .accepts("storage", "Index storage enabled").withOptionalArg()
+                .ofType(Boolean.class);
         OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
@@ -217,7 +220,7 @@ public class BenchmarkRunner {
             new FullTextSearchTest(
                     wikipedia.value(options),
                     flatStructure.value(options),
-                    report.value(options))
+                    report.value(options), withStorage.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());

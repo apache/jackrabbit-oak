@@ -70,7 +70,12 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
 
     private TestContext defaultContext;
 
-    public FullTextSearchTest(File dump, boolean flat, boolean doReport) {
+    /**
+     * null means true; true means true
+     */
+    private Boolean storageEnabled;
+
+    public FullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
             @Override
             protected void pageAdded(String title, String text) {
@@ -91,6 +96,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
                 }
             }
         };
+        this.storageEnabled = storageEnabled;
     }
 
     @Override
@@ -158,7 +164,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
                     jcr.with((QueryIndexProvider) provider)
                        .with((Observer) provider)
                        .with(new LuceneIndexEditorProvider())
-                       .with(new LuceneInitializerHelper("luceneGlobal", null));
+                       .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
                     return jcr;
                 }
             });
