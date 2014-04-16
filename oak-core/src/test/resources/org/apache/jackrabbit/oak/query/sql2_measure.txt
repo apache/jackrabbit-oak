@@ -42,7 +42,7 @@ select [jcr:path] from [nt:base] as p
 
 select [jcr:path], p.[children/c1/*] from [nt:base] as p
   where p.[children/c1/*] is not null
-/testRoot, [1]
+/testRoot, 1
 
 select [jcr:path], [jcr:score], * from [nt:base] as a
   where ([id] = '0' or [p0/id] = '0')
