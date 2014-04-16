@@ -49,4 +49,9 @@ public interface LuceneIndexConstants {
 
     String INDEX_DATA_CHILD_NAME_FS = "data";
 
+    /**
+     * Experimental flag to control storage behavior: 'null' or 'true' means the content is stored
+     */
+    String EXPERIMENTAL_STORAGE = "oak.experimental.storage";
+
 }

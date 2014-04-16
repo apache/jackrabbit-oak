@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
@@ -68,13 +69,22 @@ public class LuceneIndexHelper {
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes) {
-        return newLuceneIndexDefinition(index, name, propertyTypes, null, null);
+        return newLuceneIndexDefinition(index, name, propertyTypes, null, null, null);
     }
 
     public static NodeBuilder newLuceneIndexDefinition(
             @Nonnull NodeBuilder index, @Nonnull String name,
             @Nullable Set<String> propertyTypes,
             @Nullable Set<String> excludes, @Nullable String async) {
+        return newLuceneIndexDefinition(index, name, propertyTypes, excludes,
+                async, null);
+    }
+
+    public static NodeBuilder newLuceneIndexDefinition(
+            @Nonnull NodeBuilder index, @Nonnull String name,
+            @Nullable Set<String> propertyTypes,
+            @Nullable Set<String> excludes, @Nullable String async,
+            @Nullable Boolean stored) {
         if (index.hasChildNode(name)) {
             return index.child(name);
         }
@@ -92,6 +102,9 @@ public class LuceneIndexHelper {
         if (excludes != null && !excludes.isEmpty()) {
             index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
+        }
+        if (stored != null) {
+            index.setProperty(createProperty(EXPERIMENTAL_STORAGE, stored));
         }
         return index;
     }

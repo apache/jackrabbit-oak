@@ -20,7 +20,8 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.FieldInfo.IndexOptions;
+
+import static org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.FULLTEXT;
@@ -38,19 +39,28 @@ public final class FieldFactory {
      */
     private static final FieldType OAK_TYPE = new FieldType();
 
+    private static final FieldType OAK_TYPE_NOT_STORED = new FieldType();
+
     static {
         OAK_TYPE.setIndexed(true);
         OAK_TYPE.setOmitNorms(true);
         OAK_TYPE.setStored(true);
-        OAK_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        OAK_TYPE.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS);
         OAK_TYPE.setTokenized(true);
         OAK_TYPE.freeze();
+
+        OAK_TYPE_NOT_STORED.setIndexed(true);
+        OAK_TYPE_NOT_STORED.setOmitNorms(true);
+        OAK_TYPE_NOT_STORED.setStored(false);
+        OAK_TYPE_NOT_STORED.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS);
+        OAK_TYPE_NOT_STORED.setTokenized(true);
+        OAK_TYPE_NOT_STORED.freeze();
     }
 
     private final static class OakTextField extends Field {
 
-        public OakTextField(String name, String value) {
-            super(name, value, OAK_TYPE);
+        public OakTextField(String name, String value, boolean stored) {
+            super(name, value, stored ? OAK_TYPE : OAK_TYPE_NOT_STORED);
         }
     }
 
@@ -65,9 +75,9 @@ public final class FieldFactory {
     }
 
     public static Field newPropertyField(String name, String value,
-            boolean tokenized) {
+            boolean tokenized, boolean stored) {
         if (tokenized) {
-            return new OakTextField(name, value);
+            return new OakTextField(name, value, stored);
         }
         return new StringField(name, value, NO);
     }

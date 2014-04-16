@@ -203,7 +203,8 @@ public class LuceneIndexEditor implements IndexEditor {
                     for (String value : property.getValue(Type.STRINGS)) {
                         this.context.indexUpdate();
                         document.add(newPropertyField(pname, value,
-                                !skipTokenization(pname)));
+                                !skipTokenization(pname),
+                                context.isStored(pname)));
                         document.add(newFulltextField(value));
                         dirty = true;
                     }
