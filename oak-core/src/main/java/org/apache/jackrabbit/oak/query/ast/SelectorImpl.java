@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -533,12 +534,33 @@ public class SelectorImpl extends SourceImpl {
             readOakProperties(list, t, oakPropertyName, propertyType);
             if (list.size() == 0) {
                 return null;
+            } else if (list.size() == 1) {
+                return list.get(0);
             }
-            ArrayList<String> strings = new ArrayList<String>();
-            for (PropertyValue p : list) {
-                Iterables.addAll(strings, p.getValue(Type.STRINGS));
+            Type<?> type = list.get(0).getType();
+            for (int i = 1; i < list.size(); i++) {
+                Type<?> t2 = list.get(i).getType();
+                if (t2 != type) {
+                    // types don't match
+                    type = Type.STRING;
+                    break;
+                }
             }
-            return PropertyValues.newString(strings);                    
+            if (type == Type.STRING) {
+                ArrayList<String> strings = new ArrayList<String>();
+                for (PropertyValue p : list) {
+                    Iterables.addAll(strings, p.getValue(Type.STRINGS));
+                }
+                return PropertyValues.newString(strings);
+            }
+            @SuppressWarnings("unchecked")
+            PropertyBuilder<Object> builder = (PropertyBuilder<Object>) PropertyBuilder.array(type);
+            builder.setName("");
+            for (PropertyValue v : list) {
+                builder.addValue(v.getValue(type));
+            }
+            PropertyState s = builder.getPropertyState();
+            return PropertyValues.create(s);
         }
         boolean relative = oakPropertyName.indexOf('/') >= 0;
         Tree t = currentTree();
@@ -590,6 +612,7 @@ public class SelectorImpl extends SourceImpl {
     }
     
     private void readOakProperties(ArrayList<PropertyValue> target, Tree t, String oakPropertyName, Integer propertyType) {
+        boolean skipCurrentNode = false;
         while (true) {
             if (t == null || !t.exists()) {
                 return;
@@ -608,9 +631,13 @@ public class SelectorImpl extends SourceImpl {
                 for (Tree child : t.getChildren()) {
                     readOakProperties(target, child, oakPropertyName, propertyType);
                 }
+                skipCurrentNode = true;
             } else {
                 t = t.getChild(parent);
             }
+        }
+        if (skipCurrentNode) {
+            return;
         }
         if (!"*".equals(oakPropertyName)) {
             PropertyValue value = currentOakProperty(t, oakPropertyName, propertyType);
@@ -619,12 +646,12 @@ public class SelectorImpl extends SourceImpl {
             }
             return;
         }
-          for (PropertyState p : t.getProperties()) {
-              if (propertyType == null || p.getType().tag() == propertyType) {
-                  PropertyValue v = PropertyValues.create(p);
-                  target.add(v);
-              }
-          }
+        for (PropertyState p : t.getProperties()) {
+            if (propertyType == null || p.getType().tag() == propertyType) {
+                PropertyValue v = PropertyValues.create(p);
+                target.add(v);
+            }
+        }
     }
 
     @Override
