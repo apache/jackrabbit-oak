@@ -37,6 +37,7 @@ import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore.BlobId;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -69,7 +70,7 @@ public class DataStoreBlobStoreTest {
 
         //Check for BlobStore methods
         assertEquals(maxInlineSize, ds.getBlobLength(dr.getIdentifier().toString()));
-        assertEquals(dr.getIdentifier().toString(), ds.writeBlob(new ByteArrayInputStream(data)));
+        assertEquals(dr.getIdentifier().toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
     }
 
     @Test
@@ -102,7 +103,7 @@ public class DataStoreBlobStoreTest {
         assertEquals(dr, ds.getRecord(dr.getIdentifier()));
 
         assertEquals(actualSize, ds.getBlobLength(dr.getIdentifier().toString()));
-        assertEquals(testDI.toString(), ds.writeBlob(new ByteArrayInputStream(data)));
+        assertEquals(testDI.toString(), BlobId.of(ds.writeBlob(new ByteArrayInputStream(data))).blobId);
     }
 
     @Test
@@ -118,7 +119,8 @@ public class DataStoreBlobStoreTest {
         DataStoreBlobStore ds = new DataStoreBlobStore(mockedDS);
 
         assertEquals(reference,ds.getReference(blobId));
-        assertEquals(blobId, ds.getBlobId(reference));
+        assertEquals(blobId, BlobId.of(ds.getBlobId(reference)).blobId);
+        assertEquals(BlobId.of(testDR).encodedValue(),ds.getBlobId(reference));
 
         String inMemBlobId = InMemoryDataRecord.getInstance("foo".getBytes())
                 .getIdentifier().toString();
@@ -145,6 +147,23 @@ public class DataStoreBlobStoreTest {
         Set<String> expected = Sets.newHashSet("d-10","d-20");
         assertEquals(expected, Sets.newHashSet(chunks));
 
+    }
+
+    @Test
+    public void testEncodedBlobId() throws Exception{
+        BlobId blobId = new BlobId("abc"+BlobId.SEP+"123");
+        assertEquals("abc", blobId.blobId);
+        assertEquals(123, blobId.length);
+
+        blobId = new BlobId("abc"+BlobId.SEP+"abc"+BlobId.SEP+"123");
+        assertEquals("abc"+BlobId.SEP+"abc", blobId.blobId);
+        assertEquals(123, blobId.length);
+
+        blobId = new BlobId("abc",123);
+        assertEquals("abc"+BlobId.SEP+"123", blobId.encodedValue());
+
+        assertTrue(BlobId.isEncoded("abc"+BlobId.SEP+"123"));
+        assertFalse(BlobId.isEncoded("abc"));
     }
 
     private static class ByteArrayDataRecord implements DataRecord {
@@ -203,7 +222,7 @@ public class DataStoreBlobStoreTest {
 
         @Override
         public long getLength() throws DataStoreException {
-            throw new UnsupportedOperationException();
+            throw new DataStoreException(new UnsupportedOperationException());
         }
 
         @Override
