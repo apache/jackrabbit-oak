@@ -39,6 +39,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binar
 
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -55,12 +56,12 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
+        LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
         return new Oak()
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with(AggregateIndexProvider
-                        .wrap(new LowCostLuceneIndexProvider()
-                                .with(getNodeAggregator())))
+                .with(AggregateIndexProvider.wrap(provider.with(getNodeAggregator())))
+                .with((Observer) provider)
                 .with(new LuceneIndexEditorProvider())
                 .createContentRepository();
     }

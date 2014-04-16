@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,7 +48,9 @@ public class MultiSessionQueryTest {
 
         // lucene specific
         jcr.with(new LuceneInitializerHelper("lucene").async());
-        jcr.with(new LuceneIndexProvider());
+        LuceneIndexProvider provider = new LuceneIndexProvider();
+        jcr.with((QueryIndexProvider) provider);
+        jcr.with((Observer) provider);
         jcr.with(new LuceneIndexEditorProvider());
 
         repository = jcr.createRepository();
