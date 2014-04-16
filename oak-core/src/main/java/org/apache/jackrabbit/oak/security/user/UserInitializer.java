@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -90,9 +92,10 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
         NodeState base = builder.getNodeState();
         MemoryNodeStore store = new MemoryNodeStore(base);
 
-        Root root = new SystemRoot(
-                store, EmptyHook.INSTANCE, workspaceName, securityProvider,
-                new QueryEngineSettings(), new CompositeQueryIndexProvider());
+        Root root = new SystemRoot(store, EmptyHook.INSTANCE, workspaceName,
+                securityProvider, new QueryEngineSettings(),
+                new CompositeQueryIndexProvider(new PropertyIndexProvider(),
+                        new NodeTypeIndexProvider()));
 
         UserConfiguration userConfiguration = securityProvider.getConfiguration(UserConfiguration.class);
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
