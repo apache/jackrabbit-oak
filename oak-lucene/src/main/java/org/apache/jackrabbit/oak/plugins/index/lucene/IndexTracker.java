@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -39,8 +40,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 class IndexTracker {
 
     /** Logger instance. */
@@ -62,36 +61,60 @@ class IndexTracker {
         indices.clear();
     }
 
-    synchronized void update(NodeState root) {
-        List<Editor> editors = newArrayListWithCapacity(indices.size());
-        for (final String path : indices.keySet()) {
-            List<String> elements = newArrayList();
-            Iterables.addAll(elements, PathUtils.elements(path));
-            elements.add(INDEX_DEFINITIONS_NAME);
-            elements.add(indices.get(path).getName());
-            editors.add(new SubtreeEditor(new DefaultEditor() {
-                @Override
-                public void leave(NodeState before, NodeState after) {
-                    IndexNode index = indices.remove(path);
-                    try {
-                        index.close();
-                    } catch (IOException e) {
-                        log.error("Failed to close Lucene index at " + path, e);
-                    }
+    void update(NodeState root) {
+        Editor editor;
+        NodeState before;
 
-                    try {
-                        index = IndexNode.open(index.getName(), after);
-                        if (index != null) {
-                            indices.put(path, index);
-                        }
-                    } catch (IOException e) {
-                        log.error("Failed to open Lucene index at " + path, e);
-                    }
-                }
-            }, elements.toArray(new String[elements.size()])));
+        synchronized (this) {
+            before = this.root;
+            this.root = root;
+
+            List<Editor> editors = newArrayListWithCapacity(indices.size());
+            for (Map.Entry<String, IndexNode> entry : indices.entrySet()) {
+                final String path = entry.getKey();
+                IndexNode index = entry.getValue();
+
+                List<String> elements = newArrayList();
+                addAll(elements, PathUtils.elements(path));
+                elements.add(INDEX_DEFINITIONS_NAME);
+                elements.add(index.getName());
+                editors.add(new SubtreeEditor(
+                        new DefaultEditor() {
+                            @Override
+                            public void leave(NodeState before, NodeState after) {
+                                updateIndex(path, after);
+                            }
+                        },
+                        elements.toArray(new String[elements.size()])));
+            }
+            editor = CompositeEditor.compose(editors);
         }
-        EditorDiff.process(CompositeEditor.compose(editors), this.root, root);
-        this.root = root;
+
+        // outside the synchronization block to avoid blocking index access
+        EditorDiff.process(editor, before, root); // ignore return value
+    }
+
+    private synchronized void updateIndex(String path, NodeState state) {
+        IndexNode index = indices.remove(path);
+        try {
+            if (index != null) {
+                index.close();
+            } else {
+                return; // this tracker has already been closed
+            }
+        } catch (IOException e) {
+            log.error("Failed to close Lucene index at " + path, e);
+        }
+
+        try {
+            // TODO: Use DirectoryReader.openIfChanged()
+            index = IndexNode.open(index.getName(), state);
+            if (index != null) { // the index might no longer exist
+                indices.put(path, index);
+            }
+        } catch (IOException e) {
+            log.error("Failed to open Lucene index at " + path, e);
+        }
     }
 
     synchronized IndexNode getIndexNode(String path) {
