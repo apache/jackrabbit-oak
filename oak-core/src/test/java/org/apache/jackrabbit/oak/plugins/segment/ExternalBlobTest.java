@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -77,7 +78,9 @@ public class ExternalBlobTest {
         Blob b2 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data2)));
         assertTrue(b2 instanceof SegmentBlob);
         assertNotNull(b2.getReference());
-        assertNotNull(dbs.getRecordIfStored(new DataIdentifier(((SegmentBlob) b2).getBlobId())));
+        InputStream is = dbs.getInputStream(((SegmentBlob) b2).getBlobId());
+        assertNotNull(IOUtils.contentEquals(new ByteArrayInputStream(data2), is));
+        is.close();
     }
 
     public Blob testCreateAndRead(Blob blob) throws Exception {
