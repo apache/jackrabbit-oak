@@ -55,6 +55,8 @@ public class BenchmarkRunner {
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
+        OptionSpec<Integer> fdsCache = parser.accepts("blobCache", "cache size (MB)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(32);
         OptionSpec<File> wikipedia =
                 parser.accepts("wikipedia", "Wikipedia dump")
                 .withRequiredArg().ofType(File.class);
@@ -93,7 +95,8 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB,
-                        base.value(options)),
+                        base.value(options),
+                        fdsCache.value(options)),
                 OakRepositoryFixture.getMongoNS(
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),

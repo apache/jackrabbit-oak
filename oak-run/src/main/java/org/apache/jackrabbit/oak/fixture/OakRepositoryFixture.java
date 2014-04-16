@@ -47,39 +47,36 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getMongo(String host, int port, String database,
                                              boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OakFixture.OAK_MONGO, false, host, port, database, dropDBAfterTest, cacheSize, false, null);
+        return getMongo(OakFixture.OAK_MONGO, false, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static RepositoryFixture getMongoWithFDS(String host, int port, String database,
                                              boolean dropDBAfterTest, long cacheSize,
-                                             final File base) {
-        return getMongo(OakFixture.OAK_MONGO_FDS, false, host, port, database, dropDBAfterTest, cacheSize, true, base);
+                                             final File base, int fdsCacheInMB) {
+        return getMongo(OakFixture.OAK_MONGO_FDS, false, host, port, database,
+                dropDBAfterTest, cacheSize, true, base, fdsCacheInMB);
     }
 
     public static RepositoryFixture getMongoMK(String host, int port, String database,
                                                boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OakFixture.OAK_MONGO_MK, true, host, port, database, dropDBAfterTest, cacheSize, false, null);
+        return getMongo(OakFixture.OAK_MONGO_MK, true, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static RepositoryFixture getMongoNS(String host, int port, String database,
                                                boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OakFixture.OAK_MONGO_NS, false, host, port, database, dropDBAfterTest, cacheSize, false, null);
+        return getMongo(OakFixture.OAK_MONGO_NS, false, host, port, database, dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     private static RepositoryFixture getMongo(String name, boolean useMK,
                                               String host, int port, String database,
                                               boolean dropDBAfterTest, long cacheSize,
                                               final boolean useFileDataStore,
-                                              final File base) {
-        return new OakRepositoryFixture(OakFixture.getMongo(name, useMK, host, port, database, dropDBAfterTest, cacheSize, useFileDataStore, base));
+                                              final File base,
+                                              final int fdsCacheInMB) {
+        return new OakRepositoryFixture(OakFixture.getMongo(name, useMK, host, port, database, dropDBAfterTest,
+                cacheSize, useFileDataStore, base, fdsCacheInMB));
     }
     
-    public static RepositoryFixture getMongoNS(String name, String uri, 
-            boolean dropDBAfterTest, long cacheSize) {
-        return new OakRepositoryFixture(OakFixture.getMongo(name, uri, 
-                false, dropDBAfterTest, cacheSize, false, null));
-    }
-
     public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
         return new OakRepositoryFixture(OakFixture.getTar(OakFixture.OAK_TAR ,base, maxFileSizeMB, cacheSizeMB, memoryMapping, false));
     }
