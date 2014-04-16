@@ -40,6 +40,7 @@ public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
 
     public static final String PROP_ENCODE_LENGTH = "encodeLengthInId";
+    public static final String PROP_CACHE_SIZE = "cacheSizeInMB";
 
     private ServiceRegistration reg;
 
@@ -50,19 +51,20 @@ public abstract class AbstractDataStoreService {
     protected void activate(ComponentContext context, Map<String, Object> config) throws RepositoryException {
         DataStore ds = createDataStore(context, config);
         boolean encodeLengthInId = PropertiesUtil.toBoolean(config.get(PROP_ENCODE_LENGTH), true);
+        int cacheSizeInMB = PropertiesUtil.toInteger(config.get(PROP_CACHE_SIZE), DataStoreBlobStore.DEFAULT_CACHE_SIZE);
         String homeDir = lookup(context, PROP_HOME);
         if (homeDir != null) {
             log.info("Initializing the DataStore with homeDir [{}]", homeDir);
         }
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
-        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId);
+        this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
+        PropertiesUtil.populate(dataStore, config, false);
 
         Dictionary<String, String> props = new Hashtable<String, String>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
 
         reg = context.getBundleContext().registerService(new String[]{
-                DataStore.class.getName(),
                 BlobStore.class.getName(),
                 GarbageCollectableBlobStore.class.getName()
         }, dataStore , props);
