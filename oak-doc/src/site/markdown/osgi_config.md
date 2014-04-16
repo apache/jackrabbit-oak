@@ -128,9 +128,27 @@ minRecordLength
 : Size in bytes. Binary content less than `minRecordLength` would be inlined i.e. the data store id is
 the data itself).
 
+maxCachedBinarySize
+: Default - 17408 (17 KB)
+: Size in bytes. Binaries with size less than or equal to this size would be stored in in memory cache
+
+cacheSizeInMB
+: Default - 16
+: Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
+  helps in better performance when lots of small binaries are accessed frequently.
+
 #### Jackrabbit 2 - S3DataStore
 
 _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.S3DataStore`_
+
+maxCachedBinarySize
+: Default - 17408 (17 KB)
+: Size in bytes. Binaries with size less than or equal to this size would be stored in in memory cache
+
+cacheSizeInMB
+: Default - 16
+: Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
+  helps in better performance when lots of small binaries are accessed frequently.
 
 ### Configuration Steps for Apache Sling
 
@@ -160,6 +178,9 @@ _${sling.home}/install_ folder with content
 
         #path to the DataStore
         path=./sling/repository/datastore
+
+        #cache for storing small binaries in-memory
+        cacheSizeInMB=128
 
 #### Framework Properties vs OSGi Configuration
 OSGi components can read config data from two sources.
