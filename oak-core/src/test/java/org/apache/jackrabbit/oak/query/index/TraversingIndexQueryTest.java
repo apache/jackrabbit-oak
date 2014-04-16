@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -234,8 +235,8 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[(*/@prop > 200)]", "xpath", new ArrayList<String>());
         assertQuery("//*[(*/@prop > 1000)]", "xpath", new ArrayList<String>());
     }
-    
-    @Test
+
+    @Test @Ignore("OAK-1379")
     public void testMultipleRelativeProperties() throws Exception {
         Tree content = root.getTree("/").addChild("content");
         
