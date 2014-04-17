@@ -81,10 +81,12 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
 
     @Override
     public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState root) {
-        LOG.debug("getPlans(Filter, List<OrderEntry>, NodeState)");
-        LOG.debug("getPlans() - filter: {} - ", filter);
-        LOG.debug("getPlans() - sortOrder: {} - ", sortOrder);
-        LOG.debug("getPlans() - rootState: {} - ", root);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("getPlans(Filter, List<OrderEntry>, NodeState)");
+            LOG.debug("getPlans() - filter: {} - ", filter);
+            LOG.debug("getPlans() - sortOrder: {} - ", sortOrder);
+            LOG.debug("getPlans() - rootState: {} - ", root);
+        }
         List<IndexPlan> plans = new ArrayList<IndexPlan>();
 
         PropertyIndexLookup pil = getLookup(root);
@@ -131,20 +133,12 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                         createPlan = true;
                     } else if (pr.first != null && !pr.first.equals(pr.last)) {
                         // '>' & '>=' use cases
-                        if (lookup.isAscending(root, propertyName, filter)) {
-                            value = pr.first;
-                            createPlan = true;
-                        } else {
-                            createPlan = false;
-                        }
+                        value = pr.first;
+                        createPlan = true;
                     } else if (pr.last != null && !pr.last.equals(pr.first)) {
                         // '<' & '<='
-                        if (!lookup.isAscending(root, propertyName, filter)) {
-                            value = pr.last;
-                            createPlan = true;
-                        } else {
-                            createPlan = false;
-                        }
+                        value = pr.last;
+                        createPlan = true;
                     }
                     if (createPlan) {
                         // we always return a sorted set
