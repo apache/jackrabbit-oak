@@ -36,4 +36,9 @@ class MergeCommit extends Commit {
     SortedSet<Revision> getMergeRevisions() {
         return mergeRevs;
     }
+
+    @Override
+    public void applyToCache(Revision before, boolean isBranchCommit) {
+        // do nothing for a merge commit
+    }
 }
