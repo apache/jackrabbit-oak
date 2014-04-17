@@ -121,5 +121,10 @@ public class RDBDataSourceFactory {
         public Logger getParentLogger() throws SQLFeatureNotSupportedException {
             throw new SQLFeatureNotSupportedException();
         }
+
+        @Override
+        public String toString() {
+            return this.getClass().getName() + " wrapping a " + this.ds.toString();
+        }
     }
 }
