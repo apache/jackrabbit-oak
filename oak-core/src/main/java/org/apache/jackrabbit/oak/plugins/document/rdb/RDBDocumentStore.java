@@ -753,9 +753,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
             t += " and MODIFIED >= ?";
         }
         t += " order by ID";
-        if (limit != Integer.MAX_VALUE) {
-            t += " limit ?";
-        }
+        // TODO: OAK-1746
+        //        if (limit != Integer.MAX_VALUE) {
+        //            t += " limit ?";
+        //        }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<String> result = new ArrayList<String>();
         try {
@@ -765,11 +766,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (indexedProperty != null) {
                 stmt.setLong(si++, startValue);
             }
-            if (limit != Integer.MAX_VALUE) {
-                stmt.setInt(si++, limit);
-            }
+            // TODO: OAK-1746
+            //            if (limit != Integer.MAX_VALUE) {
+            //                stmt.setInt(si++, limit);
+            //            }
             ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
+            while (rs.next() && result.size() < limit) {
                 String data = getData(rs, 1, 2);
                 result.add(data);
             }
