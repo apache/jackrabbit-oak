@@ -16,13 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.Closeable;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -38,9 +36,7 @@ import com.google.common.collect.ImmutableList;
  * 
  * @see LuceneIndex
  */
-@Component
-@Service({ QueryIndexProvider.class, Observer.class })
-public class LuceneIndexProvider implements QueryIndexProvider, Observer {
+public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closeable {
 
     protected final IndexTracker tracker = new IndexTracker();
 
@@ -51,7 +47,6 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer {
 
     protected NodeAggregator aggregator = null;
 
-    @Deactivate
     public void close() {
         tracker.close();
     }
