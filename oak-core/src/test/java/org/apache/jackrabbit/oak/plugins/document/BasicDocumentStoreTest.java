@@ -163,6 +163,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testQuery() {
+        // try a nonsense query to verify that the syntax works
+        List<NodeDocument> result = ds.query(Collection.NODES, "a", "z", "_modified", 0, 20);
+        assertEquals(0, result.size());
+    }
+
+    @Test
     public void testCreatePerfSmall() {
         createPerf(16);
     }
