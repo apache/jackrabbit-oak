@@ -22,6 +22,7 @@ import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -323,5 +324,18 @@ public class DocumentMKDiffTest extends AbstractMongoConnectionTest {
         String rev6 = mk.commit("/", "-\"node-new/foo\"", rev5, null);
         jsop = mk.diff(rev5, rev6, "/", 0);
         assertTrue(jsop, jsop.contains("^\"/node-new\""));
+    }
+
+    @Test
+    public void diffMergedRevision() {
+        mk.commit("/", "+\"test\":{}", null, null);
+        String before = mk.getHeadRevision();
+
+        String b = mk.branch(null);
+        b = mk.commit("/test", "^\"p\":1", b, null);
+        String after = mk.merge(b, null);
+
+        String jsop = mk.diff(before, after, "/", 0).trim();
+        assertEquals("^\"/test\":{}", jsop);
     }
 }
