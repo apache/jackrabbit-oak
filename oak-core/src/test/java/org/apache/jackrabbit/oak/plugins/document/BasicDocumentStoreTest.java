@@ -17,12 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -164,9 +167,34 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testQuery() {
-        // try a nonsense query to verify that the syntax works
-        List<NodeDocument> result = ds.query(Collection.NODES, "a", "z", "_modified", 0, 20);
-        assertEquals(0, result.size());
+        // create ten documents
+        String base = this.getClass().getName() + ".testQuery-";
+        for (int i = 0; i < 10; i++) {
+            String id = base + i;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("document with " + id + " not created", success);
+            removeMe.add(id);
+        }
+
+        Set<String> result = getKeys(ds.query(Collection.NODES, base, base + "A", 5));
+        assertEquals(5, result.size());
+        assertTrue(result.contains(base + "4"));
+        assertFalse(result.contains(base + "5"));
+
+        result = getKeys(ds.query(Collection.NODES, base, base + "A", 20));
+        assertEquals(10, result.size());
+        assertTrue(result.contains(base + "0"));
+        assertTrue(result.contains(base + "9"));
+    }
+
+    private Set<String> getKeys(List<NodeDocument> docs) {
+        Set<String> result = new HashSet<String>();
+        for (NodeDocument doc : docs) {
+            result.add(doc.getId());
+        }
+        return result;
     }
 
     @Test
@@ -191,7 +219,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("_id", id);
             up.set("foo", pval);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("document with " + id + " nit created", success);
+            assertTrue("document with " + id + " not created", success);
             removeMe.add(id);
             cnt += 1;
         }
