@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -69,6 +70,78 @@ import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Striped;
 
+/**
+ * Implementation of {@link CachingDocumentStore} for relational databases.
+ * 
+ * <h3>Supported Databases</h3>
+ * <p>
+ * The code is supposed to be sufficiently generic to run with a variety of
+ * database implementations. However, the tables are created when required to
+ * simplify testing, and <em>that</em> code specifically supports these
+ * databases:
+ * <ul>
+ * <li>h2</li>
+ * <li>IBM DB2</li>
+ * <li>Postgres</li>
+ * </ul>
+ * 
+ * <h3>Table Layout</h3>
+ * <p>
+ * Data for each of the DocumentStore's {@link Collection}s is stored in its own
+ * database table (with a name matching the collection).
+ * <p>
+ * The tables essentially implement key/value storage, where the key usually is
+ * derived from an Oak path, and the value is a serialization of a
+ * {@link Document} (or a part of one). Additional fields are used for queries,
+ * debugging, and concurrency control:
+ * <table style="text-align: left;">
+ * <thead>
+ * <tr>
+ * <th>Column</th>
+ * <th>Type</th>
+ * <th>Description</th>
+ * </tr>
+ * </thead> <tbody>
+ * <tr>
+ * <th>ID</th>
+ * <td>varchar(1000) not null primary key</td>
+ * <td>the document's key</td>
+ * </tr>
+ * <tr>
+ * <th>MODIFIED</th>
+ * <td>bigint</td>
+ * <td>low-resolution timestamp
+ * </tr>
+ * <tr>
+ * <th>MODCOUNT</th>
+ * <td>bigint</td>
+ * <td>modification counter, used for avoiding overlapping updates</td>
+ * </tr>
+ * <tr>
+ * <th>SIZE</th>
+ * <td>bigint</td>
+ * <td>the size of the document's JSON serialization (for debugging purposes)</td>
+ * </tr>
+ * <tr>
+ * <th>DATA</th>
+ * <td>varchar(16384)</td>
+ * <td>the document's JSON serialization (only used for small document sizes, in
+ * which case BDATA (below) is not set</td>
+ * </tr>
+ * <tr>
+ * <th>BDATA</th>
+ * <td>blob</td>
+ * <td>the document's JSON serialization (usually GZIPped, only used for "large"
+ * documents)</td>
+ * </tr>
+ * </tbody>
+ * </table>
+ * 
+ * <h3>Caching</h3>
+ * <p>
+ * The cache borrows heavily from the {@link MongoDocumentStore} implementation;
+ * however it does not support the off-heap mechanism yet.
+ */
 public class RDBDocumentStore implements CachingDocumentStore {
 
     /**

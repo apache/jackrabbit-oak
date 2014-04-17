@@ -30,12 +30,19 @@ import javax.sql.DataSource;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Factory for creating {@link DataSource}s based on a JDBC connection URL.
+ */
 public class RDBDataSourceFactory {
+
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBDataSourceFactory.class);
 
     public static DataSource forJdbcUrl(String url, String username, String passwd) {
         try {
             BasicDataSource bds = new BasicDataSource();
+            LOG.debug("Getting Dricer for " + url);
             Driver d = DriverManager.getDriver(url);
             bds.setDriverClassName(d.getClass().getName());
             bds.setUsername(username);
@@ -43,7 +50,9 @@ public class RDBDataSourceFactory {
             bds.setUrl(url);
             return new CloseableDataSource(bds);
         } catch (SQLException ex) {
-            throw new MicroKernelException("trying to obtain driver for " + url, ex);
+            String message = "trying to obtain driver for " + url;
+            LOG.info(message, ex);
+            throw new MicroKernelException(message, ex);
         }
     }
 
