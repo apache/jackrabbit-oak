@@ -68,10 +68,15 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SegmentWriter {
+
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(SegmentWriter.class);
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
@@ -98,8 +103,6 @@ public class SegmentWriter {
     private final SegmentTracker tracker;
 
     private final SegmentStore store;
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * Cache of recently stored string and template records, used to
@@ -206,6 +209,7 @@ public class SegmentWriter {
             }
 
             SegmentId id = segment.getSegmentId();
+            log.debug("Writing data segment {} ({} bytes)", id, length);
             store.writeSegment(id, buffer, buffer.length - length, length);
 
             // Keep this segment in memory as it's likely to be accessed soon
@@ -702,11 +706,11 @@ public class SegmentWriter {
         String reference = blob.getReference();
         if (reference != null && store.getBlobStore() != null) {
             String blobId = store.getBlobStore().getBlobId(reference);
-            if(blobId != null) {
+            if (blobId != null) {
                 RecordId id = writeValueRecord(blobId);
                 return new SegmentBlob(id);
-            }else{
-                log.debug("No blobId found matching reference [{}]", reference);
+            } else {
+                log.debug("No blob found for reference {}, inlining...", reference);
             }
         }
 
@@ -759,6 +763,7 @@ public class SegmentWriter {
         while (n != 0) {
             SegmentId bulkId = store.getTracker().newBulkSegmentId();
             int len = align(n);
+            log.debug("Writing bulk segment {} ({} bytes)", bulkId, n);
             store.writeSegment(bulkId, data, 0, len);
 
             for (int i = 0; i < n; i += BLOCK_SIZE) {
