@@ -148,7 +148,7 @@ public class AsyncIndexUpdate implements Runnable {
             return;
         }
 
-        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder builder = after.builder();
         NodeBuilder async = builder.child(ASYNC);
 
         NodeState before = null;
