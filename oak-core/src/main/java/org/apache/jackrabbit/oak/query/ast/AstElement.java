@@ -124,7 +124,12 @@ abstract class AstElement {
         if (v.getType().tag() == type) {
             return v;
         }
-        return PropertyValues.convert(v, type, query.getNamePathMapper());
+        try {
+            return PropertyValues.convert(v, type, query.getNamePathMapper());
+        } catch (IllegalArgumentException e) {
+            // not possible to convert
+            return v;
+        }
     }
 
     /**
