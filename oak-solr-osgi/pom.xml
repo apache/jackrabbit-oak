@@ -56,13 +56,6 @@
                             javax.servlet.*;resolution:=optional,
                             *
                         </Import-Package>
-                        <Export-Package>
-                            org.apache.jackrabbit.oak.plugins.index.solr.configuration,
-                            org.apache.jackrabbit.oak.plugins.index.solr.index,
-                            org.apache.jackrabbit.oak.plugins.index.solr.query,
-                            org.apache.jackrabbit.oak.plugins.index.solr.server,
-                            org.apache.jackrabbit.oak.plugins.index.solr.util
-                        </Export-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
                         <Service-Component>OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr
                             .osgi.SolrQueryIndexProviderService.xml,OSGI-INF/org.apache.jackrabbit.
