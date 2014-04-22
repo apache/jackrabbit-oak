@@ -21,19 +21,24 @@ import static com.google.common.collect.Queues.newArrayDeque;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newIdentityHashSet;
 
-import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tracker of references to segment identifiers and segment instances
  * that are currently kept in memory.
  */
 public class SegmentTracker {
+
+    /** Logger instance */
+    private static final Logger log =
+            LoggerFactory.getLogger(SegmentTracker.class);
 
     private static final long MSB_MASK = ~(0xfL << 12);
 
@@ -109,15 +114,29 @@ public class SegmentTracker {
         id.setSegment(segment);
 
         synchronized (this) {
+            long size = segment.getCacheSize();
+
             segments.addFirst(segment);
-            currentSize += segment.getCacheSize();
+            currentSize += size;
+
+            log.debug("Added segment {} to tracker cache ({} bytes)",
+                    id, size);
+
             while (currentSize > cacheSize && segments.size() > 1) {
                 Segment last = segments.removeLast();
                 if (last.accessed()) {
                     segments.addFirst(last);
+                    log.debug("Segment {} was recently used, keeping in cache",
+                            segment.getSegmentId());
                 } else {
-                    last.getSegmentId().setSegment(null);
-                    currentSize -= last.getCacheSize();
+                    SegmentId lastId = last.getSegmentId();
+                    long lastSize = last.getCacheSize();
+
+                    lastId.setSegment(null);
+                    currentSize -= lastSize;
+
+                    log.debug("Removed segment {} from tracker cache ({} bytes)",
+                            lastId, lastSize);
                 }
             }
         }
