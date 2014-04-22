@@ -18,10 +18,16 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Segment identifier.
  */
 public class SegmentId implements Comparable<SegmentId> {
+
+    /** Logger instance */
+    private static final Logger log = LoggerFactory.getLogger(SegmentId.class);
 
     /**
      * Checks whether this is a data segment identifier.
@@ -87,6 +93,7 @@ public class SegmentId implements Comparable<SegmentId> {
             synchronized (this) {
                 segment = this.segment;
                 if (segment == null) {
+                    log.debug("Loading segment {}", this);
                     segment = tracker.getSegment(this);
                 }
             }
