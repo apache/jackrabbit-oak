@@ -146,9 +146,9 @@ https://svn.apache.org/repos/asf/jackrabbit/dist/KEYS.
 About Apache Jackrabbit Oak
 ---------------------------
 
-Oak is an effort implement a scalable and performant hierarchical content 
-repository for use as the foundation of modern world-class web sites and 
-other demanding content applications. 
+Jackrabbit Oak is a scalable, high-performance hierarchical content
+repository designed for use as the foundation of modern world-class
+web sites and other demanding content applications.
 
 The Oak effort is a part of the Apache Jackrabbit project. 
 Apache Jackrabbit is a project of the Apache Software Foundation.
