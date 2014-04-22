@@ -25,6 +25,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -63,6 +64,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileStore implements SegmentStore {
 
+    /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(FileStore.class);
 
     private static final int MB = 1024 * 1024;
@@ -250,11 +252,7 @@ public class FileStore implements SegmentStore {
         flushThread.setPriority(Thread.MIN_PRIORITY);
         flushThread.start();
 
-        if (memoryMapping) {
-            log.info("TarMK opened with memory-mapping: {}", directory);
-        } else {
-            log.info("TarMK opened: {}", directory);
-        }
+        log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
     }
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory)
@@ -344,11 +342,14 @@ public class FileStore implements SegmentStore {
                 writer.flush();
 
                 synchronized (this) {
+                    log.debug("TarMK journal update {} -> {}", before, after);
                     journalFile.writeBytes(after + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
 
                     if (cleanup) {
+                        long start = System.nanoTime();
+
                         Set<UUID> ids = newHashSet();
                         for (SegmentId id : tracker.getReferencedSegmentIds()) {
                             ids.add(new UUID(
@@ -373,6 +374,9 @@ public class FileStore implements SegmentStore {
                             }
                         }
                         readers = list;
+
+                        log.debug("TarMK GC: Completed in {}ms",
+                                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
                     }
                 }
 
@@ -381,6 +385,7 @@ public class FileStore implements SegmentStore {
                 while (iterator.hasNext()) {
                     File file = iterator.next();
                     if (!file.exists() || file.delete()) {
+                        log.debug("TarMK GC: Removed old file {}", file);
                         iterator.remove();
                     }
                 }
