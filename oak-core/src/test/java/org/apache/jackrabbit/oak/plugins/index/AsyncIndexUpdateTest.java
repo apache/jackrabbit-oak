@@ -20,11 +20,17 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
+import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -138,10 +144,10 @@ public class AsyncIndexUpdateTest {
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "def"));
-        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
+        assertEquals(ImmutableSet.<String>of(), find(lookup, "foo", "def"));
+        assertEquals(ImmutableSet.<String>of(), find(lookup, "foo", "ghi"));
 
-        assertEquals(ImmutableSet.of(), find(lookup, "bar", "abc"));
+        assertEquals(ImmutableSet.<String>of(), find(lookup, "bar", "abc"));
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "bar", "def"));
         assertEquals(ImmutableSet.of("testSecond"), find(lookup, "bar", "ghi"));
 
@@ -195,7 +201,76 @@ public class AsyncIndexUpdateTest {
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(ImmutableSet.of("testChild"),
                 find(lookupChild, "foo", "xyz"));
-        assertEquals(ImmutableSet.of(), find(lookupChild, "foo", "abc"));
+        assertEquals(ImmutableSet.<String>of(), find(lookupChild, "foo", "abc"));
     }
 
+    // OAK-1749
+    @Test
+    public void branchBaseOnCheckpoint() throws Exception {
+        final Semaphore retrieve = new Semaphore(1);
+        final Semaphore checkpoint = new Semaphore(0);
+        NodeStore store = new MemoryNodeStore() {
+            @CheckForNull
+            @Override
+            public NodeState retrieve(@Nonnull String checkpoint) {
+                retrieve.acquireUninterruptibly();
+                try {
+                    return super.retrieve(checkpoint);
+                } finally {
+                    retrieve.release();
+                }
+            }
+
+            @Nonnull
+            @Override
+            public String checkpoint(long lifetime) {
+                try {
+                    return super.checkpoint(lifetime);
+                } finally {
+                    checkpoint.release();
+                }
+            }
+        };
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo", false, ImmutableSet.of("foo"), null, TYPE, Collections.singletonMap(ASYNC_PROPERTY_NAME, "async"));
+
+        builder.child("test").setProperty("foo", "a");
+        builder.child("child");
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+
+        builder = store.getRoot().builder();
+        builder.child("test").setProperty("foo", "b");
+        builder.child("child").setProperty("prop", "value");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                async.run();
+            }
+        });
+        // drain checkpoint permits
+        checkpoint.acquireUninterruptibly(checkpoint.availablePermits());
+        // block NodeStore.retrieve()
+        retrieve.acquireUninterruptibly();
+        t.start();
+
+        // wait until async update called checkpoint
+        checkpoint.acquireUninterruptibly();
+        builder = store.getRoot().builder();
+        builder.child("child").remove();
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // allow async update to proceed with NodeStore.retrieve()
+        retrieve.release();
+        t.join();
+
+        assertFalse(store.getRoot().hasChildNode("child"));
+    }
 }
