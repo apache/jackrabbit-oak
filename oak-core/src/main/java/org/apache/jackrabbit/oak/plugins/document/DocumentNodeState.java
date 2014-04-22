@@ -211,7 +211,8 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
                 if (b == null) {
                     throw new IllegalStateException("No branch for revision: " + rev);
                 }
-                if (b.isHead(rev)) {
+                if (b.isHead(rev)
+                        && DocumentNodeStoreBranch.getCurrentBranch() != null) {
                     return new DocumentRootBuilder(this, store);
                 } else {
                     return new MemoryNodeBuilder(this);
