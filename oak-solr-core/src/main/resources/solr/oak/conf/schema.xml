@@ -100,43 +100,15 @@
     <field name="path_child" type="children_path" indexed="true" stored="false"/>
     <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
     <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
-    <field name="ignored" type="ignored" multiValued="true"/>
     <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true"/>
-    <field name="_version_" type="long" indexed="true" stored="true"/>
     <field name=":path" type="string" indexed="true" stored="false"/>
-
-    <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
-    <dynamicField name="*_is" type="int"    indexed="true"  stored="true"  multiValued="true"/>
-    <dynamicField name="*_s"  type="string"  indexed="true"  stored="true" />
-    <dynamicField name="*_ss" type="string"  indexed="true"  stored="true" multiValued="true"/>
-    <dynamicField name="*_l"  type="long"   indexed="true"  stored="true"/>
-    <dynamicField name="*_ls" type="long"   indexed="true"  stored="true"  multiValued="true"/>
-    <dynamicField name="*_t"  type="text_general"    indexed="true"  stored="true"/>
-    <dynamicField name="*_txt" type="text_general"   indexed="true"  stored="true" multiValued="true"/>
-    <dynamicField name="*_b"  type="boolean" indexed="true" stored="true"/>
-    <dynamicField name="*_bs" type="boolean" indexed="true" stored="true"  multiValued="true"/>
-    <dynamicField name="*_f"  type="float"  indexed="true"  stored="true"/>
-    <dynamicField name="*_fs" type="float"  indexed="true"  stored="true"  multiValued="true"/>
-    <dynamicField name="*_d"  type="double" indexed="true"  stored="true"/>
-    <dynamicField name="*_ds" type="double" indexed="true"  stored="true"  multiValued="true"/>
-
-    <dynamicField name="*_dt"  type="date"    indexed="true"  stored="true"/>
-    <dynamicField name="*_dts" type="date"    indexed="true"  stored="true" multiValued="true"/>
-
-    <dynamicField name="*_ti" type="tint"    indexed="true"  stored="true"/>
-    <dynamicField name="*_tl" type="tlong"   indexed="true"  stored="true"/>
-    <dynamicField name="*_tf" type="tfloat"  indexed="true"  stored="true"/>
-    <dynamicField name="*_td" type="tdouble" indexed="true"  stored="true"/>
-    <dynamicField name="*_tdt" type="tdate"  indexed="true"  stored="true"/>
-
-    <dynamicField name="*_pi"  type="pint"    indexed="true"  stored="true"/>
-    <dynamicField name="*_c"   type="currency" indexed="true"  stored="true"/>
+    <field name="_version_" type="long" indexed="true" stored="true"/>
     <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
   </fields>
   <uniqueKey>path_exact</uniqueKey>
   <copyField source="path_exact" dest="path_anc"/>
   <copyField source="path_exact" dest="path_des"/>
   <copyField source="path_exact" dest="path_child"/>
-    <copyField source="path_exact" dest=":path"/>
+  <copyField source="path_exact" dest=":path"/>
   <copyField source="*" dest="catch_all"/>
 </schema>
