@@ -194,20 +194,26 @@ class TarReader {
                         }
 
                         if (memoryMapping) {
-                            FileAccess mapped = new FileAccess.Mapped(access);
-                            // re-read the index, now with memory mapping
-                            int indexSize = index.remaining();
-                            index = mapped.read(
-                                    mapped.length() - indexSize - 16 - 1024,
-                                    indexSize);
-                            return new TarReader(file, mapped, index);
-                        } else {
-                            FileAccess random = new FileAccess.Random(access);
-                            // prevent the finally block from closing the file
-                            // as the returned TarReader will take care of that
-                            access = null;
-                            return new TarReader(file, random, index);
+                            try {
+                                FileAccess mapped = new FileAccess.Mapped(access);
+                                // re-read the index, now with memory mapping
+                                int indexSize = index.remaining();
+                                index = mapped.read(
+                                        mapped.length() - indexSize - 16 - 1024,
+                                        indexSize);
+                                return new TarReader(file, mapped, index);
+                            } catch (IOException e) {
+                                log.warn("Failed to mmap tar file " + file
+                                        + ", falling back to normal file IO",
+                                        e);
+                            }
                         }
+
+                        FileAccess random = new FileAccess.Random(access);
+                        // prevent the finally block from closing the file
+                        // as the returned TarReader will take care of that
+                        access = null;
+                        return new TarReader(file, random, index);
                     }
                 } finally {
                     if (access != null) {
