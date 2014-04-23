@@ -81,7 +81,7 @@ class Collision {
         document.deepCopy(newDoc);
         UpdateUtils.applyChanges(newDoc, ourOp, context.getRevisionComparator());
         if (!markCommitRoot(newDoc, ourRev, store)) {
-            throw new MicroKernelException("Unable to annotate our revision "
+            throw new IllegalStateException("Unable to annotate our revision "
                     + "with collision marker. Our revision: " + ourRev
                     + ", document:\n" + newDoc.format());
         }
