@@ -21,9 +21,13 @@ import static junit.framework.Assert.assertTrue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.apache.jackrabbit.oak.stats.Clock.Fast;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ClockTest {
+    private static long SYSTEM_CLOCK_GRANULARITY;
+    private static Long FAST_CLOCK_GRANULARITY;
 
     /**
      * Helper for checking how accurate the system clock is.
@@ -33,18 +37,16 @@ public class ClockTest {
                 "average clock granularity: " + getAverageClockGranularity());
     }
 
+    @BeforeClass
+    public static void setup() {
+        SYSTEM_CLOCK_GRANULARITY = getAverageClockGranularity();
+        FAST_CLOCK_GRANULARITY = 1000 * Long.getLong("fast.clock.interval", Clock.DEFAULT_FAST_CLOCK_INTERVAL);
+    }
+
     @Test
     public void testClockDrift() throws InterruptedException {
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
-
-        // Set the drift limit to twice as high as granularity,
-        // plus 3ms for Thread.sleep() inaccuracy in the fast clock
-        final long granularity = getAverageClockGranularity();
-        final long limit = (2 * granularity) / 1000 + 3;
-        final String diag =
-                "(estimated limit was " + limit + "ms,"
-                + " measured granularity was " + (granularity / 1000f) + "ms)";
 
         try {
             Clock[] clocks = new Clock[] {
@@ -55,8 +57,14 @@ public class ClockTest {
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
+
+                // Set the drift limit to twice as high as granularity,
+                // plus 3ms for Thread.sleep() inaccuracy in the fast clock
+                final long granularity = getGranularity(clock);
+                final long limit = (2 * granularity) / 1000 + 3;
                 assertTrue(
-                        clock + " unexpected drift: " + drift + "ms " + diag,
+                        clock + " unexpected drift: " + drift + "ms (estimated limit was " +
+                                limit + "ms, measured granularity was " + (granularity / 1000f) + "ms)",
                         Math.abs(drift) <= limit);
             }
 
@@ -64,13 +72,25 @@ public class ClockTest {
 
             for (Clock clock : clocks) {
                 long drift = clock.getTime() - System.currentTimeMillis();
+
+                // Set the drift limit to twice as high as granularity,
+                // plus 3ms for Thread.sleep() inaccuracy in the fast clock
+                final long granularity = getGranularity(clock);
+                final long limit = (2 * granularity) / 1000 + 3;
                 assertTrue(
-                        clock + " unexpected drift ater 100ms: " + drift + "ms " + diag,
+                        clock + " unexpected drift ater 100ms: " + drift + "ms (estimated limit was " +
+                                limit + "ms, measured granularity was " + (granularity / 1000f) + "ms)",
                         Math.abs(drift) <= limit);
             }
         } finally {
             executor.shutdown();
         }
+    }
+
+    private static long getGranularity(Clock clock) {
+        return clock instanceof Fast
+            ? FAST_CLOCK_GRANULARITY
+            : SYSTEM_CLOCK_GRANULARITY;
     }
 
     @Test
