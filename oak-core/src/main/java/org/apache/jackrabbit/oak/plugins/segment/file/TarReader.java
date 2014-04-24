@@ -204,7 +204,17 @@ class TarReader {
                                 return new TarReader(file, mapped, index);
                             } catch (IOException e) {
                                 log.warn("Failed to mmap tar file " + file
-                                        + ", falling back to normal file IO",
+                                        + ". Falling back to normal file IO,"
+                                        + " which will negatively impact"
+                                        + " repository performance. This"
+                                        + " problem may have been caused by"
+                                        + " restrictions on the amount of"
+                                        + " virtual memory available to the"
+                                        + " JVM. Please make sure that a"
+                                        + " 64-bit JVM is being used and"
+                                        + " that the process has access to"
+                                        + " unlimited virtual memory"
+                                        + " (ulimit option -v).",
                                         e);
                             }
                         }
