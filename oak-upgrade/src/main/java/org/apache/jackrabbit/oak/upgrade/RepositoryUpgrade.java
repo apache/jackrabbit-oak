@@ -108,6 +108,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -167,6 +168,12 @@ public class RepositoryUpgrade {
     private boolean copyBinariesByReference = false;
 
     /**
+     * NodeState are copied by value by recursing down the complete tree
+     * This is a temporary approach for OAK-1760 for 1.0 branch.
+     */
+    private final boolean copyNodeStateByValue;
+
+    /**
      * Copies the contents of the repository in the given source directory
      * to the given target node store.
      *
@@ -208,6 +215,7 @@ public class RepositoryUpgrade {
     public RepositoryUpgrade(RepositoryContext source, NodeStore target) {
         this.source = source;
         this.target = target;
+        this.copyNodeStateByValue = target instanceof DocumentNodeStore;
     }
 
     public boolean isCopyBinariesByReference() {
@@ -725,13 +733,13 @@ public class RepositoryUpgrade {
                 source.getInternalVersionManager().getPersistenceManager();
 
         NodeBuilder system = builder.child(JCR_SYSTEM);
-        system.setChildNode(JCR_VERSIONSTORAGE, new JackrabbitNodeState(
+        copyState(system, JCR_VERSIONSTORAGE, new JackrabbitNodeState(
                 pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
                 "/jcr:system/jcr:versionStorage", copyBinariesByReference));
-        system.setChildNode("jcr:activities", new JackrabbitNodeState(
+        copyState(system, "jcr:activities", new JackrabbitNodeState(
                 pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
                 "/jcr:system/jcr:activities", copyBinariesByReference));
-    }   
+    }
 
     private String copyWorkspace(
             NodeBuilder builder, NodeState root, String name,
@@ -744,18 +752,34 @@ public class RepositoryUpgrade {
 
         NodeState state = new JackrabbitNodeState(
                 pm, root, uriToPrefix, ROOT_NODE_ID, "/", copyBinariesByReference);
+
+        copyState(builder, state, copyNodeStateByValue);
+        return name;
+    }
+
+    private void copyState(NodeBuilder parent, String childName, NodeState state) {
+        if (copyNodeStateByValue) {
+            copyState(parent.child(childName), state, true);
+        } else {
+            parent.setChildNode(childName, state);
+        }
+    }
+
+    private void copyState(NodeBuilder builder, NodeState state, boolean copyByValue) {
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
         }
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             String childName = child.getName();
             if (!JCR_SYSTEM.equals(childName)) {
-                builder.setChildNode(childName, child.getNodeState());
+                NodeState childNodeState = child.getNodeState();
+                if (copyByValue) {
+                    NodeBuilder childBuilder = builder.child(childName);
+                    copyState(childBuilder, childNodeState, true);
+                } else {
+                    builder.setChildNode(childName, childNodeState);
+                }
             }
         }
-
-        return name;
     }
-
-
 }
