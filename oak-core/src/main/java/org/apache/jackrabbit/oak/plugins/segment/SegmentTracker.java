@@ -124,12 +124,12 @@ public class SegmentTracker {
 
             while (currentSize > cacheSize && segments.size() > 1) {
                 Segment last = segments.removeLast();
+                SegmentId lastId = last.getSegmentId();
                 if (last.accessed()) {
                     segments.addFirst(last);
                     log.debug("Segment {} was recently used, keeping in cache",
-                            segment.getSegmentId());
+                            lastId);
                 } else {
-                    SegmentId lastId = last.getSegmentId();
                     long lastSize = last.getCacheSize();
 
                     lastId.setSegment(null);
