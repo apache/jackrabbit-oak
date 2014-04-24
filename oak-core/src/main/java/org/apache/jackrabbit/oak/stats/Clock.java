@@ -48,7 +48,7 @@ public abstract class Clock {
     /**
      * Default value for {@link #FAST_CLOCK_INTERVAL}
      */
-    public static final long DEFAULT_FAST_CLOCK_INTERVAL = 1;
+    public static final long DEFAULT_FAST_CLOCK_INTERVAL = 10;
 
     /**
      * Millisecond update interval of the {@link Fast} clock. Configurable
