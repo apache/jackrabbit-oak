@@ -46,12 +46,17 @@ public abstract class Clock {
             Long.getLong("accurate.clock.granularity", 1);
 
     /**
+     * Default value for {@link #FAST_CLOCK_INTERVAL}
+     */
+    public static final long DEFAULT_FAST_CLOCK_INTERVAL = 1;
+
+    /**
      * Millisecond update interval of the {@link Fast} clock. Configurable
      * by the "fast.clock.interval" system property to to make it easier
      * to test the effect of different update frequencies.
      */
     private static final long FAST_CLOCK_INTERVAL =
-            Long.getLong("fast.clock.interval", 1);
+            Long.getLong("fast.clock.interval", DEFAULT_FAST_CLOCK_INTERVAL);
 
     private long monotonic = 0;
 
