@@ -814,17 +814,22 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @param op the update operation.
      * @param baseRevision the base revision for the update operation.
+     * @param commitRevision the commit revision of the update operation.
      * @param context the revision context.
      * @return <code>true</code> if conflicting, <code>false</code> otherwise.
      */
-    public boolean isConflicting(@Nonnull UpdateOp op,
+    boolean isConflicting(@Nonnull UpdateOp op,
                                  @Nonnull Revision baseRevision,
+                                 @Nonnull Revision commitRevision,
                                  @Nonnull RevisionContext context) {
         // did existence of node change after baseRevision?
         // only check local deleted map, which contains the most
         // recent values
         Map<Revision, String> deleted = getLocalDeleted();
         for (Map.Entry<Revision, String> entry : deleted.entrySet()) {
+            if (entry.getKey().equals(commitRevision)) {
+                continue;
+            }
             if (isRevisionNewer(context, entry.getKey(), baseRevision)) {
                 return true;
             }
@@ -845,6 +850,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             // was this property touched after baseRevision?
             for (Revision rev : getValueMap(name).keySet()) {
+                if (rev.equals(commitRevision)) {
+                    continue;
+                }
                 if (isRevisionNewer(context, rev, baseRevision)) {
                     return true;
                 }
