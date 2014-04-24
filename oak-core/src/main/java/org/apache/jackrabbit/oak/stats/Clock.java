@@ -45,6 +45,14 @@ public abstract class Clock {
     private static final long ACCURATE_CLOCK_GRANULARITY =
             Long.getLong("accurate.clock.granularity", 1);
 
+    /**
+     * Millisecond update interval of the {@link Fast} clock. Configurable
+     * by the "fast.clock.interval" system property to to make it easier
+     * to test the effect of different update frequencies.
+     */
+    private static final long FAST_CLOCK_INTERVAL =
+            Long.getLong("fast.clock.interval", 1);
+
     private long monotonic = 0;
 
     private long increasing = 0;
@@ -277,7 +285,7 @@ public abstract class Clock {
                 public void run() {
                     time = ACCURATE.getTime();
                 }
-            }, 1, 1, TimeUnit.MILLISECONDS);
+            }, FAST_CLOCK_INTERVAL, FAST_CLOCK_INTERVAL, TimeUnit.MILLISECONDS);
         }
 
         @Override
