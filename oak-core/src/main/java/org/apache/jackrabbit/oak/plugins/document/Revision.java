@@ -521,8 +521,13 @@ public class Revision {
             if (range1 == FUTURE && range2 == FUTURE) {
                 return o1.compareRevisionTimeThenClusterId(o2);
             }
-            if (range1 == null || range2 == null) {
+            if (range1 == null && range2 == null) {
                 return o1.compareRevisionTimeThenClusterId(o2);
+            }
+            if (range1 == null) {
+                return -1;
+            } else if (range2 == null) {
+                return 1;
             }
             int comp = range1.compareRevisionTimeThenClusterId(range2);
             if (comp != 0) {
