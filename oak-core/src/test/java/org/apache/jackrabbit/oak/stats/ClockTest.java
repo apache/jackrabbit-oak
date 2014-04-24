@@ -40,7 +40,7 @@ public class ClockTest {
     @BeforeClass
     public static void setup() {
         SYSTEM_CLOCK_GRANULARITY = getAverageClockGranularity();
-        FAST_CLOCK_GRANULARITY = 1000 * Long.getLong("fast.clock.interval", Clock.DEFAULT_FAST_CLOCK_INTERVAL);
+        FAST_CLOCK_GRANULARITY = 1000 * Clock.FAST_CLOCK_INTERVAL;
     }
 
     @Test
