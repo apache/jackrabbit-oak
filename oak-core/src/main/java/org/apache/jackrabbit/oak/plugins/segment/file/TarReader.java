@@ -194,20 +194,36 @@ class TarReader {
                         }
 
                         if (memoryMapping) {
-                            FileAccess mapped = new FileAccess.Mapped(access);
-                            // re-read the index, now with memory mapping
-                            int indexSize = index.remaining();
-                            index = mapped.read(
-                                    mapped.length() - indexSize - 16 - 1024,
-                                    indexSize);
-                            return new TarReader(file, mapped, index);
-                        } else {
-                            FileAccess random = new FileAccess.Random(access);
-                            // prevent the finally block from closing the file
-                            // as the returned TarReader will take care of that
-                            access = null;
-                            return new TarReader(file, random, index);
+                            try {
+                                FileAccess mapped = new FileAccess.Mapped(access);
+                                // re-read the index, now with memory mapping
+                                int indexSize = index.remaining();
+                                index = mapped.read(
+                                        mapped.length() - indexSize - 16 - 1024,
+                                        indexSize);
+                                return new TarReader(file, mapped, index);
+                            } catch (IOException e) {
+                                log.warn("Failed to mmap tar file " + file
+                                        + ". Falling back to normal file IO,"
+                                        + " which will negatively impact"
+                                        + " repository performance. This"
+                                        + " problem may have been caused by"
+                                        + " restrictions on the amount of"
+                                        + " virtual memory available to the"
+                                        + " JVM. Please make sure that a"
+                                        + " 64-bit JVM is being used and"
+                                        + " that the process has access to"
+                                        + " unlimited virtual memory"
+                                        + " (ulimit option -v).",
+                                        e);
+                            }
                         }
+
+                        FileAccess random = new FileAccess.Random(access);
+                        // prevent the finally block from closing the file
+                        // as the returned TarReader will take care of that
+                        access = null;
+                        return new TarReader(file, random, index);
                     }
                 } finally {
                     if (access != null) {
