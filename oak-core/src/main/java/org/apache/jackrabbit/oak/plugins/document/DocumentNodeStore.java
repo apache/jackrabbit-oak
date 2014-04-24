@@ -280,7 +280,17 @@ public final class DocumentNodeStore
             if (blob instanceof BlobStoreBlob) {
                 return ((BlobStoreBlob) blob).getBlobId();
             }
+
             String id;
+
+            String reference = blob.getReference();
+            if(reference != null){
+                id = blobStore.getBlobId(reference);
+                if(id != null){
+                    return id;
+                }
+            }
+
             try {
                 id = createBlob(blob.getNewStream()).getBlobId();
             } catch (IOException e) {

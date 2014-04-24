@@ -18,9 +18,17 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.kernel.BlobSerializer;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +79,58 @@ public class BlobTest {
         mk.dispose();
     }
 
+    @Test
+    public void testBlobSerialization() throws Exception{
+        TestBlobStore blobStore = new TestBlobStore();
+        DocumentMK mk = new DocumentMK.Builder().setBlobStore(blobStore).open();
+        BlobSerializer blobSerializer = mk.getNodeStore().getBlobSerializer();
+
+        Blob blob = new BlobStoreBlob(blobStore, "foo");
+        assertEquals("foo", blobSerializer.serialize(blob));
+        assertEquals(0, blobStore.writeCount);
+
+        blob = new ArrayBasedBlob("foo".getBytes());
+        blobSerializer.serialize(blob);
+        assertEquals(1, blobStore.writeCount);
+
+        byte[] bytes = "foo".getBytes();
+        String blobId = blobStore.writeBlob(new ByteArrayInputStream(bytes));
+        String reference = blobStore.getReference(blobId);
+        blob = new ReferencedBlob("foo".getBytes(), reference);
+
+        blobStore.writeCount = 0;
+        blobSerializer.serialize(blob);
+
+        //Using reference so no reference should be written
+        assertEquals(0, blobStore.writeCount);
+    }
+
     private static void log(String s) {
         LOG.info(s);
     }
 
+
+    private static class TestBlobStore extends MemoryBlobStore {
+        int writeCount;
+
+        @Override
+        public String writeBlob(InputStream in) throws IOException {
+            writeCount++;
+            return super.writeBlob(in);
+        }
+    }
+
+    private static class ReferencedBlob extends ArrayBasedBlob {
+        private final String reference;
+
+        public ReferencedBlob(byte[] value, String reference) {
+            super(value);
+            this.reference = reference;
+        }
+
+        @Override
+        public String getReference() {
+            return reference;
+        }
+    }
 }
