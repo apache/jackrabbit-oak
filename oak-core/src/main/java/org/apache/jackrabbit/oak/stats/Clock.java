@@ -51,7 +51,7 @@ public abstract class Clock {
      * to test the effect of different update frequencies.
      */
     private static final long FAST_CLOCK_INTERVAL =
-            Long.getLong("fast.clock.interval", 1);
+            Long.getLong("fast.clock.interval", 10);
 
     private long monotonic = 0;
 
