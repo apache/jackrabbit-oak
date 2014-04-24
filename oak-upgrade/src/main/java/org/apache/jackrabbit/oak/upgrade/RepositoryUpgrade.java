@@ -93,6 +93,7 @@ import javax.jcr.version.OnParentVersionAction;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
 import org.apache.jackrabbit.core.config.LoginModuleConfig;
@@ -108,7 +109,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -117,6 +117,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -168,12 +169,6 @@ public class RepositoryUpgrade {
     private boolean copyBinariesByReference = false;
 
     /**
-     * NodeState are copied by value by recursing down the complete tree
-     * This is a temporary approach for OAK-1760 for 1.0 branch.
-     */
-    private final boolean copyNodeStateByValue;
-
-    /**
      * Copies the contents of the repository in the given source directory
      * to the given target node store.
      *
@@ -215,7 +210,6 @@ public class RepositoryUpgrade {
     public RepositoryUpgrade(RepositoryContext source, NodeStore target) {
         this.source = source;
         this.target = target;
-        this.copyNodeStateByValue = target instanceof DocumentNodeStore;
     }
 
     public boolean isCopyBinariesByReference() {
@@ -753,33 +747,39 @@ public class RepositoryUpgrade {
         NodeState state = new JackrabbitNodeState(
                 pm, root, uriToPrefix, ROOT_NODE_ID, "/", copyBinariesByReference);
 
-        copyState(builder, state, copyNodeStateByValue);
-        return name;
-    }
-
-    private void copyState(NodeBuilder parent, String childName, NodeState state) {
-        if (copyNodeStateByValue) {
-            copyState(parent.child(childName), state, true);
-        } else {
-            parent.setChildNode(childName, state);
-        }
-    }
-
-    private void copyState(NodeBuilder builder, NodeState state, boolean copyByValue) {
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
         }
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             String childName = child.getName();
             if (!JCR_SYSTEM.equals(childName)) {
-                NodeState childNodeState = child.getNodeState();
-                if (copyByValue) {
-                    NodeBuilder childBuilder = builder.child(childName);
-                    copyState(childBuilder, childNodeState, true);
-                } else {
-                    builder.setChildNode(childName, childNodeState);
-                }
+                copyState(builder, childName, child.getNodeState());
             }
         }
+
+        return name;
     }
+
+    private void copyState(NodeBuilder parent, String name, NodeState state) {
+        if (parent instanceof SegmentNodeBuilder) {
+            parent.setChildNode(name, state);
+        } else {
+            setChildNode(parent, name, state);
+        }
+    }
+
+    /**
+     * NodeState are copied by value by recursing down the complete tree
+     * This is a temporary approach for OAK-1760 for 1.0 branch.
+     */
+    private void setChildNode(NodeBuilder parent, String name, NodeState state) {
+        NodeBuilder builder = parent.setChildNode(name);
+        for (PropertyState property : state.getProperties()) {
+            builder.setProperty(property);
+        }
+        for (ChildNodeEntry child : state.getChildNodeEntries()) {
+            setChildNode(builder, child.getName(), child.getNodeState());
+        }
+    }
+
 }
