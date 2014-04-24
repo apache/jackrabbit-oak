@@ -384,6 +384,32 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         setTravesalEnabled(true);
     }
 
+    @Test @Ignore("OAK-1763")  // FIXME OAK-1763
+    public void orderByQueryOnSpecialChars() throws CommitFailedException, ParseException {
+        setTravesalEnabled(false);
+
+        // index automatically created by the framework:
+        // {@code createTestIndexNode()}
+
+        Tree rTree = root.getTree("/");
+        Tree test = rTree.addChild("test");
+        List<String> values = Lists.newArrayList("%", " ");
+        List<ValuePathTuple> nodes = addChildNodes(values, test,
+                OrderDirection.ASC, Type.STRING);
+        root.commit();
+
+        // querying
+        Iterator<? extends ResultRow> results;
+        String query = String.format(
+                "SELECT * from [nt:base] ORDER BY %s",
+                ORDERED_PROPERTY);
+        results = executeQuery(query, SQL2, null)
+                .getRows().iterator();
+        assertRightOrder(nodes, results);
+
+        setTravesalEnabled(true);
+    }
+
     @Test
     public void planOderByNoWhere() throws IllegalArgumentException, RepositoryException,
                                    CommitFailedException {
