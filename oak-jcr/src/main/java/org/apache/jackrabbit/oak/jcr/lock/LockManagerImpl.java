@@ -30,6 +30,8 @@ import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -186,12 +188,25 @@ public class LockManagerImpl implements LockManager {
                     return true;
                 } else if (sessionContext.getAttributes().get(RELAXED_LOCKING) == TRUE) {
                     String user = sessionContext.getSessionDelegate().getAuthInfo().getUserID();
-                    return node.isLockOwner(user);
+                    return node.isLockOwner(user) || isAdmin(sessionContext, user);
                 } else {
                     return false;
                 }
             }
         });
+    }
+
+    private boolean isAdmin(SessionContext sessionContext, String user) {
+        try {
+            Authorizable a = sessionContext.getUserManager().getAuthorizable(
+                    user);
+            if (a != null && !a.isGroup()) {
+                return ((User) a).isAdmin();
+            }
+        } catch (RepositoryException e) {
+            // ?
+        }
+        return false;
     }
 
     private <T> T perform(SessionOperation<T> operation)
