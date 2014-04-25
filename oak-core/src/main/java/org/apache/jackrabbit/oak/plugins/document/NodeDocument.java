@@ -969,7 +969,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             UpdateUtils.applyChanges(oldDoc, old, context.getRevisionComparator());
             setSplitDocProps(this, oldDoc, old, high);
             // only split if enough of the data can be moved to old document
-            if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO) {
+            if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO
+                    || numValues >= NUM_REVS_THRESHOLD) {
                 splitOps.add(old);
             } else {
                 main = null;

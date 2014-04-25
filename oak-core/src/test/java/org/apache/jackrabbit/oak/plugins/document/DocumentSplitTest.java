@@ -486,6 +486,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
     }
 
+    // OAK-1692
     @Test
     public void cascadingWithSplitRatio() {
         String id = Utils.getIdFromPath("/test");
@@ -494,14 +495,19 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         int clusterId = mk.getNodeStore().getClusterId();
 
         UpdateOp op = new UpdateOp(id, false);
-        // create some baggage
-        for (int i = 0; i < NUM_REVS_THRESHOLD / SPLIT_RATIO; i++) {
+        // create some baggage from another cluster node
+        for (int i = 0; i < 1000; i++) {
             Revision r = Revision.newRevision(2);
-            op.setMapEntry("prop", r, "test value");
+            op.setMapEntry("prop", r, "some long test value with many characters");
             NodeDocument.setRevision(op, r, "c");
         }
+        store.findAndUpdate(NODES, op);
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+        assertTrue(doc.getMemory() > NodeDocument.DOC_SIZE_THRESHOLD);
+
         // these will be considered for a split
-        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+        for (int i = 0; i < NUM_REVS_THRESHOLD / 2; i++) {
             Revision r = Revision.newRevision(clusterId);
             op.setMapEntry("prop", r, "value");
             NodeDocument.setRevision(op, r, "c");
@@ -517,7 +523,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
         store.findAndUpdate(NODES, op);
 
-        NodeDocument doc = store.find(NODES, id);
+        doc = store.find(NODES, id);
         assertNotNull(doc);
         List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
         assertEquals(2, splitOps.size());
@@ -544,7 +550,41 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
                 fail("unexpected update operation " + entry);
             }
         }
+    }
 
+    // OAK-1770
+    @Test
+    public void splitRevisionsManyClusterNodes() {
+        int numClusterNodes = 5;
+        String id = Utils.getIdFromPath("/test");
+        mk.commit("/", "+\"test\":{}", null, null);
+        DocumentStore store = mk.getDocumentStore();
+        int clusterId = mk.getNodeStore().getClusterId();
+
+        List<Revision> revs = Lists.newArrayList();
+        UpdateOp op = new UpdateOp(id, false);
+        for (int i = 0; i < numClusterNodes; i++) {
+            // create some commits for each cluster node
+            for (int j = 0; j < NUM_REVS_THRESHOLD; j++) {
+                Revision r = Revision.newRevision(i + 1);
+                if (clusterId == r.getClusterId()) {
+                    revs.add(r);
+                }
+                op.setMapEntry("prop", r, "value");
+                NodeDocument.setRevision(op, r, "c");
+            }
+        }
+        store.findAndUpdate(NODES, op);
+        NodeDocument doc = store.find(NODES, id);
+        assertNotNull(doc);
+
+        // must split document and create a previous document starting at
+        // the second most recent revision
+        List<UpdateOp> splitOps = Lists.newArrayList(doc.split(mk.getNodeStore()));
+        assertEquals(2, splitOps.size());
+        String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
+        assertEquals(prevId, splitOps.get(0).getId());
+        assertEquals(id, splitOps.get(1).getId());
     }
 
     private void syncMKs(List<DocumentMK> mks, int idx) {
