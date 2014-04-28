@@ -167,7 +167,7 @@ public class Commit {
         Revision baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
         Revision rev = getRevision();
-        if (isBranch) {
+        if (isBranch && !nodeStore.isDisableBranches()) {
             rev = rev.asBranchRevision();
             // remember branch commit
             Branch b = nodeStore.getBranches().getBranch(baseRev);
@@ -191,6 +191,9 @@ public class Commit {
             }
         } else {
             applyInternal();
+        }
+        if (isBranch) {
+            rev = rev.asBranchRevision();
         }
         return rev;
     }
