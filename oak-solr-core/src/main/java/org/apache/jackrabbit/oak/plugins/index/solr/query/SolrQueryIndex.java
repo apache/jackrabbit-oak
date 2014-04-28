@@ -296,7 +296,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 if (p == null) {
                     p = configuration.getCatchAllField();
                 }
-                fullTextString.append(p);
+                fullTextString.append(partialEscape(p));
                 fullTextString.append(':');
                 String termText = term.getText();
                 if (termText.indexOf(' ') > 0) {
