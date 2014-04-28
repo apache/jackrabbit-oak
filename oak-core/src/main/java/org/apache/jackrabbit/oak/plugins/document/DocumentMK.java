@@ -463,6 +463,7 @@ public class DocumentMK implements MicroKernel {
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
+        private boolean disableBranches;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
 
@@ -728,6 +729,15 @@ public class DocumentMK implements MicroKernel {
 
         public Clock getClock() {
             return clock;
+        }
+
+        public Builder disableBranches() {
+            disableBranches = true;
+            return this;
+        }
+
+        public boolean isDisableBranches() {
+            return disableBranches;
         }
 
         /**
