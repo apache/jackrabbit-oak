@@ -21,12 +21,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import com.google.common.base.Function;
@@ -48,7 +49,7 @@ class UnsavedModifications {
      */
     static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
 
-    private final ConcurrentHashMap<String, Revision> map = new ConcurrentHashMap<String, Revision>();
+    private final ConcurrentMap<String, Revision> map = MapFactory.getInstance().create();
 
     /**
      * Puts a revision for the given path. The revision for the given path is
