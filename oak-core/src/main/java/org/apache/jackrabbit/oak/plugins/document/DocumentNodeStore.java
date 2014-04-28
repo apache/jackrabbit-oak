@@ -310,6 +310,8 @@ public final class DocumentNodeStore
 
     private final LastRevRecoveryAgent lastRevRecoveryAgent;
 
+    private final boolean disableBranches;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -342,6 +344,7 @@ public final class DocumentNodeStore
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(this);
         this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
+        this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
             @Override
             public int getMemory() {
@@ -588,6 +591,10 @@ public final class DocumentNodeStore
 
     public int getPendingWriteCount() {
         return unsavedLastRevisions.getPaths().size();
+    }
+
+    public boolean isDisableBranches() {
+        return disableBranches;
     }
 
     /**
@@ -879,13 +886,19 @@ public final class DocumentNodeStore
                              List<String> removed, List<String> changed,
                              DiffCache.Entry cacheEntry) {
         UnsavedModifications unsaved = unsavedLastRevisions;
-        if (isBranchCommit) {
-            Revision branchRev = rev.asBranchRevision();
-            unsaved = branches.getBranch(branchRev).getModifications(branchRev);
-        }
-        if (isBranchCommit || pendingLastRev) {
-            // write back _lastRev with background thread
-            unsaved.put(path, rev);
+        if (disableBranches) {
+            if (pendingLastRev) {
+                unsaved.put(path, rev);
+            }
+        } else {
+            if (isBranchCommit) {
+                Revision branchRev = rev.asBranchRevision();
+                unsaved = branches.getBranch(branchRev).getModifications(branchRev);
+            }
+            if (isBranchCommit || pendingLastRev) {
+                // write back _lastRev with background thread
+                unsaved.put(path, rev);
+            }
         }
         if (isNew) {
             CacheValue key = childNodeCacheKey(path, rev, null);
@@ -1029,6 +1042,9 @@ public final class DocumentNodeStore
     Revision rebase(@Nonnull Revision branchHead, @Nonnull Revision base) {
         checkNotNull(branchHead);
         checkNotNull(base);
+        if (disableBranches) {
+            return branchHead;
+        }
         // TODO conflict handling
         Branch b = getBranches().getBranch(branchHead);
         if (b == null) {
