@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.collect.Iterables.addAll;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.filterKeys;
+import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
@@ -40,6 +46,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+
 class IndexTracker {
 
     /** Logger instance. */
@@ -48,9 +57,12 @@ class IndexTracker {
 
     private NodeState root = EMPTY_NODE;
 
-    private final Map<String, IndexNode> indices = newHashMap();
+    private volatile Map<String, IndexNode> indices = emptyMap();
 
     synchronized void close() {
+        Map<String, IndexNode> indices = this.indices;
+        this.indices = emptyMap();
+
         for (Map.Entry<String, IndexNode> entry : indices.entrySet()) {
             try {
                 entry.getValue().close();
@@ -58,68 +70,71 @@ class IndexTracker {
                 log.error("Failed to close the Lucene index at " + entry.getKey(), e);
             }
         }
-        indices.clear();
     }
 
-    void update(NodeState root) {
-        Editor editor;
-        NodeState before;
+    synchronized void update(NodeState root) {
+        Map<String, IndexNode> original = indices;
+        final Map<String, IndexNode> updates = newHashMap();
 
-        synchronized (this) {
-            before = this.root;
-            this.root = root;
+        List<Editor> editors = newArrayListWithCapacity(original.size());
+        for (Map.Entry<String, IndexNode> entry : original.entrySet()) {
+            final String path = entry.getKey();
+            final String name = entry.getValue().getName();
 
-            List<Editor> editors = newArrayListWithCapacity(indices.size());
-            for (Map.Entry<String, IndexNode> entry : indices.entrySet()) {
-                final String path = entry.getKey();
-                IndexNode index = entry.getValue();
-
-                List<String> elements = newArrayList();
-                addAll(elements, PathUtils.elements(path));
-                elements.add(INDEX_DEFINITIONS_NAME);
-                elements.add(index.getName());
-                editors.add(new SubtreeEditor(
-                        new DefaultEditor() {
-                            @Override
-                            public void leave(NodeState before, NodeState after) {
-                                updateIndex(path, after);
-                            }
-                        },
-                        elements.toArray(new String[elements.size()])));
-            }
-            editor = CompositeEditor.compose(editors);
+            List<String> elements = newArrayList();
+            Iterables.addAll(elements, PathUtils.elements(path));
+            elements.add(INDEX_DEFINITIONS_NAME);
+            elements.add(name);
+            editors.add(new SubtreeEditor(new DefaultEditor() {
+                @Override
+                public void leave(NodeState before, NodeState after) {
+                    try {
+                        // TODO: Use DirectoryReader.openIfChanged()
+                        IndexNode index = IndexNode.open(name, after);
+                        updates.put(path, index); // index can be null
+                    } catch (IOException e) {
+                        log.error("Failed to open Lucene index at " + path, e);
+                    }
+                }
+            }, elements.toArray(new String[elements.size()])));
         }
 
-        // outside the synchronization block to avoid blocking index access
-        EditorDiff.process(editor, before, root); // ignore return value
-    }
+        EditorDiff.process(CompositeEditor.compose(editors), this.root, root);
+        this.root = root;
 
-    private synchronized void updateIndex(String path, NodeState state) {
-        IndexNode index = indices.remove(path);
-        try {
-            if (index != null) {
-                index.close();
-            } else {
-                return; // this tracker has already been closed
-            }
-        } catch (IOException e) {
-            log.error("Failed to close Lucene index at " + path, e);
-        }
+        if (!updates.isEmpty()) {
+            indices = ImmutableMap.<String, IndexNode>builder()
+                    .putAll(filterKeys(original, not(in(updates.keySet()))))
+                    .putAll(filterValues(updates, notNull()))
+                    .build();
 
-        try {
-            // TODO: Use DirectoryReader.openIfChanged()
-            index = IndexNode.open(index.getName(), state);
-            if (index != null) { // the index might no longer exist
-                indices.put(path, index);
+            for (String path : updates.keySet()) {
+                IndexNode index = original.get(path);
+                try {
+                    index.close();
+                } catch (IOException e) {
+                    log.error("Failed to close Lucene index at " + path, e);
+                }
             }
-        } catch (IOException e) {
-            log.error("Failed to open Lucene index at " + path, e);
         }
     }
 
-    synchronized IndexNode getIndexNode(String path) {
+    IndexNode acquireIndexNode(String path) {
+        IndexNode index = indices.get(path);
+        if (index != null && index.acquire()) {
+            return index;
+        } else {
+            return findIndexNode(path);
+        }
+    }
+
+    private synchronized IndexNode findIndexNode(String path) {
+        // Retry the lookup from acquireIndexNode now that we're
+        // synchronized. The acquire() call is guaranteed to succeed
+        // since the close() method is also synchronized.
         IndexNode index = indices.get(path);
         if (index != null) {
+            checkState(index.acquire());
             return index;
         }
 
@@ -135,7 +150,11 @@ class IndexTracker {
                 if (TYPE_LUCENE.equals(node.getString(TYPE_PROPERTY_NAME))) {
                     index = IndexNode.open(child.getName(), node);
                     if (index != null) {
-                        indices.put(path, index);
+                        checkState(index.acquire());
+                        indices = ImmutableMap.<String, IndexNode>builder()
+                                .putAll(indices)
+                                .put(path, index)
+                                .build();
                         return index;
                     }
                 }
