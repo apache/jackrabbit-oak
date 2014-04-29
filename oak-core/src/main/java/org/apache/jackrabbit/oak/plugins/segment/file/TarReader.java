@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static com.google.common.base.Charsets.UTF_8;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
+import static org.apache.jackrabbit.oak.plugins.segment.file.TarWriter.GRAPH_MAGIC;
 
 import java.io.File;
 import java.io.IOException;
@@ -416,17 +419,64 @@ class TarReader {
         }
     }
 
+    /**
+     * Loads the optional pre-compiled graph entry from the given tar file.
+     *
+     * @return graph buffer, or {@code null} if one was not found
+     * @throws IOException if the tar file could not be read
+     */
+    private static ByteBuffer loadGraph(
+            File file, FileAccess access, ByteBuffer index) throws IOException {
+        // read the graph metadata just before the tar index entry
+        int pos = access.length() - 2 * BLOCK_SIZE - getEntrySize(index.remaining());
+        ByteBuffer meta = access.read(pos - 16, 16);
+        int crc32 = meta.getInt();
+        int count = meta.getInt();
+        int bytes = meta.getInt();
+        int magic = meta.getInt();
+
+        if (magic != GRAPH_MAGIC) {
+            return null; // magic byte mismatch
+        }
+
+        if (count < 0 || bytes < count * 24 + 16 || BLOCK_SIZE + bytes > pos) {
+            log.warn("Invalid graph metadata in tar file {}", file);
+            return null; // impossible uuid and/or byte counts
+        }
+
+        // this involves seeking backwards in the file, which might not
+        // perform well, but that's OK since we only do this once per file
+        ByteBuffer graph = access.read(pos - bytes, bytes);
+
+        byte[] b = new byte[bytes - 16];
+        graph.mark();
+        graph.get(b);
+        graph.reset();
+
+        CRC32 checksum = new CRC32();
+        checksum.update(b);
+        if (crc32 != (int) checksum.getValue()) {
+            log.warn("Invalid graph checksum in tar file {}", file);
+            return null; // checksum mismatch
+        }
+
+        return graph;
+    }
+
     private final File file;
 
     private final FileAccess access;
 
     private final ByteBuffer index;
 
+    private final ByteBuffer graph;
+
     private TarReader(File file, FileAccess access, ByteBuffer index)
             throws IOException {
         this.file = file;
         this.access = access;
         this.index = index;
+        this.graph = loadGraph(file, access, index);
     }
 
     Set<UUID> getUUIDs() {
@@ -501,6 +551,11 @@ class TarReader {
     }
 
     synchronized TarReader cleanup(Set<UUID> referencedIds) throws IOException {
+        Map<UUID, List<UUID>> graph = null;
+        if (this.graph != null) {
+            graph = parseGraph();
+        }
+
         TarEntry[] sorted = new TarEntry[index.remaining() / 24];
         int position = index.position();
         for (int i = 0; position < index.limit(); i++) {
@@ -527,16 +582,26 @@ class TarReader {
 
                 if (isDataSegmentId(entry.lsb())) {
                     // this is a referenced data segment, so follow the graph
-                    ByteBuffer segment = access.read(
-                            entry.offset(),
-                            Math.min(entry.size(), 16 * 256));
-                    int pos = segment.position();
-                    int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
-                    int refend = pos + 16 * (refcount + 1);
-                    for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                        referencedIds.add(new UUID(
-                                segment.getLong(refpos),
-                                segment.getLong(refpos + 8)));
+                    if (graph != null) {
+                        List<UUID> refids = graph.get(
+                                new UUID(entry.msb(), entry.lsb()));
+                        if (refids != null) {
+                            referencedIds.addAll(refids);
+                        }
+                    } else {
+                        // a pre-compiled graph is not available, so read the
+                        // references directly from this segment
+                        ByteBuffer segment = access.read(
+                                entry.offset(),
+                                Math.min(entry.size(), 16 * 256));
+                        int pos = segment.position();
+                        int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
+                        int refend = pos + 16 * (refcount + 1);
+                        for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                            referencedIds.add(new UUID(
+                                    segment.getLong(refpos),
+                                    segment.getLong(refpos + 8)));
+                        }
                     }
                 }
             }
@@ -544,12 +609,14 @@ class TarReader {
         size += getEntrySize(24 * count + 16);
         size += 2 * BLOCK_SIZE;
 
-        if (count == 0) {
-            // none of the entries within this tar file are referenceable
-            return null;
-        } else if (size >= access.length() * 3 / 4) {
-            // the space savings are not worth it at less than 25%
-            return this;
+        if (graph != null) {
+            if (count == 0) {
+                // none of the entries within this tar file are referenceable
+                return null;
+            } else if (size >= access.length() * 3 / 4) {
+                // the space savings are not worth it at less than 25%
+                return this;
+            }
         }
 
         String name = file.getName();
@@ -591,6 +658,31 @@ class TarReader {
     }
 
     //-----------------------------------------------------------< private >--
+
+    private Map<UUID, List<UUID>> parseGraph() throws IOException {
+        int count = graph.getInt(graph.limit() - 12);
+
+        ByteBuffer buffer = graph.duplicate();
+        buffer.limit(graph.limit() - 16);
+
+        List<UUID> uuids = newArrayListWithCapacity(count);
+        for (int i = 0; i < count; i++) {
+            uuids.add(new UUID(buffer.getLong(), buffer.getLong()));
+        }
+
+        Map<UUID, List<UUID>> graph = newHashMap();
+        while (buffer.hasRemaining()) {
+            UUID uuid = uuids.get(buffer.getInt());
+            List<UUID> list = newArrayList();
+            int refid = buffer.getInt();
+            while (refid != -1) {
+                list.add(uuids.get(refid));
+                refid = buffer.getInt();
+            }
+            graph.put(uuid, list);
+        }
+        return graph;
+    }
 
     private static String readString(ByteBuffer buffer, int fieldSize) {
         byte[] b = new byte[fieldSize];
