@@ -589,6 +589,10 @@ public final class DocumentNodeStore
         return docChildrenCacheStats;
     }
 
+    void invalidateDocChildrenCache() {
+        docChildrenCache.invalidateAll();
+    }
+
     public int getPendingWriteCount() {
         return unsavedLastRevisions.getPaths().size();
     }
