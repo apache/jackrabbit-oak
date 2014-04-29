@@ -101,7 +101,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                     if (lookup.isIndexed(propertyName, "/", filter)) {
                         IndexPlan.Builder b = getIndexPlanBuilder(filter);
                         b.setSortOrder(ImmutableList.of(new OrderEntry(
-                            propertyName,
+                                oe.getPropertyName(),
                                 Type.UNDEFINED,
                                 lookup.isAscending(root, propertyName, filter) ? OrderEntry.Order.ASCENDING
                                         : OrderEntry.Order.DESCENDING)));
@@ -204,6 +204,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                 // we could be here if we have a query where the ORDER BY makes us play it.
                 for (OrderEntry oe : sortOrder) {
                     String propertyName = PathUtils.getName(oe.getPropertyName());
+                    depth = PathUtils.getDepth(oe.getPropertyName());
                     if (lookup.isIndexed(propertyName, "/", null)) {
                         paths = lookup.query(filter, propertyName, new PropertyRestriction());
                     }
