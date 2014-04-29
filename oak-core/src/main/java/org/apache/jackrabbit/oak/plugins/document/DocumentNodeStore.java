@@ -817,6 +817,7 @@ public final class DocumentNodeStore
                 String p = PathUtils.concat(path, name);
                 NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
                 if (doc == null) {
+                    docChildrenCache.invalidateAll();
                     throw new NullPointerException("Document " + p + " not found");
                 }
                 return doc;
