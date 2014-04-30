@@ -19,7 +19,7 @@
  * Oak plugins. This package contains various oak-core extensions that are
  * (still) too small to be placed into their own Maven components.
  */
-@Version("0.16")
+@Version("1.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.spi.commit;
 
