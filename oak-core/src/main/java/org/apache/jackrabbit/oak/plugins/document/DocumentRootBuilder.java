@@ -104,8 +104,12 @@ class DocumentRootBuilder extends MemoryNodeBuilder {
     @Nonnull
     @Override
     public NodeState getNodeState() {
-        purge();
-        return branch.getHead();
+        if (DocumentNodeStoreBranch.getCurrentBranch() != null) {
+            purge();
+            return branch.getHead();
+        } else {
+            return super.getNodeState();
+        }
     }
 
     @Override
