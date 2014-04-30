@@ -165,6 +165,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         // cannot handle child-level property restrictions
                         continue;
                     }
+
+                    if ("rep:excerpt".equals(pr.propertyName)) {
+                        continue;
+                    }
+
                     String first = null;
                     if (pr.first != null) {
                         first = partialEscape(String.valueOf(pr.first.getValue(pr.first.getType()))).toString();
