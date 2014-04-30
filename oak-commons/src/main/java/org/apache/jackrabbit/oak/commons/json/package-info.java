@@ -17,7 +17,7 @@
  * under the License.
  */
 
-@Version("0.1")
+@Version("1.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.commons.json;
 
