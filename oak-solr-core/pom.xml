@@ -58,7 +58,12 @@
             org.apache.jackrabbit.core.query.DerefTest                                                     <!-- ? -->
             org.apache.jackrabbit.core.query.ParentNodeTest                                                <!-- ? -->
             org.apache.jackrabbit.core.query.QueryResultTest                                               <!-- ? -->
-            org.apache.jackrabbit.core.query.ExcerptTest                                                   <!-- ? -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStartAndEnd                     <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
+            org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.SQL2OuterJoinTest                                             <!-- ? -->
             org.apache.jackrabbit.core.query.MixinTest                                                     <!-- ? -->
         </known.issues>
