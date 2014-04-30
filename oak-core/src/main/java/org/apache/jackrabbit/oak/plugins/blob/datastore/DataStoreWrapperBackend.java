@@ -24,9 +24,10 @@ import java.util.Iterator;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
-import org.apache.jackrabbit.core.data.AsyncUploadCallback.RESULT;
+import org.apache.jackrabbit.core.data.AsyncUploadResult;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataIdentifier;
@@ -75,7 +76,8 @@ public class DataStoreWrapperBackend implements Backend {
     @Override
     public void writeAsync(DataIdentifier dataIdentifier, File file,
             AsyncUploadCallback asyncUploadCallback) throws DataStoreException {
-        asyncUploadCallback.call(dataIdentifier, file, RESULT.FAILED);
+        asyncUploadCallback.onFailure(
+                new AsyncUploadResult(dataIdentifier, file));
     }
 
     @Override
