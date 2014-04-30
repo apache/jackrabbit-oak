@@ -17,10 +17,11 @@
 The Oak Security Layer
 ======================
 
-Authentication / Login Modules
+Authentication and Login Modules
 ------------------------------------------------------------------------------------------------------------------------
 
-### Types of login modules
+### General Concepts
+
 In order to understand how login modules work and how Oak can help providing extension points we need to look at how
 JAAS authentication works in general and discuss where the actual credential-verification is performed.
 
@@ -29,7 +30,7 @@ The following section is copied and adapted from the javadoc of [javax.security.
 
 The authentication process within the `LoginModule` proceeds in two distinct phases. 
 
-1.
+1. Login Phase
 
    1. In the first phase, the `LoginModule`'s `login` method gets invoked by the `LoginContext`'s `login` method.
    2. The `login` method for the `LoginModule` then performs the actual authentication (prompt for and verify a 
@@ -39,7 +40,7 @@ The authentication process within the `LoginModule` proceeds in two distinct pha
       retry the authentication or introduce delays. The responsibility of such tasks belongs to the application. 
       If the application attempts to retry the authentication, the `LoginModule`'s `login` method will be called again.
 
-2.
+2. Commit Phase
 
    1. In the second phase, if the `LoginContext`'s overall authentication succeeded (the relevant REQUIRED, REQUISITE, 
       SUFFICIENT and OPTIONAL LoginModules succeeded), then the `commit` method for the `LoginModule` gets invoked. 
@@ -84,12 +85,139 @@ LoginModule is configured and succeeds, then only the Required and Requisite Log
 LoginModule need to have succeeded for the overall authentication to succeed. If no Required or Requisite LoginModules 
 are configured for an application, then at least one Sufficient or Optional LoginModule must succeed.
 
-### Pre Authenticated Logins
-Pre authenticated logins allows to support 3rd party login modules that wish to provide the login context with pre authenticated login names, but still want to rely on the rest of the oak's login module chain. For example an external SSO login module can extract the userid from a servlet request and use it to authenticate against the repository. But instead of re-implementing the user lookup and subject population (and possible external user synchronization) it just sets a respective [org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin] on the shared state.
-
-Default Login Module
+JCR and Oak Authentication
 ------------------------------------------------------------------------------------------------------------------------
-### Behavior of the Default Login Module
+
+Within the scope of JCR `Repository.login` is used to authenticate a given user.
+This method either takes a `Credentials` argument if the validation is performed
+by the repository itself or `null` in case the user has be pre-authenticated by
+an external system.
+
+### Differences wrt Jackrabbit 2.x
+
+see the corresponding [documentation](../differences_authentication.html).
+
+### Logins with Credentials
+
+_todo_
+
+### Pre Authenticated Logins
+
+Oak provides two different mechanisms to create pre-authentication that doesn't
+involve the repositories internal authentication mechanism for credentials
+validation.
+
+#### Pre-Authentication combined with Login Module Chain
+
+This first variant allows to support 3rd party login modules that wish to provide
+the login context with pre authenticated login names, but still want to rely on
+the rest of the oak's login module chain. For example an external SSO login module
+can extract the userid from a servlet request and use it to authenticate against
+the repository. But instead of re-implementing the user lookup and subject
+population (and possible external user synchronization) it just sets a respective
+[org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin] on the
+shared state.
+
+This setup is particularly recommended in a OSGi setup that includes Apache Sling
+on top of the Oak repository but still requires user information to be synchronized
+into the repository.
+
+The key to understand this mechanism is `org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin`
+a simple marker, which is pushed to the shared state of the login context and which indicates
+to any subsequent LoginModule that the credentials present in the state already
+have been verified and thus can be trusted.
+
+The basic steps of this pre-authentication are outlined as follows:
+
+1. verify the identity in the layer on top of the JCR repository (e.g. in a custom Sling Authentication Handler)
+2. pass a custom, non-public Credentials implementation to the repository login
+3. create a custom login module that only supports these dedicated credentials and
+   pushes both a new instance of `PreAuthenticatedLogin` and other information
+   required and processed by subsequent login modules (e.g. credentials and
+   user name).
+4. make sure the subsequent login modules in the JAAS configuration are capable
+   to deal with the `PreAuthenticatedLogin` and the additional information and
+   will properly populate the subject and optionally synchronize user information
+   or create login tokens.
+
+Example implementation of `LoginModule#login` of this kind of custom login module:
+
+    public class PreAuthLoginModule extends AbstractLoginModule {
+
+    [...]
+
+        @Overwrite
+        public boolean login() throws LoginException {
+            Credentials credentials = getCredentials();
+            if (credentials instanceof MyPreAuthCredentials) {
+                userId = ((MyPreAuthCredentials) credentials).getUserId();
+                if (userId == null) {
+                    log.debug("Could not extract userId/credentials");
+                } else {
+                    sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(userId));
+                    sharedState.put(SHARED_KEY_CREDENTIALS, new SimpleCredentials(userId, new char[0]));
+                    sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
+                    log.debug("login succeeded with trusted user: {}", userId);
+                }
+            }
+
+            [...]
+        }
+    }
+
+#### Pre-Authentication without Repository Involvement
+
+Like in Jackrabbit-core the repository internal authentication verification can
+be skipped by calling `Repository#login()` or `Repository#login(null, wspName)`.
+In this case the repository implementation expects the verification to be performed
+prior to the login call.
+
+This behavior is provided by the default implementation of the `LoginContextProvider` [1]
+which expects a `Subject` to be available with the current `java.security.AccessControlContext`.
+However, in contrast to Jackrabbit-core the current implementation does not try
+to extend the pre-authenticated subject but skips the internal verification step altogether.
+
+Since the `LoginContextProvider` is a configurable with the authentication setup
+OAK users also have the following options by providing a custom `LoginContextProvider`:
+
+- Disable pre-authentication by not trying to retrieve a pre-authenticated `Subject`.
+- Add support for extending the pre-authenticated subject by always passing writable subjects to the `JaasLoginContext`
+- Dropping JAAS altogether by providing a custom implementation of the
+  `org.apache.jackrabbit.oak.spi.security.authentication.LoginContext` [2] interface.
+
+Example how to use this type of pre-authentication:
+
+    String userId = "test";
+    /**
+     Retrive valid principals e.g. by calling jackrabbit API
+     - PrincipalManager#getPrincipal and/or #getGroupMembership
+     or from Oak SPI
+     - PrincipalProvider#getPrincipals(String userId)
+     */
+    Set<? extends Principal> principals = getPrincipals(userId);
+    AuthInfo authInfo = new AuthInfoImpl(userId, Collections.<String, Object>emptyMap(), principals);
+    Subject subject = new Subject(true, principals, Collections.singleton(authInfo), Collections.<Object>emptySet());
+    Session session;
+    try {
+        session = Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
+            @Override
+            public Session run() throws Exception {
+                return login(null, null);
+            }
+        }, null);
+    } catch (PrivilegedActionException e) {
+        throw new RepositoryException("failed to retrieve session.", e);
+    }
+
+Oak Login Module Implementations
+------------------------------------------------------------------------------------------------------------------------
+
+### Abstract Login Module
+
+_todo_
+
+### Default Login Module
+
 The behavior of the default login module is relatively simple, so it is explained first:
 
 upon login():
@@ -108,11 +236,17 @@ upon commit():
 * if the private state contains the credentials and principals, it adds them (both) to the subject and **returns `true`**
 * if the private state does not contain credentials and principals, it clears the state and **returns `false`**
 
+### Token Login Module
 
-External Login Module
-------------------------------------------------------------------------------------------------------------------------
+_todo_
 
-### Overview
+### Guest Login Module
+
+_todo_
+
+### External Login Module
+
+#### Overview
 The purpose of the external login module is to provide a base implementation that allows easy integration of 3rd party 
 authentication and identity systems, such as LDAP. The general mode of the external login module is to use the external
 system as authentication source and as a provider for users and groups.
@@ -128,7 +262,7 @@ what it does not:
 * provide a transparent oak principal provider.
 * offer services for background synchronization of users and groups
 
-### Structure
+#### Structure
 The external identity and login handling is split into 3 parts:
 
 1. An external identity provider (IDP). This is a service implementing the `ExternalIdentityProvider` interface and is responsible to retrieve and authenticate identities towards an external system (e.g. LDAP).
@@ -139,15 +273,14 @@ This modularization allows to reuse the same external login module for different
 
 An example where multiple such entities come into play would be the case to use several LDAP servers for authentication. Here we would configure 2 LDAP IDPs, 1 Sync handler and 2 ExtLMs.
 
-
-#### Authentication and subject population
+##### Authentication and subject population
 The goal of the external login module is to provide a very simple way of using 
 _"the users stored in an external system for authentication and authorization in the Oak content repository"_. So the
 easiest way of doing this is to import the users on-demand when they log in. 
 
-### Behavior of the External Login Module
+#### Behavior of the External Login Module
 
-#### General
+##### General
 The external login module has 2 main tasks. one is to authenticate credentials against a 3rd party system, the other is
 to coordinate syncing of the respective users and groups with the JCR repository (via the UserManager).
 
@@ -176,12 +309,12 @@ upon commit():
 * if there is no credentials in the private state, it **returns `false`**
 * if there are credentials in the private state propagate the subject and **return `true`**
 
-User and Group Synchronization
-------------------------------------------------------------------------------------------------------------------------
-The synchronization of users and groups is triggered by the external login module, after a user is successfully 
+#### User and Group Synchronization
+
+The synchronization of users and groups is triggered by the external login module, after a user is successfully
 authenticated against the IDP or if it's no longer present on the IDP.
 
-### Configuration of the DefaultSyncHandler
+##### Configuration of the DefaultSyncHandler
 Oak provides a default synchronization handler that is configured via [org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncConfig]. The handler is configured either via OSGi or during manual [Repository Construction](../construct.html).
 
 | Name                          | Property                      | Description                              |
@@ -199,12 +332,30 @@ Oak provides a default synchronization handler that is configured via [org.apach
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | | |
 
-LDAP Identity Provider
+#### External Identity Provider
+
+_todo_
+
+
+Authentication related Interfaces and Extension Points in Oak
 ------------------------------------------------------------------------------------------------------------------------
+
+### Token Management
+
+_todo_
+
+#### TokenProvider
+#### TokenInfo
+
+### External Identity Management
+
+_todo_
+
+##### LDAP Identity Provider
 Oak comes with a default implementation of an LDAP identity provider.
 
-### Configuration
-The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig] 
+###### Configuration
+The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig]
 which is populated either via OSGi or during manual [Repository Construction](../construct.html).
 
 | Name                         | Property                | Description                              |
