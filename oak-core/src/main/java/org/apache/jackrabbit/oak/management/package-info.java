@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@Version("0.20")
+@Version("1.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.management;
 

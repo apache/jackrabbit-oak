@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Version("0.17")
+@Version("1.0")
 @Export(optional = "provide:=true")
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
