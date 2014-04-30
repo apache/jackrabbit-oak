@@ -81,7 +81,7 @@ public class QueryTest extends AbstractRepositoryTest {
         // disable the nodetype index
         Node nodeTypeIndex = root.getNode("oak:index").getNode("nodetype");
         nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
-        }, PropertyType.NAME);
+            }, PropertyType.NAME);
 
         // add 10 nodes
         Node test = root.addNode("test");
@@ -111,11 +111,26 @@ public class QueryTest extends AbstractRepositoryTest {
         assertEquals("/test/test9, /test/test8, /test/test7, /test/test6, /test/test5, /test/test4, /test/test3, /test/test2, /test/test1, /test/test0", 
                 buff.toString());
         
-        // TODO
-        // r = session.getWorkspace().getQueryManager()
-        //         .createQuery("explain " + query, "xpath").execute();
-        // RowIterator rit = r.getRows();
-        // assertEquals("", rit.nextRow().getValue("plan").getString());
+        RowIterator rit;
+        
+        r = session.getWorkspace().getQueryManager()
+                .createQuery("explain " + query, "xpath").execute();
+        rit = r.getRows();
+        assertEquals("[nt:base] as [a] /* ordered order by lastMod ancestor 1 " + 
+                "where ([a].[jcr:primaryType] = cast('oak:Unstructured' as string)) " + 
+                "and (isdescendantnode([a], [/test])) */", rit.nextRow().getValue("plan").getString());
+
+        query = "/jcr:root/test//*[@jcr:primaryType='oak:Unstructured' " + 
+                "and  content/@lastMod > '2001-02-01']";
+        r = session.getWorkspace().getQueryManager()
+                .createQuery("explain " + query, "xpath").execute();
+        rit = r.getRows();
+        assertEquals("[nt:base] as [a] /* ordered lastMod > 2001-02-01 " + 
+                "where (([a].[jcr:primaryType] = cast('oak:Unstructured' as string)) " + 
+                "and ([a].[content/lastMod] > cast('2001-02-01' as string))) " + 
+                "and (isdescendantnode([a], [/test])) */", 
+                rit.nextRow().getValue("plan").getString());
+        
     }
     
     @Test

@@ -327,8 +327,15 @@ public class SelectorImpl extends SourceImpl {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
         buff.append(" /* ");
-        if (getIndex() != null) {
-            buff.append(getIndex().getPlan(createFilter(true), rootState));
+        QueryIndex index = getIndex();
+        if (index != null) {
+            if (index instanceof AdvancedQueryIndex) {
+                AdvancedQueryIndex adv = (AdvancedQueryIndex) index;
+                IndexPlan p = plan.getIndexPlan();
+                buff.append(adv.getPlanDescription(p, rootState));
+            } else {
+                buff.append(index.getPlan(createFilter(true), rootState));
+            }
         } else {
             buff.append("no-index");
         }

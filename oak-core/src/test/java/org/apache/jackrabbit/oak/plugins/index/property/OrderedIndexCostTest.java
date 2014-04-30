@@ -49,7 +49,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
      */
     private static class AlwaysIndexedOrderedPropertyIndex extends OrderedPropertyIndex {
         @Override
-        PropertyIndexLookup getLookup(NodeState root) {
+        AlwaysIndexedLookup getLookup(NodeState root) {
             return new AlwaysIndexedLookup(root);
         }
 
