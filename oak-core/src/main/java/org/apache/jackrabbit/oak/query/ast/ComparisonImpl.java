@@ -24,8 +24,10 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -101,7 +103,22 @@ public class ComparisonImpl extends ConstraintImpl {
             // unable to convert, just skip this node
             return false;
         }
-        return evaluate(p1, p2);
+        if (p1.isArray()) {
+            // JCR 2.0 spec, 6.7.16 Comparison:
+            // "... constraint is satisfied as a whole if the comparison
+            // against any element of the array is satisfied."
+            Type<?> base = p1.getType().getBaseType();
+            for (int i = 0; i < p1.count(); i++) {
+                PropertyState value = PropertyStates.createProperty(
+                        "value", p1.getValue(base, i), base);
+                if (evaluate(PropertyValues.create(value), p2)) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            return evaluate(p1, p2);
+        }
     }
 
     /**
