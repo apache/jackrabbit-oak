@@ -235,6 +235,8 @@ public class CommitFailedException extends Exception {
             return new ReferentialIntegrityException(message, this);
         } else if (isOfType(STATE)) {
             return new InvalidItemStateException(message, this);
+        } else if (isOfType(MERGE)) {
+            return new InvalidItemStateException(message, this);
         } else if (isOfType(VERSION)) {
             return new VersionException(message, this);
         } else if (isOfType(LABEL_EXISTS)) {
