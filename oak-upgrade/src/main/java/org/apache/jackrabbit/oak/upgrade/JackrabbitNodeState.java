@@ -129,8 +129,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.isOrderable = parent.isOrderable;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.nodes = createNodes(bundle);
         this.properties = createProperties(bundle);
+        this.nodes = createNodes(bundle);
         this.useBinaryReferences = parent.useBinaryReferences;
         logNewNode(this);
     }
@@ -149,8 +149,8 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.uriToPrefix = uriToPrefix;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
-            this.nodes = createNodes(bundle);
             this.properties = createProperties(bundle);
+            this.nodes = createNodes(bundle);
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
