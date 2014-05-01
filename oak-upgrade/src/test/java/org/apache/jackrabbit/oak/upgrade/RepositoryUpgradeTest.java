@@ -22,6 +22,10 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -35,6 +39,7 @@ import javax.jcr.Node;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
@@ -43,6 +48,8 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
@@ -61,9 +68,7 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
         new Random().nextBytes(BINARY);
     }
 
-    // needs to be static because the content is created during the @BeforeClass phase
-    private static String testNodeIdentifier;
-
+    @SuppressWarnings("unchecked")
     protected void createSourceContent(Repository repository) throws Exception {
         Session session = repository.login(CREDENTIALS);
         try {
@@ -104,11 +109,13 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             Node referenceable =
                 root.addNode("referenceable", "test:unstructured");
             referenceable.addMixin(NodeType.MIX_REFERENCEABLE);
-            Node referenceable2 =
-                root.addNode("referenceable2", "test:unstructured");
-            referenceable2.addMixin(NodeType.MIX_REFERENCEABLE);
+            Node versionable =
+                root.addNode("versionable", "test:unstructured");
+            versionable.addMixin(NodeType.MIX_VERSIONABLE);
+            versionable.addNode("child", "test:unstructured");
             session.save();
-            testNodeIdentifier = referenceable.getIdentifier();
+
+            session.getWorkspace().getVersionManager().checkin("/versionable");
 
             Node properties = root.addNode("properties", "test:unstructured");
             properties.setProperty("boolean", true);
@@ -125,8 +132,8 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             properties.setProperty("long", 9876543210L);
             properties.setProperty("reference", referenceable);
             properties.setProperty("weak_reference", session.getValueFactory().createValue(referenceable, true));
-            properties.setProperty("mv_reference", new Value[]{session.getValueFactory().createValue(referenceable2, false)});
-            properties.setProperty("mv_weak_reference", new Value[]{session.getValueFactory().createValue(referenceable2, true)});
+            properties.setProperty("mv_reference", new Value[]{session.getValueFactory().createValue(versionable, false)});
+            properties.setProperty("mv_weak_reference", new Value[]{session.getValueFactory().createValue(versionable, true)});
             properties.setProperty("string", "test");
             properties.setProperty("multiple", "a,b,c".split(","));
             session.save();
@@ -316,6 +323,10 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
     public void verifyReferencePropertiesContent() throws Exception {
         Session session = createAdminSession();
         try {
+            assertTrue(session.nodeExists("/referenceable"));
+            String testNodeIdentifier =
+                    session.getNode("/referenceable").getIdentifier();
+
             assertTrue(session.nodeExists("/properties"));
             Node properties = session.getNode("/properties");
 
@@ -333,7 +344,7 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertEquals(properties.getPath() + "/reference", refs.nextProperty().getPath());
             assertFalse(refs.hasNext());
 
-            PropertyIterator refs2 = session.getNode("/referenceable2").getReferences();
+            PropertyIterator refs2 = session.getNode("/versionable").getReferences();
             assertTrue(refs2.hasNext());
             assertEquals(properties.getPath() + "/mv_reference", refs2.nextProperty().getPath());
             assertFalse(refs2.hasNext());
@@ -351,10 +362,52 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertTrue(weakRefs.hasNext());
             assertEquals(properties.getPath() + "/weak_reference", weakRefs.nextProperty().getPath());
             assertFalse(weakRefs.hasNext());
-            PropertyIterator weakRefs2 = session.getNode("/referenceable2").getWeakReferences();
+            PropertyIterator weakRefs2 = session.getNode("/versionable").getWeakReferences();
             assertTrue(weakRefs2.hasNext());
             assertEquals(properties.getPath() + "/mv_weak_reference", weakRefs2.nextProperty().getPath());
             assertFalse(weakRefs2.hasNext());
+        } finally {
+            session.logout();
+        }
+    }
+
+    @Test
+    public void verifyVersionHistory() throws RepositoryException {
+        Session session = createAdminSession();
+        try {
+            assertTrue(session.nodeExists("/versionable"));
+            Node versionable = session.getNode("/versionable");
+            assertTrue(versionable.hasNode("child"));
+            Node child = versionable.getNode("child");
+
+            assertFalse(versionable.isCheckedOut());
+            assertTrue(versionable.hasProperty(JCR_UUID));
+            assertFalse(versionable.getNode("child").isCheckedOut());
+            assertFalse(versionable.getNode("child").hasProperty(JCR_UUID));
+
+            VersionManager manager = session.getWorkspace().getVersionManager();
+            Version version = manager.getBaseVersion("/versionable");
+
+            Node frozen = version.getFrozenNode();
+            assertEquals(
+                    versionable.getPrimaryNodeType().getName(),
+                    frozen.getProperty(JCR_FROZENPRIMARYTYPE).getString());
+            assertEquals(
+                    versionable.getMixinNodeTypes()[0].getName(),
+                    frozen.getProperty(JCR_FROZENMIXINTYPES).getValues()[0].getString());
+            assertEquals(
+                    versionable.getIdentifier(),
+                    frozen.getProperty(JCR_FROZENUUID).getString());
+
+            Node frozenChild = frozen.getNode("child");
+            assertEquals(
+                    child.getPrimaryNodeType().getName(),
+                    frozenChild.getProperty(JCR_FROZENPRIMARYTYPE).getString());
+            assertFalse(frozenChild.hasProperty(JCR_FROZENMIXINTYPES));
+            assertEquals(
+                    "OAK-1789",
+                    child.getIdentifier(),
+                    frozenChild.getProperty(JCR_FROZENUUID).getString());
         } finally {
             session.logout();
         }

@@ -18,16 +18,25 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 import java.io.ByteArrayInputStream;
@@ -97,6 +106,8 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final TypePredicate isOrderable;
 
+    private final TypePredicate isFrozenNode;
+
     /**
      * Source namespace mappings (URI -&lt; prefix).
      */
@@ -116,6 +127,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.loader = parent.loader;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
+        this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
         this.nodes = createNodes(bundle);
         this.properties = createProperties(bundle);
@@ -133,6 +145,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.loader = new BundleLoader(source);
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
+        this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
@@ -239,7 +252,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return children;
     }
 
-    public Map<String, PropertyState> createProperties(NodePropBundle bundle) {
+    private Map<String, PropertyState> createProperties(NodePropBundle bundle) {
         Map<String, PropertyState> properties = newHashMap();
 
         String primary;
@@ -287,6 +300,32 @@ class JackrabbitNodeState extends AbstractNodeState {
                 }
             } catch (Exception e) {
                 warn("Skipping broken property entry " + name, e);
+            }
+        }
+
+        // OAK-1789: Convert the jcr:frozenUuid of a non-referenceable
+        // frozen node from UUID to a path identifier
+        PropertyState frozenUuid = properties.get(JCR_FROZENUUID);
+        if (frozenUuid != null
+                && frozenUuid.getType() == STRING
+                && isFrozenNode.apply(primary, mixins)) {
+            String frozenPrimary = NT_UNSTRUCTURED;
+            Set<String> frozenMixins = newHashSet();
+
+            PropertyState property = properties.get(JCR_FROZENPRIMARYTYPE);
+            if (property != null && property.getType() == NAME) {
+                primary = property.getValue(NAME);
+            }
+            property = properties.get(JCR_FROZENMIXINTYPES);
+            if (property != null && property.getType() == NAMES) {
+                addAll(frozenMixins, property.getValue(NAMES));
+            }
+
+            if (!isReferenceable.apply(frozenPrimary, frozenMixins)) {
+                frozenUuid = PropertyStates.createProperty(
+                        JCR_FROZENUUID,
+                        parent.getString(JCR_FROZENUUID) + "/" + name);
+                properties.put(JCR_FROZENUUID, frozenUuid);
             }
         }
 
