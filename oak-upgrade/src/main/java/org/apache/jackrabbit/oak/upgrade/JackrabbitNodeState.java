@@ -332,10 +332,12 @@ class JackrabbitNodeState extends AbstractNodeState {
             }
 
             if (!isReferenceable.apply(frozenPrimary, frozenMixins)) {
-                frozenUuid = PropertyStates.createProperty(
-                        JCR_FROZENUUID,
-                        parent.getString(JCR_FROZENUUID) + "/" + name);
-                properties.put(JCR_FROZENUUID, frozenUuid);
+                String parentFrozenUuid = parent.getString(JCR_FROZENUUID);
+                if (parentFrozenUuid != null) {
+                    frozenUuid = PropertyStates.createProperty(
+                            JCR_FROZENUUID, parentFrozenUuid + "/" + name);
+                    properties.put(JCR_FROZENUUID, frozenUuid);
+                }
             }
         }
     }
