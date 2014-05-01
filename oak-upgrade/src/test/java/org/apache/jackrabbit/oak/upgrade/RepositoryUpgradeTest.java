@@ -26,6 +26,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -104,15 +106,21 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
 
             nodeTypeManager.registerNodeType(template, false);
 
+            template = nodeTypeManager.createNodeTypeTemplate();
+            template.setName("test:referenceable");
+            template.setDeclaredSuperTypeNames(
+                    new String[] {"nt:unstructured", "mix:referenceable"});
+            nodeTypeManager.registerNodeType(template, false);
+
             Node root = session.getRootNode();
 
             Node referenceable =
                 root.addNode("referenceable", "test:unstructured");
             referenceable.addMixin(NodeType.MIX_REFERENCEABLE);
-            Node versionable =
-                root.addNode("versionable", "test:unstructured");
-            versionable.addMixin(NodeType.MIX_VERSIONABLE);
-            versionable.addNode("child", "test:unstructured");
+            Node versionable = root.addNode("versionable", NT_UNSTRUCTURED);
+            versionable.addMixin(MIX_VERSIONABLE);
+            Node child = versionable.addNode("child", "test:referenceable");
+            child.addNode("child2", NT_UNSTRUCTURED);
             session.save();
 
             session.getWorkspace().getVersionManager().checkin("/versionable");
@@ -379,11 +387,15 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             Node versionable = session.getNode("/versionable");
             assertTrue(versionable.hasNode("child"));
             Node child = versionable.getNode("child");
+            assertTrue(child.hasNode("child2"));
+            Node child2 = child.getNode("child2");
 
             assertFalse(versionable.isCheckedOut());
             assertTrue(versionable.hasProperty(JCR_UUID));
-            assertFalse(versionable.getNode("child").isCheckedOut());
-            assertFalse(versionable.getNode("child").hasProperty(JCR_UUID));
+            assertFalse(child.isCheckedOut());
+            assertTrue(child.hasProperty(JCR_UUID));
+            assertFalse(child2.isCheckedOut());
+            assertFalse(child2.hasProperty(JCR_UUID));
 
             VersionManager manager = session.getWorkspace().getVersionManager();
             Version version = manager.getBaseVersion("/versionable");
@@ -408,6 +420,16 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
                     "OAK-1789",
                     child.getIdentifier(),
                     frozenChild.getProperty(JCR_FROZENUUID).getString());
+
+            Node frozenChild2 = frozenChild.getNode("child2");
+            assertEquals(
+                    child2.getPrimaryNodeType().getName(),
+                    frozenChild2.getProperty(JCR_FROZENPRIMARYTYPE).getString());
+            assertFalse(frozenChild2.hasProperty(JCR_FROZENMIXINTYPES));
+            assertEquals(
+                    "OAK-1789",
+                    child2.getIdentifier(),
+                    frozenChild2.getProperty(JCR_FROZENUUID).getString());
         } finally {
             session.logout();
         }
