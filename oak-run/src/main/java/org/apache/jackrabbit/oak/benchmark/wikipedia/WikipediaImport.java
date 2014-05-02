@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.benchmark.wikipedia;
 import static com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.min;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -32,6 +34,7 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.Benchmark;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -101,7 +104,7 @@ public class WikipediaImport extends Benchmark {
         }
 
         String type = "nt:unstructured";
-        if (flat) {
+        if (session.getWorkspace().getNodeTypeManager().hasNodeType("oak:Unstructured")) {
             type = "oak:Unstructured";
         }
         Node wikipedia = session.getRootNode().addNode("wikipedia", type);
@@ -118,8 +121,15 @@ public class WikipediaImport extends Benchmark {
         String title = null;
         String text = null;
         XMLInputFactory factory = XMLInputFactory.newInstance();
-        XMLStreamReader reader =
-                factory.createXMLStreamReader(new StreamSource(dump));
+        StreamSource source;
+        if (dump.getName().endsWith(".xml")) {
+            source = new StreamSource(dump);
+        } else {
+            CompressorStreamFactory csf = new CompressorStreamFactory();
+            source = new StreamSource(csf.createCompressorInputStream(
+                    new BufferedInputStream(new FileInputStream(dump))));
+        }
+        XMLStreamReader reader = factory.createXMLStreamReader(source);
         while (reader.hasNext()) {
             switch (reader.next()) {
             case XMLStreamConstants.START_ELEMENT:
