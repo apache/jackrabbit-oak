@@ -45,3 +45,11 @@ across threads. Don't access the same session instance concurrently from
 multiple threads. When doing so Oak will protect its internal data structures
 from becoming corrupted but will not make any guarantees beyond that. In
 particular violating clients might suffer from lock contentions or deadlocks.
+
+### Large number of direct child node
+
+Oak scales to large number of direct child nodes of a node as long as those
+are *not* orderable. For orderable child nodes Oak keeps the order in an
+internal property, which will lead to a performance degradation when the list
+grows too large. For such scenarios Oak provides the ``oak:Unstructured`` node
+type, which is equivalent to ``nt:unstructured`` except that it is not orderable.
