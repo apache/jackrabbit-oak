@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -43,11 +43,10 @@ public class VersionGarbageCollector {
 
     /**
      * Split document types which can be safely Garbage Collected
+     * OAK-1793: SplitDocType.DEFAULT_NO_CHILD and SplitDocType.PROP_COMMIT_ONLY
+     * have been removed, but should be added again when OAK-1794 is fixed.
      */
-    private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
-            NodeDocument.SplitDocType.DEFAULT_NO_CHILD,
-            NodeDocument.SplitDocType.PROP_COMMIT_ONLY);
-
+    private static final Set<NodeDocument.SplitDocType> GC_TYPES = Collections.emptySet();
 
     VersionGarbageCollector(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
