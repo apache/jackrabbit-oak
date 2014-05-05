@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
@@ -31,13 +32,18 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 class TarWriter {
 
@@ -47,6 +53,10 @@ class TarWriter {
     /** Magic byte sequence at the end of the index block. */
     static final int INDEX_MAGIC =
             ('\n' << 24) + ('0' << 16) + ('K' << 8) + '\n';
+
+    /** Magic byte sequence at the end of the graph block. */
+    static final int GRAPH_MAGIC =
+            ('\n' << 24) + ('0' << 16) + ('G' << 8) + '\n';
 
     /** The tar file block size. */
     static final int BLOCK_SIZE = 512;
@@ -94,6 +104,8 @@ class TarWriter {
     private final Map<UUID, TarEntry> index = newHashMap();
 
     private final Set<UUID> references = newHashSet();
+
+    private final SortedMap<UUID, List<UUID>> graph = newTreeMap();
 
     TarWriter(File file) {
         this.file = file;
@@ -165,11 +177,20 @@ class TarWriter {
             ByteBuffer segment = ByteBuffer.wrap(data, offset, size);
             int pos = segment.position();
             int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
-            int refend = pos + 16 * (refcount + 1);
-            for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                references.add(new UUID(
-                        segment.getLong(refpos),
-                        segment.getLong(refpos + 8)));
+            if (refcount != 0) {
+                int refend = pos + 16 * (refcount + 1);
+                List<UUID> list = Lists.newArrayListWithCapacity(refcount);
+                for (int refpos = pos + 16; refpos < refend; refpos += 16) {
+                    UUID refid = new UUID(
+                            segment.getLong(refpos),
+                            segment.getLong(refpos + 8));
+                    if (!index.containsKey(refid)) {
+                        references.add(refid);
+                    }
+                    list.add(refid);
+                }
+                Collections.sort(list);
+                graph.put(uuid, list);
             }
         }
 
@@ -220,45 +241,99 @@ class TarWriter {
             return;
         }
 
-        // Complete the tar file by adding the index and the trailing two
-        // zero blocks. This code is synchronized on the file instance to
-        // ensure that no concurrent thread is still flushing the file when
-        // we close the file handle.
+        // Complete the tar file by adding the graph, the index and the
+        // trailing two zero blocks. This code is synchronized on the file
+        // instance to  ensure that no concurrent thread is still flushing
+        // the file when we close the file handle.
         synchronized (file) {
-            int indexSize = index.size() * 24 + 16;
-            int padding = getPaddingSize(indexSize);
-
-            String indexName = file.getName() + ".idx";
-            byte[] header = newEntryHeader(indexName, indexSize);
-
-            ByteBuffer buffer = ByteBuffer.allocate(indexSize);
-            TarEntry[] sorted = index.values().toArray(new TarEntry[index.size()]);
-            Arrays.sort(sorted, TarEntry.IDENTIFIER_ORDER);
-            for (TarEntry entry : sorted) {
-                buffer.putLong(entry.msb());
-                buffer.putLong(entry.lsb());
-                buffer.putInt(entry.offset());
-                buffer.putInt(entry.size());
-            }
-
-            CRC32 checksum = new CRC32();
-            checksum.update(buffer.array(), 0, buffer.position());
-            buffer.putInt((int) checksum.getValue());
-            buffer.putInt(index.size());
-            buffer.putInt(padding + indexSize);
-            buffer.putInt(INDEX_MAGIC);
-
-            access.write(header);
-            if (padding > 0) {
-                // padding comes *before* the index!
-                access.write(ZERO_BYTES, 0, padding);
-            }
-            access.write(buffer.array());
+            writeGraph();
+            writeIndex();
             access.write(ZERO_BYTES);
             access.write(ZERO_BYTES);
             access.close();
-            buffer = null;
         }
+    }
+
+    private void writeGraph() throws IOException {
+        List<UUID> uuids = Lists.newArrayListWithCapacity(
+                index.size() + references.size());
+        uuids.addAll(index.keySet());
+        uuids.addAll(references);
+        Collections.sort(uuids);
+
+        int graphSize = uuids.size() * 16 + 16;
+        for (List<UUID> list : graph.values()) {
+            graphSize += 4 + list.size() * 4 + 4;
+        }
+        int padding = getPaddingSize(graphSize);
+
+        String graphName = file.getName() + ".gph";
+        byte[] header = newEntryHeader(graphName, graphSize + padding);
+
+        ByteBuffer buffer = ByteBuffer.allocate(graphSize);
+
+        Map<UUID, Integer> refmap = newHashMap();
+
+        int index = 0;
+        for (UUID uuid : uuids) {
+            buffer.putLong(uuid.getMostSignificantBits());
+            buffer.putLong(uuid.getLeastSignificantBits());
+            refmap.put(uuid, index++);
+        }
+
+        for (Map.Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+            buffer.putInt(refmap.get(entry.getKey()));
+            for (UUID refid : entry.getValue()) {
+                buffer.putInt(refmap.get(refid));
+            }
+            buffer.putInt(-1);
+        }
+
+        CRC32 checksum = new CRC32();
+        checksum.update(buffer.array(), 0, buffer.position());
+        buffer.putInt((int) checksum.getValue());
+        buffer.putInt(uuids.size());
+        buffer.putInt(graphSize);
+        buffer.putInt(GRAPH_MAGIC);
+
+        access.write(header);
+        if (padding > 0) {
+            // padding comes *before* the graph!
+            access.write(ZERO_BYTES, 0, padding);
+        }
+        access.write(buffer.array());
+    }
+
+    private void writeIndex() throws IOException {
+        int indexSize = index.size() * 24 + 16;
+        int padding = getPaddingSize(indexSize);
+
+        String indexName = file.getName() + ".idx";
+        byte[] header = newEntryHeader(indexName, indexSize + padding);
+
+        ByteBuffer buffer = ByteBuffer.allocate(indexSize);
+        TarEntry[] sorted = index.values().toArray(new TarEntry[index.size()]);
+        Arrays.sort(sorted, TarEntry.IDENTIFIER_ORDER);
+        for (TarEntry entry : sorted) {
+            buffer.putLong(entry.msb());
+            buffer.putLong(entry.lsb());
+            buffer.putInt(entry.offset());
+            buffer.putInt(entry.size());
+        }
+
+        CRC32 checksum = new CRC32();
+        checksum.update(buffer.array(), 0, buffer.position());
+        buffer.putInt((int) checksum.getValue());
+        buffer.putInt(index.size());
+        buffer.putInt(padding + indexSize);
+        buffer.putInt(INDEX_MAGIC);
+
+        access.write(header);
+        if (padding > 0) {
+            // padding comes *before* the index!
+            access.write(ZERO_BYTES, 0, padding);
+        }
+        access.write(buffer.array());
     }
 
     private byte[] newEntryHeader(String name, int size) throws IOException {
