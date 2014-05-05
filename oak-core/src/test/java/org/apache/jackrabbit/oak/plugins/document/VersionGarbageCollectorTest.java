@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -296,6 +297,34 @@ public class VersionGarbageCollectorTest {
             children.add(entry.getName());
         }
         assertEquals(names, children);
+    }
+
+    // OAK-1793
+    @Ignore
+    @Test
+    public void gcPrevWithMostRecentModification() throws Exception {
+        long maxAge = 1; //hrs
+        long delta = TimeUnit.MINUTES.toMillis(10);
+
+        for (int i = 0; i < NUM_REVS_THRESHOLD + 1; i++) {
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child("foo").setProperty("prop", "v" + i);
+            builder.child("bar").setProperty("prop", "v" + i);
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+
+        store.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
+
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
+        assertEquals(2, stats.splitDocGCCount);
+
+        NodeDocument doc = getDoc("/foo");
+        assertNotNull(doc);
+        DocumentNodeState state = doc.getNodeAtRevision(
+                store, store.getHeadRevision(), null);
+        assertNotNull(state);
     }
 
     private NodeDocument getDoc(String path){
