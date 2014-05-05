@@ -51,7 +51,7 @@ public class TarFileTest {
             writer.close();
         }
 
-        assertEquals(3072, file.length());
+        assertEquals(4096, file.length());
 
         TarReader reader = TarReader.open(file, false);
         try {
