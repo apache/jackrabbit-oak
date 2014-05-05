@@ -80,16 +80,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * long), size of data store id (variable size long), hash code length (variable
  * size int), hash code.
  */
-public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
+public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
+        Cache.Backend<AbstractBlobStore.BlockId, AbstractBlobStore.Data> {
 
     protected static final String HASH_ALGORITHM = "SHA-256";
 
     protected static final int TYPE_DATA = 0;
     protected static final int TYPE_HASH = 1;
-    protected static final int TYPE_HASH_COMPRESSED = 2;
 
+    /**
+     * The minimum block size. Blocks must be larger than that so that the
+     * content hash is always shorter than the data itself.
+     */
     protected static final int BLOCK_SIZE_LIMIT = 48;
 
+    /**
+     * The blob ids that are still floating around in memory. The blob store
+     * assumes such binaries must not be deleted, because those binaries are not
+     * referenced yet in a way the garbage collection algorithm can detect (not
+     * referenced at all, or only referenced in memory).
+     */
     protected Map<String, WeakReference<String>> inUse =
         Collections.synchronizedMap(new WeakHashMap<String, WeakReference<String>>());
 
@@ -183,6 +193,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
         }
     }
 
+    @Override
     public InputStream getInputStream(String blobId) throws IOException {
         //Marking would handled by next call to store.readBlob
         return new BlobStoreInputStream(this, blobId, 0);
@@ -215,9 +226,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
             String blobId = reference.substring(0, colon);
             if (reference.equals(getReference(blobId))) {
                 return blobId;
-            }else{
-                log.debug("Possibly invalid reference as blobId does not match {}", reference);
             }
+            log.debug("Possibly invalid reference as blobId does not match {}", reference);
         }
         return null;
     }
@@ -238,7 +248,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     protected byte[] getOrCreateReferenceKey() {
         byte[] referenceKeyValue = new byte[256];
         new SecureRandom().nextBytes(referenceKeyValue);
-        log.info("Reference key is not specified for the BlobStore in use. Generating a random key. For stable " +
+        log.info("Reference key is not specified for the BlobStore in use. " + 
+                "Generating a random key. For stable " +
                 "reference ensure that reference key is specified");
         return referenceKeyValue;
     }
@@ -271,16 +282,18 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     }
 
     /**
-     * Set the referenceKey from plain text. Key content would be
-     * UTF-8 encoding of the string.
-     *
-     * <p>This is useful when setting key via generic
-     *  bean property manipulation from string properties. User can specify the
-     *  key in plain text and that would be passed on this object via
-     *  {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
-     *
+     * Set the referenceKey from plain text. Key content would be UTF-8 encoding
+     * of the string.
+     * 
+     * <p>
+     * This is useful when setting key via generic bean property manipulation
+     * from string properties. User can specify the key in plain text and that
+     * would be passed on this object via
+     * {@link org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)}
+     * 
      * @param textKey base64 encoded key
-     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object, java.util.Map, boolean)
+     * @see org.apache.jackrabbit.oak.commons.PropertiesUtil#populate(Object,
+     *      java.util.Map, boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
         setReferenceKey(textKey.getBytes(Charsets.UTF_8));
@@ -295,7 +308,9 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
         inUse.clear();
     }
 
-    private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws IOException {
+    private void convertBlobToId(InputStream in,
+            ByteArrayOutputStream idStream, int level, long totalLength)
+            throws IOException {
         int count = 0;
         // try to re-use the block (but not concurrently)
         byte[] block = blockBuffer.getAndSet(null);
@@ -326,8 +341,13 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 idStream.write(TYPE_HASH);
                 IOUtils.writeVarInt(idStream, level);
                 if (level > 0) {
+                    // level > 0: total size (size of all sub-blocks)
+                    // (see class level javadoc for details)                    
                     IOUtils.writeVarLong(idStream, totalLength);
                 }
+                // level = 0: size (size of this block)
+                // level > 0: size of the indirection block
+                // (see class level javadoc for details)                
                 IOUtils.writeVarLong(idStream, blockLen);
                 totalLength += blockLen;
                 IOUtils.writeVarInt(idStream, digest.length);
@@ -386,7 +406,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
     }
 
     @Override
-    public int readBlob(String blobId, long pos, byte[] buff, int off, int length) throws IOException {
+    public int readBlob(String blobId, long pos, byte[] buff, int off,
+            int length) throws IOException {
         if (isMarkEnabled()) {
             mark(blobId);
         }
@@ -411,6 +432,9 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 pos -= len;
             } else if (type == TYPE_HASH) {
                 int level = IOUtils.readVarInt(idStream);
+                // level = 0: size (size of this block)
+                // level > 0: total size (size of all sub-blocks)
+                // (see class level javadoc for details)
                 long totalLength = IOUtils.readVarLong(idStream);
                 if (level > 0) {
                     // block length (ignored)
@@ -485,6 +509,9 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 totalLength += len;
             } else if (type == TYPE_HASH) {
                 int level = IOUtils.readVarInt(idStream);
+                // level = 0: size (size of this block)
+                // level > 0: total size (size of all sub-blocks)
+                // (see class level javadoc for details)                
                 totalLength += IOUtils.readVarLong(idStream);
                 if (level > 0) {
                     // block length (ignored)
@@ -519,7 +546,9 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                 IOUtils.skipFully(idStream, len);
             } else if (type == TYPE_HASH) {
                 int level = IOUtils.readVarInt(idStream);
-                // totalLength
+                // level = 0: size (size of this block)
+                // level > 0: total size (size of all sub-blocks)
+                // (see class level javadoc for details)
                 IOUtils.readVarLong(idStream);
                 if (level > 0) {
                     // block length (ignored)
@@ -649,7 +678,9 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
                         IOUtils.skipFully(idStream, len);
                     } else if (type == TYPE_HASH) {
                         int level = IOUtils.readVarInt(idStream);
-                        // totalLength
+                        // level = 0: size (size of this block)
+                        // level > 0: total size (size of all sub-blocks)
+                        // (see class level javadoc for details)
                         IOUtils.readVarLong(idStream);
                         if (level > 0) {
                             // block length (ignored)
@@ -672,7 +703,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore, 
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            // Check now if ids available
+            // Check now if ids are available
             if (!queue.isEmpty()) {
                 return true;
             }
