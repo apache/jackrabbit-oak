@@ -18,16 +18,26 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 import java.io.ByteArrayInputStream;
@@ -97,6 +107,8 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     private final TypePredicate isOrderable;
 
+    private final TypePredicate isFrozenNode;
+
     /**
      * Source namespace mappings (URI -&lt; prefix).
      */
@@ -116,9 +128,12 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.loader = parent.loader;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
+        this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
-        this.nodes = createNodes(bundle);
         this.properties = createProperties(bundle);
+        this.nodes = createNodes(bundle);
+        setChildOrder();
+        fixFrozenUuid();
         this.useBinaryReferences = parent.useBinaryReferences;
         logNewNode(this);
     }
@@ -133,11 +148,13 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.loader = new BundleLoader(source);
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
+        this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
-            this.nodes = createNodes(bundle);
             this.properties = createProperties(bundle);
+            this.nodes = createNodes(bundle);
+            setChildOrder();
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
@@ -226,6 +243,13 @@ class JackrabbitNodeState extends AbstractNodeState {
 
     //-----------------------------------------------------------< private >--
 
+    private void setChildOrder() {
+        if (isOrderable.apply(this)) {
+            properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
+                    OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
+        }
+    }
+
     private Map<String, NodeId> createNodes(NodePropBundle bundle) {
         Map<String, NodeId> children = newLinkedHashMap();
         for (ChildNodeEntry entry : bundle.getChildNodeEntries()) {
@@ -239,7 +263,7 @@ class JackrabbitNodeState extends AbstractNodeState {
         return children;
     }
 
-    public Map<String, PropertyState> createProperties(NodePropBundle bundle) {
+    private Map<String, PropertyState> createProperties(NodePropBundle bundle) {
         Map<String, PropertyState> properties = newHashMap();
 
         String primary;
@@ -269,11 +293,6 @@ class JackrabbitNodeState extends AbstractNodeState {
                     JCR_UUID, bundle.getId().toString()));
         }
 
-        if (isOrderable.apply(primary, mixins)) {
-            properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
-                    OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
-        }
-
         for (PropertyEntry property : bundle.getPropertyEntries()) {
             String name = createName(property.getName());
             try {
@@ -291,6 +310,36 @@ class JackrabbitNodeState extends AbstractNodeState {
         }
 
         return properties;
+    }
+
+    private void fixFrozenUuid() {
+        // OAK-1789: Convert the jcr:frozenUuid of a non-referenceable
+        // frozen node from UUID to a path identifier
+        PropertyState frozenUuid = properties.get(JCR_FROZENUUID);
+        if (frozenUuid != null
+                && frozenUuid.getType() == STRING
+                && isFrozenNode.apply(this)) {
+            String frozenPrimary = NT_BASE;
+            Set<String> frozenMixins = newHashSet();
+
+            PropertyState property = properties.get(JCR_FROZENPRIMARYTYPE);
+            if (property != null && property.getType() == NAME) {
+                frozenPrimary = property.getValue(NAME);
+            }
+            property = properties.get(JCR_FROZENMIXINTYPES);
+            if (property != null && property.getType() == NAMES) {
+                addAll(frozenMixins, property.getValue(NAMES));
+            }
+
+            if (!isReferenceable.apply(frozenPrimary, frozenMixins)) {
+                String parentFrozenUuid = parent.getString(JCR_FROZENUUID);
+                if (parentFrozenUuid != null) {
+                    frozenUuid = PropertyStates.createProperty(
+                            JCR_FROZENUUID, parentFrozenUuid + "/" + name);
+                    properties.put(JCR_FROZENUUID, frozenUuid);
+                }
+            }
+        }
     }
 
     private org.apache.jackrabbit.oak.api.PropertyState createProperty(
