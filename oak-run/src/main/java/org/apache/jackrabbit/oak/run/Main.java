@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
@@ -87,7 +88,7 @@ public class Main {
 
         Mode mode = Mode.SERVER;
         if (args.length > 0) {
-            mode = Mode.valueOf(args[0].toUpperCase());
+            mode = Mode.valueOf(args[0].toUpperCase(Locale.ENGLISH));
             String[] tail = new String[args.length - 1];
             System.arraycopy(args, 1, tail, 0, tail.length);
             args = tail;
