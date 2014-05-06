@@ -239,20 +239,42 @@ name siblings but that might not cover all cases.
 XML Import
 ----------
 
-The import behavior for [`IMPORT_UUID_CREATE_NEW`](http://www.day.com/maven/jsr170/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW) in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID, even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
+The import behavior for
+[`IMPORT_UUID_CREATE_NEW`](http://www.day.com/maven/jsr170/javadocs/jcr-2.0/javax/jcr/ImportUUIDBehavior.html#IMPORT_UUID_CREATE_NEW)
+in Oak is implemented slightly different compared to Jackrabbit. Jackrabbit 2.x only creates a new
+UUID when it detects an existing conflicting node with the same UUID. Oak always creates a new UUID,
+even if there is no conflicting node. The are mainly two reasons why this is done in Oak:
 
-* The implementation in Oak is closer to what the JCR specification says: *Incoming nodes are assigned newly created identifiers upon addition to the workspace. As a result, identifier collisions never occur.*
-* Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a session, an existing node with a conflicting UUID may not be visible until commit.
+* The implementation in Oak is closer to what the JCR specification says: *Incoming nodes are
+assigned newly created identifiers upon addition to the workspace. As a result, identifier
+collisions never occur.*
+* Oak uses a MVCC model where a session operates on a snapshot of the repository. It is therefore
+very difficult to ensure new UUIDs only in case of a conflict. Based on the snapshot view of a
+session, an existing node with a conflicting UUID may not be visible until commit.
 
 Identifiers
 -----------
 
-In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit 2.x the UUID is only visible in content when the node is referenceable and exposes the UUID as a `jcr:uuid` property. But using `Node.getIdentifer()`, it is possible to get the UUID of any node. With Oak this method will only return a UUID when the node is referenceable, otherwise the identifier is the UUID of the nearest referenceable ancestor with the relative path to the node.
+In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit
+2.x the UUID is only visible in content when the node is referenceable and exposes the UUID as a
+`jcr:uuid` property. But using `Node.getIdentifer()`, it is possible to get the UUID of any node.
+With Oak this method will only return a UUID when the node is referenceable, otherwise the
+identifier is the UUID of the nearest referenceable ancestor with the relative path to the node.
 
 Versioning
 ----------
 
-Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid` property on a frozen node will not always be a UUID (see also section about Identifiers). The property reflects the value returned by `Node.getIdentifier()` when a node is copied into the version storage as a frozen node. This also means a node restored from a frozen node will only have a `jcr:uuid` when it is actually referenceable.
+* Because of the different identifier implementation in Oak, the value of a `jcr:frozenUuid` property
+on a frozen node will not always be a UUID (see also section about Identifiers). The property
+reflects the value returned by `Node.getIdentifier()` when a node is copied into the version storage
+as a frozen node. This also means a node restored from a frozen node will only have a `jcr:uuid`
+when it is actually referenceable.
+
+* Oak does currently not implement activities (`OPTION_ACTIVITIES_SUPPORTED`), configurations and
+baselines (`OPTION_BASELINES_SUPPORTED`).
+
+* Oak does currently not implement the various variants of `VersionManager.merge` but throws an
+`UnsupportedRepositoryOperationException` if such a method is called.
 
 Security
 --------
