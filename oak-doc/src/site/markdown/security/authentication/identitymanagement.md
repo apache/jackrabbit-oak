@@ -15,12 +15,12 @@
    limitations under the License.
 -->
 
-User Management
+Identity Management
 --------------------------------------------------------------------------------
 
-_TODO_
+_todo_
 
-### Differences wrt Jackrabbit 2.x
-
-see the corresponding [documentation](../differences_user.html).
-
+- ExternalIdentityProvider
+- ExternalIdentity
+- ExternalUser
+- ExternalGroup
