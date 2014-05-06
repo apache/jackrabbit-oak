@@ -63,25 +63,12 @@ which doesn't have a password set.
 
 Oak provides two different mechanisms to create pre-authentication that doesn't
 involve the repositories internal authentication mechanism for credentials
-validation.
+validation. See the corresponding section [Pre-Authentication](security/authentication/preauthentication.html)
+for details and examples.
 
-see [Authentication](security/authentication.html) for details and examples.
-
-###### Pre-Authentication combined with Login Module Chain
-
-The first variant allows to combine pre-authenticated login with the JAAS login
-module chain.
-
-###### Pre-Authentication without Repository Involvement
-
-Like in Jackrabbit-core the repository internal authentication verification can
-be skipped by calling `Repository#login()` or `Repository#login(null, wspName)`.
-
-In the default implementation the `LoginContextProvider` [1] expects a `Subject`
-to be available with the current `java.security.AccessControlContext`.
-However, in contrast to Jackrabbit-core the current implementation does not
-try to extend the pre-authenticated subject but skips the internal verification
-step altogether.
+- Pre-Authentication combined with Login Module Chain
+- Pre-Authentication without Repository Involvement: the `Subject` must be available
+  with the current `java.security.AccessControlContext`.
 
 #### 2. Impersonation
 
@@ -128,6 +115,7 @@ The default implementation differs from jackrabbit as follows
 attributes and falls back to the same configuration parameter.
 
 The definition of the new built-in node type "rep:Token":
+
     [rep:Token] > mix:referenceable
     - rep:token.key (STRING) protected mandatory
     - rep:token.exp (DATE) protected mandatory
