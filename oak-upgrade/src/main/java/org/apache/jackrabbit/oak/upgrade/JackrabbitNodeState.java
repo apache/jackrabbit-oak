@@ -162,6 +162,11 @@ class JackrabbitNodeState extends AbstractNodeState {
         logNewNode(this);
     }
 
+    @Override
+    public String toString() {
+        return getPath();
+    }
+
     //---------------------------------------------------------< NodeState >--
 
     @Override
