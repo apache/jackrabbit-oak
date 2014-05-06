@@ -90,6 +90,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -779,6 +780,12 @@ public class RepositoryUpgrade {
      * This is a temporary approach for OAK-1760 for 1.0 branch.
      */
     private void setChildNode(NodeBuilder parent, String name, NodeState state) {
+        // OAK-1589: maximum supported length of name for DocumentNodeStore
+        // is 150 bytes. Skip the sub tree if the the name is too long
+        if (name.length() > 37 && name.getBytes(Charsets.UTF_8).length > 150) {
+            logger.warn("Node name too long. Skipping {}", state);
+            return;
+        }
         NodeBuilder builder = parent.setChildNode(name);
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
