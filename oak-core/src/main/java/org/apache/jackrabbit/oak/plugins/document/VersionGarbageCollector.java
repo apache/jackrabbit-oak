@@ -81,7 +81,8 @@ public class VersionGarbageCollector {
         }
 
         collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
-        collectSplitDocuments(stats, oldestRevTimeStamp);
+        // FIXME: OAK-1793 and OAK-1794
+        // collectSplitDocuments(stats, oldestRevTimeStamp);
 
         sw.stop();
         log.info("Version garbage collected in {}. {}", sw, stats);
