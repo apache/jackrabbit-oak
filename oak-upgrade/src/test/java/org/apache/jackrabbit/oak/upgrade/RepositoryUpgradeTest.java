@@ -434,6 +434,7 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
                     frozenChild2.getProperty(JCR_FROZENUUID).getString());
 
             VersionHistory history = manager.getVersionHistory("/versionable");
+            assertTrue(history.isNodeType("rep:VersionablePaths"));
             Property versionablePath = history.getProperty("default");
             assertEquals("/versionable", versionablePath.getString());
         } finally {
