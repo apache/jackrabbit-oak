@@ -280,8 +280,8 @@ Security
 --------
 
 * [Authentication](security/authentication/differences.html)
-* [AccessControl Management](differences_accesscontrol.html)
-* [Permission Evaluation](differences_permission.html)
-* [Privilege Management](differences_privileges.html)
-* [Principal Management](differences_principal.html)
-* [User Management](differences_user.html)
+* [AccessControl Management](security/accesscontrol/differences.html)
+* [Permission Evaluation](security/permission/differences.html)
+* [Privilege Management](security/privilege/differences.html)
+* [Principal Management](security/principal/differences.html)
+* [User Management](security/user/differences.html)
