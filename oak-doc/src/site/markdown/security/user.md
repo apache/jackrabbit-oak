@@ -22,5 +22,5 @@ _TODO_
 
 ### Differences wrt Jackrabbit 2.x
 
-see the corresponding [documentation](../differences_user.html).
+see the corresponding [documentation](user/differences.html).
 

@@ -22,4 +22,4 @@ _TODO_
 
 ### Differences wrt Jackrabbit 2.x
 
-see the corresponding [documentation](../differences_principal.html).
+see the corresponding [documentation](principal/differences.html).
