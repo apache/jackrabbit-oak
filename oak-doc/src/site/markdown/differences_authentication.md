@@ -59,42 +59,29 @@ This behavior is now consistent with the default login of any other user
 which doesn't have a password set.
 
 
-##### Pre-Authentication in the LoginContextProvider
+##### Pre-Authentication
 
-Like in Jackrabbit-core the repository internal authentication verification can be skipped by calling `Repository#login()` or `Repository#login(null, wspName)`. In this case the repository implementation expects the verification to be performed prior to the login call.
+Oak provides two different mechanisms to create pre-authentication that doesn't
+involve the repositories internal authentication mechanism for credentials
+validation.
 
-This behavior is provided by the default implementation of the `LoginContextProvider` [1] which expects a `Subject` to be available with the current `java.security.AccessControlContext`. However, in contrast to Jackrabbit-core the current implementation does not try to extend the pre-authenticated subject but skips the internal verification step altogether.
+see [Authentication](security/authentication.html) for details and examples.
 
-Since the `LoginContextProvider` is a configurable with the authentication setup OAK users also have the following options by providing a custom `LoginContextProvider`:
+###### Pre-Authentication combined with Login Module Chain
 
-- Disable pre-authentication by not trying to retrieve a pre-authenticated `Subject`.
-- Add support for extending the pre-authenticated subject by always passing writable subjects to the `JaasLoginContext`
-- Dropping JAAS altogether by providing a custom implementation of the
-  `org.apache.jackrabbit.oak.spi.security.authentication.LoginContext` [2] interface.
+The first variant allows to combine pre-authenticated login with the JAAS login
+module chain.
 
-Example how to use the pre-auth:
+###### Pre-Authentication without Repository Involvement
 
-    String userId = "test";
-    /**
-     Retrive valid principals e.g. by calling jackrabbit API
-     - PrincipalManager#getPrincipal and/or #getGroupMembership
-     or from Oak SPI
-     - PrincipalProvider#getPrincipals(String userId)
-     */
-    Set<? extends Principal> principals = getPrincipals(userId);
-    AuthInfo authInfo = new AuthInfoImpl(userId, Collections.<String, Object>emptyMap(), principals);
-    Subject subject = new Subject(true, principals, Collections.singleton(authInfo), Collections.<Object>emptySet());
-    Session session;
-    try {
-        session = Subject.doAsPrivileged(subject, new PrivilegedExceptionAction<Session>() {
-            @Override
-            public Session run() throws Exception {
-                return login(null, null);
-            }
-        }, null);
-    } catch (PrivilegedActionException e) {
-        throw new RepositoryException("failed to retrieve session.", e);
-    }
+Like in Jackrabbit-core the repository internal authentication verification can
+be skipped by calling `Repository#login()` or `Repository#login(null, wspName)`.
+
+In the default implementation the `LoginContextProvider` [1] expects a `Subject`
+to be available with the current `java.security.AccessControlContext`.
+However, in contrast to Jackrabbit-core the current implementation does not
+try to extend the pre-authenticated subject but skips the internal verification
+step altogether.
 
 #### 2. Impersonation
 
