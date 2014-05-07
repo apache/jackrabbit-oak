@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Objects;
 
-class IndexUpdate implements Editor {
+public class IndexUpdate implements Editor {
 
     private final IndexEditorProvider provider;
 
@@ -81,7 +81,7 @@ class IndexUpdate implements Editor {
      */
     private final IndexUpdateCallback updateCallback;
 
-    IndexUpdate(
+    public IndexUpdate(
             IndexEditorProvider provider, String async,
             NodeState root, NodeBuilder builder,
             IndexUpdateCallback updateCallback) {
