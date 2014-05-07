@@ -15,10 +15,16 @@
    limitations under the License.
   -->
 
-The Oak Security Layer - Overview
-=================================
+The Oak Security Layer
+======================
 
 * [Authentication](authentication.html)
+     * [Differences wrt Jackrabbit 2.x](authentication/differences.html)
+     * [External Login Module and User Synchronization](authentication/externalloginmodule.html)
+     * [Identity Management](authentication/identitymanagement.html)
+     * [LDAP Integration](authentication/ldap.html)
+     * [Pre-Authentication](authentication/preauthentication.html)
+     * [Token Management](authentication/tokenmanagement.html)
 * [Access Control](accesscontrol.html)
 * [Permission Evaluation](permission.html)
 * [Privilege Management](privilege.html)
