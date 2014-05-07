@@ -82,4 +82,9 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return SolrServerConfigurationDefaults.CATCHALL_FIELD;
     }
 
+    @Override
+    public int getRows() {
+        return SolrServerConfigurationDefaults.ROWS;
+    }
+
 }

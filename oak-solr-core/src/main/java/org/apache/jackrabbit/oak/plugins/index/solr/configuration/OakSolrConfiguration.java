@@ -68,4 +68,11 @@ public interface OakSolrConfiguration {
      * @return a <code>String</code> representing the Solr field to be used as "catch all" field
      */
     public String getCatchAllField();
+
+    /**
+     * Provide the number of documents (rows) to be fetched for each Solr query
+     *
+     * @return an <code>int</code> for the setting of Solr rows parameter
+     */
+    public int getRows();
 }
