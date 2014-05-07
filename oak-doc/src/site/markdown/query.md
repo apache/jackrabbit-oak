@@ -97,6 +97,17 @@ feature. An example query is:
 
 If no full-text implementation is available, those queries will fail.
 
+### Similarity Queries
+
+Oak supports similarity queries when using the Lucene full-text index. 
+For example, the following query will return nodes that have similar content than
+the node /test/a:
+
+    //element(*, nt:base)[rep:similar(., '/test/a')]
+    
+Compared to Jackrabbit 2.x, support for rep:similar has the following limitations:
+Full-text aggregation is not currently supported.
+
 ### XPath to SQL2 Transformation
 
 To support the XPath query language, such queries are internally converted to SQL2. 
