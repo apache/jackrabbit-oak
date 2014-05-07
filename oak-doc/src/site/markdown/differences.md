@@ -279,7 +279,7 @@ baselines (`OPTION_BASELINES_SUPPORTED`).
 Security
 --------
 
-* [Authentication](differences_authentication.html)
+* [Authentication](security/authentication/differences.html)
 * [AccessControl Management](differences_accesscontrol.html)
 * [Permission Evaluation](differences_permission.html)
 * [Privilege Management](differences_privileges.html)
