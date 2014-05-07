@@ -337,7 +337,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             solrQuery.setParam("df", catchAllField);
         }
 
-        solrQuery.setParam("rows", "100000");
+        solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
     }
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
