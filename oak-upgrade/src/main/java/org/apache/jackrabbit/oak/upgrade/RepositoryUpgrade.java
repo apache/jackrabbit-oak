@@ -94,7 +94,6 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.BeanConfig;
 import org.apache.jackrabbit.core.config.LoginModuleConfig;
@@ -106,12 +105,15 @@ import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.core.persistence.PersistenceManager;
 import org.apache.jackrabbit.core.security.authorization.PrivilegeRegistry;
 import org.apache.jackrabbit.core.security.user.UserManagerImpl;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.reference.ReferenceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
@@ -124,7 +126,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -293,15 +297,51 @@ public class RepositoryUpgrade {
 
             // type validation, reference and indexing hooks
             hooks.add(new EditorHook(new CompositeEditorProvider(
-                            new TypeEditorProvider(false),
-                            new IndexUpdateProvider(new CompositeIndexEditorProvider(
-                                    new ReferenceEditorProvider(),
-                                    new PropertyIndexEditorProvider())))));
+                createTypeEditorProvider(),
+                createIndexEditorProvider()
+            )));
 
             target.merge(builder, CompositeHook.compose(hooks), CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
+    }
+
+    private static EditorProvider createTypeEditorProvider() {
+        return new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info)
+                    throws CommitFailedException {
+                Editor rootEditor = new TypeEditorProvider(false)
+                        .getRootEditor(before, after, builder, info);
+                return ProgressNotificationEditor.wrap(rootEditor, logger, "Checking node types:");
+            }
+        };
+    }
+
+    private static EditorProvider createIndexEditorProvider() {
+        final ProgressTicker ticker = new AsciiArtTicker();
+        return new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after, NodeBuilder builder, CommitInfo info) {
+                IndexEditorProvider editorProviders = new CompositeIndexEditorProvider(
+                        new ReferenceEditorProvider(),
+                        new PropertyIndexEditorProvider());
+
+                return new IndexUpdate(editorProviders, null, after, builder, new IndexUpdateCallback() {
+                    String progress = "Updating indexes ";
+                    long t0;
+                    @Override
+                    public void indexUpdate() {
+                        long t = System.currentTimeMillis();
+                        if (t - t0 > 2000) {
+                            logger.info("{} {}", progress, ticker.tick());
+                            t0 = t ;
+                        }
+                    }
+                });
+            }
+        };
     }
 
     protected ConfigurationParameters mapSecurityConfig(SecurityConfig config) {
