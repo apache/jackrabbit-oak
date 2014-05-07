@@ -13,14 +13,16 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
-  -->
+-->
+The Oak Security Layer
+======================
 
-The Oak Security Layer - Overview
-=================================
+User Management
+--------------------------------------------------------------------------------
 
-* [Authentication](authentication.html)
-* [Access Control](accesscontrol.html)
-* [Permission Evaluation](permission.html)
-* [Privilege Management](privilege.html)
-* [Principal Management](principal.html)
-* [User Management](user.html)
+_TODO_
+
+### Differences wrt Jackrabbit 2.x
+
+see the corresponding [documentation](../differences_user.html).
+

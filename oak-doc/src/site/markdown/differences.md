@@ -257,9 +257,9 @@ Because of the different identifier implementation in Oak, the value of a `jcr:f
 Security
 --------
 
-* [AccessControl Management](differences_accesscontrol.html)
 * [Authentication](differences_authentication.html)
+* [AccessControl Management](differences_accesscontrol.html)
 * [Permission Evaluation](differences_permission.html)
-* [Principal Management](differences_principal.html)
 * [Privilege Management](differences_privileges.html)
+* [Principal Management](differences_principal.html)
 * [User Management](differences_user.html)
