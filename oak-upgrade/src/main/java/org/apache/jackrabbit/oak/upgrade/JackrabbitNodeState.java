@@ -42,6 +42,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.MIX_REP_VERSIONABLE_PATHS;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -286,7 +287,14 @@ class JackrabbitNodeState extends AbstractNodeState {
             String uuid = getString(JCR_UUID);
             String path = versionablePaths.get(uuid);
             if (path != null) {
-                properties.put(workspaceName, PropertyStates.createProperty(workspaceName, path, Type.PATH));
+                properties.put(workspaceName, PropertyStates.createProperty(
+                        workspaceName, path, Type.PATH));
+
+                Set<String> mixins = newLinkedHashSet(getNames(JCR_MIXINTYPES));
+                if (mixins.add(MIX_REP_VERSIONABLE_PATHS)) {
+                    properties.put(JCR_MIXINTYPES, PropertyStates.createProperty(
+                            JCR_MIXINTYPES, mixins, Type.NAMES));
+                }
             }
         }
     }
