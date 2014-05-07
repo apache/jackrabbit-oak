@@ -38,6 +38,7 @@ import java.util.Random;
 import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
@@ -51,6 +52,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 import javax.jcr.version.Version;
+import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -430,6 +432,10 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
                     "OAK-1789",
                     child2.getIdentifier(),
                     frozenChild2.getProperty(JCR_FROZENUUID).getString());
+
+            VersionHistory history = manager.getVersionHistory("/versionable");
+            Property versionablePath = history.getProperty("default");
+            assertEquals("/versionable", versionablePath.getString());
         } finally {
             session.logout();
         }
