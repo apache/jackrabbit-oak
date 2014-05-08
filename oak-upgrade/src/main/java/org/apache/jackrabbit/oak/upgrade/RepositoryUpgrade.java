@@ -246,7 +246,7 @@ public class RepositoryUpgrade {
             NodeState base = target.getRoot();
             NodeBuilder builder = base.builder();
 
-            String workspace =
+            String workspaceName =
                     source.getRepositoryConfig().getDefaultWorkspaceName();
             SecurityProviderImpl security = new SecurityProviderImpl(
                     mapSecurityConfig(config.getSecurityConfig()));
@@ -257,7 +257,7 @@ public class RepositoryUpgrade {
                 initializer.initialize(builder);
             }
             for (SecurityConfiguration sc : security.getConfigurations()) {
-                sc.getWorkspaceInitializer().initialize(builder, workspace);
+                sc.getWorkspaceInitializer().initialize(builder, workspaceName);
             }
 
             HashBiMap<String, String> uriToPrefix = HashBiMap.create();
@@ -271,9 +271,10 @@ public class RepositoryUpgrade {
             new TypeEditorProvider(false).getRootEditor(
                     base, builder.getNodeState(), builder, null);
 
+            Map<String, String> versionablePaths = newHashMap();
             NodeState root = builder.getNodeState();
-            copyVersionStore(builder, root, uriToPrefix, idxToPrefix);
-            copyWorkspace(builder, root, workspace, uriToPrefix, idxToPrefix);
+            copyWorkspace(builder, root, workspaceName, uriToPrefix, idxToPrefix, versionablePaths);
+            copyVersionStore(builder, root, workspaceName, uriToPrefix, idxToPrefix, versionablePaths);
 
             logger.info("Applying default commit hooks");
             // TODO: default hooks?
@@ -292,7 +293,7 @@ public class RepositoryUpgrade {
 
             // security-related hooks
             for (SecurityConfiguration sc : security.getConfigurations()) {
-                hooks.addAll(sc.getCommitHooks(workspace));
+                hooks.addAll(sc.getCommitHooks(workspaceName));
             }
 
             // type validation, reference and indexing hooks
@@ -765,34 +766,40 @@ public class RepositoryUpgrade {
     }
 
     private void copyVersionStore(
-            NodeBuilder builder, NodeState root,
-            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
+            NodeBuilder builder, NodeState root, String workspaceName,
+            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix,
+            Map<String, String> versionablePaths)
             throws RepositoryException, IOException {
-        logger.info("Copying version histories");
-
         PersistenceManager pm =
                 source.getInternalVersionManager().getPersistenceManager();
-
         NodeBuilder system = builder.child(JCR_SYSTEM);
+
+        logger.info("Copying version histories");
         copyState(system, JCR_VERSIONSTORAGE, new JackrabbitNodeState(
                 pm, root, uriToPrefix, VERSION_STORAGE_NODE_ID,
-                "/jcr:system/jcr:versionStorage", copyBinariesByReference));
+                "/jcr:system/jcr:versionStorage",
+                workspaceName, versionablePaths, copyBinariesByReference));
+
+        logger.info("Copying activities");
         copyState(system, "jcr:activities", new JackrabbitNodeState(
                 pm, root, uriToPrefix, ACTIVITIES_NODE_ID,
-                "/jcr:system/jcr:activities", copyBinariesByReference));
+                "/jcr:system/jcr:activities",
+                workspaceName, versionablePaths, copyBinariesByReference));
     }
 
     private String copyWorkspace(
-            NodeBuilder builder, NodeState root, String name,
-            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix)
+            NodeBuilder builder, NodeState root, String workspaceName,
+            Map<String, String> uriToPrefix, Map<Integer, String> idxToPrefix,
+            Map<String, String> versionablePaths)
             throws RepositoryException, IOException {
-        logger.info("Copying workspace {}", name);
+        logger.info("Copying workspace {}", workspaceName);
 
         PersistenceManager pm =
-                source.getWorkspaceInfo(name).getPersistenceManager();
+                source.getWorkspaceInfo(workspaceName).getPersistenceManager();
 
         NodeState state = new JackrabbitNodeState(
-                pm, root, uriToPrefix, ROOT_NODE_ID, "/", copyBinariesByReference);
+                pm, root, uriToPrefix, ROOT_NODE_ID, "/",
+                workspaceName, versionablePaths, copyBinariesByReference);
 
         for (PropertyState property : state.getProperties()) {
             builder.setProperty(property);
@@ -800,11 +807,12 @@ public class RepositoryUpgrade {
         for (ChildNodeEntry child : state.getChildNodeEntries()) {
             String childName = child.getName();
             if (!JCR_SYSTEM.equals(childName)) {
+                logger.info("Copying subtree /{}", childName);
                 copyState(builder, childName, child.getNodeState());
             }
         }
 
-        return name;
+        return workspaceName;
     }
 
     private void copyState(NodeBuilder parent, String name, NodeState state) {

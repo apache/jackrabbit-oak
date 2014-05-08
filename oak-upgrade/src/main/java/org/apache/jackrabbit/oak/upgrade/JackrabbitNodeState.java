@@ -31,10 +31,13 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -103,9 +106,15 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final BundleLoader loader;
 
+    private final String workspaceName;
+
     private final TypePredicate isReferenceable;
 
     private final TypePredicate isOrderable;
+
+    private final TypePredicate isVersionable;
+
+    private final TypePredicate isVersionHistory;
 
     private final TypePredicate isFrozenNode;
 
@@ -114,11 +123,13 @@ class JackrabbitNodeState extends AbstractNodeState {
      */
     private final Map<String, String> uriToPrefix;
 
+    private final Map<String, String> versionablePaths;
+
+    private final boolean useBinaryReferences;
+
     private final Map<String, NodeId> nodes;
 
     private final Map<String, PropertyState> properties;
-
-    private final boolean useBinaryReferences;
 
     private JackrabbitNodeState(
             JackrabbitNodeState parent, String name, NodePropBundle bundle) {
@@ -126,30 +137,41 @@ class JackrabbitNodeState extends AbstractNodeState {
         this.name = name;
         this.path = null;
         this.loader = parent.loader;
+        this.workspaceName = parent.workspaceName;
         this.isReferenceable = parent.isReferenceable;
         this.isOrderable = parent.isOrderable;
+        this.isVersionable = parent.isVersionable;
+        this.isVersionHistory = parent.isVersionHistory;
         this.isFrozenNode = parent.isFrozenNode;
         this.uriToPrefix = parent.uriToPrefix;
+        this.versionablePaths = parent.versionablePaths;
+        this.useBinaryReferences = parent.useBinaryReferences;
         this.properties = createProperties(bundle);
         this.nodes = createNodes(bundle);
         setChildOrder();
+        setVersionablePaths();
         fixFrozenUuid();
-        this.useBinaryReferences = parent.useBinaryReferences;
         logNewNode(this);
     }
 
     JackrabbitNodeState(
             PersistenceManager source, NodeState root,
             Map<String, String> uriToPrefix, NodeId id, String path,
+            String workspaceName, Map<String, String> versionablePaths,
             boolean useBinaryReferences) {
         this.parent = null;
         this.name = null;
         this.path = path;
         this.loader = new BundleLoader(source);
+        this.workspaceName = workspaceName;
         this.isReferenceable = new TypePredicate(root, MIX_REFERENCEABLE);
         this.isOrderable = TypePredicate.isOrderable(root);
+        this.isVersionable = new TypePredicate(root, MIX_VERSIONABLE);
+        this.isVersionHistory = new TypePredicate(root, NT_VERSIONHISTORY);
         this.isFrozenNode = new TypePredicate(root, NT_FROZENNODE);
         this.uriToPrefix = uriToPrefix;
+        this.versionablePaths = versionablePaths;
+        this.useBinaryReferences = useBinaryReferences;
         try {
             NodePropBundle bundle = loader.loadBundle(id);
             this.properties = createProperties(bundle);
@@ -158,7 +180,6 @@ class JackrabbitNodeState extends AbstractNodeState {
         } catch (ItemStateException e) {
             throw new IllegalStateException("Unable to access node " + id, e);
         }
-        this.useBinaryReferences = useBinaryReferences;
         logNewNode(this);
     }
 
@@ -252,6 +273,21 @@ class JackrabbitNodeState extends AbstractNodeState {
         if (isOrderable.apply(this)) {
             properties.put(OAK_CHILD_ORDER, PropertyStates.createProperty(
                     OAK_CHILD_ORDER, nodes.keySet(), Type.NAMES));
+        }
+    }
+
+    private void setVersionablePaths() {
+        if (isVersionable.apply(this)) {
+            String uuid = getString(JCR_VERSIONHISTORY);
+            if (uuid != null) {
+                versionablePaths.put(uuid, getPath());
+            }
+        } else if (isVersionHistory.apply(this)) {
+            String uuid = getString(JCR_UUID);
+            String path = versionablePaths.get(uuid);
+            if (path != null) {
+                properties.put(workspaceName, PropertyStates.createProperty(workspaceName, path, Type.PATH));
+            }
         }
     }
 
