@@ -33,8 +33,7 @@ order to combine principals from different sources a implementation that properl
 handles the different sources is required; the [CompositePrincipalProvider] is an
 example that combines multiple implementations.
 
-NOTE: see [OAK-1798] for an improvement to ease pluggability of custom `PrincipalProvider`
-implementations.
+See [Principal Management](../principal.html) for an example.
 
 <!-- references -->
 
@@ -43,4 +42,3 @@ implementations.
 [org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/AdminPrincipal.html
 [org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html
 [org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/SystemPrincipal.html
-[OAK-1798]: https://issues.apache.org/jira/browse/OAK-1798
