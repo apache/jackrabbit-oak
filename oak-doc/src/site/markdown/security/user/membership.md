@@ -18,6 +18,14 @@
 Group Membership
 --------------------------------------------------------------------------------
 
+### Jackrabbit API
+
+_todo_
+
+### Characteristics of the Default Implementation
+
+#### Member Representation in the Repository
+
 ##### Behavior in Jackrabbit 2.x
 With the default configuration Jackrabbit 2.x stores the group members as
 _weak references_ in a `rep:members` multi value property in the group node.
@@ -93,9 +101,11 @@ will limit the size of the multi value properties and create overflow
         }
     }
 
-*Note*: The exact threshold value that determines the storage strategy is an implementation detail and might even vary depending on the underlying persistence layer.
+*Note*: The exact threshold value that determines the storage strategy is an
+implementation detail and might even vary depending on the underlying persistence layer.
+In Oak 1.0 the threshold value is set to 100.
 
-##### Upgrading Groups from Jackrabbit 2.x to OAK content structure
+#### Upgrading Groups from Jackrabbit 2.x to OAK content structure
 
 Upon upgrade from a Jackrabbit 2.x repository to OAK the group member lists that
 adjusted to reflect the new content structure as created by the OAK user management
@@ -104,10 +114,12 @@ by the migration process. Applications that rely on these implementation
 details of Jackrabbit 2.x user management instead of use the corresponding
 API calls will need to be modified accordingly.
 
-##### Importing Group Members
+#### XML Import of Group Members
+
 Importing group members through the import methods in `javax.jcr.Session` or
 `javax.jcr.Workspace` is storage agnostic and supports both, property based and
 node based, strategies and is backward compatible to content exported from
 Jackrabbit 2.x. The group member lists that are modified during an import are
 internally processed using the normal user manager APIs. This implies that the
-node structure after the import might not be the same as the one represented in the input.
+node structure after the import might not be the same as the one represented in
+the input.
