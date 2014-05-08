@@ -40,6 +40,7 @@ import org.junit.Test;
 
 public class BackgroundObserverTest {
     private static final CommitInfo COMMIT_INFO = new CommitInfo("no-session", null);
+    public static final int CHANGE_COUNT = 1024;
 
     private final List<Runnable> assertions = Lists.newArrayList();
     private CountDownLatch doneCounter;
@@ -52,7 +53,7 @@ public class BackgroundObserverTest {
     public void concurrentObservers() throws InterruptedException {
         Observer observer = createCompositeObserver(newFixedThreadPool(16), 128);
 
-        for (int k = 0; k < 1024; k++) {
+        for (int k = 0; k < CHANGE_COUNT; k++) {
             contentChanged(observer, k);
         }
         done(observer);
@@ -90,6 +91,11 @@ public class BackgroundObserverTest {
     }
 
     private Observer createBackgroundObserver(ExecutorService executor) {
+        // Ensure the observation revision queue is sufficiently large to hold
+        // all revisions. Otherwise waiting for events might block since pending
+        // events would only be released on a subsequent commit. See OAK-1491
+        int queueLength = CHANGE_COUNT + 1;
+
         return new BackgroundObserver(new Observer() {
             // Need synchronised list here to maintain correct memory barrier
             // when this is passed on to done(List<Runnable>)
@@ -117,7 +123,7 @@ public class BackgroundObserverTest {
             private Long getP(NodeState previous) {
                 return previous.getProperty("p").getValue(Type.LONG);
             }
-        }, executor, 1024);
+        }, executor, queueLength);
     }
 
 }
