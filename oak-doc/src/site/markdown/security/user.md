@@ -133,14 +133,6 @@ See also `PARAM_SUPPORT_AUTOSAVE` below; while this should not be needed if
 application code has been written against the Jackrabbit API (and thus testing if
 auto-save mode is enabled or not) this configuration option can be used as last resort.
 
-#### XML Import
-As of OAK 1.0 user and group nodes can be imported both with Session and Workspace
-import. The difference compare to Jackrabbit 2.x are listed below:
-
-* Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
-* NEW: The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
-* NEW: Workspace Import
-
 
 ### User/Group Representation in the Repository
 
@@ -171,6 +163,15 @@ The following block lists the built-in node types related to user management tas
       orderable
       + * (rep:Members) = rep:Members protected multiple
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
+
+### XML Import
+As of OAK 1.0 user and group nodes can be imported both with Session and Workspace
+import. The difference compare to Jackrabbit 2.x are listed below:
+
+* Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
+* NEW: The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
+* NEW: Workspace Import
+
 
 
 ### API Extensions
