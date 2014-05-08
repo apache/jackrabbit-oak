@@ -88,8 +88,36 @@ Furthermore JCR defines two types of `Credentials` implementations:
 - [javax.jcr.GuestCredentials]: used to obtain a "guest", "public" or "anonymous" session.
 - [javax.jcr.SimpleCredentials]: used to login a user with a userId and password.
 
+The following variants exist for the repository login itself:
+
+- `Repository.login()`: equivalent to passing `null` credentials and the default workspace name.
+- `Repository.login(Credentials credentials): login with credentials to the default workspace.
+- `Repository.login(String workspace): login with `null` credentials to the workspace with the specified name.
+- `Repository.login(Credentials credentials, String workspaceName`)
+- `JackrabbitRepository.login(Credentials credentials, String workspaceName, Map<String, Object> attributes)`:
+  in addition allows to pass implementation specific session attributes.
+
+See [javax.jcr.Repository] and [org.apache.jackrabbit.api.JackrabbitRepository]
+for further details.
+
+In addition JCR defines `Session.impersonate(Credentials)` to impersonate another
+user or - as of JSR 333 -  clone an existing session.
+
 
 ### Oak Authentication
+
+#### General Notes
+
+_todo_
+
+#### Oak API
+
+_todo_
+
+- ContentRepository.login
+- AuthInfo
+- ContentSession.getAuthInfo
+
 
 #### Differences wrt Jackrabbit 2.x
 
@@ -179,7 +207,62 @@ This login module implementations behaves as follows:
 
 #### Impersonation
 
-_todo_
+Another flavor of the Oak authentication implementation is covered by
+`javax.jcr.Session#impersonate(Credentials)`, which allows to obtain an new
+`Session` for user identitified by the specified credentials. As of JSR 333
+this method can also be used in order to clone the existing session (i.e.
+self-impersonation of the user that holds the session.
+
+With Oak 1.0 impersonation is implemented as follows:
+
+1. `Session#impersonate` takes any kind of `Credentials`
+2. the specified credentials are wrapped in a new instance of [ImpersonationCredentials]
+   along with the current [AuthInfo] object.
+3. these `ImpersonationCredentials` are passed to `Repository.login`
+
+Whether or not impersonation succeeds consequently both depends on the authentication
+setup and on some implementation specific validation that make sure the
+editing session is allowed to impersonate the user identified by the credentials
+passed to the impersonate call.
+
+With Oak 1.0 only the default login module ([LoginModuleImpl]) is able to deal
+with `ImpersonationCredentials` and applies the following logic:
+
+- **Self-Impersonation**: Any attempt to impersonate the same session will succeed
+  as long as the user is still valid (i.e. exists and has not been disabled).
+- **Regular Impersonation**: Impersonation another user will only succeed if
+  the impersonated user is valid (i.e. exists and is not disabled) _and_ the
+  the user associated with the editing session is allowed to impersonate this
+  user. The latter depends on the [User Management](user.html) implementation
+  specifically on the return value of `User.getImpersonation().allows(Subject subject)`.
+
+##### ImpersonationCredentials
+
+Since the implementation of `Session.impersonate` no longer uses `SimpleCredentials`
+to transport the original `Subject` but rather performs the login with dedicated
+[ImpersonationCredentials], impersonation is no longer restricted to `SimpleCredentials`
+being passed to `Session#impersonate` call. Instead the specified credentials are
+passed to a new instance of `ImpersonationCredentials` delegating the evaluation
+and validation of the specified `Credentials` to the configured login module(s).
+
+This modification will not affect applications that used JCR API to impersonate
+a given session. Note however that applications relying on the Jackrabbit
+implementation and manually creating `SimpleCredentials` with a
+`SecurityConstants.IMPERSONATOR_ATTRIBUTE`, would need to be refactor after
+migration to Oak.
+
+##### Impersonation with Custom Authentication Setup
+
+Applications that wish to use a custom authentication setup need to ensure the
+following steps in order to get JCR impersonation working:
+
+- Respect `ImpersonationCredentials` in the authentication setup.
+- Identify the impersonated from `ImpersonationCredentials.getBaseCredentials`
+  and verify if it can be authenticated.
+- Validate that the editing session is allowed to impersonate: The user associated
+  with the editing session can be identified by the [AuthInfo] obtained from
+  from `ImpersonationCredentials.getImpersonatorInfo()`.
+
 
 #### Token Login
 
@@ -297,6 +380,10 @@ There also exists a utility class that allows to obtain different
 [javax.security.auth.login.Configuration]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/login/Configuration.html
 [javax.jcr.GuestCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/GuestCredentials.html
 [javax.jcr.SimpleCredentials]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/SimpleCredentials.html
+[javax.jcr.Repository]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
+[org.apache.jackrabbit.api.JackrabbitRepository]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java
+[ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html
+[AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthInfo.html
 [GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
 [LoginModuleImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/user/LoginModuleImpl.html
 [com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html
