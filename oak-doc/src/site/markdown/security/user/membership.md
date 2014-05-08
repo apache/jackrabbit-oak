@@ -105,7 +105,7 @@ will limit the size of the multi value properties and create overflow
 implementation detail and might even vary depending on the underlying persistence layer.
 In Oak 1.0 the threshold value is set to 100.
 
-#### Upgrading Groups from Jackrabbit 2.x to OAK content structure
+#### Upgrading Groups from Jackrabbit 2.x to Oak content structure
 
 Upon upgrade from a Jackrabbit 2.x repository to OAK the group member lists that
 adjusted to reflect the new content structure as created by the OAK user management
