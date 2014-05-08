@@ -13,13 +13,9 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
--->
+  -->
 
-Access Control
+Restriction Management
 --------------------------------------------------------------------------------
 
-_TODO_
-
-### Differences wrt Jackrabbit 2.x
-
-see the corresponding [documentation](../differences_accesscontrol.html).
+_todo_
