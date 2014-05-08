@@ -56,3 +56,4 @@ The Oak Security Layer
  * [Overview](user.html)
  * [Differences wrt Jackrabbit 2.x](user/differences.html)
  * [Authorizable Actions](user/authorizableaction.html)
+ * [Searching Users and Groups](user/query.html)
