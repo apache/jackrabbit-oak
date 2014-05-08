@@ -38,6 +38,8 @@ This interface replaces the internal `PrincipalProvider` interface present in
 Jackrabbit 2.x. Note, that principals from different sources can be supported by
 using [CompositePrincipalProvider] or a similar implementation that proxies
 different sources.
+- [CompositePrincipalProvider]: Implementation that combines different principals
+from different source providers.
 
 ##### Special Principals
 - [AdminPrincipal]: Marker interface to identify the principal associated with administrative user(s).
@@ -51,10 +53,78 @@ The [PrincipalConfiguration] is the Oak level entry point to obtain a new
 options. The default implementation of the [PrincipalManager] interface is based
 on Oak API and can equally be used for privilege related tasks in the Oak layer.
 
-Note, that in contrast to Jackrabbit 2.x the system may only have one single principal
+In contrast to Jackrabbit 2.x the system may only have one single principal
 provider implementation configured. In order to combine principals from different
 sources a implementation that properly handles the different sources is required;
 the [CompositePrincipalProvider] is an example that combines multiple implementations.
+
+### Pluggability
+
+The default security setup as present with Oak 1.0 is able to track custom
+`PrincipalConfiguration` implementations and will automatically combine the different
+principal provider implementations as noted above.
+
+In an OSGi setup the following steps are required in order to add a custom principal
+provider implementation:
+
+- implement `PrincipalProvider` interface
+- create the `PrincipalConfiguration` that exposes the custom provider
+- make the configuration implementation an OSGi service and make it available to the Oak repository.
+
+#### Examples
+
+##### Custom PrincipalConfiguration
+
+     @Component()
+     @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
+     public class MyPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+
+         public MyPrincipalConfiguration() {
+             super();
+         }
+
+         public MyPrincipalConfiguration(SecurityProvider securityProvider) {
+             super(securityProvider, securityProvider.getParameters(NAME));
+         }
+
+         @Activate
+         private void activate(Map<String, Object> properties) {
+             setParameters(ConfigurationParameters.of(properties));
+         }
+
+
+         //---------------------------------------------< PrincipalConfiguration >---
+         @Nonnull
+         @Override
+         public PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper) {
+             PrincipalProvider principalProvider = getPrincipalProvider(root, namePathMapper);
+             return new PrincipalManagerImpl(principalProvider);
+         }
+
+         @Nonnull
+         @Override
+         public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+             return new MyPrincipalProvider(root, namePathMapper);
+         }
+
+         //----------------------------------------------< SecurityConfiguration >---
+         @Nonnull
+         @Override
+         public String getName() {
+             return NAME;
+         }
+     }
+
+##### Custom PrincipalProvider
+
+     final class MyPrincipalProvider implements PrincipalProvider {
+
+         MyPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+              ...
+         }
+
+         ...
+     }
 
 <!-- references -->
 

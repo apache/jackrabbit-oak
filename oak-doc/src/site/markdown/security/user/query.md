@@ -41,6 +41,7 @@ _todo_
 
 - simple search by property
 - query api
+- examples
 
 
 ### Characteristics of the Default Implementation
