@@ -31,8 +31,8 @@ writing protected items.
 
 ### Default Actions
 
-The default implementations of the `AuthorizableAction` interface present with
-OAK match the implementations available with Jackrabbit 2.x:
+The default implementations of the `AuthorizableAction` interface are present with
+Oak 1.0:
 
 * `AccessControlAction`: set up permission for new authorizables
 * `PasswordAction`: simplistic password verification upon user creation and password modification

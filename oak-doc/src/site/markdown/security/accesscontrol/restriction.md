@@ -18,4 +18,32 @@
 Restriction Management
 --------------------------------------------------------------------------------
 
+### Overview
+
 _todo_
+
+
+### Default Restrictions
+
+The default implementations of the `Restriction` interface are present with
+Oak 1.0:
+
+* `rep:glob`:
+* `rep:ntNames`:
+* `rep:prefixes`:
+
+### Pluggability
+
+_todo_
+
+
+#### Examples
+
+##### Custom RestrictionProvider
+
+_todo_
+
+##### Custom Restriction
+
+_todo_
+
