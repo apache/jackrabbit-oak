@@ -55,14 +55,9 @@ public class BenchmarkRunner {
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(100);
-        OptionSpec<Integer> fdsCache = parser.accepts("blobCache", "cache size (MB)")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(32);
-        OptionSpec<File> wikipedia = parser
-                .accepts("wikipedia", "Wikipedia dump").withRequiredArg()
-                .ofType(File.class);
-        OptionSpec<Boolean> withStorage = parser
-                .accepts("storage", "Index storage enabled").withOptionalArg()
-                .ofType(Boolean.class);
+        OptionSpec<File> wikipedia =
+                parser.accepts("wikipedia", "Wikipedia dump")
+                .withRequiredArg().ofType(File.class);
         OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
@@ -77,7 +72,7 @@ public class BenchmarkRunner {
                         .defaultsTo(Boolean.FALSE);
         OptionSpec<File> csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
                 .withOptionalArg().ofType(File.class);
-        OptionSpec<Boolean> flatStructure = parser.accepts("flatStructure", "Whether the test should use a flat structure or not.")
+        OptionSpec<Boolean> flatStructure = parser.accepts("flatStructure", "Whether user/group should be setup with a flat structure or not.")
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
@@ -94,12 +89,6 @@ public class BenchmarkRunner {
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
-                OakRepositoryFixture.getMongoWithFDS(
-                        host.value(options), port.value(options),
-                        dbName.value(options), dropDBAfterTest.value(options),
-                        cacheSize * MB,
-                        base.value(options),
-                        fdsCache.value(options)),
                 OakRepositoryFixture.getMongoNS(
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),
@@ -109,8 +98,6 @@ public class BenchmarkRunner {
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
                 OakRepositoryFixture.getTar(
-                        base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getTarWithBlobStore(
                         base.value(options), 256, cacheSize, mmap.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
@@ -144,10 +131,7 @@ public class BenchmarkRunner {
             new CreateManyNodesTest(),
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
-            new WikipediaImport(
-                    wikipedia.value(options),
-                    flatStructure.value(options),
-                    report.value(options)),
+            new WikipediaImport(wikipedia.value(options)),
             new CreateNodesBenchmark(),
             new ManyNodes(),
             new ObservationTest(),
@@ -216,11 +200,7 @@ public class BenchmarkRunner {
                     flatStructure.value(options)),
             new GetPrincipalTest(
                     numberOfUsers.value(options),
-                    flatStructure.value(options)),
-            new FullTextSearchTest(
-                    wikipedia.value(options),
-                    flatStructure.value(options),
-                    report.value(options), withStorage.value(options))
+                    flatStructure.value(options))
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());

@@ -99,6 +99,17 @@
     <directoryFactory name="DirectoryFactory"
                       class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}">
 
+
+        <!-- These will be used if you are using the solr.HdfsDirectoryFactory,
+             otherwise they will be ignored. If you don't plan on using hdfs,
+             you can safely remove this section. -->
+        <!-- The root directory that collection data should be written to. -->
+        <str name="solr.hdfs.home">${solr.hdfs.home:}</str>
+        <!-- The hadoop configuration files to use for the hdfs client. -->
+        <str name="solr.hdfs.confdir">${solr.hdfs.confdir:}</str>
+        <!-- Enable/Disable the hdfs cache. -->
+        <str name="solr.hdfs.blockcache.enabled">${solr.hdfs.blockcache.enabled:true}</str>
+
     </directoryFactory>
 
     <!-- The CodecFactory for defining the format of the inverted index.
@@ -192,10 +203,10 @@
              will be allowed before they are merged into one.
              Default is 10 for both merge policies.
           -->
-
         <!--
         <mergeFactor>10</mergeFactor>
-        -->
+          -->
+
 
         <!-- Expert: Merge Scheduler
              The Merge Scheduler in Lucene controls how merges are
@@ -294,7 +305,7 @@
              IndexWriter to write its info stream to solr's log. By default,
              this is enabled here, and controlled through log4j.properties.
           -->
-        <infoStream>false</infoStream>
+        <infoStream>true</infoStream>
     </indexConfig>
 
 
@@ -488,19 +499,19 @@
                    and old cache.
           -->
         <filterCache class="solr.FastLRUCache"
-                     size="4096"
-                     initialSize="1024"
-                     autowarmCount="512"/>
+                     size="512"
+                     initialSize="512"
+                     autowarmCount="0"/>
 
         <!-- Query Result Cache
 
              Caches results of searches - ordered lists of document ids
              (DocList) based on a query, a sort, and the range of documents requested.
           -->
-        <queryResultCache class="solr.FastLRUCache"
-                          size="40960"
-                          initialSize="4096"
-                          autowarmCount="2048"/>
+        <queryResultCache class="solr.LRUCache"
+                          size="512"
+                          initialSize="512"
+                          autowarmCount="0"/>
 
         <!-- Document Cache
 
@@ -509,8 +520,8 @@
              this cache will not be autowarmed.
           -->
         <documentCache class="solr.LRUCache"
-                       size="40960"
-                       initialSize="1024"
+                       size="512"
+                       initialSize="512"
                        autowarmCount="0"/>
 
         <!-- custom cache currently used by block join -->
@@ -527,10 +538,12 @@
              by document id.  The fieldValueCache is created by default
              even if not configured here.
           -->
-       <fieldValueCache class="solr.FastLRUCache"
-                        size="4096"
-                        autowarmCount="1024"
-                        showItems="32" />
+        <!--
+           <fieldValueCache class="solr.FastLRUCache"
+                            size="512"
+                            autowarmCount="128"
+                            showItems="32" />
+          -->
 
         <!-- Custom Cache
 
@@ -614,10 +627,12 @@
         <!-- QuerySenderListener takes an array of NamedList and executes a
              local query request for each NamedList in sequence.
           -->
-        <!--<listener event="newSearcher" class="solr.QuerySenderListener">
+        <listener event="newSearcher" class="solr.QuerySenderListener">
             <arr name="queries">
+                <!--
                    <lst><str name="q">solr</str><str name="sort">price asc</str></lst>
                    <lst><str name="q">rocks</str><str name="sort">weight asc</str></lst>
+                  -->
             </arr>
         </listener>
         <listener event="firstSearcher" class="solr.QuerySenderListener">
@@ -626,7 +641,7 @@
                     <str name="q">static firstSearcher warming in solrconfig.xml</str>
                 </lst>
             </arr>
-        </listener>-->
+        </listener>
 
         <!-- Use Cold Searcher
 

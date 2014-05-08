@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
@@ -337,7 +336,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             solrQuery.setParam("df", catchAllField);
         }
 
-        solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
+        // TODO : can we handle this better? e.g. with deep paging support?
+        solrQuery.setParam("rows", "100000");
     }
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
@@ -381,7 +381,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             if (log.isDebugEnabled()) {
                 log.debug("getting response {}", queryResponse);
             }
-            cursor = new SolrCursor(queryResponse, query);
+            cursor = new SolrCursor(queryResponse);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -391,34 +391,29 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     private class SolrCursor implements Cursor {
 
-        private SolrDocumentList results;
+        private final SolrDocumentList results;
 
-        private SolrQuery query;
+        private int i;
 
-        private int counter;
-        private int offset;
-
-        public SolrCursor(QueryResponse queryResponse, SolrQuery query) {
+        public SolrCursor(QueryResponse queryResponse) {
             this.results = queryResponse.getResults();
-            this.counter = 0;
-            this.offset = 0;
-            this.query = query;
+            i = 0;
         }
 
         @Override
         public boolean hasNext() {
-            return results != null && offset + counter < results.getNumFound();
+            return results != null && i < results.size();
         }
 
         @Override
         public void remove() {
-            results.remove(counter);
+            results.remove(i);
         }
 
         public IndexRow next() {
-            if (counter < results.size() || updateResults()) {
-                final SolrDocument doc = results.get(counter);
-                counter++;
+            if (i < results.size()) {
+                final SolrDocument doc = results.get(i);
+                i++;
                 return new IndexRow() {
                     @Override
                     public String getPath() {
@@ -443,26 +438,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 };
             } else {
                 return null;
-            }
-        }
-
-        private boolean updateResults() {
-            int newOffset = offset + results.size();
-            query.setParam("start", String.valueOf(newOffset));
-            try {
-                QueryResponse queryResponse = solrServer.query(query);
-                SolrDocumentList localResults = queryResponse.getResults();
-                boolean hasMoreResults = localResults.size() > 0;
-                if (hasMoreResults) {
-                    counter = 0;
-                    offset = newOffset;
-                    results = localResults;
-                } else {
-                    query.setParam("start", String.valueOf(offset));
-                }
-                return hasMoreResults;
-            } catch (SolrServerException e) {
-                throw new RuntimeException("error retrieving paged results", e);
             }
         }
     }

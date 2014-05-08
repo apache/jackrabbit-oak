@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -86,68 +85,45 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         // try SolrCloud client
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
         cloudSolrServer.setZkConnectTimeout(100);
-        if (connectToZK(cloudSolrServer)) {
-            cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
+        cloudSolrServer.connect();
+        cloudSolrServer.setDefaultCollection("collection1"); // workaround for first request when the needed collection may not exist
 
-            // create specified collection if it doesn't exists
-            try {
-                createCollectionIfNeeded(cloudSolrServer);
-            } catch (Throwable t) {
-                if (log.isWarnEnabled()) {
-                    log.warn("could not create the collection on {}", remoteSolrServerConfiguration.getSolrZkHost(), t);
-                }
+        // create specified collection if it doesn't exists
+        try {
+            createCollectionIfNeeded(cloudSolrServer);
+        } catch (Throwable t) {
+            if (log.isWarnEnabled()) {
+                log.warn("could not create the collection on {}", remoteSolrServerConfiguration.getSolrZkHost(), t);
             }
-
-            cloudSolrServer.setDefaultCollection(remoteSolrServerConfiguration.getSolrCollection());
-
-            // SolrCloud may need some time to sync on collection creation (to spread it over the shards / replicas)
-            int i = 0;
-            while (i < 3) {
-                try {
-                    SolrPingResponse ping = cloudSolrServer.ping();
-                    if (ping != null && 0 == ping.getStatus()) {
-                        return cloudSolrServer;
-                    } else {
-                        throw new IOException("the found SolrCloud server is not alive");
-                    }
-                } catch (Exception e) {
-                    // wait a bit
-                    try {
-                        if (log.isDebugEnabled()) {
-                            log.debug("server is not alive yet, wait a bit", e);
-                        }
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e1) {
-                        // do nothing
-                    }
-                }
-                i++;
-            }
-            throw new IOException("the found SolrCloud server is not alive");
-        }
-        else {
-            throw new IOException("could not connect to Zookeeper hosted at " + remoteSolrServerConfiguration.getSolrZkHost());
         }
 
-    }
+        cloudSolrServer.setDefaultCollection(remoteSolrServerConfiguration.getSolrCollection());
 
-    private boolean connectToZK(CloudSolrServer cloudSolrServer) {
-        boolean connected = false;
-        for (int i = 0; i < 3; i++) {
+        // SolrCloud may need some time to sync on collection creation (to spread it over the shards / replicas)
+        int i = 0;
+        while (i < 3) {
             try {
-                cloudSolrServer.connect();
-                connected = true;
-                break;
+                SolrPingResponse ping = cloudSolrServer.ping();
+                if (ping != null && 0 == ping.getStatus()) {
+                    return cloudSolrServer;
+                } else {
+                    throw new IOException("the found SolrCloud server is not alive");
+                }
             } catch (Exception e) {
-                log.warn("could not connect to ZK", e);
+                // wait a bit
                 try {
+                    if (log.isDebugEnabled()) {
+                        log.debug("server is not alive yet, wait a bit", e);
+                    }
                     Thread.sleep(3000);
                 } catch (InterruptedException e1) {
                     // do nothing
                 }
             }
+            i++;
         }
-        return connected;
+        throw new IOException("the found SolrCloud server is not alive");
+
     }
 
     private void createCollectionIfNeeded(CloudSolrServer cloudSolrServer) throws SolrServerException, IOException {
@@ -166,8 +142,10 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
                 ZkController.uploadConfigDir(zkClient, dir, solrCollection);
                 UpdateRequest req = new UpdateRequest("/admin/collections");
                 req.setParam("action", "CREATE");
-                req.setParam("numShards", String.valueOf(remoteSolrServerConfiguration.getSolrShardsNo()));
-                req.setParam("replicationFactor", String.valueOf(remoteSolrServerConfiguration.getSolrReplicationFactor()));
+                if (remoteSolrServerConfiguration != null) {
+                    req.setParam("numShards", String.valueOf(remoteSolrServerConfiguration.getSolrShardsNo()));
+                    req.setParam("replicationFactor", String.valueOf(remoteSolrServerConfiguration.getSolrReplicationFactor()));
+                }
                 req.setParam("collection.configName", solrCollection);
                 req.setParam("name", solrCollection);
                 cloudSolrServer.request(req);

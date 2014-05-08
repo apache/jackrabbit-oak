@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.Value;
 
 import org.junit.Test;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * {@code AutoCreatedItemsTest} checks if auto-created nodes and properties

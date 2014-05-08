@@ -18,39 +18,24 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.Integer.parseInt;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class RecordId implements Comparable<RecordId> {
-
-    private static final Pattern PATTERN = Pattern.compile(
-            "([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-            + "(:(0|[1-9][0-9]*)|\\.([0-9a-f]{4}))");
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
     public static RecordId fromString(SegmentTracker factory, String id) {
-        Matcher matcher = PATTERN.matcher(id);
-        if (matcher.matches()) {
-            UUID uuid = UUID.fromString(matcher.group(1));
-            SegmentId segmentId = factory.getSegmentId(
-                    uuid.getMostSignificantBits(),
-                    uuid.getLeastSignificantBits());
-
-            int offset;
-            if (matcher.group(3) != null) {
-                offset = parseInt(matcher.group(3));
-            } else {
-                offset = parseInt(matcher.group(4), 16) << RECORD_ALIGN_BITS;
-            }
-
-            return new RecordId(segmentId, offset);
+        int colon = id.indexOf(':');
+        if (colon != -1) {
+            UUID uuid = UUID.fromString(id.substring(0, colon));
+            return new RecordId(
+                    factory.getSegmentId(
+                            uuid.getMostSignificantBits(),
+                            uuid.getLeastSignificantBits()),
+                    Integer.parseInt(id.substring(colon + 1)));
         } else {
-            throw new IllegalArgumentException("Bad record identifier: " + id);
+            throw new IllegalArgumentException("Bad RecordId: " + id);
         }
     }
 
@@ -60,7 +45,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     public RecordId(SegmentId segmentId, int offset) {
         checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
-        checkArgument((offset % (1 << RECORD_ALIGN_BITS)) == 0);
+        checkArgument((offset & 3) == 0);
         this.segmentId = checkNotNull(segmentId);
         this.offset = offset;
     }
@@ -93,7 +78,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     @Override
     public String toString() {
-        return String.format("%s.%04x", segmentId, offset >> RECORD_ALIGN_BITS);
+        return segmentId + ":" + offset;
     }
 
     @Override

@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import java.util.List;
 
+import javax.annotation.CheckForNull;
+
+import com.google.common.base.Predicate;
+
 /**
  * Tracker for whiteboard services.
  */

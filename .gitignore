@@ -3,6 +3,3 @@
 .project
 target
 oak-run/*.csv
-.idea
-*.iml
-atlassian-ide-plugin.xml

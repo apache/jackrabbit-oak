@@ -21,8 +21,6 @@
         <fieldType name="descendent_path" class="solr.TextField">
             <analyzer type="index">
                 <tokenizer class="solr.PathHierarchyTokenizerFactory" delimiter="/" />
-                <filter class="solr.PatternCaptureGroupFilterFactory" pattern="((/).*)" preserve_original="false"/>
-                <filter class="solr.RemoveDuplicatesTokenFilterFactory" />
             </analyzer>
             <analyzer type="query">
                 <tokenizer class="solr.KeywordTokenizerFactory" />

@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
@@ -88,7 +87,7 @@ public class Main {
 
         Mode mode = Mode.SERVER;
         if (args.length > 0) {
-            mode = Mode.valueOf(args[0].toUpperCase(Locale.ENGLISH));
+            mode = Mode.valueOf(args[0].toUpperCase());
             String[] tail = new String[args.length - 1];
             System.arraycopy(args, 1, tail, 0, tail.length);
             args = tail;
@@ -179,6 +178,7 @@ public class Main {
                             dataCount++;
                             dataSize += segment.size();
                             idmap.put(id, segment.getReferencedIds());
+                            System.out.println(id + " -> " + idmap.get(id));
                         } else if (id.isBulkSegmentId()) {
                             bulkCount++;
                             bulkSize += id.getSegment().size();
@@ -246,15 +246,10 @@ public class Main {
                                 path = matcher.group(3);
                             }
                             NodeState node = new SegmentNodeState(id);
-                            System.out.println("/ (" + id + ") -> " + node);
+                            System.out.println("/ -> " + node);
                             for (String name : PathUtils.elements(path)) {
                                 node = node.getChildNode(name);
-                                RecordId nid = null;
-                                if (node instanceof SegmentNodeState) {
-                                    nid = ((SegmentNodeState) node).getRecordId();
-                                }
-                                System.out.println(
-                                        "  " + name  + " (" + nid + ") -> " + node);
+                                System.out.println(" " + name  + " -> " + node);
                             }
                         }
                     }
@@ -384,7 +379,7 @@ public class Main {
             if (baseFile == null) {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
-            oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
+            oakFixture = OakFixture.getTar(baseFile, 256, cacheSize, mmap.value(options));
         } else if (fix.equals(OakFixture.OAK_H2)) {
             File baseFile = base.value(options);
             if (baseFile == null) {

@@ -77,11 +77,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
-// Don't run "Parallelized" as this causes tests to timeout in "weak" environments
 public class ObservationTest extends AbstractRepositoryTest {
     public static final int ALL_EVENTS = NODE_ADDED | NODE_REMOVED | NODE_MOVED | PROPERTY_ADDED |
             PROPERTY_REMOVED | PROPERTY_CHANGED | PERSIST;
@@ -89,7 +85,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     private static final String REFERENCEABLE_NODE = "\"referenceable\"";
     private static final String TEST_PATH = '/' + TEST_NODE;
     private static final String TEST_TYPE = "mix:test";
-    public static final int TIME_OUT = 60;
+    public static final int TIME_OUT = 4;
 
     private Session observingSession;
     private ObservationManager observationManager;
@@ -464,7 +460,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         }).get(10, TimeUnit.SECONDS);
 
         // Make sure we see no more events
-        assertFalse(noEvents.wait(4, TimeUnit.SECONDS));
+        assertFalse(noEvents.wait(TIME_OUT, TimeUnit.SECONDS));
     }
 
     @Test
@@ -931,6 +927,10 @@ public class ObservationTest extends AbstractRepositoryTest {
                 Futures.allAsList(expected).get(time, timeUnit);
             }
             catch (TimeoutException e) {
+                long dt = System.nanoTime() - t0;
+                // TODO remove again once OAK-1491 is fixed
+                assertTrue("Spurious wak-up after " + dt,
+                        dt > 0.8*TimeUnit.NANOSECONDS.convert(time, timeUnit));
                 for (Expectation exp : expected) {
                     if (!exp.isDone()) {
                         missing.add(exp);

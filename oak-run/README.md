@@ -83,19 +83,17 @@ repository backend.
 The optional fixture argument allows to specify the repository implementation
 to be used. The following fixtures are currently supported:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
+| Fixture     | Description                                           |
+|-------------|-------------------------------------------------------|
+| Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
+| Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-H2      | Oak with the MK using embedded H2 database            |
 
 
 Depending on the fixture the following options are available:
@@ -150,13 +148,7 @@ controls the bundle cache size in Jackrabbit, the KernelNodeState
 cache size in MongoMK and the default H2 MK, and the segment cache
 size in SegmentMK.
 
-The `--concurrency` levels can be specified as comma separated list of values,
-eg: `--concurrency 1,4,8`, which will execute the same test with the number of
-respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed
-before and after the concurrency loop. eg. in the example above, the execution order
-is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`.
-Tests that create their own background threads, should be executed with
-`--concurrency 1` which is the default.
+The `--concurrency` levels can be specified as comma separated list of values, eg: `--concurrency 1,4,8`, which will execute the same test with the number of respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed before and after the concurrency loop. eg. in the example above, the execution order is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`. Tests that create their own background threads, should be executed with `--concurrency 1` which is the default.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 benchmark environment. It's also possible to attach the JVM to a
@@ -186,18 +178,17 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
+| Fixture     | Description                                           |
+|-------------|-------------------------------------------------------|
+| Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
+| Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-H2      | Oak with the MK using embedded H2 database            |
 
 
 Once started, the benchmark runner will execute each listed test case

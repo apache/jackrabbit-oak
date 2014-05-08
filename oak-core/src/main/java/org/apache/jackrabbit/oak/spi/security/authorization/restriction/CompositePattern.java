@@ -37,14 +37,6 @@ public final class CompositePattern implements RestrictionPattern {
         this.patterns = patterns;
     }
 
-    public static RestrictionPattern create(@Nonnull List<RestrictionPattern> patterns) {
-        switch (patterns.size()) {
-            case 0 : return RestrictionPattern.EMPTY;
-            case 1 : return patterns.get(0);
-            default : return new CompositePattern(patterns);
-        }
-    }
-
     @Override
     public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
         for (RestrictionPattern pattern : patterns) {

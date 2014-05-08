@@ -24,8 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
@@ -76,7 +74,7 @@ class IndexNode {
 
     private final IndexSearcher searcher;
 
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private int refcount = 0;
 
     private boolean closed = false;
 
@@ -97,33 +95,27 @@ class IndexNode {
         return definition;
     }
 
-    IndexSearcher getSearcher() {
+    synchronized IndexSearcher acquireSearcher() {
+        checkState(!closed);
+        refcount++;
         return searcher;
     }
 
-    boolean acquire() {
-        lock.readLock().lock();
-        if (closed) {
-            lock.readLock().unlock();
-            return false;
-        } else {
-            return true;
+    synchronized void releaseSearcher() throws IOException {
+        refcount--;
+        if (closed && refcount == 0) {
+            reallyClose();
         }
     }
 
-    void release() {
-        lock.readLock().unlock();
+    synchronized void close() throws IOException {
+        closed = true;
+        if (refcount == 0) {
+            reallyClose();
+        }
     }
 
-    void close() throws IOException {
-        lock.writeLock().lock();
-        try {
-            checkState(!closed);
-            closed = true;
-        } finally {
-            lock.writeLock().unlock();
-        }
-
+    private void reallyClose() throws IOException {
         try {
             reader.close();
         } finally {

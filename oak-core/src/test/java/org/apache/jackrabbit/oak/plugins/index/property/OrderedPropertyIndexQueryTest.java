@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -33,17 +32,12 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -62,8 +56,12 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQueryTest {
     private static final EditorHook HOOK = new EditorHook(new IndexUpdateProvider(
@@ -162,7 +160,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         Tree test = rTree.addChild("test");
         Calendar start = midnightFirstJan2013();
         List<ValuePathTuple> nodes = addChildNodes(
-                generateOrderedDates(NUMBER_OF_NODES, direction, start), test, direction, Type.DATE);
+            generateOrderedDates(NUMBER_OF_NODES, direction, start), test, direction, Type.DATE);
         root.commit();
 
         Calendar searchForCalendar = (Calendar) start.clone();
@@ -243,14 +241,14 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         Tree test = rTree.addChild("test");
         Calendar start = midnightFirstJan2013();
         addChildNodes(
-                generateOrderedDates(NUMBER_OF_NODES, direction, start), test, direction, Type.DATE);
+            generateOrderedDates(NUMBER_OF_NODES, direction, start), test, direction, Type.DATE);
         root.commit();
 
         Calendar searchForCalendar = (Calendar) start.clone();
         searchForCalendar.add(Calendar.HOUR_OF_DAY, -36);
         String searchFor = ISO_8601_2000.format(searchForCalendar.getTime());
         Map<String, PropertyValue> filter = ImmutableMap.of(ORDERED_PROPERTY,
-                PropertyValues.newDate(searchFor));
+            PropertyValues.newDate(searchFor));
         Iterator<? extends ResultRow> results = executeQuery(
             String.format(query, ORDERED_PROPERTY, ORDERED_PROPERTY), SQL2, filter).getRows()
             .iterator();
@@ -314,47 +312,12 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         // querying
         Iterator<? extends ResultRow> results;
         String query = String.format(
-                "SELECT * from [nt:base] WHERE %s IS NOT NULL ORDER BY %s",
-                ORDERED_PROPERTY,
-                ORDERED_PROPERTY);
+            "SELECT * from [nt:base] WHERE %s IS NOT NULL ORDER BY %s",
+            ORDERED_PROPERTY,
+            ORDERED_PROPERTY);
         results = executeQuery(query, SQL2, null)
             .getRows().iterator();
         assertRightOrder(nodes, results);
-
-        setTravesalEnabled(true);
-    }
-
-    @Test @Ignore("OAK-1763")  // FIXME OAK-1763
-    public void orderByOnDouble() throws CommitFailedException, ParseException, RepositoryException {
-        setTravesalEnabled(false);
-
-        Tree test = root.getTree("/").addChild("test");
-
-        double v1 = 1.0E18;
-        double v2 = 2.0E17;
-        assertTrue(v2 <= v1);  // To be super sure ;-)
-
-        Tree child1 = test.addChild(String.valueOf(v1));
-        child1.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
-        child1.setProperty(ORDERED_PROPERTY, v1, Type.DOUBLE);
-
-        Tree child2 = test.addChild(String.valueOf(v2));
-        child2.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
-        child2.setProperty(ORDERED_PROPERTY, v2, Type.DOUBLE);
-
-        root.commit();
-
-        String query = String.format(
-                "SELECT * from [nt:base] WHERE %s IS NOT NULL ORDER BY %s",
-                ORDERED_PROPERTY,
-                ORDERED_PROPERTY);
-        Iterator<? extends ResultRow> results = executeQuery(query, SQL2, null).getRows().iterator();
-
-        assertTrue(results.hasNext());
-        double r1 = Double.valueOf(PathUtils.getName(results.next().getPath()));
-        assertTrue(results.hasNext());
-        double r2 = Double.valueOf(PathUtils.getName(results.next().getPath()));
-        assertTrue(r1 <= r2);
 
         setTravesalEnabled(true);
     }
@@ -379,32 +342,6 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             ORDERED_PROPERTY);
         results = executeQuery(query, SQL2, null)
             .getRows().iterator();
-        assertRightOrder(nodes, results);
-
-        setTravesalEnabled(true);
-    }
-
-    @Test @Ignore("OAK-1763")  // FIXME OAK-1763
-    public void orderByQueryOnSpecialChars() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
-
-        // index automatically created by the framework:
-        // {@code createTestIndexNode()}
-
-        Tree rTree = root.getTree("/");
-        Tree test = rTree.addChild("test");
-        List<String> values = Lists.newArrayList("%", " ");
-        List<ValuePathTuple> nodes = addChildNodes(values, test,
-                OrderDirection.ASC, Type.STRING);
-        root.commit();
-
-        // querying
-        Iterator<? extends ResultRow> results;
-        String query = String.format(
-                "SELECT * from [nt:base] ORDER BY %s",
-                ORDERED_PROPERTY);
-        results = executeQuery(query, SQL2, null)
-                .getRows().iterator();
         assertRightOrder(nodes, results);
 
         setTravesalEnabled(true);

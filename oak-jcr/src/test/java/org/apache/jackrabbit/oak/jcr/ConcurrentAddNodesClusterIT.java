@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +55,6 @@ public class ConcurrentAddNodesClusterIT {
     private static final int NUM_CLUSTER_NODES = 3;
     private static final int NODE_COUNT = 100;
     private static final int LOOP_COUNT = 10;
-    private static final int WORKER_COUNT = 20;
     private static final String PROP_NAME = "testcount";
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
@@ -105,56 +103,6 @@ public class ConcurrentAddNodesClusterIT {
         for (Thread t : workers) {
             t.start();
         }
-        for (Thread t : workers) {
-            t.join();
-        }
-        for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
-            // System.out.println("exception in thread " + entry.getKey());
-            throw entry.getValue();
-        }
-    }
-
-    @Test
-    public void addNodesConcurrent2() throws Exception {
-        for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
-            DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
-                    .setClusterId(i + 1).open();
-            mks.add(mk);
-        }
-        final Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
-        final CountDownLatch latch = new CountDownLatch(1);
-        for (int i = 0; i < mks.size(); i++) {
-            DocumentMK mk = mks.get(i);
-            final Repository repo = new Jcr(mk.getNodeStore()).createRepository();
-            repos.add(repo);
-            for (int w = 0; w < WORKER_COUNT; w++) {
-                final String name = "Worker-" + (i + 1) + "-" + (w + 1);
-                workers.add(new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            latch.await();
-                            Session session = createAdminSession(repo);
-                            Node node = session.getRootNode().addNode(name, "oak:Unstructured");
-                            for (int j = 0; j < NODE_COUNT; j++) {
-                                node.addNode("node" + j);
-                                session.save();
-                            }
-                        } catch (RepositoryException e) {
-                            exceptions.put(Thread.currentThread().getName(), e);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                }));
-            }
-        }
-        for (Thread t : workers) {
-            t.start();
-        }
-        latch.countDown();
         for (Thread t : workers) {
             t.join();
         }
@@ -393,19 +341,16 @@ public class ConcurrentAddNodesClusterIT {
         @Override
         public void run() {
             try {
-                Session session = createAdminSession(repo);
+                Session session = repo.login(new SimpleCredentials(
+                        "admin", "admin".toCharArray()));
                 ensureIndex(session.getRootNode(), PROP_NAME);
+
                 String nodeName = "testroot-" + Thread.currentThread().getName();
                 createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
             } catch (Exception e) {
                 exceptions.put(Thread.currentThread().getName(), e);
             }
         }
-
-    }
-
-    private Session createAdminSession(Repository repository) throws RepositoryException {
-        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
     private void createNodes(Session session,

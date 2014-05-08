@@ -108,10 +108,4 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
         return base.getPattern(oakPath, tree);
     }
-
-    @Nonnull
-    @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
-        return base.getPattern(oakPath, restrictions);
-    }
 }

@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.spi.whiteboard;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static java.util.Collections.emptyList;
 
 import java.util.List;
 
@@ -33,58 +32,32 @@ import javax.annotation.Nonnull;
  */
 public abstract class AbstractServiceTracker<T> {
 
-    /**
-     * Sentinel object used as the {@link #tracker} value of an already
-     * stopped instance.
-     */
-    private final Tracker<T> stopped = new Tracker<T>() {
-        @Override
-        public List<T> getServices() {
-            return emptyList();
-        }
-        @Override
-        public void stop() {
-            // do nothing
-        }
-    };
-
-    /**
-     * The type of services tracked by this instance.
-     */
     private final Class<T> type;
 
-    /**
-     * The underlying {@link Tracker}, or the {@link #stopped} sentinel
-     * sentinel object when this instance is not active. This variable
-     * is {@code volatile} so that the {@link #getServices()} method will
-     * always see the latest state without having to be synchronized.
-     */
-    private volatile Tracker<T> tracker = stopped;
+    private Tracker<T> tracker = null;
 
-    protected AbstractServiceTracker(@Nonnull Class<T> type) {
+    public AbstractServiceTracker(@Nonnull Class<T> type) {
         this.type = checkNotNull(type);
     }
 
     public synchronized void start(Whiteboard whiteboard) {
-        checkState(tracker == stopped);
+        checkState(tracker == null);
         tracker = whiteboard.track(type);
     }
 
     public synchronized void stop() {
-        checkState(tracker != stopped);
-        Tracker<T> t = tracker;
-        tracker = stopped;
-        t.stop();
+        checkState(tracker != null);
+        tracker.stop();
+        tracker = null;
     }
 
     /**
-     * Returns all services of type {@code T} that are currently available.
-     * This method is intentionally not synchronized to prevent lock
-     * contention when accessed frequently in highly concurrent code.
+     * Returns all services of type {@code T} currently available.
      *
-     * @return currently available services
+     * @return services currently available.
      */
-    protected List<T> getServices() {
+    protected synchronized List<T> getServices() {
+        checkState(tracker != null);
         return tracker.getServices();
     }
 

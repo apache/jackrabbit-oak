@@ -99,31 +99,17 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
     }
 
-    @Override
-    public int getRows() {
-        return getIntValueFor(Properties.ROWS, SolrServerConfigurationDefaults.ROWS);
-    }
-
-    private int getIntValueFor(String propertyName, int defaultValue) {
-        long value = defaultValue;
-        NodeState configurationNodeState = getConfigurationNodeState();
-        if (configurationNodeState.exists()) {
-            PropertyState property = configurationNodeState.getProperty(propertyName);
-            if (property != null) {
-                value = property.getValue(Type.LONG);
-            }
-        }
-        return (int) value;
-    }
-
     protected String getStringValueFor(String propertyName, String defaultValue) {
-        String value = defaultValue;
+        String value = null;
         NodeState configurationNodeState = getConfigurationNodeState();
         if (configurationNodeState.exists()) {
             PropertyState property = configurationNodeState.getProperty(propertyName);
             if (property != null) {
                 value = property.getValue(Type.STRING);
             }
+        }
+        if (value == null || value.length() == 0) {
+            value = defaultValue;
         }
         return value;
     }
@@ -157,6 +143,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String DESCENDANTS_FIELD = "descendantsField";
         public static final String CATCHALL_FIELD = "catchAllField";
         public static final String COMMIT_POLICY = "commitPolicy";
-        public static final String ROWS = "rows";
+
     }
 }

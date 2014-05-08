@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -211,7 +210,11 @@ class TokenProviderImpl implements TokenProvider {
         if (tokenParent != null) {
             try {
                 long creationTime = new Date().getTime();
-                NodeUtil tokenNode = createTokenNode(tokenParent, creationTime);
+                Calendar creation = GregorianCalendar.getInstance();
+                creation.setTimeInMillis(creationTime);
+                String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
+
+                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKEN_NT_NAME);
                 tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
 
                 String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
@@ -392,31 +395,6 @@ class TokenProviderImpl implements TokenProvider {
             }
         }
         return tokenParent;
-    }
-
-    /**
-     * Create a new token node below the specified {@code parent}.
-     *
-     * @param parent The parent node.
-     * @param creationTime The creation time that is used as name hint.
-     * @return The new token node
-     * @throws AccessDeniedException
-     */
-    private NodeUtil createTokenNode(@Nonnull NodeUtil parent, @Nonnull long creationTime) throws AccessDeniedException {
-        Calendar creation = GregorianCalendar.getInstance();
-        creation.setTimeInMillis(creationTime);
-        String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
-        NodeUtil tokenNode;
-        try {
-            tokenNode = parent.addChild(tokenName, TOKEN_NT_NAME);
-            root.commit();
-        } catch (CommitFailedException e) {
-            // conflict while creating token node -> retry
-            log.debug("Failed to create token node " + tokenName + ". Using random name as fallback.");
-            root.refresh();
-            tokenNode = parent.addChild(UUID.randomUUID().toString(), TOKEN_NT_NAME);
-        }
-        return tokenNode;
     }
 
     //--------------------------------------------------------------------------

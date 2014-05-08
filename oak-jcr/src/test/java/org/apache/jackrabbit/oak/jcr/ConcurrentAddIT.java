@@ -31,6 +31,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.collect.Iterators;
+import org.junit.Assume;
 import org.junit.Test;
 
 /**
@@ -76,6 +77,8 @@ public class ConcurrentAddIT extends AbstractRepositoryTest {
 
     @Test @SuppressWarnings("unchecked")
     public void addNodesSameParent() throws Exception {
+        // takes too long with RDBDocumentStore
+        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
         // use nt:unstructured to force conflicts on :childOrder property

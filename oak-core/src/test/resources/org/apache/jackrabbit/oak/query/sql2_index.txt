@@ -24,12 +24,6 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
-explain select *
-  from [nt:base]
-  where [jcr:uuid] like '%'
-[nt:base] as [nt:base] /* property jcr:uuid
-  where [nt:base].[jcr:uuid] like cast('%' as string) */
-
 explain select e.[jcr:path]
   from [nt:base] as a
   inner join [nt:base] as b on ischildnode(b, a)

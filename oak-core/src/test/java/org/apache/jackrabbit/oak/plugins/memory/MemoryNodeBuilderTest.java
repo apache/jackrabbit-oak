@@ -16,6 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableSet;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Before;
+import org.junit.Test;
+
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -23,32 +35,12 @@ import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
-import java.util.Collection;
-
-import javax.annotation.Nonnull;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-@RunWith(Parameterized.class)
 public class MemoryNodeBuilderTest {
 
-    private final NodeState base;
+    private NodeState base;
 
-    public MemoryNodeBuilderTest(NodeState base) {
-        this.base = base;
-    }
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> fixtures() {
+    @Before
+    public void setUp() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("a", 1L);
         builder.setProperty("b", 2L);
@@ -56,11 +48,7 @@ public class MemoryNodeBuilderTest {
         builder.child("x").child("q");
         builder.child("y");
         builder.child("z");
-        NodeState base = builder.getNodeState();
-        return ImmutableList.of(
-            new Object[] { base },
-            new Object[] { ModifiedNodeState.squeeze(base) }
-        );
+        base = builder.getNodeState();
     }
 
     @Test
@@ -211,41 +199,6 @@ public class MemoryNodeBuilderTest {
         assertTrue(x.exists());
         assertFalse(x.isNew());
         assertTrue(x.isModified());
-    }
-
-    @Test
-    public void testReplacedStatus() {
-        NodeBuilder root = base.builder();
-        NodeBuilder x = root.getChildNode("x");
-        x.setChildNode("new");
-        assertFalse(x.isReplaced());
-    }
-
-    @Test
-    public void testReplacedStatus2() {
-        NodeBuilder x = base.builder().getChildNode("x");
-        NodeBuilder q = x.getChildNode("q");
-        q.remove();
-        assertFalse(q.isReplaced());
-        x.setChildNode("q").setProperty("a", "b");
-        assertTrue(q.isReplaced());
-    }
-
-    @Test
-    public void testReplacedStatus3() {
-        NodeBuilder x = base.builder().getChildNode("x");
-        NodeBuilder q = x.getChildNode("q");
-        assertFalse(q.isReplaced());
-        x.setChildNode("q").setProperty("a", "b");
-        assertTrue(q.isReplaced());
-    }
-
-    @Test
-    public void removeParent() {
-        NodeBuilder x = base.builder().getChildNode("x");
-        NodeBuilder y = x.setChildNode("y");
-        x.remove();
-        assertFalse(x.exists());
     }
 
     @Test

@@ -186,6 +186,8 @@ public class AsyncIndexUpdate implements Runnable {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(indexUpdate
                             .getReindexedDefinitions());
+                } else {
+                    postAsyncRunStatsStatus(indexStats);
                 }
             } else if (switchOnSync) {
                 log.debug("No changes detected after diff, will try to switch to synchronous updates on "
@@ -207,6 +209,7 @@ public class AsyncIndexUpdate implements Runnable {
                     store.merge(builder, newCommitHook(name, state),
                             CommitInfo.EMPTY);
                     reindexedDefinitions.clear();
+                    postAsyncRunStatsStatus(indexStats);
                 } catch (CommitFailedException e) {
                     if (e != CONCURRENT_UPDATE) {
                         exception = e;
@@ -214,7 +217,6 @@ public class AsyncIndexUpdate implements Runnable {
                 }
             }
         }
-        postAsyncRunStatsStatus(indexStats);
 
         if (exception != null) {
             if (!failing) {

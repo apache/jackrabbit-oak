@@ -17,16 +17,12 @@
 package org.apache.jackrabbit.oak.benchmark.wikipedia;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.lang.Math.min;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.xml.stream.XMLInputFactory;
@@ -34,8 +30,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.Benchmark;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.util.Text;
@@ -44,14 +38,8 @@ public class WikipediaImport extends Benchmark {
 
     private final File dump;
 
-    private final boolean doReport;
-
-    private final boolean flat;
-
-    public WikipediaImport(File dump, boolean flat, boolean doReport) {
+    public WikipediaImport(File dump) {
         this.dump = dump;
-        this.flat = flat;
-        this.doReport = doReport;
     }
 
     @Override
@@ -87,49 +75,27 @@ public class WikipediaImport extends Benchmark {
                 new SimpleCredentials("admin", "admin".toCharArray()));
         try {
             int before = importWikipedia(session);
-            int after = new Traversal().traverse(session);
+            int after = traverseWikipedia(session);
             checkState(before == after, "Import vs. traverse mismatch");
         } finally {
             session.logout();
         }
     }
 
-    public int importWikipedia(Session session) throws Exception {
+    private int importWikipedia(Session session) throws Exception {
         long start = System.currentTimeMillis();
         int count = 0;
         int code = 0;
 
-        if(doReport) {
-            System.out.format("Importing %s...%n", dump);
-        }
-
-        String type = "nt:unstructured";
-        if (session.getWorkspace().getNodeTypeManager().hasNodeType("oak:Unstructured")) {
-            type = "oak:Unstructured";
-        }
-        Node wikipedia = session.getRootNode().addNode("wikipedia", type);
-
-        int levels = 0;
-        if (!flat) {
-            // calculate the number of levels needed, based on the rough
-            // estimate that the average XML size of a page is about 1kB
-            for (long pages = dump.length() / 1024; pages > 256; pages /= 256) {
-                levels++;
-            }
-        }
+        System.out.format("Importing %s...%n", dump);
+        Node wikipedia = session.getRootNode().addNode(
+                "wikipedia", "oak:Unstructured");
 
         String title = null;
         String text = null;
         XMLInputFactory factory = XMLInputFactory.newInstance();
-        StreamSource source;
-        if (dump.getName().endsWith(".xml")) {
-            source = new StreamSource(dump);
-        } else {
-            CompressorStreamFactory csf = new CompressorStreamFactory();
-            source = new StreamSource(csf.createCompressorInputStream(
-                    new BufferedInputStream(new FileInputStream(dump))));
-        }
-        XMLStreamReader reader = factory.createXMLStreamReader(source);
+        XMLStreamReader reader =
+                factory.createXMLStreamReader(new StreamSource(dump));
         while (reader.hasNext()) {
             switch (reader.next()) {
             case XMLStreamConstants.START_ELEMENT:
@@ -142,34 +108,18 @@ public class WikipediaImport extends Benchmark {
             case XMLStreamConstants.END_ELEMENT:
                 if ("page".equals(reader.getLocalName())) {
                     String name = Text.escapeIllegalJcrChars(title);
-                    Node parent = wikipedia;
-                    if (levels > 0) {
-                        int n = name.length();
-                        for (int i = 0; i < levels; i++) {
-                            int hash = name.substring(min(i, n)).hashCode();
-                            parent = JcrUtils.getOrAddNode(
-                                    parent, String.format("%02x", hash & 0xff));
-                        }
-                    }
-                    Node page = parent.addNode(name);
+                    Node page = wikipedia.addNode(name);
                     page.setProperty("title", title);
                     page.setProperty("text", text);
                     code += title.hashCode();
                     code += text.hashCode();
                     count++;
                     if (count % 1000 == 0) {
-                        if (!flat) {
-                            session.save();
-                        }
-                        if (doReport) {
-                            long millis = System.currentTimeMillis() - start;
-                            System.out.format(
-                                    "Added %d pages in %d seconds (%.2fms/page)%n",
-                                    count, millis / 1000, (double) millis / count);
-                        }
+                        long millis = System.currentTimeMillis() - start;
+                        System.out.format(
+                                "Added %d pages in %d seconds (%.2fms/page)%n",
+                                count, millis / 1000, (double) millis / count);
                     }
-
-                    pageAdded(title, text);
                 }
                 break;
             }
@@ -177,61 +127,40 @@ public class WikipediaImport extends Benchmark {
 
         session.save();
 
-        if (doReport) {
-            long millis = System.currentTimeMillis() - start;
-            System.out.format(
-                    "Imported %d pages in %d seconds (%.2fms/page)%n",
-                    count, millis / 1000, (double) millis / count);
-        }
-
+        long millis = System.currentTimeMillis() - start;
+        System.out.format(
+                "Imported %d pages in %d seconds (%.2fms/page)%n",
+                count, millis / 1000, (double) millis / count);
         return code;
     }
 
-    protected void pageAdded(String title, String text) {
-    }
+    private int traverseWikipedia(Session session) throws Exception {
+        long start = System.currentTimeMillis();
+        int count = 0;
+        int code = 0;
 
-    private class Traversal {
+        System.out.format("Traversing imported pages...%n");
+        Node wikipedia = session.getNode("/wikipedia");
 
-        private final long start = System.currentTimeMillis();
-        private int count = 0;
-        private int code = 0;
-
-        private int traverse(Session session) throws Exception {
-            System.out.format("Traversing imported pages...%n");
-            Node wikipedia = session.getNode("/wikipedia");
-
-            traverse(wikipedia);
-
-            if (doReport) {
+        NodeIterator pages = wikipedia.getNodes();
+        while (pages.hasNext()) {
+            Node page = pages.nextNode();
+            code += page.getProperty("title").getString().hashCode();
+            code += page.getProperty("text").getString().hashCode();
+            count++;
+            if (count % 1000 == 0) {
                 long millis = System.currentTimeMillis() - start;
                 System.out.format(
-                        "Traversed %d pages in %d seconds (%.2fms/page)%n",
+                        "Read %d pages in %d seconds (%.2fms/page)%n",
                         count, millis / 1000, (double) millis / count);
             }
-
-            return code;
         }
 
-        private void traverse(Node parent) throws RepositoryException {
-            NodeIterator pages = parent.getNodes();
-            while (pages.hasNext()) {
-                Node page = pages.nextNode();
-
-                code += page.getProperty("title").getString().hashCode();
-                code += page.getProperty("text").getString().hashCode();
-
-                count++;
-                if (count % 1000 == 0 && doReport) {
-                    long millis = System.currentTimeMillis() - start;
-                    System.out.format(
-                            "Read %d pages in %d seconds (%.2fms/page)%n",
-                            count, millis / 1000, (double) millis / count);
-                }
-
-                traverse(page);
-            }
-        }
-
+        long millis = System.currentTimeMillis() - start;
+        System.out.format(
+                "Traversed %d pages in %d seconds (%.2fms/page)%n",
+                count, millis / 1000, (double) millis / count);
+        return code;
     }
 
 }
