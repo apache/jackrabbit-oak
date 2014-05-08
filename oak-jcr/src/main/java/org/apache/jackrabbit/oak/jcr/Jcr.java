@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 public class Jcr {
-    private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
+    public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
 
     private final Oak oak;
 

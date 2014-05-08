@@ -78,6 +78,10 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
 
     @Before
     public void setup() throws RepositoryException {
+        // Ensure the observation revision queue is sufficiently large to hold
+        // all revisions. Otherwise waiting for events might block since pending
+        // events would only be released on a subsequent commit. See OAK-1491
+        observationQueueLength = 1000000;
         Session session = getAdminSession();
 
         NodeTypeManager ntMgr = session.getWorkspace().getNodeTypeManager();
