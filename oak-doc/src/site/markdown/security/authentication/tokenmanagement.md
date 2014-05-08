@@ -42,10 +42,10 @@ extended at runtime (see section Configuration below).
 
 The `TokenLoginModule` itself behaves as follows:
 
-upon login()
+*Phase 1: Login*
 _todo_
 
-upon commit()
+*Phase 1: Commit*
 _todo_
 
 ### Token Management API
