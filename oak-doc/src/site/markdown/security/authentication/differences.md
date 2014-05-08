@@ -59,20 +59,32 @@ The OAK implementation of `Session#impersonate` no longer uses `SimpleCredential
 to transport the original `Subject` but rather performs the login with dedicated
 [ImpersonationCredentials].
 
-With this change the impersonation feature no longer relies on `SimpleCredentials`
-being passed to `Session#impersonate` call. Instead the specified credentials are
-passed to a new instance of `ImpersonationCredentials` delegating the evaluation
-and validation of the specified `Credentials` to the configured login module(s).
-
 This modification will not affect applications that used JCR API to impersonate
 a given session. However the following example which 'manually' builds impersonation
-credentials the way jackrabbit core was handling it will no longer work to
+credentials the way jackrabbit core was handling it will **no longer work** to
 impersonate an existing session:
 
-     SessionImpl sImpl = (SessionImpl) mySession;
+     org.apache.jackrabbit.core.SessionImpl sImpl = (SessionImpl) mySession;
      SimpleCredentials jrImpCreds = new SimpleCredentials("someUserId, new char[0]);
      creds.setAttribute(SecurityConstants.IMPERSONATOR_ATTRIBUTE, sImpl.getSubject());
      Session impersonated = sImpl.getRepository().login(jrImpCreds, sImpl.getWorkspace().getName());
+
+Upon migration to Oak such implementation specific code should be refactored
+to use regular JCR API for impersonation:
+
+     // Note: build credentials depends on the auth setup !
+     Credentials impersonationCredentials = new SimpleCredentials("someUserId, new char[0]);
+     Session impersonated = session.impersonate(impersonationCredentials);
+
+In order to achieve impersonation on the Oak API directly:
+
+     ContentRepository contentRepo = ...
+     ContentSession editingSession = ...
+
+     AuthInfo impersonatorInfo = editingSession.getAuthInfo();
+     Credentials credentials = new SimpleCredentials("someUserId, new char[0]);
+     ImpersonationCredentials impersonationCredentials = new ImpersonationCredentials(credentials, impersonatorInfo);
+     ContentSession impersonated = contentRepo.login(impersonationCredentials, editingSession.getWorkspaceName());
 
 #### Token based Authentication
 
