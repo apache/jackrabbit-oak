@@ -16,17 +16,7 @@
   -->
 ### AccessControl Management : Differences wrt Jackrabbit 2.x
 
-#### 1. Characteristics of the Default Implementation
-
-##### General
-In general the authorization related code in OAK clearly separates between access
-control management (such as defined by the JCR and Jackrabbit API) and the internal
-permission evaluation (see also [Permission Evaluation](differences_permissions.html)).
-
-The default implementation of the access control management corresponds to the
-resource-based implementation present with Jackrabbit 2.x. The former principal-base
-access control management is no longer available but it's functionality has been
-incorporated both in the default ac management implementation and the permission evaluation.
+#### Characteristics of the Default Implementation
 
 ##### JCR API
 ###### AccessControlManager#hasPrivilege and #getPrivileges
@@ -42,7 +32,7 @@ in Jackrabbit 2.x use to throw an  exception in this situation.
 
 ###### AccessControlPolicy
 OAK introduces a new type of policy that enforces regular read-access for everyone
-on the trees that hold this new `ReadPolicy` [0]. The main usage of this new policy
+on the trees that hold this new `ReadPolicy` (see [OAK-951]). The main usage of this new policy
 is to ensure backwards compatible behavior of repository level information (node
 types, namespace, privileges) that are now kept within the content repository.
 In Jackrabbit 2.x this information was stored in the file system without the
@@ -96,78 +86,15 @@ The implementation of the additional restrictions associated with an ACE has bee
 
 ##### Import
 
-The import of access control content via JCR XML import has been extended to
-respect the `o.a.j.oak.spi.xml.ImportBehavior` flags instead of just performing
-a best effort import.
+* respects `ImportBehavior` for handling of principals instead of just performing best effort import
+* supports both workspace and import
 
-Currently the `ImportBehavior` is only used to switch between different ways of
-handling principals unknown to the repository. For consistency and in order to
-match the validation requirements as specified by `AccessControlList#addAccessControlEntry`
-the default behavior is ABORT (while in Jackrabbit 2.x the behavior always was BESTEFFORT).
-
-The different `ImportBehavior` flags are implemented as follows:
-- `ABORT`: throws an `AccessControlException` if the principal is unknown
-- `IGNORE`: ignore the entry defining the unknown principal
-- `BESTEFFORT`: import the access control entry with an unknown principal.
-
-In order to get the same best effort behavior as present with Jackrabbit 2.x
-the configuration parameters of the `AuthorizationConfiguration` must contain
-the following entry:
-
-    importBehavior = "besteffort"
-
-See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
-
-#### 2. Node Types
-
-As mentioned above the node type definitions have been extended to match the new functionality related to restrictions.
-The node type definition for access control entries:
-
-    [rep:ACE]
-      - rep:principalName (STRING) protected mandatory
-      - rep:privileges (NAME) protected mandatory multiple
-      - rep:nodePath (PATH) protected /* deprecated in favor of restrictions */
-      - rep:glob (STRING) protected   /* deprecated in favor of restrictions */
-      - * (UNDEFINED) protected       /* deprecated in favor of restrictions */
-      + rep:restrictions (rep:Restrictions) = rep:Restrictions protected
-
-The new node type definition for restrictions:
-
-    /**
-     * @since oak 1.0
-     */
-    [rep:Restrictions]
-      - * (UNDEFINED) protected
-      - * (UNDEFINED) protected multiple
-
-#### 3. API Extensions and Public Classes
-
-org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol [1]
-
-- `AbstractAccessControlList`
-- `ImmutableACL`
-- `ACE`
-
-org.apache.jackrabbit.oak.spi.security.authorization.restriction [2]
-
-- `RestrictionProvider`:
-- `RestrictionDefinition`
-- `RestrictionPattern`
-- `Restriction`
-
-#### 4. Configuration
-
-The following access control related configuration options are present with the `AuthorizationConfiguration` as of OAK 1.0 [3]
-
-- `getAccessControlManager`
-- `getRestrictionProvider`
-
-Differences to Jackrabbit 2.x:
+#### Configuration
 
 - The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 - As of OAK no extra access control content is installed by default which renders that flag superfluous.
 
-#### 5. Important Note
+#### Important Note
 
 The following modification is most likely to have an effect on existing applications:
 
@@ -177,12 +104,5 @@ The following modification is most likely to have an effect on existing applicat
   If the new behaviour turns out to be a problem with existing applications we might consider
   adding backward compatible behaviour.
 
-#### 6. References
-
-[0] https://issues.apache.org/jira/browse/OAK-951
-
-[1] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/restriction/
-
-[2] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/accesscontrol/
-
-[3] http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.java
+<!-- hidden references -->
+[OAK-951]: https://issues.apache.org/jira/browse/OAK-951
