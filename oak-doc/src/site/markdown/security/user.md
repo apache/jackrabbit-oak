@@ -20,13 +20,16 @@ User Management
 
 ### JCR User Management
 
-_todo_
+JCR itself doesn't come with a dedicated user management API. The only method
+related and ultemately used for user management tasks is `Session.getUserID()`.
+Therefore an API for user and group management has been defined as part of the
+extensions present with Jackrabbit API.
 
 ### Jackrabbit User Management API
 
 _todo_
 
-### Oak User Management
+### Oak User Management Implementation
 
 The default user management implementation stores user/group information in the
 content repository. In contrast to Jackrabbit 2.x, which by default used a single,
@@ -38,16 +41,14 @@ all actions with this editing session. This corresponds to the behavior as defin
 the alternative implementation present with Jackrabbit 2.x ((see Jackrabbit 2.x `UserPerWorkspaceUserManager`).
 
 #### General
+* The Oak implementation is build on the Oak API. This allows for double usage as
+  extension to the JCR API as well as within the Oak layer (aka SPI).
 * The `UserManager` is always associated with the same JCR workspace as the editing
   `Session` from which the class has been obtained.
 * Changes made to the user management API are always transient and require `Session#save()` to be persisted.
-* In case of any failure during user management related write operations `Session#refresh`
-  is no longer called in order to prevent reverting other changes unrelated to
-  the user management operation. Tt's the responsibility of the API consumer to
-  specifically revert pending or invalid transient modifications.
-* The implementation is no longer built on top of the JCR API but instead directly
-  acts on `Tree` and `PropertyState` defined by the OAK API. This also allows to
-  make use of the Jackrabbit user management API within the OAK layer (aka SPI).
+* In case of any failure during user management related write operations the API
+  consumer is in charge of specifically revert pending or invalid transient modifications
+  or calling `Session#refresh(false)`.
 
 #### Differences wrt Jackrabbit 2.x
 
@@ -92,19 +93,17 @@ name [everyone] and corresponds to the `EveryonePrincipal`.
 
 This special group always contains all Authorizable as member and cannot be edited
 with user management API. As of OAK this fact is consistently reflected in all
-group membership related methods.
-
-See also [Principal Management](principal.html).
+group membership related methods. See also [Principal Management](principal.html).
 
 #### Reading Authorizables
 
 ##### Handling of the Authorizable ID
-* As of OAK the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
+* As of Oak the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
 * The default implementation comes with a dedicated property index for `rep:authorizableId` which asserts the uniqueness of that ID.
 * `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards compatibility falls back on the node name in case the ID property is missing.
 * The name of the authorizable node is generated based on a configurable implementation of the `AuthorizableNodeName` interface (see configuration section below). By default it uses the ID as name hint and includes a conversion to a valid JCR node name.
 
-##### equals() and hashCode() for Authorizables
+##### equals() and hashCode()
 The implementation of `Object#equals()` and `Object#hashCode()` for user and
 groups slightly differs from Jackrabbit 2.x. It no longer relies on the _sameness_
 of the underlaying JCR node but only compares IDs and the user manager instance.
@@ -164,15 +163,13 @@ The following block lists the built-in node types related to user management tas
       + * (rep:Members) = rep:Members protected multiple
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
+
 ### XML Import
-As of OAK 1.0 user and group nodes can be imported both with Session and Workspace
-import. The difference compare to Jackrabbit 2.x are listed below:
+As of Oak 1.0 user and group nodes can be imported both with Session and Workspace
+import. Other differences compared to Jackrabbit 2.x:
 
 * Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
-* NEW: The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
-* NEW: Workspace Import
-
-
+* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
 
 ### API Extensions
 The Oak project introduces the following user management related public
@@ -181,19 +178,12 @@ interfaces and classes:
 #### Authorizable Actions
 
 The former internal Jackrabbit interface `AuthorizableAction` has been slightly
-adjusted to match OAK requirements and is now part of the public OAK SPI interfaces.
+adjusted to match Oak requirements and is now part of the public Oak SPI interfaces.
 In contrast to Jackrabbit-core the AuthorizableAction(s) now operate directly on
 the Oak API, which eases the handling of implementation specific tasks such as
 writing protected items.
 
-_todo_
-
-`org.apache.jackrabbit.oak.spi.security.user.action.*`
-
-- `AuthorizableAction`
-- `AuthorizableActionProvider`
-
-See also section [Authorizable Actions](user/authorizableaction.html) for further
+See section [Authorizable Actions](user/authorizableaction.html) for further
 details and examples.
 
 #### Node Name Generation
