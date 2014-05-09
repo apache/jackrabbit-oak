@@ -20,38 +20,44 @@ Authorizable Actions
 
 ### Overview
 
-_todo_
+Oak 1.0 comes with a extension to the Jackrabbit user management API that allows
+to perform additional actions or validations upon common user management tasks
+such as
 
-The former internal Jackrabbit interface `AuthorizableAction` has been slightly
-adjusted to match OAK requirements and is now part of the public OAK SPI interfaces.
-In contrast to Jackrabbit-core the AuthorizableAction(s) now operate directly on
-the Oak API, which eases the handling of implementation specific tasks such as
-writing protected items.
+- create authorizables
+- remove authorizables
+- change a user's password
+
+Similar functionality has been present in Jackrabbit 2.x as internal interface.
+Compared to the Jackrabbit interface the new `AuthorizableAction` has been slightly
+adjusted to match Oak requirements operate directly on the Oak API, which eases
+the handling of implementation specific tasks such as writing protected items.
 
 
 ### AuthorizableAction API
 
-The following public interfaces and base implementations are provided by Oak
- in the package `org.apache.jackrabbit.oak.spi.security.user.action.*`:
+The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action.*`:
 
 - [AuthorizableAction]
 - [AuthorizableActionProvider]
-- `AbstractAuthorizableAction`: abstract base implementation that doesn't perform any action.
-- `DefaultAuthorizableActionProvider`: default action provider service that allows to enable the built-in actions provided with oak.
-
-Note that AuthorizableAction(s) operate directly on the Oak API, which eases the
-handling of implementation specific tasks such as e.g. writing protected items.
 
 The `AuthorizableAction` interface itself allows to perform validations or write
 addition application specific content while executing user management related
-write operations. The actions are consequently executed as part of the transient
-modifications and contrast to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
+write operations. Note that the actions are consequently executed as part of the
+transient modifications and contrast to `org.apache.jackrabbit.oak.spi.commit.CommitHook`s
 that are triggered upon persisting content modifications.
 
-### Default Actions
+### Default Implementations
 
-The default implementations of the `AuthorizableAction` interface are present with
-Oak 1.0:
+Oak 1.0 provides the following base implementations:
+
+- `AbstractAuthorizableAction`: abstract base implementation that doesn't perform any action.
+- `DefaultAuthorizableActionProvider`: default action provider service that allows to enable the built-in actions provided with oak.
+- `CompositeActionProvider`: Allows to aggregate multiple provider implementations.
+
+#### Built-in AuthorizableAction Implementations
+
+The following implementations of the `AuthorizableAction` interface are provided:
 
 * `AccessControlAction`: set up permission for new authorizables
 * `PasswordAction`: simplistic password verification upon user creation and password modification
@@ -65,8 +71,15 @@ insufficient permissions by the editing Oak ContentSession).
 
 ### Pluggability
 
-_todo_
+The default security setup as present with Oak 1.0 is able to track custom
+`AuthorizableActionProvider` implementations and will automatically combine the
+different implementations using the `CompositeActionProvider`.
 
+In an OSGi setup the following steps are required in order to add a action provider
+implementation:
+
+- implement `AuthorizableActionProvider` interface exposing your custom action(s).
+- make the provider implementation an OSGi service and make it available to the Oak repository.
 
 #### Examples
 
