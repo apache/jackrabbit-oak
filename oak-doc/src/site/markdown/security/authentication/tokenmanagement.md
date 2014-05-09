@@ -57,7 +57,7 @@ _todo_
 - [CompositeTokenProvider]
 
 
-### Default Implementation
+### Characteristics of the Default Implementation
 
 The default implementation of the token management API stores login tokens along
 with the user's home directory in the repository. Along with the hash of the
@@ -159,10 +159,59 @@ definition:
 
 _todo_
 
-#### Custom TokenProvider
+- [TokenConfiguration]
+- [CompositeTokenConfiguration]
 
-_todo_
 
+
+### Pluggability
+
+The default security setup as present with Oak 1.0 is able to track custom
+`TokenProvider` implementations and will automatically combine the
+different implementations using the `CompositeTokenProvider`.
+
+In an OSGi setup the following steps are required in order to add a custom
+token provider implementation:
+
+ - implement `TokenProvider` interface
+ - expose the custom provider by your custom `TokenConfiguration` service
+ - make the configuration available to the Oak repository.
+
+#### Examples
+
+##### Example TokenConfiguration
+
+    @Component()
+    @Service({TokenConfiguration.class, SecurityConfiguration.class})
+    public class MyTokenConfiguration extends ConfigurationBase implements TokenConfiguration {
+
+        public TokenConfigurationImpl() {
+            super();
+        }
+
+        public TokenConfigurationImpl(SecurityProvider securityProvider) {
+            super(securityProvider, securityProvider.getParameters(NAME));
+        }
+
+        @Activate
+        private void activate(Map<String, Object> properties) {
+            setParameters(ConfigurationParameters.of(properties));
+        }
+
+        //----------------------------------------------< SecurityConfiguration >---
+        @Nonnull
+        @Override
+        public String getName() {
+            return NAME;
+        }
+
+        //-------------------------------------------------< TokenConfiguration >---
+        @Nonnull
+        @Override
+        public TokenProvider getTokenProvider(Root root) {
+            return new MyTokenProvider(root, getParameters());
+        }
+    }
 
 <!-- references -->
 
