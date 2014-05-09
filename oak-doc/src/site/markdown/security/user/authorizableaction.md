@@ -36,7 +36,7 @@ the handling of implementation specific tasks such as writing protected items.
 
 ### AuthorizableAction API
 
-The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action.*`:
+The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.user.action`:
 
 - [AuthorizableAction]
 - [AuthorizableActionProvider]
@@ -54,6 +54,11 @@ Oak 1.0 provides the following base implementations:
 - `AbstractAuthorizableAction`: abstract base implementation that doesn't perform any action.
 - `DefaultAuthorizableActionProvider`: default action provider service that allows to enable the built-in actions provided with oak.
 - `CompositeActionProvider`: Allows to aggregate multiple provider implementations.
+
+#### Changes wrt Jackrabbit 2.x
+
+- actions no longer operate on JCR API but rather on the Oak API direct.
+- provider interface simplifies pluggability
 
 #### Built-in AuthorizableAction Implementations
 
@@ -167,7 +172,6 @@ that will later be used to store various target-specific profile information:
                 }
             }
         }
-
 
 
 <!-- hidden references -->
