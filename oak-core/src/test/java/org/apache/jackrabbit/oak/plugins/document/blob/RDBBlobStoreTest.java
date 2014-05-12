@@ -34,10 +34,16 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
     private RDBBlobStore blobStore;
 
+    private static final String URL = System.getProperty("rdb.jdbc-url", "jdbc:h2:mem:oakblobs");
+
+    private static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
+
+    private static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
+
     @Before
     @Override
     public void setUp() throws Exception {
-        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oakblobs", "sa", ""));
+        blobStore = new RDBBlobStore(RDBDataSourceFactory.forJdbcUrl(URL, USERNAME, PASSWD));
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
