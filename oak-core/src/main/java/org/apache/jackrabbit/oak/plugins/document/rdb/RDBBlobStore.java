@@ -291,6 +291,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public boolean deleteChunks(List<String> chunkIds, long maxLastModifiedTime) throws Exception {
+
+        // sanity check
+        if (chunkIds.isEmpty()) {
+            // sanity check, nothing to do
+            return true;
+        }
+
         Connection con = ds.getConnection();
         try {
             PreparedStatement prep = null;
