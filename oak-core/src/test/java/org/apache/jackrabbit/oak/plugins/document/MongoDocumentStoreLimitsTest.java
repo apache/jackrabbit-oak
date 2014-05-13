@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Strings;
@@ -32,8 +33,9 @@ import static junit.framework.Assert.assertNotNull;
  */
 public class MongoDocumentStoreLimitsTest extends AbstractMongoConnectionTest {
 
+    @Ignore
     @Test
-    public void longName() throws Exception {
+    public void longName() throws Exception{
         DocumentNodeStore ns = mk.getNodeStore();
         NodeBuilder builder = ns.getRoot().builder();
 
