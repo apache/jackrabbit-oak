@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -125,36 +126,59 @@ public class ConcurrentAddNodesClusterIT {
         final Map<String, Exception> exceptions = Collections.synchronizedMap(
                 new HashMap<String, Exception>());
         final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicBoolean stop = new AtomicBoolean();
         for (int i = 0; i < mks.size(); i++) {
             DocumentMK mk = mks.get(i);
             final Repository repo = new Jcr(mk.getNodeStore()).createRepository();
             repos.add(repo);
-            for (int w = 0; w < WORKER_COUNT; w++) {
+            for (int w = 0; w <= WORKER_COUNT; w++) {
                 final String name = "Worker-" + (i + 1) + "-" + (w + 1);
-                workers.add(new Thread(new Runnable() {
+                final Runnable r = new Runnable() {
+                    final Session session = createAdminSession(repo);
+                    int count = 0;
                     @Override
                     public void run() {
                         try {
                             latch.await();
-                            Session session = createAdminSession(repo);
-                            Node node = session.getRootNode().addNode(name, "oak:Unstructured");
-                            for (int j = 0; j < NODE_COUNT; j++) {
+                            session.refresh(false);
+                            Node node = session.getRootNode().addNode(name+count++, "oak:Unstructured");
+                            for (int j = 0; j < NODE_COUNT && !stop.get() ; j++) {
                                 node.addNode("node" + j);
                                 session.save();
                             }
                         } catch (RepositoryException e) {
                             exceptions.put(Thread.currentThread().getName(), e);
+                            stop.set(true);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
                     }
-                }));
+                };
+
+                //Last runnable would be a long running one
+                Runnable runnable = r;
+                if(w == WORKER_COUNT){
+                    runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            while(!stop.get()){
+                                r.run();
+                            }
+                        }
+                    };
+                }
+
+                workers.add(new Thread(runnable));
             }
         }
         for (Thread t : workers) {
             t.start();
         }
         latch.countDown();
+
+        TimeUnit.MINUTES.sleep(10);
+        stop.set(true);
+
         for (Thread t : workers) {
             t.join();
         }
