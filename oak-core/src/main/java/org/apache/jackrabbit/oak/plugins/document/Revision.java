@@ -81,6 +81,7 @@ public class Revision {
     static void resetClockToDefault(){
         clock = Clock.SIMPLE;
         lastTimestamp = clock.getTime();
+        lastRevisionTimestamp = clock.getTime();
 
     }
     public Revision(long timestamp, int counter, int clusterId) {
