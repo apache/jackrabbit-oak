@@ -129,9 +129,9 @@ public class Oak {
 
     private SecurityProvider securityProvider;
 
-    private ScheduledExecutorService scheduledExecutor = defaultScheduledExecutor();
+    private ScheduledExecutorService scheduledExecutor;
 
-    private Executor executor = defaultExecutorService();
+    private Executor executor;
 
     /**
      * Default {@code ScheduledExecutorService} used for scheduling background tasks.
@@ -187,6 +187,20 @@ public class Oak {
         return executor;
     }
 
+    private synchronized ScheduledExecutorService getScheduledExecutor() {
+        if (scheduledExecutor == null) {
+            scheduledExecutor = defaultScheduledExecutor();
+        }
+        return scheduledExecutor;
+    }
+
+    private synchronized Executor getExecutor() {
+        if (executor == null) {
+            executor = defaultExecutorService();
+        }
+        return executor;
+    }
+
     private MBeanServer mbeanServer;
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
@@ -216,7 +230,7 @@ public class Oak {
 
             final Closer observerSubscription = Closer.create();
             Future<?> future = null;
-            if (scheduledExecutor != null && type == Runnable.class) {
+            if (type == Runnable.class) {
                 Runnable runnable = (Runnable) service;
                 Long period = getValue(properties, "scheduler.period", Long.class);
                 if (period != null) {
@@ -224,10 +238,10 @@ public class Oak {
                             properties, "scheduler.concurrent",
                             Boolean.class, Boolean.FALSE);
                     if (concurrent) {
-                        future = scheduledExecutor.scheduleAtFixedRate(
+                        future = getScheduledExecutor().scheduleAtFixedRate(
                                 runnable, period, period, TimeUnit.SECONDS);
                     } else {
-                        future = scheduledExecutor.scheduleWithFixedDelay(
+                        future = getScheduledExecutor().scheduleWithFixedDelay(
                                 runnable, period, period, TimeUnit.SECONDS);
                     }
                 }
@@ -492,7 +506,7 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        whiteboard.register(Executor.class, executor, Collections.emptyMap());
+        whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap());
 
         IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
@@ -513,7 +527,8 @@ public class Oak {
 
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate("async-reindex", store, indexEditors,
-                            true), executor);
+                            true), getExecutor()
+            );
             registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class,
                     asyncPI, PropertyIndexAsyncReindexMBean.TYPE, name);
         }
