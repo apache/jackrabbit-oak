@@ -27,7 +27,17 @@ extensions present with Jackrabbit API.
 
 ### Jackrabbit User Management API
 
-_todo_
+The Jackrabbit API provides the user management related extensions that are
+missing in JCR. The relevant interfaces are defined in the
+`org.apache.jackrabbit.api.security.user' package space:
+
+- `UserManager`
+- `Authorizable`
+    - `User`
+    - `Group`
+- `Impersonation`
+- `QueryBuilder`
+    - `Query`
 
 ### Oak User Management Implementation
 
