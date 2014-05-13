@@ -242,6 +242,13 @@ The following configuration parameters present with the default implementation i
 * "autoExpandSize"
 * "groupMembershipSplitSize"
 
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](user/differences.html)
+- [Group Membership](user/membership.html)
+- [Authorizable Actions](user/authorizableaction.html)
+- [Searching Users and Groups](user/query.html)
+
 <!-- hidden references -->
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME
 [OAK-118]: https://issues.apache.org/jira/browse/OAK-118

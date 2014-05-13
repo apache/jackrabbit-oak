@@ -353,9 +353,7 @@ _todo_ [Synchronization](authentication/usersync.html)
 Oak in addition provides interfaces to ease custom implementation of the external
 authentication with optional user/group synchronization to the repository.
 
-See section [identity management](authentication/identitymanagement.html) and
-[External Login Module and User Synchronization](authentication/externalloginmodule.html) for details.
-
+See section [identity management](authentication/identitymanagement.html) for details.
 
 ### Configuration
 
@@ -367,13 +365,20 @@ There also exists a utility class that allows to obtain different
 `javax.security.auth.login.Configuration` for the most common setup [11]:
 
 - `ConfigurationUtil#getDefaultConfiguration`: default OAK configuration supporting uid/pw login configures `LoginModuleImpl` only
-
 - `ConfigurationUtil#getJackrabbit2Configuration`: backwards compatible configuration that provides the functionality covered by jackrabbit-core DefaultLoginModule, namely:
-
     - `GuestLoginModule`: null login falls back to anonymous
     - `TokenLoginModule`: covers token base authentication
     - `LoginModuleImpl`: covering regular uid/pw login
 
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](authentication/differences.html)
+- [Token Authentication and Token Management](authentication/tokenmanagement.html)
+- [External Authentication](authentication/externalloginmodule.html)
+    - [User and Group Synchronization](authentication/usersync.html)
+    - [Identity Management](authentication/identitymanagement.html)
+    - [LDAP Integration](authentication/ldap.html)
+- [Pre-Authentication](authentication/preauthentication.html)
 
 <!-- references -->
 [javax.security.auth.spi.LoginModule]: http://docs.oracle.com/javase/6/docs/api/javax/security/auth/spi/LoginModule.html

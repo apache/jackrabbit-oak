@@ -168,6 +168,10 @@ Differences to Jackrabbit 2.x:
 - The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 - As of OAK no extra access control content is installed by default which renders that flag superfluous.
 
+### Further Reading
+
+- [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
+- [Restriction Management](accesscontrol/restriction.html)
 
 <!-- hidden references -->
 [1]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/restriction/

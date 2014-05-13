@@ -155,6 +155,10 @@ the security risk associated with it.
     // NOTE: workspace operation that doesn't require Session#save()
     privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
 
+
+### Further Reading
+
+
 <!-- references -->
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html
 [PrivilegeConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConstants.html
