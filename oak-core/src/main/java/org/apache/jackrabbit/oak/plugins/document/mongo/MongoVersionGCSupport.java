@@ -117,7 +117,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
         List<String> ids;
         DBCursor cursor = getNodeCollection().find(query, keys)
-                .setReadPreference(ReadPreference.secondaryPreferred());
+                .setReadPreference(store.getDefaultReadPreference());
         try {
              ids = ImmutableList.copyOf(Iterables.transform(cursor, new Function<DBObject, String>() {
                  @Override
