@@ -119,7 +119,7 @@ public final class DocumentNodeStore
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
-    private static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
+    static final int REMEMBER_REVISION_ORDER_MILLIS = 60 * 60 * 1000;
 
     /**
      * The document store (might be used by multiple node stores).
