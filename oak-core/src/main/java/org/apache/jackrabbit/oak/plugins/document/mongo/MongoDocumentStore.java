@@ -121,7 +121,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
      */
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
-    private final Clock clock;
+    private Clock clock = Clock.SIMPLE;
 
     private final DB db;
 
@@ -138,7 +138,6 @@ public class MongoDocumentStore implements CachingDocumentStore {
         settings = db.getCollection(
                 Collection.SETTINGS.toString());
 
-        clock = builder.getClock();
         maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
         // indexes:
@@ -1045,5 +1044,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     private long getTime() {
         return clock.getTime();
+    }
+
+    void setClock(Clock clock) {
+        this.clock = clock;
     }
 }
