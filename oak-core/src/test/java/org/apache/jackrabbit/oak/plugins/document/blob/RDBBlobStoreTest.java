@@ -90,7 +90,6 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
 
         while (max - min >= 2) {
             test = (max + min) / 2;
-            System.err.println(test);
             byte[] data = new byte[test];
             Random r = new Random(0);
             r.nextBytes(data);
