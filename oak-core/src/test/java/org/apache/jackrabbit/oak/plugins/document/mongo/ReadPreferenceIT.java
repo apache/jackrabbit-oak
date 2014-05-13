@@ -66,8 +66,7 @@ public class ReadPreferenceIT {
         replicationLag = TimeUnit.SECONDS.toMillis(10);
         MongoConnection mc = MongoUtils.getConnection();
         documentNodeStore = new DocumentMK.Builder()
-                .clock(clock)
-                .setMaxReplicationLag(replicationLag, TimeUnit.HOURS)
+                .setMaxReplicationLag(replicationLag, TimeUnit.MILLISECONDS)
                 .setMongoDB(mc.getDB())
                 .setClusterId(1)
                 .getNodeStore();
@@ -144,6 +143,7 @@ public class ReadPreferenceIT {
 
         //Going into future to make parent /x old enough
         clock.waitUntil(Revision.getCurrentTimestamp() + replicationLag);
+        mongoDS.setClock(clock);
 
         //For old modified nodes secondaries should be preferred
         assertEquals(testPref,
