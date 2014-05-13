@@ -35,6 +35,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -43,8 +44,10 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
+import static java.lang.Thread.UncaughtExceptionHandler;
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -54,7 +57,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class ConcurrentAddNodesClusterIT {
 
-    private static final int NUM_CLUSTER_NODES = 3;
+    private static final int NUM_CLUSTER_NODES = 5;
     private static final int NODE_COUNT = 100;
     private static final int LOOP_COUNT = 10;
     private static final int WORKER_COUNT = 20;
@@ -115,8 +118,10 @@ public class ConcurrentAddNodesClusterIT {
         }
     }
 
+    @Ignore("OAK-1807")
     @Test
     public void addNodesConcurrent2() throws Exception {
+        final Thread mainThread = Thread.currentThread();
         for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
             DocumentMK mk = new DocumentMK.Builder()
                     .setMongoDB(createConnection().getDB())
@@ -127,6 +132,13 @@ public class ConcurrentAddNodesClusterIT {
                 new HashMap<String, Exception>());
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicBoolean stop = new AtomicBoolean();
+        final UncaughtExceptionHandler ueh = new UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                RuntimeException r = new RuntimeException("Exception in thread "+t.getName(), e);
+                r.printStackTrace();
+            }
+        };
         for (int i = 0; i < mks.size(); i++) {
             DocumentMK mk = mks.get(i);
             final Repository repo = new Jcr(mk.getNodeStore()).createRepository();
@@ -139,7 +151,7 @@ public class ConcurrentAddNodesClusterIT {
                     @Override
                     public void run() {
                         try {
-                            latch.await();
+                            Uninterruptibles.awaitUninterruptibly(latch);
                             session.refresh(false);
                             Node node = session.getRootNode().addNode(name+count++, "oak:Unstructured");
                             for (int j = 0; j < NODE_COUNT && !stop.get() ; j++) {
@@ -147,10 +159,11 @@ public class ConcurrentAddNodesClusterIT {
                                 session.save();
                             }
                         } catch (RepositoryException e) {
-                            exceptions.put(Thread.currentThread().getName(), e);
+                            RuntimeException r = new RuntimeException("Exception in thread "+name, e);
+                            r.printStackTrace();
+                            exceptions.put(Thread.currentThread().getName(), r);
                             stop.set(true);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
+                            mainThread.interrupt();
                         }
                     }
                 };
@@ -168,7 +181,10 @@ public class ConcurrentAddNodesClusterIT {
                     };
                 }
 
-                workers.add(new Thread(runnable));
+                Thread t = new Thread(runnable);
+                t.setName(name);
+                t.setUncaughtExceptionHandler(ueh);
+                workers.add(t);
             }
         }
         for (Thread t : workers) {
