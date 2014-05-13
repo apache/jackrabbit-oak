@@ -43,6 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore.DocumentReadPreference;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ReadPreferenceIT {
 
@@ -148,6 +149,19 @@ public class ReadPreferenceIT {
 
         //For old modified nodes secondaries should be preferred
         assertEquals(testPref,
-                mongoDS.getMongoReadPreference(NODES,parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+                mongoDS.getMongoReadPreference(NODES, parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
+    }
+
+    @Test
+    public void testReadWriteMode() throws Exception{
+        assertEquals(ReadPreference.primary(), mongoDS.getConfiguredReadPreference(NODES));
+
+        mongoDS.setReadWriteMode("readPreference=secondary&w=2&safe=true&j=true");
+
+        assertEquals(ReadPreference.secondary(), mongoDS.getDBCollection(NODES).getReadPreference());
+        assertEquals(2, mongoDS.getDBCollection(NODES).getWriteConcern().getW());
+        assertTrue(mongoDS.getDBCollection(NODES).getWriteConcern().getJ());
+
+        assertEquals(ReadPreference.secondary(), mongoDS.getConfiguredReadPreference(NODES));
     }
 }
