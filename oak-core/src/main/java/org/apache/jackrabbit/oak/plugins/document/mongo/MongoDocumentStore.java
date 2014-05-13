@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Splitter;
 
 import com.google.common.collect.Lists;
+import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -56,6 +57,8 @@ import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +75,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
-import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
@@ -86,6 +88,13 @@ public class MongoDocumentStore implements CachingDocumentStore {
     private static final boolean LOG_TIME = false;
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
+
+    static enum DocumentReadPreference {
+        PRIMARY,
+        PREFER_PRIMARY,
+        PREFER_SECONDARY,
+        PREFER_SECONDARY_IF_OLD_ENOUGH
+    }
 
     public static final int IN_CLAUSE_BATCH_SIZE = 500;
 
@@ -112,15 +121,25 @@ public class MongoDocumentStore implements CachingDocumentStore {
      */
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
+    private final Clock clock;
+
+    private final DB db;
+
+    private final long maxReplicationLagMillis;
+
     private String lastReadWriteMode;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
+        this.db = db;
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
                 Collection.CLUSTER_NODES.toString());
         settings = db.getCollection(
                 Collection.SETTINGS.toString());
+
+        clock = builder.getClock();
+        maxReplicationLagMillis = builder.getMaxReplicationLagMillis();
 
         // indexes:
         // the _id field is the primary key, so we don't need to define it
@@ -231,25 +250,32 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
-        return find(collection, key, Integer.MAX_VALUE);
+        return find(collection, key, true, -1);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <T extends Document> T find(final Collection<T> collection,
                                        final String key,
                                        int maxCacheAge) {
+        return find(collection, key, false, maxCacheAge);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Document> T find(final Collection<T> collection,
+                                       final String key,
+                                       boolean preferCached,
+                                       final int maxCacheAge) {
         if (collection != Collection.NODES) {
-            return findUncached(collection, key);
+            return findUncached(collection, key, DocumentReadPreference.PRIMARY);
         }
         CacheValue cacheKey = new StringValue(key);
         NodeDocument doc;
-        if (maxCacheAge > 0) {
+        if (maxCacheAge > 0 || preferCached) {
             // first try without lock
             doc = nodesCache.getIfPresent(cacheKey);
             if (doc != null) {
-                if (maxCacheAge == Integer.MAX_VALUE ||
-                        System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                if (preferCached ||
+                        getTime() - doc.getCreated() < maxCacheAge) {
                     if (doc == NodeDocument.NULL) {
                         return null;
                     }
@@ -267,17 +293,17 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) findUncached(collection, key);
+                            NodeDocument doc = (NodeDocument) findUncached(collection, key, getReadPreference(maxCacheAge));
                             if (doc == null) {
                                 doc = NodeDocument.NULL;
                             }
                             return doc;
                         }
                     });
-                    if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
+                    if (maxCacheAge == 0 || preferCached) {
                         break;
                     }
-                    if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                    if (getTime() - doc.getCreated() < maxCacheAge) {
                         break;
                     }
                     // too old: invalidate, try again
@@ -297,12 +323,25 @@ public class MongoDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    <T extends Document> T findUncached(Collection<T> collection, String key) {
+    private <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            DBObject obj = dbCollection.findOne(getByKeyQuery(key).get());
-            if (obj == null) {
+            ReadPreference readPreference = getMongoReadPreference(collection, key, docReadPref);
+            DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
+
+            if (obj == null
+                    && readPreference.isSlaveOk()) {
+                //In case secondary read preference is used and node is not found
+                //then check with primary again as it might happen that node document has not been
+                //replicated. This is required for case like SplitDocument where the SplitDoc is fetched with
+                //maxCacheAge == Integer.MAX_VALUE which results in readPreference of secondary.
+                //In such a case we know that document with such an id must exist
+                //but possibly dut to replication lag it has not reached to secondary. So in that case read again
+                //from primary
+                obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, ReadPreference.primary());
+            }
+            if(obj == null){
                 return null;
             }
             T doc = convertFromDBObject(collection, obj);
@@ -345,6 +384,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
         long start = start();
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            cursor.setReadPreference(getMongoReadPreference(collection, fromKey, getDefaultReadPreference(collection)));
+
             List<T> list;
             try {
                 list = new ArrayList<T>();
@@ -622,6 +663,67 @@ public class MongoDocumentStore implements CachingDocumentStore {
         } finally {
             end("update", start);
         }
+    }
+
+    DocumentReadPreference getReadPreference(int maxCacheAge){
+        if(maxCacheAge >= 0 && maxCacheAge < maxReplicationLagMillis) {
+            return DocumentReadPreference.PRIMARY;
+        } else if(maxCacheAge == Integer.MAX_VALUE){
+            return DocumentReadPreference.PREFER_SECONDARY;
+        } else {
+           return DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH;
+        }
+    }
+
+    DocumentReadPreference getDefaultReadPreference(Collection col){
+        return col == Collection.NODES ? DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH : DocumentReadPreference.PRIMARY;
+    }
+
+    <T extends Document> ReadPreference getMongoReadPreference(Collection<T> collection,
+                                                               String key,
+                                                               DocumentReadPreference preference) {
+        switch(preference){
+            case PRIMARY:
+                return ReadPreference.primary();
+            case PREFER_PRIMARY :
+                return ReadPreference.primaryPreferred();
+            case PREFER_SECONDARY :
+                return getDefaultReadPreference();
+            case PREFER_SECONDARY_IF_OLD_ENOUGH:
+                if(collection != Collection.NODES){
+                    return ReadPreference.primary();
+                }
+
+                //Default to primary preferred such that in case primary is being elected
+                //we can still read from secondary
+                //TODO REVIEW Would that be safe
+                ReadPreference readPreference = ReadPreference.primaryPreferred();
+                String parentId = Utils.getParentId(key);
+                if (parentId != null) {
+                    long replicationSafeLimit = getTime() - maxReplicationLagMillis;
+                    NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
+                    if (cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit)) {
+
+                        //If parent has been modified loooong time back then there children
+                        //would also have not be modified. In that case we can read from secondary
+                        readPreference = getDefaultReadPreference();
+                    }
+                }
+                return readPreference;
+            default:
+                throw new IllegalArgumentException("Unsupported usage " + preference);
+        }
+    }
+
+    /**
+     * Retrieves the ReadPreference specified for the Mongo DB in use irrespective of
+     * DBCollection. Depending on deployments the user can tweak the default references
+     * to read from secondary and in that also tag secondaries
+     *
+     * @return db level ReadPreference
+     */
+    ReadPreference getDefaultReadPreference(){
+        return db.getReadPreference();
     }
 
     @CheckForNull
@@ -939,5 +1041,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
         } catch (Exception e) {
             LOG.error("Error setting readWriteMode " + readWriteMode, e);
         }
+    }
+
+    private long getTime() {
+        return clock.getTime();
     }
 }

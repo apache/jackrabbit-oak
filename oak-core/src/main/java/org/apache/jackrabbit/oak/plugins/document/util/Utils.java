@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -246,6 +247,31 @@ public class Utils {
         }
         int depth = Utils.pathDepth(path);
         return depth + ":" + path;
+    }
+
+    /**
+     * Returns the parent id for given id if possible
+     *
+     * <p>It would return null in following cases
+     * <ul>
+     *     <li>If id is from long path</li>
+     *     <li>If id is for root path</li>
+     * </ul>
+     *</p>
+     * @param id id for which parent id needs to be determined
+     * @return parent id. null if parent id cannot be determined
+     */
+    @CheckForNull
+    public static String getParentId(String id){
+        if(Utils.isIdFromLongPath(id)){
+            return null;
+        }
+        String path = Utils.getPathFromId(id);
+        if(PathUtils.denotesRoot(path)){
+            return null;
+        }
+        String parentPath = PathUtils.getParentPath(path);
+        return Utils.getIdFromPath(parentPath);
     }
 
     public static boolean isLongPath(String path) {
