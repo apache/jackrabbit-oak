@@ -572,6 +572,10 @@ public class Revision {
         Revision getRevisionSeen(Revision r) {
             List<RevisionRange> list = map.get(r.getClusterId());
             if (list == null) {
+                if (r.getTimestamp() <= oldestTimestamp) {
+                    // old revision with already purged range
+                    return null;
+                }
                 if (r.getClusterId() != currentClusterNodeId) {
                     // this is from a cluster node we did not see yet
                     // see also OAK-1170
