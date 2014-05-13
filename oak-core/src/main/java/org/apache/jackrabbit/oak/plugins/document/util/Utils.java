@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -25,14 +23,18 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -41,7 +43,7 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.BasicDBObject;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Utility methods.
@@ -280,15 +282,14 @@ public class Utils {
         if (path.length() < PATH_SHORT) {
             return false;
         }
-        // check if name is too long
-        String name = PathUtils.getName(path);
-        if (name.getBytes(UTF_8).length > NODE_NAME_LIMIT) {
-            throw new IllegalArgumentException("Node name is too long: " + path);
-        }
         // check if the parent path is long
         byte[] parent = PathUtils.getParentPath(path).getBytes(UTF_8);
         if (parent.length < PATH_LONG) {
             return false;
+        }
+        String name = PathUtils.getName(path);
+        if (name.getBytes(UTF_8).length > NODE_NAME_LIMIT) {
+            throw new IllegalArgumentException("Node name is too long: " + path);
         }
         return true;
     }
@@ -428,9 +429,9 @@ public class Utils {
      *
      * @param obj object to close
      */
-    public static void closeIfCloseable(Object obj) {
-        if (obj instanceof Closeable) {
-            try {
+    public static void closeIfCloseable(Object obj){
+        if(obj instanceof Closeable){
+            try{
                 ((Closeable) obj).close();
             } catch (IOException e) {
                 LOG.warn("Error occurred while closing {}", obj, e);
@@ -441,7 +442,7 @@ public class Utils {
     /**
      * Provides a readable string for given timestamp
      */
-    public static String timestampToString(long timestamp) {
+    public static String timestampToString(long timestamp){
         return (new Timestamp(timestamp) + "00").substring(0, 23);
     }
 }
