@@ -34,9 +34,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Splitter;
-
 import com.google.common.collect.Lists;
+import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -123,14 +122,11 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     private Clock clock = Clock.SIMPLE;
 
-    private final DB db;
-
     private final long maxReplicationLagMillis;
 
     private String lastReadWriteMode;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
-        this.db = db;
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
@@ -194,9 +190,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 .recordStats()
                 .build();
 
-        Cache<CacheValue, NodeDocument> cache =
-                new NodeDocOffHeapCache(primaryCache, listener, builder, this);
-        return cache;
+        return new NodeDocOffHeapCache(primaryCache, listener, builder, this);
     }
 
     private static long start() {
@@ -688,7 +682,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             case PREFER_PRIMARY :
                 return ReadPreference.primaryPreferred();
             case PREFER_SECONDARY :
-                return getDefaultReadPreference();
+                return getConfiguredReadPreference(collection);
             case PREFER_SECONDARY_IF_OLD_ENOUGH:
                 if(collection != Collection.NODES){
                     return ReadPreference.primary();
@@ -705,7 +699,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
                         //If parent has been modified loooong time back then there children
                         //would also have not be modified. In that case we can read from secondary
-                        readPreference = getDefaultReadPreference();
+                        readPreference = getConfiguredReadPreference(collection);
                     }
                 }
                 return readPreference;
@@ -721,8 +715,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
      *
      * @return db level ReadPreference
      */
-    ReadPreference getDefaultReadPreference(){
-        return db.getReadPreference();
+    ReadPreference getConfiguredReadPreference(Collection collection){
+        return getDBCollection(collection).getReadPreference();
     }
 
     @CheckForNull
@@ -1020,22 +1014,22 @@ public class MongoDocumentStore implements CachingDocumentStore {
         }
         lastReadWriteMode = readWriteMode;
         try {
-            Map<String, String> map = Splitter.on(", ").withKeyValueSeparator(":").split(readWriteMode);
-            String read = map.get("read");
-            if (read != null) {
-                ReadPreference readPref = ReadPreference.valueOf(read);
-                if (!readPref.equals(nodes.getReadPreference())) {
-                    nodes.setReadPreference(readPref);
-                    LOG.info("Using ReadPreference " + readPref);
-                }
+            String rwModeUri = readWriteMode;
+            if(!readWriteMode.startsWith("mongodb://")){
+                rwModeUri = String.format("mongodb://localhost/?%s", readWriteMode);
             }
-            String write = map.get("write");
-            if (write != null) {
-                WriteConcern writeConcern = WriteConcern.valueOf(write);
-                if (!writeConcern.equals(nodes.getWriteConcern())) {
-                    nodes.setWriteConcern(writeConcern);
-                    LOG.info("Using WriteConcern " + writeConcern);
-                }
+            MongoClientURI uri = new MongoClientURI(rwModeUri);
+            ReadPreference readPref = uri.getOptions().getReadPreference();
+
+            if (!readPref.equals(nodes.getReadPreference())) {
+                nodes.setReadPreference(readPref);
+                LOG.info("Using ReadPreference {} ",readPref);
+            }
+
+            WriteConcern writeConcern = uri.getOptions().getWriteConcern();
+            if (!writeConcern.equals(nodes.getWriteConcern())) {
+                nodes.setWriteConcern(writeConcern);
+                LOG.info("Using WriteConcern " + writeConcern);
             }
         } catch (Exception e) {
             LOG.error("Error setting readWriteMode " + readWriteMode, e);
