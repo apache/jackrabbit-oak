@@ -37,6 +37,7 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
+import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
@@ -135,6 +136,7 @@ abstract class CacheInvalidator {
 
             // Fetch lastRev for each such node
             DBCursor cursor = nodes.find(query.get(), keys);
+            cursor.setReadPreference(ReadPreference.primary());
             result.queryCount++;
 
             for (DBObject obj : cursor) {
@@ -222,6 +224,7 @@ abstract class CacheInvalidator {
 
                         // Fetch lastRev and modCount for each such nodes
                         DBCursor cursor = nodes.find(query.get(), keys);
+                        cursor.setReadPreference(ReadPreference.primary());
                         LOG.debug(
                                 "Checking for changed nodes at level {} with {} paths",
                                 tn.level(), sameLevelNodes.size());

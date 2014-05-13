@@ -67,8 +67,7 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
         DBCursor cursor =
                 getNodeCollection().find(query)
                         .sort(sortFields)
-                        .setReadPreference(
-                                ReadPreference.secondaryPreferred());
+                        .setReadPreference(ReadPreference.primary());
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
             @Override
             public NodeDocument apply(DBObject input) {
