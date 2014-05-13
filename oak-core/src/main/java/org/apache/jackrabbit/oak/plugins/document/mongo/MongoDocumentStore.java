@@ -321,6 +321,11 @@ public class MongoDocumentStore implements CachingDocumentStore {
         long start = start();
         try {
             ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
+
+            if(readPreference.isSlaveOk()){
+                LOG.trace("Routing call to secondary for fetching [{}]", key);
+            }
+
             DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
 
             if (obj == null
@@ -378,7 +383,14 @@ public class MongoDocumentStore implements CachingDocumentStore {
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
             String parentId = Utils.getParentIdFromLowerLimit(fromKey);
-            cursor.setReadPreference(getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection)));
+            ReadPreference readPreference =
+                    getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
+
+            if(readPreference.isSlaveOk()){
+                LOG.trace("Routing call to secondary for fetching children from [{}] to [{}]", fromKey, toKey);
+            }
+
+            cursor.setReadPreference(readPreference);
 
             List<T> list;
             try {
