@@ -228,7 +228,6 @@ The following configuration options are present with the `UserConfiguration` as 
 | `PARAM_USER_PATH`                   | String  | "/rep:security/rep:authorizables/rep:users"  |
 | `PARAM_GROUP_PATH`                  | String  | "/rep:security/rep:authorizables/rep:groups" |
 | `PARAM_DEFAULT_DEPTH`               | int     | 2                                            |
-| `PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE` | int     |                                              |
 | `PARAM_PASSWORD_HASH_ALGORITHM`     | String  | "SHA-256"                                    |
 | `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         |
 | `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            |
