@@ -326,7 +326,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            ReadPreference readPreference = getMongoReadPreference(collection, key, docReadPref);
+            ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
             DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
 
             if (obj == null
@@ -383,7 +383,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
         long start = start();
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
-            cursor.setReadPreference(getMongoReadPreference(collection, fromKey, getDefaultReadPreference(collection)));
+            String parentId = Utils.getParentIdFromLowerLimit(fromKey);
+            cursor.setReadPreference(getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection)));
 
             List<T> list;
             try {
@@ -679,7 +680,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     }
 
     <T extends Document> ReadPreference getMongoReadPreference(Collection<T> collection,
-                                                               String key,
+                                                               String parentId,
                                                                DocumentReadPreference preference) {
         switch(preference){
             case PRIMARY:
@@ -697,7 +698,6 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 //we can still read from secondary
                 //TODO REVIEW Would that be safe
                 ReadPreference readPreference = ReadPreference.primaryPreferred();
-                String parentId = Utils.getParentId(key);
                 if (parentId != null) {
                     long replicationSafeLimit = getTime() - maxReplicationLagMillis;
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);

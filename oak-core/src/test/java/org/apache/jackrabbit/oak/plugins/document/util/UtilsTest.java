@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import com.google.common.base.Strings;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link Utils}.
@@ -36,6 +40,23 @@ public class UtilsTest {
                 Utils.getPreviousIdFor("/test", r, 1));
         assertEquals("15:p/a/b/c/d/e/f/g/h/i/j/k/l/m/" + r.toString() + "/3",
                 Utils.getPreviousIdFor("/a/b/c/d/e/f/g/h/i/j/k/l/m", r, 3));
+    }
+
+    @Test
+    public void getParentIdFromLowerLimit() throws Exception{
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit(Utils.getKeyLowerLimit("/foo")));
+        assertEquals("1:/foo",Utils.getParentIdFromLowerLimit("2:/foo/bar"));
+    }
+
+    @Test
+    public void getParentId() throws Exception{
+        String longPath = PathUtils.concat("/"+Strings.repeat("p", Utils.PATH_LONG + 1), "foo");
+        assertTrue(Utils.isLongPath(longPath));
+
+        assertNull(Utils.getParentId(Utils.getIdFromPath(longPath)));
+
+        assertNull(Utils.getParentId(Utils.getIdFromPath("/")));
+        assertEquals("1:/foo",Utils.getParentId("2:/foo/bar"));
     }
 
     @Ignore("Performance test")
