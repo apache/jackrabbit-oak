@@ -76,7 +76,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     private void initialize(DataSource ds) throws Exception {
 
         this.ds = ds;
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
 
         try {
             con.setAutoCommit(false);
@@ -138,7 +138,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
 
         try {
             long now = System.currentTimeMillis();
@@ -190,7 +190,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     // needed in test
     protected byte[] readBlockFromBackend(byte[] digest) throws Exception {
         String id = StringUtils.convertBytesToHex(digest);
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
         byte[] data;
 
         try {
@@ -217,7 +217,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         byte[] data = cache.get(id);
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
 
         try {
             PreparedStatement prep = con.prepareStatement("select data from datastore_data where id = ?");
@@ -263,7 +263,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     protected void mark(BlockId blockId) throws Exception {
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
         try {
             if (minLastModified == 0) {
                 return;
@@ -291,7 +291,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     private int sweepFromDatabase() throws SQLException {
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
         try {
             int count = 0;
             PreparedStatement prep = con.prepareStatement("select id from datastore_meta where lastMod < ?");
@@ -329,7 +329,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             return true;
         }
 
-        Connection con = ds.getConnection();
+        Connection con = getConnection();
         try {
             PreparedStatement prep = null;
             PreparedStatement prepData = null;
@@ -434,6 +434,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             Connection connection = null;
             try {
                 connection = ds.getConnection();
+                connection.setAutoCommit(false);
                 try {
                     PreparedStatement prep = connection.prepareStatement(query.toString());
                     int idx = 1;
@@ -465,5 +466,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 return false;
             }
         }
+    }
+
+    private Connection getConnection() throws SQLException {
+        Connection c = this.ds.getConnection();
+        c.setAutoCommit(false);
+        return c;
     }
 }
