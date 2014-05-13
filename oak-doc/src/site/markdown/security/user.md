@@ -188,12 +188,19 @@ details and examples.
 
 #### Node Name Generation
 
-_todo_
-
-`org.apache.jackrabbit.oak.spi.security.user.*`
+The default user management implementation with Oak 1.0 allows to specify how
+the name of a new authorizable node is being generated. As in Jackrabbit 2.x
+the ID is used as name-hint by default. In order to prevent exposing identifier
+related information in the path of the authorizable node, it it's desirable to
+change this default behavior by pluggin a custom implementation of the
+`AuthorizableNodeName` interface.
 
 - `AuthorizableNodeName` : Defines the generation of the authorizable node names
    in case the user management implementation stores user information in the repository.
+
+In the default implementation the corresponding configuration parameter is
+
+- `PARAM_AUTHORIZABLE_NODE_NAME`
 
 #### Utilities
 
@@ -213,10 +220,10 @@ _todo_
 
 ### Configuration
 
-The following configuration options are present with the `UserConfiguration` as of OAK 1.0:
+The following user management specific methods are present with the `UserConfiguration`
+as of OAK 1.0:
 
 * getUserManager: Obtain a new user manager instance
-* getAuthorizableActionProvider: Obtain a new instance of the AuthorizableActionProvider (see above)
 
 #### Configuration Parameters supported by the default implementation
 
@@ -232,6 +239,7 @@ The following configuration options are present with the `UserConfiguration` as 
 | `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         |
 | `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            |
 | `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    |
+| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider |
 | `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
