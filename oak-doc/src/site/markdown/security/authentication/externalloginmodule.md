@@ -85,7 +85,9 @@ _Phase 2: Commit_
 
 #### External Identity Provider
 
-_todo_
+The `ExternalLoginModule` is designed to work with a pluggable [ExternalIdentityProvider]
+implementation that is responsible for validating the authentication request and
+provide information about the user that is associated with the specified credentials.
 
 See [External Identity Management](identitymanagement.html) for further information
 regarding the identity management API defined by Oak. Section [LDAP](ldap.html)
@@ -100,13 +102,24 @@ present on the IDP.
 See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
-### Example JAAS Configuration
+### Configuration
+
+#### Examples
+
+##### Example JAAS Configuration
 
 The following JAAS configuration shows how the `ExternalLoginModule` could be
 used in a setup that not solely uses third party login:
 
-    _todo_
+    jackrabbit.oak {
+         org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
+         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
+         org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule required
+            sync.handlerName="default"
+            idp.name="ldap";
+     };
 
 <!-- references -->
 
+[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html

@@ -40,13 +40,25 @@ extended at runtime (see section Configuration below).
 
 #### TokenLoginModule
 
-The `TokenLoginModule` itself behaves as follows:
+The `TokenLoginModule`designed to support and issue `TokenCredentials`. The
+authentication phases behave as follows:
 
 *Phase 1: Login*
-_todo_
+
+- if no `TokenProvider` is available **returns `false`**
+- if a `TokenProvider` has been configured it retrieves JCR credentials from the [CallbackHandler] using the [CredentialsCallback]
+- in case of `TokenCredentials` validates these credentials: if it succeeds
+  it pushes the users ID to the shared state and returns `true`; otherwise throws `LoginException`
+- for other credentials the method returns `false`
 
 *Phase 1: Commit*
-_todo_
+
+- if phase 1 succeeded the subject is populated and the method returns `true`
+- in case phase 1 did not succeed this method will test if the shared state contain
+  credentials that ask for a new token being created; if this succeeds it will
+  create a new instance of `TokenCredentials`, push the public attributes to the
+  shared stated and update the subject with the new credentials;
+  finally the commit call **returns `false`**
 
 ### Token Management API
 
@@ -162,6 +174,14 @@ _todo_
 - [TokenConfiguration]
 - [CompositeTokenConfiguration]
 
+#### Examples
+
+##### Example JAAS Configuration
+
+    jackrabbit.oak {
+         org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
+         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
+     };
 
 
 ### Pluggability
