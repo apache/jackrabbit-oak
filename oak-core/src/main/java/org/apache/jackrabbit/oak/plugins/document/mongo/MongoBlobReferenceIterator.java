@@ -78,7 +78,7 @@ public class MongoBlobReferenceIterator extends AbstractIterator<Blob> implement
                     .is(NodeDocument.HAS_BINARY_VAL)
                     .get();
             //TODO It currently prefers secondary. Would that be Ok?
-            cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
+            cursor = getNodeCollection().find(query).setReadPreference(documentStore.getDefaultReadPreference());
         }
     }
 
