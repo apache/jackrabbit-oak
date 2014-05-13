@@ -62,14 +62,18 @@ authentication phases behave as follows:
 
 ### Token Management API
 
-_todo_
+Oak 1.0 defines the following interfaces used to manage login tokens:
 
-- [TokenProvider]
-- [TokenInfo]
+- [TokenProvider]: Interface to read and manage login tokens.
+- [TokenInfo]: Information associated with a given login token.
+
+In addition Oak comes with a default implementation of the provider interface
+that is able to aggregate multiple `TokenProvider`s:
+
 - [CompositeTokenProvider]
 
 
-### Characteristics of the Default Implementation
+### Characteristics of the TokenProvider Implementation
 
 The default implementation of the token management API stores login tokens along
 with the user's home directory in the repository. Along with the hash of the
@@ -82,16 +86,21 @@ with each [ContentSession].
 
 #### Token Creation
 
-_todo_
+The creation of a new token is triggered by valid `SimpleCredentials` passed
+to the login module chain that contain an additional, empty `.token` attribute.
+The default `TokenProvider` implementation will consequently generate a new
+token and store it's hash along with all mandatory and informative attributes
+to the new content node representing the new token.
 
 #### Token Removal
 
-_todo_
+In the default implementation a given login token (and the node associated with it)
+will be removed if the authentication fails due to an expired token.
 
 #### Resetting Expiration Time
 
-_todo_
-
+The default `TokenProvider` implementation will automatically reset the expiration
+time of a given token upon successful authentication.
 
 #### Token Representation in the Repository
 
