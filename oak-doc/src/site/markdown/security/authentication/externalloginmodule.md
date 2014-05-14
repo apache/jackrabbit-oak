@@ -67,6 +67,12 @@ Note:
 * users (and groups) that are synced from the 3rd party system contain a `rep:externalId` property. This allows to identify the external users and distinguish them from others.
 * to reduce expensive syncing, the synced users and groups have sync timestamp `rep:lastSynced` and are considered valid for a configurable time. if they expire, they need to be validated against the 3rd party system again.
 
+Current this login module supports the following credentials:
+
+- `SimpleCredentials`
+
+The details of the external authentication are as follows:
+
 _Phase 1: Login_
 
 * if the user exists in the repository and is not an externally synced, **return `false`**

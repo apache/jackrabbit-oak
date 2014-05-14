@@ -175,7 +175,11 @@ The behavior of the `GuestLoginModule` is as follows:
 
 #### UserId/Password Login
 
-_todo_
+Oak 1.0 comes with 2 different login module implementations that can handle
+`SimpleCredentials`:
+
+- Default (`LoginModuleImpl`) as described below
+- `ExternalLoginModule` as described in section [External Authentication](authentication/externalloginmodule.html)
 
 ##### Default Login Module
 
