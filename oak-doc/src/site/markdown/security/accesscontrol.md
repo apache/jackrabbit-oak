@@ -22,10 +22,20 @@ Access Control
 
 _todo_
 
+- `AccessControlManager`
+- `AccessControlPolicy`
+    - `AccessControlList`
+    - `NamedAccessControlPolicy`
+- `AccessControlEntry`
+- `AccessControlPolicyIterator`
 
 ### Jackrabbit API
 
 _todo_
+
+- `JackrabbitAccessControlManager`
+- `JackrabbitAccessControlList`
+- `JackrabbitAccessControlEntry`
 
 ### Oak API
 
@@ -155,21 +165,6 @@ org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol [1]
 
 See [Restriction Management](accesscontrol/restriction.html) for details.
 
-
-### Utilities
-
-The jcr-commons module present with Jackrabbit provide some access control related
-utilities that simplify the creation of new policies and entries such as for example:
-
-- `AccessControlUtils.getAccessControlList(Session, String)`
-- `AccessControlUtils.getAccessControlList(AccessControlManager, String)`
-- `AccessControlUtils.addAccessControlEntry(Session, String, Principal, String[], boolean)`
-
-See
-[org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils] for
-the complete list of methods.
-
-
 ### Configuration
 
 The following access control related configuration options are present with the [AuthorizationConfiguration] as of Oak 1.0:
@@ -190,6 +185,28 @@ Differences to Jackrabbit 2.x:
 
 - The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 - As of OAK no extra access control content is installed by default which renders that flag superfluous.
+
+
+### Utilities
+
+The jcr-commons module present with Jackrabbit provide some access control related
+utilities that simplify the creation of new policies and entries such as for example:
+
+- `AccessControlUtils.getAccessControlList(Session, String)`
+- `AccessControlUtils.getAccessControlList(AccessControlManager, String)`
+- `AccessControlUtils.addAccessControlEntry(Session, String, Principal, String[], boolean)`
+
+See
+[org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils] for
+the complete list of methods.
+
+#### Examples
+
+    String path = node.getPath();
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, path);
+    acl.addEntry(principal, privileges, true);
+    acMgr.setPolicy(path, acl);
+    session.save();
 
 ### Further Reading
 
