@@ -209,8 +209,10 @@ change this default behavior by pluggin a custom implementation of the
    in case the user management implementation stores user information in the repository.
 
 In the default implementation the corresponding configuration parameter is
-
-- `PARAM_AUTHORIZABLE_NODE_NAME`
+`PARAM_AUTHORIZABLE_NODE_NAME`. The default name generator can be replace
+by installing an OSGi service that implementats the `AuthorizableNodeName` interface.
+In a non-OSGi setup the user configuration must be initialized with configuration
+parameters that provide the custom generator implementation.
 
 #### Utilities
 
@@ -258,6 +260,54 @@ The following configuration parameters present with the default implementation i
 * "autoExpandTree"
 * "autoExpandSize"
 * "groupMembershipSplitSize"
+
+### Pluggability
+
+The default security setup as present with Oak 1.0 is able to provide custom
+implementation on various levels:
+
+1. The complete user management implementation can be changed by plugging a different
+   `UserConfiguration` implementations. In OSGi-base setup this is achieved by making
+   the configuration a service. In a non-OSGi-base setup the custom configuration
+   must be exposed by the `SecurityProvider` implementation.
+2. Within the default user management implementation the following parts can be
+   change/extended at runtime by providing corresponding OSGi services or passing
+   appropriate configuration parameters exposing the custom implementations:
+       - `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](user/authorizableaction.html).
+       - `AuthorizableNodeName`: Defines the generation of the authorizable node names
+          in case the user management implementation stores user information in the repository.
+
+#### Examples
+
+##### Example AuthorizableNodeName
+
+In an OSGi-based setup it's sufficient to make the service available to the repository
+in order to enable this custom node name generator.
+
+    @Component
+    @Service(value = {AuthorizableNodeName.class})
+    /**
+     * Custom implementation of the {@code AuthorizableNodeName} interface
+     * that uses a uuid as authorizable node name.
+     */
+    final class UUIDNodeName implements AuthorizableNodeName {
+
+        @Override
+        @Nonnull
+        public String generateNodeName(@Nonnull String authorizableId) {
+            return UUID.randomUUID().toString();
+        }
+    }
+
+In a non-OSGi setup this custom name generator can be plugged by making it available
+to the user configuration as follows:
+
+    Map<String, Object> userParams = new HashMap<String, Object>();
+    userParams.put(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new UUIDNodeName());
+    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
+
 
 ### Further Reading
 

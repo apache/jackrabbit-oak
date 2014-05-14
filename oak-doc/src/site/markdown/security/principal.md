@@ -60,7 +60,7 @@ the [CompositePrincipalProvider] is an example that combines multiple implementa
 
 ### Pluggability
 
-The default security setup as present with Oak 1.0 is able to track custom
+The default security setup as present with Oak 1.0 is able to provide custom
 `PrincipalConfiguration` implementations and will automatically combine the different
 principal provider implementations as noted above.
 
