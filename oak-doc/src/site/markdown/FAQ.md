@@ -17,18 +17,18 @@
 
 # Frequently asked questions
 
-### I get a warning "Traversed 1000 nodes ...", what does that mean?
+#### I get a warning "Traversed 1000 nodes ...", what does that mean?
 
 You might be missing an index. See [Query engine](query.html).
 
 
-### I get a warning "Attempt to perform ... while another thread is concurrently ...", what is wrong?
+#### I get a warning "Attempt to perform ... while another thread is concurrently ...", what is wrong?
 
 You are accessing a `Session` instance concurrently from multiple threads. Session instances are
 [not thread safe](dos_and_donts.html#Anti_pattern:_concurrent_session_access).
 
 
-### My question is not listed here
+#### My question is not listed here
 
 Search the [Oak dev list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev)
 and the [Oak issue tracker](https://issues.apache.org/jira/browse/OAK). If you still can't find an
