@@ -178,10 +178,20 @@ definition:
 
 ### Configuration
 
-_todo_
+The Oak token management comes with it's own [TokenConfiguration] which allows
+to obtain a new `TokenProvider` instance with the specified configuration options.
 
-- [TokenConfiguration]
-- [CompositeTokenConfiguration]
+Apart from the default configuration implementation Oak provides a public
+[CompositeTokenConfiguration], which is used to combined different implementations
+plugged at runtime.
+
+#### Configuration Parameters
+
+| Parameter                           | Type    | Default                  |
+|-------------------------------------|---------|--------------------------|
+| PARAM_TOKEN_EXPIRATION              | long    | 2 * 3600 * 1000 (2 hours)|
+| PARAM_TOKEN_LENGTH                  | int     | 8                        |
+
 
 #### Examples
 
