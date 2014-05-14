@@ -57,7 +57,7 @@ Oak 1.0 access control management:
 
 ### Pluggability
 
-The default security setup as present with Oak 1.0 is able to track custom
+The default security setup as present with Oak 1.0 is able to provide custom
 `RestrictionProvider` implementations and will automatically combine the
 different implementations using the `CompositeRestrictionProvider`.
 

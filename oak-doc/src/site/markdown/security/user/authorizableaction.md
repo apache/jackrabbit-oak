@@ -76,7 +76,7 @@ insufficient permissions by the editing Oak ContentSession).
 
 ### Pluggability
 
-The default security setup as present with Oak 1.0 is able to track custom
+The default security setup as present with Oak 1.0 is able to provide custom
 `AuthorizableActionProvider` implementations and will automatically combine the
 different implementations using the `CompositeActionProvider`.
 
@@ -172,6 +172,14 @@ that will later be used to store various target-specific profile information:
                 }
             }
         }
+
+##### Example Non-OSGI Setup
+
+    Map<String, Object> userParams = new HashMap<String, Object>();
+    userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, new MyAuthorizableActionProvider());
+    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 
 <!-- hidden references -->
