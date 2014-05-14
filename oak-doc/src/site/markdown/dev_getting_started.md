@@ -77,5 +77,3 @@ The build consists of the following main components:
     - oak-it/osgi     - integration tests for OSGi
 
   [1]: https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md
-
-TODO: Link to additional readmes (benchmark runner, ...)
