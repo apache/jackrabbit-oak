@@ -117,10 +117,9 @@ Example how to use this type of pre-authentication:
 
     String userId = "test";
     /**
-     Retrive valid principals e.g. by calling jackrabbit API
-     - PrincipalManager#getPrincipal and/or #getGroupMembership
-     or from Oak SPI
-     - PrincipalProvider#getPrincipals(String userId)
+     * Retrive valid principals e.g. by using Jackrabbit or Oak API:
+     * - PrincipalManager#getPrincipal and/or #getGroupMembership
+     * - PrincipalProvider#getPrincipals(String userId)
      */
     Set<? extends Principal> principals = getPrincipals(userId);
     AuthInfo authInfo = new AuthInfoImpl(userId, Collections.<String, Object>emptyMap(), principals);
