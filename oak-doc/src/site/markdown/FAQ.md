@@ -15,9 +15,12 @@
    limitations under the License.
   -->
 
-TODO document where to look for additional help:
+# Frequently asked questions
 
-* Log entries to watch out for
-* Compare with Jackrabbit 2
-* Known issues
-* ...
+### My question is not listed here
+
+Search the [Oak dev list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev)
+and the [Oak issue tracker](https://issues.apache.org/jira/browse/OAK). If you still can't find an
+answer ask on [the list](participating.html).
+
+
