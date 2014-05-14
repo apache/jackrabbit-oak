@@ -15,9 +15,18 @@
    limitations under the License.
   -->
 
-TODO: Document Microkernel API and implementations
+# MicroKernel and NodeStore
 
-* [SegmentMK design overview](segmentmk.html)
-* [DocumentMK design overview](documentmk.html)
+A `MicroKernel` or a `NodeStore` are ultimately implementations of the
+[node state model](nodestate.html). A `MicroKernel` exposes its functionality through a String only
+(JSON) API, which is easy to remote. In contrast a `NodeStore` exposes its functionality
+through a pure Java API, which is easier to work with and has lower performance and memory overhead.
+
+Oak comes with two flavours: [Segment](segmentmk.html) and [Document](documentmk.html). The former
+is optimised for maximal performance in standalone deployments while the latter is optimised for
+maximal scalability in clustered deployments.
+
+## See also
+
 * [MicroKernel integration tests](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-it/mk/README.md)
 * [MicroKernel performance tests](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-mk-perf/README.md)

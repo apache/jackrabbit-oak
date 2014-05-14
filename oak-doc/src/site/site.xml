@@ -28,12 +28,11 @@ under the License.
       <item href="index.html" name="Jackrabbit Oak" />
       <item href="license.html" name="License" />
       <item href="downloads.html" name="Downloads" />
-      <item href="from_here.html" name="From here" />
     </menu>
     <menu name="Concepts and architecture">
       <item href="overview.html" name="Overview" />
       <item href="nodestate.html" name="The node state model" />
-      <item href="microkernel.html" name="NodesStore and MicroKernel" />
+      <item href="microkernel.html" name="NodeStore and MicroKernel" />
       <item href="query.html" name="Query" />
       <item href="blobstore.html" name="BlobStore" />
       <item href="security/overview.html" name="Security" />
