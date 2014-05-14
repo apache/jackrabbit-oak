@@ -30,6 +30,11 @@ _todo_
 
 _todo_
 
+- `Session.ACTION_READ'
+- `Session.ACTION_ADD_NODE`
+- `Session.ACTION_REMOVE`
+- `Session.ACTION_SET_PROPERTY`
+
 ##### Mapping of JCR Actions to Oak Permissions
 
 `ACTION_READ':

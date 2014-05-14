@@ -23,6 +23,8 @@ Privilege Management
 _todo_
 
 - `Privilege`
+- `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges())
+- `AccessControlManager.privilegeFromName(String)` equivalent to `PrivilegeManager.getPrivilege(String)`
 
 #### Built-in Privileges
 
@@ -38,8 +40,8 @@ _todo_
         jcr:lockManagement
         jcr:versionManagement
         jcr:nodeTypeManagement
-        jcr:retentionManagement (NOTE: retention management not yet implemented)
-        jcr:lifecycleManagement (NOTE: lifecycle management not yet implemented)
+        jcr:retentionManagement (NOTE: retention management not implemented in Oak 1.0)
+        jcr:lifecycleManagement (NOTE: lifecycle management not implemented in Oak 1.0)
         jcr:write
         jcr:all
 
@@ -85,7 +87,7 @@ The new Privileges introduced with Oak 1.0 have the following effect:
 
 _todo_
 
-- `PrivilegeManager`
+- `PrivilegeManager`: retrieve existing and register new custom privileges.
 
 #### Examples
 
