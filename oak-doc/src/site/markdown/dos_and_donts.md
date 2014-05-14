@@ -15,8 +15,6 @@
    limitations under the License.
   -->
 
-TODO Document patterns and anti patterns:
-
 ## Session refresh behavior
 
 Oak is based on the MVCC model where each session starts with a snapshot
