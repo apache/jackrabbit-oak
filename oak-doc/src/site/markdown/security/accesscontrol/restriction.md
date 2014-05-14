@@ -20,9 +20,54 @@ Restriction Management
 
 ### Overview
 
-_todo_
+The concept of restriction has been created as extension to JCR access control
+management in order to allow for further refinement of individual policy entries.
 
-### Restriction API
+Quoting from JSR 283 section 16.6.2 Permissions:
+
+> [...] the permissions encompass the restrictions imposed by privileges, but
+> also include any additional policy-internal refinements with effects too
+> fine-grained to be exposed through privilege discovery. A common case may be
+> to provide finer-grained access restrictions to individual properties or
+> child nodes of the node to which the policy applies.
+
+Furthermore the restriction concept is aimed to allow for custom extensions of the
+default access control implementation to meet project specific needs without
+having to implement the common functionality provided by JCR.
+
+Existing and potential examples of the restriction concept to limit the effect of
+a given access control entry include:
+
+- set of node types
+- set of namespaces
+- name/path pattern
+- dedicated time frame
+- size of a value
+
+While few examples have been present with Jackrabbit 2.x the set of built-in
+restrictions has been extended as of Oak 1.0 along with some useful extensions
+of the Jackrabbit API. In addition Oak provides it's own public restriction
+API that add support for internal validation and evaluation.
+
+### Jackrabbit API
+
+The Jackrabbit API add the following extensions to JCR access control management
+to read and create entries with restrictions:
+
+- `JackrabbitAccessControlList`
+    - `getRestrictionNames()` : returns the JCR names of the supported restrictions.
+    - `getRestrictionType(String restrictionName)` : returns property type of a given restriction.
+    - `addEntry(Principal, Privilege[], boolean, Map<String, Value>)`: the map contain the restrictions.
+    - `addEntry(Principal, Privilege[], boolean, Map<String, Value>, Map<String, Value[]>)`: allows to specify both single and multivalue restrictions (since Oak 1.0, Jackrabbit API 2.8)
+
+
+- `JackrabbitAccessControlEntry`
+    - `getRestrictionNames()`: returns the JCR names of the restrictions present with this entry.
+    - `getRestriction(String restrictionName)`: returns the restriction as JCR value.
+    - `getRestrictions(String restrictionName)`: returns the restriction as array of JCR values (since Oak 1.0, Jackrabbit API 2.8).
+
+
+### Oak Restriction API
 
 The following public interfaces are provided by Oak in the package `org.apache.jackrabbit.oak.spi.security.authorization.restriction`:
 
@@ -43,16 +88,23 @@ Oak 1.0 provides the following base implementations:
 
 #### Changes wrt Jackrabbit 2.x
 
-_todo_
+Apart from the fact that the internal Jackrabbit extension has been replaced by
+a public API, the restriction implementation in Oak differs from Jackrabbit 2.x
+as follows:
 
-#### Built-in Restriction Implementations
+- supports multi-valued restrictions
+- validation of the restrictions is delegated to a dedicated commit hook
+- restriction `rep:glob` limits the number of wildcard characters to 20
+- new restrictions `rep:ntNames` and `rep:prefixes`
+
+#### Built-in Restrictions
 
 The default implementations of the `Restriction` interface are present with
 Oak 1.0 access control management:
 
-* `rep:glob`:
-* `rep:ntNames`:
-* `rep:prefixes`:
+* `rep:glob`: single name or path pattern with '*' wildcard(s).
+* `rep:ntNames`: multivalued restriction for primary node type names (no inheritence, since Oak 1.0)
+* `rep:prefixes`: multivalued restriction for namespace prefixes (session level remapping not respected, since Oak 1.0)
 
 
 ### Pluggability
@@ -160,6 +212,13 @@ The time-based `RestrictionPattern` used by the example provider above.
         }
     };
 
+##### Example Non-OSGI Setup
+
+    RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new MyRestrictionProvider(), ...);
+    Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(PARAM_RESTRICTION_PROVIDER, rProvider);
+    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, ConfigurationParameters.of(authorizMap)));
+    SecurityProvider securityProvider = new SecurityProviderImpl(config));
+    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
 
 <!-- hidden references -->
 [Restriction]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/restriction/Restriction.html

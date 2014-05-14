@@ -163,13 +163,18 @@ org.apache.jackrabbit.oak.spi.security.authorization.permission
 - [AuthorizationConfiguration]: _todo_
 
 
-Configuration Parameters supported by the default implementation
+#### Configuration Parameters
 
-- `PARAM_PERMISSIONS_JR2`: Enables backwards compatible behavior for the permissions listed in the parameter value. Currently the following values are allowed: `USER_MANAGEMENT` and `REMOVE_NODE`. The parameter value must contain the permission names separated by ','.
-- `PARAM_READ_PATHS`: default set of paths that are always readable to all principals irrespective of other permissions defined at that path or inherited from other nodes.
-- `PARAM_ADMINISTRATIVE_PRINCIPALS`: The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether.
+| Parameter                         | Type                | Default  | Description |
+|-----------------------------------|---------------------|----------|-------------|
+| `PARAM_PERMISSIONS_JR2`           | String              | \-       | Enables backwards compatible behavior for the permissions listed in the parameter value containing the permission names separated by ','. Supported values are: `USER_MANAGEMENT`,`REMOVE_NODE` |
+| `PARAM_READ_PATHS`                | Set\<String\>       | paths to namespace, nodetype and privilege root nodes  | Set of paths that are always readable to all principals irrespective of other permissions defined at that path or inherited from other nodes. |
+| `PARAM_ADMINISTRATIVE_PRINCIPALS` | String[]            | \-       | The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether. |
+| | | | |
+
 
 Differences to Jackrabbit 2.x
+
 The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 Since there are no permissions installed by default this flag has become superfluous.
 
