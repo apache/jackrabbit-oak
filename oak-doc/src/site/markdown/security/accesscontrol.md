@@ -156,6 +156,20 @@ org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol [1]
 See [Restriction Management](accesscontrol/restriction.html) for details.
 
 
+### Utilities
+
+The jcr-commons module present with Jackrabbit provide some access control related
+utilities that simplify the creation of new policies and entries such as for example:
+
+- `AccessControlUtils.getAccessControlList(Session, String)`
+- `AccessControlUtils.getAccessControlList(AccessControlManager, String)`
+- `AccessControlUtils.addAccessControlEntry(Session, String, Principal, String[], boolean)`
+
+See
+[org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils] for
+the complete list of methods.
+
+
 ### Configuration
 
 The following access control related configuration options are present with the [AuthorizationConfiguration] as of Oak 1.0:
@@ -185,3 +199,4 @@ Differences to Jackrabbit 2.x:
 <!-- hidden references -->
 [1]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/restriction/
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
+[org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/authorization/AccessControlUtils.java
