@@ -191,6 +191,7 @@ plugged at runtime.
 |-------------------------------------|---------|--------------------------|
 | PARAM_TOKEN_EXPIRATION              | long    | 2 * 3600 * 1000 (2 hours)|
 | PARAM_TOKEN_LENGTH                  | int     | 8                        |
+| | | |
 
 
 #### Examples

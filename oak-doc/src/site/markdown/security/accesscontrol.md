@@ -163,6 +163,15 @@ The following access control related configuration options are present with the 
 - `getAccessControlManager`
 - `getRestrictionProvider`
 
+#### Configuration Parameters
+
+| Parameter                    | Type                | Default                  |
+|------------------------------|---------------------|--------------------------|
+| `PARAM_RESTRICTION_PROVIDER` | RestrictionProvider | RestrictionProviderImpl  |
+| `PARAM_READ_PATHS`           | Set\<String\>       | paths to namespace, nodetype and privilege root nodes  |
+| `PARAM_IMPORT_BEHAVIOR`      | String ("abort", "ignore", "besteffort") | "abort" |
+| | | |
+
 Differences to Jackrabbit 2.x:
 
 - The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.

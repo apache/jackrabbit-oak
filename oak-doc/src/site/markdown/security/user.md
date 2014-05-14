@@ -253,13 +253,15 @@ as of OAK 1.0:
 | `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    |
 | `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider |
 | `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        |
+| `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    |
+| | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
 
-* "compatibleJR16"
-* "autoExpandTree"
-* "autoExpandSize"
-* "groupMembershipSplitSize"
+* 'compatibleJR16'
+* 'autoExpandTree'
+* 'autoExpandSize'
+* 'groupMembershipSplitSize'
 
 ### Pluggability
 

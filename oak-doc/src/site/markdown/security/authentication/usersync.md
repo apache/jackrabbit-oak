@@ -41,5 +41,5 @@ Oak provides a default synchronization handler that is configured via [DefaultSy
 | Group Expiration Time         | `group.expirationTime`        | Duration until a synced group expires (eg. '1h 30m' or '1d'). |
 | Group Path Prefix             | `group.pathPrefix`            | The path prefix used when creating new groups. |
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
-| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | | |
+| | | |
 
