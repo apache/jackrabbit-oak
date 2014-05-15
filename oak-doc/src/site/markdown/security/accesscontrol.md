@@ -287,22 +287,18 @@ See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 
 ### API Extensions
 
-_todo_
+Oak provides some access control related base classes in `org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol`
+that may be used for a custom implementation:
 
-org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol [1]
-
-- `AbstractAccessControlList`
-- `ImmutableACL`
-- `ACE`
+- `AbstractAccessControlList`: abstract base implementation of the `JackrabbitAccessControlList` interface
+    - `ImmutableACL`: immutable subclass of `AbstractAccessControlList`
+    - `ACE`: abstract subclass that implements common methods of a mutable access control list.
 
 #### Restriction Management
 
-- `RestrictionProvider`:
-- `RestrictionDefinition`
-- `RestrictionPattern`
-- `Restriction`
-
-See [Restriction Management](accesscontrol/restriction.html) for details.
+Oak 1.0 defines a dedicated restriction management API. See
+[Restriction Management](accesscontrol/restriction.html) for details and further
+information regarding extensibility and pluggability.
 
 ### Utilities
 

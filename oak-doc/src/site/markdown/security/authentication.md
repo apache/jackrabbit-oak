@@ -328,17 +328,72 @@ section [External Authentication](authentication/externalloginmodule.html).
 
 #### Oak Authentication
 
-_todo_
-
-##### Abstract Login Module
-
-_todo_
-
-org.apache.jackrabbit.oak.spi.security.authentication:
+In the the package `org.apache.jackrabbit.oak.spi.security.authentication` Oak 1.0
+defines some extensions points that allow for further customization of the authentication.
 
 - `LoginContextProvider`: Configurable provider of the `LoginContext` (see below)
 - `LoginContext`: Interface version of the JAAS LoginContext aimed to ease integration with non-JAAS components
 - `Authentication`: Aimed to validate credentials during the first phase of the (JAAS) login process.
+_todo_
+
+##### Abstract Login Module
+
+This package also contains a abstract `LoginModule` implementation ([AbstractLoginModule])
+providing common functionality. In particular it contains Oak specific methods that allow
+subclasses to retrieve the `SecurityProvider`, a `Root` and accesss to various
+security related interfaces (e.g. `PrincipalManager`).
+
+Subclasses are required to implement the following methods:
+
+- `getSupportedCredentials(): return a set of supported credential classes.
+- `login()`: The login method defined by `LoginModule`
+- `commit()`: The commit method defined by `LoginModule`
+
+###### Example: Extending AbstractLoginModule
+
+    public class TestLoginModule extends AbstractLoginModule {
+
+        private Credentials credentials;
+        private String userId;
+        private Set<? extends Principal> principals;
+
+        @Nonnull
+        @Override
+        protected Set<Class> getSupportedCredentials() {
+            return ImmutableSet.of(TestCredentials.class);
+        }
+
+        @Override
+        public boolean login() throws LoginException {
+            credentials = getCredentials();
+            if (validCredentials(credentials)) {
+                this.credentials = credentials;
+                this.userId = getUserId(credentials);
+                this.principals = getPrincipals(userId);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean commit() throws LoginException {
+            if (credentials != null) {
+                if (!subject.isReadOnly()) {
+                    subject.getPublicCredentials().add(credentials);
+                    if (principals != null) {
+                        subject.getPrincipals().addAll(principals);
+                    }
+                    AuthInfo authInfo = new AuthInfoImpl(userId, Collections.EMPTY_MAP, principals);
+                    setAuthInfo(authInfo, subject);
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+
+
 
 #### Token Management
 
@@ -356,7 +411,6 @@ _todo_ [Synchronization](authentication/usersync.html)
 
 Oak in addition provides interfaces to ease custom implementation of the external
 authentication with optional user/group synchronization to the repository.
-
 See section [identity management](authentication/identitymanagement.html) for details.
 
 ### Configuration
@@ -373,6 +427,10 @@ There also exists a utility class that allows to obtain different
     - `GuestLoginModule`: null login falls back to anonymous
     - `TokenLoginModule`: covers token base authentication
     - `LoginModuleImpl`: covering regular uid/pw login
+
+### Pluggability
+
+_todo_
 
 ### Further Reading
 
@@ -397,4 +455,4 @@ There also exists a utility class that allows to obtain different
 [LoginModuleImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/user/LoginModuleImpl.html
 [com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html
 [AuthenticationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthenticationConfiguration.html
-[TokenConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/token/TokenConfiguration.html
+[AbstractLoginModoule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AbstractLoginModule.html

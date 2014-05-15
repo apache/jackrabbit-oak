@@ -154,6 +154,15 @@ write operations.
 - [PrivilegeBitsProvider] : Internal provider to read `PrivilegeBits` from the repository content and map names to internal representation (and vice versa).
 - [PrivilegeBits]: Internal representation of JCR privileges.
 
+### Utilities
+
+The jcr-commons module present with Jackrabbit provide some privilege related
+utility methods:
+
+- `AccessControlUtils`
+    - `privilegesFromNames(Session session, String... privilegeNames)`
+    - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
+
 
 ### Configuration
 
