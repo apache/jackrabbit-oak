@@ -1534,7 +1534,7 @@ public final class DocumentNodeStore
 
     private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
         long minTimestamp = Math.min(fromRev.getTimestamp(), toRev.getTimestamp());
-        long minValue = Commit.getModifiedInSecs(minTimestamp);
+        long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
         Set<String> paths = Sets.newHashSet();

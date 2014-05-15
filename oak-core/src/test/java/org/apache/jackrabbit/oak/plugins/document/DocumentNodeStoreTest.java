@@ -51,12 +51,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -411,6 +415,53 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = ns.getDocumentStore().find(NODES,
                 Utils.getIdFromPath("/bar"));
         assertEquals(1, doc.getLastRev().size());
+    }
+
+    @Ignore("OAK-1822")
+    @Test
+    public void modifiedReset() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(1)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        NodeBuilder builder1 = ns1.getRoot().builder();
+        builder1.child("node");
+        ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns1.runBackgroundOperations();
+
+        DocumentNodeStore ns2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(2)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+
+        NodeBuilder builder2 = ns2.getRoot().builder();
+        builder2.child("node").child("child-2");
+        ns2.merge(builder2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // wait at least _modified resolution. in reality the wait may
+        // not be necessary. e.g. when the clock passes the resolution boundary
+        // exactly at this time
+        clock.waitUntil(System.currentTimeMillis() +
+                SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION + 1));
+
+        builder1 = ns1.getRoot().builder();
+        builder1.child("node").child("child-1");
+        ns1.merge(builder1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        ns1.runBackgroundOperations();
+
+        // get current _modified timestamp on /node
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/node"));
+        Long mod1 = (Long) doc.get(MODIFIED_IN_SECS);
+        assertNotNull(mod1);
+
+        ns2.runBackgroundOperations();
+
+        doc = docStore.find(NODES, Utils.getIdFromPath("/node"));
+        Long mod2 = (Long) doc.get(MODIFIED_IN_SECS);
+        assertTrue("" + mod2 + " < " + mod1, mod2 >= mod1);
     }
 
     private static class TestHook extends EditorHook {
