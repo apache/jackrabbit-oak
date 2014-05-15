@@ -312,6 +312,7 @@ public class Commit {
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
             NodeDocument.setRevision(commitRoot, revision, commitValue);
+            NodeDocument.setLastRev(commitRoot, revision);
             newNodes.add(commitRoot);
         }
         try {
