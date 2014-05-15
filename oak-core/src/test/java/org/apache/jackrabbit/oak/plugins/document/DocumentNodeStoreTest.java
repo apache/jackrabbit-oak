@@ -415,6 +415,8 @@ public class DocumentNodeStoreTest {
         NodeDocument doc = ns.getDocumentStore().find(NODES,
                 Utils.getIdFromPath("/bar"));
         assertEquals(1, doc.getLastRev().size());
+
+        ns.dispose();
     }
 
     @Ignore("OAK-1822")
