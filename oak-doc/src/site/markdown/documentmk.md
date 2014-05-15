@@ -414,39 +414,45 @@ or a random uuid if this is not available.
 The `info` contains the same info as a string, plus additionally the process id
 and the uuid.
 
-### Changing the Read Preference and Write Concern at Runtime
+### Specifying the Read Preference and Write Concern
+
+With `MongoDocumentStore` you can specify the the [read preference][1] and [write concern][2]. 
+This can be enabled in Oak via two modes. 
+
+Note that `MongoDocumentStore` might still use a pre defined read preference like primary 
+where ever required. So if for some code path like reading latest `_lastRev` of root node 
+its required that read is performed from primary (for consistency) then code would explicitly 
+use the readPreference primary for that operation. For all other operation Mongo Java Driver would
+use default settings where read preference is set to `Primary` and write concern is set to `Acknowledged`. 
+Via using one of the two modes below a user can tune the default settings as per its need
+
+#### Via Configuration
+
+In this mode the config is specified as part of the Mongo URI (See [configuration](osgi_config.html#document-node-store)). 
+So if a user wants that reads from secondaries should prefer secondary with tag _dc:ny,rack:1_ 
+otherwise they go to other secondary then he can specify that via following mongouri
+
+    mongodb://example1.com,example2.com,example3.com/?readPreference=secondary&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags= 
+
+Refer to [Read Preference Options][3] and [Write Concern Options][4] for more details.  
+ 
+#### Changing at Runtime
 
 The read preference and write concern of all cluster nodes can be changed at runtime
 without having to restart the instances, by setting the property `readWriteMode` of
 this collection. All cluster nodes will pick up the change within one minute 
 (when they renew the lease of the cluster node id). This is a string property with the
-format `'read:<readPreference>, write:<writeConcern>'` (please note the space after 
-the comma, and no spaces before and after the colon). The following shell command will
+format `'readPreference=<preference>&w=<writeConcern>'` similar to the way it is used in mongouri. 
+Just that it does not include other option details. The following shell command will
 set the read preference to `primary` and the write concern to `majority` for all
 cluster nodes:
 
     > db.clusterNodes.update({}, 
-      {$set: {readWriteMode:'read:primary, write:majority'}}, 
+      {$set: {readWriteMode:'readPreference=primary&w=majority'}}, 
       {multi: true})    
 
-License
--------
+[1]: http://docs.mongodb.org/manual/core/read-preference/
+[2]: http://docs.mongodb.org/manual/core/write-concern/
+[3]: http://docs.mongodb.org/manual/reference/connection-string/#read-preference-options
+[4]: http://docs.mongodb.org/manual/reference/connection-string/#write-concern-options
 
-(see the top-level [LICENSE.txt](../LICENSE.txt) for full license details)
-
-Collective work: Copyright 2013 The Apache Software Foundation.
-
-Licensed to the Apache Software Foundation (ASF) under one or more
-contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to You under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
-the License.  You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
