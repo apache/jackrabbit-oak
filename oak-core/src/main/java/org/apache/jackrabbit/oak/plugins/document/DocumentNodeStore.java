@@ -411,6 +411,7 @@ public final class DocumentNodeStore
             leaseUpdateThread = new Thread(
                     new BackgroundLeaseUpdate(this, isDisposed),
                     "DocumentNodeStore lease update thread");
+            leaseUpdateThread.setDaemon(true);
             leaseUpdateThread.start();
         }
 
