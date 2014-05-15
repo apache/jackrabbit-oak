@@ -119,9 +119,9 @@ implementation:
 - implement `RestrictionProvider` interface exposing your custom restriction(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
 
-#### Examples
+##### Examples
 
-##### Example RestrictionProvider
+###### Example RestrictionProvider
 
 Simple example of a `RestrictionProvider` that defines a single time-based `Restriction`,
 which is expected to have 2 values defining a start and end date, which can then be used
@@ -170,7 +170,7 @@ to allow or deny access within the given time frame.
         // TODO: implementing 'validateRestrictions(String oakPath, Tree aceTree)' would allow to make sure the property contains 2 date values.
     }
 
-##### Example RestrictionPattern
+###### Example RestrictionPattern
 
 The time-based `RestrictionPattern` used by the example provider above.
 
@@ -212,7 +212,7 @@ The time-based `RestrictionPattern` used by the example provider above.
         }
     };
 
-##### Example Non-OSGI Setup
+###### Example Non-OSGI Setup
 
     RestrictionProvider rProvider = CompositeRestrictionProvider.newInstance(new MyRestrictionProvider(), ...);
     Map<String, RestrictionProvider> authorizMap = ImmutableMap.of(PARAM_RESTRICTION_PROVIDER, rProvider);

@@ -71,9 +71,9 @@ provider implementation:
 - create the `PrincipalConfiguration` that exposes the custom provider
 - make the configuration implementation an OSGi service and make it available to the Oak repository.
 
-#### Examples
+##### Examples
 
-##### Custom PrincipalConfiguration
+###### Custom PrincipalConfiguration
 
      @Component()
      @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
@@ -115,7 +115,7 @@ provider implementation:
          }
      }
 
-##### Custom PrincipalProvider
+###### Custom PrincipalProvider
 
      final class MyPrincipalProvider implements PrincipalProvider {
 

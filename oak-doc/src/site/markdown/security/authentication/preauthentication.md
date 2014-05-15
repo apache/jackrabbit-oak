@@ -61,7 +61,7 @@ module chain are outlined as follows:
    will properly populate the subject and optionally synchronize user information
    or create login tokens.
 
-#### Example
+##### Example
 
 Example implementation of `LoginModule#login` that pushes the `PreAuthenticatedLogin`
 marker to the shared state:
@@ -111,7 +111,7 @@ OAK users also have the following options by providing a custom `LoginContextPro
 - Dropping JAAS altogether by providing a custom implementation of the
   `org.apache.jackrabbit.oak.spi.security.authentication.LoginContext` [2] interface.
 
-#### Example
+##### Example
 
 Example how to use this type of pre-authentication:
 

@@ -89,19 +89,19 @@ _todo_
 
 - `PrivilegeManager`: retrieve existing and register new custom privileges.
 
-#### Examples
+##### Examples
 
-##### Access PrivilegeManager in JCR
+###### Access PrivilegeManager in JCR
 
     PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
 
-##### Access PrivilegeManager in Oak
+###### Access PrivilegeManager in Oak
 
     Root root = contentSession.getLatestRoot();
     PrivilegeConfiguration config = securityProvider.getConfiguration(PrivilegeConfiguration.class);
     PrivilegeManager privilegeManage = config.getPrivilegeManager(root, namePathMapper));
 
-##### Register Custom Privilege
+###### Register Custom Privilege
 
     PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
     String privilegeName = ...
@@ -126,7 +126,7 @@ privileges are installed using a dedicated implementation of the `RepositoryInit
 A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
 corresponding [documentation](privilege/differences.html).
 
-### Privilege Representation in the Repository
+#### Privilege Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
 underneath `/jcr:system/rep:privileges`. The following privilege related built-in

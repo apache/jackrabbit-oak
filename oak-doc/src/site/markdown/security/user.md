@@ -143,7 +143,7 @@ application code has been written against the Jackrabbit API (and thus testing i
 auto-save mode is enabled or not) this configuration option can be used as last resort.
 
 
-### User/Group Representation in the Repository
+#### User/Group Representation in the Repository
 
 The following block lists the built-in node types related to user management tasks:
 
@@ -174,7 +174,7 @@ The following block lists the built-in node types related to user management tas
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
 
-### XML Import
+#### XML Import
 As of Oak 1.0 user and group nodes can be imported both with Session and Workspace
 import. Other differences compared to Jackrabbit 2.x:
 
@@ -279,9 +279,9 @@ implementation on various levels:
        - `AuthorizableNodeName`: Defines the generation of the authorizable node names
           in case the user management implementation stores user information in the repository.
 
-#### Examples
+##### Examples
 
-##### Example AuthorizableNodeName
+###### Example AuthorizableNodeName
 
 In an OSGi-based setup it's sufficient to make the service available to the repository
 in order to enable this custom node name generator.
