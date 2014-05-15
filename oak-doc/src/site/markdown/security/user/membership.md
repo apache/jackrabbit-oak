@@ -69,7 +69,9 @@ will limit the size of the multi value properties and create overflow
     [rep:MemberReferencesList]
       + * (rep:MemberReferences) = rep:MemberReferences protected COPY
 
-##### Example Group with few members
+##### Examples
+
+###### Example Group with few members
 *(irrelevant properties excluded)*
 
     {
@@ -86,7 +88,7 @@ will limit the size of the multi value properties and create overflow
         ]
     }
 
-##### Example Group with many members
+###### Example Group with many members
 *(irrelevant properties excluded)*
 
     {

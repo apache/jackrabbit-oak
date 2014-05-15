@@ -110,9 +110,9 @@ description of the default implementation.
 
 ### Configuration
 
-#### Examples
+##### Examples
 
-##### Example JAAS Configuration
+###### Example JAAS Configuration
 
 The following JAAS configuration shows how the `ExternalLoginModule` could be
 used in a setup that not solely uses third party login:

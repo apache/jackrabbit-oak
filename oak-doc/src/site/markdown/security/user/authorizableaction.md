@@ -86,9 +86,9 @@ implementation:
 - implement `AuthorizableActionProvider` interface exposing your custom action(s).
 - make the provider implementation an OSGi service and make it available to the Oak repository.
 
-#### Examples
+##### Examples
 
-##### Example Action Provider
+###### Example Action Provider
 
     @Component()
     @Service(AuthorizableActionProvider.class)
@@ -130,7 +130,7 @@ implementation:
         }
     }
 
-##### Example Action
+###### Example Action
 
 This example action generates additional child nodes upon user/group creation
 that will later be used to store various target-specific profile information:
@@ -173,7 +173,7 @@ that will later be used to store various target-specific profile information:
             }
         }
 
-##### Example Non-OSGI Setup
+###### Example Non-OSGI Setup
 
     Map<String, Object> userParams = new HashMap<String, Object>();
     userParams.put(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, new MyAuthorizableActionProvider());

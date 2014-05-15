@@ -217,9 +217,9 @@ token provider implementation:
  - expose the custom provider by your custom `TokenConfiguration` service
  - make the configuration available to the Oak repository.
 
-#### Examples
+##### Examples
 
-##### Example TokenConfiguration
+###### Example TokenConfiguration
 
     @Component()
     @Service({TokenConfiguration.class, SecurityConfiguration.class})
