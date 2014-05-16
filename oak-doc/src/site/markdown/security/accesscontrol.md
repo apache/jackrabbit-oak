@@ -287,7 +287,13 @@ See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 
 ### API Extensions
 
-Oak provides some access control related base classes in `org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol`
+Oak defines the following interfaces extending the access control management API:
+
+- `PolicyOwner`: Interface to improve pluggability of the access control management
+   and allows to termine if a giving manager handles a given policy.
+- `AccessControlConstants`: Constants related to access control management.
+
+In addition it provides some access control related base classes in `org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol`
 that may be used for a custom implementation:
 
 - `AbstractAccessControlList`: abstract base implementation of the `JackrabbitAccessControlList` interface
@@ -332,6 +338,8 @@ methods:
 - `getRestrictionProvider`: get a new instance of the restriction provider.
 
 #### Configuration Parameters
+
+The default implementation supports the following configuration parameters:
 
 | Parameter                    | Type                | Default                  |
 |------------------------------|---------------------|--------------------------|
