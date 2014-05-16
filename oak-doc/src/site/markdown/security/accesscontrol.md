@@ -323,10 +323,13 @@ the complete list of methods.
 
 ### Configuration
 
-The following access control related configuration options are present with the [AuthorizationConfiguration] as of Oak 1.0:
+The configuration of the access control management implementation is handled
+within the [AuthorizationConfiguration], which is used for all authorization
+related matters. This class provides the following two access control related
+methods:
 
-- `getAccessControlManager`
-- `getRestrictionProvider`
+- `getAccessControlManager`: get a new ac manager instance.
+- `getRestrictionProvider`: get a new instance of the restriction provider.
 
 #### Configuration Parameters
 
@@ -344,11 +347,15 @@ Differences to Jackrabbit 2.x:
 
 ### Pluggability
 
-_todo_
+There are multiple levels for plugging access control related custom implementations:
 
-##### Examples
-
-_todo_
+1. replace `AuthorizationConfiguration`: if you want to completely replace the way
+   authorization is handled in the repository.  In OSGi-base setup this is achieved
+   by making the configuration implementation a service. In a non-OSGi-base setup the
+   custom configuration must be exposed by the `SecurityProvider` implementation.
+2. extend `AuthorizationConfiguration`: it is planned to provide a `CompositeAuthorizationConfiguration`
+   that allows to aggregate different authorization implementations (see [OAK-1268]).
+3. extend the existing implementation by providing custom restrictions (see [RestrictionManagement](authorization/restriction.html).
 
 ### Further Reading
 
@@ -357,6 +364,6 @@ _todo_
 
 <!-- hidden references -->
 [JSR 283]: http://www.day.com/specs/jcr/2.0/16_Access_Control_Management.html
-[1]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/restriction/
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
 [org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-jcr-commons/src/main/java/org/apache/jackrabbit/commons/jackrabbit/authorization/AccessControlUtils.java
+[OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268

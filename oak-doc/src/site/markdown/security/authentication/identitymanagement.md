@@ -18,9 +18,36 @@
 External Identity Management
 --------------------------------------------------------------------------------
 
+### General
+
 _todo_
 
-- ExternalIdentityProvider
-- ExternalIdentity
-- ExternalUser
-- ExternalGroup
+### Identity Management API
+
+- [ExternalIdentityProviderManager]: factory for the `ExternalIdentityProvider`
+- [ExternalIdentityProvider]: provides user/group information from a third party system.
+- [ExternalIdentity]: base interface for an external user/group
+    - [ExternalUser]
+    - [ExternalGroup]
+- [ExternalIdentityRef]: reference to an external user/group
+
+### Default Implementation
+
+The default implementation present with Oak 1.0 allows for third party authentication
+against LDAP.
+
+_todo_
+
+The configuration details are described in section [LDAP Integration](ldap.html).
+
+### Pluggability
+
+_todo_
+
+<!-- references -->
+[ExternalIdentityProviderManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProviderManager.html
+[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
+[ExternalIdentity]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentity.html
+[ExternalUser]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalUser.html
+[ExternalGroup]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalGroup.html
+[ExternalIdentityRef]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityRef.html
