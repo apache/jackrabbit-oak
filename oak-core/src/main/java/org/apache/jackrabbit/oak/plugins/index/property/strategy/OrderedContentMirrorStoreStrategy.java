@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.Predicate;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -42,8 +44,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 
 /**
  * Same as for {@link ContentMirrorStoreStrategy} but the order of the keys is kept by using the
@@ -60,6 +63,15 @@ import com.google.common.base.Strings;
  * </code>
  */
 public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrategy {
+    /**
+     * convenience property for initialising an empty multi-value :next
+     */
+    public static final Iterable<String> EMPTY_NEXT = ImmutableList.of("", "", "", "");
+    
+    /**
+     * convenience property that represent an empty :next as array
+     */
+    public static final String[] EMPTY_NEXT_ARRAY = Iterables.toArray(EMPTY_NEXT, String.class);
 
     /**
      * the property linking to the next node
@@ -75,11 +87,12 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      * a NodeState used for easy creating of an empty :start
      */
     public static final NodeState EMPTY_START_NODE = EmptyNodeState.EMPTY_NODE.builder()
-                                                                              .setProperty(NEXT, "")
-                                                                              .getNodeState();
+        .setProperty(NEXT, EMPTY_NEXT, Type.STRINGS).getNodeState();
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderedContentMirrorStoreStrategy.class);
-
+    
+    private static final Random RND = new Random(System.currentTimeMillis());
+    
     /**
      * the direction of the index.
      */
@@ -93,124 +106,80 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         this();
         this.direction = direction;
     }
-    
+        
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
-        NodeBuilder localkey = null;
+        // this is where the actual adding and maintenance of index's keys happen
+        NodeBuilder node = null;
         NodeBuilder start = index.child(START);
-
-        // identifying the right place for insert
-        String n = start.getString(NEXT);
-        if (Strings.isNullOrEmpty(n)) {
-            // new/empty index
-            localkey = index.child(key);
-            localkey.setProperty(NEXT, "");
-            start.setProperty(NEXT, key);
+        Predicate<ChildNodeEntry> condition = direction.isAscending() 
+            ? new PredicateGreaterThan(key, true)
+            : new PredicateLessThan(key, true);
+        ChildNodeEntry[] walked = new ChildNodeEntry[OrderedIndex.LANES];
+        
+        if (Strings.isNullOrEmpty(getPropertyNext(start))) {
+            // it means we're in an empty/new index. Setting properly the :start's :next
+            setPropertyNext(start, EMPTY_NEXT_ARRAY);
+        }
+        
+        // we use the seek for seeking the right spot. The walkedLanes will have all our
+        // predecessors
+        ChildNodeEntry entry = seek(index.getNodeState(), condition, walked);
+        if (entry != null && entry.getName().equals(key)) {
+            // it's an existing node. We should not need to update anything around pointers
+            node = index.getChildNode(key);
         } else {
-            // specific use-case where the item has to be added as first of the list
-            String nextKey = n;
-            Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(index.getNodeState(),
-                                                                              true);
-            for (ChildNodeEntry child : children) {
-                nextKey = child.getNodeState().getString(NEXT);
-                if (Strings.isNullOrEmpty(nextKey)) {
-                    // we're at the last element, therefore our 'key' has to be appended
-                    index.getChildNode(child.getName()).setProperty(NEXT, key);
-                    localkey = index.child(key);
-                    localkey.setProperty(NEXT, "");
-                } else {
-                    if (isInsertHere(key, nextKey)) {
-                        index.getChildNode(child.getName()).setProperty(NEXT, key);
-                        localkey = index.child(key);
-                        localkey.setProperty(NEXT, nextKey);
-                        break;
-                    }
-                }
+            // the entry does not exits yet
+            node = index.child(key);
+            // it's a brand new node. let's start setting an empty next
+            setPropertyNext(node, EMPTY_NEXT_ARRAY);
+            int lane = getLane();
+            String next;
+            NodeBuilder predecessor;
+            for (int l = lane; l >= 0; l--) {
+                // let's update the predecessors starting from the coin-flip lane
+                predecessor = index.getChildNode(walked[l].getName());
+                next = getPropertyNext(predecessor, l);
+                setPropertyNext(predecessor, key, l);
+                setPropertyNext(node, next, l);
             }
         }
-
-        return localkey;
-    }
-
-    /**
-     * tells whether or not the is right to insert here a new item.
-     * 
-     * @param newItemKey the new item key to be added
-     * @param existingItemKey the 'here' of the existing index
-     * @return true for green light on insert false otherwise.
-     */
-    private boolean isInsertHere(@Nonnull String newItemKey, @Nonnull String existingItemKey) {
-        if (OrderDirection.ASC.equals(direction)) {
-            return newItemKey.compareTo(existingItemKey) < 0;
-        } else {
-            return newItemKey.compareTo(existingItemKey) > 0;
-        }
+        return node;
     }
                                         
     @Override
-    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
+    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders, final String key) {
         for (NodeBuilder node : builders) {
             if (node.hasProperty("match") || node.getChildNodeCount(1) > 0) {
                 return;
             } else if (node.exists()) {
                 if (node.hasProperty(NEXT)) {
-                    // it's an index key and we have to relink the list
-                    // (1) find the previous element
-                    ChildNodeEntry previous = findPrevious(
-                            index.getNodeState(), node.getNodeState());
-                    if (previous == null) {
-                        LOG.debug("previous not found. Already deleted in the meanwhile. Skipping re-link");
-                    } else {
-                        LOG.debug("previous: {}", previous);
-                        // (2) find the next element
-                        String next = node.getString(NEXT);
-                        if (next == null) {
-                            next = "";
+                    ChildNodeEntry[] walkedLanes = new ChildNodeEntry[OrderedIndex.LANES];
+                    ChildNodeEntry entry;
+                    String lane0Next, prevNext, currNext;
+                    
+                    // for as long as we have the an entry and we didn't update the lane0 we have
+                    // to keep searching and update
+                    do {
+                        entry = seek(index.getNodeState(),
+                            new PredicateEquals(key),
+                            walkedLanes
+                            );
+                        lane0Next = getPropertyNext(walkedLanes[0]);
+                        for (int lane = walkedLanes.length - 1; lane >= 0; lane--) {
+                            prevNext = getPropertyNext(walkedLanes[lane], lane);
+                            if (key.equals(prevNext)) {
+                                // if it's actually pointing to us let's deal with it
+                                currNext = getPropertyNext(node, lane);
+                                setPropertyNext(index.getChildNode(walkedLanes[lane].getName()),
+                                    currNext, lane);
+                            }
                         }
-                        // (3) re-link the previous to the next
-                        index.getChildNode(previous.getName()).setProperty(NEXT, next);
-                    }
+                    } while (entry != null && !key.equals(lane0Next));
                 }
                 node.remove();
             }
         }
-    }
-
-    /**
-     * find the previous item (ChildNodeEntry) in the index given the provided NodeState for
-     * comparison
-     * 
-     * in an index sorted in ascending manner where we have @{code [1, 2, 3, 4, 5]} if we ask for 
-     * a previous given 4 it will be 3. previous(4)=3.
-     * 
-     * in an index sorted in descending manner where we have @{code [5, 4, 3, 2, 1]} if we as for
-     * a previous given 4 it will be 5. previous(4)=5.
-     * 
-     * @param index the index we want to look into ({@code :index})
-     * @param node the node we want to compare
-     * @return the previous item or null if not found.
-     */
-    @Nullable
-    ChildNodeEntry findPrevious(@Nonnull final NodeState index, @Nonnull final NodeState node) {
-        ChildNodeEntry previous = null;
-        ChildNodeEntry current = null;
-        boolean found = false;
-        Iterator<? extends ChildNodeEntry> it = getChildNodeEntries(index, true).iterator();
-
-        while (!found && it.hasNext()) {
-            current = it.next();
-            if (previous == null) {
-                // first iteration
-                previous = current;
-            } else {
-                found = node.equals(current.getNodeState());
-                if (!found) {
-                    previous = current;
-                }
-            }
-        }
-
-        return found ? previous : null;
     }
 
     /**
@@ -239,7 +208,8 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         Iterable<? extends ChildNodeEntry> cne = null;
         final NodeState start = index.getChildNode(START);
 
-        if ((!start.exists() || Strings.isNullOrEmpty(start.getString(NEXT))) && !includeStart) {
+        String startNext = getPropertyNext(start); 
+        if ((!start.exists() || Strings.isNullOrEmpty(startNext)) && !includeStart) {
             // if the property is not there or is empty it means we're empty
             cne = Collections.emptyList();
         } else {
@@ -312,7 +282,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         return value.replaceAll("%3A", ":");
     }
     
-    private static final class OrderedChildNodeEntry extends AbstractChildNodeEntry {
+    static class OrderedChildNodeEntry extends AbstractChildNodeEntry {
         private final String name;
         private final NodeState state;
 
@@ -483,7 +453,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         @Override
         public boolean hasNext() {
             return (includeStart && start.equals(current))
-                   || (!includeStart && !Strings.isNullOrEmpty(current.getString(NEXT)));
+                   || (!includeStart && !Strings.isNullOrEmpty(getPropertyNext(current)));
         }
 
         @Override
@@ -495,7 +465,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                 includeStart = false;
             } else {
                 if (hasNext()) {
-                    currentName = current.getString(NEXT);
+                    currentName = getPropertyNext(current);
                     current = index.getChildNode(currentName);
                     entry = new OrderedChildNodeEntry(currentName, current);
                 } else {
@@ -602,28 +572,85 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             return new SeekedIterator(index, start, first);
         }
     }
+
+    /**
+     * see {@link #seek(NodeState, Predicate<ChildNodeEntry>, ChildNodeEntry[])} passing null as
+     * last argument
+     */
+    ChildNodeEntry seek(@Nonnull NodeState index,
+                                      @Nonnull Predicate<ChildNodeEntry> condition) {
+        return seek(index, condition, null);
+    }
     
     /**
-     * seek for an element in the index given the provided Predicate
+     * seek for an element in the index given the provided Predicate. If {@code walkedLanes} won't
+     * be null it will have on the way out the last elements of each lane walked through during the
+     * seek.
      * 
      * @param index the index content node {@code :index}
      * @param condition the predicate to evaluate
+     * @param walkedLanes if not null will contain the last element of the walked lanes with each
+     *            lane represented by the corresponding position in the array. <b>You have</b> to
+     *            pass in an array already sized as {@link OrderedIndex#LANES} or an
+     *            {@link IllegalArgumentException} will be raised
      * @return the entry or null if not found
      */
-    static ChildNodeEntry seek(@Nonnull NodeState index,
-                                      @Nonnull Predicate<ChildNodeEntry> condition) {
+    ChildNodeEntry seek(@Nonnull final NodeState index,
+                               @Nonnull final Predicate<ChildNodeEntry> condition,
+                               @Nullable final ChildNodeEntry[] walkedLanes) {
+        boolean keepWalked = false;
+        String searchfor = condition.getSearchFor();
+        LOG.debug("seek() - Searching for: {}", condition.getSearchFor());        
+        Predicate<ChildNodeEntry> walkingPredicate = direction.isAscending() 
+                                                             ? new PredicateLessThan(searchfor, true)
+                                                             : new PredicateGreaterThan(searchfor, true);
+        // we always begin with :start
+        ChildNodeEntry current = new OrderedChildNodeEntry(START, index.getChildNode(START));
+        ChildNodeEntry found = null;
         
-        // TODO the FullIterable will have to be replaced with something else once we'll have the
-        // Skip part of the list implemented.
-        Iterable<ChildNodeEntry> children = new FullIterable(index, false);
-        ChildNodeEntry entry = null;
-        for (ChildNodeEntry child : children) {
-            if (condition.apply(child)) {
-                entry = child;
-                break;
+        if (walkedLanes != null) {
+            if (walkedLanes.length != OrderedIndex.LANES) {
+                throw new IllegalArgumentException(String.format(
+                    "Wrong size for keeping track of the Walked Lanes. Expected %d but was %d",
+                    OrderedIndex.LANES, walkedLanes.length));
             }
+            // ensuring the right data
+            for (int i = 0; i < walkedLanes.length; i++) {
+                walkedLanes[i] = current;
+            }
+            keepWalked = true;
         }
-        return entry;
+
+        int lane = OrderedIndex.LANES - 1;
+        boolean stillLaning;
+        String nextkey; 
+        ChildNodeEntry next;
+        
+        do {
+            stillLaning = lane > 0;
+            nextkey = getPropertyNext(current, lane);
+            next = (Strings.isNullOrEmpty(nextkey)) 
+                ? null 
+                : new OrderedChildNodeEntry(nextkey, index.getChildNode(nextkey));
+            if ((next == null || !walkingPredicate.apply(next)) && lane > 0) {
+                // if we're currently pointing to NIL or the next element does not fit the search
+                // but we still have lanes left, let's lower the lane;
+                lane--;
+            } else {
+                if (condition.apply(next)) {
+                    found = next;
+                } else {
+                    current = next;
+                    if (keepWalked && current != null) {
+                        for (int l = lane; l >= 0; l--) {
+                            walkedLanes[l] = current;
+                        }
+                    }
+                }
+            }
+        } while (((next != null && walkingPredicate.apply(next)) || stillLaning) && (found == null));
+        
+        return found;
     }
     
     /**
@@ -631,14 +658,19 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      */
     static class PredicateEquals implements Predicate<ChildNodeEntry> {
         private String searchfor;
-
+        
         public PredicateEquals(@Nonnull String searchfor) {
             this.searchfor = searchfor;
         }
-
+        
         @Override
         public boolean apply(ChildNodeEntry arg0) {
             return arg0 != null && searchfor.equals(arg0.getName());
+        }
+
+        @Override
+        public String getSearchFor() {
+            return searchfor;
         }
     }
     
@@ -670,6 +702,11 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             
             return b;
         }
+        
+        @Override
+        public String getSearchFor() {
+            return searchfor;
+        }
     }
 
     /**
@@ -697,6 +734,11 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             }
 
             return b;
+        }
+        
+        @Override
+        public String getSearchFor() {
+            return searchfor;
         }
     }
     
@@ -754,5 +796,125 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             }
             return next;
         }
+    }
+
+    /**
+     * set the value of the the :next at position 0
+     * 
+     * @param node the node to modify
+     * @param next the 'next' value
+     */
+    static void setPropertyNext(@Nonnull final NodeBuilder node, final String... next) {
+        if (node != null && next != null) {
+            String n1 = (next.length > 0) ? next[0] : "";
+            String n2 = (next.length > 1) ? next[1] : "";
+            String n3 = (next.length > 2) ? next[2] : "";
+            String n4 = (next.length > 3) ? next[3] : "";
+            
+            node.setProperty(NEXT, ImmutableList.of(n1, n2, n3, n4), Type.STRINGS);
+        }
+    }
+    
+    /**
+     * set the value of the :next at the given position. If the property :next won't be there by the
+     * time this method is invoked it won't perform any action
+     * 
+     * @param node
+     * @param value
+     * @param lane
+     */
+    static void setPropertyNext(@Nonnull final NodeBuilder node, 
+                                final String value, final int lane) {
+        if (node != null && value != null && lane >= 0 && lane < OrderedIndex.LANES) {
+            PropertyState next = node.getProperty(NEXT);
+            if (next != null) {
+                String[] values = Iterables.toArray(next.getValue(Type.STRINGS), String.class);
+                values[lane] = value;
+                setPropertyNext(node, values);
+            }
+        }
+    }
+
+    /**
+     * see {@link #getPropertyNext(NodeState, int)} by providing '0' as lane
+     */
+    static String getPropertyNext(@Nonnull final NodeState nodeState) {
+        return getPropertyNext(nodeState, 0);
+    }
+    
+    /**
+     * return the 'next' value at the provided position
+     * 
+     * @param nodeState the node state to inspect
+     * @return the next value
+     */
+    static String getPropertyNext(@Nonnull final NodeState state, final int lane) {
+        String next = "";
+        PropertyState ps = state.getProperty(NEXT);
+        if (ps != null) {
+            next = (lane < OrderedIndex.LANES) ? ps.getValue(Type.STRING, lane)
+                                               : "";
+        }
+        return next;
+    }
+    
+    /**
+     * short-cut for using NodeBuilder. See {@code getNext(NodeState)}
+     */
+    static String getPropertyNext(@Nonnull final NodeBuilder node) {
+        return getPropertyNext(node.getNodeState());
+    }
+
+    /**
+     * short-cut for using NodeBuilder. See {@code getNext(NodeState)}
+     */
+    static String getPropertyNext(@Nonnull final NodeBuilder node, final int lane) {
+        return getPropertyNext(node.getNodeState(), lane);
+    }
+
+    /**
+     * short-cut for using ChildNodeEntry. See {@code getNext(NodeState)}
+     */
+    static String getPropertyNext(@Nonnull final ChildNodeEntry child) {
+        return getPropertyNext(child.getNodeState());
+    }
+
+    static String getPropertyNext(@Nonnull final ChildNodeEntry child, int lane) {
+        return getPropertyNext(child.getNodeState(), lane);
+    }
+
+    /**
+     * retrieve the lane to be updated based on probabilistic approach.
+     * 
+     * Having 4 lanes if we have the 3 to be updated it means we'll have to update lanes
+     * 0,1,2 and 3. If we'll have 2 only 0,1,2 and so on.
+     * 
+     * Lane 0 will always be updated as it's the base linked list.
+     * 
+     * It uses {@code getLane(Random)} by passing a {@code new Random(System.currentTimeMillis())}
+     * 
+     * @see OrderedIndex.DEFAULT_PROBABILITY
+     * 
+     * @return the lane to start updating from.
+     */
+    public int getLane() {
+        return getLane(RND);
+    }
+    
+    /**
+     * used for mocking purposes or advanced uses. Use the {@code getLane()} where possible
+     * 
+     * @param rnd the Random generator to be used for probability
+     * @return the lane to be updated. 
+     */
+    int getLane(@Nonnull final Random rnd) {
+        final int maxLanes = OrderedIndex.LANES - 1;
+        int lane = 0;
+        
+        while (rnd.nextDouble() < OrderedIndex.DEFAULT_PROBABILITY && lane < maxLanes) {
+            lane++;
+        }
+        
+        return lane;
     }
 }
