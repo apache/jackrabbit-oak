@@ -794,7 +794,7 @@
              will be overridden by parameters in the request
           -->
         <lst name="defaults">
-            <str name="echoParams">explicit</str>
+            <str name="echoParams">none</str>
             <str name="wt">json</str>
             <int name="rows">10</int>
             <str name="df">catch_all</str>
