@@ -91,9 +91,9 @@ Furthermore JCR defines two types of `Credentials` implementations:
 The following variants exist for the repository login itself:
 
 - `Repository.login()`: equivalent to passing `null` credentials and the default workspace name.
-- `Repository.login(Credentials credentials): login with credentials to the default workspace.
-- `Repository.login(String workspace): login with `null` credentials to the workspace with the specified name.
-- `Repository.login(Credentials credentials, String workspaceName`)
+- `Repository.login(Credentials credentials)`: login with credentials to the default workspace.
+- `Repository.login(String workspace)`: login with `null` credentials to the workspace with the specified name.
+- `Repository.login(Credentials credentials, String workspaceName)`
 - `JackrabbitRepository.login(Credentials credentials, String workspaceName, Map<String, Object> attributes)`:
   in addition allows to pass implementation specific session attributes.
 
@@ -106,17 +106,13 @@ user or - as of JSR 333 -  clone an existing session.
 
 ### Oak Authentication
 
-#### General Notes
-
-_todo_
-
 #### Oak API
 
-_todo_
+The Oak API contains the following authentication related methods and interfaces
 
-- ContentRepository.login
-- AuthInfo
-- ContentSession.getAuthInfo
+- [AuthInfo]: Immutable object created upon successful login providing information about the authenticated `Subject.`
+- `ContentRepository.login(Credentials, String)`: The Oak counterpart of the JCR login.
+- `ContentSession.getAuthInfo()`: exposes the `AuthInfo` associated with the `ContentSession`.
 
 
 #### Differences wrt Jackrabbit 2.x
@@ -221,7 +217,7 @@ With Oak 1.0 impersonation is implemented as follows:
 
 1. `Session#impersonate` takes any kind of `Credentials`
 2. the specified credentials are wrapped in a new instance of [ImpersonationCredentials]
-   along with the current [AuthInfo] object.
+   along with the current `AuthInfo` object.
 3. these `ImpersonationCredentials` are passed to `Repository.login`
 
 Whether or not impersonation succeeds consequently both depends on the authentication
@@ -334,7 +330,10 @@ defines some extensions points that allow for further customization of the authe
 - `LoginContextProvider`: Configurable provider of the `LoginContext` (see below)
 - `LoginContext`: Interface version of the JAAS LoginContext aimed to ease integration with non-JAAS components
 - `Authentication`: Aimed to validate credentials during the first phase of the (JAAS) login process.
-_todo_
+
+In addition this package contains various utilities and base implementations.
+Most notably an abstract login module implementation ([AbstractLoginModule]) as
+described below.
 
 ##### Abstract Login Module
 
@@ -405,7 +404,13 @@ See section [token management](authentication/tokenmanagement.html) for details.
 
 #### User and Group Synchronization
 
-_todo_ [Synchronization](authentication/usersync.html)
+See section [Synchronization](authentication/usersync.html) for details.
+
+- `SyncManager`: factory for the `SyncHandler`
+- `SyncHandler`: responsible for synchronizing users/groups from an `ExternalIdentityProvider` into the repository.
+- `SyncContext`: executes the synchronization
+- `SyncedIdentity`: represents a synchronized identity
+- `SyncResult`: the result of a sync operation
 
 #### External Identity Management
 
@@ -413,10 +418,19 @@ Oak in addition provides interfaces to ease custom implementation of the externa
 authentication with optional user/group synchronization to the repository.
 See section [identity management](authentication/identitymanagement.html) for details.
 
+- `ExternalIdentityProviderManager`: factory for the `ExternalIdentityProvider`
+- `ExternalIdentityProvider`: provides user/group information from a third party system.
+- `ExternalIdentity`: base interface for an external user/group
+    - `ExternalUser`
+    - `ExternalGroup`
+- `ExternalIdentityRef`: reference to an external user/group
+
 ### Configuration
 
-- [AuthenticationConfiguration]: _todo_ `getLoginContextProvider` -> configuration of the login context
-- [TokenConfiguration]: `getTokenProvider`. See section [Token Management](tokenmanagement.html) for details.
+The configuration of the authentication setup is defined by the [AuthenticationConfiguration].
+This interface provides the following method:
+
+- `getLoginContextProvider()`: provides the login contexts for the desired authentication mechanism.
 
 #### JAAS Configuration Utilities
 There also exists a utility class that allows to obtain different
@@ -430,7 +444,17 @@ There also exists a utility class that allows to obtain different
 
 ### Pluggability
 
-_todo_
+The default security setup as present with Oak 1.0 is able to provide custom
+implementation on various levels:
+
+1. The complete authentiction setup can be changed by plugging a different
+   `AuthenticationConfiguration` implementations. In OSGi-base setup this is
+   achieved by making the configuration a service. In a non-OSGi-base setup the
+   custom configuration must be exposed by the `SecurityProvider` implementation.
+2. Within the default authentication setup you replace or extend the set of
+   login modules and their individual settings. In an OSGi-base setup is achieved
+   by making the modules accessible to the framework and setting their execution
+   order accordingly. In a Non-OSGi setup this is specified in the [JAAS config].
 
 ### Further Reading
 
@@ -456,3 +480,4 @@ _todo_
 [com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html
 [AuthenticationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthenticationConfiguration.html
 [AbstractLoginModoule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AbstractLoginModule.html
+[JAAS config]: http://docs.oracle.com/javase/6/docs/technotes/guides/security/jaas/JAASRefGuide.html

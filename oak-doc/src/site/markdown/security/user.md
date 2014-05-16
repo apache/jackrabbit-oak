@@ -232,7 +232,7 @@ parameters that provide the custom generator implementation.
 
 ### Configuration
 
-The following user management specific methods are present with the `UserConfiguration`
+The following user management specific methods are present with the [UserConfiguration]
 as of OAK 1.0:
 
 * getUserManager: Obtain a new user manager instance
@@ -320,6 +320,7 @@ to the user configuration as follows:
 
 <!-- hidden references -->
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME
+[UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
 [OAK-118]: https://issues.apache.org/jira/browse/OAK-118
 [OAK-482]: https://issues.apache.org/jira/browse/OAK-482
 [OAK-793]: https://issues.apache.org/jira/browse/OAK-793

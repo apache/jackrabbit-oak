@@ -183,6 +183,9 @@ Differences to Jackrabbit 2.x
 The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 Since there are no permissions installed by default this flag has become superfluous.
 
+
+### Pluggability
+
 #### Write Custom Permission Evaluation
 
 _todo_

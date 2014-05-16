@@ -18,6 +18,8 @@
 User and Group Synchronization
 --------------------------------------------------------------------------------
 
+### General
+
 The synchronization of users and groups is triggered by the [ExternalLoginModule](externalloginmodule.html),
 after a user is successfully authenticated against the IDP or if it's no longer
 present on the IDP.
@@ -25,8 +27,36 @@ present on the IDP.
 Oak comes with a default implementation of the `SyncHandler` interface:
 [org.apache.jackrabbit.oak.spi.security.authentication.external.impl.DefaultSyncHandler].
 
-##### Configuration of the DefaultSyncHandler
-Oak provides a default synchronization handler that is configured via [DefaultSyncConfig]. The handler is configured either via OSGi or during manual [Repository Construction](../../construct.html).
+### Synchronization API
+
+- [SyncManager]: factory for all configured `SyncHandler` implementations.
+- [SyncHandler]: responsible for synchronizing users/groups from an `ExternalIdentityProvider` into the repository.
+- [SyncContext]: executes the synchronization
+- [SyncedIdentity]: represents a synchronized identity
+- [SyncResult]: the result of a sync operation
+- [SyncException]
+
+### Default Implementation
+
+Oak 1.0 provides a default implementation of the user synchronization API that allow
+to plug additional `SyncHandler` implementations.
+
+The [DefaultSyncHandler] itself comes with a set of configuration options that
+allow to specify the synchronization behavior (see below). All users/groups
+synchronized by this handler will get the following properties set:
+
+- `rep:externalId`
+- `rep:lastSynced`
+
+These properties allow to run separat task for periodical update and make sure
+the authorizables can later on be identitied as external users.
+
+
+### Configuration
+
+#### Configuration of the DefaultSyncHandler
+
+The default sync handler implementation is configured via [DefaultSyncConfig]:
 
 | Name                          | Property                      | Description                              |
 |-------------------------------|-------------------------------|------------------------------------------|
@@ -43,3 +73,29 @@ Oak provides a default synchronization handler that is configured via [DefaultSy
 | Group property mapping        | `group.propertyMapping`       | List mapping definition of local properties from external ones. |
 | | | |
 
+
+### Pluggability
+
+There are two ways to replace/change the user synchronization behavior
+
+1. Write custom `SyncManager`
+2. Write custom `SyncHandler`
+
+The following steps are required in order to replace the default `SyncManager` implementation
+or plug a new implementation of the `SyncHandler`:
+
+- write your custom implementation of the interface
+- make the manager/handler available to the authentication setup or sync manager
+    - OSGi setup: making the implementation an OSGi service
+    - non-OSGi setup: configure the manager/handler during manual [Repository Construction](../../construct.html).
+
+
+<!-- references -->
+[SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
+[SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
+[SyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncContext.html
+[SyncedIdentity]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncedIdentity.html
+[SyncResult]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncResult.html
+[SyncException]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncException.html
+[DefaultSyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncHandler.html
+[DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html

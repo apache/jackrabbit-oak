@@ -20,11 +20,58 @@ Privilege Management
 
 ### JCR API
 
-_todo_
+As of JSR 283 the API contains the following privilege related interfaces and methods:
 
-- `Privilege`
-- `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges())
+- `Privilege`: exposes the name and characteristics of a given privilege and provides constants for privilege names defined by JCR.
+- `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges()`)
 - `AccessControlManager.privilegeFromName(String)` equivalent to `PrivilegeManager.getPrivilege(String)`
+
+### Jackrabbit API
+
+Privilege management is outside of the scope provided by JCR and therefore provided
+by the extensions defined by the Jackrabbit API. It consists of a single interface:
+
+- [PrivilegeManager]: privilege discovery and registration of new custom privileges.
+    - `getRegisteredPrivileges()`
+    - `getPrivilege(String)`
+    - `registerPrivilege(String, boolean, String[])
+
+##### Examples
+
+###### Access PrivilegeManager in JCR
+
+    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
+
+###### Access PrivilegeManager in Oak
+
+    Root root = contentSession.getLatestRoot();
+    PrivilegeConfiguration config = securityProvider.getConfiguration(PrivilegeConfiguration.class);
+    PrivilegeManager privilegeManage = config.getPrivilegeManager(root, namePathMapper));
+
+###### Register Custom Privilege
+
+    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
+    String privilegeName = ...
+    boolean isAbstract = ...
+    String[] declaredAggregateNames = ...
+    // NOTE: workspace operation that doesn't require Session#save()
+    privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
+
+### Characteristics of the Privilege Management Implementation
+
+#### General Notes
+As of Oak the built-in and custom privileges are stored in the repository
+underneath `/jcr:system/rep:privileges`. Similar to other repository level date
+(node types, namespaces and versions) this location is shared by all workspaces
+present in the repository. The nodes and properties storing the privilege
+definitions are protected by their node type definition and cannot be modified
+using regular JCR write methods. In addition a specific `Validator` and `CommitHook`
+implementations assert the consistency of the privilege store. The built-in
+privileges are installed using a dedicated implementation of the `RepositoryInitializer`.
+
+#### Differences wrt Jackrabbit 2.x
+A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
+corresponding [documentation](privilege/differences.html).
 
 #### Built-in Privileges
 
@@ -83,49 +130,6 @@ The new Privileges introduced with Oak 1.0 have the following effect:
 - `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate of `jcr:modifyProperties`)
 - `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index definitions.
 
-### Jackrabbit API
-
-_todo_
-
-- `PrivilegeManager`: retrieve existing and register new custom privileges.
-
-##### Examples
-
-###### Access PrivilegeManager in JCR
-
-    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
-
-###### Access PrivilegeManager in Oak
-
-    Root root = contentSession.getLatestRoot();
-    PrivilegeConfiguration config = securityProvider.getConfiguration(PrivilegeConfiguration.class);
-    PrivilegeManager privilegeManage = config.getPrivilegeManager(root, namePathMapper));
-
-###### Register Custom Privilege
-
-    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
-    String privilegeName = ...
-    boolean isAbstract = ...
-    String[] declaredAggregateNames = ...
-    // NOTE: workspace operation that doesn't require Session#save()
-    privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
-
-### Characteristics of the Privilege Management Implementation
-
-#### General Notes
-As of Oak the built-in and custom privileges are stored in the repository
-underneath `/jcr:system/rep:privileges`. Similar to other repository level date
-(node types, namespaces and versions) this location is shared by all workspaces
-present in the repository. The nodes and properties storing the privilege
-definitions are protected by their node type definition and cannot be modified
-using regular JCR write methods. In addition a specific `Validator` and `CommitHook`
-implementations assert the consistency of the privilege store. The built-in
-privileges are installed using a dedicated implementation of the `RepositoryInitializer`.
-
-#### Differences wrt Jackrabbit 2.x
-A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
-corresponding [documentation](privilege/differences.html).
-
 #### Privilege Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
@@ -167,8 +171,8 @@ utility methods:
 ### Configuration
 
 The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
-[PrivilegeManager] as well as privilege related configuration options. The default
-implementation of the [PrivilegeManager] interface is based on Oak API and can
+`PrivilegeManager` as well as privilege related configuration options. The default
+implementation of the `PrivilegeManager` interface is based on Oak API and can
 equally be used for privilege related tasks in the Oak layer.
 
 Please note: While it's in theory possible to replace the default privilege
