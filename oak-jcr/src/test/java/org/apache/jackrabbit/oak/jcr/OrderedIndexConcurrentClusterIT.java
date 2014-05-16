@@ -29,6 +29,7 @@ import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -43,7 +44,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +52,7 @@ public class OrderedIndexConcurrentClusterIT {
     private static final Logger LOG = LoggerFactory.getLogger(OrderedIndexConcurrentClusterIT.class);
     
     private static final int NUM_CLUSTER_NODES = 5;
+    private static final int LOOP = 2800;
     private static final int COUNT = 5;
     private static final Credentials ADMIN = new SimpleCredentials("admin", "admin".toCharArray());
     private static final String INDEX_NODE_NAME = "lastModified";
@@ -174,7 +175,14 @@ public class OrderedIndexConcurrentClusterIT {
                              Map<String, Exception> exceptions)
             throws RepositoryException {
 
-        Node root = session.getRootNode().getNode(nodeName);
+        Node root;
+        try {
+            root = session.getRootNode().getNode(nodeName);
+        } catch (PathNotFoundException e) {
+            LOG.error("Not found. {}", nodeName);
+            throw e;
+        }
+        
         NodeIterator children = root.getNodes();
         
         while (children.hasNext()) {
@@ -183,7 +191,7 @@ public class OrderedIndexConcurrentClusterIT {
             while (children2.hasNext()) {
                 children2.nextNode().remove();
             }
-            LOG.debug("deleting {}", node.getName());
+            LOG.debug("deleting /{}/{}", nodeName, node.getName());
             node.remove();
             session.save();
         }
@@ -202,10 +210,9 @@ public class OrderedIndexConcurrentClusterIT {
         }
     }
 
-    @Ignore("OAK-1717")
     @Test
     public void deleteConcurrently() throws Exception {
-        final int loop = 120;
+        final int loop = LOOP;
         final int count = COUNT;
         final int clusters = NUM_CLUSTER_NODES;
 
@@ -251,6 +258,10 @@ public class OrderedIndexConcurrentClusterIT {
         session.save();
         
         if (exceptions.isEmpty()) {
+            // temporary sleep for allowing the cluster to synch otherwise we could get a
+            // PathNotFoundException
+            // TODO can we find something better than a sleep?
+            Thread.sleep(2000);
             for (Thread t : workers) {
                 t.start();
             }
