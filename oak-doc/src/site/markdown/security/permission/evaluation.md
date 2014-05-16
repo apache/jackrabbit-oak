@@ -22,92 +22,90 @@ Permission Evaluation in Detail
 
 _todo_
 
+#### Evaluation of Permission Entries
+
+_todo_
+
+
 ### Overview on Permission Evaluation
 
+#### <a name="SecureNodeBuilder"></a> The SecureNodeBuilder
+
+  _todo_
+
+#### <a name="getTreePermissions"></a> TreePermissions
+
+  _todo_
+
+
+#### <a name="getEntryIterator"></a> The PermissionEntry Iterator
+
+  _todo_
+
+#### <a name="permissionStore"></a> The Permission Store
+
+  _todo_
+
+#### Reading a Node : Step by Step
+
+The following section describes what happens on `session.getNode("/foo").getProperty("jcr:title")`
+in terms of permission evaluation:
+
+  1. `SessionImpl.getNode()` internally calls `SessionDelegate.getNode()`
+     which calls `Root.getTree()` which calls `Tree.getTree()` on the `/foo` tree.
+     This creates a bunch of linked `MutableTree` objects.
+
+  1. The session delegate then checks if the tree really exists, by calling `Tree.exists()`
+     which then calls `NodeBuilder.exists()`.
+
+  1. If the session performing the operation is an _admin_ session, then the node builder from
+     the persistence layer is directly used. In all other cases, the original node builder
+     is wrapped by a `SecureNodeBuilder`. The `SecureNodeBuilder` performs permission
+     checks before delegating the calls to the delegated builder.
+
+  1. For non _admin_ sessions the `SecureNodeBuilder` fetches its _tree permissions_ via
+     `getTreePermissions()` (See [below](#getTreePermissions) of how this works) and then
+     calls `TreePermission.canRead()`. This method (signature with no arguments) checks the
+     `READ_NODE` permission for normal trees (as in this example) or the `READ_ACCESS_CONTROL`
+     permission on _AC trees_ [^1] and remembers the result in the `ReadStatus`.
+
+     For that an iterator of the _permission entries_ is [retrieved](#getEntryIterator) which
+     provides all the relevant permission entries needed to be evaluated for this tree (and
+     and set of principals associated with the permission provider).
+
+  1. The _permission entries_ are analyzed if they include the respective permission and if so,
+     the read status is set accordingly. Note that the sequence of the permission entries from
+     the iterator is already in the correct order for this kind of evaluation. this is ensured
+     by the way how they are stored in the [permission store](#permissionStore) and how they
+     are feed into the iterator.
+
+     The iteration also detects if the evaluated permission entries cover _this_ node and all
+     its properties. If this is the case, subsequent calls that evaluate the property read
+     permissions would then not need to do the same iteration again. In order to detect this,
+     the iteration checks if a non-matching permission entry or privilege was skipped
+     and eventually sets the respective flag in the `ReadStatus`. This flag indicates if the
+     present permission entries are sufficient to tell if the session is allowed to read
+     _this_ node and all its properties. If there are more entries present than the ones needed
+     for evaluating the `READ_NODE` permission, then it's ambiguous to determine if all
+     properties can be read.
+
+  1. Once the `ReadStatus` is calculated (or was calculated earlier) the `canRead()` method
+     returns `ReadStatus.allowsThis()` which specifies if _this_ node is allowed to be read.
+
+  [^1]: by default access control content is stored in the `rep:policy` subtree of an access controlled node.
+
+#### Reading an Property : Step by Step
+
+  1. _todo_
+
+#### Adding a Node : Step by Step
 _todo_
-
-
-### Administrative Access
-
+#### Changing a Property : Step by Step
 _todo_
-
-
-### Individual Permissions in Detail
-
-
-##### Reading
-Due to the fine grained read permissions Oak read access can be separately granted/denied
-for nodes and properties. See also the section about extended [Restriction Management](../accesscontrol/restriction.html).
-Granting the `jcr:read` privilege will result in a backwards compatible
-read access for nodes and their properties, while specifying `rep:readNodes` or
-`rep:readProperties` privileges allows separately granting or denying access to
-nodes and properties (see also [Privilege Management](../privilege.html) for changes
-in the privilege definitions).
-Together with the restrictions this new behavior now allows to individually grant/deny
-access to properties that match a given name/path/nodetype (and as a possible extension even property value).
-
-The only break in terms of backwards compatibility is the accessibility of version
-content underneath `/jcr:system/jcr:versionStore`. As of Oak the access to version
-content depends on the read permissions present with the versionable node while
-Jackrabbit 2.x doesn't apply any special rule. These changes are covered by [OAK-444]
-and address the concerns summarized in [JCR-2963].
-
-##### Property Modification
-Since Oak the former `SET_PROPERTY` permission has been split such to allow for more fined grained control on writing JCR properties. In particular Oak clearly distinguishes between creating a new property that didn't exist before, modifying or removing an existing property.
-This will allow to cover those cases where a given subject is only allowed to create content but doesn't have the ability to modify/delete it later on.
-
-##### Node Removal
-As of Oak `Node#remove()` only requires sufficient permissions to remove the target node. In contrast to Jackrabbit 2.x the validation will not traverse the tree and verify remove permission on all child nodes/properties.
-In order to obtain backwards compatible behavior with respect to tree removal the permission evaluation can be configured to traverse down the hierarchy upon removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
-
-##### Rename
-Due to the nature of the diff mechanism in Oak it is not possible to distinguish
-between `JackrabbitNode#rename` and a move with subsequent reordering. Consequently
-the permission evaluation will no longer apply the special handling for the renaming
-as it was present in Jackrabbit 2.x (renaming just required the ability to modify
-the child collection of the parent node).
-
-##### Move
-Due to the nature of the diff mechanism in Oak it is no longer possible to treat
-move operations the same way as it was implemented in Jackrabbit 2.x. The current
-permission evaluation attempts to provide a best-effort handling to achieve a
-similar behavior that it was present in Jackrabbit 2.x.
-
-The current implementation has the following limitations with respect to multiple
-move operations within a given set of transient operations:
-
-- Move operations that replace an node that has been moved away will not be
-detected as modification by the diff mechanism and regular permission checks for
-on the subtree will be performed.
-- Moving an ancestor of a node that has been moved will only detect the second
-move and will enforce regular permissions checks on the child that has been moved
-in a first step.
-
-For API consumers and applications running on Jackrabbit Oak this means that
-combinations of multiple moves can not always be properly resolved. Consequently
-permissions will be evaluated as if the modifications did not include move
-(in general being more restrictive): If the move leads to changes that are detected
-by the diff mechanism, regular permissions will be evaluated for all items that
-appear to be added, removed or modified, while a regular move operations just
-requires `REMOVE_NODE` permission on the source, `ADD_NODE` and `NODE_TYPE_MANAGEMENT`
-permissions at the destination.
-
-##### User Management
-By default user management operations require the specific user mgt related permission to be granted for the editing subject. This permission (including a corresponding privilege) has been introduced with Oak 1.0.
-For backwards compatibility with Jackrabbit 2.x this behavior can be turned off by setting the corresponding configuration flag.
-
-##### Version Management
-Reading and writing items in the version store does not follow the regular permission evaluation but depends on access rights present on the corresponding versionable node. In case the version information does no longer have a versionable node in this workspace that original path is used to evaluate the effective permissions that would apply to that node if the version was restored.
-Note, that as in Jackrabbit VERSION_MANAGEMENT permission instead of the regular JCR write permissions is required in order to execute version operations and thus modify the version store. These changes are covered by [OAK-444] and address the concerns summarized in [JCR-2963].
-
-##### Query Index Definitions
-Writing query index definitions requires the specific index definition management
-which is enforce on nodes named "oak:index" and the subtree defined by them.
-Note that the corresponding items are not protected in the JCR sense. Consequently
-any other modification in these subtrees like e.g. changing the primary type
-or adding mixin types is governed by the corresponding privileges.
+#### Locking a Node : Step by Step
+_todo_
+#### Registering a Node Type : Step by Step
+_todo_
 
 
 <!-- hidden references -->
-[OAK-444]: https://issues.apache.org/jira/browse/OAK-444
-[JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963
