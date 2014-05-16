@@ -20,12 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -178,7 +177,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             removeMe.add(id);
         }
 
-        Set<String> result = getKeys(ds.query(Collection.NODES, base, base + "A", 5));
+        List<String> result = getKeys(ds.query(Collection.NODES, base, base + "A", 5));
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "4"));
         assertFalse(result.contains(base + "5"));
@@ -189,8 +188,50 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertTrue(result.contains(base + "9"));
     }
 
-    private Set<String> getKeys(List<NodeDocument> docs) {
-        Set<String> result = new HashSet<String>();
+    @Test
+    public void testQueryCollation() {
+        // create ten documents
+        String base = this.getClass().getName() + ".testQueryCollation";
+        List<UpdateOp> creates = new ArrayList<UpdateOp>();
+
+        List<String>expected = new ArrayList<String>();
+        // test US-ASCII except control characters
+        for (char c : "!\"#$%&'()*+,-./0123456789:;<=>?@AZ[\\]^_`az{|}~".toCharArray()) {
+            String id = base + c;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            creates.add(up);
+            removeMe.add(id);
+            id = base + "/" + c;
+            up = new UpdateOp(id, true);
+            up.set("_id", id);
+            creates.add(up);
+            expected.add(id);
+            removeMe.add(id);
+        }
+        boolean success = super.ds.create(Collection.NODES, creates);
+        assertTrue("documents not created", success);
+
+        List<String> result = getKeys(ds.query(Collection.NODES, base + "/", base + "0", 1000));
+
+        List<String> diff = new ArrayList<String>();
+        diff.addAll(result);
+        diff.removeAll(expected);
+        if (! diff.isEmpty()) {
+            fail("unexpected query results (broken collation handling in persistence?): " + diff);
+        }
+
+        diff = new ArrayList<String>();
+        diff.addAll(expected);
+        diff.removeAll(result);
+        if (! diff.isEmpty()) {
+            fail("missing query results (broken collation handling in persistence?): " + diff);
+        }
+        assertEquals("incorrect result ordering in query result (broken collation handling in persistence?)", expected, result);
+    }
+
+    private List<String> getKeys(List<NodeDocument> docs) {
+        List<String> result = new ArrayList<String>();
         for (NodeDocument doc : docs) {
             result.add(doc.getId());
         }

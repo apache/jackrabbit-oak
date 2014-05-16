@@ -750,7 +750,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private List<String> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
+        String t = "select ID, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             t += " and MODIFIED >= ?";
         }
@@ -769,7 +769,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             ResultSet rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
-                String data = getData(rs, 1, 2);
+                String id = rs.getString(1);
+                if (id.compareTo(minId) < 0 || id.compareTo(maxId) > 0) {
+                    throw new MicroKernelException("unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
+                }
+                String data = getData(rs, 2, 3);
                 result.add(data);
             }
         } finally {
