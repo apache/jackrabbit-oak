@@ -18,7 +18,13 @@
 
 #### General Notes
 
-_todo_
+The permission evaluation as present in Oak 1.0 differs from Jackrabbit 2.x
+in two fundamental aspects:
+
+1. Permission evaluation has been completely separated from the access control
+   content and is executed based on the information stored in the permission store.
+2. Each JCR `Session` (or Oak `ContentSession`) gets it's own `PermissionProvider`
+   associated with the current repository revision the session is operating on.
 
 #### Permissions
 
@@ -88,5 +94,6 @@ This changes is covered by [OAK-444] and addresses concerns summarized in [JCR-2
 
 <!-- hidden references -->
 [Permissions]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.java
+[PermissionHook]: http://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-core/src/main/java/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.java
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963

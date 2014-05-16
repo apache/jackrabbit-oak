@@ -20,7 +20,17 @@ Permission Evaluation in Detail
 
 ### General Remarks
 
-_todo_
+As of Oak 1.0 Permission evaluation is completely separated from the access control
+content and is executed based on the information stored in the permission store.
+The latter is kept in sync with the access control information using dedicated
+`CommitHook` implementation ([PermissionHook]). The evaluation itself is done
+by the configured `PermissionProvider` that read and evaluates the information
+stored in the permission store.
+
+Each JCR `Session` (or Oak `ContentSession`) gets it's own `PermissionProvider`
+associated with the current repository revision the session is operating on.
+Consequently, the evaluated permissions and caches are not shared between different
+sessions even if they represent the same subject.
 
 #### Evaluation of Permission Entries
 
