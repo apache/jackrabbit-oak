@@ -16,12 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+
 import java.io.IOException;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -40,6 +50,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
+import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -51,16 +62,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 /**
  * TODO document
@@ -96,16 +97,7 @@ public class SessionDelegate {
     private final Clock clock;
 
     // access time stamps and counters for statistics about this session
-    private final long loginTime;
-    private long accessTime;
-    private long readTime = 0;
-    private long writeTime = 0;
-    private long refreshTime = 0;
-    private long saveTime = 0;
-    private long readCount = 0;
-    private long writeCount = 0;
-    private long refreshCount = 0;
-    private long saveCount = 0;
+    Counters sessionCounters;
 
     // repository-wide counters for statistics about all sessions
     private final AtomicLong readCounter;
@@ -156,10 +148,10 @@ public class SessionDelegate {
         this.sessionSaveCount = getThreadSaveCount();
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
-        this.sessionStats = new SessionStats(this);
         this.clock = checkNotNull(clock);
-        this.loginTime = clock.getTime();
-        this.accessTime = loginTime;
+        this.sessionStats = new SessionStats(contentSession.toString(),
+                contentSession.getAuthInfo(), clock);
+        this.sessionCounters = sessionStats.getCounters();
         checkNotNull(statisticManager);
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
         readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
@@ -175,54 +167,6 @@ public class SessionDelegate {
     private long getThreadSaveCount() {
         Long c = threadSaveCount.get();
         return c == null ? 0 : c;
-    }
-
-    public long getSecondsSinceLogin() {
-        return SECONDS.convert(clock.getTime() - loginTime, MILLISECONDS);
-    }
-
-    public Date getLoginTime() {
-        return new Date(loginTime);
-    }
-
-    private Date getTime(long timestamp) {
-        if (timestamp != 0) {
-            return new Date(timestamp);
-        } else {
-            return null;
-        }
-    }
-
-    public Date getReadTime() {
-        return getTime(readTime);
-    }
-
-    public Date getWriteTime() {
-        return getTime(writeTime);
-    }
-
-    public Date getRefreshTime() {
-        return getTime(refreshTime);
-    }
-
-    public Date getSaveTime() {
-        return getTime(saveTime);
-    }
-
-    public long getReadCount() {
-        return readCount;
-    }
-
-    public long getWriteCount() {
-        return writeCount;
-    }
-
-    public long getRefreshCount() {
-        return refreshCount;
-    }
-
-    public long getSaveCount() {
-        return saveCount;
     }
 
     public void refreshAtNextAccess() {
@@ -295,7 +239,7 @@ public class SessionDelegate {
                         && (refreshAtNextAccess
                         || sessionSaveCount != getThreadSaveCount()
                         || refreshStrategy.needsRefresh(
-                        SECONDS.convert(t0 - accessTime, MILLISECONDS)))) {
+                        SECONDS.convert(t0 - sessionCounters.accessTime, MILLISECONDS)))) {
                     refresh(true);
                     refreshAtNextAccess = false;
                     sessionSaveCount = getThreadSaveCount();
@@ -309,18 +253,18 @@ public class SessionDelegate {
                 logOperationDetails(contentSession, sessionOperation);
                 return result;
             } finally {
-                accessTime = t0;
+                sessionCounters.accessTime = t0;
                 long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
                 sessionOpCount--;
                 if (sessionOperation.isUpdate()) {
-                    writeTime = t0;
-                    writeCount++;
+                    sessionCounters.writeTime = t0;
+                    sessionCounters.writeCount++;
                     writeCounter.incrementAndGet();
                     writeDuration.addAndGet(dt);
                     updateCount++;
                 } else {
-                    readTime = t0;
-                    readCount++;
+                    sessionCounters.readTime = t0;
+                    sessionCounters.readCount++;
                     readCounter.incrementAndGet();
                     readDuration.addAndGet(dt);
                 }
@@ -545,8 +489,8 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(String path) throws RepositoryException {
-        saveTime = clock.getTime();
-        saveCount++;
+        sessionCounters.saveTime = clock.getTime();
+        sessionCounters.saveCount++;
         try {
             commit(root, path);
         } catch (CommitFailedException e) {
@@ -557,8 +501,8 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        refreshTime = clock.getTime();
-        refreshCount++;
+        sessionCounters.refreshTime = clock.getTime();
+        sessionCounters.refreshCount++;
         if (keepChanges && hasPendingChanges()) {
             root.rebase();
         } else {
@@ -613,8 +557,8 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
-                saveTime = clock.getTime();
-                saveCount++;
+                sessionCounters.saveTime = clock.getTime();
+                sessionCounters.saveCount++;
                 commit(moveRoot);
                 refresh(true);
             }
