@@ -18,8 +18,6 @@
 Using the Access Control Management API
 --------------------------------------------------------------------------------
 
-_todo_: add examples
-
 ### Reading
 
 #### Privilege Discovery
@@ -33,6 +31,17 @@ _todo_: add examples
     - `hasPrivileges(String, Set<Principal>, Privilege[])`
     - `getPrivileges(String, Set<Principal>, Privilege[])`
 
+##### Note
+
+Usually it is not required for a application to check the privileges/permissions
+of a given session (or set of principals) as this evaluation can be left
+to the repository.
+For rare cases where the application needs to understand if a given set of
+principals is actually allowed to perform a given action, it is recommend to
+use `Session.hasPermission(String, String)` and either pass the actions strings
+defined by JCR or the names of the Oak permissions.
+
+
 #### Reading Policies
 
 - `AccessControlManager`
@@ -44,6 +53,19 @@ _todo_: add examples
     - `getApplicablePolicies(Principal)`
     - `getPolicies(Principal)`
 
+##### Examples
+
+###### Read policies bound to a node
+
+    AccessControlManager acMgr = session.getAccessControlManager();
+    AccessControlPolicy[] policies = acMgr.getPolicies("/content");
+
+###### Read policies that have not yet been bound to the node
+
+    AccessControlManager acMgr = session.getAccessControlManager();
+    AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/content");
+
+
 #### Reading Policy Content
 
 - `AccessControlList`
@@ -54,6 +76,7 @@ _todo_: add examples
     - `getRestrictionType(String)`
     - `isEmpty()`
     - `size()`
+
 
 #### Reading Effective Policies
 
@@ -72,6 +95,18 @@ _todo_: add examples
 - `AccessControlManager`
     - `setPolicy(String, AccessControlPolicy)`
 
+##### Examples
+
+###### Bind a policy to a node
+
+    AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/content");
+    while (it.hasNext()) {
+        AccessControlPolicy policy = it.nextPolicy();
+        if (policy instanceof NamedAccessControlPolicy && "myPolicy".equals((NamedAccessControlPolicy) policy).getName()) {
+            acMgr.setPolicy("/content", policy);
+            session.save();
+        }
+    }
 
 #### Modifying Policies
 
@@ -128,14 +163,105 @@ the access control implementation there may be other mutable policies.
 
 - `Privilege`: defines name constants for the privileges defined by JCR
 
+##### Examples
+
+###### Modify an AccessControlList
+
+    JackrabbitAccessControlList acl = null;
+    // try if there is an acl that has been set before
+    for (AccessControlPolicy policy : acMgr.getPolicies("/content")) {
+        if (policy instanceof JackrabbitAccessControlList) {
+            acl = (JackrabbitAccessControlList) policy;
+            break;
+        }
+    }
+    if (acl != null) {
+        PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
+        Principal principal = principalManager.getPrincipal("jackrabbit");
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+
+        acl.addEntry(principal, privileges, true);
+        acMgr.setPolicy(acl.getPath(), acl);
+        session.save();
+    }
+
+
+###### Create or Modify an AccessControlList
+
+    JackrabbitAccessControlList acl = null;
+    // try if there is an acl that has been set before
+    for (AccessControlPolicy policy : acMgr.getPolicies("/content")) {
+        if (policy instanceof JackrabbitAccessControlList) {
+            acl = (JackrabbitAccessControlList) policy;
+            break;
+        }
+    }
+    if (acl == null) {
+        // try if there is an applicable policy
+        AccessControlPolicyIterator itr = accessControlManager.getApplicablePolicies("/content");
+        while (itr.hasNext()) {
+            AccessControlPolicy policy = itr.nextAccessControlPolicy();
+            if (policy instanceof JackrabbitAccessControlList) {
+                acl = (JackrabbitAccessControlList) policy;
+                break;
+            }
+        }
+    }
+    if (acl != null) {
+        PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
+        Principal principal = principalManager.getPrincipal("jackrabbit");
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(acMgr, Privilege.JCR_READ, Privilege.JCR_WRITE);
+
+        acl.addEntry(principal, privileges, true);
+        acMgr.setPolicy(acl.getPath(), acl);
+        session.save();
+    }
+
+or alternatively use `AccessControlUtils`:
+
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, "/content");
+    if (acl != null) {
+        PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
+        Principal principal = principalManager.getPrincipal("jackrabbit");
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, Privilege.JCR_READ, Privilege.JCR_WRITE);
+
+        policy.addEntry(principal, privileges, true);
+        acMgr.setPolicy(acl.getPath(), acl);
+        session.save();
+    }
+
+
 
 #### Removing Policies
 
 - `AccessControlManager`
     - `removePolicy(String, AccessControlPolicy)`
 
+##### Examples
+
+###### Remove a policy
+
+    for (AccessControlPolicy policy : acMgr.getPolicies("/content");
+        if (policy instanceof NamedAccessControlPolicy && "myPolicy".equals((NamedAccessControlPolicy) policy).getName()) {
+            acMgr.removePolicy("/content", policy);
+            session.save();
+        }
+    }
 
 ### Access Control on Repository Level
 
-_todo_
+##### Examples
+
+###### Allow a Principal to Register Namespaces
+
+    JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(session, null);
+    if (acl != null) {
+        PrincipalManager principalManager = jackrabbitSession.getPrincipalManager();
+        Principal principal = principalManager.getPrincipal("dinosaur");
+        Privilege[] privileges = AccessControlUtils.privilegesFromNames(session, PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT);
+
+        policy.addEntry(principal, privileges, true);
+        acMgr.setPolicy(null, acl);
+        session.save();
+    }
 
