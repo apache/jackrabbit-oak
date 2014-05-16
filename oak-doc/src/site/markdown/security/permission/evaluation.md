@@ -29,22 +29,28 @@ _todo_
 
 ### Overview on Permission Evaluation
 
-#### <a name="SecureNodeBuilder"></a> The SecureNodeBuilder
-
-  _todo_
-
-#### <a name="getTreePermissions"></a> TreePermissions
-
-  _todo_
-
-
-#### <a name="getEntryIterator"></a> The PermissionEntry Iterator
-
-  _todo_
-
 #### <a name="permissionStore"></a> The Permission Store
 
   _todo_
+
+#### <a name="PermissionProvider"></a> PermissionProvider
+
+  _todo_
+
+#### <a name="SecureNodeBuilder"></a> SecureNodeBuilder
+
+  _todo_
+
+#### <a name="getTreePermission"></a> TreePermission
+
+  _todo_
+
+
+#### <a name="getEntryIterator"></a> PermissionEntry Iterator
+
+  _todo_
+
+
 
 #### Reading a Node : Step by Step
 
@@ -64,7 +70,7 @@ in terms of permission evaluation:
      checks before delegating the calls to the delegated builder.
 
   1. For non _admin_ sessions the `SecureNodeBuilder` fetches its _tree permissions_ via
-     `getTreePermissions()` (See [below](#getTreePermissions) of how this works) and then
+     `getTreePermission()` (See [below](#getTreePermission) of how this works) and then
      calls `TreePermission.canRead()`. This method (signature with no arguments) checks the
      `READ_NODE` permission for normal trees (as in this example) or the `READ_ACCESS_CONTROL`
      permission on _AC trees_ [^1] and remembers the result in the `ReadStatus`.
