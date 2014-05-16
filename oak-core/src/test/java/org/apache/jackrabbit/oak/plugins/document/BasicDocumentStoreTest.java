@@ -126,7 +126,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testDeleteNonExistingMultiple() {
         String id = this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
         // create a test node
-        UpdateOp up = new UpdateOp(id, true);
+        UpdateOp up = new UpdateOp(id + "-2", true);
         up.set("_id", id + "-2");
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
         assertTrue(success);

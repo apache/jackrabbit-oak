@@ -386,6 +386,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 T doc = collection.newDocument(this);
                 update.increment(MODCOUNT, 1);
                 UpdateUtils.applyChanges(doc, update, comparator);
+                if (!update.getId().equals(doc.getId())) {
+                    throw new MicroKernelException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: " + doc.getId());
+                }
                 insertDocument(collection, doc);
                 addToCache(collection, doc);
             }
@@ -468,8 +471,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
 
                 return oldDoc;
-            }
-            finally {
+            } finally {
                 l.unlock();
             }
         }
@@ -668,7 +670,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // low level operations
 
-    private static byte[] GZIPSIG = {31, -117};
+    private static byte[] GZIPSIG = { 31, -117 };
     private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
 
     private String getData(ResultSet rs, int stringIndex, int blobIndex) throws SQLException {
