@@ -857,7 +857,12 @@ public final class DocumentNodeStore
             @Override
             public DocumentNodeState apply(String input) {
                 String p = PathUtils.concat(parent.getPath(), input);
-                return getNode(p, readRevision);
+                DocumentNodeState result = getNode(p, readRevision);
+                if (result == null) {
+                    throw new MicroKernelException("DocumentNodeState is null for revision " + readRevision + " of " + p
+                            + " (aborting getChildNodes())");
+                }
+                return result;
             }
         });
     }
