@@ -28,7 +28,9 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -119,7 +121,7 @@ public class SessionDelegate {
      * synchronization in order to be able to log attempts to concurrently
      * use a session.
      */
-    private final Lock lock = new ReentrantLock();
+    private final WarningLock lock = new WarningLock(new ReentrantLock());
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -186,7 +188,7 @@ public class SessionDelegate {
      * @return  synchronized iterator
      */
     public <T> Iterator<T> sync(Iterator<T> iterator) {
-        return new SynchronizedIterator<T>(iterator);
+        return new SynchronizedIterator<T>(iterator, lock);
     }
 
     /**
@@ -208,25 +210,7 @@ public class SessionDelegate {
         // Acquire the exclusive lock for accessing session internals.
         // No other session should be holding the lock, so we log a
         // message to let the user know of such cases.
-        if (!lock.tryLock()) {
-            if (sessionOperation.isUpdate()) {
-                Exception trace = new Exception(
-                        "Stack trace of concurrent access to " + contentSession);
-                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
-                        "concurrently writing to " + contentSession + ". Blocking until the " +
-                        "other thread is finished using this session. Please review your code " +
-                        "to avoid concurrent use of a session.", trace);
-            } else if (log.isDebugEnabled()) {
-                Exception trace = new Exception(
-                        "Stack trace of concurrent access to " + contentSession);
-                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
-                        "concurrently reading from " + contentSession + ". Blocking until the " +
-                        "other thread is finished using this session. Please review your code " +
-                        "to avoid concurrent use of a session.", trace);
-            }
-            lock.lock();
-        }
-
+        lock.lock(sessionOperation);
         try {
             if (sessionOpCount == 0) {
                 // Refresh and precondition checks only for non re-entrant
@@ -627,21 +611,21 @@ public class SessionDelegate {
 
     /**
      * This iterator delegates to a backing iterator and synchronises
-     * all calls to the backing iterator on this {@code SessionDelegate}
-     * instance.
-     *
+     * all calls wrt. the lock passed to its constructor.
      * @param <T>
      */
-    private final class SynchronizedIterator<T> implements Iterator<T> {
+    private static final class SynchronizedIterator<T> implements Iterator<T> {
         private final Iterator<T> iterator;
+        private final WarningLock lock;
 
-        SynchronizedIterator(Iterator<T> iterator) {
+        SynchronizedIterator(Iterator<T> iterator, WarningLock lock) {
             this.iterator = iterator;
+            this.lock = lock;
         }
 
         @Override
         public boolean hasNext() {
-            lock.lock();
+            lock.lock(false, "hasNext()");
             try {
                 return iterator.hasNext();
             } finally {
@@ -651,7 +635,7 @@ public class SessionDelegate {
 
         @Override
         public T next() {
-            lock.lock();
+            lock.lock(false, "next()");
             try {
                 return iterator.next();
             } finally {
@@ -661,7 +645,7 @@ public class SessionDelegate {
 
         @Override
         public void remove() {
-            lock.lock();
+            lock.lock(true, "remove()");
             try {
                 iterator.remove();
             } finally {
@@ -670,4 +654,97 @@ public class SessionDelegate {
         }
     }
 
+    /**
+     * A {@link Lock} implementation that has additional methods
+     * for acquiring the lock, which log a warning if the lock is
+     * already held by another thread and was also acquired through
+     * such a method.
+     */
+    private static final class WarningLock implements Lock {
+        private final Lock lock;
+
+        // All access to members only *after* the lock has been acquired
+        private boolean isUpdate;
+        private Exception holderTrace;
+        private String holderThread;
+
+        private WarningLock(Lock lock) {
+            this.lock = lock;
+        }
+
+        public void lock(boolean isUpdate, String opName) {
+            if (!lock.tryLock()) {
+                // Acquire the lock before logging the warnings. As otherwise race conditions
+                // on the involved fields might lead to wrong warnings.
+                lock.lock();
+                if (holderThread != null) {
+                    if (this.isUpdate) {
+                        log.warn("Attempted to perform " + opName + " while thread " + holderThread +
+                                " was concurrently writing to this session. Blocked until the " +
+                                "other thread finished using this session. Please review your code " +
+                                "to avoid concurrent use of a session.", holderTrace);
+                    } else if (log.isDebugEnabled()) {
+                        log.debug("Attempted to perform " + opName + " while thread " + holderThread +
+                                " was concurrently reading from this session. Blocked until the " +
+                                "other thread finished using this session. Please review your code " +
+                                "to avoid concurrent use of a session.", holderTrace);
+                    }
+                }
+            }
+            this.isUpdate = isUpdate;
+            holderTrace = new Exception("Stack trace of concurrent access to session");
+            holderThread = Thread.currentThread().getName();
+        }
+
+        public void lock(SessionOperation<?> sessionOperation) {
+            lock(sessionOperation.isUpdate(), sessionOperation.toString());
+        }
+
+        @Override
+        public void lock() {
+            lock.lock();
+            holderTrace = null;
+            holderThread = null;
+        }
+
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+            lock.lockInterruptibly();
+            holderTrace = null;
+            holderThread = null;
+        }
+
+        @Override
+        public boolean tryLock() {
+            if (lock.tryLock()) {
+                holderTrace = null;
+                holderThread = null;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            if (lock.tryLock(time, unit)) {
+                holderTrace = null;
+                holderThread = null;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public void unlock() {
+            lock.unlock();
+        }
+
+        @Override
+        public Condition newCondition() {
+            return lock.newCondition();
+        }
+
+    }
 }
