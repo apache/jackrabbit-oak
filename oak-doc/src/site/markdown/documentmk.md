@@ -414,6 +414,7 @@ or a random uuid if this is not available.
 The `info` contains the same info as a string, plus additionally the process id
 and the uuid.
 
+<a name="rw-preference"></a>
 ### Specifying the Read Preference and Write Concern
 
 With `MongoDocumentStore` you can specify the the [read preference][1] and [write concern][2]. 
