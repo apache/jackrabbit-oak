@@ -44,13 +44,24 @@ public class UpdateUtils {
      * @param comparator
      *            the revision comparator.
      */
-    public static void applyChanges(@Nonnull Document doc, @Nonnull UpdateOp update, @Nonnull Comparator<Revision> comparator) {
+    public static void applyChanges(@Nonnull Document doc,
+                                    @Nonnull UpdateOp update,
+                                    @Nonnull Comparator<Revision> comparator) {
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();
             switch (op.type) {
                 case SET: {
                     doc.put(k.toString(), op.value);
+                    break;
+                }
+                case MAX: {
+                    Comparable newValue = (Comparable) op.value;
+                    Object old = doc.get(k.toString());
+                    //noinspection unchecked
+                    if (old == null || newValue.compareTo(old) > 0) {
+                        doc.put(k.toString(), op.value);
+                    }
                     break;
                 }
                 case INCREMENT: {
