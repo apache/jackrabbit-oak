@@ -18,48 +18,9 @@
 Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
-### General Remarks
-
-As of Oak 1.0 Permission evaluation is completely separated from the access control
-content and is executed based on the information stored in the permission store.
-The latter is kept in sync with the access control information using dedicated
-`CommitHook` implementation ([PermissionHook]). The evaluation itself is done
-by the configured `PermissionProvider` that read and evaluates the information
-stored in the permission store.
-
-Each JCR `Session` (or Oak `ContentSession`) gets it's own `PermissionProvider`
-associated with the current repository revision the session is operating on.
-Consequently, the evaluated permissions and caches are not shared between different
-sessions even if they represent the same subject.
-
 #### Evaluation of Permission Entries
 
 _todo_
-
-
-### Overview on Permission Evaluation
-
-#### <a name="permissionStore"></a> The Permission Store
-
-  _todo_
-
-#### <a name="PermissionProvider"></a> PermissionProvider
-
-  _todo_
-
-#### <a name="SecureNodeBuilder"></a> SecureNodeBuilder
-
-  _todo_
-
-#### <a name="getTreePermission"></a> TreePermission
-
-  _todo_
-
-
-#### <a name="getEntryIterator"></a> PermissionEntry Iterator
-
-  _todo_
-
 
 
 #### Reading a Node : Step by Step
@@ -92,7 +53,7 @@ in terms of permission evaluation:
   1. The _permission entries_ are analyzed if they include the respective permission and if so,
      the read status is set accordingly. Note that the sequence of the permission entries from
      the iterator is already in the correct order for this kind of evaluation. this is ensured
-     by the way how they are stored in the [permission store](#permissionStore) and how they
+     by the way how they are stored in the [permission store](../permission.html#permissionStore) and how they
      are feed into the iterator.
 
      The iteration also detects if the evaluated permission entries cover _this_ node and all
@@ -122,6 +83,20 @@ _todo_
 _todo_
 #### Registering a Node Type : Step by Step
 _todo_
+
+
+#### <a name="SecureNodeBuilder"></a> SecureNodeBuilder
+
+  _todo_
+
+#### <a name="getTreePermission"></a> TreePermission
+
+  _todo_
+
+
+#### <a name="getEntryIterator"></a> PermissionEntry Iterator
+
+  _todo_
 
 
 <!-- hidden references -->
