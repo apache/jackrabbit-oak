@@ -68,7 +68,7 @@ bg=yellow</panel_attributes>
 --
 SessionImpl, NodeImpl, etc.
 - namespace mapping
-- perform() mechanism (autorefresh, etc.)
+- perform() mechanism (autorefresh, session sync., etc.)
 bg=yellow</panel_attributes>
     <additional_attributes/>
   </element>
@@ -82,8 +82,7 @@ bg=yellow</panel_attributes>
     </coordinates>
     <panel_attributes>Oak core
 --
-TreeImpl, SecureNodeBuilder, etc.
-- org.apache.jackrabbit.oak.core
+Tree, SecureNodeBuilder, etc.
 - takes care of access controls, node ordering, etc.
 bg=yellow</panel_attributes>
     <additional_attributes/>
