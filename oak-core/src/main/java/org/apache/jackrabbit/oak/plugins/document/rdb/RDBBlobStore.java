@@ -469,7 +469,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     private Connection getConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
+        DataSource ds = this.ds;
+        if (ds == null) {
+            throw new MicroKernelException("This instance of the RDBBlobStore has already been closed.");
+        }
+        Connection c = ds.getConnection();
         c.setAutoCommit(false);
         return c;
     }
