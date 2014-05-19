@@ -49,7 +49,6 @@ Work in Progress
 This documentation is still work in progress. Currently much of the information on Oak is
 somewhat spread over different places. If you don't find something here you could also try
 
-* the [Jackrabbit Oak Wiki Page](http://wiki.apache.org/jackrabbit/Jackrabbit%203),
 * the [Oak JIRA](https://issues.apache.org/jira/browse/OAK), specifically [OAK-14]
   (https://issues.apache.org/jira/browse/OAK-14), which lists the known backward compatibility issues,
 * the [Oak development list](http://jackrabbit.markmail.org/search/+list:org.apache.jackrabbit.oak-dev),
