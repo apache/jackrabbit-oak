@@ -64,6 +64,15 @@ Important: `absPath` refers to the node to be created
 
 ### Oak Permissions
 
+#### General Notes
+
+As of Oak 1.0 Permission evaluation is intended to be completely separated from
+the access control management as defined by JCR and Jackrabbit API. While
+the evaluation and enforcing permissions is considered to be an internal feature
+of the Oak core module, the package `org.apache.jackrabbit.oak.spi.security.authorization.permission`
+provides some extensions points that allow to plug custom extensions or
+implementations the evaluation (see [API Extensions](#api_extensions) below).
+
 #### Built-in Permissions
 
 Oak 1.0 defines the following [Permissions]:
@@ -219,13 +228,18 @@ regular JCR write permissions. This affects:
 
 #### General Notes
 
-In general the permission evaluation related code in Oak is intended to be
-more clearly separated from the access control management such as defined by the
-JCR and Jackrabbit API. While permission evaluation is considered to be an
-internal feature of the Oak core module, the package
-`org.apache.jackrabbit.oak.spi.security.authorization.permission` provides some
-extensions points that allow to plug custom extensions or implementations of
-the permission evaluation.
+As explained above permission evaluation is completely separated from the access
+control management and the associated ccontent.  The evaluation itself is done by
+the configured `PermissionProvider`.
+
+The default implementation of the `PermissionProvider` interface evaluates permissions
+based on the information stored in a dedicated part of the repository content call
+the [permission store](#permissionStore).
+
+Similar each JCR `Session` (and Oak `ContentSession`) gets it's own `PermissionProvider`
+associated with the current repository revision the session is operating on. The
+evaluated permissions and caches are not shared between different sessions even
+if they represent the same subject.
 
 #### Differences wrt Jackrabbit 2.x
 
@@ -269,11 +283,55 @@ See section [Permission Evaluation in Detail](permission/evaluation.html).
 
 #### Permission Representation in the Repository
 
+<a name="permissionStore"/>
 ##### Permission Store
 
-_todo_
+The permission evaluation present with Oak 1.0 keeps a dedicated location where
+permissions are being stored for later evaluation. The store is kept in sync
+with the access control content by a separated `PostValidationHook` implementation ([PermissionHook]).
+
+The location of the permission store is `/jcr:system/rep:permissionStore`; in
+accordance with other stores underneath `jcr:system` it is global to the whole
+repository keeping a separate entry for each workspace present with the repository.
+
+The permission entries are grouped by principal and stored below the store root
+based on the hash value of the path of the access controlled node; hash collisions
+are handled by adding subnodes accordingly.
+
+    /jcr:system/rep:permissionStore/workspace-name [rep:PermissionStore]
+        /principal-name [rep:PermissionStore]
+            /1259237738 [rep:PermissionStore]
+                /0     [rep:Permissions]
+                /1     [rep:Permissions]
+                /c0     [rep:PermissionStore]   # hash collision
+                    /0      [rep:Permissions]
+                    /1      [rep:Permissions]
+                    /2      [rep:Permissions]
+                /c1     [rep:PermissionStore]   # hash collision
+                    /0      [rep:Permissions]
+                    /1      [rep:Permissions]
+                    /2      [rep:Permissions]
+            /47    [rep:PermissionStore]
+                /0     [rep:Permissions]
+                /1     [rep:Permissions]
+
+Each per path store looks as follows
+
+    "1259237738" {
+        "jcr:primaryType": "rep:PermissionStore",
+        "rep:accessControlledPath": "/content",
+        "0": {
+            "jcr:primaryType": "rep:Permissions",
+            "rep:isAllow": false,
+            "rep:privileges": [32],
+            "rep:ntNames": ["nt:unstructured", "oak:Unstructured"]
+            ... /* additional restrictions as present in the entry */
+        }
+    }
 
 ##### Node Type Definitions
+
+For the permission store the following built-in node types have been defined:
 
     [rep:PermissionStore]
       - rep:accessControlledPath (STRING) protected IGNORE
@@ -287,11 +345,17 @@ _todo_
       - * (UNDEFINED) protected multiple IGNORE
       + * (rep:Permissions) = rep:Permissions protected IGNORE
 
+In addition Oak 1.0 defines a specific mixin type that allows to store the path(s)
+of the versionable node with each version history. Adding this mixing and updating
+the versionable path information is taken care of by a dedicated commit hook
+implementation (`VersionablePathHook`).
+
     [rep:VersionablePaths]
       mixin
       - * (PATH) protected ABORT
 
 
+<a name="api_extensions"/>
 ### API Extensions
 
 Due to the separation of access control management from permission evaluation,
@@ -302,23 +366,11 @@ discovery at JCR level.
 The package `org.apache.jackrabbit.oak.spi.security.authorization.permission`
 defines the following interface:
 
-- `PermissionProvider`: Main entry point for permission discovery and evaluation.
-    - `TreePermission`: Evaluates the permissions of a given Oak `Tree`, exposed by `PermissionProvider`.
-    - `RepositoryPermission`: Evaluates the repository level permissions, exposed by `PermissionProvider`.
-- `Permissions`: The permissions defined, respected and evaluated by the repository.
-- `PermissionConstants`: Constants used throughout the permission evaluation.
-
-#### PermissionProvider
-
-_todo_
-
-#### TreePermission
-
-_todo_
-
-#### RepositoryPermission
-
-_todo_
+- [PermissionProvider]: Main entry point for permission discovery and evaluation.
+    - [TreePermission]: Evaluates the permissions of a given Oak `Tree`, exposed by `PermissionProvider`.
+    - [RepositoryPermission]: Evaluates the repository level permissions, exposed by `PermissionProvider`.
+- [Permissions]: The permissions defined, respected and evaluated by the repository.
+- [PermissionConstants]: Constants used throughout the permission evaluation.
 
 ### Configuration
 
@@ -340,7 +392,7 @@ The default implementation supports the following configuration parameters:
 | `PARAM_ADMINISTRATIVE_PRINCIPALS` | String[]            | \-       | The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether. |
 | | | | |
 
-##### PARAM_PERMISSIONS_JR2
+##### Supported Values for PARAM_PERMISSIONS_JR2
 
 - `REMOVE_NODE`: if present, the permission evaluation will traverse down the hierarchy upon node removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
 - `USER_MANAGEMENT`: if set permissions for user related items will be evaluated the same way as regular JCR items irrespective of their protection status.
@@ -364,7 +416,12 @@ There are two ways for plugging permission related custom implementations:
 
 <!-- references -->
 [Permissions]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/Permissions.html
+[PermissionProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/PermissionProvider.html
+[TreePermission]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/TreePermission.html
+[RepositoryPermission]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/RepositoryPermission.html
+[PermissionConstants]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/permission/PermissionConstants.html
 [AuthorizationConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authorization/AuthorizationConfiguration.html
+[PermissionHook]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authorization/permission/PermissionHook.html
 [OAK-444]: https://issues.apache.org/jira/browse/OAK-444
 [JCR-2963]: https://issues.apache.org/jira/browse/JCR-2963
 [OAK-1268]: https://issues.apache.org/jira/browse/OAK-1268
