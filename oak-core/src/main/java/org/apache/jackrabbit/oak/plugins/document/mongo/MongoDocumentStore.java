@@ -570,6 +570,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 Operation op = entry.getValue();
                 switch (op.type) {
                     case SET:
+                    case MAX:
                     case INCREMENT: {
                         inserts[i].put(k.toString(), op.value);
                         break;
@@ -965,6 +966,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     @Nonnull
     private static DBObject createUpdate(UpdateOp updateOp) {
         BasicDBObject setUpdates = new BasicDBObject();
+        BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
@@ -980,16 +982,17 @@ public class MongoDocumentStore implements CachingDocumentStore {
             }
             Operation op = entry.getValue();
             switch (op.type) {
-                case SET: {
+                case SET:
+                case SET_MAP_ENTRY: {
                     setUpdates.append(k.toString(), op.value);
+                    break;
+                }
+                case MAX: {
+                    maxUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case INCREMENT: {
                     incUpdates.append(k.toString(), op.value);
-                    break;
-                }
-                case SET_MAP_ENTRY: {
-                    setUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
@@ -1002,6 +1005,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
         BasicDBObject update = new BasicDBObject();
         if (!setUpdates.isEmpty()) {
             update.append("$set", setUpdates);
+        }
+        if (!maxUpdates.isEmpty()) {
+            update.append("$max", maxUpdates);
         }
         if (!incUpdates.isEmpty()) {
             update.append("$inc", incUpdates);
