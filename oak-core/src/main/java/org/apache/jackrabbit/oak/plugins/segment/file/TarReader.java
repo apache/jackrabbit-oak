@@ -439,7 +439,7 @@ class TarReader {
             return null; // magic byte mismatch
         }
 
-        if (count < 0 || bytes < count * 24 + 16 || BLOCK_SIZE + bytes > pos) {
+        if (count < 0 || bytes < count * 16 + 16 || BLOCK_SIZE + bytes > pos) {
             log.warn("Invalid graph metadata in tar file {}", file);
             return null; // impossible uuid and/or byte counts
         }
