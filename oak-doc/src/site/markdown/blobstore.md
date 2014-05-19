@@ -42,9 +42,8 @@ Because, for the Jackrabbit DataStore:
 * binaries that are similar are always stored separately no matter what
 
 Those problems are solved in Oak BlobStores, because binaries are split
-into blocks of 2 MB. This is similar to how DropBox works internally:
-http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files - 
-blocks are processed in memory so that temp files are never
+into blocks of 2 MB. This is similar to how [DropBox works internally][1]. 
+Blocks are processed in memory so that temp files are never
 needed, and blocks are cached. File handles don't need to be kept open.
 Sharding is trivial because each block is processed separately.
 
@@ -59,3 +58,58 @@ point, see also http://en.wikipedia.org/wiki/SHA-2 "Federal agencies ...
 must use the SHA-2 family of hash functions for these applications
 after 2010". This might affect some potential users.
 
+
+### Support for Jackrabbit 2 DataStore
+
+Jackrabbit 2 used [DataStore][2] to store blobs. Oak supports usage of such 
+DataStore via `DataStoreBlobStore` wrapper. This allows usage of `FileDataStore` 
+and `S3DataStore` with Oak NodeStore implementations. 
+
+### NodeStore and BlobStore
+
+Currently Oak provides two NodeStore implementations i.e. `SegmentNodeStore` and `DocumentNodeStore`.
+Further Oak ships with multiple BlobStore implementations
+
+1. `FileBlobStore` - Stores the file contents in chunks on file system
+2. `MongoBlobStore` - Stores the file content in chunks in Mongo. Typically used with
+   `DocumentNodeStore` when running on Mongo by default
+3. `FileDataStore` (with wrapper) - Stores the file on file system without breaking it into
+   chunks. Mostly used when blobs have to shared between multiple repositories. Also used by 
+   default when migrating Jackrabbit 2 repositories to Oak
+4. `S3DataStore` (with wrapper) - Stores the file in Amazon S3
+
+In addition there are some more implementations which are considered **experimental**
+
+1. `RDBBlobStore` - Stores the file chunks in database
+2. `CloudBlobStore` - Stores the file file chunks in cloud storage using the [JClouds BlobStore API][3].
+3. `MongoGridFSBlobStore` - Stores the file chunks in Mongo using GridFS support
+
+
+Depending on NodeStore type and usage requirement these can be configured to use 
+a particular BlobStore implementation. For OSGi env refer to [Configuring DataStore/BlobStore]
+(osgi_config.html#config-blobstore)
+
+#### SegmentNodeStore
+
+By default SegmentNodeStore does not require a BlobStore. Instead the binary content is
+directly stored as part of segment blob itself. Depending on requirements one of the following 
+can be used  
+ 
+* FileDataStore - This should be used if the blobs/binaries have to be shared between multiple
+  repositories. This would also be used when a JR2 repository is migrated to Oak
+* S3DataStore - This should be used when binaries are stored in Amazon S3 
+
+#### DocumentNodeStore
+
+By default DocumentNodeStore when running on Mongo uses `MongoBlobStore`. Depending on requirements 
+one of the following can be used  
+                  
+* MongoBlobStore - Used by default
+* FileDataStore - This should be used if the binaries have to be stored on the file system. This 
+  would also be used when a JR2 repository is migrated to Oak
+* S3DataStore - This should be used when binaries are stored in Amazon S3. Typically used when running
+  in Amazon AWS
+
+[1]: http://serverfault.com/questions/52861/how-does-dropbox-version-upload-large-files
+[2]: http://wiki.apache.org/jackrabbit/DataStore
+[3]: http://jclouds.apache.org/start/blobstore/

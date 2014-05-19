@@ -99,7 +99,8 @@ All the configuration related to Mongo can be specified via [Mongo URI][1]
   
 One can also specify the connection pool size, socket timeout etc. For complete details about various 
 possible option refer to [Mongo URI][1]  
-  
+
+<a name="config-blobstore"></a>  
 ### Configuring DataStore/BlobStore
 BlobStores are used to store the binary content. Support for Jackrabbit 2 `DataStore` is also provided via
 a `DataStoreBlobStore` wrapper. To use a specific BlobStore implementation following two steps need to be
