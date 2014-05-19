@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.collect.Sets.newHashSet;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,11 +39,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -70,8 +71,6 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-
-import static com.google.common.collect.Sets.newHashSet;
 
 public class Main {
 
@@ -109,6 +108,9 @@ public class Main {
             case UPGRADE:
                 upgrade(args);
                 break;
+            case SCALABILITY:
+                ScalabilityRunner.main(args);
+                break;                
             default:
                 System.err.println("Unknown command: " + mode);
                 System.exit(1);
@@ -487,11 +489,12 @@ public class Main {
         BENCHMARK("benchmark"),
         DEBUG("debug"),
         SERVER("server"),
-        UPGRADE("upgrade");
-
+        UPGRADE("upgrade"),
+        SCALABILITY("scalability");
+        
         private final String name;
 
-        private Mode(String name) {
+        Mode(String name) {
             this.name = name;
         }
 
