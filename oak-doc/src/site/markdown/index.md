@@ -41,9 +41,6 @@ various platforms, especially from JavaScript clients running in modern browser 
 implementation should provide more out-of-the-box functionality than typical NoSQL databases while
 achieving comparable levels of scalability and performance.
 
-See the Jackrabbit Wiki for an initial list of [goals and non goals]
-(https://wiki.apache.org/jackrabbit/Goals%20and%20non%20goals%20for%20Jackrabbit%203) for Oak.
-
 Work in Progress
 ----------------
 This documentation is still work in progress. Currently much of the information on Oak is
