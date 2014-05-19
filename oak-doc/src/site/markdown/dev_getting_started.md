@@ -19,9 +19,12 @@ Getting Started
 ---------------
 
 Many parts of Oak are still under construction, so it may be a bit difficult to find your way around
-the codebase. The [README files](https://github.com/apache/jackrabbit-oak/blob/trunk/README.md), the
-[Jackrabbit 3 wiki page](http://wiki.apache.org/jackrabbit/Jackrabbit%203), and the
-[Oak mailing list](http://oak.markmail.org/) archives are good places to start learning about Oak.
+the codebase. The [README files](https://github.com/apache/jackrabbit-oak/blob/trunk/README.md),
+this documentation, and the [Oak mailing list](http://oak.markmail.org/) archives are good places
+to start learning about Oak.
+
+There is also the [Jackrabbit 3 wiki page](http://wiki.apache.org/jackrabbit/Jackrabbit%203), which
+is mostly outdated though and should only be consulted for historical research.
 
 To get started developing Oak, build the latest sources with Maven 3 and Java 6 (or higher) like
 this:
