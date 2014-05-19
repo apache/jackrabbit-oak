@@ -44,7 +44,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * access control content and updates persisted permission store associated
  * with access control related data stored in the repository.
  * <p>
- * The access control entries are grouped by principal and stored below the store root based on the hash value of the
+ * The permission entries are grouped by principal and stored below the store root based on the hash value of the
  * access controllable path. hash collisions are handled by adding subnodes accordingly.
  * <pre>
  *   /jcr:system/rep:permissionStore/workspace-name
