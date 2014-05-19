@@ -276,25 +276,69 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     public Iterable<String> query(final Filter filter, final String indexName,
                                   final NodeState indexMeta, final String indexStorageNodeName,
                                   final PropertyRestriction pr) {
-
+        
         final NodeState index = indexMeta.getChildNode(indexStorageNodeName);
 
         if (pr.first != null && !pr.first.equals(pr.last)) {
-            // '>' & '>=' use case
-            ChildNodeEntry firstValueableItem = seek(index,
-                new PredicateGreaterThan(pr.first.getValue(Type.STRING), pr.firstIncluding));
+            // '>' & '>=' and between use case
+            ChildNodeEntry firstValueableItem;
             Iterable<String> it = Collections.emptyList();
-            if (firstValueableItem != null) {
-                Iterable<ChildNodeEntry> childrenIterable = (pr.last == null) ? new SeekedIterable(
-                    index, firstValueableItem) : new BetweenIterable(index, firstValueableItem,
-                    pr.last.getValue(Type.STRING), pr.lastIncluding);
-                it = new QueryResultsWrapper(filter, indexName, childrenIterable);
+            Iterable<ChildNodeEntry> childrenIterable;
+            
+            if (pr.last == null) {
+                LOG.debug("> & >= case.");
+                firstValueableItem = seek(index,
+                    new PredicateGreaterThan(pr.first.getValue(Type.STRING), pr.firstIncluding));
+                if (firstValueableItem != null) {
+                    childrenIterable = new SeekedIterable(index, firstValueableItem);
+                    it = new QueryResultsWrapper(filter, indexName, childrenIterable);
+                }
+            } else {
+                String first, last;
+                boolean includeFirst, includeLast;
+                first = pr.first.getValue(Type.STRING);
+                last = pr.last.getValue(Type.STRING);
+                includeFirst = pr.firstIncluding;
+                includeLast = pr.lastIncluding;
+
+                if (LOG.isDebugEnabled()) {
+                    final String op1 = includeFirst ? ">=" : ">";
+                    final String op2 = includeLast ? "<=" : "<";
+                    LOG.debug("in between case. direction: {} - Condition: (x {} {} AND x {} {})",
+                        new Object[] { direction, op1, first, op2, last });
+                }
+
+                if (direction.equals(OrderDirection.ASC)) {
+                    firstValueableItem = seek(index,
+                        new PredicateGreaterThan(first, includeFirst));
+                } else {
+                    firstValueableItem = seek(index,
+                        new PredicateLessThan(last, includeLast));
+                }
+                
+                LOG.debug("firstValueableItem: {}", firstValueableItem);
+                
+                if (firstValueableItem != null) {
+                    childrenIterable = new BetweenIterable(index, firstValueableItem, last,
+                        includeLast, direction);
+                    it = new QueryResultsWrapper(filter, indexName, childrenIterable);
+                }
             }
+
             return it;
         } else if (pr.last != null && !pr.last.equals(pr.first)) {
             // '<' & '<=' use case
-            ChildNodeEntry firstValueableItem = seek(index,
-                new PredicateLessThan(pr.last.getValue(Type.STRING), pr.lastIncluding));
+            final String searchfor = pr.last.getValue(Type.STRING);
+            final boolean include = pr.lastIncluding;
+            Predicate<ChildNodeEntry> predicate = new PredicateLessThan(searchfor, include);
+            
+            LOG.debug("< & <= case. - searchfor: {} - include: {} - predicate: {}",
+                new Object[] { searchfor, include, predicate });
+
+            ChildNodeEntry firstValueableItem = seek(index, predicate);
+            
+            LOG.debug("firstValuableItem: {}", firstValueableItem);
+            
             Iterable<String> it = Collections.emptyList();
             if (firstValueableItem != null) {
                 it = new QueryResultsWrapper(filter, indexName, new SeekedIterable(index,
@@ -376,18 +420,41 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     v.visit(content);
                     count = v.getEstimatedCount();
                 }
-            } else if (lpr.first != null && !lpr.first.equals(lpr.last)
-                       && OrderDirection.ASC.equals(direction)) {
+            } else if (lpr.first != null && !lpr.first.equals(lpr.last)) {
                 // > & >= in ascending index
-                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
-                CountingNodeVisitor v;
                 value = lpr.first.getValue(Type.STRING);
+                final String vv = value;
+                final boolean include = lpr.firstIncluding;
+                final OrderDirection dd = direction;
+
+                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
+                Predicate<String> predicate = new Predicate<String>() {
+                    private String v = vv;
+                    private boolean i = include;
+                    private OrderDirection d = dd;
+                    
+                    @Override
+                    public boolean apply(String input) {
+                        boolean b;
+                        
+                        if (d.equals(OrderDirection.ASC)) {
+                            b = v.compareTo(input) > 0;
+                        } else {
+                            b = v.compareTo(input) < 0;
+                        }
+                        
+                        b = b || (i && v.equals(input));
+                        
+                        return b;
+                    }
+                };
+
+                CountingNodeVisitor v;
                 int depthTotal = 0;
                 // seeking the right starting point
                 for (ChildNodeEntry child : children) {
                     String converted = convert(child.getName());
-                    if (value.compareTo(converted) < 0
-                        || (lpr.firstIncluding && value.equals(converted))) {
+                    if (predicate.apply(converted)) {
                         // here we are let's start counting
                         v = new CountingNodeVisitor(max);
                         v.visit(content.getChildNode(child.getName()));
@@ -403,18 +470,41 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                 v.depthTotal = depthTotal;
                 v.count = (int) Math.min(count, Integer.MAX_VALUE);
                 count = v.getEstimatedCount();
-            } else if (lpr.last != null && !lpr.last.equals(lpr.first)
-                       && OrderDirection.DESC.equals(direction)) {
-                // > & >= in ascending index
-                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
-                CountingNodeVisitor v;
+            } else if (lpr.last != null && !lpr.last.equals(lpr.first)) {
+                // < & <= 
                 value = lpr.last.getValue(Type.STRING);
+                final String vv = value;
+                final boolean include = lpr.lastIncluding;
+                final OrderDirection dd = direction;
+                
+                Iterable<? extends ChildNodeEntry> children = getChildNodeEntries(content);
+                Predicate<String> predicate = new Predicate<String>() {
+                    private String v = vv;
+                    private boolean i = include;
+                    private OrderDirection d = dd;
+                    
+                    @Override
+                    public boolean apply(String input) {
+                        boolean b;
+                        
+                        if (d.equals(OrderDirection.ASC)) {
+                            b = v.compareTo(input) < 0;
+                        } else {
+                            b = v.compareTo(input) > 0;
+                        }
+                        
+                        b = b || (i && v.equals(input));
+                        
+                        return b;
+                    }
+                };
+                
+                CountingNodeVisitor v;
                 int depthTotal = 0;
                 // seeking the right starting point
                 for (ChildNodeEntry child : children) {
                     String converted = convert(child.getName());
-                    if (value.compareTo(converted) > 0
-                        || (lpr.lastIncluding && value.equals(converted))) {
+                    if (predicate.apply(converted)) {
                         // here we are let's start counting
                         v = new CountingNodeVisitor(max);
                         v.visit(content.getChildNode(child.getName()));
@@ -435,7 +525,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         }
         return count;
     }
-    
+        
     /**
      * wrap an {@code Iterable<ChildNodeEntry>} in something that can be understood by the Query
      * Engine
@@ -707,17 +797,20 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     private static class BetweenIterable extends SeekedIterable {
         private String lastKey;
         private boolean lastInclude;
+        private OrderDirection direction;
         
-        public BetweenIterable(NodeState index, ChildNodeEntry first, String lastKey,
-                               boolean lastInclude) {
+        public BetweenIterable(final NodeState index, final ChildNodeEntry first,
+                               final String lastKey, final boolean lastInclude,
+                               final OrderDirection direction) {
             super(index, first);
             this.lastKey = lastKey;
             this.lastInclude = lastInclude;
+            this.direction = direction;
         }
 
         @Override
         public Iterator<ChildNodeEntry> iterator() {
-            return new BetweenIterator(index, start, first, lastKey, lastInclude);
+            return new BetweenIterator(index, start, first, lastKey, lastInclude, direction);
         }
     }
 
@@ -725,9 +818,8 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      * iterator for iterating in the cases of BETWEEN queries.
      */
     private static class BetweenIterator extends SeekedIterator {
-        private String lastKey;
-        private boolean lastInclude;
-
+        private Predicate<String> condition;
+        
         /**
          * @param index the current index content {@code :index}
          * @param start the {@code :start} node
@@ -735,11 +827,22 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
          * @param lastKey the last key to be returned
          * @param lastInclude whether including the last key or not. 
          */
-        public BetweenIterator(NodeState index, NodeState start, ChildNodeEntry first,
-                               String lastKey, boolean lastInclude) {
+        public BetweenIterator(final NodeState index, final NodeState start,
+                               final ChildNodeEntry first, final String lastKey,
+                               final boolean lastInclude, final OrderDirection direction) {
             super(index, start, first);
-            this.lastInclude = lastInclude;
-            this.lastKey = lastKey;
+            this.condition = new Predicate<String>() {
+                private String v = lastKey;
+                private boolean i = lastInclude;
+                private OrderDirection d = direction;
+                
+                @Override
+                public boolean apply(String input) {
+                    return d.equals(OrderDirection.ASC) 
+                        ? v.compareTo(input) > 0 || (i && v.equals(input))
+                        : v.compareTo(input) < 0 || (i && v.equals(input));
+                }
+            };
         }
 
         @Override
@@ -749,8 +852,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
 
             if (name != null && next) {
                 name = convert(name);
-                next = next && (lastKey.compareTo(name) > 0 || (lastInclude && lastKey
-                    .equals(name)));
+                next = next && condition.apply(name);
             }
             return next;
         }
