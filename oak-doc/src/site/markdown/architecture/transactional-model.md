@@ -25,7 +25,7 @@ when it contains operations which are incompatible with the operations of an ear
 saved successfully. This is different from the standard first committer wins strategy where failure
 would occur on conflicting operations rather than on incompatible operations. Incompatible is weaker
 than conflict since two write operation on the same item do conflict but are not incompatible. The
-details of what incompatible means are specified by `MicroKernel.rebase()`.
+details of what incompatible means are specified by `NodeStore.rebase()` and `MicroKernel.rebase()`.
 
 Snapshot isolation exhibits [write skew](http://http//research.microsoft.com/apps/pubs/default.aspx?id=69541)
 which can be problematic for some application level consistency requirements. Consider the following

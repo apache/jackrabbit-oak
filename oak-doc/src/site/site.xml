@@ -29,13 +29,19 @@ under the License.
       <item href="license.html" name="License" />
       <item href="downloads.html" name="Downloads" />
     </menu>
-    <menu name="Concepts and architecture">
-      <item href="overview.html" name="Overview" />
-      <item href="nodestate.html" name="The node state model" />
-      <item href="microkernel.html" name="NodeStore and MicroKernel" />
+    <menu name="Concepts and Architecture">
+      <item href="architecture/overview.html" name="Overview" />
+      <item href="architecture/nodestate.html" name="The node state model" />
+    </menu>
+    <menu name="Main APIs">
+      <item href="http://www.day.com/specs/jcr/2.0/index.html" name="JCR API" />
+      <item href="oak_api/overview.html" name="Oak API" />
+      <item href="nodestore/overview.html" name="NodeStore and MicroKernel API" />
+    </menu>
+    <menu name="Features and Plugins">
       <item href="query.html" name="Query" />
-      <item href="blobstore.html" name="BlobStore" />
       <item href="security/overview.html" name="Security" />
+      <item href="blobstore.html" name="BlobStore" />
       <item href="clustering.html" name="Clustering" />
     </menu>
     <menu name="Using Oak">

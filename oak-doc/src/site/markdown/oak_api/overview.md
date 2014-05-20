@@ -15,14 +15,7 @@
    limitations under the License.
   -->
 
-# The big picture
+Oak API
+--------------------------------------------------------------------------------
 
-![The big picture](big-picture.png?raw=true)
-
-TODO: Explain concepts: MVCC, Oak modules and plugins, key APIs, ...
-
-## Readmes
-
-* [Oak](https://github.com/apache/jackrabbit-oak/blob/trunk/README.md)
-* [Oak core](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-core/README.md)
-* [Oak run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
+_todo_
