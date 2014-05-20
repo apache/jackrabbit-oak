@@ -329,6 +329,22 @@ Each per path store looks as follows
         }
     }
 
+###### Accessing the Permission Store
+
+It is important to understand that the permission store is a implementation
+specific structure that is maintained by the system itself. For this reason
+access to the permission store is additionally restricted superimposing the
+regular permissions being enforced for regular repository items.
+
+In detail this means that the permission store cannot be written by JCR nor Oak
+API method calls. It's immutability is enforced by a dedicated `FailingValidator`
+that prevents any modifications underneath `/jcr:system/rep:permissionStore`.
+Similarly read access is not allowed except for system principals. In order to
+discover and display access control related information API consumers should
+use the regular JCR and Jackrabbit permission and access control management API
+as listed above and in section [Using the Access Control Management API](accesscontrol/editing.html).
+
+
 ##### Node Type Definitions
 
 For the permission store the following built-in node types have been defined:
