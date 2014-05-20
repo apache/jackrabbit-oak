@@ -25,7 +25,12 @@ import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionC
 
 
 /**
- * Abstract class for all the Scalability/Longevity benchmarks.
+ * Base class for all the Scalability/Longevity benchmarks/tests.
+ * 
+ * The implementations should implement the method
+ * {@link ScalabilityBenchmark#execute(Repository, Credentials, ExecutionContext)}.
+ * 
+ * This method will then be called from the {@link ScalabilitySuite} where configured.
  * 
  */
 public abstract class ScalabilityBenchmark {

@@ -47,7 +47,23 @@ import org.apache.jackrabbit.oak.benchmark.util.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
 /**
- * Longevity suite to load test.
+ * Abstract class which defines a lot of the boiler-plate code needed to run the suite of tests.
+ * 
+ * Any test suite extending from this class has the following entry points
+ * <p>
+ * {@link #beforeSuite()} - To configure the whole suite before the tests are started.
+ * <p>
+ * {@link #afterSuite()} - To shutdown the whole suite after all tests are finished.
+ * <p>
+ * {@link #beforeIteration(ExecutionContext)} - Any initialization to be performed before each of
+ * the test run. Typically, this can be configured to create additional loads for each iteration.
+ * This method will be called before each test iteration begins.
+ * <p>
+ * {@link #afterIteration()} - To configure any post test steps to be executed after each iteration
+ * of the test. This method will be called after each test iteration completes.
+ * <p>
+ * {@link #executeBenchmark(ScalabilityBenchmark, ExecutionContext)} - Actual benchmark/test to be
+ * executed. This method will be called in each iteration of the test run.
  * 
  */
 public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVResultGenerator {
