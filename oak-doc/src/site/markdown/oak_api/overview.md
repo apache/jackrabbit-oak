@@ -19,3 +19,43 @@ Oak API
 --------------------------------------------------------------------------------
 
 _todo_
+
+- [ContentRepository]
+- [ContentSession]
+- [Root]
+- [Tree]
+- [PropertyState]
+
+#### Values
+
+- [PropertyValue]
+- [Type]
+- [Blob]
+
+#### Query
+
+- [QueryEngine]
+- [Query]
+- [ResultRow]
+
+#### Various
+
+- [AuthInfo] : see section [Authentication](../security/authentication/overview.html)
+- [Descriptors]
+- [CommitFailedException] : see also [Error Codes](error_codes.html)
+
+
+<!-- hidden references -->
+[ContentRepository]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentRepository.html
+[ContentSession]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ContentSession.html
+[Root]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Root.html
+[Tree]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Tree.html
+[PropertyState]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyState.html
+[PropertyValue]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/PropertyValue.html
+[Type]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Type.html
+[Blob]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Blob.html
+[QueryEngine]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/QueryEngine.html
+[Query]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Query.html
+[ResultRow]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/ResultRow.html
+[Descriptors]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/Descriptors.html
+[CommitFailedException]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/CommitFailedException.html

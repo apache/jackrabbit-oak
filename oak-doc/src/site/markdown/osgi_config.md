@@ -91,7 +91,7 @@ All the configuration related to Mongo can be specified via [Mongo URI][1]
         mongodb://sysop:moon@localhost
     
 * **Read Preferences and Write Concern** - These also can be spcified as part of Mongo URI. Refer to 
-  [Read Preference and Write Concern](nodestore/documentmk.html#rw-preference) section for more details. For
+  [Read Preference and Write Concern](documentmk.html#rw-preference) section for more details. For
   e.g. following would set _readPreference_ to _secondary_ and prefer replica with tag _dc:ny,rack:1_.
   It would also specify the write timeout to 10 sec
   
