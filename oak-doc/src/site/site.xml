@@ -41,7 +41,7 @@ under the License.
     <menu name="Features and Plugins">
       <item href="query.html" name="Query" />
       <item href="security/overview.html" name="Security" />
-      <item href="blobstore.html" name="BlobStore" />
+      <item href="plugins/blobstore.html" name="BlobStore" />
       <item href="clustering.html" name="Clustering" />
     </menu>
     <menu name="Using Oak">

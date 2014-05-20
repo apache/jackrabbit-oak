@@ -333,7 +333,7 @@ defines some extensions points that allow for further customization of the authe
 
 In addition this package contains various utilities and base implementations.
 Most notably an abstract login module implementation ([AbstractLoginModule]) as
-described below.
+described below and a default implementation of the AuthInfo interface ([AuthInfoImpl]).
 
 ##### Abstract Login Module
 
@@ -474,7 +474,8 @@ implementation on various levels:
 [javax.jcr.Repository]: http://www.day.com/specs/javax.jcr/javadocs/jcr-2.0/javax/jcr/Repository.html
 [org.apache.jackrabbit.api.JackrabbitRepository]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/JackrabbitRepository.java
 [ImpersonationCredentials]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/ImpersonationCredentials.html
-[AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthInfo.html
+[AuthInfoImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/AuthInfoImpl.html
+[AuthInfo]: /oak/docs/apidocs/org/apache/jackrabbit/oak/api/AuthInfo.html
 [GuestLoginModule]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/GuestLoginModule.html
 [LoginModuleImpl]: /oak/docs/apidocs/org/apache/jackrabbit/oak/security/authentication/user/LoginModuleImpl.html
 [com.day.crx.security.ldap.LDAPLoginModule]: http://dev.day.com/docs/en/crx/current/administering/ldap_authentication.html

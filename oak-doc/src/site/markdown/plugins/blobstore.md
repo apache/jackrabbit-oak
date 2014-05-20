@@ -87,7 +87,7 @@ In addition there are some more implementations which are considered **experimen
 
 Depending on NodeStore type and usage requirement these can be configured to use 
 a particular BlobStore implementation. For OSGi env refer to [Configuring DataStore/BlobStore]
-(osgi_config.html#config-blobstore)
+(../osgi_config.html#config-blobstore)
 
 #### SegmentNodeStore
 
