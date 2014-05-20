@@ -18,12 +18,19 @@
 Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
-#### Evaluation of Permission Entries
+### <a name="getEntryIterator"></a>Order or Permission Entries
 
 _todo_
 
+### <a name="entry_evaluation"/>Evaluation of Permission Entries
 
-#### Reading a Node : Step by Step
+_todo_
+
+### Some Examples: Step by Step
+
+#### Reading
+
+##### Reading a Node
 
 The following section describes what happens on `session.getNode("/foo").getProperty("jcr:title")`
 in terms of permission evaluation:
@@ -41,20 +48,24 @@ in terms of permission evaluation:
      checks before delegating the calls to the delegated builder.
 
   1. For non _admin_ sessions the `SecureNodeBuilder` fetches its _tree permissions_ via
-     `getTreePermission()` (See [below](#getTreePermission) of how this works) and then
-     calls `TreePermission.canRead()`. This method (signature with no arguments) checks the
+     `getTreePermission()`.
+
+  1. The `TreePermission` is responsible for evaluating the permissions granted or
+     denied for a given Oak `Tree` and it's properties. In order to test if a the
+     tree itself is accessible `TreePermission#canRead()` is called and checks the
      `READ_NODE` permission for normal trees (as in this example) or the `READ_ACCESS_CONTROL`
-     permission on _AC trees_ [^1] and remembers the result in the `ReadStatus`.
+     permission on _AC trees_. The result is remembered in the `ReadStatus` kept
+     with this `TreePermission` instance.
 
-     For that an iterator of the _permission entries_ is [retrieved](#getEntryIterator) which
-     provides all the relevant permission entries needed to be evaluated for this tree (and
-     and set of principals associated with the permission provider).
+  1. The read status is based on the evaluation of the  _permission entries_ that
+     are effective for this tree and the set of principals associated with the
+     permission provider. They are retrieved internally by calling `getEntryIterator()`.
 
-  1. The _permission entries_ are analyzed if they include the respective permission and if so,
+  1. The _permission entries_ are [analyzed](#entry_evaluation) if they include the respective permission and if so,
      the read status is set accordingly. Note that the sequence of the permission entries from
-     the iterator is already in the correct order for this kind of evaluation. this is ensured
+     the iterator is already in the correct order for this kind of evaluation. This is ensured
      by the way how they are stored in the [permission store](../permission.html#permissionStore) and how they
-     are feed into the iterator.
+     are feed into the iterator (see [Order or Permission Entries](#getEntryIterator) above).
 
      The iteration also detects if the evaluated permission entries cover _this_ node and all
      its properties. If this is the case, subsequent calls that evaluate the property read
@@ -69,34 +80,159 @@ in terms of permission evaluation:
   1. Once the `ReadStatus` is calculated (or was calculated earlier) the `canRead()` method
      returns `ReadStatus.allowsThis()` which specifies if _this_ node is allowed to be read.
 
-  [^1]: by default access control content is stored in the `rep:policy` subtree of an access controlled node.
+##### Reading a Property
 
-#### Reading an Property : Step by Step
+  1. `Node.getProperty()` internally calls `NodeDelegate.getPropertyOrNull()`
+     which first resolves the parent node as indicated by the relative path without
+     testing for it's existence. Then a new `PropertyDelegate` is created from
+     the parent node and the name of the property, which internal obtains the
+     `PropertyState` from the Oak `Tree`, which may return `null`.
 
-  1. _todo_
+  1. The node delegate then checks if the property really exists (or is accessible
+     to the reading session by calling `PropertyDelegate.exists()` asserting if the
+     underlying `PropertyState` is not `null`.
 
-#### Adding a Node : Step by Step
-_todo_
-#### Changing a Property : Step by Step
-_todo_
-#### Locking a Node : Step by Step
-_todo_
-#### Registering a Node Type : Step by Step
-_todo_
+  1. If the session performing the operation is an _admin_ session, then the property state from
+     the persistence layer is directly used. In all other cases, the original node builder
+     is wrapped by a `SecureNodeBuilder`. The `SecureNodeBuilder` performs permission
+     checks before delegating the calls to the delegated builder.
 
+  1. For non _admin_ sessions the `SecureNodeBuilder` fetches its _tree permissions_ via
+     `getTreePermission()`.
 
-#### <a name="SecureNodeBuilder"></a> SecureNodeBuilder
+  1. The `TreePermission` is responsible for evaluating the permissions granted or
+     denied for a given Oak `Tree` and it's properties. In order to test if the
+     property is accessible `TreePermission#canRead(PropertyState)` is called and checks the
+     `READ_PROPERTY` permission for regular properties or the `READ_ACCESS_CONTROL`
+     permission for properties defining access control related content. In case
+     all properties defined with the parent tree are accessible to the editing
+     session the result is remembered in the `ReadStatus` kept with this `TreePermission`
+     instance; otherwise the _permission entries_ are collected and evaluated as described
+     in sections [Order or Permission Entries](#getEntryIterator) and
+     [Evaluation of Permission Entries](#entry_evaluation) above.
 
-  _todo_
+#### Session Write-Operations
 
-#### <a name="getTreePermission"></a> TreePermission
+##### Adding a Node
 
-  _todo_
+  1. `Node.addNode(String)` will internally call `NodeDelegate.addChild` which
+     in term, adds a new child to the corresponding Oak `Tree` and generate all
+     autocreated child items.
 
+  1. Once `Session.save()` is called all pending changes will be merged into the
+     `NodeStore` present with the editing Oak `Root`. This is achieved by calling
+     `Root#commit`.
 
-#### <a name="getEntryIterator"></a> PermissionEntry Iterator
+  1. The permission evaluation is triggered by means of a specific `Validator`
+     implementation that is passed over to the merge along with the complete set
+     of validators and editors that are combined into a single `CommitHook`.
 
-  _todo_
+  1. The `PermissionValidator` will be notified about the new node being added.
 
+  1. It again obtains the `TreePermission` object form the `PermissionProvider` and
+     evaluates if `ADD_NODE` permission is being granted for the new target node.
+     The evaluation follows the same principals as described [above](#entry_evaluation).
 
-<!-- hidden references -->
+  1. If added the new node is granted the validation continues otherwise the `commit`
+     will fail immediately with an `CommitFailedException` of type `ACCESS`.
+
+##### Changing a Property
+
+  1. `Property.setValue` will internally call `PropertyDelegate.setState` with
+     an new `PropertyState` created from the new value (or the new set of values).
+
+  1. Once `Session.save()` is called all pending changes will be merged into the
+     `NodeStore` present with the editing Oak `Root`. This is achieved by calling
+     `Root#commit`.
+
+  1. The permission evaluation is triggered by means of a specific `Validator`
+     implementation that is passed over to the merge along with the complete set
+     of validators and editors that are combined into a single `CommitHook`.
+
+  1. The `PermissionValidator` will be notified about the modified property.
+
+  1. It again obtains the `TreePermission` object form the `PermissionProvider` and
+     evaluates if `MODIFY_PROPERTY` permission is being granted.
+     The evaluation follows the same principals as described [above](#entry_evaluation).
+
+  1. If changing this property is allowed the validation continues otherwise the `commit`
+     will fail immediately with an `CommitFailedException` of type `ACCESS`.
+
+#### Workspace Operations
+
+##### Copying Nodes
+
+  1. `Workspac.copy` will internally call `WorkspaceDelegate.copy`.
+
+  1. After some preliminary validation the delegate will create a new `WorkspaceCopy`
+     and call it's `perform` method passing in the separate `Root` instance obtained
+     from `ContentSession.getLatestRoot()`; in other words the modifications made
+     by the copy operation will not show up as transient changes on the editing
+     session.
+
+  1. Upon completion of the copy operation `Root.commit` is called on that latest
+     root instance and the delegated will refresh the editing session to reflect
+     the changes made by the copy.
+
+  1. The permission evaluation is triggered upon committing the changes associated
+     with the copy by the same `Validator` that handles transient operations.
+
+  1. The `PermissionValidator` will be notified about the new items created by the
+     copy and checks the corresponding permissions with the `TreePermission` associated
+     with the individual new nodes. The evaluation follows the same principals
+     as described [above](#entry_evaluation).
+
+  1. If a permission violation is detected the `commit` will fail immediately with
+     an `CommitFailedException` of type `ACCESS`.
+
+##### Locking a Node
+
+  1. `LockManager.lock` will internally call `NodeDelegate.lock`, which will
+     obtain a new `Root` from the editing `ContentSession` and perform the
+     required changes on that dedicated root such that the editing session is
+     not affected.
+
+  1. Once the lock operation is complete the delegate will call `Root.commit`
+     on the latest root instance in order to persist the changes. Finally the
+     lock manager will refresh the editing session to reflect the changes made.
+
+  1. The permission evaluation is triggered upon committing the changes associated
+     with the lock operation by the same `Validator` that handles transient operations.
+
+  1. The `PermissionValidator` will be notified about the new items created by the
+     lock and identify that they are associated with a lock specific operations.
+     Consequently it will checks for `LOCK_MANAGEMENT` permissions being granted
+     at the affected tree. The evaluation triggered by calling `TreePermission.isGranted`
+     and follows the same principals as described [above](#entry_evaluation).
+
+  1. If a permission violation is detected the `commit` will fail immediately with
+     an `CommitFailedException` of type `ACCESS`.
+
+#### Repository Operations
+
+##### Registering a Privilege
+
+  1. `PrivilegeManager.registerPrivilege` will obtain a new `Root` from the editing
+     `ContentSession` and pass it to a new `PrivilegeDefinitionWriter` that is
+     in charge of writing the repository content associated with a new privilege
+     definition. Finally the writer will persist the changes by calling `Root.commit`.
+
+  1. Validation of the new privilege definition if delegated to a dedicated
+     `PrivilegeValidator`.
+
+  1. The permission evaluation is triggered upon committing the changes associated
+     by the same `Validator` that handles transient operations.
+
+  1. The `PermissionValidator` will be notified about changes being made to the
+     dedicated tree storing privilege information and will specifically verify
+     that `PRIVILEGE_MANAGEMENT` permissions being granted at the repository level.
+     This is achieved by obtaining the `RepositoryPermission` object from the
+     `PermissionProvider` and calling `RepositoryPermission.isGranted`. The evaluation
+     follows the same principals as described [above](#entry_evaluation).
+
+  1. If a permission violation is detected the `commit` will fail immediately with
+     an `CommitFailedException` of type `ACCESS`.
+
+  1. Once the registration is successfully completed the manager will refresh the
+     editing session.
+
