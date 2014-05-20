@@ -1205,7 +1205,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setModified(@Nonnull UpdateOp op,
                                    @Nonnull Revision revision) {
-        checkNotNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
+        checkNotNull(op).set(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
     }
 
     public static void setRevision(@Nonnull UpdateOp op,
