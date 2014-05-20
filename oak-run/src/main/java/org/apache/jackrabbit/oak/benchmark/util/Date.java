@@ -86,9 +86,6 @@ public enum Date {
         return c;
     }
 
-    private static final SimpleDateFormat ISO_8601_2000 = new SimpleDateFormat(
-        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
     private static final List<Date> VALUES = Collections.unmodifiableList(Arrays.asList(values()));
     private static final int SIZE = VALUES.size();
     private static final Random RND = new Random();
@@ -103,7 +100,8 @@ public enum Date {
     }
     
     public String toISO_8601_2000() {
-        return ISO_8601_2000.format(getCalendar().getTime());
+        return new SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(getCalendar().getTime());
     }
 }
 
