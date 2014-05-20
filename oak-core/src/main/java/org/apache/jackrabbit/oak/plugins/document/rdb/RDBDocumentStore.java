@@ -136,6 +136,10 @@ import com.google.common.util.concurrent.Striped;
  * </tr>
  * </tbody>
  * </table>
+ * <p>
+ * <em>Note that the database needs to be created/configured to support all Unicode
+ * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation").
+ * THIS IS NOT THE DEFAULT!</em>
  * 
  * <h3>Caching</h3>
  * <p>
@@ -467,7 +471,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
 
                 if (!success) {
-                    throw new MicroKernelException("failed update (race?) after " + maxRetries + " retries");
+                    throw new MicroKernelException("failed update of " + doc.getId() + " (race?) after " + maxRetries + " retries");
                 }
 
                 return oldDoc;
@@ -506,7 +510,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         List<T> result = new ArrayList<T>();
         if (indexedProperty != null && !MODIFIED.equals(indexedProperty)) {
-            throw new MicroKernelException("indexed property " + indexedProperty + " not supported");
+            String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue + "'";
+            LOG.info(message);
+            throw new MicroKernelException(message);
         }
         try {
             connection = getConnection();
@@ -518,6 +524,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 addToCacheIfNotNewer(collection, doc);
             }
         } catch (Exception ex) {
+            LOG.error("SQL exception on query", ex);
             throw new MicroKernelException(ex);
         } finally {
             closeConnection(connection);
