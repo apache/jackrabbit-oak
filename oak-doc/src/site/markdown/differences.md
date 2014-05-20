@@ -45,7 +45,7 @@ In Jackrabbit 2 sessions always reflects the latest state of the repository. Wit
 reflects a stable view of the repository from the time the session was acquired ([MVCC model]
 (http://en.wikipedia.org/wiki/MVCC)). This is a fundamental design aspect for achieving the
 distributed nature of an Oak repository. A rarely encountered side effect of this is that sessions
-expose [write skew](transactional-model.html).
+expose [write skew](architecture/transactional-model.html).
 
 This change can cause subtle differences in behavior when two sessions perform modifications
 relying on one session seeing the other session's changes. Oak requires explicit calls to

@@ -15,10 +15,10 @@
    limitations under the License.
   -->
 
-# MicroKernel and NodeStore
+# NodeStore API and MicroKernel API
 
 A `MicroKernel` or a `NodeStore` are ultimately implementations of the
-[node state model](nodestate.html). A `MicroKernel` exposes its functionality through a String only
+[node state model](../architecture/nodestate.html). A `MicroKernel` exposes its functionality through a String only
 (JSON) API, which is easy to remote. In contrast a `NodeStore` exposes its functionality
 through a pure Java API, which is easier to work with and has lower performance and memory overhead.
 
