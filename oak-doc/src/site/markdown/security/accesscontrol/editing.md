@@ -22,10 +22,16 @@ Using the Access Control Management API
 
 #### Privilege Discovery
 
+Discover/test privileges for the editing session:
+
 - `AccessControlManager`
     - `hasPrivileges(String, Privilege[])`
     - `getPrivileges(String)`
 
+Discover/test privileges for a set of principal that may differ from those associated
+with the reading subject. Note that this method requires editing session to be
+able to have `READ_ACCESS_CONTROL` permission on the node associated with the specified
+path.
 
 - `JackrabbitAccessControlManager`
     - `hasPrivileges(String, Set<Principal>, Privilege[])`
