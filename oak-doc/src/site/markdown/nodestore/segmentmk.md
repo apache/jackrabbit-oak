@@ -85,12 +85,10 @@ A data segment can contain any types of records, may refer to content in
 other segments, and comes with a segment header that guides the parsing
 of the segment. The overall structure of a data segment is:
 
-    [segment header] [record 1] [record 2] ... [record N] [checksum]
+    [segment header] [record 1] [record 2] ... [record N]
 
 The header and each record is zero-padded to make their size a multiple of
-four bytes and to align the next record at a four-byte boundary. The last
-four bytes of a segment contain the Adler-32 checksum of all the preceding
-bytes.
+four bytes and to align the next record at a four-byte boundary.
 
 The segment header consists of the following fields:
 
@@ -111,9 +109,9 @@ The segment header consists of the following fields:
     +--------+--------+--------+--------+--------+                          +
     | External blob record references  (blobrefcount x 2 bytes)             |
     |                                                                       |
-    |          ......          +--------+--------+--------+--------+--------+
-    |                          |
-    +--------+--------+--------+
+    |          ......                            +--------+--------+--------+
+    |                                            | padding (set o 0)        |
+    +--------+--------+--------+--------+--------+--------+--------+--------+
 
 The first four bytes of a segment always contain the ASCII string "0aK\n",
 which is intended to make the binary segment data format easily detectable.
@@ -174,12 +172,20 @@ blocks, lists, maps, values, templates and nodes. These record types
 and their internal structures are described in subsections below.
 
 Each record is uniquely addressable by its location within the segment
-and the UUID of that segment. A single segment can contain up to 256kB
+and the UUID of that segment. A single segment can contain up to 256KiB
 of data and and references to up to 256 segments (including itself).
 Since all records are aligned at four-byte boundaries, 16 bits are needed
 to address all possible record locations within a segment. Thus only three
 bytes are needed to store a reference to any record in any segment
-(1 byte to identify the segment, 2 bytes for the record offset).
+(1 byte to identify the segment, 2 bytes for the record offset):
+
+    +--------+--------+--------+
+    | refid  | offset          |
+    +--------+--------+--------+
+
+The `refid` filed is the number of the referenced segment identifier, with
+refid zero interpreted as a reference to the current segment and refids 1-255
+the segment identifiers stored in the lookup table in the segment header.
 
 Block records
 -------------
@@ -198,12 +204,20 @@ List records are used as components of more complex record types.
 Lists are used for storing arrays of values for multi-valued properties
 and sequences of blocks for large binary values.
 
-The list of references is split into pieces of up to 2^B references
-each (exact size TBD, B ~ 8) and those pieces are stored as records.
-If there are more than 2^B pieces like that, then a higher-level list
-is created of references to those pieces. This process is continued
-until the resulting list has less than 2^B entries. That top-level
-list is stored as a record prefixed with the total length of the list.
+The list of references is split into pieces of up to 255 references
+each and those pieces are stored as records. If there are more than
+255 pieces like that, then a higher-level list is created of references
+to those pieces. This process is continued until the resulting list has
+less than 255 entries.
+
+    +--------+--------+--------+-----+
+    | sub-list ID 1            | ... |
+    +--------+--------+--------+-----+
+      |
+      v
+    +--------+--------+--------+-----+--------+--------+--------+
+    | record ID 1              | ... | record ID 255            |
+    +--------+--------+--------+-----+--------+--------+--------+
 
 The result is a hierarchically stored immutable list where each element
 can be accessed in O(log N) time and the size overhead of updating or
@@ -218,13 +232,13 @@ store unordered sets of key-value pairs of record references and are
 used for nodes with a large number of properties or child nodes.
 
 Maps are stored using the hash array mapped trie (HAMT) data structure.
-The hash code of each key is split into pieces of B bits each (exact
-size TBD, B ~ 6) and the keys are sorted into 2^B packs based on the
-first B bits. If a pack contains less than 2^B entries, then it is
-stored directly as a list of key-value pairs. Otherwise the keys are
-split into sub-packs based on the next B bits of their hash codes.
-When all packs are stored, the list of top-level pack references gets
-stored along with the total number of entries in the map.
+The hash code of each key is split into pieces of 5 bits each and the
+keys are sorted into 32 (2^5) buckets based on the first 5 bits. If a bucket
+contains less than 32 entries, then it is stored directly as a list of
+key-value pairs. Otherwise the keys are split into sub-buckets based on the
+next 5 bits of their hash codes. When all buckets are stored, the list of
+top-level bucket references gets stored along with the total number of
+entries in the map.
 
 The result is a hierarchically stored immutable map where each element
 can be accessed in O(log N) time and the size overhead of updating or
