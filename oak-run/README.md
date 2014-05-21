@@ -9,6 +9,7 @@ The following runmodes are currently available:
     * debug     : Print status information about an Oak repository.
     * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
     * server    : Run the Oak Server
+    * console   : Start an interactive console
 
 See the subsections below for more details on how to use these modes.
 

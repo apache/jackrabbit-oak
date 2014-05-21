@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.io.PrintStream;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -44,6 +44,8 @@ public class Console {
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser.accepts("clusterId", "MongoMK clusterId")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1);
+        OptionSpec<String> eval = parser.accepts("eval", "Evaluate script")
+                .withRequiredArg().ofType(String.class);
 
         OptionSet options = parser.parse(args);
         List<String> nonOptions = options.nonOptionArguments();
@@ -64,22 +66,31 @@ public class Console {
                     new File(nonOptions.get(0)), 256));
         }
 
-        System.exit(new Console(store, System.in, System.out).run());
+        Console console = new Console(store, System.in, System.out);
+        String script = eval.value(options);
+        if (script != null) {
+            Command evalCommand = new Command.Eval();
+            evalCommand.init(script);
+            System.exit(console.run(evalCommand));
+        }
+
+        System.exit(console.run());
     }
 
     private final NodeStore store;
     private final InputStream in;
     private final OutputStream out;
+    private final ConsoleSession session;
 
     public Console(NodeStore store, InputStream in, OutputStream out) {
         this.store = store;
         this.in = in;
         this.out = out;
+        this.session = ConsoleSession.create(store);
     }
 
     public int run() throws Exception {
         int code = 1;
-        ConsoleSession session = ConsoleSession.create(store);
         for (;;) {
             prompt();
             String line = readLine(in);
@@ -87,11 +98,7 @@ public class Console {
                 break;
             }
             Command c = Command.create(line);
-            try {
-                c.execute(session, in, out);
-            } catch (Exception e) {
-                e.printStackTrace(new PrintWriter(out));
-            }
+            run(c);
             if (c.getName().equals("exit")) {
                 code = 0;
                 break;
@@ -99,6 +106,16 @@ public class Console {
 
         }
         return code;
+    }
+
+    public int run(Command c) {
+        try {
+            c.execute(session, in, out);
+            return 0;
+        } catch (Exception e) {
+            e.printStackTrace(new PrintStream(out));
+            return 1;
+        }
     }
 
     private void prompt() throws IOException {
