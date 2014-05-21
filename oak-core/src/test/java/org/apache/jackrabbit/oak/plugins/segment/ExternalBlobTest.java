@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Random;
 
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -81,6 +82,7 @@ public class ExternalBlobTest {
         is.close();
     }
 
+    @Ignore("OAK-1817")
     @Test
     public void testNullBlobId() throws Exception{
         FileDataStore fds = createFileDataStore();
@@ -90,8 +92,14 @@ public class ExternalBlobTest {
         NodeBuilder nb = nodeStore.getRoot().builder();
         NodeBuilder cb = nb.child("hello");
         cb.setProperty("blob1", createBlob(Segment.MEDIUM_LIMIT - 1));
-        cb.setProperty("blob2", createBlob(Segment.MEDIUM_LIMIT + 1));
-        cb.setProperty("blob3", createBlob(Segment.MEDIUM_LIMIT + 1));
+
+        int noOfBlobs = 4000;
+        for(int i = 0; i < noOfBlobs; i++){
+            cb.setProperty("blob"+i, createBlob(Segment.MEDIUM_LIMIT+1));
+        }
+
+        cb.setProperty("anotherBlob2", createBlob(Segment.MEDIUM_LIMIT + 1));
+        cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
         nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         final List<String> refrences = Lists.newArrayList();
@@ -102,6 +110,8 @@ public class ExternalBlobTest {
                 refrences.add(reference);
             }
         });
+
+        assertEquals(noOfBlobs + 2, refrences.size());
     }
 
     private Blob testCreateAndRead(Blob blob) throws Exception {
