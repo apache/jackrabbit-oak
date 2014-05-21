@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
 import java.io.Writer;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -38,6 +40,7 @@ import javax.annotation.Nonnull;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -395,17 +398,36 @@ public abstract class Command {
         public void execute(@Nonnull ConsoleSession session,
                             @Nonnull InputStream in,
                             @Nonnull OutputStream out) throws Exception {
-            File scriptFile = new File(args);
-            if (!scriptFile.exists()) {
-                println("Script file not found: " + args, out);
+            String langExtn;
+            Reader scriptReader;
+            if (args.startsWith("-")) {
+                int indexOfSpace = args.indexOf(' ');
+                langExtn = args.substring(1, indexOfSpace);
+                scriptReader = new StringReader(args.substring(indexOfSpace + 1));
+            } else {
+                File scriptFile = new File(args);
+                if (!scriptFile.exists()) {
+                    println("Script file not found: " + args, out);
+                    return;
+                }
+
+                langExtn = FilenameUtils.getExtension(scriptFile.getName());
+                scriptReader = new FileReader(scriptFile);
+            }
+
+            PrintWriter writer = new PrintWriter(out);
+
+            ScriptEngineManager factory = new ScriptEngineManager();
+            ScriptEngine engine = factory.getEngineByExtension(langExtn);
+
+            if(engine == null){
+                println("No script engine found for extension: " + langExtn, out);
                 return;
             }
-            PrintWriter writer = new PrintWriter(out);
-            ScriptEngineManager factory = new ScriptEngineManager();
-            ScriptEngine engine = factory.getEngineByName("JavaScript");
+
             engine.put("session", session);
             engine.put("out", writer);
-            engine.eval(new FileReader(scriptFile));
+            engine.eval(scriptReader);
             writer.flush();
         }
     }
