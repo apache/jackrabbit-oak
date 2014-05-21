@@ -82,7 +82,6 @@ public class ExternalBlobTest {
         is.close();
     }
 
-    @Ignore("OAK-1817")
     @Test
     public void testNullBlobId() throws Exception{
         FileDataStore fds = createFileDataStore();
