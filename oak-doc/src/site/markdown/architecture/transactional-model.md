@@ -15,10 +15,10 @@
    limitations under the License.
   -->
 
-Transactional model Oak sessions
+Transactional model of sessions
 ================================
-Oak sessions are based on a multi version concurrency control model using snapshot isolation with a
-relaxed first committer wins strategy. That is, on login each session is under the impression of
+Sessions in Oak are based on a multi version concurrency control model using snapshot isolation with
+a relaxed first committer wins strategy. That is, on login each session is under the impression of
 operating on its own copy of the repository. Modifications from other sessions do not affect the
 current session. With the relaxed first committer wins strategy a later session will fail on save
 when it contains operations which are incompatible with the operations of an earlier session which
