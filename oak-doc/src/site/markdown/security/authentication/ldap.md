@@ -66,8 +66,6 @@ Oak repository:
 - ensure ExternalLoginModule forms part of the systems JAAS Configuration
 - enable the LDAP IdentityProvider and make sure it's properly configured (see section _LDAP Configuration_ below)
 
-_todo_
-
 #### LDAP Configuration
 
 The LDAP IPDs are configured through the [org.apache.jackrabbit.oak.security.authentication.ldap.impl.LdapProviderConfig]
