@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.console;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -32,6 +35,8 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -377,6 +382,31 @@ public abstract class Command {
             }
             session.retrieve(args.trim());
             println("Root node is now at " + args.trim(), out);
+        }
+    }
+
+    public static final class Eval extends Command {
+
+        public Eval() {
+            this.description = "Evaluate a script.";
+        }
+
+        @Override
+        public void execute(@Nonnull ConsoleSession session,
+                            @Nonnull InputStream in,
+                            @Nonnull OutputStream out) throws Exception {
+            File scriptFile = new File(args);
+            if (!scriptFile.exists()) {
+                println("Script file not found: " + args, out);
+                return;
+            }
+            PrintWriter writer = new PrintWriter(out);
+            ScriptEngineManager factory = new ScriptEngineManager();
+            ScriptEngine engine = factory.getEngineByName("JavaScript");
+            engine.put("session", session);
+            engine.put("out", writer);
+            engine.eval(new FileReader(scriptFile));
+            writer.flush();
         }
     }
 
