@@ -81,6 +81,7 @@ under the License.
       </gitHub>
       <ohloh>
         <projectId>jackrabbit-oak</projectId>
+        <widget>thin-badge</widget>
       </ohloh>
       <googlePlusOne />
     </fluidoSkin>
