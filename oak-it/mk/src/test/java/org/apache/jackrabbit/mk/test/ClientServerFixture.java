@@ -20,12 +20,11 @@ import java.net.InetSocketAddress;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.client.Client;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.server.Server;
+import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 
 public class ClientServerFixture implements MicroKernelFixture {
-
-    private MicroKernelImpl mk;
     private Server server;
 
     @Override
@@ -35,8 +34,7 @@ public class ClientServerFixture implements MicroKernelFixture {
 
     @Override
     public void setUpCluster(MicroKernel[] cluster) throws Exception {
-        mk = new MicroKernelImpl();
-        server = new Server(mk);
+        server = new Server(new NodeStoreKernel(new SegmentNodeStore()));
         server.start();
 
         InetSocketAddress address = server.getAddress();
@@ -53,6 +51,5 @@ public class ClientServerFixture implements MicroKernelFixture {
     @Override
     public void tearDownCluster(MicroKernel[] cluster) {
         server.stop();
-        mk.dispose();
     }
 }
