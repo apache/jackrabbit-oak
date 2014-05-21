@@ -59,8 +59,8 @@ is encoded in its UUID and can thus be determined already before reading
 the segment. The following bit patterns are used (each `x` represents four
 random bits):
 
-  * `xxxxxxxx-xxxx-4xxx-Axxx-xxxxxxxxxxxx` data segment UUID
-  * `xxxxxxxx-xxxx-4xxx-Bxxx-xxxxxxxxxxxx` bulk segment UUID
+  * `xxxxxxxx-xxxx-4xxx-axxx-xxxxxxxxxxxx` data segment UUID
+  * `xxxxxxxx-xxxx-4xxx-bxxx-xxxxxxxxxxxx` bulk segment UUID
 
 (This encoding makes segment UUIDs appear as syntactically valid version 4
 random UUIDs specified in RFC 4122.)
@@ -76,7 +76,7 @@ of block records with no headers or other extra metadata:
 A bulk segment whose length is `n` bytes consists of `n div 4096` block
 records of 4KiB each followed possibly a block record of `n mod 4096` bytes,
 if there still are remaining bytes in the segment. The structure of a
-bulk segment can thus be parsed based only on the segment length.
+bulk segment can thus be determined based only on the segment length.
 
 Data segments
 -------------
@@ -97,7 +97,7 @@ The segment header consists of the following fields:
     +--------+--------+--------+--------+--------+--------+--------+--------+
     | magic bytes: "0aK\n" in ASCII     |version |idcount |rootcount        |
     +--------+--------+--------+--------+--------+--------+--------+--------+
-    | nanosecond timestamp/counter (8 bytes)                                |
+    | blobrefcount    | reserved (set to 0)                                 |
     +--------+--------+--------+--------+--------+--------+--------+--------+
     | Referenced segment identifiers  (idcount x 16 bytes)                  |
     |                                                                       |
@@ -107,8 +107,13 @@ The segment header consists of the following fields:
     | Root record references  (rootcount x 3 bytes)                         |
     |                                                                       |
     |                            ......          +--------+--------+--------+
-    |                                            |
-    +--------+--------+--------+--------+--------+
+    |                                            |                          |
+    +--------+--------+--------+--------+--------+                          +
+    | External blob record references  (blobrefcount x 2 bytes)             |
+    |                                                                       |
+    |          ......          +--------+--------+--------+--------+--------+
+    |                          |
+    +--------+--------+--------+
 
 The first four bytes of a segment always contain the ASCII string "0aK\n",
 which is intended to make the binary segment data format easily detectable.
@@ -130,6 +135,13 @@ within this segment that are not accessible by following references in
 other records within this segment. These root references give enough context
 for parsing all records within a segment without any external information.
 
+The 16-bit `blobrefcount` field indicates the number of external blob record
+references that follow after the root record references. External blobs are
+binary values stored in an external data store, and the blobref list makes
+it possible to quickly find all such references without having to do a full
+traversal of all repository content. The list of active references is given
+to data store garbage collection so it won't collect the referenced binaries.
+
 Journals
 ========
 
@@ -145,13 +157,6 @@ levels of the tree can proceed concurrently, but will need to be
 periodically merged back to the root journal. Potential conflicts and
 resulting data loss or inconsistency caused by such merges can be avoided
 by always committing against the root journal.
-
-Temporary branches used for large commits are also recorded as journals.
-A new private journal document is created for each branch and kept around
-until the branch gets merged or discarded. Branch journals contain an
-update timestamp that needs to be periodically refreshed by the client
-to prevent the branch from expiring and being reclaimed by the garbage
-collector.
 
 The root node references stored in journals are used as the starting
 point for garbage collection. It is assumed that all content currently
