@@ -29,6 +29,19 @@ store. Currently this is only supported for the TarMK. To start this mode, use:
 
     $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
+Console
+-------
+
+The 'console' mode allows to work with an interactive console and browse an
+existing oak repository. Type 'help' within the console to get a list of all
+supported commands. The console currently supports TarMK and MongoMK. To start
+the console for a TarMK repository, use:
+
+    $ java -jar oak-run-*.jar console /path/to/oak/repository
+    
+To start the console for a MongoMK repository, use:
+
+    $ java -jar oak-run-*.jar console mongodb://host
 
 Upgrade
 -------
