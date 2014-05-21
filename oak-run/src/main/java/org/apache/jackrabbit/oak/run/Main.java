@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.console.Console;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -98,6 +99,9 @@ public class Main {
                 break;
             case BENCHMARK:
                 BenchmarkRunner.main(args);
+                break;
+            case CONSOLE:
+                Console.main(args);
                 break;
             case DEBUG:
                 debug(args);
@@ -487,6 +491,7 @@ public class Main {
 
         BACKUP("backup"),
         BENCHMARK("benchmark"),
+        CONSOLE("debug"),
         DEBUG("debug"),
         SERVER("server"),
         UPGRADE("upgrade"),
