@@ -24,15 +24,17 @@ import static org.junit.Assert.fail;
 import java.util.HashMap;
 import java.util.Random;
 
+import com.mongodb.DB;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 /**
  * A simple randomized single-instance test.
@@ -41,9 +43,10 @@ public class RandomizedTest {
     
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
-    
-    private DocumentMK mk;
-    private MicroKernelImpl mkGold;
+
+    private DocumentNodeStore ns;
+    private MicroKernel mk;
+    private MicroKernel mkGold;
     
     private String commitRev;
     private String commitRevGold;
@@ -61,8 +64,9 @@ public class RandomizedTest {
     }
     
     private void addRemoveSetMoveCopy(boolean branchMerge) throws Exception {
-        mk = createMK();
-        mkGold = new MicroKernelImpl();
+        ns = createNodeStore();
+        mk = new NodeStoreKernel(ns);
+        mkGold = new NodeStoreKernel(new SegmentNodeStore());
         HashMap<Integer, String> revsGold = new HashMap<Integer, String>();
         HashMap<Integer, String> revs = new HashMap<Integer, String>();
         Random r = new Random(1);
@@ -173,8 +177,7 @@ public class RandomizedTest {
         } catch (Exception e) {
             throw new Exception("log: " + log, e);
         }
-        mk.dispose();
-        mkGold.dispose();
+        ns.dispose();
         // System.out.println(log);
         // System.out.println();
     }
@@ -237,14 +240,14 @@ public class RandomizedTest {
         return ok;
     }
     
-    private static DocumentMK createMK() {
+    private static DocumentNodeStore createNodeStore() {
         DocumentMK.Builder builder = new DocumentMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         }
-        return builder.open();
+        return builder.getNodeStore();
     }
 
 }

@@ -25,7 +25,6 @@ import java.io.OutputStream;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.io.FileUtils;
@@ -33,10 +32,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Before;
@@ -81,7 +79,7 @@ public abstract class AbstractRepositoryUpgradeTest {
             } finally {
                 repository.shutdown();
             }
-            NodeStore target = new KernelNodeStore(new MicroKernelImpl());
+            NodeStore target = new SegmentNodeStore();
             RepositoryUpgrade.copy(source, target);
             targetRepository = new Jcr(new Oak(target)).createRepository();
         }

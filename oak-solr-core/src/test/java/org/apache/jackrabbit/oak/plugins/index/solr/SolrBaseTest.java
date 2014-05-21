@@ -19,20 +19,19 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +41,7 @@ import org.junit.Before;
  */
 public abstract class SolrBaseTest {
 
-    protected KernelNodeStore store;
+    protected NodeStore store;
     protected TestUtils provider;
     protected SolrServer server;
     protected OakSolrConfiguration configuration;
@@ -51,8 +50,7 @@ public abstract class SolrBaseTest {
 
     @Before
     public void setUp() throws Exception {
-        MicroKernel microKernel = new MicroKernelImpl();
-        store = new KernelNodeStore(microKernel);
+        store = new SegmentNodeStore();
         provider = new TestUtils();
         server = provider.getSolrServer();
         configuration = provider.getConfiguration();
