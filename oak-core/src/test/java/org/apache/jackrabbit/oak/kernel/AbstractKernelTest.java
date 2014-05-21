@@ -22,6 +22,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 class AbstractKernelTest {
 
     protected NodeStore createNodeStore() {
-        return NodeStoreFixture.MK_IMPL.createNodeStore();
+        return NodeStoreFixture.SEGMENT_MK.createNodeStore();
     }
 }
