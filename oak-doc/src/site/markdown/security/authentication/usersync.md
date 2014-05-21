@@ -36,6 +36,19 @@ Oak comes with a default implementation of the `SyncHandler` interface:
 - [SyncResult]: the result of a sync operation
 - [SyncException]
 
+#### JMX Synchronization Tool
+
+In addition to the synchronization API Oak 1.0 defines utilities to manage
+synchronized external identities within JMX ([SynchronizationMBean]) which allows
+for the following tasks:
+
+- `syncUsers(String[] userIds, boolean purge)`
+- `syncAllUsers(boolean purge)`
+- `syncExternalUsers(String[] externalIds)`
+- `syncAllExternalUsers()`
+- `listOrphanedUsers()`
+- `purgeOrphanedUsers()`
+
 ### Default Implementation
 
 Oak 1.0 provides a default implementation of the user synchronization API that allow
@@ -50,7 +63,6 @@ synchronized by this handler will get the following properties set:
 
 These properties allow to run separat task for periodical update and make sure
 the authorizables can later on be identitied as external users.
-
 
 ### Configuration
 
@@ -91,6 +103,7 @@ or plug a new implementation of the `SyncHandler`:
 
 
 <!-- references -->
+[SynchronizationMBean]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/jmx/SynchronizationMBean.html
 [SyncManager]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncManager.html
 [SyncHandler]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncHandler.html
 [SyncContext]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/SyncContext.html
