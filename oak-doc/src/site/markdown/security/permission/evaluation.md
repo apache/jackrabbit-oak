@@ -18,13 +18,123 @@
 Permission Evaluation in Detail
 --------------------------------------------------------------------------------
 
-### <a name="getEntryIterator"></a>Order or Permission Entries
+### <a name="permissionentries"></a>Order and Evaluation of Permission Entries
 
-_todo_
+In order to evaluate the permissions for a given item, the `PermissionProvider`
+lazily builds an iterator of `PermissionsEntry` representing the rep:Permission
+present in the permission store that take effect for the given set of principals
+at the given node (or property).
 
-### <a name="entry_evaluation"/>Evaluation of Permission Entries
+This iterator is a concatenation between all entries associated with user principals
+followed by the entries associated with group principals.
 
-_todo_
+The order of precedence is as follows:
+
+- permissions are inherited throughout the item hierarchy
+- user principals always take precedence over group principals irrespective of
+    - their order in the access control list
+    - their position in the node hierarchy
+- within a given type of principal (user vs. group principal) the order of executing is
+    - order of entries as specified originally (the index of the permission entry)
+    - entries associated with the target tree take precedence over inherited entries
+
+##### Examples
+
+###### Simple Inheritance
+
+    /content
+        allow - everyone - READ permission
+
+Result:
+
+- everyone is allowed to read the complete tree defined by /content
+
+###### Inheritance with Allow and Deny
+
+    /content
+        deny - everyone - READ permission
+
+    /content/public
+        allow - everyone - READ permission
+
+Result:
+
+- everyone cannot read items at the tree defined by /content
+- except for tree defined by /content/public which is accessible.
+
+###### Inheritance with Multiple Allows
+
+    /content
+        allow - everyone - READ permission
+
+    /content/public
+        allow - everyone - REMOVE permission
+
+Result:
+
+- everyonce can read item at /content and the complete subtree
+- in addition everyone can remove items underneath /content/public
+
+
+###### Inheritance with Different Principals
+
+    /content
+        allow - everyone - READ permission
+        allow - authorGroup - REMOVE permission
+
+Result:
+
+- a subject being member of everyone is allowed to read at /content and the complete subtree
+- a subject being member of authorGroup is only allowed to remove items at /content
+- a subject being member of both everyone _and_ authorGroup
+  has full read-access at /content _and_ can also remove items.
+
+
+
+    /content
+        allow - everyone - READ permission
+
+    /content/private
+        deny - everyone - READ permission
+        allow - powerfulGroup - ALL permission
+
+Result:
+
+- a subject being member of everyone
+    - is allowed to read at /content and the complete subtree
+    - except for /content/private
+- a subject being member of powerfulGroup
+    - has full permission at /content/private
+- a subject being member of both everyone _and_ powerfulGroup
+    - has full read-access at /content
+    - has full permission underneath /content/private
+
+
+###### Interaction of User and Group Principals
+
+    /home/jackrabbit
+        allow - jackrabbit - ALL permission
+        deny - everyone - ALL permission
+
+
+Result:
+
+- a subject containing the 'jackrabbit' user principal has full permission at /home/jackrabbit  irrespective of the presense of everyone group principal in the subject.
+- any other subject has not access at /home/jackrabbit
+
+
+    /home/jackrabbit
+        allow - jackrabbit - ALL permission
+
+    /home/jackrabbit/private
+        deny - everyone - ALL permission
+
+
+Result:
+
+- a subject containing the 'jackrabbit' user principal has full permission at the tree defined by /home/jackrabbit irrespective of the presense of everyone group principal in the subject.
+- any other subject is explicitly denied access to /home/jackrabbit/private
+
 
 ### Some Examples: Step by Step
 
@@ -32,7 +142,7 @@ _todo_
 
 ##### Reading a Node
 
-The following section describes what happens on `session.getNode("/foo").getProperty("jcr:title")`
+The following section describes what happens on `Session.getNode("/foo").getProperty("jcr:title")`
 in terms of permission evaluation:
 
   1. `SessionImpl.getNode()` internally calls `SessionDelegate.getNode()`
@@ -65,7 +175,7 @@ in terms of permission evaluation:
      the read status is set accordingly. Note that the sequence of the permission entries from
      the iterator is already in the correct order for this kind of evaluation. This is ensured
      by the way how they are stored in the [permission store](../permission.html#permissionStore) and how they
-     are feed into the iterator (see [Order or Permission Entries](#getEntryIterator) above).
+     are feed into the iterator (see [Order and Evaluation of Permission Entries](#permissionentries) above).
 
      The iteration also detects if the evaluated permission entries cover _this_ node and all
      its properties. If this is the case, subsequent calls that evaluate the property read
@@ -108,8 +218,7 @@ in terms of permission evaluation:
      all properties defined with the parent tree are accessible to the editing
      session the result is remembered in the `ReadStatus` kept with this `TreePermission`
      instance; otherwise the _permission entries_ are collected and evaluated as described
-     in sections [Order or Permission Entries](#getEntryIterator) and
-     [Evaluation of Permission Entries](#entry_evaluation) above.
+     in sections [Order and Evaluation of Permission Entries](#permissionentries) above.
 
 #### Session Write-Operations
 
@@ -131,7 +240,7 @@ in terms of permission evaluation:
 
   1. It again obtains the `TreePermission` object form the `PermissionProvider` and
      evaluates if `ADD_NODE` permission is being granted for the new target node.
-     The evaluation follows the same principals as described [above](#entry_evaluation).
+     The evaluation follows the same principals as described [above](#permissionentries).
 
   1. If added the new node is granted the validation continues otherwise the `commit`
      will fail immediately with an `CommitFailedException` of type `ACCESS`.
@@ -153,7 +262,7 @@ in terms of permission evaluation:
 
   1. It again obtains the `TreePermission` object form the `PermissionProvider` and
      evaluates if `MODIFY_PROPERTY` permission is being granted.
-     The evaluation follows the same principals as described [above](#entry_evaluation).
+     The evaluation follows the same principals as described [above](#permissionentries).
 
   1. If changing this property is allowed the validation continues otherwise the `commit`
      will fail immediately with an `CommitFailedException` of type `ACCESS`.
@@ -180,7 +289,7 @@ in terms of permission evaluation:
   1. The `PermissionValidator` will be notified about the new items created by the
      copy and checks the corresponding permissions with the `TreePermission` associated
      with the individual new nodes. The evaluation follows the same principals
-     as described [above](#entry_evaluation).
+     as described [above](#permissionentries).
 
   1. If a permission violation is detected the `commit` will fail immediately with
      an `CommitFailedException` of type `ACCESS`.
@@ -203,7 +312,7 @@ in terms of permission evaluation:
      lock and identify that they are associated with a lock specific operations.
      Consequently it will checks for `LOCK_MANAGEMENT` permissions being granted
      at the affected tree. The evaluation triggered by calling `TreePermission.isGranted`
-     and follows the same principals as described [above](#entry_evaluation).
+     and follows the same principals as described [above](#permissionentries).
 
   1. If a permission violation is detected the `commit` will fail immediately with
      an `CommitFailedException` of type `ACCESS`.
@@ -228,7 +337,7 @@ in terms of permission evaluation:
      that `PRIVILEGE_MANAGEMENT` permissions being granted at the repository level.
      This is achieved by obtaining the `RepositoryPermission` object from the
      `PermissionProvider` and calling `RepositoryPermission.isGranted`. The evaluation
-     follows the same principals as described [above](#entry_evaluation).
+     follows the same principals as described [above](#permissionentries).
 
   1. If a permission violation is detected the `commit` will fail immediately with
      an `CommitFailedException` of type `ACCESS`.
