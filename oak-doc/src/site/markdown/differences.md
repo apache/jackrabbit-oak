@@ -286,3 +286,8 @@ Security
 * [Privilege Management](security/privilege/differences.html)
 * [Principal Management](security/principal/differences.html)
 * [User Management](security/user/differences.html)
+
+Workspaces
+----------
+
+An Oak repository only has one default workspace.
