@@ -217,24 +217,27 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         String id = StringUtils.convertBytesToHex(blockId.getDigest());
         byte[] data = cache.get(id);
-        Connection con = getConnection();
 
-        try {
-            PreparedStatement prep = con.prepareStatement("select data from datastore_data where id = ?");
+        if (data == null) {
+            Connection con = getConnection();
+
             try {
-                prep.setString(1, id);
-                ResultSet rs = prep.executeQuery();
-                if (!rs.next()) {
-                    throw new IOException("Datastore block " + id + " not found");
+                PreparedStatement prep = con.prepareStatement("select data from datastore_data where id = ?");
+                try {
+                    prep.setString(1, id);
+                    ResultSet rs = prep.executeQuery();
+                    if (!rs.next()) {
+                        throw new IOException("Datastore block " + id + " not found");
+                    }
+                    data = rs.getBytes(1);
+                } finally {
+                    prep.close();
                 }
-                data = rs.getBytes(1);
+                cache.put(id, data);
             } finally {
-                prep.close();
+                con.commit();
+                con.close();
             }
-            cache.put(id, data);
-        } finally {
-            con.commit();
-            con.close();
         }
         // System.out.println("    read block " + id + " blockLen: " +
         // data.length + " [0]: " + data[0]);
