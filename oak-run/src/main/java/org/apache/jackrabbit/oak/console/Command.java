@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
@@ -59,7 +60,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 /**
  * All available console commands.
  */
-public abstract class Command {
+public abstract class Command implements Callable<Object> {
 
     private static final char[] SPACES = new char[4];
 
@@ -70,9 +71,21 @@ public abstract class Command {
     protected String args;
     protected String description;
     protected String usage;
+    protected ConsoleSession session;
+    protected InputStream in;
+    protected OutputStream out;
 
     @Nonnull
-    public static Command create(String line) throws IOException {
+    public static List<Command> create(String line) throws IOException {
+        List<Command> commands = Lists.newArrayList();
+        for (String s : line.split("\\|")) {
+            commands.add(parse(s));
+        }
+        return commands;
+    }
+
+    @Nonnull
+    private static Command parse(String line) throws IOException {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         for (; i < line.length(); i++) {
@@ -103,17 +116,31 @@ public abstract class Command {
         } catch (Exception e) {
             cmd = new Unknown(sb.toString().toLowerCase(Locale.US));
         }
-        cmd.init(line.substring(i).trim());
+        cmd.setArgs(line.substring(i).trim());
         return cmd;
     }
 
-    protected final void init(String args) {
+    protected final void setArgs(String args) {
         this.args = args;
     }
 
-    public abstract void execute(@Nonnull ConsoleSession session,
-                                 @Nonnull InputStream in,
-                                 @Nonnull OutputStream out) throws Exception;
+    protected final void init(@Nonnull ConsoleSession session,
+                              @Nonnull InputStream in,
+                              @Nonnull OutputStream out) {
+        this.session = session;
+        this.in = in;
+        this.out = out;
+    }
+
+    @Override
+    public Object call() throws Exception {
+        execute();
+        in.close();
+        out.close();
+        return null;
+    }
+
+    public abstract void execute() throws Exception;
 
     public String getName() {
         return getClass().getSimpleName().toLowerCase(Locale.US);
@@ -143,9 +170,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             println("Unknown command: " + cmd + " " + args, out);
         }
     }
@@ -153,9 +178,7 @@ public abstract class Command {
     private static final class NoOp extends Command {
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
         }
     }
 
@@ -166,9 +189,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws Exception {
+        public void execute() throws Exception {
             SortedMap<String, Command> commands = Maps.newTreeMap();
             SortedMap<String, Command> docCommands = Maps.newTreeMap();
             Class[] classes = Command.class.getDeclaredClasses();
@@ -222,9 +243,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             println(session.getWorkingPath(), out);
         }
     }
@@ -236,9 +255,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             println("Good bye.", out);
         }
     }
@@ -250,9 +267,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             if (!PathUtils.isValid(args)) {
                 println("Not a valid path: " + args, out);
                 return;
@@ -289,9 +304,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             for (String name : session.getWorkingNode().getChildNodeNames()) {
                 println(name, out);
             }
@@ -305,9 +318,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             println(AbstractNodeState.toString(session.getWorkingNode()), out);
         }
     }
@@ -319,9 +330,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             if (args.contains("auto")) {
                 session.setAutoRefresh(true);
                 println("Enabled auto refresh", out);
@@ -345,9 +354,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws Exception {
+        public void execute() throws Exception {
             long time = TimeUnit.HOURS.toSeconds(1);
             if (args.trim().length() > 0) {
                 try {
@@ -376,9 +383,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws Exception {
+        public void execute() throws Exception {
             if (session.isAutoRefresh()) {
                 session.setAutoRefresh(false);
                 println("Auto refresh disabled.", out);
@@ -395,9 +400,7 @@ public abstract class Command {
         }
 
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws Exception {
+        public void execute() throws Exception {
             String langExtn;
             Reader scriptReader;
             if (args.startsWith("-")) {
@@ -432,24 +435,38 @@ public abstract class Command {
         }
     }
 
+    public static final class Exec extends Command {
+
+        public Exec() {
+            this.description = "Execute an operating system process.";
+        }
+
+        @Override
+        public void execute() throws Exception {
+            Process proc = new ProcessBuilder().command(args.split(" "))
+                    .redirectErrorStream(true).start();
+            IOPump inPump = IOPump.start(in, proc.getOutputStream());
+            IOPump outPump = IOPump.start(proc.getInputStream(), out);
+            proc.waitFor();
+            inPump.join();
+            outPump.join();
+        }
+
+    }
+
     //-----------------------< DocumentNodeStore specific >---------------------
 
     abstract static class DocumentNodeStoreCommand extends Command {
         @Override
-        public void execute(@Nonnull ConsoleSession session,
-                            @Nonnull InputStream in,
-                            @Nonnull OutputStream out) throws IOException {
+        public void execute() throws IOException {
             if (session.getStore() instanceof DocumentNodeStore) {
-                execute(session, (DocumentNodeStore) session.getStore(), in, out);
+                execute((DocumentNodeStore) session.getStore());
             } else {
                 println("Can only execute command on a DocumentNodeStore", out);
             }
         }
 
-        protected abstract void execute(@Nonnull ConsoleSession session,
-                                        @Nonnull DocumentNodeStore store,
-                                        @Nonnull InputStream in,
-                                        @Nonnull OutputStream out)
+        protected abstract void execute(@Nonnull DocumentNodeStore store)
                 throws IOException;
     }
 
@@ -460,10 +477,8 @@ public abstract class Command {
         }
 
         @Override
-        protected void execute(@Nonnull ConsoleSession session,
-                               @Nonnull DocumentNodeStore store,
-                               @Nonnull InputStream in,
-                               @Nonnull OutputStream out) throws IOException {
+        protected void execute(@Nonnull DocumentNodeStore store)
+                throws IOException {
             String id = Utils.getIdFromPath(session.getWorkingPath());
             NodeDocument doc = store.getDocumentStore().find(NODES, id);
             if (doc == null) {
@@ -550,10 +565,8 @@ public abstract class Command {
         }
 
         @Override
-        protected void execute(@Nonnull ConsoleSession session,
-                               @Nonnull DocumentNodeStore store,
-                               @Nonnull InputStream in,
-                               @Nonnull OutputStream out) throws IOException {
+        protected void execute(@Nonnull DocumentNodeStore store)
+                throws IOException {
             Writer writer = new OutputStreamWriter(out);
             String path = session.getWorkingPath();
             String fromKey = Utils.getKeyLowerLimit(path);
