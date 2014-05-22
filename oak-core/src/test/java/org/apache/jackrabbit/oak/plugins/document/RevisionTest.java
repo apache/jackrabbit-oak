@@ -297,6 +297,32 @@ public class RevisionTest {
         assertEquals(new Revision(0x30, 0, 0), comp.getRevisionSeen(r21));
     }
 
+    // OAK-1814
+    @Test
+    public void seenAtAfterPurge() throws Exception {
+        RevisionComparator comp = new RevisionComparator(1);
+
+        // some revisions from another cluster node
+        Revision r1 = new Revision(0x01, 0, 2);
+        Revision r2 = new Revision(0x02, 0, 2);
+
+        // make them visible
+        comp.add(r1, new Revision(0x01, 0, 0));
+        comp.add(r2, new Revision(0x02, 0, 0));
+
+        comp.purge(0x01);
+
+        // null indicates older than earliest range
+        assertNull(comp.getRevisionSeen(r1));
+        // r2 is still seen at 0x02
+        assertEquals(new Revision(0x02, 0, 0), comp.getRevisionSeen(r2));
+
+        comp.purge(0x02);
+
+        // now also r2 is considered old
+        assertNull(comp.getRevisionSeen(r2));
+    }
+
     @Test
     public void uniqueRevision2() throws Exception {
         List<Thread> threads = new ArrayList<Thread>();
