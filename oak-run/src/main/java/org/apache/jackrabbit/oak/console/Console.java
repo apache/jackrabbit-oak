@@ -17,13 +17,25 @@
 package org.apache.jackrabbit.oak.console;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintStream;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -31,6 +43,9 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import com.google.common.collect.Lists;
+import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -65,8 +80,13 @@ public class Console {
         }
 
         NodeStore store;
-        if (nonOptions.get(0).startsWith("mongodb://")) {
-            MongoConnection mongo = new MongoConnection(nonOptions.get(0));
+        if (nonOptions.get(0).startsWith(MongoURI.MONGODB_PREFIX)) {
+            MongoClientURI uri = new MongoClientURI(nonOptions.get(0));
+            if (uri.getDatabase() == null) {
+                System.err.println("Database missing in MongoDB URI: " + uri.getURI());
+                System.exit(1);
+            }
+            MongoConnection mongo = new MongoConnection(uri.getURI());
             store = new DocumentMK.Builder().
                     setMongoDB(mongo.getDB()).
                     setClusterId(clusterId.value(options)).getNodeStore();
@@ -79,22 +99,32 @@ public class Console {
         String script = eval.value(options);
         if (script != null) {
             Command evalCommand = new Command.Eval();
-            evalCommand.init(script);
+            evalCommand.setArgs(script);
             System.exit(console.run(evalCommand));
         }
 
         System.exit(console.run());
     }
 
-    private final NodeStore store;
     private final InputStream in;
     private final OutputStream out;
+    private final ExecutorService executor = Executors.newCachedThreadPool();
     private final ConsoleSession session;
 
     public Console(NodeStore store, InputStream in, OutputStream out) {
-        this.store = store;
-        this.in = in;
-        this.out = out;
+        this.in = new FilterInputStream(in) {
+            @Override
+            public void close() throws IOException {
+                // do not close
+            }
+        };
+        this.out = new FilterOutputStream(out) {
+            @Override
+            public void close() throws IOException {
+                // flush but do not close
+                flush();
+            }
+        };
         this.session = ConsoleSession.create(store);
     }
 
@@ -106,29 +136,61 @@ public class Console {
             if (line == null) {
                 break;
             }
-            Command c = Command.create(line);
-            run(c);
-            if (c.getName().equals("exit")) {
+            boolean exit = false;
+            PipedInputStream input;
+            OutputStream output = out;
+            List<Command> commands = Command.create(line);
+            Collections.reverse(commands);
+            for (Iterator<Command> it = commands.iterator(); it.hasNext(); ) {
+                Command c = it.next();
+                if (c.getName().equals("exit")) {
+                    exit = true;
+                }
+                if (it.hasNext()) {
+                    input = new PipedInputStream();
+                    c.init(session, input, output);
+                    output = new PipedOutputStream(input);
+                } else {
+                    // first command -> pass an empty stream for now
+                    // FIXME: find a way to read from stdin without blocking
+                    c.init(session, new ByteArrayInputStream(new byte[0]), output);
+                }
+            }
+
+            List<Callable<Object>> tasks = Lists.newArrayList();
+            for (Command c : commands) {
+                tasks.add(c);
+            }
+            for (Future<Object> result : executor.invokeAll(tasks)) {
+                try {
+                    result.get();
+                } catch (ExecutionException e) {
+                    e.getCause().printStackTrace(new PrintStream(out, true));
+                }
+            }
+
+            if (exit) {
                 code = 0;
                 break;
             }
-
         }
         return code;
     }
 
     public int run(Command c) {
+        c.init(session, in, out);
         try {
-            c.execute(session, in, out);
+            c.call();
             return 0;
         } catch (Exception e) {
-            e.printStackTrace(new PrintStream(out));
+            e.printStackTrace(new PrintStream(out, true));
             return 1;
         }
     }
 
     private void prompt() throws IOException {
         out.write("> ".getBytes());
+        out.flush();
     }
 
     private static String readLine(InputStream in) throws IOException {
