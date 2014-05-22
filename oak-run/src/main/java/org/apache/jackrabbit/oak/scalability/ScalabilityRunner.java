@@ -40,6 +40,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import static java.util.Arrays.asList;
+
 /**
  * Main class for running scalability/longevity tests.
  * 
@@ -79,8 +81,16 @@ public class ScalabilityRunner {
         OptionSpec<File> dumpFile =
                 parser.accepts("dumpFile", "File to write threa dumps.")
                         .withOptionalArg().ofType(File.class);
+        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<String> nonOption = parser.nonOptions();
 
         OptionSet options = parser.parse(args);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
@@ -123,7 +133,7 @@ public class ScalabilityRunner {
                                     new LastModifiedSearcher(Date.LAST_YEAR))
         };
 
-        Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
+        Set<String> argset = Sets.newHashSet(nonOption.values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {
