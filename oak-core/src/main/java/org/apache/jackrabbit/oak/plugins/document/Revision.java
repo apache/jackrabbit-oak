@@ -157,6 +157,12 @@ public class Revision {
         long timestamp = getCurrentTimestamp();
         int c;
         synchronized (Revision.class) {
+            // need to check again, because threads
+            // could arrive inside the synchronized block
+            // out of order
+            if (timestamp < lastRevisionTimestamp) {
+                timestamp = lastRevisionTimestamp;
+            }
             if (timestamp == lastRevisionTimestamp) {
                 c = ++lastRevisionCount;
             } else {
