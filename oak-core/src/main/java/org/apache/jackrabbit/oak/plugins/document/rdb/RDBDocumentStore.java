@@ -656,7 +656,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
             return success;
         } catch (SQLException ex) {
             try {
-                connection.rollback();
+                if (connection != null) {
+                    connection.rollback();
+                }
             } catch (SQLException e) {
                 // TODO
             }
@@ -681,7 +683,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         } catch (SQLException ex) {
             LOG.debug("insert of " + document.getId() + " failed", ex);
             try {
-                connection.rollback();
+                if (connection != null) {
+                    connection.rollback();
+                }
             } catch (SQLException e) {
                 // TODO
             }
