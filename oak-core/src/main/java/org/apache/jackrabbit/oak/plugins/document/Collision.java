@@ -127,7 +127,7 @@ class Collision {
         if (commitRoot.isCommitted(revision)) {
             return false;
         }
-        op.setMapEntry(NodeDocument.COLLISIONS, revision, true);
+        NodeDocument.addCollision(op, revision);
         commitRoot = store.createOrUpdate(Collection.NODES, op);
         // check again on old document right before our update was applied
         if (commitRoot.isCommitted(revision)) {
