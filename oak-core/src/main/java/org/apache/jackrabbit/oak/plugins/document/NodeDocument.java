@@ -278,7 +278,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
             ID, MOD_COUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
-            HAS_BINARY_FLAG, PATH, DELETED_ONCE);
+            HAS_BINARY_FLAG, PATH, DELETED_ONCE, COLLISIONS);
 
     public static final long HAS_BINARY_VAL = 1;
 
@@ -1208,6 +1208,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static void removeRevision(@Nonnull UpdateOp op,
                                       @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
+    }
+
+    public static void addCollision(@Nonnull UpdateOp op,
+                                    @Nonnull Revision revision) {
+        checkNotNull(op).setMapEntry(COLLISIONS, checkNotNull(revision),
+                String.valueOf(true));
     }
 
     public static void removeCollision(@Nonnull UpdateOp op,
