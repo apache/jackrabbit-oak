@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
+import static java.util.Arrays.asList;
+
 public class BenchmarkRunner {
 
     private static final int MB = 1024 * 1024;
@@ -81,8 +83,15 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
-
+        OptionSpec<String> nonOption = parser.nonOptions();
+        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
+
+        if(options.has(help)){
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
@@ -225,7 +234,7 @@ public class BenchmarkRunner {
                     report.value(options), withStorage.value(options))
         };
 
-        Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
+        Set<String> argset = Sets.newHashSet(nonOption.values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {

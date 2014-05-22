@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
 
 import java.io.File;
 import java.io.IOException;
@@ -274,10 +275,10 @@ public class Main {
     private static void upgrade(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.accepts("datastore", "keep data store");
-
+        OptionSpec<String> nonOption = parser.nonOptions();
         OptionSet options = parser.parse(args);
 
-        List<String> argList = options.nonOptionArguments();
+        List<String> argList = nonOption.values(options);
         if (argList.size() == 2 || argList.size() == 3) {
             File dir = new File(argList.get(0));
             File xml = new File(dir, "repository.xml");
@@ -345,12 +346,18 @@ public class Main {
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
-
+        OptionSpec<String> nonOption = parser.nonOptions();
+        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
 
         OakFixture oakFixture;
 
-        List<String> arglist = options.nonOptionArguments();
+        List<String> arglist = nonOption.values(options);
         String uri = (arglist.isEmpty()) ? defaultUri : arglist.get(0);
         String fix = (arglist.size() <= 1) ? OakFixture.OAK_MEMORY : arglist.get(1);
 
