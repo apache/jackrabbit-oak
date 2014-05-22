@@ -16,12 +16,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.oak.plugins.document.Revision.RevisionComparator;
 import org.junit.Test;
 
@@ -281,6 +295,111 @@ public class RevisionTest {
 
         // within a range -> must return lower bound of next higher range
         assertEquals(new Revision(0x30, 0, 0), comp.getRevisionSeen(r21));
+    }
+
+    @Test
+    public void uniqueRevision2() throws Exception {
+        List<Thread> threads = new ArrayList<Thread>();
+        final AtomicBoolean stop = new AtomicBoolean();
+        final Set<Revision> set = Collections
+                .synchronizedSet(new HashSet<Revision>());
+        final Revision[] duplicate = new Revision[1];
+        for (int i = 0; i < 20; i++) {
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Revision[] last = new Revision[1024];
+                    while (!stop.get()) {
+                        for (Revision r : last) {
+                            set.remove(r);
+                        }
+                        for (int i = 0; i < last.length; i++) {
+                            last[i] = Revision.newRevision(1);
+                        }
+                        for (Revision r : last) {
+                            if (!set.add(r)) {
+                                duplicate[0] = r;
+                            }
+                        }
+                    }
+                }
+            });
+            thread.start();
+            threads.add(thread);
+        }
+        Thread.sleep(200);
+        stop.set(true);
+        for (Thread t : threads) {
+            t.join();
+        }
+        assertNull("Duplicate revision", duplicate[0]);
+    }
+
+    @Test
+    public void uniqueRevision() throws Exception {
+        //Revision.setClock(new Clock.Virtual());
+        final BlockingQueue<Revision> revisionQueue = Queues.newLinkedBlockingQueue();
+        int noOfThreads = 60;
+        final int noOfLoops = 1000;
+        List<Thread> workers = new ArrayList<Thread>();
+        final AtomicBoolean stop = new AtomicBoolean();
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        final CountDownLatch stopLatch = new CountDownLatch(noOfThreads);
+        for (int i = 0; i < noOfThreads; i++) {
+            workers.add(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Uninterruptibles.awaitUninterruptibly(startLatch);
+                    for (int j = 0; j < noOfLoops && !stop.get(); j++) {
+                        revisionQueue.add(Revision.newRevision(1));
+                    }
+                    stopLatch.countDown();
+                }
+            }));
+        }
+
+        final List<Revision> duplicates = Lists.newArrayList();
+        final Set<Revision> seenRevs = Sets.newHashSet();
+        workers.add(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                startLatch.countDown();
+
+                while (!stop.get()) {
+                    List<Revision> revs = Lists.newArrayList();
+                    Queues.drainUninterruptibly(revisionQueue, revs, 5, 100, TimeUnit.MILLISECONDS);
+                    record(revs);
+                }
+
+                List<Revision> revs = Lists.newArrayList();
+                revisionQueue.drainTo(revs);
+                record(revs);
+            }
+
+            private void record(List<Revision> revs) {
+                for (Revision rev : revs) {
+                    if (!seenRevs.add(rev)) {
+                        duplicates.add(rev);
+                    }
+                }
+
+                if (!duplicates.isEmpty()) {
+                    stop.set(true);
+                }
+            }
+        }));
+
+        for (Thread t : workers) {
+            t.start();
+        }
+
+        stopLatch.await();
+        stop.set(true);
+
+        for (Thread t : workers) {
+            t.join();
+        }
+        assertTrue(String.format("Duplicate rev seen %s %n Seen %s", duplicates, seenRevs), duplicates.isEmpty());
     }
 
 }
