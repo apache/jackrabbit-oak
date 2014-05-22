@@ -35,6 +35,8 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import static java.util.Arrays.asList;
+
 /**
  * A command line console.
  */
@@ -46,12 +48,19 @@ public class Console {
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1);
         OptionSpec<String> eval = parser.accepts("eval", "Evaluate script")
                 .withRequiredArg().ofType(String.class);
+        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<String> nonOption = parser.nonOptions("console {<path-to-repository> | <mongodb-uri>}");
 
         OptionSet options = parser.parse(args);
-        List<String> nonOptions = options.nonOptionArguments();
+        List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
 
         if (nonOptions.isEmpty()) {
-            System.err.println("usage: console {<path-to-repository> | <mongodb-uri>}");
+            parser.printHelpOn(System.err);
             System.exit(1);
         }
 
