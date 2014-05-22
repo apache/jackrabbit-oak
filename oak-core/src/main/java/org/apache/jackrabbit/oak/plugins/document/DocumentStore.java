@@ -147,7 +147,10 @@ public interface DocumentStore {
 
     /**
      * Update documents with the given keys. Only existing documents are
-     * updated.
+     * updated and keys for documents that do not exist are simply ignored. If
+     * this method fails with an exception, then only some of the documents
+     * identified by {@code keys} may have been updated. There is no guarantee
+     * in which sequence the updates are performed.
      *
      * @param <T> the document type.
      * @param collection the collection.
