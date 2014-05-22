@@ -49,11 +49,14 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -61,6 +64,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class DocumentNodeStoreTest {
+
+    @After
+    public void tearDown() {
+        Revision.resetClockToDefault();
+    }
 
     // OAK-1254
     @Test
@@ -335,6 +343,52 @@ public class DocumentNodeStoreTest {
         }
 
         ns.dispose();
+    }
+
+    // OAK-1814
+    @Test
+    public void visibilityAfterRevisionComparatorPurge() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore nodeStore1 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(1)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        nodeStore1.runBackgroundOperations();
+        DocumentNodeStore nodeStore2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(2)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        DocumentNodeStore nodeStore3 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(3)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/"));
+        assertNotNull(doc);
+        Revision created = doc.getLocalDeleted().firstKey();
+        assertEquals(1, created.getClusterId());
+
+        clock.waitUntil(System.currentTimeMillis() +
+                DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS / 2);
+
+        NodeBuilder builder = nodeStore2.getRoot().builder();
+        builder.setProperty("prop", "value");
+        nodeStore2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        nodeStore2.runBackgroundOperations();
+
+        clock.waitUntil(System.currentTimeMillis() +
+                DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS + 1000);
+        nodeStore3.runBackgroundOperations();
+
+        doc = docStore.find(NODES, Utils.getIdFromPath("/"));
+        assertNotNull(doc);
+        NodeState state = doc.getNodeAtRevision(nodeStore3,
+                nodeStore3.getHeadRevision(), null);
+        assertNotNull(state);
+
+        nodeStore1.dispose();
+        nodeStore2.dispose();
+        nodeStore3.dispose();
     }
 
     private static class TestHook extends EditorHook {
