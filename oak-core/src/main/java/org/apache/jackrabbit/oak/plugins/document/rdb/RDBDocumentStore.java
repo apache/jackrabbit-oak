@@ -140,13 +140,19 @@ import com.google.common.util.concurrent.Striped;
  * </table>
  * <p>
  * <em>Note that the database needs to be created/configured to support all Unicode
- * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation").
+ * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation",
+ * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
  * 
  * <h3>Caching</h3>
  * <p>
  * The cache borrows heavily from the {@link MongoDocumentStore} implementation;
  * however it does not support the off-heap mechanism yet.
+ * 
+ * <h3>Queries</h3>
+ * <p>
+ * The implementation currently supports only two indexed properties: "_modified" and
+ * "_bin". Attempts to use a different indexed property will cause a {@link MicroKernelException}.
  */
 public class RDBDocumentStore implements CachingDocumentStore {
 
@@ -275,6 +281,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // number of retries for updates
     private static int RETRIES = 10;
 
+    // set of supported indexed properties
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
 
