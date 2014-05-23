@@ -398,15 +398,23 @@ public class RDBDocumentStore implements CachingDocumentStore {
     @CheckForNull
     private <T extends Document> boolean internalCreate(Collection<T> collection, List<UpdateOp> updates) {
         try {
-            for (UpdateOp update : updates) {
-                T doc = collection.newDocument(this);
-                update.increment(MODCOUNT, 1);
-                UpdateUtils.applyChanges(doc, update, comparator);
-                if (!update.getId().equals(doc.getId())) {
-                    throw new MicroKernelException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: " + doc.getId());
+            // try up to CHUNKSIZE ops in one transaction
+            for (List<UpdateOp> chunks : Lists.partition(updates, CHUNKSIZE)) {
+                List<T> docs = new ArrayList<T>();
+                for (UpdateOp update : chunks) {
+                    T doc = collection.newDocument(this);
+                    update.increment(MODCOUNT, 1);
+                    UpdateUtils.applyChanges(doc, update, comparator);
+                    if (!update.getId().equals(doc.getId())) {
+                        throw new MicroKernelException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
+                                + doc.getId());
+                    }
+                    docs.add(doc);
                 }
-                insertDocument(collection, doc);
-                addToCache(collection, doc);
+                insertDocuments(collection, docs);
+                for (T doc : docs) {
+                    addToCache(collection, doc);
+                }
             }
             return true;
         } catch (MicroKernelException ex) {
@@ -432,7 +440,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             update.increment(MODCOUNT, 1);
             UpdateUtils.applyChanges(doc, update, comparator);
             try {
-                insertDocument(collection, doc);
+                insertDocuments(collection, Collections.singletonList(doc));
                 addToCache(collection, doc);
                 return oldDoc;
             } catch (MicroKernelException ex) {
@@ -668,20 +676,23 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> void insertDocument(Collection<T> collection, T document) {
+    private <T extends Document> void insertDocuments(Collection<T> collection, List<T> documents) {
         Connection connection = null;
         String tableName = getTable(collection);
+        List<String> ids = new ArrayList<String>();
         try {
             connection = getConnection();
-            String data = asString(document);
-            Long modified = (Long) document.get(MODIFIED);
-            Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
-            Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
-            Long modcount = (Long) document.get(MODCOUNT);
-            dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, data);
+            for (T document : documents) {
+                String data = asString(document);
+                Long modified = (Long) document.get(MODIFIED);
+                Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
+                Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
+                Long modcount = (Long) document.get(MODCOUNT);
+                dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, data);
+            }
             connection.commit();
         } catch (SQLException ex) {
-            LOG.debug("insert of " + document.getId() + " failed", ex);
+            LOG.debug("insert of " + ids + " failed", ex);
             try {
                 if (connection != null) {
                     connection.rollback();
@@ -695,10 +706,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
+    // configuration
+
+    // Whether to use GZIP compression
+    private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
+    // Number of documents to insert at once for batch create
+    private static int CHUNKSIZE = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
+
     // low level operations
 
     private static byte[] GZIPSIG = { 31, -117 };
-    private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
 
     private String getData(ResultSet rs, int stringIndex, int blobIndex) throws SQLException {
         try {
