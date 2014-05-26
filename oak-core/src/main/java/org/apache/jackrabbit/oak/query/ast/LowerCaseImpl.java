@@ -27,7 +27,11 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
+import com.google.common.base.Function;
+
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * The function "lower(..)".
@@ -70,11 +74,20 @@ public class LowerCaseImpl extends DynamicOperandImpl {
         if (p == null) {
             return null;
         }
-        // TODO what is the expected result of LOWER(x) for an array property?
-        // currently throws an exception
-        String value = p.getValue(STRING);
         // TODO toLowerCase(): document the Turkish locale problem
-        return PropertyValues.newString(value.toLowerCase());
+        if (p.getType().isArray()) {
+            Iterable<String> lowerCase = transform(p.getValue(STRINGS),
+                    new Function<String, String>() {
+                        @Override
+                        public String apply(String input) {
+                            return input.toLowerCase();
+                        }
+                    });
+            return PropertyValues.newString(lowerCase);
+        } else {
+            String value = p.getValue(STRING);
+            return PropertyValues.newString(value.toLowerCase());
+        }
     }
 
     @Override
