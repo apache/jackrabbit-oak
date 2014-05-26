@@ -22,6 +22,8 @@ import javax.jcr.Property;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -116,7 +118,7 @@ public class SameNamePropertyNodeTest extends AbstractJCRTest {
      */
     @Test
     public void testMicroKernelSupport() throws Exception {
-        NodeStore nodeStore = NodeStoreFixture.MK_IMPL.createNodeStore();
+        NodeStore nodeStore = new KernelNodeStore(new MicroKernelImpl());
         JackrabbitRepository repository  = (JackrabbitRepository) new Jcr(nodeStore).createRepository();
         try {
             assertFalse(repository.getDescriptorValue(Repository.OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED).getBoolean());

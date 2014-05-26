@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import com.mongodb.DB;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -35,8 +35,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import com.mongodb.DB;
 
 /**
  * NodeStore fixture for parametrized tests.
@@ -115,17 +113,6 @@ public abstract class NodeStoreFixture {
         }
     };
 
-    public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
-        @Override
-        public NodeStore createNodeStore() {
-            return new KernelNodeStore(new MicroKernelImpl());
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-        }
-    };
-    
     public static NodeStoreFixture createDocumentFixture(final String uri) {
         return new DocumentFixture(uri);
     }
