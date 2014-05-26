@@ -18,12 +18,16 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -31,9 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Tests if cache is used for repeated reads on unmodified subtree.
@@ -51,7 +52,7 @@ public class KernelNodeStoreCacheTest extends AbstractKernelTest {
 
     @Before
     public void setUp() throws Exception {
-        wrapper = new MicroKernelWrapper(NodeStoreFixture.createMicroKernel());
+        wrapper = new MicroKernelWrapper(new MicroKernelImpl());
         store = new KernelNodeStore(wrapper);
 
         NodeBuilder builder = store.getRoot().builder();

@@ -18,6 +18,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.AddNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.MoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveNode;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
+import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
+import static org.junit.Assert.assertEquals;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -40,14 +48,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.AddNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.MoveNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveNode;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.RemoveProperty;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Save;
-import static org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.SetProperty;
-import static org.junit.Assert.assertEquals;
-
 /**
  * Fuzz test running random sequences of operations on {@link Tree}.
  * Run with -DRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
@@ -59,7 +59,6 @@ public class RootFuzzIT {
     @Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MK_IMPL},
                 {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},

@@ -21,16 +21,12 @@ package org.apache.jackrabbit.oak;
 import java.io.Closeable;
 import java.io.IOException;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
-import static org.apache.jackrabbit.oak.kernel.KernelNodeStore.DEFAULT_CACHE_SIZE;
 
 /**
  * NodeStore fixture for parametrized tests.
@@ -94,26 +90,6 @@ public abstract class NodeStoreFixture {
             }
         }
     };
-
-    public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
-        @Override
-        public String toString() {
-            return "MKImpl Fixture";
-        }
-
-        @Override
-        public NodeStore createNodeStore() {
-            return new KernelNodeStore(createMicroKernel(), DEFAULT_CACHE_SIZE);
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-        }
-    };
-
-    public static final MicroKernel createMicroKernel() {
-        return new MicroKernelImpl();
-    }
 
     public abstract NodeStore createNodeStore();
 
