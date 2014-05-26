@@ -447,7 +447,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // may have failed due to a race condition; try update instead
                 // this is an edge case, so it's ok to bypass the cache
                 // (avoiding a race condition where the DB is already updated
-                // but the case is not)
+                // but the cache is not)
                 oldDoc = readDocumentUncached(collection, update.getId());
                 if (oldDoc == null) {
                     // something else went wrong
@@ -476,9 +476,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 while (!success && retries > 0) {
                     success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
                     if (!success) {
-                        // retry with a fresh document
+                        // retry with a fresh document; only use cache when *really* fresh, aka 50ms
                         retries -= 1;
-                        oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
+                        oldDoc = readDocumentCached(collection, update.getId(), 50);
                         doc = applyChanges(collection, oldDoc, update, checkConditions);
                         if (doc == null) {
                             return null;
