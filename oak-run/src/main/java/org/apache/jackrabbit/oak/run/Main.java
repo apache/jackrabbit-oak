@@ -40,9 +40,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -63,6 +65,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
+import org.apache.jackrabbit.oak.segmentexplorer.SegmentExplorer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -115,7 +118,10 @@ public class Main {
                 break;
             case SCALABILITY:
                 ScalabilityRunner.main(args);
-                break;                
+                break;
+            case EXPLORE:
+                SegmentExplorer.main(args);
+                break;
             default:
                 System.err.println("Unknown command: " + mode);
                 System.exit(1);
@@ -502,8 +508,9 @@ public class Main {
         DEBUG("debug"),
         SERVER("server"),
         UPGRADE("upgrade"),
-        SCALABILITY("scalability");
-        
+        SCALABILITY("scalability"),
+        EXPLORE("explore");
+
         private final String name;
 
         Mode(String name) {
