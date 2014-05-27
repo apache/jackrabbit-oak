@@ -31,6 +31,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -246,6 +247,8 @@ public final class ConfigurationParameters implements Map<String, Object> {
                 return (T) Double.valueOf(str);
             } else if (clazz == Boolean.class || clazz == boolean.class) {
                 return (T) Boolean.valueOf(str);
+            } else if (clazz == String[].class){
+                return (T) PropertiesUtil.toStringArray(configProperty, (String[]) defaultValue);
             } else {
                 // unsupported target type
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);

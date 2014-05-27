@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -151,6 +152,13 @@ public class ConfigurationParametersTest {
         assertArrayEquals(testArray, options.getConfigValue("test", null, TestObject[].class));
         assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, null));
         assertArrayEquals(testArray, options.getConfigValue("test", new TestObject[]{new TestObject("s")}, TestObject[].class));
+    }
+
+    @Test
+    public void testCollectionAsArray() throws Exception{
+        String[] testArray = {"t"};
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", Arrays.asList(testArray)));
+        assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));
     }
 
     @Test
