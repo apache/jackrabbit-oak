@@ -86,6 +86,11 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     @SuppressWarnings("unchecked")
     public Repository getRepository(Map parameters) throws RepositoryException {
+        if(parameters == null || !parameters.containsKey(REPOSITORY_HOME)){
+            //Required param missing so repository cannot be created
+            return null;
+        }
+
         Map config = new HashMap();
         config.putAll(parameters);
 
