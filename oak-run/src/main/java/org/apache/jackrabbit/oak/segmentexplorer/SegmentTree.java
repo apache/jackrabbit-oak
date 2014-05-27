@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segmentexplorer;
 
 import java.awt.GridLayout;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +45,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
-import org.apache.jackrabbit.oak.plugins.segment.Segment;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -55,8 +56,6 @@ import com.google.common.collect.Lists;
 
 public class SegmentTree extends JPanel implements TreeSelectionListener {
 
-    private final FileStore store;
-
     private final DefaultTreeModel treeModel;
     private final JTree tree;
     private final JTextArea log;
@@ -66,7 +65,6 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
 
     public SegmentTree(FileStore store, JTextArea log) {
         super(new GridLayout(1, 0));
-        this.store = store;
         this.log = log;
 
         index = store.getTarReaderIndex();
@@ -142,14 +140,13 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
             sb.append(newline);
 
             SegmentNodeState s = (SegmentNodeState) state;
-            Segment segment = s.getRecordId().getSegment();
-            sb.append("Segment ");
-            sb.append(segment.getSegmentId());
-            sb.append(newline);
 
-            sb.append("File ");
-            String file = getFile(segment.getSegmentId().toString());
-            sb.append(file);
+            RecordId recordId = s.getRecordId();
+            sb.append("Record " + recordId);
+            String file = getFile(recordId);
+            if (file.length() > 0) {
+                sb.append(" in " + file);
+            }
             sb.append(newline);
 
             sb.append("State");
@@ -158,11 +155,10 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
             sb.append(newline);
             for (ChildNodeEntry ce : s.getChildNodeEntries()) {
                 SegmentNodeState c = (SegmentNodeState) ce.getNodeState();
-                sb.append("    " + c.getRecordId().getSegmentId() + " -> "
-                        + ce.getName());
+                sb.append("    " + c.getRecordId() + " -> " + ce.getName());
                 sb.append(newline);
 
-                String f = getFile(c.getRecordId().getSegmentId().toString());
+                String f = getFile(c.getRecordId());
                 if (!f.equals(file)) {
                     sb.append("      * " + f);
                     sb.append(newline);
@@ -182,12 +178,10 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
                     }
                     // TODO handle the display for the rest of the property
                     // types
-                    String sId = ((SegmentPropertyState) ps).getRecordId()
-                            .getSegmentId().toString();
-                    sb.append("    " + sId + " -> " + ps.getName() + " (" + val
-                            + ")");
+                    RecordId rid = ((SegmentPropertyState) ps).getRecordId();
+                    sb.append("    " + rid + " -> " + ps.getName() + " (" + val + ")");
                     sb.append(newline);
-                    String f = getFile(sId);
+                    String f = getFile(rid);
                     if (!f.equals(file)) {
                         sb.append("      * " + f);
                         sb.append(newline);
@@ -224,11 +218,13 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
         log.setText(sb.toString());
     }
 
-    private String getFile(String sId) {
+    private String getFile(RecordId id) {
+        SegmentId segmentId = id.getSegmentId();
         for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
             for (UUID uuid : path2Uuid.getValue()) {
-                if (uuid.toString().equals(sId)) {
-                    return path2Uuid.getKey();
+                if (uuid.getMostSignificantBits() == segmentId.getMostSignificantBits()
+                        && uuid.getLeastSignificantBits() == segmentId.getLeastSignificantBits()) {
+                    return new File(path2Uuid.getKey()).getName();
                 }
             }
         }
