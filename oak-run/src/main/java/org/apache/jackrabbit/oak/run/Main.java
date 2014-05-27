@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.console.Console;
+import org.apache.jackrabbit.oak.explorer.Explorer;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -66,7 +67,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
-import org.apache.jackrabbit.oak.segmentexplorer.SegmentExplorer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -124,7 +124,7 @@ public class Main {
                 ScalabilityRunner.main(args);
                 break;
             case EXPLORE:
-                SegmentExplorer.main(args);
+                Explorer.main(args);
                 break;
             default:
                 System.err.println("Unknown command: " + mode);

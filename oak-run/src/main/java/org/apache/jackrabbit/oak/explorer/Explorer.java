@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segmentexplorer;
+package org.apache.jackrabbit.oak.explorer;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -33,15 +33,21 @@ import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
-public class SegmentExplorer {
+/**
+ * NodeStore explorer
+ * 
+ * GUI based on Swing, for now it is tailored to the TarMK
+ * 
+ */
+public class Explorer {
 
     public static void main(String[] args) throws IOException {
-        new SegmentExplorer(args);
+        new Explorer(args);
     }
 
-    public SegmentExplorer(String[] args) throws IOException {
+    public Explorer(String[] args) throws IOException {
         if (args.length == 0) {
-            System.err.println("usage: explore <path> [/content/path...]");
+            System.err.println("usage: explore <path>");
             System.exit(1);
         }
 
@@ -82,7 +88,7 @@ public class SegmentExplorer {
         log.setLineWrap(true);
         log.setEditable(false);
 
-        SegmentTree treePanel = new SegmentTree(store, log);
+        NodeStoreTree treePanel = new NodeStoreTree(store, log);
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;

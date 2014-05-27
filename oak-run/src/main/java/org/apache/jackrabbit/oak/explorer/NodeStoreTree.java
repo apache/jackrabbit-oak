@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.segmentexplorer;
+package org.apache.jackrabbit.oak.explorer;
 
 import java.awt.GridLayout;
 import java.io.File;
@@ -56,7 +56,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.collect.Lists;
 import com.google.common.escape.Escapers;
 
-public class SegmentTree extends JPanel implements TreeSelectionListener {
+class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
     private final DefaultTreeModel treeModel;
     private final JTree tree;
@@ -65,7 +65,7 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
     private final Map<String, Set<UUID>> index;
     private final Map<RecordId, Long[]> sizeCache;
 
-    public SegmentTree(FileStore store, JTextArea log) {
+    public NodeStoreTree(FileStore store, JTextArea log) {
         super(new GridLayout(1, 0));
         this.log = log;
 
@@ -185,7 +185,8 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
                 sb.append(newline);
             }
 
-            sb.append("Child nodes (count: " + s.getChildNodeCount(Long.MAX_VALUE) + ")");
+            sb.append("Child nodes (count: "
+                    + s.getChildNodeCount(Long.MAX_VALUE) + ")");
             sb.append(newline);
             for (ChildNodeEntry ce : s.getChildNodeEntries()) {
                 sb.append("  + " + ce.getName());
@@ -222,18 +223,18 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
 
     private String toString(PropertyState ps, int index) {
         if (ps.getType().tag() == PropertyType.BINARY) {
-            return "<" + FileUtils.byteCountToDisplaySize(ps.getValue(Type.BINARY, index).length())+ " >";
+            return "<"
+                    + FileUtils.byteCountToDisplaySize(ps.getValue(Type.BINARY,
+                            index).length()) + " >";
         } else if (ps.getType().tag() == PropertyType.STRING) {
             String value = ps.getValue(Type.STRING, index);
             if (value.length() > 60) {
-                value = value.substring(0, 57)
-                        + "... (" + value.length() + " chars)";
+                value = value.substring(0, 57) + "... (" + value.length()
+                        + " chars)";
             }
-            String escaped = Escapers.builder()
-                .setSafeRange(' ', '~')
-                .addEscape('"', "\\\"")
-                .addEscape('\\', "\\\\")
-                .build().escape(value);
+            String escaped = Escapers.builder().setSafeRange(' ', '~')
+                    .addEscape('"', "\\\"").addEscape('\\', "\\\\").build()
+                    .escape(value);
             return '"' + escaped + '"';
         } else {
             return ps.getValue(Type.STRING, index);
@@ -244,8 +245,10 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
         SegmentId segmentId = id.getSegmentId();
         for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
             for (UUID uuid : path2Uuid.getValue()) {
-                if (uuid.getMostSignificantBits() == segmentId.getMostSignificantBits()
-                        && uuid.getLeastSignificantBits() == segmentId.getLeastSignificantBits()) {
+                if (uuid.getMostSignificantBits() == segmentId
+                        .getMostSignificantBits()
+                        && uuid.getLeastSignificantBits() == segmentId
+                                .getLeastSignificantBits()) {
                     return new File(path2Uuid.getKey()).getName();
                 }
             }
