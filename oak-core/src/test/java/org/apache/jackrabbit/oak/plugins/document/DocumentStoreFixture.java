@@ -47,7 +47,8 @@ public abstract class DocumentStoreFixture {
         return true;
     }
 
-    public void dispose() throws Exception {}
+    public void dispose() throws Exception {
+    }
 
     public static class MemoryFixture extends DocumentStoreFixture {
 
@@ -97,7 +98,7 @@ public abstract class DocumentStoreFixture {
         public static final String DEFAULT_URI = "mongodb://localhost:27017/oak-test";
         private String uri;
 
-        public MongoFixture(){
+        public MongoFixture() {
             this(DEFAULT_URI);
         }
 
@@ -124,21 +125,21 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            try{
+            try {
                 MongoConnection connection = new MongoConnection(uri);
                 connection.getDB().command(new BasicDBObject("ping", 1));
                 return true;
-            }catch(Exception e){
+            } catch (Exception e) {
                 return false;
             }
         }
 
         @Override
         public void dispose() {
-            try{
+            try {
                 MongoConnection connection = new MongoConnection(uri);
                 connection.getDB().dropDatabase();
-            } catch(Exception ignore) {
+            } catch (Exception ignore) {
             }
         }
     }
