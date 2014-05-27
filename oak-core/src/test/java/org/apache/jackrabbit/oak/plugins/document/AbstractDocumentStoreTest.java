@@ -17,11 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.runner.RunWith;
@@ -39,7 +36,7 @@ public abstract class AbstractDocumentStoreTest {
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
-        this.ds = dsf.createDocumentStore();
+        this.ds = dsf.createDocumentStore(1);
         this.dsname = dsf.getName();
     }
 

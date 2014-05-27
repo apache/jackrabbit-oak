@@ -474,11 +474,19 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
                 int retries = maxRetries;
                 while (!success && retries > 0) {
-                    success = updateDocument(collection, doc, (Long) oldDoc.get(MODCOUNT));
+                    long lastmodcount = (Long) oldDoc.get(MODCOUNT);
+                    success = updateDocument(collection, doc, lastmodcount);
                     if (!success) {
-                        // retry with a fresh document; only use cache when *really* fresh, aka 50ms
                         retries -= 1;
-                        oldDoc = readDocumentCached(collection, update.getId(), 50);
+                        oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
+                        if (oldDoc != null) {
+                            long newmodcount = (Long) oldDoc.get(MODCOUNT);
+                            if (lastmodcount == newmodcount) {
+                                // cached copy did not change so it probably was updated by
+                                // a different instance, get a fresh one
+                                oldDoc = readDocumentUncached(collection, update.getId());
+                            }
+                        }
                         doc = applyChanges(collection, oldDoc, update, checkConditions);
                         if (doc == null) {
                             return null;
