@@ -32,9 +32,37 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
+    <groovy.version>2.3.1</groovy.version>
   </properties>
 
   <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.gmaven</groupId>
+        <artifactId>gmaven-plugin</artifactId>
+        <version>1.4</version>
+        <!--suppress MavenModelInspection -->
+        <configuration>
+          <providerSelection>2.0</providerSelection>
+          <sourceEncoding>UTF-8</sourceEncoding>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>generateTestStubs</goal>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>${groovy.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+    </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
@@ -107,17 +135,15 @@
     </dependency>
 
     <!-- Pojo SR -->
-
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <version>4.3.1</version>
+    </dependency>
     <dependency>
       <groupId>com.googlecode.pojosr</groupId>
       <artifactId>de.kalpatec.pojosr.framework.bare</artifactId>
       <version>0.2.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>4.3.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.felix</groupId>
@@ -139,11 +165,22 @@
       <artifactId>org.apache.felix.jaas</artifactId>
       <version>0.0.2</version>
     </dependency>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
+    </dependency>
 
     <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <version>${groovy.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
