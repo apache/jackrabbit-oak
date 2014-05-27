@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.jcr.PropertyType;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Lists;
+import com.google.common.escape.Escapers;
 
 public class SegmentTree extends JPanel implements TreeSelectionListener {
 
@@ -132,13 +134,6 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
         NodeState state = model.getState();
 
         if (state instanceof SegmentNodeState) {
-            sb.append("Size: ");
-            sb.append("  direct: ");
-            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[0]));
-            sb.append(";  linked: ");
-            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[1]));
-            sb.append(newline);
-
             SegmentNodeState s = (SegmentNodeState) state;
 
             RecordId recordId = s.getRecordId();
@@ -149,57 +144,64 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
             }
             sb.append(newline);
 
-            sb.append("State");
+            sb.append("Size: ");
+            sb.append("  direct: ");
+            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[0]));
+            sb.append(";  linked: ");
+            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[1]));
             sb.append(newline);
-            sb.append("  Child Node Count: " + s.getChildNodeCount(-1));
-            sb.append(newline);
-            for (ChildNodeEntry ce : s.getChildNodeEntries()) {
-                SegmentNodeState c = (SegmentNodeState) ce.getNodeState();
-                sb.append("    " + c.getRecordId() + " -> " + ce.getName());
-                sb.append(newline);
 
-                String f = getFile(c.getRecordId());
-                if (!f.equals(file)) {
-                    sb.append("      * " + f);
-                    sb.append(newline);
-                }
-            }
-            sb.append("  Property Count: " + s.getPropertyCount());
+            sb.append("Properties (count: " + s.getPropertyCount() + ")");
             sb.append(newline);
             for (PropertyState ps : s.getProperties()) {
-                if (ps instanceof SegmentPropertyState) {
-                    String val = "";
-                    if (ps.getType() == Type.STRING) {
-                        val = ps.getValue(Type.STRING);
-                    } else if (ps.getType() == Type.NAME) {
-                        val = ps.getValue(Type.NAME);
-                    } else {
-                        val = ps.toString();
+                sb.append("  - " + ps.getName() + " = ");
+                if (ps.getType().isArray()) {
+                    sb.append("[");
+                    int count = ps.count();
+                    for (int i = 0; i < Math.min(count, 10); i++) {
+                        if (i > 0) {
+                            sb.append(",");
+                        }
+                        sb.append(" " + ps.getValue(Type.STRING, i));
                     }
-                    // TODO handle the display for the rest of the property
-                    // types
+                    if (count > 10) {
+                        sb.append(", ... (" + count + " values)");
+                    }
+                    sb.append(" ]");
+                } else {
+                    sb.append(toString(ps, 0));
+                }
+                if (ps instanceof SegmentPropertyState) {
                     RecordId rid = ((SegmentPropertyState) ps).getRecordId();
-                    sb.append("    " + rid + " -> " + ps.getName() + " (" + val + ")");
-                    sb.append(newline);
+                    sb.append(" (" + rid);
                     String f = getFile(rid);
                     if (!f.equals(file)) {
-                        sb.append("      * " + f);
-                        sb.append(newline);
+                        sb.append(" in " + f);
                     }
-
+                    sb.append(")");
                 } else {
-                    String val = "";
-                    if (ps.getType() == Type.STRING) {
-                        val = ps.getValue(Type.STRING);
-                    }
-                    if (ps.getType() == Type.NAME) {
-                        val = ps.getValue(Type.NAME);
-                    }
-                    sb.append("    " + ps.getName() + " ("
-                            + ps.getClass().getSimpleName() + ")" + " (" + val
-                            + ")");
-                    sb.append(newline);
+                    sb.append(" (" + ps.getClass().getSimpleName() + ")");
                 }
+                sb.append(newline);
+            }
+
+            sb.append("Child nodes (count: " + s.getChildNodeCount(Long.MAX_VALUE) + ")");
+            sb.append(newline);
+            for (ChildNodeEntry ce : s.getChildNodeEntries()) {
+                sb.append("  + " + ce.getName());
+                NodeState c = ce.getNodeState();
+                if (c instanceof SegmentNodeState) {
+                    RecordId rid = ((SegmentNodeState) c).getRecordId();
+                    sb.append(" (" + rid);
+                    String f = getFile(rid);
+                    if (!f.equals(file)) {
+                        sb.append(" in " + f);
+                    }
+                    sb.append(")");
+                } else {
+                    sb.append(" (" + c.getClass().getSimpleName() + ")");
+                }
+                sb.append(newline);
             }
         }
 
@@ -216,6 +218,26 @@ public class SegmentTree extends JPanel implements TreeSelectionListener {
         }
 
         log.setText(sb.toString());
+    }
+
+    private String toString(PropertyState ps, int index) {
+        if (ps.getType().tag() == PropertyType.BINARY) {
+            return "<" + FileUtils.byteCountToDisplaySize(ps.getValue(Type.BINARY, index).length())+ " >";
+        } else if (ps.getType().tag() == PropertyType.STRING) {
+            String value = ps.getValue(Type.STRING, index);
+            if (value.length() > 60) {
+                value = value.substring(0, 57)
+                        + "... (" + value.length() + " chars)";
+            }
+            String escaped = Escapers.builder()
+                .setSafeRange(' ', '~')
+                .addEscape('"', "\\\"")
+                .addEscape('\\', "\\\\")
+                .build().escape(value);
+            return '"' + escaped + '"';
+        } else {
+            return ps.getValue(Type.STRING, index);
+        }
     }
 
     private String getFile(RecordId id) {
