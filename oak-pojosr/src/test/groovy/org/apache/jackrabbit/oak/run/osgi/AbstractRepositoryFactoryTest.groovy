@@ -65,7 +65,7 @@ abstract class AbstractRepositoryFactoryTest {
         }
     }
 
-    PojoServiceRegistry getRegistry() {
+    protected PojoServiceRegistry getRegistry() {
         assert repository instanceof ServiceRegistryProvider
         return ((ServiceRegistryProvider) repository).getServiceRegistry()
     }
@@ -76,7 +76,7 @@ abstract class AbstractRepositoryFactoryTest {
         return (T) registry.getService(sr)
     }
 
-    protected static File getResource(String path){
+    protected File getResource(String path){
         File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/$path"))
         assert file.exists() : "No file found at ${file.absolutePath}"
         return file

@@ -24,14 +24,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.junit.Before
 import org.junit.Test
 
-import javax.jcr.Repository
 import javax.jcr.RepositoryException
 import javax.jcr.Session
-import javax.jcr.SimpleCredentials
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
-
 
 class JsonConfigRepFactoryTest extends AbstractRepositoryFactoryTest{
 
@@ -64,6 +61,5 @@ class JsonConfigRepFactoryTest extends AbstractRepositoryFactoryTest{
         session = createAdminSession();
         assert session.getProperty('/child/foo3').string == 'bar3'
         session.logout()
-
     }
 }
