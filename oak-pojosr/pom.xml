@@ -71,7 +71,7 @@
           <configuration>
             <excludes>
               <exclude>README.md</exclude>
-              <exclude>src/test/resources/**/*.config</exclude>
+              <exclude>src/test/resources/**/*.*</exclude>
             </excludes>
           </configuration>
         </plugin>

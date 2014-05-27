@@ -64,6 +64,9 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     public static final String REPOSITORY_HOME
             = "org.apache.jackrabbit.repository.home";
 
+    /**
+     * Timeout in seconds for the repository startup should wait
+     */
     public static final String REPOSITORY_STARTUP_TIMEOUT
             = "org.apache.jackrabbit.oak.repository.startupTimeOut";
 
@@ -287,7 +290,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         private Repository createProxy(Repository service) {
             proxy = new RepositoryProxy(this, service);
             return (Repository) Proxy.newProxyInstance(getClass().getClassLoader(),
-                    new Class[]{Repository.class, JackrabbitRepository.class}, proxy);
+                    new Class[]{Repository.class, JackrabbitRepository.class, ServiceRegistryProvider.class}, proxy);
         }
     }
 
@@ -314,8 +317,11 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
             Preconditions.checkNotNull(obj, "Repository service is not available");
 
-            if ("shutdown".equals(method.getName())) {
+            final String name = method.getName();
+            if ("shutdown".equals(name)) {
                 shutdown(tracker.getRegistry());
+            } else if ("getServiceRegistry".equals(name)){
+                return tracker.getRegistry();
             }
 
             return method.invoke(obj, args);

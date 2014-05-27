@@ -1,0 +1,37 @@
+{
+    "org.apache.felix.jaas.Configuration.factory-GuestLoginModule": {
+        "jaas.controlFlag": "optional",
+        "jaas.classname": "org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule",
+        "jaas.ranking": 300
+    },
+    "org.apache.felix.jaas.Configuration.factory-LoginModuleImpl": {
+        "jaas.controlFlag": "required",
+        "jaas.classname": "org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl",
+        "jaas.ranking": 100
+    },
+    "org.apache.felix.jaas.Configuration.factory-TokenLoginModule": {
+        "jaas.controlFlag": "sufficient",
+        "jaas.classname": "org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule",
+        "jaas.ranking": 200
+    },
+    "org.apache.felix.jaas.ConfigurationSpi": {
+        "jaas.defaultRealmName": "jackrabbit.oak",
+        "jaas.globalConfigPolicy": "proxy",
+        "jaas.configProviderName": "FelixJaasProvider"
+    },
+    "org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager": {},
+    "org.apache.jackrabbit.oak.security.authorization.AuthorizationConfigurationImpl": {
+        "importBehavior": "besteffort"
+    },
+    "org.apache.jackrabbit.oak.security.user.UserConfigurationImpl": {
+        "groupsPath": "/home/groups",
+        "usersPath": "/home/users",
+        "defaultDepth": "1",
+        "importBehavior": "besteffort"
+    },
+    "org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider": {
+        "enabledActions": ["org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction"],
+        "userPrivilegeNames": ["jcr:all"],
+        "groupPrivilegeNames": ["jcr:read"]
+    }
+}
