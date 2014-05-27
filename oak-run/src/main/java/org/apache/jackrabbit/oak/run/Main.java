@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +111,9 @@ public class Main {
             case DEBUG:
                 debug(args);
                 break;
+            case COMPACT:
+                compact(args);
+                break;
             case SERVER:
                 server(URI, args);
                 break;
@@ -166,6 +170,35 @@ public class Main {
         } else {
             System.err.println("usage: backup <repository> <backup>");
             System.exit(1);
+        }
+    }
+
+    private static void compact(String[] args) throws IOException {
+        if (args.length != 1) {
+            System.err.println("usage: compact <path>");
+            System.exit(1);
+        } else {
+            File directory = new File(args[0]);
+            FileStore store = new FileStore(directory, 256, false);
+            System.out.println("Compacting " + directory);
+
+            System.out.println("    before " + Arrays.toString(directory.list()));
+            try {
+                store.gc();
+                store.flush();
+                store.close();
+                System.gc();
+
+                store = new FileStore(directory, 256, false);
+                store.gc();
+                store.flush();
+
+                System.out
+                        .println("    after  " + Arrays.toString(directory.list()));
+            } finally {
+                store.close();
+            }
+
         }
     }
 
@@ -506,6 +539,7 @@ public class Main {
         BENCHMARK("benchmark"),
         CONSOLE("debug"),
         DEBUG("debug"),
+        COMPACT("compact"),
         SERVER("server"),
         UPGRADE("upgrade"),
         SCALABILITY("scalability"),
