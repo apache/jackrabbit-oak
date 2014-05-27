@@ -55,16 +55,17 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -383,7 +384,8 @@ public class FileStore implements SegmentStore {
             if (cleanup || !after.equals(before)) {
                 // needs to happen outside the synchronization block below to
                 // avoid a deadlock with another thread flushing the writer
-                tracker.getWriter().flush();
+                SegmentWriter segmentWriter = tracker.getWriter();
+                segmentWriter.flush();
 
                 // needs to happen outside the synchronization block below to
                 // prevent the flush from stopping concurrent reads and writes
@@ -399,17 +401,15 @@ public class FileStore implements SegmentStore {
                         long start = System.nanoTime();
 
                         log.debug("TarMK compaction");
-                        tracker.getWriter().dropCache();
+                        segmentWriter.dropCache();
+                        SegmentNodeBuilder builder =
+                                segmentWriter.writeNode(EMPTY_NODE).builder();
                         SegmentNodeState state = new SegmentNodeState(after);
-                        NodeBuilder mem = EmptyNodeState.EMPTY_NODE.builder();
-                        compact(state, "/", 5, mem);
-                        setHead(state,
-                                tracker.getWriter().writeNode(
-                                        mem.getNodeState()));
+                        compact(state, "/", 5, builder);
+                        setHead(state, builder.getNodeState());
                         before = null;
                         after = null;
                         state = null;
-                        mem = null;
                         System.gc();
 
                         Set<UUID> ids = newHashSet();
