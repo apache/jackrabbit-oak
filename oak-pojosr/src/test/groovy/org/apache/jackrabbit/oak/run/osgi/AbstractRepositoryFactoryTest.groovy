@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.JackrabbitRepository
 import org.junit.After
 import org.junit.Before
 import org.osgi.framework.ServiceReference
+import org.osgi.service.cm.ConfigurationAdmin
 
 import javax.jcr.Repository
 import javax.jcr.RepositoryException
@@ -80,6 +81,12 @@ abstract class AbstractRepositoryFactoryTest {
         File file = new File(FilenameUtils.concat(getBaseDir(), "src/test/resources/$path"))
         assert file.exists() : "No file found at ${file.absolutePath}"
         return file
+    }
+
+    protected void createConfig(Map config){
+        ConfigurationAdmin cm = getService(ConfigurationAdmin.class)
+        ConfigInstaller ci = new ConfigInstaller(cm, getRegistry().bundleContext)
+        ci.installConfigs(config)
     }
 
     protected Session createAdminSession() throws RepositoryException {

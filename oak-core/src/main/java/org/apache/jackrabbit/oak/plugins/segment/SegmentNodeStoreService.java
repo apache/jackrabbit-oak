@@ -101,6 +101,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private WhiteboardExecutor executor;
+    private boolean customBlobStore;
 
     @Override
     protected synchronized SegmentNodeStore getNodeStore() {
@@ -111,9 +112,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Activate
     private void activate(ComponentContext context) throws IOException {
         this.context = context;
+        this.customBlobStore = Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE));
 
-        if(blobStore == null &&
-                Boolean.parseBoolean(lookup(context, CUSTOM_BLOB_STORE))){
+        if(blobStore == null && customBlobStore){
             log.info("BlobStore use enabled. SegmentNodeStore would be initialized when BlobStore would be available");
         }else{
             registerNodeStore();
@@ -148,10 +149,18 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             size = System.getProperty(SIZE, "256");
         }
 
-        store = new FileStore(
-                blobStore,
-                new File(directory),
-                Integer.parseInt(size), "64".equals(mode));
+        boolean memoryMapping = "64".equals(mode);
+        if (customBlobStore) {
+            store = new FileStore(
+                    blobStore,
+                    new File(directory),
+                    Integer.parseInt(size), memoryMapping);
+        } else {
+            store = new FileStore(
+                    new File(directory),
+                    Integer.parseInt(size), memoryMapping);
+        }
+
 
         delegate = new SegmentNodeStore(store);
         observerTracker = new ObserverTracker(delegate);
@@ -174,13 +183,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         revisionGCRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
-        if (blobStore instanceof GarbageCollectableBlobStore) {
+        if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
                 public void collectGarbage() throws Exception {
                     MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                             new SegmentBlobReferenceRetriever(store.getTracker()),
-                            (GarbageCollectableBlobStore) blobStore,
+                            (GarbageCollectableBlobStore) store.getBlobStore(),
                             executor);
                     gc.collectGarbage();
                 }
