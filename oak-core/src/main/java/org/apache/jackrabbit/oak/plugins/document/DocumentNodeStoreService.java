@@ -155,6 +155,7 @@ public class DocumentNodeStoreService {
     private static final long DEFAULT_MAX_REPLICATION_LAG = TimeUnit.HOURS.toSeconds(6);
     public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
     private long maxReplicationLagInSecs = DEFAULT_MAX_REPLICATION_LAG;
+    private boolean customBlobStore;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
@@ -164,9 +165,9 @@ public class DocumentNodeStoreService {
         executor.start(whiteboard);
         this.maxReplicationLagInSecs = PropertiesUtil.toLong(config.get(PROP_REPLICATION_LAG),
                 DEFAULT_MAX_REPLICATION_LAG);
+        this.customBlobStore = PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false);
 
-        if (blobStore == null &&
-                PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)) {
+        if (blobStore == null && customBlobStore) {
             log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when "
                     + "BlobStore would be available");
         } else {
@@ -194,7 +195,7 @@ public class DocumentNodeStoreService {
                 offHeapCacheSize(offHeapCache * MB);
 
         //Set blobstore before setting the DB
-        if (blobStore != null) {
+        if (blobStore != null && customBlobStore) {
             mkBuilder.setBlobStore(blobStore);
         }
 
