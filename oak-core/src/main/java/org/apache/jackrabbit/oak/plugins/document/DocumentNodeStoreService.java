@@ -219,7 +219,7 @@ public class DocumentNodeStoreService {
                 try {
                     Class.forName(dsdriver);
                 } catch (ClassNotFoundException ex) {
-                    log.error("driver " + dsdriver +  "not loaded", ex);
+                    log.error("driver " + dsdriver +  " not loaded", ex);
                 }
             } else {
                 log.info("System property oak.jdbc.driver.class not set.");
@@ -232,7 +232,7 @@ public class DocumentNodeStoreService {
                 try {
                     Class.forName(bsdriver);
                 } catch (ClassNotFoundException ex) {
-                    log.error("driver " + bsdriver +  "not loaded", ex);
+                    log.error("driver " + bsdriver +  " not loaded", ex);
                 }
             }
 
