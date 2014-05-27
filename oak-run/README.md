@@ -44,6 +44,14 @@ To start the console for a MongoMK repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
+Compact
+-------
+
+The 'compact' mode runs the segment compaction operation on the provided TarMK
+repository. To start this mode, use:
+
+    $ java -jar oak-run-*.jar compact /path/to/oak/repository
+
 Upgrade
 -------
 
