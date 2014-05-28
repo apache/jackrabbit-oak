@@ -34,7 +34,7 @@ Console
 -------
 
 The 'console' mode allows to work with an interactive console and browse an
-existing oak repository. Type 'help' within the console to get a list of all
+existing oak repository. Type ':help' within the console to get a list of all
 supported commands. The console currently supports TarMK and MongoMK. To start
 the console for a TarMK repository, use:
 
@@ -43,6 +43,21 @@ the console for a TarMK repository, use:
 To start the console for a MongoMK repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
+
+Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
+can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
+instance as through `session` variable. For example when using SegmentNodeStore you can 
+dump the current segment info to a file
+
+    > new File("segment.txt") << session.workingNode.segment.toString()
+    
+In above case the `workingNode` captures the current `NodeState` which in case of 
+Segment/TarMK is `SegmentNodeState`
+
+You can also load external script at launch time via passing an extra argument as shown 
+below
+
+    $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
 
 Compact
 -------
