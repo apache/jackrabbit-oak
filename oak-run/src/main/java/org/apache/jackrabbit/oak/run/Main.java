@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Arrays.asList;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,11 +38,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -78,6 +73,9 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
+
 public class Main {
 
     public static final int PORT = 8080;
@@ -89,7 +87,7 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        printProductInfo();
+        printProductInfo(args);
 
         Mode mode = Mode.SERVER;
         if (args.length > 0) {
@@ -133,7 +131,7 @@ public class Main {
         }
     }
 
-    private static void printProductInfo() {
+    public static String getProductInfo(){
         String version = null;
 
         try {
@@ -158,7 +156,13 @@ public class Main {
             product = "Apache Jackrabbit Oak";
         }
 
-        System.out.println(product);
+        return product;
+    }
+
+    private static void printProductInfo(String[] args) {
+        if(!Arrays.asList(args).contains("--quiet")) {
+            System.out.println(getProductInfo());
+        }
     }
 
     private static void backup(String[] args) throws IOException {
