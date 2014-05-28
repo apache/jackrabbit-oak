@@ -33,11 +33,13 @@ import javax.jcr.RepositoryException
 import javax.jcr.RepositoryFactory
 import javax.jcr.Session
 import javax.jcr.SimpleCredentials
+import java.util.concurrent.atomic.AtomicInteger
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT
 
 abstract class AbstractRepositoryFactoryTest {
+    static AtomicInteger counter = new AtomicInteger()
     Map config
     File workDir
     Repository repository
@@ -45,10 +47,7 @@ abstract class AbstractRepositoryFactoryTest {
 
     @Before
     void setUp() {
-        workDir = new File("target", "repositoryTest");
-        if (workDir.exists()) {
-            FileUtils.cleanDirectory(workDir);
-        }
+        workDir = new File("target", "repotest-${counter}-${System.currentTimeMillis()}");
         config = [
                 (REPOSITORY_HOME): workDir.absolutePath,
                 (REPOSITORY_STARTUP_TIMEOUT) : 2
@@ -62,7 +61,7 @@ abstract class AbstractRepositoryFactoryTest {
         }
 
         if (workDir.exists()) {
-            FileUtils.cleanDirectory(workDir);
+            FileUtils.deleteQuietly(workDir);
         }
     }
 
