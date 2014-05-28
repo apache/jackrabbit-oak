@@ -31,10 +31,23 @@ import org.codehaus.groovy.tools.shell.*
 import org.codehaus.groovy.tools.shell.Command as ShellCommand
 import org.codehaus.groovy.tools.shell.commands.*
 import org.codehaus.groovy.tools.shell.util.Preferences
+import org.fusesource.jansi.Ansi
+import org.fusesource.jansi.AnsiConsole
 import org.fusesource.jansi.AnsiRenderer
 
+/**
+ * Some part of logic is based on usage in org.codehaus.groovy.tools.shell.Main
+ */
 @CompileStatic
 class GroovyConsole {
+    static {
+        // Install the system adapters
+        AnsiConsole.systemInstall()
+
+        // Register jline ansi detector
+        Ansi.setDetector(new AnsiDetector())
+    }
+
     private final ConsoleSession session
     private final Groovysh shell
     private final IO io;
