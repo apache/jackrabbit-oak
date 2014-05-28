@@ -66,13 +66,19 @@ public abstract class AbstractDocumentStoreTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
+        return fixtures(false);
+    }
+
+    protected static Collection<Object[]> fixtures(boolean multi) {
         Collection<Object[]> result = new ArrayList<Object[]>();
         DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
                 DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2 };
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
-                result.add(new Object[] { dsf });
+                if (!multi || dsf.hasSinglePersistence()) {
+                    result.add(new Object[] { dsf });
+                }
             }
         }
 
