@@ -52,6 +52,11 @@ public abstract class DocumentStoreFixture {
         return true;
     }
 
+    // return false if the multiple instances will not share the same persistence
+    public boolean hasSinglePersistence() {
+        return true;
+    }
+
     public void dispose() throws Exception {
     }
 
@@ -65,6 +70,11 @@ public abstract class DocumentStoreFixture {
         @Override
         public DocumentStore createDocumentStore(int clusterId) {
             return new MemoryDocumentStore();
+        }
+
+        @Override
+        public boolean hasSinglePersistence() {
+            return false;
         }
     }
 

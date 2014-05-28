@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collection;
+
+import org.junit.runners.Parameterized;
+
 public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentStoreTest {
 
     protected DocumentStore ds1, ds2;
@@ -24,5 +28,10 @@ public abstract class AbstractMultiDocumentStoreTest extends AbstractDocumentSto
         super(dsf);
         this.ds1 = super.ds;
         this.ds2 = dsf.createDocumentStore(2);
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> fixtures() {
+        return fixtures(true);
     }
 }

@@ -21,8 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.junit.Assume;
 import org.junit.Test;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
@@ -33,9 +31,6 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void testInterleavedUpdate() {
-        // this does not work with the MemoryDocumentStore
-        Assume.assumeTrue(!(super.ds instanceof MemoryDocumentStore));
-
         String id = this.getClass().getName() + ".testInterleavedUpdate";
 
         // remove if present
