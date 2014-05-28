@@ -31,7 +31,7 @@ import java.util.Set;
  * A wrapper around a dictionary access it as a Map
  * Taken from org.apache.felix.utils.collections.DictionaryAsMap
  */
-public class DictionaryAsMap<U, V> extends AbstractMap<U, V> {
+class DictionaryAsMap<U, V> extends AbstractMap<U, V> {
 
     private Dictionary<U, V> dict;
 
