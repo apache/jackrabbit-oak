@@ -35,7 +35,6 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,24 +50,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
-import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
@@ -337,67 +326,6 @@ public class FileStore implements SegmentStore {
         }
 
         return dataFiles;
-    }
-
-    public void compact(int levels) throws IOException {
-        log.debug("TarMK compaction");
-
-        SegmentWriter segmentWriter = tracker.getWriter();
-        segmentWriter.dropCache();
-
-        SegmentNodeBuilder builder =
-                segmentWriter.writeNode(EMPTY_NODE).builder();
-        SegmentNodeState before = getHead();
-        compact(before, "/", levels, builder);
-
-        SegmentNodeState after = builder.getNodeState();
-        while (!setHead(before, after)) {
-            // Some other concurrent changes have been made.
-            // Rebase those changes on top of the compacted
-            // state before retrying setting the head state.
-            SegmentNodeState head = getHead();
-            head.compareAgainstBaseState(before, new ApplyDiff(builder));
-            before = head;
-            after = builder.getNodeState();
-        }
-    }
-
-    private void compact(SegmentNodeState state, String name, int levels,
-            NodeBuilder dest) throws IOException {
-        for (PropertyState ps : state.getProperties()) {
-            if (Type.BINARY.tag() != ps.getType().tag()) {
-                ps = PropertyStates.createProperty(ps.getName(),
-                        ps.getValue(ps.getType()), ps.getType());
-            } else {
-                List<Blob> newBlobList = new ArrayList<Blob>();
-                for (Blob b : ps.getValue(Type.BINARIES)) {
-                    if (b instanceof SegmentBlob) {
-                        SegmentBlob sb = (SegmentBlob) b;
-                        b = sb.clone(tracker.getWriter());
-                    }
-                    newBlobList.add(b);
-                }
-                if (ps.isArray()) {
-                    ps = MultiBinaryPropertyState.binaryPropertyFromBlob(
-                            ps.getName(), newBlobList);
-                } else {
-                    ps = BinaryPropertyState.binaryProperty(ps.getName(),
-                            newBlobList.get(0));
-                }
-            }
-            dest.setProperty(ps);
-        }
-
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            SegmentNodeState child = (SegmentNodeState) entry.getNodeState();
-            String n = entry.getName();
-            if (levels > 0) {
-                compact(child, name + entry.getName() + "/", levels - 1,
-                        dest.child(entry.getName()));
-            } else {
-                dest.setChildNode(n, child);
-            }
-        }
     }
 
     public void flush() throws IOException {
@@ -672,4 +600,5 @@ public class FileStore implements SegmentStore {
         }
         return index;
     }
+
 }
