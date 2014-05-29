@@ -179,10 +179,23 @@ public class Compactor {
 
     private Blob compact(Blob blob) {
         if (blob instanceof SegmentBlob) {
+            SegmentBlob sb = (SegmentBlob) blob;
+            RecordId id = sb.getRecordId();
+
+            // first check if we've already cloned this blob
+            RecordId compactedId = compacted.get(id);
+            if (compactedId != null) {
+                return new SegmentBlob(compactedId);
+            }
+
+            // if not, clone it and keep track of the resulting id
             try {
-                return ((SegmentBlob) blob).clone(writer);
+                sb = sb.clone(writer);
+                compacted.put(id, sb.getRecordId());
+                return sb;
             } catch (IOException e) {
                 Log.warn("Failed to clone a binary value", e);
+                // fall through
             }
         }
         return blob;
