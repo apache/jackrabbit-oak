@@ -178,31 +178,38 @@ public class Main {
     }
 
     private static void compact(String[] args) throws IOException {
-        if (args.length != 1) {
-            System.err.println("usage: compact <path>");
+        if (args.length < 1 || args.length > 2) {
+            System.err.println("usage: compact <path> [levels]");
             System.exit(1);
         } else {
+            int levels = 5;
+            if (args.length == 2) {
+                levels = Integer.parseInt(args[1]);
+            }
+
             File directory = new File(args[0]);
-            FileStore store = new FileStore(directory, 256, false);
             System.out.println("Compacting " + directory);
-
             System.out.println("    before " + Arrays.toString(directory.list()));
+
+            System.out.println("    -> compacting");
+            FileStore store = new FileStore(directory, 256, false);
             try {
-                store.gc();
-                store.flush();
-                store.close();
-                System.gc();
-
-                store = new FileStore(directory, 256, false);
-                store.gc();
-                store.flush();
-
-                System.out
-                        .println("    after  " + Arrays.toString(directory.list()));
+                store.compact(levels);
             } finally {
                 store.close();
             }
 
+            System.out.println("    -> cleaning up");
+            store = new FileStore(directory, 256, false);
+            try {
+                store.gc();
+                store.flush();
+            } finally {
+                store.close();
+            }
+
+
+            System.out.println("    after  " + Arrays.toString(directory.list()));
         }
     }
 
