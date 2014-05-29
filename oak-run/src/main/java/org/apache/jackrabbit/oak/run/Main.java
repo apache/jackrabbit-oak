@@ -38,9 +38,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -55,6 +57,7 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -178,15 +181,10 @@ public class Main {
     }
 
     private static void compact(String[] args) throws IOException {
-        if (args.length < 1 || args.length > 2) {
-            System.err.println("usage: compact <path> [levels]");
+        if (args.length != 1) {
+            System.err.println("usage: compact <path>");
             System.exit(1);
         } else {
-            int levels = 5;
-            if (args.length == 2) {
-                levels = Integer.parseInt(args[1]);
-            }
-
             File directory = new File(args[0]);
             System.out.println("Compacting " + directory);
             System.out.println("    before " + Arrays.toString(directory.list()));
@@ -194,7 +192,7 @@ public class Main {
             System.out.println("    -> compacting");
             FileStore store = new FileStore(directory, 256, false);
             try {
-                store.compact(levels);
+                new Compactor(store).compact();
             } finally {
                 store.close();
             }
@@ -207,7 +205,6 @@ public class Main {
             } finally {
                 store.close();
             }
-
 
             System.out.println("    after  " + Arrays.toString(directory.list()));
         }
