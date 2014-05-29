@@ -67,6 +67,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -338,7 +339,30 @@ public class FileStore implements SegmentStore {
         return dataFiles;
     }
 
-    void compact(SegmentNodeState state, String name, int levels,
+    public void compact(int levels) throws IOException {
+        log.debug("TarMK compaction");
+
+        SegmentWriter segmentWriter = tracker.getWriter();
+        segmentWriter.dropCache();
+
+        SegmentNodeBuilder builder =
+                segmentWriter.writeNode(EMPTY_NODE).builder();
+        SegmentNodeState before = getHead();
+        compact(before, "/", levels, builder);
+
+        SegmentNodeState after = builder.getNodeState();
+        while (!setHead(before, after)) {
+            // Some other concurrent changes have been made.
+            // Rebase those changes on top of the compacted
+            // state before retrying setting the head state.
+            SegmentNodeState head = getHead();
+            head.compareAgainstBaseState(before, new ApplyDiff(builder));
+            before = head;
+            after = builder.getNodeState();
+        }
+    }
+
+    private void compact(SegmentNodeState state, String name, int levels,
             NodeBuilder dest) throws IOException {
         for (PropertyState ps : state.getProperties()) {
             if (Type.BINARY.tag() != ps.getType().tag()) {
@@ -384,8 +408,7 @@ public class FileStore implements SegmentStore {
             if (cleanup || !after.equals(before)) {
                 // needs to happen outside the synchronization block below to
                 // avoid a deadlock with another thread flushing the writer
-                SegmentWriter segmentWriter = tracker.getWriter();
-                segmentWriter.flush();
+                tracker.getWriter().flush();
 
                 // needs to happen outside the synchronization block below to
                 // prevent the flush from stopping concurrent reads and writes
@@ -399,18 +422,6 @@ public class FileStore implements SegmentStore {
 
                     if (cleanup) {
                         long start = System.nanoTime();
-
-                        log.debug("TarMK compaction");
-                        segmentWriter.dropCache();
-                        SegmentNodeBuilder builder =
-                                segmentWriter.writeNode(EMPTY_NODE).builder();
-                        SegmentNodeState state = new SegmentNodeState(after);
-                        compact(state, "/", 5, builder);
-                        setHead(state, builder.getNodeState());
-                        before = null;
-                        after = null;
-                        state = null;
-                        System.gc();
 
                         Set<UUID> ids = newHashSet();
                         for (SegmentId id : tracker.getReferencedSegmentIds()) {
