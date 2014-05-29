@@ -20,5 +20,18 @@ Participating
 
 The best place for Oak-related discussions is the [oak-dev@](mailto:oak-dev@jackrabbit.apache.org)
 mailing list. To subscribe, send a message to [oak-dev-subscribe@]
-(mailto:oak-dev-subscribe@jackrabbit.apache.org). Use the [OAK issue tracker]
-(https://issues.apache.org/jira/browse/OAK) to submit issues, comments or patches.
+(mailto:oak-dev-subscribe@jackrabbit.apache.org). 
+
+Use the [OAK issue tracker](https://issues.apache.org/jira/browse/OAK) to submit issues, comments 
+or patches. To subscribe to issue notifications, send a message to [oak-issues@]
+(mailto:oak-issues-subscribe@jackrabbit.apache.org). 
+
+The latest Oak sources are available for checkout from [svn][1] and can also be browsed using the 
+[ViewVC][3] interface. You can also [fork them][2] on GitHub. To subscribe to commit notifications, send a message to [oak-commits@]
+(mailto:oak-commits-subscribe@jackrabbit.apache.org).
+
+For more details related to various mailing list have a look at http://jackrabbit.apache.org/mailing-lists.html
+ 
+[1]: https://svn.apache.org/repos/asf/jackrabbit/oak/trunk
+[2]: https://github.com/apache/jackrabbit-oak
+[3]: http://svn.apache.org/viewvc/jackrabbit/oak/trunk/
