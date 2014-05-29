@@ -63,8 +63,7 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     /**
      * formatter for date conversions
      */
-    protected static final SimpleDateFormat ISO_8601_2000 = new SimpleDateFormat(
-        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    protected static final String ISO_8601_2000 = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"; 
 
     /**
      * generate a list of values to be used as ordered set. Will return something like
@@ -198,8 +197,9 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
         List<String> values = new ArrayList<String>(amount);
         Calendar lstart = (Calendar) start.clone();
         int hours = (OrderDirection.DESC.equals(direction)) ? -12 : 12;
+        SimpleDateFormat sdf = new SimpleDateFormat(ISO_8601_2000);
         for (int i = 0; i < amount; i++) {
-            values.add(ISO_8601_2000.format(lstart.getTime()));
+            values.add(sdf.format(lstart.getTime()));
             lstart.add(Calendar.HOUR_OF_DAY, hours);
         }
 
