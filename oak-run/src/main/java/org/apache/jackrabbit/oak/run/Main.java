@@ -192,7 +192,7 @@ public class Main {
             System.out.println("    -> compacting");
             FileStore store = new FileStore(directory, 256, false);
             try {
-                new Compactor(store).compact();
+                Compactor.compact(store);
             } finally {
                 store.close();
             }

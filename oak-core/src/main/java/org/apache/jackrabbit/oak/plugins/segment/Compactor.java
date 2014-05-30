@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiBinaryPropertyState;
@@ -39,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.esotericsoftware.minlog.Log;
+import com.google.common.hash.Hashing;
 
 /**
  * Tool for compacting segments.
@@ -49,7 +52,29 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    private final SegmentStore store;
+    public static void compact(SegmentStore store) {
+        SegmentWriter writer = store.getTracker().getWriter();
+        Compactor compactor = new Compactor(writer);
+
+        log.debug("TarMK compaction");
+
+        SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
+        SegmentNodeState before = store.getHead();
+        EmptyNodeState.compareAgainstEmptyState(
+                before, compactor.newCompactDiff(builder));
+
+        SegmentNodeState after = builder.getNodeState();
+        while (!store.setHead(before, after)) {
+            // Some other concurrent changes have been made.
+            // Rebase (and compact) those changes on top of the
+            // compacted state before retrying to set the head.
+            SegmentNodeState head = store.getHead();
+            head.compareAgainstBaseState(
+                    before, compactor.newCompactDiff(builder));
+            before = head;
+            after = builder.getNodeState();
+        }
+    }
 
     private final SegmentWriter writer;
 
@@ -61,31 +86,19 @@ public class Compactor {
      */
     private final Map<RecordId, RecordId> compacted = newHashMap();
 
-    public Compactor(SegmentStore store) {
-        this.store = store;
-        this.writer = store.getTracker().getWriter();
+    /**
+     * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted
+     * blob record identifiers. Used to de-duplicate copies of the same
+     * binary values.
+     */
+    private final Map<String, List<RecordId>> binaries = newHashMap();
+
+    private Compactor(SegmentWriter writer) {
+        this.writer = writer;
     }
 
-    public void compact() throws IOException {
-        log.debug("TarMK compaction");
-
-        SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
-        SegmentNodeState before = store.getHead();
-        EmptyNodeState.compareAgainstEmptyState(
-                before, new CompactDiff(builder));
-        System.out.println(compacted.size() + " nodes compacted");
-
-        SegmentNodeState after = builder.getNodeState();
-        while (!store.setHead(before, after)) {
-            // Some other concurrent changes have been made.
-            // Rebase (and compact) those changes on top of the
-            // compacted state before retrying to set the head.
-            SegmentNodeState head = store.getHead();
-            head.compareAgainstBaseState(before, new CompactDiff(builder));
-            System.out.println(compacted.size() + " nodes compacted");
-            before = head;
-            after = builder.getNodeState();
-        }
+    private CompactDiff newCompactDiff(NodeBuilder builder) {
+        return new CompactDiff(builder);
     }
 
     private class CompactDiff extends ApplyDiff {
@@ -177,28 +190,68 @@ public class Compactor {
         }
     }
 
+    /**
+     * Compacts (and de-duplicates) the given blob.
+     *
+     * @param blob blob to be compacted
+     * @return compacted blob
+     */
     private Blob compact(Blob blob) {
+        // first check if we've already cloned this record
         if (blob instanceof SegmentBlob) {
             SegmentBlob sb = (SegmentBlob) blob;
-            RecordId id = sb.getRecordId();
-
-            // first check if we've already cloned this blob
-            RecordId compactedId = compacted.get(id);
-            if (compactedId != null) {
-                return new SegmentBlob(compactedId);
-            }
-
-            // if not, clone it and keep track of the resulting id
-            try {
-                sb = sb.clone(writer);
-                compacted.put(id, sb.getRecordId());
-                return sb;
-            } catch (IOException e) {
-                Log.warn("Failed to clone a binary value", e);
-                // fall through
+            RecordId id = compacted.get(sb.getRecordId());
+            if (id != null) {
+                return new SegmentBlob(id);
             }
         }
+
+        try {
+            // then look if the exact same binary has been cloned
+            String key = getBlobKey(blob);
+            List<RecordId> ids = binaries.get(key);
+            if (ids != null) {
+                for (RecordId id : ids) {
+                    if (new SegmentBlob(id).equals(blob)) {
+                        return new SegmentBlob(id);
+                    }
+                }
+            }
+
+            // if not, try to clone the blob and keep track of the result
+            if (blob instanceof SegmentBlob) {
+                SegmentBlob sb = (SegmentBlob) blob;
+                RecordId id = sb.getRecordId();
+
+                sb = sb.clone(writer);
+
+                compacted.put(id, sb.getRecordId());
+                if (ids == null) {
+                    ids = newArrayList();
+                    binaries.put(key, ids);
+                }
+                ids.add(sb.getRecordId());
+
+                return sb;
+            }
+        } catch (IOException e) {
+            log.warn("Failed to compcat a blob", e);
+            // fall through
+        }
+
+        // no way to compact this blob, so we'll just keep it as-is
         return blob;
+    }
+
+    private String getBlobKey(Blob blob) throws IOException {
+        InputStream stream = blob.getNewStream();
+        try {
+            byte[] buffer = new byte[SegmentWriter.BLOCK_SIZE];
+            int n = IOUtils.readFully(stream, buffer, 0, buffer.length);
+            return blob.length() + ":" + Hashing.sha1().hashBytes(buffer, 0, n);
+        } finally {
+            stream.close();
+        }
     }
 
 }
