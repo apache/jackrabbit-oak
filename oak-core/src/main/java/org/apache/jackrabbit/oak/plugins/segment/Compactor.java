@@ -135,7 +135,7 @@ public class Compactor {
             boolean success = EmptyNodeState.compareAgainstEmptyState(
                     after, new CompactDiff(child));
 
-            if (success && id != null) {
+            if (success && id != null && child.getChildNodeCount(1) > 0) {
                 RecordId compactedId =
                         writer.writeNode(child.getNodeState()).getRecordId();
                 compacted.put(id, compactedId);
@@ -161,7 +161,7 @@ public class Compactor {
             boolean success = after.compareAgainstBaseState(
                     before, new CompactDiff(child));
 
-            if (success && id != null) {
+            if (success && id != null && child.getChildNodeCount(1) > 0) {
                 RecordId compactedId =
                         writer.writeNode(child.getNodeState()).getRecordId();
                 compacted.put(id, compactedId);
@@ -197,34 +197,35 @@ public class Compactor {
      * @return compacted blob
      */
     private Blob compact(Blob blob) {
-        // first check if we've already cloned this record
         if (blob instanceof SegmentBlob) {
             SegmentBlob sb = (SegmentBlob) blob;
-            RecordId id = compacted.get(sb.getRecordId());
-            if (id != null) {
-                return new SegmentBlob(id);
-            }
-        }
 
-        try {
-            // then look if the exact same binary has been cloned
-            String key = getBlobKey(blob);
-            List<RecordId> ids = binaries.get(key);
-            if (ids != null) {
-                for (RecordId id : ids) {
-                    if (new SegmentBlob(id).equals(blob)) {
-                        return new SegmentBlob(id);
+            try {
+                // if the blob is inlined, just compact without de-duplication
+                if (sb.length() < Segment.MEDIUM_LIMIT) {
+                    return sb.clone(writer);
+                }
+
+                // then check if we've already cloned this specific record
+                RecordId id = sb.getRecordId();
+                RecordId compactedId = compacted.get(id);
+                if (compactedId != null) {
+                    return new SegmentBlob(compactedId);
+                }
+
+                // alternatively look if the exact same binary has been cloned
+                String key = getBlobKey(blob);
+                List<RecordId> ids = binaries.get(key);
+                if (ids != null) {
+                    for (RecordId duplicateId : ids) {
+                        if (new SegmentBlob(duplicateId).equals(blob)) {
+                            return new SegmentBlob(duplicateId);
+                        }
                     }
                 }
-            }
 
-            // if not, try to clone the blob and keep track of the result
-            if (blob instanceof SegmentBlob) {
-                SegmentBlob sb = (SegmentBlob) blob;
-                RecordId id = sb.getRecordId();
-
+                // if not, clone the blob and keep track of the result
                 sb = sb.clone(writer);
-
                 compacted.put(id, sb.getRecordId());
                 if (ids == null) {
                     ids = newArrayList();
@@ -233,10 +234,10 @@ public class Compactor {
                 ids.add(sb.getRecordId());
 
                 return sb;
+            } catch (IOException e) {
+                log.warn("Failed to compcat a blob", e);
+                // fall through
             }
-        } catch (IOException e) {
-            log.warn("Failed to compcat a blob", e);
-            // fall through
         }
 
         // no way to compact this blob, so we'll just keep it as-is
