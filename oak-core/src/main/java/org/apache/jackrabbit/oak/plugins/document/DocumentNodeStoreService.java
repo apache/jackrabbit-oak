@@ -214,27 +214,8 @@ public class DocumentNodeStoreService {
             String bsdriver = System.getProperty("oakbs.jdbc.driver.class", "");
 
             // document store
-            if (dsdriver.length() > 0) {
-                log.info("trying to load {}", dsdriver);
-
-                try {
-                    Class.forName(dsdriver);
-                } catch (ClassNotFoundException ex) {
-                    log.error("driver " + dsdriver +  " not loaded", ex);
-                }
-            } else {
+            if (dsdriver.length() == 0) {
                 log.info("System property oak.jdbc.driver.class not set.");
-            }
-
-            // blob store
-            if (bsdriver.length() > 0) {
-                log.info("trying to load {}", bsdriver);
-
-                try {
-                    Class.forName(bsdriver);
-                } catch (ClassNotFoundException ex) {
-                    log.error("driver " + bsdriver +  " not loaded", ex);
-                }
             }
 
             if (log.isInfoEnabled()) {
@@ -244,14 +225,14 @@ public class DocumentNodeStoreService {
                         type, jdbcuri, bsjdbcuri, cacheSize, offHeapCache, changesSize);
             }
 
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, dsusername, dspasswd);
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, dsusername, dspasswd, dsdriver);
             if (bsjdbcuri.length() == 0) {
                 mkBuilder.setRDBConnection(ds);
                 log.info("Connected to datasource {}", ds);
             } else {
-                DataSource dsbs = RDBDataSourceFactory.forJdbcUrl(bsjdbcuri, bsusername, bspasswd);
+                DataSource dsbs = RDBDataSourceFactory.forJdbcUrl(bsjdbcuri, bsusername, bspasswd, bsdriver);
                 mkBuilder.setRDBConnection(ds, dsbs);
-                log.info("Connected to datasources {}{}", ds, dsbs);
+                log.info("Connected to datasources {} {}", ds, dsbs);
             }
         } else {
             MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
