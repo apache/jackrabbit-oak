@@ -128,6 +128,14 @@ public class SegmentBlob extends Record implements Blob {
         return getRecordId().toString();
     }
 
+    public boolean isExternal() {
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        // 1110 xxxx: external value
+        return (head & 0xf0) == 0xe0;
+    }
+
     public String getBlobId() {
         Segment segment = getSegment();
         int offset = getOffset();

@@ -201,12 +201,12 @@ public class Compactor {
             SegmentBlob sb = (SegmentBlob) blob;
 
             try {
-                // if the blob is inlined, just compact without de-duplication
-                if (sb.length() < Segment.MEDIUM_LIMIT) {
+                // if the blob is inlined or external, just clone it
+                if (sb.length() < Segment.MEDIUM_LIMIT || sb.isExternal()) {
                     return sb.clone(writer);
                 }
 
-                // then check if we've already cloned this specific record
+                // else check if we've already cloned this specific record
                 RecordId id = sb.getRecordId();
                 RecordId compactedId = compacted.get(id);
                 if (compactedId != null) {
