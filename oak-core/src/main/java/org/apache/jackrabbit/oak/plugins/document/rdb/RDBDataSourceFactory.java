@@ -24,6 +24,7 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Locale;
 import java.util.logging.Logger;
 
 import javax.sql.DataSource;
@@ -39,7 +40,31 @@ public class RDBDataSourceFactory {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(RDBDataSourceFactory.class);
 
-    public static DataSource forJdbcUrl(String url, String username, String passwd) {
+    public static DataSource forJdbcUrl(String url, String username, String passwd, String driverName) {
+
+        // load driver class when specified
+        if (driverName != null && !driverName.isEmpty()) {
+            LOG.info("trying to load {}", driverName);
+
+            try {
+                Class.forName(driverName);
+            } catch (ClassNotFoundException ex) {
+                LOG.error("driver " + driverName + " not loaded", ex);
+            }
+        } else {
+            // try to determine driver from JDBC URL
+            String defaultDriver = driverForDBType(jdbctype(url));
+            if (defaultDriver != null) {
+                LOG.info("trying to load {}", defaultDriver);
+
+                try {
+                    Class.forName(defaultDriver);
+                } catch (ClassNotFoundException ex) {
+                    LOG.error("driver " + defaultDriver + " not loaded", ex);
+                }
+            }
+        }
+
         try {
             BasicDataSource bds = new BasicDataSource();
             LOG.debug("Getting Dricer for " + url);
@@ -56,8 +81,44 @@ public class RDBDataSourceFactory {
         }
     }
 
+    public static DataSource forJdbcUrl(String url, String username, String passwd) {
+        return forJdbcUrl(url, username, passwd, null);
+    }
+
+    private static String jdbctype(String jdbcurl) {
+        if (jdbcurl == null) {
+            return null;
+        } else {
+            String t = jdbcurl.toLowerCase(Locale.ENGLISH);
+            if (!t.startsWith("jdbc:")) {
+                return null;
+            } else {
+                t = t.substring("jbdc:".length());
+                int p = t.indexOf(":");
+                if (p <= 0) {
+                    return null;
+                } else {
+                    return t.substring(0, p);
+                }
+            }
+        }
+    }
+
+    private static String driverForDBType(String type) {
+        if ("h2".equals(type)) {
+            return "org.h2.Driver";
+        } else if ("postgresql".equals(type)) {
+            return "org.postgresql.Driver";
+        } else if ("db2".equals(type)) {
+            return "com.ibm.db2.jcc.DB2Driver";
+        } else {
+            return "";
+        }
+    }
+
     /**
-     * A {@link Closeable} {@link DataSource} based on a {@link BasicDataSource}. 
+     * A {@link Closeable} {@link DataSource} based on a {@link BasicDataSource}
+     * .
      */
     private static class CloseableDataSource implements DataSource, Closeable {
 
