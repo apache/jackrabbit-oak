@@ -151,6 +151,7 @@ public class BenchmarkRunner {
             new SQL2SearchTest(),
             new DescendantSearchTest(),
             new SQL2DescendantSearchTest(),
+            new FlatTreeUpdateTest(),
             new CreateManyChildNodesTest(),
             new CreateManyNodesTest(),
             new UpdateManyChildNodesTest(),
