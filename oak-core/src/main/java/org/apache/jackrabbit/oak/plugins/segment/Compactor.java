@@ -202,7 +202,7 @@ public class Compactor {
 
             try {
                 // if the blob is inlined or external, just clone it
-                if (sb.length() < Segment.MEDIUM_LIMIT || sb.isExternal()) {
+                if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
                     return sb.clone(writer);
                 }
 
