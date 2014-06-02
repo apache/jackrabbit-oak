@@ -181,17 +181,18 @@ class TarReader {
     private static TarReader openFirstFileWithValidIndex(
             List<File> files, boolean memoryMapping) throws IOException {
         for (File file : files) {
+            String name = file.getName();
             try {
                 RandomAccessFile access = new RandomAccessFile(file, "r");
                 try {
-                    ByteBuffer index = loadAndValidateIndex(access);
+                    ByteBuffer index = loadAndValidateIndex(access, name);
                     if (index == null) {
-                        log.warn("No tar index found in {}, skipping...", file);
+                        log.info("No index found in tar file {}, skipping...", name);
                     } else {
                         // found a file with a valid index, drop the others
                         for (File other : files) {
                             if (other != file) {
-                                log.info("Removing unused tar file {}", other);
+                                log.info("Removing unused tar file {}", other.getName());
                                 other.delete();
                             }
                         }
@@ -206,7 +207,7 @@ class TarReader {
                                         indexSize);
                                 return new TarReader(file, mapped, index);
                             } catch (IOException e) {
-                                log.warn("Failed to mmap tar file " + file
+                                log.warn("Failed to mmap tar file " + name
                                         + ". Falling back to normal file IO,"
                                         + " which will negatively impact"
                                         + " repository performance. This"
@@ -234,7 +235,7 @@ class TarReader {
                     }
                 }
             } catch (IOException e) {
-                log.warn("Could not read file " + file + ", skipping...", e);
+                log.warn("Could not read tar file " + name + ", skipping...", e);
             }
         }
 
@@ -246,16 +247,19 @@ class TarReader {
      * returned if it is found and looks valid (correct checksum, passes
      * sanity checks).
      *
+     * @param file tar file
+     * @param name name of the tar file, for logging purposes
      * @return tar index, or {@code null} if not found or not valid
      * @throws IOException if the tar file could not be read
      */
-    private static ByteBuffer loadAndValidateIndex(RandomAccessFile file)
+    private static ByteBuffer loadAndValidateIndex(
+            RandomAccessFile file, String name)
             throws IOException {
         long length = file.length();
         if (length % BLOCK_SIZE != 0
                 || length < 6 * BLOCK_SIZE
                 || length > Integer.MAX_VALUE) {
-            log.warn("Unexpected size {} of tar file {}", length, file);
+            log.warn("Unexpected size {} of tar file {}", length, name);
             return null; // unexpected file size
         }
 
@@ -269,12 +273,11 @@ class TarReader {
         int magic = meta.getInt();
 
         if (magic != INDEX_MAGIC) {
-            log.warn("No index found in tar file {}", file);
             return null; // magic byte mismatch
         }
 
         if (count < 1 || bytes < count * 24 + 16 || bytes % BLOCK_SIZE != 0) {
-            log.warn("Invalid index metadata in tar file {}", file);
+            log.warn("Invalid index metadata in tar file {}", name);
             return null; // impossible entry and/or byte counts
         }
 
@@ -301,16 +304,16 @@ class TarReader {
             int size   = buffer.getInt();
 
             if (lastmsb > msb || (lastmsb == msb && lastlsb > lsb)) {
-                log.warn("Incorrect index ordering in tar file {}", file);
+                log.warn("Incorrect index ordering in tar file {}", name);
                 return null;
             } else if (lastmsb == msb && lastlsb == lsb && i > 0) {
-                log.warn("Duplicate index entry in tar file {}", file);
+                log.warn("Duplicate index entry in tar file {}", name);
                 return null;
             } else if (offset < 0 || offset % BLOCK_SIZE != 0) {
-                log.warn("Invalid index entry offset in tar file {}", file);
+                log.warn("Invalid index entry offset in tar file {}", name);
                 return null;
             } else if (size < 1 || offset + size > limit) {
-                log.warn("Invalid index entry size in tar file {}", file);
+                log.warn("Invalid index entry size in tar file {}", name);
                 return null;
             }
 
@@ -319,7 +322,7 @@ class TarReader {
         }
 
         if (crc32 != (int) checksum.getValue()) {
-            log.warn("Invalid index checksum in tar file {}", file);
+            log.warn("Invalid index checksum in tar file {}", name);
             return null; // checksum mismatch
         }
 
