@@ -881,7 +881,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount,
             String data) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName + " values(?, ?, ?, ?, ?, ?, ?)");
+        PreparedStatement stmt = connection.prepareStatement("insert into " + tableName
+                + "(ID, MODIFIED, HASBINARY, MODCOUNT, SIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?)");
         try {
             int si = 1;
             stmt.setString(si++, id);
