@@ -384,9 +384,8 @@ class TarWriter {
             checksum += header[i] & 0xff;
         }
         System.arraycopy(
-                String.format("%06o", checksum).getBytes(UTF_8), 0,
-                header, 148, 6);
-        header[154] = 0;
+                String.format("%06o\0 ", checksum).getBytes(UTF_8), 0,
+                header, 148, 8);
 
         return header;
     }
