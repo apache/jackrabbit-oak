@@ -10,6 +10,7 @@ The following runmodes are currently available:
     * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
     * server    : Run the Oak Server
     * console   : Start an interactive console
+    * explore   : Starts a GUI browser based on java swing
 
 See the subsections below for more details on how to use these modes.
 
@@ -58,6 +59,14 @@ You can also load external script at launch time via passing an extra argument a
 below
 
     $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
+
+Explore
+-------
+
+The 'explore' mode starts a desktop browser GUI based on java swing which allows for read-only
+browsing of an existing oak repository.
+
+    $ java -jar oak-run-*.jar explore /path/to/oak/repository
 
 Compact
 -------
