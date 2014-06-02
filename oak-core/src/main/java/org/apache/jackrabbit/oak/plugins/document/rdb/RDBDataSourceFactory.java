@@ -54,7 +54,7 @@ public class RDBDataSourceFactory {
         } else {
             // try to determine driver from JDBC URL
             String defaultDriver = driverForDBType(jdbctype(url));
-            if (defaultDriver != null) {
+            if (defaultDriver != null && !defaultDriver.isEmpty()) {
                 LOG.info("trying to load {}", defaultDriver);
 
                 try {
@@ -111,6 +111,8 @@ public class RDBDataSourceFactory {
             return "org.postgresql.Driver";
         } else if ("db2".equals(type)) {
             return "com.ibm.db2.jcc.DB2Driver";
+        } else if ("mysql".equals(type)) {
+            return "com.mysql.jdbc.Driver";
         } else {
             return "";
         }

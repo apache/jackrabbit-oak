@@ -322,6 +322,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         stmt.execute("create table "
                                 + tableName
                                 + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
+                    } else if ("MySQL".equals(dbtype)) {
+                        stmt.execute("create table "
+                                + tableName
+                                + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA mediumblob)");
                     } else {
                         stmt.execute("create table "
                                 + tableName
@@ -487,6 +491,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                                 oldDoc = readDocumentUncached(collection, update.getId());
                             }
                         }
+                        // TODO: handle case where document is gone, thus oldDoc == null
                         doc = applyChanges(collection, oldDoc, update, checkConditions);
                         if (doc == null) {
                             return null;

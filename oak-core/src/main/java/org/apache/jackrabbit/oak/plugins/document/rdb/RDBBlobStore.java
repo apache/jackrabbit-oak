@@ -96,8 +96,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     Statement stmt = con.createStatement();
 
                     if (tableName.equals("DATASTORE_META")) {
-                        stmt.execute("create table " + tableName
-                                + " (ID varchar(1000) not null primary key, LEVEL int, LASTMOD bigint)");
+                        if ("MySQL".equals(dbtype)) {
+                            stmt.execute("create table " + tableName
+                                    + " (ID varchar(767) not null primary key, LEVEL int, LASTMOD bigint)");
+                        } else {
+                            stmt.execute("create table " + tableName
+                                    + " (ID varchar(1000) not null primary key, LEVEL int, LASTMOD bigint)");
+                        }
                     } else {
                         // the code below likely will need to be extended for
                         // new database types
@@ -106,6 +111,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
                             stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob("
                                     + MINBLOB + "))");
+                        } else if ("MySQL".equals(dbtype)) {
+                            stmt.execute("create table " + tableName + " (ID varchar(767) not null primary key, DATA mediumblob)");
                         } else {
                             stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob)");
                         }
