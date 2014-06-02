@@ -357,8 +357,7 @@ class TarReader {
                 sum += ' ';
             }
 
-            byte[] checkbytes = String.format("%06o  ", sum).getBytes(UTF_8);
-            checkbytes[7] = 0;
+            byte[] checkbytes = String.format("%06o\0 ", sum).getBytes(UTF_8);
             for (int i = 0; i < checkbytes.length; i++) {
                 if (checkbytes[i] != header[148 + i]) {
                     log.warn("Invalid entry checksum at offset {} in tar file {}, skipping...",
