@@ -54,7 +54,6 @@
     <module>oak-run</module>
     <module>oak-it</module>
     <module>oak-pojosr</module>
-    <!-- <module>oak-mk-perf</module> -->
   </modules>
 
   <scm>
