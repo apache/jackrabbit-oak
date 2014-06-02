@@ -27,6 +27,7 @@ import java.io.IOException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
@@ -77,7 +78,6 @@ public class Explorer {
     }
 
     private void createAndShowGUI(String path, FileStore store) {
-        // Create and set up the window.
         JFrame frame = new JFrame("Explore " + path);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -94,15 +94,16 @@ public class Explorer {
         c.fill = GridBagConstraints.BOTH;
         c.weightx = 1;
         c.weighty = 1;
-        content.add(new JScrollPane(treePanel), c);
 
-        c.weightx = 3;
-        content.add(new JScrollPane(log), c);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+                new JScrollPane(treePanel), new JScrollPane(log));
+        splitPane.setDividerLocation(0.3);
+        content.add(new JScrollPane(splitPane), c);
 
         frame.getContentPane().add(content);
 
         frame.pack();
-        frame.setSize(800, 600);
+        frame.setSize(960, 720);
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
 
