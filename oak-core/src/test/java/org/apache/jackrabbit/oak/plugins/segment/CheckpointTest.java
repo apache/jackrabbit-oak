@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
@@ -45,7 +46,18 @@ public class CheckpointTest {
         store.retrieve("missing-checkpoint");
     }
 
-    private static void verifyNS(SegmentNodeStore store, boolean exists) {
+    @Test
+    public void testRelease() throws CommitFailedException {
+        SegmentNodeStore store = new SegmentNodeStore(new MemoryStore());
+        addTestNode(store, "test-checkpoint");
+        String cp = verifyNS(store, true);
+
+        store.release(cp);
+        assertNull(store.retrieve(cp));
+
+    }
+
+    private static String verifyNS(SegmentNodeStore store, boolean exists) {
         String cp = store.checkpoint(TimeUnit.HOURS.toMillis(1));
         assertNotNull("Checkpoint must not be null", cp);
 
@@ -58,6 +70,7 @@ public class CheckpointTest {
             assertFalse("Node shouldn't exist in checkpoint", cpns
                     .getChildNode("test-checkpoint").exists());
         }
+        return cp;
     }
 
     private static void addTestNode(NodeStore store, String name)

@@ -1336,6 +1336,11 @@ public final class DocumentNodeStore
         return getRoot(Revision.fromString(checkpoint));
     }
 
+    @Override
+    public void release(@Nonnull String checkpoint) {
+        // TODO
+    }
+
     //------------------------< RevisionContext >-------------------------------
 
     @Override
