@@ -17,16 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.BufferedWriter;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -38,8 +35,10 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.PeekingIterator;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
 import com.google.common.util.concurrent.ListenableFutureTask;
@@ -97,7 +96,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * Creates an instance of MarkSweepGarbageCollector
      *
      * @param marker BlobReferenceRetriever instanced used to fetch refereedd blob entries
-     * @param blobStore
      * @param root the root absolute path of directory under which temporary
      *             files would be created
      * @param batchCount batch sized used for saving intermediate state
@@ -160,9 +158,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     /**
      * Mark and sweep. Main method for GC.
-     * 
-     * @throws Exception
-     *             the exception
      */
     private void markAndSweep() throws IOException, InterruptedException {
         boolean threw = true;
@@ -222,7 +217,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
         FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
                 fs.getMarkedRefs(),
-                fs.getAvailableRefs(), batchCount);
+                fs.getAvailableRefs());
 
         BufferedWriter bufferWriter = null;
         try {
@@ -245,6 +240,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             LOG.debug("Found GC candidates - " + numCandidates);
         } finally {
             IOUtils.closeQuietly(bufferWriter);
+            IOUtils.closeQuietly(iter);
         }
 
         LOG.debug("Ending difference phase of the garbage collector");
@@ -449,138 +445,74 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
     }
 
+
     /**
      * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
      */
-    static class FileLineDifferenceIterator implements Iterator<String> {
+    static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable{
+        private final PeekingIterator<String> peekMarked;
+        private final LineIterator marked;
+        private final LineIterator all;
 
-        /** The marked references iterator. */
-        private final LineIterator markedIter;
-
-        /** The available references iter. */
-        private final LineIterator allIter;
-
-        private final ArrayDeque<String> queue;
-
-        private final int batchSize;
-
-        private boolean done;
-
-        /** Temporary buffer. */
-        private TreeSet<String> markedBuffer;
-
-        /**
-         * Instantiates a new file line difference iterator.
-         */
-        public FileLineDifferenceIterator(File marked, File available, int batchSize) throws IOException {
-            this.markedIter = FileUtils.lineIterator(marked);
-            this.allIter = FileUtils.lineIterator(available);
-            this.batchSize = batchSize;
-            queue = new ArrayDeque<String>(batchSize);
-            markedBuffer = Sets.newTreeSet();
-
+        public FileLineDifferenceIterator(File marked, File available) throws IOException {
+            this(FileUtils.lineIterator(marked), FileUtils.lineIterator(available));
         }
 
-        /**
-         * Close.
-         */
-        private void close() {
-            LineIterator.closeQuietly(markedIter);
-            LineIterator.closeQuietly(allIter);
+        public FileLineDifferenceIterator(LineIterator marked, LineIterator available) throws IOException {
+            this.marked = marked;
+            this.peekMarked = Iterators.peekingIterator(marked);
+            this.all = available;
         }
 
         @Override
-        public boolean hasNext() {
-            if (!queue.isEmpty()) {
-                return true;
-            } else if (done) {
-                return false;
-            } else {
-                if (!markedIter.hasNext() && !allIter.hasNext()) {
-                    done = true;
-                    close();
-                    return false;
-                } else {
-                    queue.addAll(difference());
-                    if (!queue.isEmpty()) {
-                        return true;
+        protected String computeNext() {
+            String diff = computeNextDiff();
+            if (diff == null) {
+                close();
+                return endOfData();
+            }
+            return diff;
+        }
+
+        @Override
+        public void close() {
+            LineIterator.closeQuietly(marked);
+            LineIterator.closeQuietly(all);
+        }
+
+        private String computeNextDiff() {
+            if (!all.hasNext()) {
+                return null;
+            }
+
+            //Marked finish the rest of all are part of diff
+            if (!peekMarked.hasNext()) {
+                return all.next();
+            }
+            
+            String diff = null;
+            while (all.hasNext() && diff == null) {
+                diff = all.next();
+                while (peekMarked.hasNext()) {
+                    String marked = peekMarked.peek();
+                    int comparisonResult = diff.compareTo(marked);
+                    if (comparisonResult > 0) {
+                        //Extra entries in marked. Ignore them and move on
+                        peekMarked.next();
+                    } else if (comparisonResult == 0) {
+                        //Matching entry found in marked move past it. Not a
+                        //dif candidate
+                        peekMarked.next();
+                        diff = null;
+                        break;
                     } else {
-                        done = true;
-                        close();
+                        //This entry is not found in marked entries
+                        //hence part of diff
+                        return diff;
                     }
                 }
             }
-
-            return false;
-        }
-
-        @Override
-        public String next() {
-            return nextDifference();
-        }
-
-        /**
-         * Next difference.
-         * 
-         * @return the string
-         */
-        public String nextDifference() {
-            if (!hasNext()) {
-                throw new NoSuchElementException("No more difference");
-            }
-            return queue.remove();
-        }
-
-        /**
-         * Difference.
-         * 
-         * @return the sets the
-         */
-        protected Set<String> difference() {
-            TreeSet<String> gcSet = new TreeSet<String>();
-
-            // Iterate till the gc candidate set is at least SAVE_BATCH_COUNT or
-            // the
-            // blob id set iteration is complete
-            while (allIter.hasNext() &&
-                    gcSet.size() < batchSize) {
-                TreeSet<String> allBuffer = new TreeSet<String>();
-
-                while (markedIter.hasNext() &&
-                        markedBuffer.size() < batchSize) {
-                    String stre = markedIter.next();
-                    markedBuffer.add(stre);
-                }
-                while (allIter.hasNext() &&
-                        allBuffer.size() < batchSize) {
-                    String stre = allIter.next();
-                    allBuffer.add(stre);
-                }
-
-                if (markedBuffer.isEmpty()) {
-                    gcSet = allBuffer;
-                } else {
-                    gcSet.addAll(
-                            Sets.difference(allBuffer, markedBuffer));
-
-                    if (allBuffer.last().compareTo(markedBuffer.last()) < 0) {
-                        // filling markedLeftoverBuffer
-                        TreeSet<String> markedLeftoverBuffer = Sets.newTreeSet();
-                        markedLeftoverBuffer.addAll(markedBuffer.tailSet(allBuffer.last(), false));
-                        markedBuffer = markedLeftoverBuffer;
-                        markedLeftoverBuffer = null;
-                    } else {
-                        markedBuffer.clear();
-                    }
-                }
-            }
-
-            return gcSet;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
+            return diff;
         }
     }
 
