@@ -302,8 +302,7 @@ because, in most production scenarios, it'll be a 'remote' index, and therefore 
 have less impact on the repository performance.
 To set up the Solr index to be asynchronous that has to be defined inside the index definition, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
 
-TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
-
+TODO Node aggregation.
 
 ##### Index definition for Solr index
 
