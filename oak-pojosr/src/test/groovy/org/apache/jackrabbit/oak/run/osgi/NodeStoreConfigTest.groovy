@@ -26,9 +26,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.junit.Test
-import org.osgi.util.tracker.ServiceTracker
-
-import java.util.concurrent.TimeUnit
 
 class NodeStoreConfigTest extends  AbstractRepositoryFactoryTest{
     private PojoServiceRegistry registry
@@ -41,10 +38,7 @@ class NodeStoreConfigTest extends  AbstractRepositoryFactoryTest{
                 'org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService' : [:]
         ])
 
-        ServiceTracker st = new ServiceTracker(registry.bundleContext, NodeStore.class.name, null)
-        st.open()
-
-        SegmentNodeStoreService ns = st.waitForService(TimeUnit.SECONDS.toMillis(10)) as SegmentNodeStoreService
+        SegmentNodeStoreService ns = getServiceWithWait(NodeStore.class)
         //NodeStore is of type SegmentNodeStoreService
         SegmentStore segStore = ns.getSegmentStore()
         assert segStore.blobStore == null , "BlobStore should not be picked up unless 'customBlobStore " +

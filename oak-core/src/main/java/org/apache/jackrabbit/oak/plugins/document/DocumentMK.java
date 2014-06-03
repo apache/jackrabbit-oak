@@ -516,7 +516,9 @@ public class DocumentMK implements MicroKernel {
          */
         public Builder setRDBConnection(DataSource ds) {
             this.documentStore = new RDBDocumentStore(ds, this);
-            this.blobStore = new RDBBlobStore(ds);
+            if(this.blobStore == null) {
+                this.blobStore = new RDBBlobStore(ds);
+            }
             return this;
         }
 
