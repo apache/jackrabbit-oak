@@ -244,6 +244,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     @Override @CheckForNull
     public NodeState retrieve(@Nonnull String checkpoint) {
+        checkNotNull(checkpoint);
         NodeState cp = head.get()
                 .getChildNode("checkpoints")
                 .getChildNode(checkpoint)
@@ -252,6 +253,39 @@ public class SegmentNodeStore implements NodeStore, Observable {
             return cp;
         }
         return null;
+    }
+
+    @Override
+    public void release(@Nonnull String checkpoint) {
+        checkNotNull(checkpoint);
+
+        // try 5 times
+        for (int i = 0; i < 5; i++) {
+            if (commitSemaphore.tryAcquire()) {
+                try {
+                    refreshHead();
+                    store.getTracker().getWriter().flush();
+
+                    SegmentNodeState state = head.get();
+                    SegmentNodeBuilder builder = state.builder();
+
+                    NodeBuilder cp = builder.child("checkpoints").child(
+                            checkpoint);
+                    if (cp.exists()) {
+                        cp.remove();
+                    }
+                    SegmentNodeState newState = builder.getNodeState();
+                    store.getTracker().getWriter().flush();
+                    if (store.setHead(state, newState)) {
+                        refreshHead();
+                        return;
+                    }
+
+                } finally {
+                    commitSemaphore.release();
+                }
+            }
+        }
     }
 
     private class Commit {

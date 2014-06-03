@@ -125,4 +125,7 @@ public interface NodeStore {
      */
     @CheckForNull
     NodeState retrieve(@Nonnull String checkpoint);
+
+    void release(@Nonnull String checkpoint);
+
 }

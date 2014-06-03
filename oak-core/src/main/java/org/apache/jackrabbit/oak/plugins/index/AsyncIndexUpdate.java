@@ -155,11 +155,13 @@ public class AsyncIndexUpdate implements Runnable {
 
         NodeBuilder builder = after.builder();
         NodeBuilder async = builder.child(ASYNC);
+        String refCheckpoint = null;
 
         NodeState before = null;
         final PropertyState state = async.getProperty(name);
         if (state != null && state.getType() == STRING) {
-            before = store.retrieve(state.getValue(STRING));
+            refCheckpoint = state.getValue(STRING);
+            before = store.retrieve(refCheckpoint);
         }
         if (before == null) {
             before = MISSING_NODE;
@@ -216,6 +218,15 @@ public class AsyncIndexUpdate implements Runnable {
                     }
                 }
             }
+        }
+
+        // checkpoints cleanup
+        if (refCheckpoint != null) {
+            store.release(refCheckpoint);
+        }
+        if (exception != null || (exception == null && !callback.dirty)) {
+            // error? cleanup current cp too
+            store.release(checkpoint);
         }
 
         if (exception != null) {
