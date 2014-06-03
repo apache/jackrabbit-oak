@@ -16,10 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.junit.Assert.assertTrue;
-
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,14 +25,12 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.util.concurrent.MoreExecutors;
-import junit.framework.Assert;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
-
+import junit.framework.Assert;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -45,6 +40,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for MongoMK GC
@@ -61,7 +58,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         int number = 10;
         // track the number of the assets to be deleted
         List<Integer> processed = Lists.newArrayList();
-        Random rand = new Random();
+        Random rand = new Random(47);
         for (int i = 0; i < 5; i++) {
             int n = rand.nextInt(number);
             if (!processed.contains(n)) {
@@ -104,6 +101,18 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         return set;
     }
 
+    public HashSet<String> addInlined() throws Exception {
+        HashSet<String> set = new HashSet<String>();
+        DocumentNodeStore s = mk.getNodeStore();
+        NodeBuilder a = s.getRoot().builder();
+        int number = 12;
+        for (int i = 0; i < number; i++) {
+            Blob b = s.createBlob(randomStream(i, 50));
+            a.child("cinline" + i).setProperty("x", b);
+        }
+        s.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return set;
+    }
     private void deleteFromMongo(String nodeId) {
         DBCollection coll = mongoConnection.getDB().getCollection("nodes");
         BasicDBObject blobNodeObj = new BasicDBObject();
@@ -123,18 +132,30 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         gc(set);
     }
 
+    @Test
+    public void gcDirectMongoDeleteWithInlined() throws Exception {
+        HashSet<String> set = setUp(true);
+        addInlined();
+        gc(set);
+    }
+    @Test
+    public void gcVersionDeleteWithInlined() throws Exception {
+        HashSet<String> set = setUp(false);
+        addInlined();
+        gc(set);
+    }
     private void gc(HashSet<String> set) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
                 (GarbageCollectableBlobStore) store.getBlobStore(),
                 MoreExecutors.sameThreadExecutor(),
-                "./target", 2048, true, 0);
+                "./target", 5, true, 0);
         gc.collectGarbage();
 
         Set<String> existing = iterate();
         boolean empty = Sets.intersection(set, existing).isEmpty();
-        assertTrue(empty);
+        assertTrue(empty && !existing.isEmpty());
     }
 
     protected Set<String> iterate() throws Exception {
