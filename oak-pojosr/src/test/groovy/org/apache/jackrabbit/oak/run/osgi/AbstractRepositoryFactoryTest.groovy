@@ -27,19 +27,18 @@ import org.junit.After
 import org.junit.Before
 import org.osgi.framework.ServiceReference
 import org.osgi.service.cm.ConfigurationAdmin
+import org.osgi.util.tracker.ServiceTracker
 
-import javax.jcr.Repository
-import javax.jcr.RepositoryException
-import javax.jcr.RepositoryFactory
-import javax.jcr.Session
-import javax.jcr.SimpleCredentials
+import javax.jcr.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_HOME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_STARTUP_TIMEOUT
 
-abstract class AbstractRepositoryFactoryTest {
-    static AtomicInteger counter = new AtomicInteger()
+abstract class AbstractRepositoryFactoryTest{
+    static final int SVC_WAIT_TIME = Integer.getInteger("pojosr.waitTime", 10)
+    static final AtomicInteger counter = new AtomicInteger()
     Map config
     File workDir
     Repository repository
@@ -47,7 +46,7 @@ abstract class AbstractRepositoryFactoryTest {
 
     @Before
     void setUp() {
-        workDir = new File("target", "repotest-${counter}-${System.currentTimeMillis()}");
+        workDir = new File("target", "repotest-${counter.incrementAndGet()}-${System.currentTimeMillis()}");
         config = [
                 (REPOSITORY_HOME): workDir.absolutePath,
                 (REPOSITORY_STARTUP_TIMEOUT) : 2
@@ -74,6 +73,14 @@ abstract class AbstractRepositoryFactoryTest {
         ServiceReference<T> sr = registry.getServiceReference(clazz.name)
         assert sr: "Not able to found a service of type $clazz"
         return (T) registry.getService(sr)
+    }
+
+    protected <T> T getServiceWithWait(Class<T> clazz) {
+        ServiceTracker st = new ServiceTracker(getRegistry().bundleContext, clazz.name, null)
+        st.open()
+        T sr = (T) st.waitForService(TimeUnit.SECONDS.toMillis(SVC_WAIT_TIME))
+        assert sr , "No service found for ${clazz.name}"
+        return sr
     }
 
     protected File getResource(String path){
