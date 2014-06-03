@@ -33,7 +33,7 @@ import javax.sql.DataSource
 import java.sql.Connection
 import java.sql.ResultSet
 
-import static org.junit.Assume.assumeNotNull
+import static org.junit.Assume.assumeTrue
 
 class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
     private PojoServiceRegistry registry
@@ -126,7 +126,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
     @Test
     public void testMongoDocumentStore_CustomBlobStore() throws Exception {
-        assumeNotNull(mongoConn)
+        mongoCheck()
 
         registry = repositoryFactory.initializeServiceRegistry(config)
         createConfig([
@@ -148,7 +148,7 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
     @Test
     public void testMongoDocumentStore() throws Exception {
-        assumeNotNull(mongoConn)
+        mongoCheck()
 
         registry = repositoryFactory.initializeServiceRegistry(config)
         createConfig([
@@ -174,6 +174,12 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         if (mongoConn) {
             MongoUtils.dropCollections(mongoConn.DB)
         }
+    }
+
+    private mongoCheck() {
+        //Somehow in Groovy assumeNotNull cause issue as Groovy probably
+        //does away with null array causing a NPE
+        assumeTrue(mongoConn != null)
     }
 
     private Collection<String> getCollectionNames() {
