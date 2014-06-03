@@ -343,7 +343,7 @@ public class FileStore implements SegmentStore {
 
                 synchronized (this) {
                     log.debug("TarMK journal update {} -> {}", before, after);
-                    journalFile.writeBytes(after + " root\n");
+                    journalFile.writeBytes(after.toString10() + " root\n");
                     journalFile.getChannel().force(false);
                     persistedHead.set(after);
 
@@ -591,4 +591,5 @@ public class FileStore implements SegmentStore {
         System.gc();
         cleanupNeeded.set(true);
     }
+
 }

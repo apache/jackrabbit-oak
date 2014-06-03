@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * NodeState base = ...;
  * NodeState target = ...;
  * NodeBuilder builder = base.builder();
- * target.compareAgainstBaseState(base, new ReapplyDiff(builder));
+ * target.compareAgainstBaseState(base, new ApplyDiff(builder));
  * assertEquals(target, builder.getNodeState());
  * </pre>
  * <p>
@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  */
 public class ApplyDiff implements NodeStateDiff {
 
-    private final NodeBuilder builder;
+    protected final NodeBuilder builder;
 
     public ApplyDiff(NodeBuilder builder) {
         this.builder = builder;

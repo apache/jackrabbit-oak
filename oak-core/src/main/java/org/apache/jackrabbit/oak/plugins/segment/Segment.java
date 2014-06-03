@@ -86,7 +86,7 @@ public class Segment {
      * value. And since small values are never stored as medium ones, we can
      * extend the size range to cover that many longer values.
      */
-    static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
+    public static final int MEDIUM_LIMIT = (1 << (16 - 2)) + SMALL_LIMIT;
 
     public static int REF_COUNT_OFFSET = 5;
 
@@ -447,10 +447,30 @@ public class Segment {
         int length = data.remaining();
 
         writer.format("Segment %s (%d bytes)%n", id, length);
-        writer.println("--------------------------------------------------------------------------");
-        int refcount = getRefCount();
-        for (int refid = 0; refid < refcount; refid++) {
-            writer.format("reference %02x: %s%n", refid, getRefId(refid));
+        if (id.isDataSegmentId()) {
+            writer.println("--------------------------------------------------------------------------");
+            int refcount = getRefCount();
+            for (int refid = 0; refid < refcount; refid++) {
+                writer.format("reference %02x: %s%n", refid, getRefId(refid));
+            }
+            int rootcount = data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
+            int pos = refcount * 16;
+            for (int rootid = 0; rootid < rootcount; rootid++) {
+                writer.format(
+                        "root %d: %s at %04x%n", rootid,
+                        RecordType.values()[data.get(pos + rootid * 3) & 0xff],
+                        data.getShort(pos + rootid * 3 + 1) & 0xffff);
+            }
+            int blobrefcount = data.getShort(BLOBREF_COUNT_OFFSET) & 0xffff;
+            pos += rootcount * 3;
+            for (int blobrefid = 0; blobrefid < blobrefcount; blobrefid++) {
+                int offset = data.getShort(pos + blobrefid * 2) & 0xffff;
+                SegmentBlob blob = new SegmentBlob(
+                        new RecordId(id, offset << RECORD_ALIGN_BITS));
+                writer.format(
+                        "blobref %d: %s at %04x%n", blobrefid,
+                        blob.getBlobId(), offset);
+            }
         }
         writer.println("--------------------------------------------------------------------------");
         int pos = data.limit() - ((length + 15) & ~15);

@@ -30,6 +30,14 @@ store. Currently this is only supported for the TarMK. To start this mode, use:
     $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
 
+Compact
+-------
+
+The 'compact' mode runs the segment compaction operation on the provided TarMK
+repository. To start this mode, use:
+
+    $ java -jar oak-run-*.jar compact /path/to/oak/repository
+
 Upgrade
 -------
 

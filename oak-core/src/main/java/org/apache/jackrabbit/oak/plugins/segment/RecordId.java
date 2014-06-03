@@ -81,6 +81,13 @@ public final class RecordId implements Comparable<RecordId> {
         return segmentId + ":" + offset;
     }
 
+    /**
+     * Returns the record id string representation used in Oak 1.0.
+     */
+    public String toString10() {
+        return String.format("%s:%d", segmentId, offset);
+    }
+
     @Override
     public int hashCode() {
         return segmentId.hashCode() ^ offset;
