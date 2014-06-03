@@ -288,9 +288,73 @@ Example:
     }
 
 
-### The Solr Full-Text Index
+### The Solr Index
 
-`TODO`
+The Solr index is mainly meant for full-text search (the 'contains' type of queries):
+
+    //*[jcr:contains(., 'text')]
+
+but is also able to search by path, property restrictions and primary type restrictions.
+This means the Solr index in Oak can be used for any type of JCR query.
+
+Even if it's not just a full-text index, it's recommended to use it asynchronously (see `Oak#withAsyncIndexing`)
+because, in most production scenarios, it'll be a 'remote' index, and therefore network eventual latency / errors would 
+have less impact on the repository performance.
+To set up the Solr index to be asynchronous that has to be defined inside the index definition, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
+
+TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
+
+
+##### Index definition for Solr index
+
+The index definition node for a Solr-based index:
+
+ * must be of type `oak:QueryIndexDefinition`
+ * must have the `type` property set to __`solr`__
+ * must contain the `async` property set to the value `async`, this is what sends the 
+
+index update process to a background thread.
+_Optionally_ one can add
+
+ * the `reindex` flag which when set to `true`, triggers a full content re-index.
+
+Example:
+
+    {
+      NodeBuilder index = root.child("oak:index");
+      index.child("solr")
+        .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
+        .setProperty("type", "solr")
+        .setProperty("async", "async")
+        .setProperty("reindex", true);
+    }
+    
+#### Setting up the Solr server
+For the Solr index to work Oak needs to be able to communicate with a Solr instance / cluster.
+Apache Solr supports multiple deployment architectures: 
+
+ * embedded Solr instance running in the same JVM the client runs into
+ * single remote instance
+ * master / slave architecture, eventually with multiple shards and replicas
+ * SolrCloud cluster, with Zookeeper instance(s) to control a dynamic, resilient set of Solr instances for high 
+ availability and fault tolerance
+
+The Oak Solr index can be configured to use an 'embedded Solr server' or either a 'remote Solr server' (being able to 
+connect to a single remote instance or to a SolrCloud cluster via Zookeeper).
+
+##### OSGi environment
+TODO
+
+##### non OSGi environment
+TODO
+
+#### Differences with the Lucene index
+As of Oak version 1.0.0:
+
+* Solr index doesn't support search using relative properties, see [OAK-1835](https://issues.apache.org/jira/browse/OAK-1835).
+* Solr configuration is mostly done on the Solr side via schema.xml / solrconfig.xml files.
+* Lucene can only be used for full-text queries, Solr can be used for full-text search _and_ for JCR queries involving
+path, property and primary type restrictions
 
 ### The Node Type Index
 
