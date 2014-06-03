@@ -72,4 +72,9 @@ public abstract class ProxyNodeStore implements NodeStore {
         return getNodeStore().retrieve(checkpoint);
     }
 
+    @Override
+    public void release(String checkpoint) {
+        getNodeStore().release(checkpoint);
+    }
+
 }

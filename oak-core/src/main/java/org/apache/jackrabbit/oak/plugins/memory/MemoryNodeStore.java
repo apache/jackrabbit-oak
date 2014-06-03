@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -197,6 +198,16 @@ public class MemoryNodeStore implements NodeStore, Observable {
     @Override @CheckForNull
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
         return checkpoints.get(checkNotNull(checkpoint));
+    }
+
+    @Override
+    public synchronized void release(String checkpoint) {
+        checkpoints.remove(checkpoint);
+    }
+
+    /** test purpose only! */
+    public synchronized Set<String> listCheckpoints() {
+        return checkpoints.keySet();
     }
 
     //------------------------------------------------------------< private >---
