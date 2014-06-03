@@ -85,6 +85,7 @@ import com.google.common.util.concurrent.Striped;
  * <li>h2</li>
  * <li>IBM DB2</li>
  * <li>Postgres</li>
+ * <li>MariaDB (MySQL) (experimental)</li>
  * </ul>
  * 
  * <h3>Table Layout</h3>
@@ -115,6 +116,11 @@ import com.google.common.util.concurrent.Striped;
  * <td>low-resolution timestamp
  * </tr>
  * <tr>
+ * <th>HASBINARY</th>
+ * <td>smallint</td>
+ * <td>flag indicating whether the document has binary properties
+ * </tr>
+ * <tr>
  * <th>MODCOUNT</th>
  * <td>bigint</td>
  * <td>modification counter, used for avoiding overlapping updates</td>
@@ -143,6 +149,8 @@ import com.google.common.util.concurrent.Striped;
  * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation",
  * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
+ * <p>
+ * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased tu support ~2M blobs.</em>
  * 
  * <h3>Caching</h3>
  * <p>
@@ -323,6 +331,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                                 + tableName
                                 + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
                     } else if ("MySQL".equals(dbtype)) {
+                        // see http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html#sysvar_innodb_large_prefix
                         stmt.execute("create table "
                                 + tableName
                                 + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA mediumblob)");
@@ -465,11 +474,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
+    /**
+     * @return previous version of document or <code>null</code>
+     */
     @CheckForNull
     private <T extends Document> T internalUpdate(Collection<T> collection, UpdateOp update, T oldDoc, boolean checkConditions,
             int maxRetries) {
         T doc = applyChanges(collection, oldDoc, update, checkConditions);
         if (doc == null) {
+            // conditions not met
             return null;
         } else {
             Lock l = getAndLock(update.getId());
@@ -491,7 +504,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
                                 oldDoc = readDocumentUncached(collection, update.getId());
                             }
                         }
-                        // TODO: handle case where document is gone, thus oldDoc == null
+
+                        if (oldDoc == null) {
+                            // document was there but is now gone
+                            LOG.error("failed to apply update because document is gone in the meantime: " + update.getId());
+                            return null;
+                        }
+
                         doc = applyChanges(collection, oldDoc, update, checkConditions);
                         if (doc == null) {
                             return null;
