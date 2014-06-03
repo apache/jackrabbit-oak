@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +54,7 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -101,6 +103,9 @@ public class Main {
                 break;
             case DEBUG:
                 debug(args);
+                break;
+            case COMPACT:
+                compact(args);
                 break;
             case SERVER:
                 server(URI, args);
@@ -152,6 +157,36 @@ public class Main {
         } else {
             System.err.println("usage: backup <repository> <backup>");
             System.exit(1);
+        }
+    }
+
+    private static void compact(String[] args) throws IOException {
+        if (args.length != 1) {
+            System.err.println("usage: compact <path>");
+            System.exit(1);
+        } else {
+            File directory = new File(args[0]);
+            System.out.println("Compacting " + directory);
+            System.out.println("    before " + Arrays.toString(directory.list()));
+
+            System.out.println("    -> compacting");
+            FileStore store = new FileStore(directory, 256, false);
+            try {
+                Compactor.compact(store);
+            } finally {
+                store.close();
+            }
+
+            System.out.println("    -> cleaning up");
+            store = new FileStore(directory, 256, false);
+            try {
+                store.gc();
+                store.flush();
+            } finally {
+                store.close();
+            }
+
+            System.out.println("    after  " + Arrays.toString(directory.list()));
         }
     }
 
@@ -481,6 +516,7 @@ public class Main {
         BACKUP("backup"),
         BENCHMARK("benchmark"),
         DEBUG("debug"),
+        COMPACT("compact"),
         SERVER("server"),
         UPGRADE("upgrade");
 

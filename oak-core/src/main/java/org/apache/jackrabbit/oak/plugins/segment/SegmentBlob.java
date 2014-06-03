@@ -21,6 +21,8 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
@@ -30,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-class SegmentBlob extends Record implements Blob {
+public class SegmentBlob extends Record implements Blob {
 
     SegmentBlob(RecordId id) {
         super(id);
@@ -126,6 +128,14 @@ class SegmentBlob extends Record implements Blob {
         return getRecordId().toString();
     }
 
+    public boolean isExternal() {
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        // 1110 xxxx: external value
+        return (head & 0xf0) == 0xe0;
+    }
+
     public String getBlobId() {
         Segment segment = getSegment();
         int offset = getOffset();
@@ -135,6 +145,32 @@ class SegmentBlob extends Record implements Blob {
             return readReference(segment, offset, head);
         } else {
             return null;
+        }
+    }
+
+    public SegmentBlob clone(SegmentWriter writer) throws IOException {
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        if ((head & 0x80) == 0x00) {
+            // 0xxx xxxx: small value
+            return writer.writeStream(new BufferedInputStream(getNewStream()));
+        } else if ((head & 0xc0) == 0x80) {
+            // 10xx xxxx: medium value
+            return writer.writeStream(new BufferedInputStream(getNewStream()));
+        } else if ((head & 0xe0) == 0xc0) {
+            // 110x xxxx: long value
+            long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
+            int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list = new ListRecord(
+                    segment.readRecordId(offset + 8), listSize);
+            return writer.writeLargeBlob(length, list.getEntries());
+        } else if ((head & 0xf0) == 0xe0) {
+            // 1110 xxxx: external value
+            return writer.writeExternalBlob(getBlobId());
+        } else {
+            throw new IllegalStateException(String.format(
+                    "Unexpected value record type: %02x", head & 0xff));
         }
     }
 
