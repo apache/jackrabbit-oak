@@ -100,7 +100,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
 
             // Prune all index nodes that are no longer needed
-            prune(index, builders);
+            prune(index, builders, key);
         }
     }
 
@@ -431,8 +431,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      *            the current index
      * @param builders
      *            list of nodes to prune
+     * @param key the key of the index we're processing
      */
-    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders) {
+    void prune(final NodeBuilder index, final Deque<NodeBuilder> builders, final String key) {
         for (NodeBuilder node : builders) {
             if (node.getBoolean("match") || node.getChildNodeCount(1) > 0) {
                 return;
