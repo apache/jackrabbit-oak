@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -122,6 +123,17 @@ public class FileStore implements SegmentStore {
      * Flag to request revision cleanup during the next flush.
      */
     private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
+
+    /**
+     * Flag to request segment compaction during the next flush.
+     */
+    private final AtomicBoolean compactNeeded = new AtomicBoolean(false);
+
+    /**
+     * The number of new files created at which a compaction should be
+     * triggered.
+     */
+    private int compactThreshold = 10;
 
     /**
      * List of old tar file generations that are waiting to be removed.
@@ -232,6 +244,7 @@ public class FileStore implements SegmentStore {
                     timeToClose.await(1, SECONDS);
                     while (timeToClose.getCount() > 0) {
                         long start = System.nanoTime();
+                        compact();
                         try {
                             flush();
                         } catch (IOException e) {
@@ -390,6 +403,16 @@ public class FileStore implements SegmentStore {
                     }
                 }
             }
+        }
+    }
+
+    private void compact() {
+        if (compactNeeded.getAndSet(false)) {
+            long start = System.nanoTime();
+            Compactor.compact(this);
+            log.info("TarMK Compaction: Completed in {}ms", MILLISECONDS
+                    .convert(System.nanoTime() - start, NANOSECONDS));
+            cleanupNeeded.set(true);
         }
     }
 
@@ -566,6 +589,9 @@ public class FileStore implements SegmentStore {
                         directory,
                         String.format(FILE_NAME_FORMAT, writeNumber, "a"));
                 writer = new TarWriter(writeFile);
+                if (writeNumber % compactThreshold == 0) {
+                    compactNeeded.set(true);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -589,7 +615,7 @@ public class FileStore implements SegmentStore {
     @Override
     public void gc() {
         System.gc();
-        cleanupNeeded.set(true);
+        compactNeeded.set(true);
     }
 
 }
