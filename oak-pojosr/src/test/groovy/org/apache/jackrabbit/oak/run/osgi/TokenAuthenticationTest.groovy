@@ -51,14 +51,14 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
         registry.registerService(LoginModuleFactory.class.name, new PreAuthLoginModuleFactory(), [
                 'jaas.controlFlag' : 'sufficient',
                 'jaas.realmName' : 'jackrabbit.oak',
-                'jaas.ranking' : '250',
+                'jaas.ranking' : '150',
 
         ] as Hashtable)
 
         MyCredential myCred = new MyCredential("admin")
         Session session = repository.login(myCred)
 //        assert session.getAttribute(".token")
-        assert myCred.credentials.getAttribute(".token")
+        assert myCred.getAttribute(".token")
     }
 
     private static class PreAuthLoginModuleFactory implements LoginModuleFactory {
@@ -70,7 +70,7 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
 
     @Slf4j
     private static class PreAuthLoginModule extends AbstractLoginModule {
-
+        private MyCredential credential
         @Override
         protected Set<Class> getSupportedCredentials() {
             return Sets.newHashSet(MyCredential.class)
@@ -80,19 +80,19 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
         boolean login() throws LoginException {
             Credentials credentials = getCredentials();
             if (credentials instanceof MyCredential) {
-                String userId = ((MyCredential) credentials).userID;
+                credential = ((MyCredential) credentials)
+                String userId = credential.userID;
                 if (userId == null) {
                     log.debug("Could not extract userId/credentials");
                 } else {
                     SimpleCredentials sc = new SimpleCredentials(userId, new char[0])
                     sc.setAttribute(".token","")
+
                     // we just set the login name and rely on the following login modules to populate the subject
                     sharedState.put(SHARED_KEY_PRE_AUTH_LOGIN, new PreAuthenticatedLogin(userId));
                     sharedState.put(SHARED_KEY_CREDENTIALS, sc);
                     sharedState.put(SHARED_KEY_LOGIN_NAME, userId);
                     log.debug("login succeeded with trusted user: {}", userId);
-
-                    ((MyCredential) credentials).credentials = sc
                 }
             }
             return false;
@@ -100,18 +100,44 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
 
         @Override
         boolean commit() throws LoginException {
+            Credentials sharedCreds = getSharedCredentials()
+            if(sharedCreds instanceof SimpleCredentials) {
+                credential.setAttribute(".token", ((SimpleCredentials)sharedCreds).getAttribute(".token"))
+            }
             return false
         }
     }
 
     private static class MyCredential implements Credentials {
         final String userID
-        def SimpleCredentials credentials
+        private final HashMap attributes = new HashMap();
 
         MyCredential(String userID) {
             this.userID = userID
         }
 
+        public void setAttribute(String name, Object value) {
+            // name cannot be null
+            if (name == null) {
+                throw new IllegalArgumentException("name cannot be null");
+            }
+
+            // null value is the same as removeAttribute()
+            if (value == null) {
+                removeAttribute(name);
+                return;
+            }
+
+            synchronized (attributes) {
+                attributes.put(name, value);
+            }
+        }
+
+        public Object getAttribute(String name) {
+            synchronized (attributes) {
+                return (attributes.get(name));
+            }
+        }
 
     }
 }
