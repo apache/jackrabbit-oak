@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileBlob;
@@ -39,9 +40,11 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Random;
 
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -59,16 +62,12 @@ public class ExternalBlobTest {
 
     @Test
     public void testDataStoreBlob() throws Exception {
-        FileDataStore fds = new FileDataStore();
-        fds.setMinRecordLength(4092);
-        fds.init(getWorkDir().getAbsolutePath());
+        FileDataStore fds = createFileDataStore();
         DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
         nodeStore = getNodeStore(dbs);
 
         //Test for Blob which get inlined
-        byte[] data = new byte[fds.getMinRecordLength()-2];
-        new Random().nextBytes(data);
-        Blob b1 = testCreateAndRead(nodeStore.createBlob(new ByteArrayInputStream(data)));
+        Blob b1 = testCreateAndRead(createBlob(fds.getMinRecordLength()-2));
         assertTrue(b1 instanceof SegmentBlob);
         assertNull(((SegmentBlob) b1).getBlobId());
 
@@ -83,7 +82,38 @@ public class ExternalBlobTest {
         is.close();
     }
 
-    public Blob testCreateAndRead(Blob blob) throws Exception {
+    @Test
+    public void testNullBlobId() throws Exception{
+        FileDataStore fds = createFileDataStore();
+        DataStoreBlobStore dbs = new DataStoreBlobStore(fds);
+        nodeStore = getNodeStore(dbs);
+
+        NodeBuilder nb = nodeStore.getRoot().builder();
+        NodeBuilder cb = nb.child("hello");
+        cb.setProperty("blob1", createBlob(Segment.MEDIUM_LIMIT - 1));
+
+        int noOfBlobs = 4000;
+        for(int i = 0; i < noOfBlobs; i++){
+            cb.setProperty("blob"+i, createBlob(Segment.MEDIUM_LIMIT+1));
+        }
+
+        cb.setProperty("anotherBlob2", createBlob(Segment.MEDIUM_LIMIT + 1));
+        cb.setProperty("anotherBlob3", createBlob(Segment.MEDIUM_LIMIT + 1));
+        nodeStore.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final List<String> refrences = Lists.newArrayList();
+        store.getTracker().collectBlobReferences(new ReferenceCollector() {
+            @Override
+            public void addReference(String reference) {
+                assertNotNull(reference);
+                refrences.add(reference);
+            }
+        });
+
+        assertEquals(noOfBlobs + 2, refrences.size());
+    }
+
+    private Blob testCreateAndRead(Blob blob) throws Exception {
         NodeState state = nodeStore.getRoot().getChildNode("hello");
         if (!state.exists()) {
             NodeBuilder builder = nodeStore.getRoot().builder();
@@ -117,6 +147,19 @@ public class ExternalBlobTest {
             nodeStore = new SegmentNodeStore(store);
         }
         return nodeStore;
+    }
+
+    private Blob createBlob(int size) throws IOException {
+        byte[] data = new byte[size];
+        new Random().nextBytes(data);
+        return nodeStore.createBlob(new ByteArrayInputStream(data));
+    }
+
+    private FileDataStore createFileDataStore() {
+        FileDataStore fds = new FileDataStore();
+        fds.setMinRecordLength(4092);
+        fds.init(getWorkDir().getAbsolutePath());
+        return fds;
     }
 
     private File getWorkDir(){
