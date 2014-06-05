@@ -99,6 +99,10 @@ abstract class AbstractRepositoryFactoryTest{
         return getRepository().login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
+    protected String createConfigValue(String ... configFiles){
+        return configFiles.collect {getResource(it).absolutePath}.join(',')
+    }
+
     private static String getBaseDir() {
         // 'basedir' is set by Maven Surefire. It always points to the current subproject,
         // even in reactor builds.
