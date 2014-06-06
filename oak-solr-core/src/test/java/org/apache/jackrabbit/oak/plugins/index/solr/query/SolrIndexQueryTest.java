@@ -294,4 +294,133 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         root.commit();
         assertQuery("//*[jcr:contains(., '美女')]", "xpath", ImmutableList.of(one.getPath()));
     }
+
+    @Test
+    public void testCompositeRepExcerpt() throws Exception {
+        String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:base] as a " +
+                "where (contains([jcr:content/*], 'square') or contains([jcr:content/jcr:title], 'square')" +
+                " or contains([jcr:content/jcr:description], 'square')) and isdescendantnode(a, '/test') " +
+                "order by [jcr:score] desc";
+        Tree tree = root.getTree("/");
+        Tree test = tree.addChild("test");
+        Tree child = test.addChild("child");
+        Tree a = child.addChild("a");
+        a.setProperty("jcr:title", "Hello World, today square is nice");
+        Tree b = child.addChild("b");
+        b.setProperty("jcr:description", "Cheers World, today weather is squary nice");
+        Tree c = child.addChild("c");
+        c.setProperty("jcr:title", "Halo Welt, today sky is square");
+        root.commit();
+
+        Iterator<String> strings = executeQuery(sqlQuery, "JCR-SQL2").iterator();
+        assertTrue(strings.hasNext());
+        assertTrue(strings.next().startsWith("/test/child,"));
+        assertFalse(strings.hasNext());
+    }
+
+    @Test
+    public void contains() throws Exception {
+        String h = "Hello" + System.currentTimeMillis();
+        String w = "World" + System.currentTimeMillis();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", asList(h, w), STRINGS);
+        test.addChild("b").setProperty("name", h);
+        root.commit();
+
+        // query 'hello'
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("/jcr:root//*[jcr:contains(., '").append(h);
+        stmt.append("')]");
+        assertQuery(stmt.toString(), "xpath",
+                ImmutableList.of("/test/a", "/test/b"));
+
+        // query 'world'
+        stmt = new StringBuffer();
+        stmt.append("/jcr:root//*[jcr:contains(., '").append(w);
+        stmt.append("')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
+    }
+
+    @Test
+    @Ignore("depends on chosen text_general tokenizer")
+    public void containsDash() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", "hello-wor");
+        test.addChild("b").setProperty("name", "hello-world");
+        test.addChild("c").setProperty("name", "hello");
+        root.commit();
+
+        assertQuery("/jcr:root//*[jcr:contains(., 'hello-wor*')]", "xpath",
+                ImmutableList.of("/test/a", "/test/b"));
+        assertQuery("/jcr:root//*[jcr:contains(., '*hello-wor*')]", "xpath",
+                ImmutableList.of("/test/a", "/test/b"));
+
+    }
+
+    @Test
+    public void multiPhraseQuery() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("dc:format", "type:application/pdf");
+        root.commit();
+
+        assertQuery(
+                "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
+                "xpath", ImmutableList.of("/test/a"));
+
+    }
+
+    @Test
+    public void containsPath() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("name", "/parent/child/node");
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., '/parent/child')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
+    }
+
+    @Test
+    public void containsPathNum() throws Exception {
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("name", "/segment1/segment2/segment3");
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., '/segment1/segment2')]");
+        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+
+    }
+
+    /**
+     * OAK-1208 property existence constraints break queries
+     */
+    @Test
+    public void testOAK1208() throws Exception {
+        Tree t = root.getTree("/").addChild("containsWithMultipleOr");
+        Tree one = t.addChild("one");
+        one.setProperty("p", "dam/smartcollection");
+        one.setProperty("t", "media");
+
+        Tree two = t.addChild("two");
+        two.setProperty("p", "dam/collection");
+        two.setProperty("t", "media");
+
+        Tree three = t.addChild("three");
+        three.setProperty("p", "dam/hits");
+        three.setProperty("t", "media");
+
+        root.commit();
+
+        StringBuffer stmt = new StringBuffer();
+        stmt.append("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]");
+        assertQuery(stmt.toString(), "xpath",
+                ImmutableList.of(one.getPath(), two.getPath()));
+    }
 }
