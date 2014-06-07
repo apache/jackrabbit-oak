@@ -49,11 +49,13 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.console.Console;
 import org.apache.jackrabbit.oak.explorer.Explorer;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -278,7 +280,7 @@ public class Main {
                             bulkSize / (1024 * 1024), bulkCount);
                 } else {
                     Pattern pattern = Pattern.compile(
-                            "([0-9a-f-]+)|([0-9a-f-]+:[0-9a-f]+)?(/.*)?");
+                            "([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
                     for (int i = 1; i < args.length; i++) {
                         Matcher matcher = pattern.matcher(args[i]);
                         if (!matcher.matches()) {
@@ -290,25 +292,42 @@ public class Main {
                                     uuid.getLeastSignificantBits());
                             System.out.println(id.getSegment());
                         } else {
-                            RecordId id = store.getHead().getRecordId();
+                            RecordId id1 = store.getHead().getRecordId();
+                            RecordId id2 = null;
                             if (matcher.group(2) != null) {
-                                id = RecordId.fromString(
-                                        store.getTracker(), matcher.group(2));
+                                id1 = RecordId.fromString(
+                                        store.getTracker(), matcher.group(3));
+                                if (matcher.group(4) != null) {
+                                    id2 = RecordId.fromString(
+                                            store.getTracker(), matcher.group(5));
+                                }
                             }
                             String path = "/";
                             if (matcher.group(3) != null) {
                                 path = matcher.group(3);
                             }
-                            NodeState node = new SegmentNodeState(id);
-                            System.out.println("/ (" + id + ") -> " + node);
-                            for (String name : PathUtils.elements(path)) {
-                                node = node.getChildNode(name);
-                                RecordId nid = null;
-                                if (node instanceof SegmentNodeState) {
-                                    nid = ((SegmentNodeState) node).getRecordId();
+
+                            if (id2 == null) {
+                                NodeState node = new SegmentNodeState(id1);
+                                System.out.println("/ (" + id1 + ") -> " + node);
+                                for (String name : PathUtils.elements(path)) {
+                                    node = node.getChildNode(name);
+                                    RecordId nid = null;
+                                    if (node instanceof SegmentNodeState) {
+                                        nid = ((SegmentNodeState) node).getRecordId();
+                                    }
+                                    System.out.println(
+                                            "  " + name  + " (" + nid + ") -> " + node);
                                 }
-                                System.out.println(
-                                        "  " + name  + " (" + nid + ") -> " + node);
+                            } else {
+                                NodeState node1 = new SegmentNodeState(id1);
+                                NodeState node2 = new SegmentNodeState(id2);
+                                for (String name : PathUtils.elements(path)) {
+                                    node1 = node1.getChildNode(name);
+                                    node2 = node2.getChildNode(name);
+                                }
+                                System.out.println(JsopBuilder.prettyPrint(
+                                        JsopDiff.diffToJsop(node1, node2)));
                             }
                         }
                     }
