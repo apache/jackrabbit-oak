@@ -747,6 +747,9 @@ Lucene will flush based on whichever limit is hit first.  -->
         <!-- default values for query parameters can be specified, these
            will be overridden by parameters in the request
         -->
+        <lst name="invariants">
+            <str name="fl">* score</str>
+        </lst>
         <lst name="defaults">
             <str name="echoParams">none</str>
             <int name="rows">10</int>
