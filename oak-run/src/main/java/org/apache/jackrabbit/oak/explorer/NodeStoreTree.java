@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.explorer;
 
 import java.awt.GridLayout;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
@@ -58,6 +62,8 @@ import com.google.common.escape.Escapers;
 
 class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
+    private final FileStore store;
+
     private final DefaultTreeModel treeModel;
     private final JTree tree;
     private final JTextArea log;
@@ -67,6 +73,7 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
     public NodeStoreTree(FileStore store, JTextArea log) {
         super(new GridLayout(1, 0));
+        this.store = store;
         this.log = log;
 
         index = store.getTarReaderIndex();
@@ -209,11 +216,14 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener {
         if ("/".equals(model.getPath())) {
             sb.append("File Index");
             sb.append(newline);
-            for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
-                sb.append(path2Uuid.getKey());
+
+            List<String> files = new ArrayList<String>(store
+                    .getTarReaderIndex().keySet());
+            Collections.sort(files);
+
+            for (String path : files) {
+                sb.append(path);
                 sb.append(newline);
-                // sb.append(path2Uuid.getValue());
-                // sb.append(newline);
             }
             sb.append("----------");
         }
@@ -254,6 +264,152 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener {
             }
         }
         return "";
+    }
+
+    public void printDependenciesToFile(String file) {
+        if (file == null || file.length() == 0) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+
+        Set<UUID> uuids = new HashSet<UUID>();
+        for (Entry<String, Set<UUID>> e : store.getTarReaderIndex().entrySet()) {
+            if (e.getKey().endsWith(file)) {
+                sb.append("SegmentNodeState references to " + e.getKey());
+                sb.append(newline);
+                uuids = e.getValue();
+            }
+        }
+        List<String> paths = new ArrayList<String>();
+        filterNodeStates(uuids, paths, store.getHead(), "/");
+        for (String p : paths) {
+            sb.append("    ");
+            sb.append(p);
+            sb.append(newline);
+        }
+
+        log.setText(sb.toString());
+    }
+
+    private static void filterNodeStates(Set<UUID> uuids, List<String> paths,
+            SegmentNodeState state, String path) {
+        for (PropertyState ps : state.getProperties()) {
+            if (ps instanceof SegmentPropertyState) {
+                SegmentPropertyState sps = (SegmentPropertyState) ps;
+                SegmentId id = sps.getRecordId().getSegmentId();
+                if (contains(id, uuids)) {
+                    paths.add(path + "@" + ps);
+                }
+            }
+        }
+        for (ChildNodeEntry ce : state.getChildNodeEntries()) {
+            NodeState c = ce.getNodeState();
+            if (c instanceof SegmentNodeState) {
+                filterNodeStates(uuids, paths, (SegmentNodeState) c,
+                        path + ce.getName() + "/");
+            }
+        }
+    }
+
+    private static boolean contains(SegmentId id, Set<UUID> uuids) {
+        for (UUID u : uuids) {
+            if (id.getMostSignificantBits() == u.getMostSignificantBits()
+                    && id.getLeastSignificantBits() == u
+                            .getLeastSignificantBits()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void printDiff(String input) {
+        StringBuilder sb = new StringBuilder();
+        if (input == null || input.trim().length() == 0) {
+            sb.append("Unknown argument: ");
+            sb.append(input);
+            sb.append(newline);
+            log.setText("Usage <recordId> <recordId> [<path>]");
+            return;
+        }
+
+        String[] tokens = input.trim().split(" ");
+        if (tokens.length != 2 && tokens.length != 3) {
+            sb.append("Unknown argument: ");
+            sb.append(input);
+            sb.append(newline);
+            log.setText("Usage <recordId> <recordId> [<path>]");
+            return;
+        }
+        RecordId id1 = null;
+        RecordId id2 = null;
+        try {
+            id1 = RecordId.fromString(store.getTracker(), tokens[0]);
+            id2 = RecordId.fromString(store.getTracker(), tokens[1]);
+        } catch (IllegalArgumentException ex) {
+            sb.append("Unknown argument: ");
+            sb.append(input);
+            sb.append(newline);
+            sb.append("Error: ");
+            sb.append(ex.getMessage());
+            sb.append(newline);
+            log.setText(sb.toString());
+            return;
+        }
+        String path = "/";
+        if (tokens.length == 3) {
+            path = tokens[2];
+        }
+
+        NodeState node1 = new SegmentNodeState(id1);
+        NodeState node2 = new SegmentNodeState(id2);
+        for (String name : PathUtils.elements(path)) {
+            node1 = node1.getChildNode(name);
+            node2 = node2.getChildNode(name);
+        }
+
+        sb.append("SegmentNodeState diff ");
+        sb.append(id1);
+        sb.append(" vs ");
+        sb.append(id2);
+        sb.append(" at ");
+        sb.append(path);
+        sb.append(newline);
+        sb.append("--------");
+        sb.append(newline);
+        sb.append(JsopBuilder.prettyPrint(JsopDiff.diffToJsop(node1, node2)));
+        log.setText(sb.toString());
+    }
+
+    public void compact() {
+        StringBuilder sb = new StringBuilder();
+
+        long s = System.currentTimeMillis();
+        store.gc();
+        store.compact();
+        try {
+            store.flush();
+        } catch (IOException e) {
+            sb.append("IOException " + e.getMessage());
+            e.printStackTrace();
+        }
+        s = System.currentTimeMillis() - s;
+
+        sb.append("Compacted tar segments in " + s + " ms.");
+        sb.append(newline);
+
+        sb.append("File Index");
+        sb.append(newline);
+
+        List<String> files = new ArrayList<String>(store.getTarReaderIndex()
+                .keySet());
+        Collections.sort(files);
+
+        for (String path : files) {
+            sb.append(path);
+            sb.append(newline);
+        }
+        sb.append("----------");
+        log.setText(sb.toString());
     }
 
     private static class NamePathModel implements Comparable<NamePathModel> {
