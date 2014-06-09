@@ -269,6 +269,7 @@ public class AsyncIndexUpdateTest {
                 async.run();
             }
         });
+
         // drain checkpoint permits
         checkpoint.acquireUninterruptibly(checkpoint.availablePermits());
         // block NodeStore.retrieve()
@@ -276,6 +277,7 @@ public class AsyncIndexUpdateTest {
         t.start();
 
         // wait until async update called checkpoint
+        retrieve.release();
         checkpoint.acquireUninterruptibly();
         builder = store.getRoot().builder();
         builder.child("child").remove();
@@ -334,8 +336,13 @@ public class AsyncIndexUpdateTest {
         locks.put(t, s);
         t.start();
 
+        // make some unrelated changes to trigger indexing
+        builder = store.getRoot().builder();
+        builder.setChildNode("dummy").setProperty("foo", "bar");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
         while (!s.hasQueuedThreads()) {
-            // busy wait
+            Thread.yield();
         }
 
         // introduce a conflict
