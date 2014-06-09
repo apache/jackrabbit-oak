@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_RUNNING;
@@ -34,8 +33,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-
-import com.google.common.base.Objects;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,10 +50,13 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Objects;
 
 public class AsyncIndexUpdate implements Runnable {
 
@@ -69,7 +69,7 @@ public class AsyncIndexUpdate implements Runnable {
      */
     private static final String ASYNC = ":async";
 
-    private static final long DEFAULT_LIFETIME = TimeUnit.HOURS.toMillis(1);
+    private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
 
     private static final CommitFailedException CONCURRENT_UPDATE = new CommitFailedException(
             "Async", 1, "Concurrent update detected");
@@ -142,43 +142,55 @@ public class AsyncIndexUpdate implements Runnable {
         log.debug("Running background index task {}", name);
 
         if (isAlreadyRunning(store, name)) {
-            log.debug("Async job '{}' found to be already running. Skipping", name);
+            log.debug("The {} indexer is already running; skipping this update", name);
             return;
+        }
+
+        NodeState before;
+        NodeState root = store.getRoot();
+        String refCheckpoint = root.getChildNode(ASYNC).getString(name);
+        if (refCheckpoint != null) {
+            NodeState state = store.retrieve(refCheckpoint);
+            if (state == null) {
+                log.warn("Failed to retrieve previously indexed checkpoint {};"
+                        + " rerunning the initial {} index update",
+                        refCheckpoint, name);
+                before = MISSING_NODE;
+            } else if (noVisibleChanges(state, root)) {
+                log.debug("No changes since last checkpoint;"
+                        + " skipping the {} index update", name);
+                return;
+            } else {
+                before = state;
+            }
+        } else {
+            log.info("Initial {} index update", name);
+            before = MISSING_NODE;
         }
 
         String checkpoint = store.checkpoint(lifetime);
         NodeState after = store.retrieve(checkpoint);
         if (after == null) {
-            log.debug("Unable to retrieve checkpoint {}", checkpoint);
+            log.warn("Unable to retrieve newly created checkpoint {},"
+                    + " skipping the {} index update", checkpoint, name);
             return;
         }
 
-        NodeBuilder builder = after.builder();
+        NodeBuilder builder = store.getRoot().builder();
         NodeBuilder async = builder.child(ASYNC);
-        String refCheckpoint = null;
-
-        NodeState before = null;
-        final PropertyState state = async.getProperty(name);
-        if (state != null && state.getType() == STRING) {
-            refCheckpoint = state.getValue(STRING);
-            before = store.retrieve(refCheckpoint);
-        }
-        if (before == null) {
-            before = MISSING_NODE;
-        }
 
         AsyncUpdateCallback callback = new AsyncUpdateCallback();
         preAsyncRunStatsStats(indexStats);
-        IndexUpdate indexUpdate = new IndexUpdate(provider, name, after,
-                builder, callback);
+        IndexUpdate indexUpdate = new IndexUpdate(
+                provider, name, after, builder, callback);
 
-        CommitFailedException exception = EditorDiff.process(indexUpdate,
-                before, after);
+        CommitFailedException exception = EditorDiff.process(
+                indexUpdate, before, after);
         if (exception == null) {
             if (callback.dirty) {
                 async.setProperty(name, checkpoint);
                 try {
-                    store.merge(builder, newCommitHook(name, state),
+                    store.merge(builder, newCommitHook(name, refCheckpoint),
                             CommitInfo.EMPTY);
                 } catch (CommitFailedException e) {
                     if (e != CONCURRENT_UPDATE) {
@@ -186,8 +198,8 @@ public class AsyncIndexUpdate implements Runnable {
                     }
                 }
                 if (switchOnSync) {
-                    reindexedDefinitions.addAll(indexUpdate
-                            .getReindexedDefinitions());
+                    reindexedDefinitions.addAll(
+                            indexUpdate.getReindexedDefinitions());
                 }
             } else if (switchOnSync) {
                 log.debug("No changes detected after diff, will try to switch to synchronous updates on "
@@ -206,7 +218,7 @@ public class AsyncIndexUpdate implements Runnable {
                 }
 
                 try {
-                    store.merge(builder, newCommitHook(name, state),
+                    store.merge(builder, newCommitHook(name, refCheckpoint),
                             CommitInfo.EMPTY);
                     reindexedDefinitions.clear();
                 } catch (CommitFailedException e) {
@@ -219,12 +231,14 @@ public class AsyncIndexUpdate implements Runnable {
         postAsyncRunStatsStatus(indexStats);
 
         // checkpoints cleanup
-        if (refCheckpoint != null) {
-            store.release(refCheckpoint);
-        }
         if (exception != null || (exception == null && !callback.dirty)) {
-            // error? cleanup current cp too
+            log.debug("The {} index update failed; releasing the related checkpoint {}",
+                    name, checkpoint);
             store.release(checkpoint);
+        } else {
+            log.debug("The {} index update succeeded; releasing the previous checkpoint {}",
+                    name, refCheckpoint);
+            store.release(refCheckpoint);
         }
 
         if (exception != null) {
@@ -240,20 +254,20 @@ public class AsyncIndexUpdate implements Runnable {
         }
     }
 
-    private static CommitHook newCommitHook(final String name,
-            final PropertyState state) throws CommitFailedException {
+    private static CommitHook newCommitHook(
+            final String name, final String checkpoint) {
         return new CompositeHook(
                 new ConflictHook(new AnnotatingConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider()),
                 new CommitHook() {
-            @Override
-            @Nonnull
-            public NodeState processCommit(NodeState before, NodeState after,
-                    CommitInfo info) throws CommitFailedException {
+            @Override @Nonnull
+            public NodeState processCommit(
+                    NodeState before, NodeState after, CommitInfo info)
+                    throws CommitFailedException {
                 // check for concurrent updates by this async task
-                PropertyState stateAfterRebase = before.getChildNode(ASYNC)
-                        .getProperty(name);
-                if (Objects.equal(state, stateAfterRebase)) {
+                String checkpointAfterRebase =
+                        before.getChildNode(ASYNC).getString(name);
+                if (Objects.equal(checkpoint, checkpointAfterRebase)) {
                     return postAsyncRunNodeStatus(after.builder(), name)
                             .getNodeState();
                 } else {
@@ -309,8 +323,8 @@ public class AsyncIndexUpdate implements Runnable {
         stats.start(now());
     }
 
-    private static NodeBuilder postAsyncRunNodeStatus(NodeBuilder builder,
-            String name) {
+    private static NodeBuilder postAsyncRunNodeStatus(
+            NodeBuilder builder, String name) {
         String now = now();
         builder.getChildNode(INDEX_DEFINITIONS_NAME)
                 .setProperty(name + "-status", STATUS_DONE)
@@ -373,6 +387,45 @@ public class AsyncIndexUpdate implements Runnable {
             return "AsyncIndexStats [start=" + start + ", done=" + done
                     + ", status=" + status + "]";
         }
+    }
+
+    /**
+     * Checks whether there are no visible changes between the given states.
+     */
+    private static boolean noVisibleChanges(NodeState before, NodeState after) {
+        return after.compareAgainstBaseState(before, new NodeStateDiff() {
+            @Override
+            public boolean propertyAdded(PropertyState after) {
+                return isHidden(after.getName());
+            }
+            @Override
+            public boolean propertyChanged(
+                    PropertyState before, PropertyState after) {
+                return isHidden(after.getName());
+            }
+            @Override
+            public boolean propertyDeleted(PropertyState before) {
+                return isHidden(before.getName());
+            }
+            @Override
+            public boolean childNodeAdded(String name, NodeState after) {
+                return isHidden(name);
+            }
+            @Override
+            public boolean childNodeChanged(
+                    String name, NodeState before, NodeState after) {
+                return isHidden(name)
+                        || after.compareAgainstBaseState(before, this);
+            }
+            @Override
+            public boolean childNodeDeleted(String name, NodeState before) {
+                return isHidden(name);
+            }
+        });
+    }
+
+    private static boolean isHidden(String name) {
+        return name.charAt(0) == ':';
     }
 
 }
