@@ -167,4 +167,9 @@ public class HttpStore implements SegmentStore {
         // TODO: distributed gc
     }
 
+    @Override
+    public ByteBuffer getCompactionMap() {
+        return null;
+    }
+
 }

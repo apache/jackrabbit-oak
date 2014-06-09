@@ -24,9 +24,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.hash.Hashing;
 
 /**
@@ -52,7 +55,10 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    public static void compact(SegmentStore store) {
+    private static int ENTRY_KEY_SIZE = 20;
+    private static int ENTRY_SIZE = 2 * ENTRY_KEY_SIZE;
+
+    public static ByteBuffer compact(SegmentStore store) {
         SegmentWriter writer = store.getTracker().getWriter();
         Compactor compactor = new Compactor(writer);
 
@@ -74,6 +80,111 @@ public class Compactor {
             before = head;
             after = builder.getNodeState();
         }
+        return mapToByteBuffer(compactor.getCompacted());
+    }
+
+    /**
+     * Serializes the records map to a ByteBuffer, this allows the records to be
+     * GC'ed while maintaining a fast lookup structure.
+     */
+    static ByteBuffer mapToByteBuffer(Map<RecordId, RecordId> in) {
+        ByteBuffer buffer = ByteBuffer.allocate(in.size() * ENTRY_SIZE);
+        Map<RecordId, RecordId> sort = ImmutableSortedMap.copyOf(in);
+        for (Entry<RecordId, RecordId> e : sort.entrySet()) {
+            RecordId k = e.getKey();
+            buffer.putLong(k.getSegmentId().getMostSignificantBits());
+            buffer.putLong(k.getSegmentId().getLeastSignificantBits());
+            buffer.putInt(k.getOffset());
+            RecordId v = e.getValue();
+            buffer.putLong(v.getSegmentId().getMostSignificantBits());
+            buffer.putLong(v.getSegmentId().getLeastSignificantBits());
+            buffer.putInt(v.getOffset());
+        }
+        return buffer;
+    }
+
+    /**
+     * Locks down the RecordId persistence structure
+     */
+    static long[] recordAsKey(RecordId r) {
+        return new long[] { r.getSegmentId().getMostSignificantBits(),
+                r.getSegmentId().getLeastSignificantBits(), r.getOffset() };
+    }
+
+    /**
+     * Looks for the mapping for a given entry, if none is found, it returns the
+     * original key
+     */
+    static long[] readEntry(ByteBuffer compaction, RecordId rid) {
+        long[] entry = recordAsKey(rid);
+        int position = findEntry(compaction, entry[0], entry[1], entry[2]);
+        if (position != -1) {
+            long msb = compaction.getLong(position + ENTRY_KEY_SIZE);
+            long lsb = compaction.getLong(position + ENTRY_KEY_SIZE + 8);
+            long offset = compaction.getInt(position + ENTRY_KEY_SIZE + 16);
+            return new long[] { msb, lsb, offset };
+        }
+        return entry;
+    }
+
+    private static int findEntry(ByteBuffer index, long msb, long lsb, long offset) {
+
+        // this a copy of the TarReader#findEntry with tiny changes around the
+        // entry sizes
+
+        // The segment identifiers are randomly generated with uniform
+        // distribution, so we can use interpolation search to find the
+        // matching entry in the index. The average runtime is O(log log n).
+
+        int entrySize = ENTRY_SIZE;
+
+        int lowIndex = 0;
+        int highIndex = /* index.remaining() / */  index.capacity() / entrySize -1;
+        float lowValue = Long.MIN_VALUE;
+        float highValue = Long.MAX_VALUE;
+        float targetValue = msb;
+
+        while (lowIndex <= highIndex) {
+            int guessIndex = lowIndex + Math.round(
+                    (highIndex - lowIndex)
+                    * (targetValue - lowValue)
+                    / (highValue - lowValue));
+            int position = /* index.position() + */ guessIndex * entrySize;
+            long m = index.getLong(position);
+            if (msb < m) {
+                highIndex = guessIndex - 1;
+                highValue = m;
+            } else if (msb > m) {
+                lowIndex = guessIndex + 1;
+                lowValue = m;
+            } else {
+                // getting close...
+                long l = index.getLong(position + 8);
+                if (lsb < l) {
+                    highIndex = guessIndex - 1;
+                    highValue = m;
+                } else if (lsb > l) {
+                    lowIndex = guessIndex + 1;
+                    lowValue = m;
+                } else {
+                    // getting even closer...
+                    int o = index.getInt(position + 16);
+                    if (offset < o) {
+                        highIndex = guessIndex - 1;
+                        highValue = m;
+                    } else if (offset > o) {
+                        lowIndex = guessIndex + 1;
+                        lowValue = m;
+                    } else {
+                        // found it!
+                        return position;
+                    }
+                }
+            }
+        }
+
+        // not found
+        return -1;
     }
 
     private final SegmentWriter writer;
@@ -253,6 +364,10 @@ public class Compactor {
         } finally {
             stream.close();
         }
+    }
+
+    private Map<RecordId, RecordId> getCompacted() {
+        return compacted;
     }
 
 }

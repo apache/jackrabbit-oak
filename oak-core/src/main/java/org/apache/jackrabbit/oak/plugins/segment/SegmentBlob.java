@@ -178,7 +178,7 @@ public class SegmentBlob extends Record implements Blob {
 
     @Override
     public boolean equals(Object object) {
-        if (object == this || fastEquals(this, object)) {
+        if (object == this || fastEquals(this, object, getStore())) {
             return true;
         } else {
             return object instanceof Blob

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.nio.ByteBuffer;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -83,5 +85,8 @@ public interface SegmentStore {
      * Triggers removal of segments that are no longer referenceable.
      */
     void gc();
+
+    @CheckForNull
+    ByteBuffer getCompactionMap();
 
 }

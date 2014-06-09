@@ -381,7 +381,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        if (this == base || fastEquals(this, base)) {
+        if (this == base || fastEquals(this, base, getStore())) {
              return true; // no changes
         } else if (base == EMPTY_NODE || !base.exists()) { // special case
             return EmptyNodeState.compareAgainstEmptyState(this, diff);
@@ -476,7 +476,7 @@ public class SegmentNodeState extends Record implements NodeState {
                 if (!diff.childNodeAdded(afterChildName, afterNode)) {
                     return false;
                 }
-            } else if (!fastEquals(afterNode, beforeNode)) {
+            } else if (!fastEquals(afterNode, beforeNode, getStore())) {
                 if (!diff.childNodeChanged(
                         afterChildName, beforeNode, afterNode)) {
                     return false;
@@ -512,7 +512,7 @@ public class SegmentNodeState extends Record implements NodeState {
                     NodeState beforeChild =
                             beforeTemplate.getChildNode(beforeChildName, beforeId);
                     if (beforeChild.exists()) {
-                        if (!fastEquals(afterChild, beforeChild)
+                        if (!fastEquals(afterChild, beforeChild, getStore())
                                 && !diff.childNodeChanged(
                                         childName, beforeChild, afterChild)) {
                             return false;
@@ -550,7 +550,7 @@ public class SegmentNodeState extends Record implements NodeState {
 
     @Override
     public boolean equals(Object object) {
-        if (this == object || fastEquals(this, object)) {
+        if (this == object || fastEquals(this, object, getStore())) {
             return true;
         } else if (object instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) object;
