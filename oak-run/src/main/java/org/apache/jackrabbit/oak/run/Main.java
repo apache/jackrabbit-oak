@@ -304,7 +304,7 @@ public class Main {
                             }
                             String path = "/";
                             if (matcher.group(6) != null) {
-                                path = matcher.group(3);
+                                path = matcher.group(6);
                             }
 
                             if (id2 == null) {
