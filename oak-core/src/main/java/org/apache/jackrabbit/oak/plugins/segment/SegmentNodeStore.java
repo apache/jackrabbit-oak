@@ -150,7 +150,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
         NodeState root = getRoot();
         SegmentNodeState before = snb.getBaseState();
-        if (!fastEquals(before, root)) {
+        if (!fastEquals(before, root, store)) {
             SegmentNodeState after = snb.getNodeState();
             snb.reset(root);
             after.compareAgainstBaseState(
@@ -328,7 +328,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         private SegmentNodeBuilder prepare() throws CommitFailedException {
             SegmentNodeState state = head.get();
             SegmentNodeBuilder builder = state.builder();
-            if (fastEquals(before, state.getChildNode(ROOT))) {
+            if (fastEquals(before, state.getChildNode(ROOT), store)) {
                 // use a shortcut when there are no external changes
                 builder.setChildNode(
                         ROOT, hook.processCommit(before, after, info));
@@ -416,7 +416,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         NodeState execute()
                 throws CommitFailedException, InterruptedException {
             // only do the merge if there are some changes to commit
-            if (!fastEquals(before, after)) {
+            if (!fastEquals(before, after, store)) {
                 long timeout = optimisticMerge();
                 if (timeout >= 0) {
                     pessimisticMerge(timeout);

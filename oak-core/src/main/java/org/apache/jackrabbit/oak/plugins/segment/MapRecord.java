@@ -364,7 +364,7 @@ class MapRecord extends Record {
     }
 
     boolean compare(MapRecord before, final NodeStateDiff diff) {
-        if (fastEquals(this, before)) {
+        if (fastEquals(this, before, getStore())) {
             return true;
         }
 

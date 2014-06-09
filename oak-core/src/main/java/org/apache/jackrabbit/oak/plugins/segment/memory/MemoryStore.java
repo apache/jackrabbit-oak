@@ -125,4 +125,9 @@ public class MemoryStore implements SegmentStore {
         segments.keySet().retainAll(tracker.getReferencedSegmentIds());
     }
 
+    @Override
+    public ByteBuffer getCompactionMap() {
+        return null;
+    }
+
 }
