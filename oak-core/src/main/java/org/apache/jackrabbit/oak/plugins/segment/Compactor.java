@@ -52,7 +52,7 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    public static void compact(SegmentStore store) {
+    public static CompactionMap compact(SegmentStore store) {
         SegmentWriter writer = store.getTracker().getWriter();
         Compactor compactor = new Compactor(writer);
 
@@ -74,6 +74,16 @@ public class Compactor {
             before = head;
             after = builder.getNodeState();
         }
+
+        return new CompactionMap(compactor.compacted);
+    }
+
+    /**
+     * Locks down the RecordId persistence structure
+     */
+    static long[] recordAsKey(RecordId r) {
+        return new long[] { r.getSegmentId().getMostSignificantBits(),
+                r.getSegmentId().getLeastSignificantBits(), r.getOffset() };
     }
 
     private final SegmentWriter writer;

@@ -406,10 +406,11 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    private void compact() {
+    public void compact() {
         if (compactNeeded.getAndSet(false)) {
             long start = System.nanoTime();
-            Compactor.compact(this);
+            tracker.getWriter().dropCache();
+            tracker.setCompactionMap(Compactor.compact(this));
             log.info("TarMK Compaction: Completed in {}ms", MILLISECONDS
                     .convert(System.nanoTime() - start, NANOSECONDS));
             cleanupNeeded.set(true);
