@@ -19,7 +19,10 @@ package org.apache.jackrabbit.oak.fixture;
 import java.io.File;
 import java.util.Map;
 
+import javax.sql.DataSource;
+
 import com.google.common.collect.Maps;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
@@ -32,6 +35,8 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -50,6 +55,8 @@ public abstract class OakFixture {
     public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
     public static final String OAK_MONGO_MK = "Oak-MongoMK";
+
+    public static final String OAK_RDB = "Oak-RDB";
 
     public static final String OAK_H2 = "Oak-H2";
     public static final String OAK_TAR = "Oak-Tar";
@@ -275,6 +282,78 @@ public abstract class OakFixture {
                         throw new RuntimeException(e);
                     }
                     FileUtils.deleteQuietly(blobStoreDir);
+                }
+            }
+        };
+    }
+
+    public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
+            final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
+        return new OakFixture(name) {
+            private DocumentMK[] kernels;
+            private BlobStore blobStore;
+
+            private BlobStore getBlobStore() {
+                try {
+                    DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                    blobStore = new RDBBlobStore(ds);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+                return blobStore;
+            }
+
+            @Override
+            public Oak getOak(int clusterId) throws Exception {
+                DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                        .setClusterId(clusterId).setLogging(false);
+                BlobStore blobStore = getBlobStore();
+                if (blobStore != null) {
+                    mkBuilder.setBlobStore(blobStore);
+                }
+                DocumentMK dmk = mkBuilder.open();
+                Oak oak;
+                if (useMk) {
+                    oak = new Oak(new KernelNodeStore(dmk, cacheSize));
+                } else {
+                    oak = new Oak(dmk.getNodeStore());
+                }
+                return oak;
+            }
+
+            @Override
+            public Oak[] setUpCluster(int n) throws Exception {
+                Oak[] cluster = new Oak[n];
+                kernels = new DocumentMK[cluster.length];
+                for (int i = 0; i < cluster.length; i++) {
+                    BlobStore blobStore = getBlobStore();
+                    DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                            .setClusterId(i).setLogging(false);
+                    if (blobStore != null) {
+                        mkBuilder.setBlobStore(blobStore);
+                    }
+                    kernels[i] = mkBuilder.open();
+                    Oak oak;
+                    if (useMk) {
+                        oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
+                    } else {
+                        oak = new Oak(kernels[i].getNodeStore());
+                    }
+                    cluster[i] = oak;
+                }
+                return cluster;
+            }
+
+            @Override
+            public void tearDownCluster() {
+                for (DocumentMK kernel : kernels) {
+                    kernel.dispose();
+                }
+                if (dropDBAfterTest) {
+                    throw new RuntimeException("dropdb not supported for RDB persistence");
                 }
             }
         };
