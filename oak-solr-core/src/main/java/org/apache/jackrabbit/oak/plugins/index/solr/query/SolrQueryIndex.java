@@ -16,13 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -30,6 +40,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -38,13 +49,16 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 
 /**
  * A Solr based {@link QueryIndex}
@@ -106,8 +120,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
         StringBuilder queryBuilder = new StringBuilder();
 
-        if (filter.getFullTextConstraint() != null) {
-            queryBuilder.append(getFullTextQuery(filter.getFullTextConstraint()));
+        FullTextExpression ft = filter.getFullTextConstraint();
+        if (ft != null) {
+            queryBuilder.append(getFullTextQuery(ft));
             queryBuilder.append(' ');
         } else if (filter.getFulltextConditions() != null) {
             Collection<String> fulltextConditions = filter.getFulltextConditions();
@@ -323,6 +338,39 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return fullTextString.toString();
     }
 
+    /**
+     * Get the set of relative paths of a full-text condition. For example, for
+     * the condition "contains(a/b, 'hello') and contains(c/d, 'world'), the set
+     * { "a", "c" } is returned. If there are no relative properties, then one
+     * entry is returned (the empty string). If there is no expression, then an
+     * empty set is returned.
+     *
+     * @param ft the full-text expression
+     * @return the set of relative paths (possibly empty)
+     */
+    private static Set<String> getRelativePaths(FullTextExpression ft) {
+        final HashSet<String> relPaths = new HashSet<String>();
+        ft.accept(new FullTextVisitor.FullTextVisitorBase() {
+
+            @Override
+            public boolean visit(FullTextTerm term) {
+                String p = term.getPropertyName();
+                if (p == null) {
+                    relPaths.add("");
+                } else if (p.startsWith("../") || p.startsWith("./")) {
+                    throw new IllegalArgumentException("Relative parent is not supported:" + p);
+                } else if (getDepth(p) > 1) {
+                    String parent = getParentPath(p);
+                    relPaths.add(parent);
+                } else {
+                    relPaths.add("");
+                }
+                return true;
+            }
+        });
+        return relPaths;
+    }
+
     private boolean isSupportedHttpRequest(String nativeQueryString) {
         // the query string starts with ${supported-handler.selector}?
         return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
@@ -330,13 +378,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     private void setDefaults(SolrQuery solrQuery) {
         solrQuery.setParam("q.op", "AND");
-        solrQuery.setParam("fl", "* score");
+        solrQuery.setParam("fl", configuration.getPathField() + " score");
         String catchAllField = configuration.getCatchAllField();
         if (catchAllField != null && catchAllField.length() > 0) {
             solrQuery.setParam("df", catchAllField);
         }
 
-        solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
+        // TODO : can we handle this better? e.g. with deep paging support?
+        solrQuery.setParam("rows", "100000");
     }
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
@@ -366,78 +415,195 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     @Override
-    public Cursor query(Filter filter, NodeState root) {
-        if (log.isDebugEnabled()) {
-            log.debug("converting filter {}", filter);
-        }
+    public Cursor query(final Filter filter, NodeState root) {
         Cursor cursor;
         try {
-            SolrQuery query = getQuery(filter);
-            if (log.isDebugEnabled()) {
-                log.debug("sending query {}", query);
-            }
-            QueryResponse queryResponse = solrServer.query(query);
-            if (log.isDebugEnabled()) {
-                log.debug("getting response {}", queryResponse);
-            }
-            cursor = new SolrCursor(queryResponse);
+            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint()) : Collections.<String>emptySet();
+            final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
+
+            final int parentDepth = getDepth(parent);
+
+
+            cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
+                private final Set<String> seenPaths = Sets.newHashSet();
+                private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
+                private SolrDocument lastDoc;
+                public int offset = 0;
+
+                @Override
+                protected SolrResultRow computeNext() {
+                    while (!queue.isEmpty() || loadDocs()) {
+                        return queue.remove();
+                    }
+                    return endOfData();
+                }
+
+                private SolrResultRow convertToRow(SolrDocument doc) throws IOException {
+                    String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
+                    if (path != null) {
+                        if ("".equals(path)) {
+                            path = "/";
+                        }
+                        if (!parent.isEmpty()) {
+                            path = getAncestorPath(path, parentDepth);
+                            // avoid duplicate entries
+                            if (seenPaths.contains(path)) {
+                                return null;
+                            }
+                            seenPaths.add(path);
+                        }
+
+                        float score = 0f;
+                        Object scoreObj = doc.get("score");
+                        if (scoreObj != null) {
+                            score = (Float) scoreObj;
+                        }
+                        return new SolrResultRow(path, score, doc);
+                    }
+                    return null;
+                }
+
+                /**
+                 * Loads the Solr documents in batches
+                 * @return true if any document is loaded
+                 */
+                private boolean loadDocs() {
+                    SolrDocument lastDocToRecord = null;
+
+                    try {
+                        if (log.isDebugEnabled()) {
+                            log.debug("converting filter {}", filter);
+                        }
+                        SolrQuery query = getQuery(filter);
+                        if (lastDoc != null) {
+                            offset++;
+                            int newOffset = offset * configuration.getRows();
+                            query.setParam("start", String.valueOf(newOffset));
+                        }
+                        if (log.isDebugEnabled()) {
+                            log.debug("sending query {}", query);
+                        }
+                        SolrDocumentList docs = solrServer.query(query).getResults();
+
+                        if (log.isDebugEnabled()) {
+                            log.debug("getting docs {}", docs);
+                        }
+
+                        for (SolrDocument doc : docs) {
+                            SolrResultRow row = convertToRow(doc);
+                            if (row != null) {
+                                queue.add(row);
+                            }
+                            lastDocToRecord = doc;
+                        }
+                    } catch (Exception e) {
+                        if (log.isWarnEnabled()) {
+                            log.warn("query via {} failed.", solrServer, e);
+                        }
+                    }
+                    if (lastDocToRecord != null) {
+                        this.lastDoc = lastDocToRecord;
+                    }
+
+                    return !queue.isEmpty();
+                }
+
+            }, filter.getQueryEngineSettings());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return cursor;
     }
 
+    static class SolrResultRow {
+        final String path;
+        final double score;
+        SolrDocument doc;
 
-    private class SolrCursor implements Cursor {
+        SolrResultRow(String path, double score) {
+            this.path = path;
+            this.score = score;
+        }
 
-        private final SolrDocumentList results;
 
-        private int i;
-
-        public SolrCursor(QueryResponse queryResponse) {
-            this.results = queryResponse.getResults();
-            i = 0;
+        SolrResultRow(String path, double score, SolrDocument doc) {
+            this.path = path;
+            this.score = score;
+            this.doc = doc;
         }
 
         @Override
+        public String toString() {
+            return String.format("%s (%1.2f)", path, score);
+        }
+    }
+
+    /**
+     * A cursor over Solr results. The result includes the path and the jcr:score pseudo-property as returned by Solr,
+     * plus, eventually, the returned stored values if {@link org.apache.solr.common.SolrDocument} is included in the
+     * {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex.SolrResultRow}.
+     */
+    static class SolrRowCursor implements Cursor {
+
+        private final Cursor pathCursor;
+        SolrResultRow currentRow;
+
+        SolrRowCursor(final Iterator<SolrResultRow> it, QueryEngineSettings settings) {
+            Iterator<String> pathIterator = new Iterator<String>() {
+
+                @Override
+                public boolean hasNext() {
+                    return it.hasNext();
+                }
+
+                @Override
+                public String next() {
+                    currentRow = it.next();
+                    return currentRow.path;
+                }
+
+                @Override
+                public void remove() {
+                    it.remove();
+                }
+
+            };
+            pathCursor = new Cursors.PathCursor(pathIterator, true, settings);
+        }
+
+
+        @Override
         public boolean hasNext() {
-            return results != null && i < results.size();
+            return pathCursor.hasNext();
         }
 
         @Override
         public void remove() {
-            results.remove(i);
+            pathCursor.remove();
         }
 
+        @Override
         public IndexRow next() {
-            if (i < results.size()) {
-                final SolrDocument doc = results.get(i);
-                i++;
-                return new IndexRow() {
-                    @Override
-                    public String getPath() {
-                        return String.valueOf(doc.getFieldValue(
-                                configuration.getPathField()));
-                    }
+            final IndexRow pathRow = pathCursor.next();
+            return new IndexRow() {
 
-                    @Override
-                    public PropertyValue getValue(String columnName) {
-                        if (QueryImpl.JCR_SCORE.equals(columnName)) {
-                            float score = 0f;
-                            Object scoreObj = doc.get("score");
-                            if (scoreObj != null) {
-                                score = (Float) scoreObj;
-                            }
-                            return PropertyValues.newDouble((double) score);
-                        }
-                        Object o = doc.getFieldValue(columnName);
-                        return o == null ? null : PropertyValues.newString(o.toString());
-                    }
+                @Override
+                public String getPath() {
+                    return pathRow.getPath();
+                }
 
-                };
-            } else {
-                return null;
-            }
+                @Override
+                public PropertyValue getValue(String columnName) {
+                    // overlay the score
+                    if (QueryImpl.JCR_SCORE.equals(columnName)) {
+                        return PropertyValues.newDouble(currentRow.score);
+                    }
+                    // TODO : make inclusion of doc configurable
+                    return currentRow.doc != null ? PropertyValues.newString(
+                            String.valueOf(currentRow.doc.getFieldValue(columnName))) : null;
+                }
+
+            };
         }
     }
 

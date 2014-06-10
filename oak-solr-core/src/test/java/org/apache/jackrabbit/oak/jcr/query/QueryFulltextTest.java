@@ -88,24 +88,23 @@ public class QueryFulltextTest extends AbstractQueryTest {
 
         q = qm.createQuery(sql2, Query.JCR_SQL2);
         assertEquals("/testroot/node2, /testroot/node3", getResult(q.execute(), "path"));
-//
-//        sql2 = "select [jcr:path] as [path] from [nt:base] "
-//                + "where contains([node1/text], 'hello') order by [jcr:path]";
-//        q = qm.createQuery(sql2, Query.JCR_SQL2);
-//        assertEquals("/testroot", getResult(q.execute(), "path"));
-//
-//        sql2 = "select [jcr:path] as [path] from [nt:base] "
-//                + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
-//        q = qm.createQuery(sql2, Query.JCR_SQL2);
-//        assertEquals("/testroot", getResult(q.execute(), "path"));
 
-        // TODO OAK-890
-        // sql2 = "select [jcr:path] as [path] from [nt:base] "
-        // + "where contains([node1/text], 'hello') "
-        // + "and contains([node2/text], 'hallo') "
-        // + "order by [jcr:path]";
-        // q = qm.createQuery(sql2, Query.JCR_SQL2);
-        // assertEquals("/testroot", getResult(q.execute(), "path"));
+        sql2 = "select [jcr:path] as [path] from [nt:base] "
+                + "where contains([node1/text], 'hello') order by [jcr:path]";
+        q = qm.createQuery(sql2, Query.JCR_SQL2);
+        assertEquals("/testroot", getResult(q.execute(), "path"));
+
+        sql2 = "select [jcr:path] as [path] from [nt:base] "
+                + "where contains([node2/text], 'hello OR hallo') order by [jcr:path]";
+        q = qm.createQuery(sql2, Query.JCR_SQL2);
+        assertEquals("/testroot", getResult(q.execute(), "path"));
+
+        sql2 = "select [jcr:path] as [path] from [nt:base] "
+        + "where contains([node1/text], 'hello') "
+        + "and contains([node2/text], 'hallo') "
+        + "order by [jcr:path]";
+        q = qm.createQuery(sql2, Query.JCR_SQL2);
+        assertEquals("/testroot", getResult(q.execute(), "path"));
     }
 
     static String getResult(QueryResult result, String propertyName) throws RepositoryException {
