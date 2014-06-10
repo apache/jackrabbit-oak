@@ -32,7 +32,15 @@ class Record {
     }
 
     static boolean fastEquals(Record a, Record b) {
-        return a.segmentId == b.segmentId && a.offset == b.offset;
+        if (a.segmentId == b.segmentId && a.offset == b.offset) {
+            return true;
+        }
+
+        CompactionMap compaction = a.getStore().getTracker().getCompactionMap();
+        RecordId aid = a.getRecordId();
+        RecordId bid = b.getRecordId();
+        return compaction.wasCompactedTo(aid, bid)
+                || compaction.wasCompactedTo(bid, aid);
     }
 
     /**
@@ -66,6 +74,15 @@ class Record {
      */
     protected Segment getSegment() {
         return segmentId.getSegment();
+    }
+
+    /**
+     * Returns the segment store.
+     *
+     * @return segment store
+     */
+    public SegmentStore getStore() {
+        return segmentId.getTracker().getStore();
     }
 
     /**
