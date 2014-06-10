@@ -240,7 +240,7 @@ public class Template {
             // TODO: Leverage the HAMT data structure for the comparison
             MapRecord thisMap = getChildNodeMap(thisId);
             MapRecord thatMap = getChildNodeMap(thatId);
-            if (fastEquals(thisMap, thatMap, thisMap.getStore())) {
+            if (fastEquals(thisMap, thatMap)) {
                 return true; // shortcut
             } else if (thisMap.size() != thatMap.size()) {
                 return false; // shortcut

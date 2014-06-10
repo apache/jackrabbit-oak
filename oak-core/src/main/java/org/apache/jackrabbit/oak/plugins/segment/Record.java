@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.apache.jackrabbit.oak.plugins.segment.Compactor.readEntry;
-
-import java.nio.ByteBuffer;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -27,22 +23,24 @@ import javax.annotation.Nonnull;
  */
 class Record {
 
-    static boolean fastEquals(Object a, Object b, SegmentStore store) {
-        return a instanceof Record && fastEquals((Record) a, b, store);
+    static boolean fastEquals(Object a, Object b) {
+        return a instanceof Record && fastEquals((Record) a, b);
     }
 
-    static boolean fastEquals(Record a, Object b, SegmentStore store) {
-        return b instanceof Record && fastEquals(a, (Record) b, store);
+    static boolean fastEquals(Record a, Object b) {
+        return b instanceof Record && fastEquals(a, (Record) b);
     }
 
-    static boolean fastEquals(Record a, Record b, SegmentStore store) {
-        ByteBuffer compaction = store.getCompactionMap();
-        if (compaction == null) {
-            return a.segmentId == b.segmentId && a.offset == b.offset;
+    static boolean fastEquals(Record a, Record b) {
+        if (a.segmentId == b.segmentId && a.offset == b.offset) {
+            return true;
         }
-        long[] aId = readEntry(compaction, a.getRecordId());
-        long[] bId = readEntry(compaction, b.getRecordId());
-        return aId[0] == bId[0] && aId[1] == bId[1] && aId[2] == bId[2];
+
+        CompactionMap compaction = a.getStore().getTracker().getCompactionMap();
+        RecordId aid = a.getRecordId();
+        RecordId bid = b.getRecordId();
+        return compaction.wasCompactedTo(aid, bid)
+                || compaction.wasCompactedTo(bid, aid);
     }
 
     /**
@@ -132,7 +130,7 @@ class Record {
 
     @Override
     public boolean equals(Object that) {
-        return fastEquals(this, that, getStore());
+        return fastEquals(this, that);
     }
 
     @Override
