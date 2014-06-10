@@ -16,37 +16,24 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
-import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+public class LoginGetRootLogoutTest extends AbstractLoginTest {
 
-public class LoginLogoutUserTest extends AbstractTest {
+    public LoginGetRootLogoutTest() {
+        this("admin", false, DEFAULT_ITERATIONS);
+    }
 
-    private final static String USER = "user";
-
-    @Override
-    public void setUp(Repository repository, Credentials credentials) throws Exception {
-        super.setUp(repository, new SimpleCredentials(USER, USER.toCharArray()));
-
-        // create test user
-        JackrabbitSession adminSession = (JackrabbitSession) loginAdministrative();
-        User user = adminSession.getUserManager().createUser(USER, USER);
-        AccessControlUtils.addAccessControlEntry(adminSession, user.getPath(), user.getPrincipal(), new String[]{Privilege.JCR_ALL}, true);
-        AccessControlUtils.addAccessControlEntry(adminSession, "/", user.getPrincipal(), new String[]{Privilege.JCR_ALL}, true);
-        adminSession.save();
+    public LoginGetRootLogoutTest(String runAsUser, boolean runWithToken, int noIterations) {
+        super(runAsUser, runWithToken, noIterations);
     }
 
     @Override
     public void runTest() throws RepositoryException {
         Repository repository = getRepository();
-        for (int i = 0; i < LoginUserTest.COUNT; i++) {
+        for (int i = 0; i < COUNT; i++) {
             Session session = repository.login(getCredentials());
             try {
                 session.getRootNode();
@@ -55,4 +42,5 @@ public class LoginLogoutUserTest extends AbstractTest {
             }
         }
     }
+
 }

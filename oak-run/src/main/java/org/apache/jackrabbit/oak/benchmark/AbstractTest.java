@@ -423,7 +423,7 @@ abstract class AbstractTest<T> extends Benchmark implements CSVResultGenerator {
      * @return admin session
      */
     protected Session loginAdministrative() {
-        return login(new SimpleCredentials("admin", "admin".toCharArray()));
+        return login(CREDENTIALS);
     }
     
     /**
