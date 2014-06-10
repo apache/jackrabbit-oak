@@ -25,6 +25,9 @@ import java.security.SecureRandom;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
 import org.slf4j.Logger;
@@ -62,6 +65,14 @@ public class SegmentTracker {
     private final SegmentStore store;
 
     private final SegmentWriter writer;
+
+    /**
+     * Serialized map that contains the link between old record
+     * identifiers and identifiers of the corresponding records
+     * after compaction.
+     */
+    private final AtomicReference<CompactionMap> compactionMap =
+            new AtomicReference<CompactionMap>(new CompactionMap());
 
     private final long cacheSize;
 
@@ -140,6 +151,15 @@ public class SegmentTracker {
                 }
             }
         }
+    }
+
+    public void setCompactionMap(CompactionMap compaction) {
+        compactionMap.set(compaction);
+    }
+
+    @Nonnull
+    CompactionMap getCompactionMap() {
+        return compactionMap.get();
     }
 
     /**

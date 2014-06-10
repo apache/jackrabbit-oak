@@ -137,12 +137,6 @@ public class FileStore implements SegmentStore {
     private int compactThreshold = 10;
 
     /**
-     * Serialized map that contains the link between the old record ids and new record ids
-     * of the compacted states.
-     */
-    private final AtomicReference<ByteBuffer> compactionMap;
-
-    /**
      * List of old tar file generations that are waiting to be removed.
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
@@ -271,8 +265,6 @@ public class FileStore implements SegmentStore {
         flushThread.setDaemon(true);
         flushThread.setPriority(Thread.MIN_PRIORITY);
         flushThread.start();
-
-        compactionMap = new AtomicReference<ByteBuffer>(null);
 
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
     }
@@ -419,7 +411,7 @@ public class FileStore implements SegmentStore {
         if (compactNeeded.getAndSet(false)) {
             long start = System.nanoTime();
             tracker.getWriter().dropCache();
-            compactionMap.set(Compactor.compact(this));
+            tracker.setCompactionMap(Compactor.compact(this));
             log.info("TarMK Compaction: Completed in {}ms", MILLISECONDS
                     .convert(System.nanoTime() - start, NANOSECONDS));
             cleanupNeeded.set(true);
@@ -634,11 +626,6 @@ public class FileStore implements SegmentStore {
             index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
         }
         return index;
-    }
-
-    @Override
-    public ByteBuffer getCompactionMap() {
-        return compactionMap.get();
     }
 
 }
