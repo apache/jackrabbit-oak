@@ -36,7 +36,7 @@ class Record {
             return true;
         }
 
-        CompactionMap compaction = a.getStore().getTracker().getCompactionMap();
+        CompactionMap compaction = a.segmentId.getTracker().getCompactionMap();
         RecordId aid = a.getRecordId();
         RecordId bid = b.getRecordId();
         return compaction.wasCompactedTo(aid, bid)
@@ -74,15 +74,6 @@ class Record {
      */
     protected Segment getSegment() {
         return segmentId.getSegment();
-    }
-
-    /**
-     * Returns the segment store.
-     *
-     * @return segment store
-     */
-    public SegmentStore getStore() {
-        return segmentId.getTracker().getStore();
     }
 
     /**
