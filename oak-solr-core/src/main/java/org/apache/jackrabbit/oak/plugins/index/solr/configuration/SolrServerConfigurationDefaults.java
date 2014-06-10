@@ -31,8 +31,10 @@ public class SolrServerConfigurationDefaults {
 
     public static final String PATH_FIELD_NAME = "path_exact";
     public static final String CHILD_FIELD_NAME = "path_child";
-    public static final String DESC_FIELD_NAME = "path_desc";
+    public static final String DESC_FIELD_NAME = "path_des";
     public static final String ANC_FIELD_NAME = "path_anc";
 
     public static final String CATCHALL_FIELD = "catch_all";
+
+    public static final int ROWS = 100000;
 }

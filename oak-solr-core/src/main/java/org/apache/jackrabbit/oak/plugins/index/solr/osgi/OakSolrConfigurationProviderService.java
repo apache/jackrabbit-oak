@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.osgi.service.component.ComponentContext;
 
@@ -35,11 +36,12 @@ import org.osgi.service.component.ComponentContext;
 @Service(OakSolrConfigurationProvider.class)
 public class OakSolrConfigurationProviderService implements OakSolrConfigurationProvider {
 
-    private static final String DEFAULT_DESC_FIELD = "path_des";
-    private static final String DEFAULT_CHILD_FIELD = "path_child";
-    private static final String DEFAULT_PARENT_FIELD = "path_anc";
-    private static final String DEFAULT_PATH_FIELD = "path_exact";
-    private static final String DEFAULT_CATCHALL_FIELD = "catch_all";
+    private static final String DEFAULT_DESC_FIELD = SolrServerConfigurationDefaults.DESC_FIELD_NAME;
+    private static final String DEFAULT_CHILD_FIELD = SolrServerConfigurationDefaults.CHILD_FIELD_NAME;
+    private static final String DEFAULT_PARENT_FIELD = SolrServerConfigurationDefaults.ANC_FIELD_NAME;
+    private static final String DEFAULT_PATH_FIELD = SolrServerConfigurationDefaults.PATH_FIELD_NAME;
+    private static final String DEFAULT_CATCHALL_FIELD = SolrServerConfigurationDefaults.CATCHALL_FIELD;
+    private static final int DEFAULT_ROWS = SolrServerConfigurationDefaults.ROWS;
 
     @Property(value = DEFAULT_DESC_FIELD, label = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
@@ -70,22 +72,29 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     )
     private static final String COMMIT_POLICY = "commit.policy";
 
+
+    @Property(intValue = DEFAULT_ROWS, label = "rows")
+    private static final String ROWS = "rows";
+
+
     private String pathChildrenFieldName;
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
     private String catchAllField;
     private CommitPolicy commitPolicy;
+    private int rows;
 
     private OakSolrConfiguration oakSolrConfiguration;
 
-  @Activate
+    @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
         pathChildrenFieldName = String.valueOf(componentContext.getProperties().get(PATH_CHILDREN_FIELD));
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
         catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
+        rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
         commitPolicy = CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
     }
 
@@ -137,6 +146,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Override
                 public String getCatchAllField() {
                     return catchAllField;
+                }
+
+                @Override
+                public int getRows() {
+                    return rows;
                 }
             };
         }
