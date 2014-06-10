@@ -26,7 +26,6 @@ import com.google.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
@@ -67,6 +66,12 @@ public class BenchmarkRunner {
                 .ofType(Boolean.class);
         OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+        OptionSpec<String> runAsUser = parser.accepts("runAsUser", "Run test using admin, anonymous or a test user")
+                .withOptionalArg().ofType(String.class).defaultsTo("admin");
+        OptionSpec<Boolean> runWithToken = parser.accepts("runWithToken", "Run test using a login token vs. simplecredentials")
+                .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
+        OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
+                .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(1000);
         OptionSpec<Integer> concurrency = parser.accepts("concurrency", "Number of test threads.")
@@ -75,8 +80,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo(Boolean.FALSE);
         OptionSpec<Boolean> randomUser = parser.accepts("randomUser", "Whether to use a random user to read.")
-                        .withOptionalArg().ofType(Boolean.class)
-                        .defaultsTo(Boolean.FALSE);
+                .withOptionalArg().ofType(Boolean.class)
+                .defaultsTo(Boolean.FALSE);
         OptionSpec<File> csvFile = parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
                 .withOptionalArg().ofType(File.class);
         OptionSpec<Boolean> flatStructure = parser.accepts("flatStructure", "Whether the test should use a flat structure or not.")
@@ -129,10 +134,20 @@ public class BenchmarkRunner {
             new OrderedIndexInsertOrderedPropertyTest(),
             new OrderedIndexInsertStandardPropertyTest(),
             new OrderedIndexInsertNoIndexTest(),
-            new LoginTest(),
-            new LoginLogoutTest(),
-            new LoginUserTest(),
-            new LoginLogoutUserTest(),
+            new LoginTest(
+                    runAsUser.value(options),
+                    runWithToken.value(options),
+                    noIterations.value(options)),
+            new LoginLogoutTest(
+                    runAsUser.value(options),
+                    runWithToken.value(options),
+                    noIterations.value(options)),
+            new LoginGetRootLogoutTest(
+                    runAsUser.value(options),
+                    runWithToken.value(options),
+                    noIterations.value(options)),
+            new LoginSystemTest(),
+            new LoginImpersonateTest(),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),

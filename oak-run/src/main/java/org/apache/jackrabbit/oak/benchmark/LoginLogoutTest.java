@@ -16,32 +16,24 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.SimpleCredentials;
 
-public class LoginLogoutTest extends AbstractTest {
+public class LoginLogoutTest extends AbstractLoginTest {
 
-    @Override
-    public void setUp(Repository repository, Credentials credentials)
-            throws Exception {
-        super.setUp(repository,
-                new SimpleCredentials("admin", "admin".toCharArray()));
+    public LoginLogoutTest() {
+        this("admin", false, DEFAULT_ITERATIONS);
     }
-    
+
+    public LoginLogoutTest(String runAsUser, boolean runWithToken, int noIterations) {
+        super(runAsUser, runWithToken, noIterations);
+    }
+
     @Override
     public void runTest() throws RepositoryException {
         Repository repository = getRepository();
-        for (int i = 0; i < LoginUserTest.COUNT; i++) {
-            Session session = repository.login(getCredentials());
-            try {
-                session.getRootNode();
-            } finally {
-                session.logout();
-            }
+        for (int i = 0; i < COUNT; i++) {
+            repository.login(getCredentials()).logout();
         }
     }
-
 }
