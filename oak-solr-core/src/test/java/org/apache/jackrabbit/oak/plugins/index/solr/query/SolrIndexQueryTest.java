@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 import java.util.Iterator;
 
 import com.google.common.collect.ImmutableList;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -34,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -42,6 +44,7 @@ import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
@@ -236,6 +239,9 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void testNativeMLTQuery() throws Exception {
+        // TODO: OAK-1819
+        assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
+
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?q=name:World&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
 
         Tree tree = root.getTree("/");
@@ -255,6 +261,9 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Test
     public void testNativeMLTQueryWithStream() throws Exception {
+        // TODO: OAK-1819
+        assumeTrue(!System.getProperty("java.version").startsWith("1.8"));
+
         String nativeQueryString = "select [jcr:path] from [nt:base] where native('solr', 'mlt?stream.body=world is nice today&mlt.fl=name&mlt.mindf=0&mlt.mintf=0')";
 
         Tree tree = root.getTree("/");
