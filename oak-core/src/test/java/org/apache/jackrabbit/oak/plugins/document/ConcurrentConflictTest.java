@@ -78,6 +78,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         concurrentUpdates(true);
     }
 
+    @Ignore("OAK-1788")
     @Test
     public void concurrentUpdates() throws Exception {
         concurrentUpdates(false);
