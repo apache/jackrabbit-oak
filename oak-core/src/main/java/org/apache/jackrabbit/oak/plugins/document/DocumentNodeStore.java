@@ -1332,7 +1332,7 @@ public final class DocumentNodeStore
 
     @Override
     public void release(@Nonnull String checkpoint) {
-        // TODO
+        checkpoints.release(checkpoint);
     }
 
     //------------------------< RevisionContext >-------------------------------

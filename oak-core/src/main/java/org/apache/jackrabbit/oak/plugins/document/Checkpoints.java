@@ -74,6 +74,12 @@ class Checkpoints {
         return r;
     }
 
+    public void release(String checkpoint) {
+        UpdateOp op = new UpdateOp(ID, false);
+        op.removeMapEntry(PROP_CHECKPOINT, Revision.fromString(checkpoint));
+        store.findAndUpdate(Collection.SETTINGS, op);
+    }
+
     /**
      * Returns the oldest valid checkpoint registered.
      *
@@ -147,4 +153,6 @@ class Checkpoints {
             store.createOrUpdate(Collection.SETTINGS, updateOp);
         }
     }
+
+
 }
