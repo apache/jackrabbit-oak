@@ -29,6 +29,8 @@ import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -127,6 +129,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     private String lastReadWriteMode;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
+        checkVersion(db);
         nodes = db.getCollection(
                 Collection.NODES.toString());
         clusterNodes = db.getCollection(
@@ -177,6 +180,24 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
+    }
+
+    private static void checkVersion(DB db) {
+        String version = db.command("buildInfo").getString("version");
+        Matcher m = Pattern.compile("^(\\d+)\\.(\\d+)\\..*").matcher(version);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Malformed MongoDB version: " + version);
+        }
+        int major = Integer.parseInt(m.group(1));
+        int minor = Integer.parseInt(m.group(2));
+        if (major > 2) {
+            return;
+        }
+        if (minor < 6) {
+            String msg = "MongoDB version 2.6.0 or higher required. " +
+                    "Currently connected to a MongoDB with version: " + version;
+            throw new RuntimeException(msg);
+        }
     }
 
     private Cache<CacheValue, NodeDocument> createOffHeapCache(
@@ -570,6 +591,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 Operation op = entry.getValue();
                 switch (op.type) {
                     case SET:
+                    case MAX:
                     case INCREMENT: {
                         inserts[i].put(k.toString(), op.value);
                         break;
@@ -965,6 +987,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     @Nonnull
     private static DBObject createUpdate(UpdateOp updateOp) {
         BasicDBObject setUpdates = new BasicDBObject();
+        BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
 
@@ -980,16 +1003,17 @@ public class MongoDocumentStore implements CachingDocumentStore {
             }
             Operation op = entry.getValue();
             switch (op.type) {
-                case SET: {
+                case SET:
+                case SET_MAP_ENTRY: {
                     setUpdates.append(k.toString(), op.value);
+                    break;
+                }
+                case MAX: {
+                    maxUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case INCREMENT: {
                     incUpdates.append(k.toString(), op.value);
-                    break;
-                }
-                case SET_MAP_ENTRY: {
-                    setUpdates.append(k.toString(), op.value);
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
@@ -1002,6 +1026,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
         BasicDBObject update = new BasicDBObject();
         if (!setUpdates.isEmpty()) {
             update.append("$set", setUpdates);
+        }
+        if (!maxUpdates.isEmpty()) {
+            update.append("$max", maxUpdates);
         }
         if (!incUpdates.isEmpty()) {
             update.append("$inc", incUpdates);
