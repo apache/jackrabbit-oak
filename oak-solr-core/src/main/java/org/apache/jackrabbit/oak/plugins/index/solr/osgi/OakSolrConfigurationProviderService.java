@@ -42,6 +42,9 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private static final String DEFAULT_PATH_FIELD = SolrServerConfigurationDefaults.PATH_FIELD_NAME;
     private static final String DEFAULT_CATCHALL_FIELD = SolrServerConfigurationDefaults.CATCHALL_FIELD;
     private static final int DEFAULT_ROWS = SolrServerConfigurationDefaults.ROWS;
+    private static final boolean DEFAULT_PATH_RESTRICTIONS = SolrServerConfigurationDefaults.PATH_RESTRICTIONS;
+    private static final boolean DEFAULT_PROPERTY_RESTRICTIONS = SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS;
+    private static final boolean DEFAULT_PRIMARY_TYPES_RESTRICTIONS = SolrServerConfigurationDefaults.PRIMARY_TYPES;
 
     @Property(value = DEFAULT_DESC_FIELD, label = "field for descendants search")
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
@@ -77,6 +80,15 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private static final String ROWS = "rows";
 
 
+    @Property(boolValue = DEFAULT_PATH_RESTRICTIONS, label = "path restrictions")
+    private static final String PATH_RESTRICTIONS = "path.restrictions";
+
+    @Property(boolValue = DEFAULT_PROPERTY_RESTRICTIONS, label = "property restrictions")
+    private static final String PROPERTY_RESTRICTIONS = "property.restrictions";
+
+    @Property(boolValue = DEFAULT_PRIMARY_TYPES_RESTRICTIONS, label = "primary types restrictions")
+    private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
+
     private String pathChildrenFieldName;
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
@@ -84,8 +96,12 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private String catchAllField;
     private CommitPolicy commitPolicy;
     private int rows;
+    private boolean useForPathRestrictions;
+    private boolean useForPropertyRestrictions;
+    private boolean useForPrimaryTypes;
 
     private OakSolrConfiguration oakSolrConfiguration;
+
 
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
@@ -96,6 +112,9 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
         rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
         commitPolicy = CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
+        useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
+        useForPropertyRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
+        useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
     }
 
     @Override
@@ -151,6 +170,21 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Override
                 public int getRows() {
                     return rows;
+                }
+
+                @Override
+                public boolean useForPropertyRestrictions() {
+                    return useForPropertyRestrictions;
+                }
+
+                @Override
+                public boolean useForPrimaryTypes() {
+                    return useForPrimaryTypes;
+                }
+
+                @Override
+                public boolean useForPathRestrictions() {
+                    return useForPathRestrictions;
                 }
             };
         }
