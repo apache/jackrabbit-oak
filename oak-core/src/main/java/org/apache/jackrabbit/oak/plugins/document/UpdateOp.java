@@ -131,9 +131,7 @@ public final class UpdateOp {
      * @param value the value
      */
     void setMapEntry(@Nonnull String property, @Nonnull Revision revision, String value) {
-        Operation op = new Operation();
-        op.type = Operation.Type.SET_MAP_ENTRY;
-        op.value = value;
+        Operation op = new Operation(Operation.Type.SET_MAP_ENTRY, value);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
 
@@ -145,8 +143,7 @@ public final class UpdateOp {
      * @param revision the revision
      */
     public void removeMapEntry(@Nonnull String property, @Nonnull Revision revision) {
-        Operation op = new Operation();
-        op.type = Operation.Type.REMOVE_MAP_ENTRY;
+        Operation op = new Operation(Operation.Type.REMOVE_MAP_ENTRY, null);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
 
@@ -157,9 +154,23 @@ public final class UpdateOp {
      * @param value the value
      */
     void set(String property, Object value) {
-        Operation op = new Operation();
-        op.type = Operation.Type.SET;
-        op.value = value;
+        Operation op = new Operation(Operation.Type.SET, value);
+        changes.put(new Key(property, null), op);
+    }
+
+    /**
+     * Set the property to the given value if the new value is higher than the
+     * existing value. The property is also set to the given value if the
+     * property does not yet exist.
+     * <p>
+     * The result of a max operation with different types of values is
+     * undefined.
+     *
+     * @param property the name of the property to set.
+     * @param value the new value for the property.
+     */
+    <T> void max(String property, Comparable<T> value) {
+        Operation op = new Operation(Operation.Type.MAX, value);
         changes.put(new Key(property, null), op);
     }
 
@@ -187,9 +198,7 @@ public final class UpdateOp {
         if (isNew) {
             throw new IllegalStateException("Cannot use containsMapEntry() on new document");
         }
-        Operation op = new Operation();
-        op.type = Operation.Type.CONTAINS_MAP_ENTRY;
-        op.value = exists;
+        Operation op = new Operation(Operation.Type.CONTAINS_MAP_ENTRY, exists);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }
 
@@ -200,9 +209,7 @@ public final class UpdateOp {
      * @param value the increment
      */
     public void increment(@Nonnull String property, long value) {
-        Operation op = new Operation();
-        op.type = Operation.Type.INCREMENT;
-        op.value = value;
+        Operation op = new Operation(Operation.Type.INCREMENT, value);
         changes.put(new Key(property, null), op);
     }
 
@@ -239,6 +246,14 @@ public final class UpdateOp {
             SET,
 
             /**
+             * Set the value if the new value is higher than the existing value.
+             * The new value is also considered higher, when there is no
+             * existing value.
+             * The sub-key is not used.
+             */
+            MAX,
+
+            /**
              * Increment the Long value with the provided Long value.
              * The sub-key is not used.
              */
@@ -267,12 +282,17 @@ public final class UpdateOp {
         /**
          * The operation type.
          */
-        public Type type;
+        public final Type type;
 
         /**
          * The value, if any.
          */
-        public Object value;
+        public final Object value;
+
+        Operation(Type type, Object value) {
+            this.type = checkNotNull(type);
+            this.value = value;
+        }
 
         @Override
         public String toString() {
@@ -283,18 +303,16 @@ public final class UpdateOp {
             Operation reverse = null;
             switch (type) {
             case INCREMENT:
-                reverse = new Operation();
-                reverse.type = Type.INCREMENT;
-                reverse.value = -(Long) value;
+                reverse = new Operation(Type.INCREMENT, -(Long) value);
                 break;
             case SET:
+            case MAX:
             case REMOVE_MAP_ENTRY:
             case CONTAINS_MAP_ENTRY:
                 // nothing to do
                 break;
             case SET_MAP_ENTRY:
-                reverse = new Operation();
-                reverse.type = Type.REMOVE_MAP_ENTRY;
+                reverse = new Operation(Type.REMOVE_MAP_ENTRY, null);
                 break;
             }
             return reverse;

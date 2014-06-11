@@ -38,7 +38,6 @@ import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Commit;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
@@ -71,7 +70,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         //_deletedOnce == true && _modified < lastModifiedTime
         DBObject query =
                 start(NodeDocument.DELETED_ONCE).is(Boolean.TRUE)
-                                .put(NodeDocument.MODIFIED_IN_SECS).lessThan(Commit.getModifiedInSecs(lastModifiedTime))
+                                .put(NodeDocument.MODIFIED_IN_SECS).lessThan(NodeDocument.getModifiedInSecs(lastModifiedTime))
                         .get();
         DBCursor cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
         return CloseableIterable.wrap(transform(cursor, new Function<DBObject, NodeDocument>() {
@@ -94,7 +93,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .and(
                     orClause.get(),
                     start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
-                        .lessThan(Commit.getModifiedInSecs(oldestRevTimeStamp))
+                        .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
                         .get()
                 ).get();
 

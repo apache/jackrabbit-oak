@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,6 +37,7 @@ import javax.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
@@ -129,6 +129,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     public static final String MODIFIED_IN_SECS = "_modified";
 
+    /**
+     * The resolution of the modified time.
+     */
+    static final int MODIFIED_IN_SECS_RESOLUTION = 5;
+
     private static final NavigableMap<Revision, Range> EMPTY_RANGE_MAP =
             Maps.unmodifiableNavigableMap(new TreeMap<Revision, Range>());
 
@@ -217,6 +222,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * in the document
      */
     public static final String SD_MAX_REV_TIME_IN_SECS = "_sdMaxRevTime";
+
+    /**
+     * Return time in seconds with 5 second resolution
+     *
+     * @param timestamp time in millis to convert
+     * @return the time in seconds with the given resolution.
+     */
+    public static long getModifiedInSecs(long timestamp) {
+        // 5 second resolution
+        long timeInSec = TimeUnit.MILLISECONDS.toSeconds(timestamp);
+        return timeInSec - timeInSec % MODIFIED_IN_SECS_RESOLUTION;
+    }
 
     /**
      * A document which is created from splitting a main document can be classified
@@ -606,16 +623,14 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         SortedMap<Revision, String> revisions = getLocalRevisions();
         SortedMap<Revision, String> commitRoots = getLocalCommitRoot();
         Iterator<Revision> it = filter(Iterables.mergeSorted(
-                Arrays.asList(revisions.keySet(), commitRoots.keySet()),
+                ImmutableList.of(revisions.keySet(), commitRoots.keySet()),
                 revisions.comparator()), predicate).iterator();
         if (it.hasNext()) {
             newestRev = it.next();
         } else {
             // check full history (only needed in rare cases)
             it = filter(Iterables.mergeSorted(
-                    Arrays.asList(
-                            getValueMap(REVISIONS).keySet(),
-                            getValueMap(COMMIT_ROOT).keySet()),
+                    ImmutableList.of(getValueMap(REVISIONS).keySet(), getValueMap(COMMIT_ROOT).keySet()),
                     revisions.comparator()), predicate).iterator();
             if (it.hasNext()) {
                 newestRev = it.next();
@@ -1186,7 +1201,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setModified(@Nonnull UpdateOp op,
                                    @Nonnull Revision revision) {
-        checkNotNull(op).set(MODIFIED_IN_SECS, Commit.getModifiedInSecs(checkNotNull(revision).getTimestamp()));
+        checkNotNull(op).max(MODIFIED_IN_SECS, getModifiedInSecs(checkNotNull(revision).getTimestamp()));
     }
 
     public static void setRevision(@Nonnull UpdateOp op,
@@ -1291,7 +1306,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     private static void setSplitDocMaxRev(@Nonnull UpdateOp op,
                                           @Nonnull Revision maxRev) {
-        checkNotNull(op).set(SD_MAX_REV_TIME_IN_SECS, Commit.getModifiedInSecs(maxRev.getTimestamp()));
+        checkNotNull(op).set(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(maxRev.getTimestamp()));
     }
 
     //----------------------------< internal >----------------------------------

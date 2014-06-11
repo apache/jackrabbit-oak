@@ -23,7 +23,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -83,18 +82,6 @@ public class Commit {
             operations.put(path, op);
         }
         return op;
-    }
-
-    /**
-     * Return time in seconds with 5 second resolution
-     *
-     * @param timestamp time in millis to convert
-     * @return
-     */
-    public static long getModifiedInSecs(long timestamp) {
-        // 5 second resolution
-        long timeInSec = TimeUnit.MILLISECONDS.toSeconds(timestamp);
-        return timeInSec - timeInSec % 5;
     }
 
     /**

@@ -76,8 +76,8 @@ public class MissingLastRevSeeker {
             public boolean apply(NodeDocument input) {
                 Long modified = (Long) input.get(NodeDocument.MODIFIED_IN_SECS);
                 return (modified != null
-                        && (modified >= Commit.getModifiedInSecs(startTime))
-                        && (modified <= Commit.getModifiedInSecs(endTime)));
+                        && (modified >= NodeDocument.getModifiedInSecs(startTime))
+                        && (modified <= NodeDocument.getModifiedInSecs(endTime)));
             }
         });
     }
