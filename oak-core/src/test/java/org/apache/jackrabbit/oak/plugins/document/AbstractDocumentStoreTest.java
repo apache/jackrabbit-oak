@@ -31,17 +31,19 @@ public abstract class AbstractDocumentStoreTest {
 
     protected String dsname;
     protected DocumentStore ds;
+    protected DocumentStoreFixture dsf;
     protected List<String> removeMe = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
+        this.dsf = dsf;
         this.ds = dsf.createDocumentStore(1);
         this.dsname = dsf.getName();
     }
 
     @After
-    public void cleanUp() {
+    public void cleanUp() throws Exception {
         if (!removeMe.isEmpty()) {
             long start = System.nanoTime();
             try {
@@ -62,6 +64,7 @@ public abstract class AbstractDocumentStoreTest {
                 LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
             }
         }
+        dsf.dispose();
     }
 
     @Parameterized.Parameters
