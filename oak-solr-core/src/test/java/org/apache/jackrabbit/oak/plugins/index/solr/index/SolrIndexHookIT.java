@@ -83,7 +83,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
                 .setProperty("type", "solr");
 
         NodeState before = builder.getNodeState();
-        builder.setProperty("foo", "bar");
+        builder.child("test").setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
         NodeState indexed = hook.processCommit(before, after, CommitInfo.EMPTY);
@@ -97,7 +97,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         assertTrue("no results found", cursor.hasNext());
         IndexRow next = cursor.next();
         assertNotNull("first returned item should not be null", next);
-        assertEquals("/", next.getPath());
+        assertEquals("/test", next.getPath());
         assertNotNull(next.getValue("foo"));
         assertEquals(PropertyValues.newString("[bar]"), next.getValue("foo"));
         assertFalse(cursor.hasNext());
@@ -113,7 +113,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
                 .setProperty("type", "solr");
 
         NodeState before = builder.getNodeState();
-        builder.setProperty("foo", "bar");
+        builder.child("test").setProperty("foo", "bar");
         builder.child("a").setProperty("foo", "bar");
         builder.child("a").child("b").setProperty("foo", "bar");
         builder.child("a").child("b").child("c").setProperty("foo", "bar");
@@ -133,7 +133,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         while (cursor.hasNext()) {
             paths.add(cursor.next().getPath());
         }
-        assertTrue(paths.remove("/"));
+        assertTrue(paths.remove("/test"));
         assertTrue(paths.remove("/a"));
         assertTrue(paths.remove("/a/b"));
         assertTrue(paths.remove("/a/b/c"));
