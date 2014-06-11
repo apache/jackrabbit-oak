@@ -31,14 +31,16 @@ public abstract class AbstractDocumentStoreTest {
     protected String dsname;
     protected DocumentStore ds;
     protected Set<String> removeMe = new HashSet<String>();
+    protected DocumentStoreFixture dsf;
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
         this.ds = dsf.createDocumentStore();
+        this.dsf = dsf;
         this.dsname = dsf.getName();
     }
 
     @After
-    public void cleanUp() {
+    public void cleanUp() throws Exception {
         for (String id : removeMe) {
             try {
                 ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
@@ -46,6 +48,7 @@ public abstract class AbstractDocumentStoreTest {
                 // best effort
             }
         }
+        dsf.dispose();
     }
 
     @Parameterized.Parameters
