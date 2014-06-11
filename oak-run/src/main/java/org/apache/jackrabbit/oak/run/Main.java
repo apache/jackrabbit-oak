@@ -46,6 +46,7 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -57,6 +58,7 @@ import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
@@ -104,6 +106,9 @@ public class Main {
         switch (mode) {
             case BACKUP:
                 backup(args);
+                break;
+            case RESTORE:
+                restore(args);
                 break;
             case BENCHMARK:
                 BenchmarkRunner.main(args);
@@ -178,6 +183,23 @@ public class Main {
             store.close();
         } else {
             System.err.println("usage: backup <repository> <backup>");
+            System.exit(1);
+        }
+    }
+
+    private static void restore(String[] args) throws IOException {
+        if (args.length == 2) {
+            // TODO: enable restore for other node store implementations
+            FileStore store = new FileStore(new File(args[0]), 256, false);
+            File target = new File(args[1]);
+            try {
+                FileStoreRestore.restore(target, new SegmentNodeStore(store));
+            } catch (CommitFailedException e) {
+                throw new IOException(e);
+            }
+            store.close();
+        } else {
+            System.err.println("usage: restore <repository> <backup>");
             System.exit(1);
         }
     }
@@ -563,6 +585,7 @@ public class Main {
     public enum Mode {
 
         BACKUP("backup"),
+        RESTORE("restore"),
         BENCHMARK("benchmark"),
         CONSOLE("debug"),
         DEBUG("debug"),

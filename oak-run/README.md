@@ -17,11 +17,16 @@ See the subsections below for more details on how to use these modes.
 Backup
 ------
 
-The 'backup' mode creates a backup from an existing oak repository. To start this
-mode, use:
+The 'backup' mode creates a backup from an existing oak repository. To start this mode, use:
 
     $ java -jar oak-run-*.jar backup /path/to/repository /path/to/backup
 
+Restore
+-------
+
+The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
+
+    $ java -jar oak-run-*.jar restore /path/to/repository /path/to/backup
 
 Debug
 -----
