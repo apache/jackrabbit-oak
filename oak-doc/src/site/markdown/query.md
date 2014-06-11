@@ -189,6 +189,15 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
       IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
     }
 
+__Note on `propertyNames`__ Adding a property index definition that contains two or more properties  will only
+include nodes that have _all_ specified properties present. This is different than adding a dedicated property
+index for each and letting the query engine make use of them.
+
+__Note__ Is is currently not possible to add more than one property index on the same property name, even if it
+might be used in various combinations with other property names. This rule is not enforced in any way, but the
+behavior is undefined, one of the defined indexes will be updated while the others will simply be ignored by the
+indexer which can result in empty result sets at query time.
+
 ### The Ordered Index
 
 Extension of the Property index will keep the order of the indexed
@@ -370,4 +379,16 @@ The returned value is between 1 (very fast; lookup of a unique node) and the est
 The returned value is supposed to be an estimate and doesn't have to be very accurate. Please note this method is called on each index whenever a query is run, so the method should be reasonably fast (not read any data itself, or at least not read too much data).
 
 If an index implementation can not query the data, it has to return `Double.POSITIVE_INFINITY`.
+
+### Index storage and manual inspection
+
+Sometimes there is a need to inspect the index content for debugging (or pure curiosity).
+The index content is generally stored as content under the index definition as hidden nodes (this doesn't apply to the solr index).
+In order to be able to browse down into an index content you need a low level repository tool that allows NodeStore level access.
+There are currently 2 options: the oak-console (command line tool, works will all existing NodeStore implementations) and the oak-explorer
+(gui based on java swing, works only on the TarMK), both available as run modes of the [oak-run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md) module
+
+The structure of the index is specific to each implementation and is subject to change. What is worth mentioning is that all the _*PropertyIndex_
+flavors store the content as unstructured nodes (clear readable text), the _Lucene_ index is stored as binaries, so one would need to export the
+entire Lucene directory to the local file system and browse it using a dedicated tool.
 
