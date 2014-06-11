@@ -44,7 +44,6 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
-    @Ignore
     @Test
     public void tokenCreationWithPreAuth() throws Exception{
         repository = repositoryFactory.getRepository(config)
@@ -130,6 +129,12 @@ class TokenAuthenticationTest extends AbstractRepositoryFactoryTest{
 
             synchronized (attributes) {
                 attributes.put(name, value);
+            }
+        }
+
+        public void removeAttribute(String name) {
+            synchronized (attributes) {
+                attributes.remove(name);
             }
         }
 
