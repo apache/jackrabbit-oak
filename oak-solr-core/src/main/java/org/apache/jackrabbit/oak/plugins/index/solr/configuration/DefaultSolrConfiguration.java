@@ -87,4 +87,19 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
         return SolrServerConfigurationDefaults.ROWS;
     }
 
+    @Override
+    public boolean useForPropertyRestrictions() {
+        return SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS;
+    }
+
+    @Override
+    public boolean useForPrimaryTypes() {
+        return SolrServerConfigurationDefaults.PRIMARY_TYPES;
+    }
+
+    @Override
+    public boolean useForPathRestrictions() {
+        return SolrServerConfigurationDefaults.PATH_RESTRICTIONS;
+    }
+
 }
