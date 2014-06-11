@@ -28,7 +28,6 @@ import javax.annotation.CheckForNull;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -92,19 +91,40 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        if (filter.getFullTextConstraint() == null && filter.getFulltextConditions() == null ||
-                (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() == 1 && filter.getPropertyRestriction(JcrConstants.JCR_UUID) != null)) {
-            return Double.POSITIVE_INFINITY;
+        // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
+        return 10d / getMatchingFilterRestrictions(filter);
+    }
+
+    private int getMatchingFilterRestrictions(Filter filter) {
+        int match = 0;
+
+        // full text expressions OR full text conditions defined
+        if (filter.getFullTextConstraint() != null || (filter.getFulltextConditions() != null
+                && filter.getFulltextConditions().size() > 0)) {
+            match++; // full text queries have usually a significant recall
         }
-        int cost = 10;
-        Collection<Filter.PropertyRestriction> restrictions = filter.getPropertyRestrictions();
-        if (restrictions != null) {
-            cost /= 5;
+
+        // path restriction defined AND path restrictions handled
+        if (filter.getPathRestriction() != null &&
+                !Filter.PathRestriction.NO_RESTRICTION.equals(filter.getPathRestriction())
+                && configuration.useForPathRestrictions()) {
+            match++;
         }
-        if (filter.getPathRestriction() != null) {
-            cost /= 2;
+
+        // primary type restriction defined AND primary type restriction handled
+        if (filter.getPrimaryTypes() != null && filter.getPrimaryTypes().size() > 0
+                && configuration.useForPrimaryTypes()) {
+            match++;
         }
-        return cost;
+
+        // property restriction OR native language property restriction defined AND property restriction handled
+        if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
+                && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
+                || configuration.useForPropertyRestrictions())) {
+            match++;
+        }
+
+        return match;
     }
 
     @Override
@@ -175,12 +195,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         queryBuilder.append(nativeQueryString);
                     }
                 } else {
-                    if (pr.propertyName.contains("/")) {
-                        // cannot handle child-level property restrictions
-                        continue;
-                    }
-
-                    if ("rep:excerpt".equals(pr.propertyName)) {
+                    if (!configuration.useForPropertyRestrictions() || pr.propertyName.contains("/") ||
+                            "rep:excerpt".equals(pr.propertyName)) {
                         continue;
                     }
 
@@ -226,30 +242,34 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             }
         }
 
-        String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
-        for (int i = 0; i < pts.length; i++) {
-            String pt = pts[i];
-            if (i == 0) {
-                queryBuilder.append("(");
-            }
-            if (i > 0 && i < pts.length) {
-                queryBuilder.append("OR ");
-            }
-            queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
-            if (i == pts.length - 1) {
-                queryBuilder.append(")");
-                queryBuilder.append(' ');
+        if (configuration.useForPrimaryTypes()) {
+            String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
+            for (int i = 0; i < pts.length; i++) {
+                String pt = pts[i];
+                if (i == 0) {
+                    queryBuilder.append("(");
+                }
+                if (i > 0 && i < pts.length) {
+                    queryBuilder.append("OR ");
+                }
+                queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
+                if (i == pts.length - 1) {
+                    queryBuilder.append(")");
+                    queryBuilder.append(' ');
+                }
             }
         }
 
-        Filter.PathRestriction pathRestriction = filter.getPathRestriction();
-        if (pathRestriction != null) {
-            String path = purgePath(filter);
-            String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
-            if (fieldName != null) {
-                queryBuilder.append(fieldName);
-                queryBuilder.append(':');
-                queryBuilder.append(path);
+        if (configuration.useForPathRestrictions()) {
+            Filter.PathRestriction pathRestriction = filter.getPathRestriction();
+            if (pathRestriction != null) {
+                String path = purgePath(filter);
+                String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
+                if (fieldName != null) {
+                    queryBuilder.append(fieldName);
+                    queryBuilder.append(':');
+                    queryBuilder.append(path);
+                }
             }
         }
 

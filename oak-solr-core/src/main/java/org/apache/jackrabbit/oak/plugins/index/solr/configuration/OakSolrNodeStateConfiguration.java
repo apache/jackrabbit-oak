@@ -104,6 +104,33 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return getIntValueFor(Properties.ROWS, SolrServerConfigurationDefaults.ROWS);
     }
 
+    @Override
+    public boolean useForPropertyRestrictions() {
+        return getBooleanValueFor(Properties.PROPERTY_RESTRICIONS, SolrServerConfigurationDefaults.PROPERTY_RESTRICTIONS);
+    }
+
+    @Override
+    public boolean useForPrimaryTypes() {
+        return getBooleanValueFor(Properties.PRIMARY_TYPES, SolrServerConfigurationDefaults.PRIMARY_TYPES);
+    }
+
+    @Override
+    public boolean useForPathRestrictions() {
+        return getBooleanValueFor(Properties.PATH_RESTRICTIONS, SolrServerConfigurationDefaults.PATH_RESTRICTIONS);
+    }
+
+    private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
+        boolean value = defaultValue;
+        NodeState configurationNodeState = getConfigurationNodeState();
+        if (configurationNodeState.exists()) {
+            PropertyState property = configurationNodeState.getProperty(propertyName);
+            if (property != null) {
+                value = property.getValue(Type.BOOLEAN);
+            }
+        }
+        return value;
+    }
+
     private int getIntValueFor(String propertyName, int defaultValue) {
         long value = defaultValue;
         NodeState configurationNodeState = getConfigurationNodeState();
@@ -145,7 +172,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
      * Properties that may be retrieved from the configuration {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
      */
     public final class Properties {
-
         public static final String SOLRHOME_PATH = "solrHomePath";
         public static final String SOLRCONFIG_PATH = "solrConfigPath";
         public static final String CONTEXT = "solrContext";
@@ -158,5 +184,8 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String CATCHALL_FIELD = "catchAllField";
         public static final String COMMIT_POLICY = "commitPolicy";
         public static final String ROWS = "rows";
+        public static final String PROPERTY_RESTRICIONS = "propertyRestrictions";
+        public static final String PRIMARY_TYPES = "primaryTypes";
+        public static final String PATH_RESTRICTIONS = "pathRestrictions";
     }
 }

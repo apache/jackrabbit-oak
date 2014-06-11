@@ -62,6 +62,21 @@ public class TestUtils
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;
             }
+
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Override
+            public boolean useForPrimaryTypes() {
+                return true;
+            }
+
+            @Override
+            public boolean useForPathRestrictions() {
+                return true;
+            }
         };
     }
 
