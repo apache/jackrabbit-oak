@@ -287,6 +287,8 @@ Example:
         .setProperty("reindex", true);
     }
 
+__Note__ The Oak Lucene index will only index _Strings_ and _Binaries_ by default. If you need to add another data type, you need to add it to the  _includePropertyTypes_ setting, and don't forget to set the _reindex_ flag to true.
+
 
 ### The Solr Index
 
