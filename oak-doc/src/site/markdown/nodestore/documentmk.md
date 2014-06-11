@@ -25,7 +25,7 @@ Backend implementations
 
 DocumentMK supports a number of backends, with a storage abstraction called `DocumentStore`:
 
-* `MongoDocumentStore`: stores documents in a MongoDB.
+* `MongoDocumentStore`: stores documents in a MongoDB. Oak requires MongoDB 2.6.x or higher.
 * `MemoryDocumentStore`: keeps documents in memory. This implementation should only be used for testing purposes.
 * `RDBDocumentStore`: stores documents in a relational data base.
 
