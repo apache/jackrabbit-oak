@@ -19,37 +19,54 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
 /**
  * Default implementation of the {@link AuthorizableActionProvider} interface
  * that allows to config all actions provided by the OAK.
  */
-@Component()
+@Component(metatype = true, label = "Apache Jackrabbit Oak AuthorizableActionProvider")
 @Service(AuthorizableActionProvider.class)
+@Properties({
+        @Property(name = DefaultAuthorizableActionProvider.ENABLED_ACTIONS,
+                label = "Authorizable Actions",
+                description = "The set of actions that is supported by this provider implementation.",
+                cardinality = 4,
+                options = {
+                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
+                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
+                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
+                        @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
+                }),
+        @Property(name = AccessControlAction.USER_PRIVILEGE_NAMES,
+                label = "Configure AccessControlAction: User Privileges",
+                description = "The name of the privileges that should be granted to a given user on it's home.",
+                cardinality = Integer.MAX_VALUE),
+        @Property(name = AccessControlAction.GROUP_PRIVILEGE_NAMES,
+                label = "Configure AccessControlAction: Group Privileges",
+                description = "The name of the privileges that should be granted to a given group on it's home.",
+                cardinality = Integer.MAX_VALUE),
+        @Property(name = PasswordValidationAction.CONSTRAINT,
+                label = "Configure PasswordValidationAction: Password Constraint",
+                description = "A regular expression specifying the pattern that must be matched by a user's password.")
+})
 public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultAuthorizableActionProvider.class);
 
-    private static final String ENABLED_ACTIONS = "enabledActions";
+    static final String ENABLED_ACTIONS = "enabledActions";
 
-    @Property(name = ENABLED_ACTIONS,
-            options = {
-                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.AccessControlAction", value = "AccessControlAction"),
-                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordValidationAction", value = "PasswordValidationAction"),
-                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.PasswordChangeAction", value = "PasswordChangeAction"),
-                    @PropertyOption(name = "org.apache.jackrabbit.oak.spi.security.user.action.ClearMembershipAction", value = "ClearMembershipAction")
-            })
     private String[] enabledActions = new String[] {AccessControlAction.class.getName()};
 
     private ConfigurationParameters config = ConfigurationParameters.EMPTY;
@@ -86,5 +103,6 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     @Activate
     private void activate(Map<String, Object> properties) {
         config = ConfigurationParameters.of(properties);
+        enabledActions = PropertiesUtil.toStringArray(properties.get(ENABLED_ACTIONS), new String[0]);
     }
 }
