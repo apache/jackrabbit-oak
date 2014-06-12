@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -123,12 +124,13 @@ abstract class AbstractLoginTest extends AbstractTest {
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
         if (noIterations != -1) {
             if (fixture instanceof OakRepositoryFixture) {
+                final String configName = (runWithToken) ? TokenConfiguration.NAME : UserConfiguration.NAME;
                 return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
                     @Override
                     public Jcr customize(Jcr jcr) {
                         Map<String, Integer> map = Collections.singletonMap(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
-                        ConfigurationParameters userConfig = ConfigurationParameters.of(map);
-                        SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig)));
+                        ConfigurationParameters conf = ConfigurationParameters.of(map);
+                        SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(configName, conf)));
                         jcr.with(sp);
                         return jcr;
                     }
