@@ -227,6 +227,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
     }
 
     private static CommitFailedException constraintViolation(int code, @Nonnull String message) {
-        return new CommitFailedException("Constraint", code, message);
+        return new CommitFailedException(CommitFailedException.CONSTRAINT, code, message);
     }
 }
