@@ -141,6 +141,11 @@
       <version>4.3.1</version>
     </dependency>
     <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.compendium</artifactId>
+      <version>4.3.1</version>
+    </dependency>
+    <dependency>
       <groupId>com.googlecode.pojosr</groupId>
       <artifactId>de.kalpatec.pojosr.framework.bare</artifactId>
       <version>0.2.1</version>
@@ -164,6 +169,11 @@
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
       <version>0.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.aries.jmx</groupId>
+      <artifactId>org.apache.aries.jmx.whiteboard</artifactId>
+      <version>1.0.0</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
@@ -213,12 +223,6 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>${h2.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <version>4.3.1</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.gmongo</groupId>
