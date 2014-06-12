@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.Maps.newHashMap;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.junit.Assert.assertFalse;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -31,32 +31,65 @@ import org.junit.Test;
 
 public class CompactionMapTest {
 
+    public static void main(String[] args) {
+        // check the memory use of really large mappings, 1M compacted
+        // segments with 10 records each.
+        Runtime runtime = Runtime.getRuntime();
+
+        System.gc();
+        System.out.println((runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024));
+
+        CompactionMap map = new CompactionMap(100000);
+        SegmentTracker factory = new MemoryStore().getTracker();
+        for (int i = 0; i < 1000000; i++) {
+            if (i % 1000 == 0) {
+                System.gc();
+                System.out.println(i + ": " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
+            }
+            SegmentId sid = factory.newDataSegmentId();
+            for (int j = 0; j < 10; j++) {
+                RecordId rid = new RecordId(sid, j << RECORD_ALIGN_BITS);
+                map.put(rid, rid);
+            }
+        }
+
+        System.gc();
+        System.out.println("final: " + (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) + "MB");
+    }
+
     @Test
     public void testCompactionMap() {
         int maxSegments = 1000;
         int maxEntriesPerSegment = 10;
         int seed = new Random().nextInt();
+        Random r = new Random(seed);
 
         SegmentTracker factory = new MemoryStore().getTracker();
-        Map<RecordId, RecordId> map = new HashMap<RecordId, RecordId>();
+        CompactionMap map = new CompactionMap(r.nextInt(maxSegments / 2));
+        Map<RecordId, RecordId> entries = newHashMap();
 
-        Random r = new Random(seed);
         int segments = r.nextInt(maxSegments);
         for (int i = 0; i < segments; i++) {
             SegmentId id = factory.newDataSegmentId();
-            int entries = r.nextInt(maxEntriesPerSegment);
-            for (int j = 0; j < entries; j++) {
-                map.put(new RecordId(id, newValidOffset(r)),
-                        new RecordId(factory.newDataSegmentId(), newValidOffset(r)));
+            int n = r.nextInt(maxEntriesPerSegment);
+            for (int j = 0; j < n; j++) {
+                RecordId before = new RecordId(id, newValidOffset(r));
+                RecordId after = new RecordId(factory.newDataSegmentId(), newValidOffset(r));
+                entries.put(before, after);
+                map.put(before, after);
+                assertTrue("Failed with seed " + seed,
+                        map.wasCompactedTo(before, after));
+                assertFalse("Failed with seed " + seed,
+                        map.wasCompactedTo(after, before));
             }
         }
+        map.compress();
 
-        CompactionMap compaction = new CompactionMap(map);
-        for (Entry<RecordId, RecordId> e : map.entrySet()) {
+        for (Entry<RecordId, RecordId> entry : entries.entrySet()) {
             assertTrue("Failed with seed " + seed,
-                    compaction.wasCompactedTo(e.getKey(), e.getValue()));
+                    map.wasCompactedTo(entry.getKey(), entry.getValue()));
             assertFalse("Failed with seed " + seed,
-                    compaction.wasCompactedTo(e.getValue(), e.getKey()));
+                    map.wasCompactedTo(entry.getValue(), entry.getKey()));
         }
     }
 
