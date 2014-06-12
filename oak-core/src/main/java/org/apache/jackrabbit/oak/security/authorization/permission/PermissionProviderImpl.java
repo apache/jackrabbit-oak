@@ -17,17 +17,18 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Repositor
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
-import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants {
 
@@ -119,7 +119,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     //--------------------------------------------------------------------------
 
     private boolean isAdmin(Set<Principal> principals) {
-        Set<String> adminNames = ImmutableSet.copyOf(acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, new String[0]));
+        Set<String> adminNames = acConfig.getParameters().getConfigValue(PARAM_ADMINISTRATIVE_PRINCIPALS, Collections.EMPTY_SET);
         for (Principal principal : principals) {
             if (principal instanceof AdminPrincipal || adminNames.contains(principal.getName())) {
                 return true;
