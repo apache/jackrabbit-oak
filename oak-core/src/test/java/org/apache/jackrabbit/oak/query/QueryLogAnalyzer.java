@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.TreeMap;
 
 /**
@@ -54,26 +55,25 @@ public class QueryLogAnalyzer {
             }
             traversedLineCount++;
             line = line.substring(line.indexOf("Traversed " + number + " nodes "));
-            // String index = retrieve(line, "nodes using index ", " with filter");
+            String index = retrieve(line, "nodes using index ", " with filter");
             String rawQuery = retrieve(line, "Filter(query=", null);
-            String query = filterParams(rawQuery);
-            if (query == null) {
+            if (rawQuery == null) {
                 System.out.println("Unknown line: " + line);
             }
-            String xpath = retrieve(query, "/* xpath: ", "*/, ");
-            String key = query;
-            if (xpath != null) {
-                key = xpath;
-                int index = query.indexOf(xpath);
-                query = query.substring(0, index) + query.substring(index + xpath.length());
+            String rawXpath = retrieve(rawQuery, "/* xpath: ", "*/, ");
+            String query = filterParams(rawQuery);
+            if (rawXpath != null) {
+                rawQuery = rawXpath;
+                query = filterParams(rawXpath);
             }
+            String key = query;
             QueryStats q = queries.get(key);
             if (q == null) {
                 q = new QueryStats();
                 queries.put(key, q);
                 q.query = query;
-                q.xpath = xpath;
             }
+            q.index = index;
             q.lineCount++;
             int nodes = Integer.parseInt(number);
             if (nodes > q.maxNodeCount) {
@@ -98,11 +98,13 @@ public class QueryLogAnalyzer {
         Collections.sort(list);
         for (QueryStats q : list) {
             System.out.println();
-            if (q.xpath != null) {
-                System.out.println("  XPath: " + q.xpath);
+            System.out.println("  Query: " + formatQuery(q.query));
+            if (!q.query.equals(q.longestQuery)) {
+                System.out.println("  Longest: " + formatQuery(q.longestQuery));
             }
-            System.out.println("  SQL-2: " + q.query);
-            System.out.println("  Longest: " + q.longestQuery);
+            if (q.index != null) {
+                System.out.println("  Index: " + q.index);
+            }
             System.out.printf("  %,d nodes traversed; " + 
                     "ran %,d times, max %,d nodes, %,d lines\n",
                     q.nodeCount, 
@@ -111,6 +113,23 @@ public class QueryLogAnalyzer {
         }
         System.out.println();
         r.close();
+    }
+    
+    private static String formatQuery(String q) {
+        if (q.toLowerCase(Locale.ENGLISH).indexOf("select ") >= 0) {
+            // (?i) means case insensitive
+            q = q.replaceAll("(?i)from ", "\n        from ");
+            q = q.replaceAll("(?i)where ", "\n        where ");
+            q = q.replaceAll("(?i)and ", "\n        and ");
+            q = q.replaceAll("(?i)or ", "\n        or ");
+            q = q.replaceAll("(?i)order by ", "\n        order by ");
+        } else {
+            q = q.replaceAll("\\[", "\n        [");
+            q = q.replaceAll("and ", "\n        and ");
+            q = q.replaceAll("or ", "\n        or ");
+            q = q.replaceAll("order by ", "\n        order by ");
+        }
+        return q;
     }
     
     private static String filterParams(String x) {
@@ -152,9 +171,9 @@ public class QueryLogAnalyzer {
     }
     
     static class QueryStats implements Comparable<QueryStats> {
-        String xpath;
         String query;
         String longestQuery;
+        String index;
         int lastNodeCount;
         int lineCount;
         int nodeCount;
