@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +36,6 @@ import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 
 import static java.util.Arrays.asList;
 
@@ -270,11 +272,21 @@ public class BenchmarkRunner {
             }
         }
 
+        if (fixtures.isEmpty()) {
+            System.err.println("Warning: no repository fixtures specified, supported fixtures are: "
+                    + asSortedString(Arrays.asList(allFixtures)));
+        }
+
         List<Benchmark> benchmarks = Lists.newArrayList();
         for (Benchmark benchmark : allBenchmarks) {
             if (argset.remove(benchmark.toString())) {
                 benchmarks.add(benchmark);
             }
+        }
+
+        if (benchmarks.isEmpty()) {
+            System.err.println("Warning: no benchmarks specified, supported benchmarks are: "
+                    + asSortedString(Arrays.asList(allBenchmarks)));
         }
 
         if (argset.isEmpty()) {
@@ -296,4 +308,12 @@ public class BenchmarkRunner {
         }
     }
 
+    private static String asSortedString(List<?> in) {
+        List<String> tmp = new ArrayList<String>();
+        for (Object o : in) {
+            tmp.add(o.toString());
+        }
+        Collections.sort(tmp);
+        return tmp.toString();
+    }
 }
