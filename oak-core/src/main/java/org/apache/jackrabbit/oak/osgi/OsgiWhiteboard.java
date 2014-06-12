@@ -18,13 +18,19 @@ package org.apache.jackrabbit.oak.osgi;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Arrays.asList;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newTreeMap;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
@@ -32,8 +38,10 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
+import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 /**
  * OSGi-based whiteboard implementation.
@@ -69,23 +77,91 @@ public class OsgiWhiteboard implements Whiteboard {
         };
     }
 
+    /**
+     * Returns a tracker for services of the given type. The returned tracker
+     * is optimized for frequent {@link Tracker#getServices()} calls through
+     * the use of a pre-compiled list of services that's atomically updated
+     * whenever services are added, modified or removed.
+     */
     @Override
-    public <T> Tracker<T> track(Class<T> type) {
+    public <T> Tracker<T> track(final Class<T> type) {
         checkNotNull(type);
+        final AtomicReference<List<T>> list =
+                new AtomicReference<List<T>>(Collections.<T>emptyList());
+        final ServiceTrackerCustomizer customizer =
+                new ServiceTrackerCustomizer() {
+                    private final Map<ServiceReference, T> services =
+                            newHashMap();
+                    @Override @SuppressWarnings("unchecked")
+                    public synchronized Object addingService(
+                            ServiceReference reference) {
+                        Object service = context.getService(reference);
+                        if (type.isInstance(service)) {
+                            services.put(reference, (T) service);
+                            list.set(getServiceList(services));
+                            return service;
+                        } else {
+                            context.ungetService(reference);
+                            return null;
+                        }
+                    }
+                    @Override @SuppressWarnings("unchecked")
+                    public synchronized void modifiedService(
+                            ServiceReference reference, Object service) {
+                        // TODO: Figure out if the old reference instance
+                        // would automatically reflect the updated properties.
+                        // For now we play it safe by replacing the old key
+                        // with the new reference instance passed as argument.
+                        services.remove(reference);
+                        services.put(reference, (T) service);
+                        list.set(getServiceList(services));
+                    }
+                    @Override
+                    public synchronized void removedService(
+                            ServiceReference reference, Object service) {
+                        services.remove(reference);
+                        list.set(getServiceList(services));
+                        // TODO: Note that the service might still be in use
+                        // by some client that called getServices() before
+                        // this method was invoked.
+                        context.ungetService(reference);
+                    }
+                };
         final ServiceTracker tracker =
-                new ServiceTracker(context, type.getName(), null);
+                new ServiceTracker(context, type.getName(), customizer);
         tracker.open();
         return new Tracker<T>() {
-            @Override @SuppressWarnings("unchecked")
+            @Override
             public List<T> getServices() {
-                Object[] services = tracker.getServices();
-                return (List<T>) (services != null ? asList(services) : Collections.emptyList());
+                return list.get();
             }
             @Override
             public void stop() {
                 tracker.close();
             }
         };
+    }
+
+    /**
+     * Utility method that sorts the service objects in the given map
+     * according to their service rankings and returns the resulting list.
+     *
+     * @param services currently available services
+     * @return ordered list of the services
+     */
+    private static <T> List<T> getServiceList(
+            Map<ServiceReference, T> services) {
+        switch (services.size()) {
+        case 0:
+            return emptyList();
+        case 1:
+            return singletonList(
+                    services.values().iterator().next());
+        default:
+            SortedMap<ServiceReference, T> sorted = newTreeMap();
+            sorted.putAll(services);
+            return newArrayList(sorted.values());
+        }
     }
 
 }
