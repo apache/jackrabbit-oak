@@ -33,6 +33,7 @@
   <properties>
     <skip.deployment>true</skip.deployment>
     <groovy.version>2.3.1</groovy.version>
+    <tika.version>1.5</tika.version>
   </properties>
 
   <build>
@@ -188,6 +189,22 @@
          lucene jars
         -->
     <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>${tika.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers</artifactId>
+      <version>${tika.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
       <version>${project.version}</version>
@@ -212,6 +229,7 @@
       <artifactId>lucene-queries</artifactId>
       <version>${lucene.version}</version>
     </dependency>
+
 
     <!-- Test dependencies -->
     <dependency>

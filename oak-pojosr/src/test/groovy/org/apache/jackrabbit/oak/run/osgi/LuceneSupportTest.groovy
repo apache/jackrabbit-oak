@@ -19,30 +19,32 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
+import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.junit.Before
 import org.junit.Test
 
-import javax.jcr.Session
 import javax.jcr.Node
-import javax.jcr.query.Query
-import javax.jcr.query.QueryManager
-import javax.jcr.query.QueryResult
-import javax.jcr.query.Row
-import javax.jcr.query.RowIterator
+import javax.jcr.Session
+import javax.jcr.query.*
+import java.util.concurrent.TimeUnit
 
 import static com.google.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
-
 
 class LuceneSupportTest extends AbstractRepositoryFactoryTest {
     Session session
 
     @Before
     void setupRepo() {
+        repositoryFactory = new CustomFactory()
         config[REPOSITORY_CONFIG_FILE] = createConfigValue("oak-base-config.json", "oak-tar-config.json")
     }
 
@@ -51,38 +53,53 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         repository = repositoryFactory.getRepository(config)
         session = createAdminSession()
 
-        String h = "Hello" + System.currentTimeMillis();
-        String w = "World" + System.currentTimeMillis();
-
-        Node testNode = session.getRootNode().addNode("test", "nt:folder")
-        testNode.addNode("a" ,"nt:file")
-                .addNode("jcr:content", "oak:Unstructured")
-                .setProperty("name", [h,w] as String[])
-        testNode.addNode("b", "nt:folder")
-                .addNode("c", "nt:file")
-                .addNode("jcr:content", "oak:Unstructured")
-                .setProperty("name", h)
+        Node testNode = session.getRootNode()
+        Node contentNode = testNode.addNode("myFile" ,"nt:file")
+                .addNode("jcr:content", "oak:Unstructured");
+        contentNode.setProperty("jcr:mimeType", "text/plain")
+        contentNode.setProperty("jcr:encoding", "UTF-8")
+        contentNode.setProperty("jcr:data",
+                new ByteArrayInputStream("the quick brown fox jumps over the lazy dog.".getBytes('utf-8')))
         session.save()
 
-        String query = "/jcr:root//*[jcr:contains(., '$h')]"
-        assert ["/test/a/jcr:content", "/test/b/c/jcr:content"] as HashSet == execute(query)
+        //The lucene index is set to synched mode
+        TimeUnit.SECONDS.sleep(1)
+
+        String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
+        assert ['/myFile/jcr:content'] as HashSet == execute(query)
 
         SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(JCR_CONTENT));
+                NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
         getRegistry().registerService(NodeAggregator.class.name, agg, null)
 
-        //TODO Need to have a query which makes use of aggregates
-        //assert ["/test/a", "/test/b/c"] as HashSet == execute(query)
-
+        assert ["/myFile", '/myFile/jcr:content'] as HashSet == execute(query)
     }
 
     Set<String> execute(String stmt){
         QueryManager qm = session.workspace.queryManager
-        Query query = qm.createQuery(stmt, "xpath");
+        Query query = qm.createQuery(stmt, "JCR-SQL2");
         QueryResult result = query.execute()
         RowIterator rowItr = result.getRows()
         Set<String> paths = new HashSet<>()
         rowItr.each {Row r -> paths << r.node.path}
         return paths
+    }
+
+    private static class CustomFactory extends OakOSGiRepositoryFactory {
+        @Override
+        protected void preProcessRegistry(PojoServiceRegistry registry) {
+            registry.registerService(RepositoryInitializer.class.name, new RepositoryInitializer() {
+                @Override
+                void initialize(NodeBuilder builder) {
+                    if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+                        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+                        if (!index.hasChildNode("lucene")) {
+                            LuceneIndexHelper.newLuceneIndexDefinition(
+                                    index, "lucene", LuceneIndexHelper.JR_PROPERTY_INCLUDES)
+                        }
+                    }
+                }
+            }, null);
+        }
     }
 }
