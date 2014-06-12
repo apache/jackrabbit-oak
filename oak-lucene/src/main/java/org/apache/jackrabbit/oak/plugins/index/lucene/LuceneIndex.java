@@ -177,35 +177,39 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        if (tracker.getIndexNode("/") == null) {
-            // unusable index
+        IndexNode index = tracker.acquireIndexNode("/");
+        if (index == null) { // unusable index
             return Double.POSITIVE_INFINITY;
         }
-        FullTextExpression ft = filter.getFullTextConstraint();
-        if (ft == null) {
-            // no full-text condition: don't use this index,
-            // as there might be a better one
-            return Double.POSITIVE_INFINITY;
+        try {
+            FullTextExpression ft = filter.getFullTextConstraint();
+            if (ft == null) {
+                // no full-text condition: don't use this index,
+                // as there might be a better one
+                return Double.POSITIVE_INFINITY;
+            }
+            Set<String> relPaths = getRelativePaths(ft);
+            if (relPaths.size() > 1) {
+                LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
+                // there are multiple "parents", as in
+                // "contains(a/x, 'hello') and contains(b/x, 'world')"
+                return new MultiLuceneIndex(filter, root, relPaths).getCost();
+            }
+            String parent = relPaths.iterator().next();
+            if (parent.isEmpty()) {
+                // no relative properties
+                return 10;
+            }
+            // all relative properties have the same "parent", as in
+            // "contains(a/x, 'hello') and contains(a/y, 'world')" or
+            // "contains(a/x, 'hello') or contains(a/*, 'world')"
+            // TODO: proper cost calculation
+            // we assume this will cause more read operations,
+            // as we need to read the node and then the parent
+            return 15;
+        } finally {
+            index.release();
         }
-        Set<String> relPaths = getRelativePaths(ft);
-        if (relPaths.size() > 1) {
-            LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
-            // there are multiple "parents", as in
-            // "contains(a/x, 'hello') and contains(b/x, 'world')"
-            return new MultiLuceneIndex(filter, root, relPaths).getCost();
-        }
-        String parent = relPaths.iterator().next();
-        if (parent.isEmpty()) {
-            // no relative properties
-            return 10;
-        }
-        // all relative properties have the same "parent", as in
-        // "contains(a/x, 'hello') and contains(a/y, 'world')" or
-        // "contains(a/x, 'hello') or contains(a/*, 'world')"
-        // TODO: proper cost calculation
-        // we assume this will cause more read operations,
-        // as we need to read the node and then the parent
-        return 15;
     }
 
     /**
@@ -255,35 +259,36 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        IndexNode index = tracker.getIndexNode("/");
+        IndexNode index = tracker.acquireIndexNode("/");
         checkState(index != null, "The Lucene index is not available");
-
-        FullTextExpression ft = filter.getFullTextConstraint();
-        Set<String> relPaths = getRelativePaths(ft);
-        if (relPaths.size() > 1) {
-            return new MultiLuceneIndex(filter, root, relPaths).getPlan();
+        try {
+            FullTextExpression ft = filter.getFullTextConstraint();
+            Set<String> relPaths = getRelativePaths(ft);
+            if (relPaths.size() > 1) {
+                return new MultiLuceneIndex(filter, root, relPaths).getPlan();
+            }
+            String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
+            // we only restrict non-full-text conditions if there is
+            // no relative property in the full-text constraint
+            boolean nonFullTextConstraints = parent.isEmpty();
+            String plan = getQuery(filter, null, nonFullTextConstraints, analyzer, index.getDefinition()) + " ft:(" + ft + ")";
+            if (!parent.isEmpty()) {
+                plan += " parent:" + parent;
+            }
+            return plan;
+        } finally {
+            index.release();
         }
-        String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
-        // we only restrict non-full-text conditions if there is
-        // no relative property in the full-text constraint
-        boolean nonFullTextConstraints = parent.isEmpty();
-        String plan = getQuery(filter, null, nonFullTextConstraints, analyzer, index.getDefinition()) + " ft:(" + ft + ")";
-        if (!parent.isEmpty()) {
-            plan += " parent:" + parent;
-        }
-        return plan;
     }
 
     @Override
     public Cursor query(final Filter filter, final NodeState root) {
-        final IndexNode index = tracker.getIndexNode("/");
-        checkState(index != null, "The Lucene index is not available");
-
         FullTextExpression ft = filter.getFullTextConstraint();
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
             return new MultiLuceneIndex(filter, root, relPaths).query();
         }
+
         final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
         // we only restrict non-full-text conditions if there is
         // no relative property in the full-text constraint
@@ -338,14 +343,14 @@ public class LuceneIndex implements FulltextQueryIndex {
              * @return true if any document is loaded
              */
             private boolean loadDocs() {
-                IndexNode indexNode = null;
-                IndexSearcher searcher = null;
                 ScoreDoc lastDocToRecord = null;
+
+                IndexNode indexNode = tracker.acquireIndexNode("/");
+                checkState(indexNode != null);
                 try {
-                    indexNode = acquire();
-                    searcher = indexNode.acquireSearcher();
+                    IndexSearcher searcher = indexNode.getSearcher();
                     Query query = getQuery(filter, searcher.getIndexReader(),
-                            nonFullTextConstraints, analyzer, index.getDefinition());
+                            nonFullTextConstraints, analyzer, indexNode.getDefinition());
                     TopDocs docs;
                     if (lastDoc != null) {
                         docs = searcher.searchAfter(lastDoc, query, LUCENE_QUERY_BATCH_SIZE);
@@ -363,27 +368,14 @@ public class LuceneIndex implements FulltextQueryIndex {
                 } catch (IOException e) {
                     LOG.warn("query via {} failed.", LuceneIndex.this, e);
                 } finally {
-                    release(indexNode, searcher);
+                    indexNode.release();
                 }
+
                 if (lastDocToRecord != null) {
                     this.lastDoc = lastDocToRecord;
                 }
+
                 return !queue.isEmpty();
-            }
-
-            private IndexNode acquire() {
-                return tracker.getIndexNode("/");
-            }
-
-            private void release(IndexNode indexNode, IndexSearcher searcher){
-                try {
-                    if(searcher != null){
-                        indexNode.releaseSearcher();
-                    }
-                } catch (IOException e) {
-                    LOG.warn("Error occurred while releasing/closing the " +
-                            "IndexSearcher", e);
-                }
             }
         };
         return new LucenePathCursor(itr, settings);
