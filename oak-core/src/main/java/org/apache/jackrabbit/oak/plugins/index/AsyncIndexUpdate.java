@@ -236,9 +236,12 @@ public class AsyncIndexUpdate implements Runnable {
                     name, checkpoint);
             store.release(checkpoint);
         } else {
-            log.debug("The {} index update succeeded; releasing the previous checkpoint {}",
-                    name, refCheckpoint);
-            store.release(refCheckpoint);
+            if (refCheckpoint != null) {
+                log.debug(
+                        "The {} index update succeeded; releasing the previous checkpoint {}",
+                        name, refCheckpoint);
+                store.release(refCheckpoint);
+            }
         }
 
         if (exception != null) {
