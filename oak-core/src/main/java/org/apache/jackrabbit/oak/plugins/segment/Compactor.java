@@ -75,7 +75,8 @@ public class Compactor {
             after = builder.getNodeState();
         }
 
-        return new CompactionMap(compactor.compacted);
+        compactor.map.compress();
+        return compactor.map;
     }
 
     /**
@@ -88,13 +89,7 @@ public class Compactor {
 
     private final SegmentWriter writer;
 
-    /**
-     * Map from the identifiers of old records to the identifiers of their
-     * compacted copies. Used to prevent the compaction code from duplicating
-     * things like checkpoints that share most of their content with other
-     * subtrees.
-     */
-    private final Map<RecordId, RecordId> compacted = newHashMap();
+    private CompactionMap map = new CompactionMap(100000);
 
     /**
      * Map from {@link #getBlobKey(Blob) blob keys} to matching compacted
@@ -134,7 +129,7 @@ public class Compactor {
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = compacted.get(id);
+                RecordId compactedId = map.get(id);
                 if (compactedId != null) {
                     builder.setChildNode(name, new SegmentNodeState(compactedId));
                     return true;
@@ -145,10 +140,10 @@ public class Compactor {
             boolean success = EmptyNodeState.compareAgainstEmptyState(
                     after, new CompactDiff(child));
 
-            if (success && id != null && child.getChildNodeCount(1) > 0) {
+            if (success && id != null && child.getChildNodeCount(2) > 1) {
                 RecordId compactedId =
                         writer.writeNode(child.getNodeState()).getRecordId();
-                compacted.put(id, compactedId);
+                map.put(id, compactedId);
             }
 
             return success;
@@ -160,7 +155,7 @@ public class Compactor {
             RecordId id = null;
             if (after instanceof SegmentNodeState) {
                 id = ((SegmentNodeState) after).getRecordId();
-                RecordId compactedId = compacted.get(id);
+                RecordId compactedId = map.get(id);
                 if (compactedId != null) {
                     builder.setChildNode(name, new SegmentNodeState(compactedId));
                     return true;
@@ -171,10 +166,10 @@ public class Compactor {
             boolean success = after.compareAgainstBaseState(
                     before, new CompactDiff(child));
 
-            if (success && id != null && child.getChildNodeCount(1) > 0) {
+            if (success && id != null && child.getChildNodeCount(2) > 1) {
                 RecordId compactedId =
                         writer.writeNode(child.getNodeState()).getRecordId();
-                compacted.put(id, compactedId);
+                map.put(id, compactedId);
             }
 
             return success;
@@ -218,7 +213,7 @@ public class Compactor {
 
                 // else check if we've already cloned this specific record
                 RecordId id = sb.getRecordId();
-                RecordId compactedId = compacted.get(id);
+                RecordId compactedId = map.get(id);
                 if (compactedId != null) {
                     return new SegmentBlob(compactedId);
                 }
@@ -236,7 +231,7 @@ public class Compactor {
 
                 // if not, clone the blob and keep track of the result
                 sb = sb.clone(writer);
-                compacted.put(id, sb.getRecordId());
+                map.put(id, sb.getRecordId());
                 if (ids == null) {
                     ids = newArrayList();
                     binaries.put(key, ids);
