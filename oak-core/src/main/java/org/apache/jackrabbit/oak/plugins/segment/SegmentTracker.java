@@ -72,7 +72,7 @@ public class SegmentTracker {
      * after compaction.
      */
     private final AtomicReference<CompactionMap> compactionMap =
-            new AtomicReference<CompactionMap>(new CompactionMap());
+            new AtomicReference<CompactionMap>(new CompactionMap(1));
 
     private final long cacheSize;
 
