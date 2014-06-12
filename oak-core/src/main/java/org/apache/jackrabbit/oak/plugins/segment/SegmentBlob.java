@@ -180,6 +180,9 @@ public class SegmentBlob extends Record implements Blob {
     public boolean equals(Object object) {
         if (object == this || fastEquals(this, object)) {
             return true;
+        } else if (object instanceof SegmentBlob
+                && wasCompactedTo((SegmentBlob) object)) {
+            return true;
         } else {
             return object instanceof Blob
                     && AbstractBlob.equal(this, (Blob) object);
