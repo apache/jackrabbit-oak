@@ -389,12 +389,16 @@ public class SegmentNodeState extends Record implements NodeState {
             return AbstractNodeState.compareAgainstBaseState(this, base, diff);
         }
 
-        Template afterTemplate = getTemplate();
-        RecordId afterId = getRecordId();
-
         SegmentNodeState that = (SegmentNodeState) base;
+        if (wasCompactedTo(that)) {
+            return true; // no changes during compaction
+        }
+
         Template beforeTemplate = that.getTemplate();
         RecordId beforeId = that.getRecordId();
+
+        Template afterTemplate = getTemplate();
+        RecordId afterId = getRecordId();
 
         // Compare type properties
         if (!compareProperties(
