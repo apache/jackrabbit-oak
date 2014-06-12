@@ -36,7 +36,6 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
 import de.kalpatec.pojosr.framework.launch.BundleDescriptor;
@@ -97,18 +96,17 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         Map config = new HashMap();
         config.putAll(parameters);
 
-        //TODO With OSGi Whiteboard we need to provide support for handling
-        //execution and JMX support as so far they were provided by Sling bundles
-        //in OSGi env
-
         PojoServiceRegistry registry = initializeServiceRegistry(config);
 
         //Future which would be used to notify when repository is ready
         // to be used
         SettableFuture<Repository> repoFuture = SettableFuture.create();
 
+        new RunnableJobTracker(registry.getBundleContext());
+
         //Start the tracker for repository creation
         new RepositoryTracker(registry, repoFuture);
+
 
         //Now wait for repository to be created with given timeout
         //if repository creation takes more time. This is required to handle case
@@ -252,7 +250,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
     }
 
-    private static class RepositoryTracker extends ServiceTracker {
+    private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
         private final SettableFuture<Repository> repoFuture;
         private final PojoServiceRegistry registry;
         private RepositoryProxy proxy;
@@ -265,19 +263,19 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
 
         @Override
-        public Object addingService(ServiceReference reference) {
-            Object service = super.addingService(reference);
+        public Repository addingService(ServiceReference<Repository> reference) {
+            Repository service = context.getService(reference);
             if (proxy == null) {
                 //As its possible that future is accessed before the service
                 //get registered with tracker. We also capture the initial reference
                 //and use that for the first access case
-                repoFuture.set(createProxy((Repository) service));
+                repoFuture.set(createProxy(service));
             }
             return service;
         }
 
         @Override
-        public void removedService(ServiceReference reference, Object service) {
+        public void removedService(ServiceReference reference, Repository service) {
             if (proxy != null) {
                 proxy.clearInitialReference();
             }
@@ -315,7 +313,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 obj = initialService;
             }
 
-            Preconditions.checkNotNull(obj, "Repository service is not available");
+            checkNotNull(obj, "Repository service is not available");
 
             final String name = method.getName();
             if ("shutdown".equals(name)) {

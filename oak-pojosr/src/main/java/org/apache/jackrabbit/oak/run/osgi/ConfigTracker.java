@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Installs config obtained from JSON Config file or passed as part of
  * startup
  */
-class ConfigTracker extends ServiceTracker {
+class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmin> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map config;
@@ -57,8 +57,8 @@ class ConfigTracker extends ServiceTracker {
     }
 
     @Override
-    public Object addingService(ServiceReference reference) {
-        ConfigurationAdmin cm = (ConfigurationAdmin) super.addingService(reference);
+    public ConfigurationAdmin addingService(ServiceReference<ConfigurationAdmin> reference) {
+        ConfigurationAdmin cm = super.addingService(reference);
         try {
             synchronizeConfigs(new ConfigInstaller(cm, bundleContext));
         } catch (Exception e) {
