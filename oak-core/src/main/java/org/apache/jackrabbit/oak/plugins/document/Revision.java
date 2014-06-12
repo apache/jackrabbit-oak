@@ -549,6 +549,9 @@ public class Revision {
          * <ul>
          *     <li>
          *         {@code null} if the revision is older than the earliest range
+         *         and the revision timestamp is less than or equal the time
+         *         of the last {@link #purge(long)} (see also
+         *         {@link #oldestTimestamp}).
          *     </li>
          *     <li>
          *         if the revision is newer than the lower bound of the newest
@@ -565,9 +568,49 @@ public class Revision {
          *     </li>
          * </ul>
          *
+         * Below is a graph for a revision comparison example as seen from one
+         * cluster node with some known revision ranges. Revision ranges less
+         * than or equal r2-0-0 have been purged and there are known ranges for
+         * cluster node 1 (this cluster node) and cluster node 2 (some other
+         * cluster node).
+         * <pre>
+         *     View from cluster node 1:
+         *
+         *                purge    r3-0-1    r5-0-2    r7-0-1
+         *                  ˅         ˅         ˅         ˅
+         *     ---+---------+---------+---------+---------+---------
+         *     r1-0-0    r2-0-0    r3-0-0    r4-0-0    r5-0-0
+         *
+         *            ^
+         *         r1-0-1 -> null (1)
+         *
+         *                      ^
+         *                   r4-0-2 -> r4-0-0 (2)
+         *
+         *                            ^
+         *                         r3-0-1 -> r3-0-0 (3)
+         *
+         *                                           ^
+         *                                        r6-0-2 -> FUTURE (4)
+         *
+         *                                                       ^
+         *                                                    r9-0-1 -> NEWEST (5)
+         * </pre>
+         * <ol>
+         *     <li>older than earliest range and purge time</li>
+         *     <li>seen-at of next higher range</li>
+         *     <li>seen-at of matching lower bound of range</li>
+         *     <li>foreign revision is newer than most recent range</li>
+         *     <li>local revision is newer than most recent range</li>
+         * </ol>
+         * This gives the following revision ordering:
+         * <pre>
+         * r1-0-1 < r3-0-1 < r-4-0-2 < r9-0-1 < r6-0-2
+         * </pre>
+         *
          * @param r the revision
          * @return the seen-at revision or {@code null} if the revision is older
-         *          than the earliest range.
+         *          than the earliest range and purge time.
          */
         Revision getRevisionSeen(Revision r) {
             List<RevisionRange> list = map.get(r.getClusterId());
@@ -586,8 +629,9 @@ public class Revision {
             // search from latest backward
             // (binary search could be used, but we expect most queries
             // at the end of the list)
+            RevisionRange range = null;
             for (int i = list.size() - 1; i >= 0; i--) {
-                RevisionRange range = list.get(i);
+                range = list.get(i);
                 int compare = r.compareRevisionTime(range.revision);
                 if (compare == 0) {
                     return range.seenAt;
@@ -597,14 +641,20 @@ public class Revision {
                         if (r.getClusterId() == currentClusterNodeId) {
                             // newer than all others, except for FUTURE
                             return NEWEST;
+                        } else {
+                            // happens in the future (not visible yet)
+                            return FUTURE;
                         }
-                        // happens in the future (not visible yet)
-                        return FUTURE;
                     } else {
                         // there is a newer range
                         return list.get(i + 1).seenAt;
                     }
                 }
+            }
+            if (range != null && r.getTimestamp() > oldestTimestamp) {
+                // revision is older than earliest range and after purge
+                // timestamp. return seen-at revision of earliest range.
+                return range.seenAt;
             }
             return null;
         }

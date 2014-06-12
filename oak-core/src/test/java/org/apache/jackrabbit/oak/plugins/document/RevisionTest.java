@@ -164,7 +164,8 @@ public class RevisionTest {
                 "1:\n r120-0-1:r20-0-0\n" +
                 "2:\n r200-0-2:r10-0-0\n", comp.toString());
 
-        assertEquals(-1, comp.compare(r0c1, r0c2));
+        // r0c2 happens before r0c1 because r2c2 is declared before r2c1
+        assertEquals(1, comp.compare(r0c1, r0c2));
 
         assertEquals(1, comp.compare(r1c1, r1c2));
         assertEquals(1, comp.compare(r2c1, r2c2));
@@ -221,17 +222,18 @@ public class RevisionTest {
         Revision r2c2 = new Revision(0x40, 0, 2);
 
         comp.add(r1c1, new Revision(0x10, 0, 0));
-        comp.add(r2c1, new Revision(0x20, 0, 0));
+        comp.add(r2c1, new Revision(0x30, 0, 0));
 
         // there's no range for c2, and therefore this
         // revision must be considered to be in the future
         assertTrue(comp.compare(r1c2, r2c1) > 0);
 
         // add a range for r2r2
-        comp.add(r2c2, new Revision(0x30, 0, 0));
+        comp.add(r2c2, new Revision(0x40, 0, 0));
+        comp.purge(0x20);
 
-        // now there is a range for c2, but the revision is old,
-        // so it must be considered to be in the past
+        // now there is a range for c2, but the revision is old (before purge
+        // time, so it must be considered to be in the past
         assertTrue(comp.compare(r1c2, r2c1) < 0);
     }
 
@@ -251,7 +253,7 @@ public class RevisionTest {
         Revision c2sync = Revision.fromString("r4-1-2");
         comp.add(c2sync,  Revision.fromString("r2-1-0"));
         Revision c3sync = Revision.fromString("r2-0-3");
-        comp.add(c3sync,  Revision.fromString("r2-1-0"));
+        comp.add(c3sync, Revision.fromString("r2-1-0"));
 
         assertTrue(comp.compare(r1, r2) < 0);
         assertTrue(comp.compare(r2, c2sync) < 0);
@@ -267,6 +269,7 @@ public class RevisionTest {
     @Test
     public void revisionSeen() {
         RevisionComparator comp = new RevisionComparator(1);
+        comp.purge(0);
 
         Revision r0 = new Revision(0x01, 0, 1);
         Revision r1 = new Revision(0x10, 0, 1);
@@ -281,8 +284,9 @@ public class RevisionTest {
         comp.add(r3, new Revision(0x30, 0, 0));
         comp.add(r4, new Revision(0x40, 0, 0));
 
-        // older than first range -> must return null
-        assertNull(comp.getRevisionSeen(r0));
+        // older than first range, but after purge timestamp
+        // -> must return seen-at of first range
+        assertEquals(new Revision(0x10, 0, 0), comp.getRevisionSeen(r0));
 
         // exact range start matches
         assertEquals(new Revision(0x10, 0, 0), comp.getRevisionSeen(r1));
@@ -321,6 +325,29 @@ public class RevisionTest {
 
         // now also r2 is considered old
         assertNull(comp.getRevisionSeen(r2));
+    }
+
+    // OAK-1822
+    @Test
+    public void seenAtBeforeFirstRangeAfterPurge() {
+        RevisionComparator comp = new RevisionComparator(1);
+        comp.purge(0);
+
+        Revision r1 = new Revision(1, 0, 1);
+        Revision r2 = new Revision(2, 0, 1);
+        Revision r3 = new Revision(3, 0, 1);
+
+        Revision r3seen = new Revision(3, 0, 0);
+
+        comp.add(r3, r3seen);
+
+        assertEquals(r3seen, comp.getRevisionSeen(r1));
+        assertEquals(r3seen, comp.getRevisionSeen(r2));
+
+        comp.purge(1);
+
+        assertEquals(null, comp.getRevisionSeen(r1));
+        assertEquals(r3seen, comp.getRevisionSeen(r2));
     }
 
     @Test
