@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -68,6 +69,16 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         }
     }
 
+    @After
+    @Override
+    public void disposeDocumentMK() {
+        super.disposeDocumentMK();
+        for (DocumentMK mk : kernels) {
+            mk.dispose();
+        }
+        kernels.clear();
+    }
+
     private DocumentMK openDocumentMK() {
         return new DocumentMK.Builder().setAsyncDelay(10).setDocumentStore(store).open();
     }
@@ -78,10 +89,21 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         concurrentUpdates(true);
     }
 
-    @Ignore("OAK-1788")
     @Test
     public void concurrentUpdates() throws Exception {
         concurrentUpdates(false);
+    }
+
+    @Ignore("Enable to run concurrentUpdates() in a loop")
+    @Test
+    public void concurrentUpdates_Loop() throws Exception {
+        for (int i = 0; i < 1000; i++) {
+            System.out.println("test " + i);
+            concurrentUpdates(false);
+            // prepare for next round
+            disposeDocumentMK();
+            initDocumentMK();
+        }
     }
 
     private void concurrentUpdates(final boolean useBranch) throws Exception {
@@ -97,9 +119,9 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                 @Override
                 public void run() {
                     BitSet conflictSet = new BitSet();
-                    int numTransfers = NUM_TRANSFERS_PER_THREAD;
+                    int numTransfers = 0;
                     try {
-                        while (numTransfers > 0) {
+                        while (numTransfers < NUM_TRANSFERS_PER_THREAD && exceptions.isEmpty()) {
                             try {
                                 if (!transfer()) {
                                     continue;
@@ -110,7 +132,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                                 conflicts.incrementAndGet();
                                 conflictSet.set(numTransfers);
                             }
-                            numTransfers--;
+                            numTransfers++;
                         }
                     } catch (Exception e) {
                         exceptions.add(e);
@@ -161,6 +183,10 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
                         rev = mk.merge(rev, null);
                     }
                     log("Successful transfer @" + oldRev + ": " + jsop.toString() + " (new rev: " + rev + ")");
+                    long s = calculateSum(mk, rev);
+                    if (s != NUM_NODES * 100) {
+                        throw new Exception("Sum mismatch: " + s);
+                    }
                     return true;
                 }
             }));
@@ -177,13 +203,7 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         }
         DocumentMK mk = openDocumentMK();
         String rev = mk.getHeadRevision();
-        long sum = 0;
-        for (int i = 0; i < NUM_NODES; i++) {
-            String json = mk.getNodes("/node-" + i, rev, 0, 0, 1000, null);
-            JSONParser parser = new JSONParser();
-            JSONObject obj = (JSONObject) parser.parse(json);
-            sum += (Long) obj.get("value");
-        }
+        long sum = calculateSum(mk, rev);
         log("Conflict rate: " + conflicts.get() +
                 "/" + (NUM_WRITERS * NUM_TRANSFERS_PER_THREAD));
         System.out.print(logBuffer);
@@ -191,6 +211,18 @@ public class ConcurrentConflictTest extends BaseDocumentMKTest {
         if (!exceptions.isEmpty()) {
             throw exceptions.get(0);
         }
+        mk.dispose();
+    }
+
+    static long calculateSum(MicroKernel mk, String rev) throws Exception {
+        long sum = 0;
+        for (int i = 0; i < NUM_NODES; i++) {
+            String json = mk.getNodes("/node-" + i, rev, 0, 0, 1000, null);
+            JSONParser parser = new JSONParser();
+            JSONObject obj = (JSONObject) parser.parse(json);
+            sum += (Long) obj.get("value");
+        }
+        return sum;
     }
 
     void log(String msg) {
