@@ -91,4 +91,8 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
         this.setAggregator(analyzer);
         return this;
     }
+
+    IndexTracker getTracker() {
+        return tracker;
+    }
 }

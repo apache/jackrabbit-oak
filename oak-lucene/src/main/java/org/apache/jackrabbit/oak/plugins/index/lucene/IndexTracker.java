@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
@@ -126,6 +127,10 @@ class IndexTracker {
         } else {
             return findIndexNode(path);
         }
+    }
+
+    Set<String> getIndexNodePaths(){
+        return indices.keySet();
     }
 
     private synchronized IndexNode findIndexNode(String path) {
