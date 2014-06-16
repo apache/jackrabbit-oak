@@ -130,12 +130,6 @@ public class FileStore implements SegmentStore {
     private final AtomicBoolean compactNeeded = new AtomicBoolean(false);
 
     /**
-     * The number of new files created at which a compaction should be
-     * triggered.
-     */
-    private int compactThreshold = 10;
-
-    /**
      * List of old tar file generations that are waiting to be removed.
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
@@ -362,6 +356,10 @@ public class FileStore implements SegmentStore {
 
                     if (cleanup) {
                         long start = System.nanoTime();
+
+                        // Suggest to the JVM that now would be a good time
+                        // to clear stale weak references in the SegmentTracker
+                        System.gc();
 
                         Set<UUID> ids = newHashSet();
                         for (SegmentId id : tracker.getReferencedSegmentIds()) {
@@ -590,9 +588,6 @@ public class FileStore implements SegmentStore {
                         directory,
                         String.format(FILE_NAME_FORMAT, writeNumber, "a"));
                 writer = new TarWriter(writeFile);
-                if (writeNumber % compactThreshold == 0) {
-                    compactNeeded.set(true);
-                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -615,7 +610,6 @@ public class FileStore implements SegmentStore {
 
     @Override
     public void gc() {
-        System.gc();
         compactNeeded.set(true);
     }
 
