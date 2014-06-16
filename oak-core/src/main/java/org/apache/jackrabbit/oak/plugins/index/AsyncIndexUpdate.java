@@ -205,7 +205,6 @@ public class AsyncIndexUpdate implements Runnable {
                         + " skipping the {} index update", name);
                 return;
             } else {
-        System.err.println("Some visible changes detected");
                 before = state;
             }
         } else {
@@ -403,7 +402,6 @@ public class AsyncIndexUpdate implements Runnable {
      * Checks whether there are no visible changes between the given states.
      */
     private static boolean noVisibleChanges(NodeState before, NodeState after) {
-        System.err.println("Checking for visible changes...");
         return after.compareAgainstBaseState(before, new NodeStateDiff() {
             @Override
             public boolean propertyAdded(PropertyState after) {
@@ -436,7 +434,6 @@ public class AsyncIndexUpdate implements Runnable {
     }
 
     private static boolean isHidden(String name) {
-        System.err.println("  checking " + name);
         return name.charAt(0) == ':';
     }
 
