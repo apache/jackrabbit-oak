@@ -102,7 +102,7 @@ public class IndexUpdate implements Editor {
         this.provider = parent.provider;
         this.async = parent.async;
         this.root = parent.root;
-        this.builder = parent.builder.child(checkNotNull(name));
+        this.builder = parent.builder.getChildNode(checkNotNull(name));
         this.updateCallback = parent.updateCallback;
     }
 
