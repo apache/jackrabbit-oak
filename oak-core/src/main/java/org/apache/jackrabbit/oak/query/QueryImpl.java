@@ -837,6 +837,7 @@ public class QueryImpl implements Query {
             }
             if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
                 bestCost = cost;
+                bestPlan = null;
                 bestIndex = traversal;
             }
         }
