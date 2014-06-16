@@ -13,45 +13,4 @@ To make use of this following dependencies are required
 3. Apache Felix Config Admin
 4. Apache Felix Fileinstall - To provision configuration
 
-Usage
------
-
-The JCR 2.0 specification defines a pattern that uses the Java SE Service Loader facility to 
-find `javax.jcr.RepositoryFactory` instances and use them to get your Repository instance.
-
-    import org.apache.jackrabbit.commons.JcrUtils;
-    
-    Map<String,String> config = new HashMap<String, String>();
-    config.put("org.apache.jackrabbit.repository.home", "/path/to/repo");
-    config.put("org.apache.jackrabbit.oak.repository.configFile", "/path/to/oak-config.json");
-
-    Repository repository = JcrUtils.getRepository(config);
-    
-Where the configFile is json file capturing the required OSGi configuration
-
-    {
-        "org.apache.felix.jaas.Configuration.factory-GuestLoginModule": {
-            "jaas.controlFlag": "optional",
-            "jaas.classname": "org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule",
-            "jaas.ranking": 300
-        },
-        "org.apache.felix.jaas.Configuration.factory-LoginModuleImpl": {
-            "jaas.controlFlag": "required",
-            "jaas.classname": "org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl",
-            "jaas.ranking": 100
-        },
-        "org.apache.felix.jaas.Configuration.factory-TokenLoginModule": {
-            "jaas.controlFlag": "sufficient",
-            "jaas.classname": "org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule",
-            "jaas.ranking": 200
-        },
-        "org.apache.felix.jaas.ConfigurationSpi": {
-            "jaas.defaultRealmName": "jackrabbit.oak",
-            "jaas.globalConfigPolicy": "proxy",
-            "jaas.configProviderName": "FelixJaasProvider"
-        },
-        "org.apache.jackrabbit.oak.jcr.osgi.RepositoryManager": {},
-        "org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService" : {}
-    }
-
 [1]: https://code.google.com/p/pojosr/

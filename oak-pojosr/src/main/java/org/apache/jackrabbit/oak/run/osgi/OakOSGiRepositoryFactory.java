@@ -36,7 +36,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.SettableFuture;
 import de.kalpatec.pojosr.framework.launch.BundleDescriptor;
 import de.kalpatec.pojosr.framework.launch.ClasspathScanner;
@@ -56,30 +56,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     private static Logger log = LoggerFactory.getLogger(OakOSGiRepositoryFactory.class);
-
     /**
      * Name of the repository home parameter.
      */
     public static final String REPOSITORY_HOME
             = "org.apache.jackrabbit.repository.home";
 
-    /**
-     * Timeout in seconds for the repository startup should wait
-     */
     public static final String REPOSITORY_STARTUP_TIMEOUT
-            = "org.apache.jackrabbit.oak.repository.startupTimeOut";
-
-    /**
-     * Config key which refers to the map of config where key in that map refers to OSGi
-     * config
-     */
-    public static final String REPOSITORY_CONFIG = "org.apache.jackrabbit.oak.repository.config";
-
-    /**
-     * Comma separated list of file names which referred to config stored in form of JSON. The
-     * JSON content consist of pid as the key and config map as the value
-     */
-    public static final String REPOSITORY_CONFIG_FILE = "org.apache.jackrabbit.oak.repository.configFile";
+            = "org.apache.jackrabbit.repository.startupTimeOut";
 
     /**
      * Default timeout for repository creation
@@ -88,25 +72,36 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     @SuppressWarnings("unchecked")
     public Repository getRepository(Map parameters) throws RepositoryException {
-        if(parameters == null || !parameters.containsKey(REPOSITORY_HOME)){
-            //Required param missing so repository cannot be created
-            return null;
-        }
-
         Map config = new HashMap();
         config.putAll(parameters);
 
-        PojoServiceRegistry registry = initializeServiceRegistry(config);
+        //TODO Add support for passing config as map of PID -> Dictionary
+        //as part of parameters and hook it up with Felix ConfigAdmin
+        //Say via custom InMemory PersistenceManager or programatically
+        //registering it with using ConfigAdmin API
+        //For later part we would need to implement some sort of Start Level
+        //support such that
+        // 1. Some base bundles like ConfigAdmin get start first
+        // 2. We register the user provided config
+        // 3. Other bundles get started
+
+        //TODO With OSGi Whiteboard we need to provide support for handling
+        //execution and JMX support as so far they were provided by Sling bundles
+        //in OSGi env
+
+        processConfig(config);
+
+        PojoServiceRegistry registry = createServiceRegistry(config);
+        preProcessRegistry(registry);
+        startBundles(registry);
+        postProcessRegistry(registry);
 
         //Future which would be used to notify when repository is ready
         // to be used
         SettableFuture<Repository> repoFuture = SettableFuture.create();
 
-        new RunnableJobTracker(registry.getBundleContext());
-
         //Start the tracker for repository creation
         new RepositoryTracker(registry, repoFuture);
-
 
         //Now wait for repository to be created with given timeout
         //if repository creation takes more time. This is required to handle case
@@ -131,19 +126,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    PojoServiceRegistry initializeServiceRegistry(Map config) {
-        processConfig(config);
-
-        PojoServiceRegistry registry = createServiceRegistry(config);
-        startConfigTracker(registry, config);
-        preProcessRegistry(registry);
-        startBundles(registry);
-        postProcessRegistry(registry);
-
-        return registry;
-    }
-
     /**
      * Enables pre processing of service registry by sub classes. This can be
      * used to register services before any bundle gets started
@@ -164,7 +146,13 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
 
     }
 
+    /**
+     * @param descriptors
+     * @return the bundle descriptors
+     */
     protected List<BundleDescriptor> processDescriptors(List<BundleDescriptor> descriptors) {
+        //If required sort the bundle descriptors such that configuration admin and file install bundle
+        //gets started before SCR
         Collections.sort(descriptors, new BundleDescriptorComparator());
         return descriptors;
     }
@@ -175,10 +163,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
     }
 
-    private static void startConfigTracker(PojoServiceRegistry registry, Map config) {
-        new ConfigTracker(config, registry.getBundleContext());
-    }
-
     private static int getTimeoutInSeconds(Map config) {
         Integer timeout = (Integer) config.get(REPOSITORY_STARTUP_TIMEOUT);
         if (timeout == null) {
@@ -187,7 +171,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         return timeout;
     }
 
-    @SuppressWarnings("unchecked")
     private static void processConfig(Map config) {
         String home = (String) config.get(REPOSITORY_HOME);
         checkNotNull(home, "Repository home not defined via [%s]", REPOSITORY_HOME);
@@ -210,12 +193,12 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         //and not in a different thread
         config.put("felix.fileinstall.noInitialDelay", "true");
 
+        //Directory used by Felix File Install to watch for configs
         config.put("repository.home", FilenameUtils.concat(home, "repository"));
 
         copyConfigToSystemProps(config);
     }
 
-    @SuppressWarnings("unchecked")
     private static void copyConfigToSystemProps(Map config) {
         //TODO This is a temporary workaround as the current release version
         //of PojoSR reads value from System properties. Trunk version reads from
@@ -242,7 +225,6 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
     private void startBundles(PojoServiceRegistry registry) {
         try {
             List<BundleDescriptor> descriptors = new ClasspathScanner().scanForBundles();
-            descriptors = Lists.newArrayList(descriptors);
             descriptors = processDescriptors(descriptors);
             registry.startBundles(descriptors);
         } catch (Exception e) {
@@ -250,7 +232,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
     }
 
-    private static class RepositoryTracker extends ServiceTracker<Repository, Repository> {
+    private static class RepositoryTracker extends ServiceTracker {
         private final SettableFuture<Repository> repoFuture;
         private final PojoServiceRegistry registry;
         private RepositoryProxy proxy;
@@ -263,19 +245,19 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         }
 
         @Override
-        public Repository addingService(ServiceReference<Repository> reference) {
-            Repository service = context.getService(reference);
+        public Object addingService(ServiceReference reference) {
+            Object service = super.addingService(reference);
             if (proxy == null) {
                 //As its possible that future is accessed before the service
                 //get registered with tracker. We also capture the initial reference
                 //and use that for the first access case
-                repoFuture.set(createProxy(service));
+                repoFuture.set(createProxy((Repository) service));
             }
             return service;
         }
 
         @Override
-        public void removedService(ServiceReference reference, Repository service) {
+        public void removedService(ServiceReference reference, Object service) {
             if (proxy != null) {
                 proxy.clearInitialReference();
             }
@@ -288,7 +270,7 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
         private Repository createProxy(Repository service) {
             proxy = new RepositoryProxy(this, service);
             return (Repository) Proxy.newProxyInstance(getClass().getClassLoader(),
-                    new Class[]{Repository.class, JackrabbitRepository.class, ServiceRegistryProvider.class}, proxy);
+                    new Class[]{Repository.class, JackrabbitRepository.class}, proxy);
         }
     }
 
@@ -313,13 +295,10 @@ public class OakOSGiRepositoryFactory implements RepositoryFactory {
                 obj = initialService;
             }
 
-            checkNotNull(obj, "Repository service is not available");
+            Preconditions.checkNotNull(obj, "Repository service is not available");
 
-            final String name = method.getName();
-            if ("shutdown".equals(name)) {
+            if ("shutdown".equals(method.getName())) {
                 shutdown(tracker.getRegistry());
-            } else if ("getServiceRegistry".equals(name)){
-                return tracker.getRegistry();
             }
 
             return method.invoke(obj, args);

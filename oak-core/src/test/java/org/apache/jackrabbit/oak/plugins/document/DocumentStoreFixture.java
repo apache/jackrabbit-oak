@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import javax.sql.DataSource;
 
 import com.mongodb.BasicDBObject;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -38,28 +37,17 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture RDB_H2 = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
     public static final DocumentStoreFixture RDB_PG = new RDBFixture("RDB-Postgres", "jdbc:postgresql:oak", "postgres", "geheim");
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
-    public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", "jdbc:mysql://localhost:3306/oak", "root", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
 
     public abstract String getName();
 
-    public abstract DocumentStore createDocumentStore(int clusterId);
-
-    public DocumentStore createDocumentStore() {
-        return createDocumentStore(1);
-    }
+    public abstract DocumentStore createDocumentStore();
 
     public boolean isAvailable() {
         return true;
     }
 
-    // return false if the multiple instances will not share the same persistence
-    public boolean hasSinglePersistence() {
-        return true;
-    }
-
-    public void dispose() throws Exception {
-    }
+    public void dispose() throws Exception {}
 
     public static class MemoryFixture extends DocumentStoreFixture {
 
@@ -69,28 +57,23 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
+        public DocumentStore createDocumentStore() {
             return new MemoryDocumentStore();
-        }
-
-        @Override
-        public boolean hasSinglePersistence() {
-            return false;
         }
     }
 
     public static class RDBFixture extends DocumentStoreFixture {
 
-        DataSource dataSource;
-        DocumentStore store1, store2;
+        DocumentStore ds;
         String name;
 
         public RDBFixture(String name, String url, String username, String passwd) {
             this.name = name;
             try {
-                dataSource = RDBDataSourceFactory.forJdbcUrl(url, username, passwd);
+                DataSource datas = RDBDataSourceFactory.forJdbcUrl(url, username, passwd);
+                this.ds = new RDBDocumentStore(datas, new DocumentMK.Builder());
             } catch (Exception ex) {
-                LOG.info("Database instance not available at " + url + ", skipping tests...", ex);
+                LOG.info("Database instance not available at " + url + ", skipping tests...");
             }
         }
 
@@ -100,33 +83,13 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
-            if (clusterId == 1) {
-                store1 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(1));
-                return store1;
-            } else if (clusterId == 2) {
-                store2 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(2));
-                return store2;
-            } else {
-                throw new RuntimeException("expect clusterId == 1 or == 2");
-            }
+        public DocumentStore createDocumentStore() {
+            return ds;
         }
 
         @Override
         public boolean isAvailable() {
-            return dataSource != null;
-        }
-
-        @Override
-        public void dispose() {
-            if (this.store1 != null) {
-                this.store1.dispose();
-                this.store1 = null;
-            }
-            if (this.store2 != null) {
-                this.store2.dispose();
-                this.store2 = null;
-            }
+            return this.ds != null;
         }
     }
 
@@ -134,7 +97,7 @@ public abstract class DocumentStoreFixture {
         public static final String DEFAULT_URI = "mongodb://localhost:27017/oak-test";
         private String uri;
 
-        public MongoFixture() {
+        public MongoFixture(){
             this(DEFAULT_URI);
         }
 
@@ -148,12 +111,12 @@ public abstract class DocumentStoreFixture {
         }
 
         @Override
-        public DocumentStore createDocumentStore(int clusterId) {
+        public DocumentStore createDocumentStore() {
             try {
                 MongoConnection connection = new MongoConnection(uri);
                 DB db = connection.getDB();
                 MongoUtils.dropCollections(db);
-                return new MongoDocumentStore(db, new DocumentMK.Builder().setClusterId(clusterId));
+                return new MongoDocumentStore(db, new DocumentMK.Builder());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -161,21 +124,21 @@ public abstract class DocumentStoreFixture {
 
         @Override
         public boolean isAvailable() {
-            try {
+            try{
                 MongoConnection connection = new MongoConnection(uri);
                 connection.getDB().command(new BasicDBObject("ping", 1));
                 return true;
-            } catch (Exception e) {
+            }catch(Exception e){
                 return false;
             }
         }
 
         @Override
         public void dispose() {
-            try {
+            try{
                 MongoConnection connection = new MongoConnection(uri);
                 connection.getDB().dropDatabase();
-            } catch (Exception ignore) {
+            } catch(Exception ignore) {
             }
         }
     }

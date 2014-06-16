@@ -15,30 +15,8 @@
    limitations under the License.
   -->
 
-# Runnable jar
+TODO: Document how to use Oak:
 
-Oak comes with a [runnable jar](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md),
-which contains everything you need for a simple Oak installation.
-
-
-# Using Oak in your project
-
-To use Oak in your project simply add a dependency to `org.apache.jackrabbit:oak-jcr:1.0.0` and to
-`javax.jcr:jcr:2.0`:
-
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-jcr</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>javax.jcr</groupId>
-      <artifactId>jcr</artifactId>
-      <version>2.0</version>
-    </dependency>
-
-Oak has simple mechanisms for constructing and configuring content repositories
-for use in embedded deployments and test cases:
-
+* Required (Maven) Dependencies
 * [Repository construction](construct.html)
-* [Configuring Oak](osgi_config.html)
+* [Oak runnable jar](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)

@@ -30,13 +30,6 @@ public interface UserConfiguration extends SecurityConfiguration {
 
     String NAME = "org.apache.jackrabbit.oak.user";
 
-    /**
-     * Create a new {@code UserManager} instance
-     *
-     * @param root The root associated with the user manager.
-     * @param namePathMapper A name path mapper used for conversion of jcr/oak names/paths.
-     * @return a new instance of {@code UserManager}
-     */
     @Nonnull
     UserManager getUserManager(Root root, NamePathMapper namePathMapper);
 }

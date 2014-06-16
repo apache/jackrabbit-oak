@@ -20,20 +20,7 @@ Group Membership
 
 ### Jackrabbit API
 
-The Jackrabbit API extensions provide various methods to edit and explore the
-member relationship of users and groups:
-
-- [org.apache.jackrabbit.api.security.user.Group]
-    - `getDeclaredMembers() Iterator<Authorizable>`
-    - `getMembers() Iterator<Authorizable>`
-    - `isDeclaredMember(Authorizable) boolean`
-    - `isMember(Authorizable boolean`
-    - `addMember(Authorizable) boolean`
-    - `removeMember(Authorizable) boolen`
-
-- [org.apache.jackrabbit.api.security.user.Authorizable]
-    - `declaredMemberOf() Iterator<Group>`
-    - `memberOf() Iterator<Group>`
+_todo_
 
 ### Characteristics of the Default Implementation
 
@@ -69,9 +56,7 @@ will limit the size of the multi value properties and create overflow
     [rep:MemberReferencesList]
       + * (rep:MemberReferences) = rep:MemberReferences protected COPY
 
-##### Examples
-
-###### Example Group with few members
+##### Example Group with few members
 *(irrelevant properties excluded)*
 
     {
@@ -88,7 +73,7 @@ will limit the size of the multi value properties and create overflow
         ]
     }
 
-###### Example Group with many members
+##### Example Group with many members
 *(irrelevant properties excluded)*
 
     {
@@ -138,15 +123,3 @@ Jackrabbit 2.x. The group member lists that are modified during an import are
 internally processed using the normal user manager APIs. This implies that the
 node structure after the import might not be the same as the one represented in
 the input.
-
-### Configuration
-
-Note that as of Oak 1.0 the implementation is responsible for defining the
-content structure and will expand the multi-valued `rep:members` property accordingly.
-Consequently, the following configuration option `groupMembershipSplitSize` present
-with Jackrabbit 2.x is not supported anymore.
-
-
-<!-- hidden references -->
-[org.apache.jackrabbit.api.security.user.Group]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Group.java
-[org.apache.jackrabbit.api.security.user.Authorizable]: http://svn.apache.org/repos/asf/jackrabbit/trunk/jackrabbit-api/src/main/java/org/apache/jackrabbit/api/security/user/Authorizable.java

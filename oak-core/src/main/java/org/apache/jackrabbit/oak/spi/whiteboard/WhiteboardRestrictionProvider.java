@@ -83,12 +83,6 @@ public class WhiteboardRestrictionProvider
         return getProvider().getPattern(oakPath, tree);
     }
 
-    @Nonnull
-    @Override
-    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
-        return getProvider().getPattern(oakPath, restrictions);
-    }
-
     //------------------------------------------------------------< private >---
     private RestrictionProvider getProvider() {
         return CompositeRestrictionProvider.newInstance(getServices());

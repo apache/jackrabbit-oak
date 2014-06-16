@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
@@ -46,19 +45,13 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.console.Console;
-import org.apache.jackrabbit.oak.explorer.Explorer;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
-import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
-import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
@@ -68,7 +61,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
-import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -81,7 +73,6 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
 import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Arrays.asList;
 
 public class Main {
 
@@ -94,11 +85,11 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        printProductInfo(args);
+        printProductInfo();
 
         Mode mode = Mode.SERVER;
         if (args.length > 0) {
-            mode = Mode.valueOf(args[0].toUpperCase(Locale.ENGLISH));
+            mode = Mode.valueOf(args[0].toUpperCase());
             String[] tail = new String[args.length - 1];
             System.arraycopy(args, 1, tail, 0, tail.length);
             args = tail;
@@ -107,14 +98,8 @@ public class Main {
             case BACKUP:
                 backup(args);
                 break;
-            case RESTORE:
-                restore(args);
-                break;
             case BENCHMARK:
                 BenchmarkRunner.main(args);
-                break;
-            case CONSOLE:
-                Console.main(args);
                 break;
             case DEBUG:
                 debug(args);
@@ -128,12 +113,6 @@ public class Main {
             case UPGRADE:
                 upgrade(args);
                 break;
-            case SCALABILITY:
-                ScalabilityRunner.main(args);
-                break;
-            case EXPLORE:
-                Explorer.main(args);
-                break;
             default:
                 System.err.println("Unknown command: " + mode);
                 System.exit(1);
@@ -141,7 +120,7 @@ public class Main {
         }
     }
 
-    public static String getProductInfo(){
+    private static void printProductInfo() {
         String version = null;
 
         try {
@@ -166,13 +145,7 @@ public class Main {
             product = "Apache Jackrabbit Oak";
         }
 
-        return product;
-    }
-
-    private static void printProductInfo(String[] args) {
-        if(!Arrays.asList(args).contains("--quiet")) {
-            System.out.println(getProductInfo());
-        }
+        System.out.println(product);
     }
 
     private static void backup(String[] args) throws IOException {
@@ -183,23 +156,6 @@ public class Main {
             store.close();
         } else {
             System.err.println("usage: backup <repository> <backup>");
-            System.exit(1);
-        }
-    }
-
-    private static void restore(String[] args) throws IOException {
-        if (args.length == 2) {
-            // TODO: enable restore for other node store implementations
-            FileStore store = new FileStore(new File(args[0]), 256, false);
-            File target = new File(args[1]);
-            try {
-                FileStoreRestore.restore(target, new SegmentNodeStore(store));
-            } catch (CommitFailedException e) {
-                throw new IOException(e);
-            }
-            store.close();
-        } else {
-            System.err.println("usage: restore <repository> <backup>");
             System.exit(1);
         }
     }
@@ -257,6 +213,7 @@ public class Main {
                             dataCount++;
                             dataSize += segment.size();
                             idmap.put(id, segment.getReferencedIds());
+                            System.out.println(id + " -> " + idmap.get(id));
                         } else if (id.isBulkSegmentId()) {
                             bulkCount++;
                             bulkSize += id.getSegment().size();
@@ -302,7 +259,7 @@ public class Main {
                             bulkSize / (1024 * 1024), bulkCount);
                 } else {
                     Pattern pattern = Pattern.compile(
-                            "([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
+                            "([0-9a-f-]+)|([0-9a-f-]+:[0-9a-f]+)?(/.*)?");
                     for (int i = 1; i < args.length; i++) {
                         Matcher matcher = pattern.matcher(args[i]);
                         if (!matcher.matches()) {
@@ -314,42 +271,20 @@ public class Main {
                                     uuid.getLeastSignificantBits());
                             System.out.println(id.getSegment());
                         } else {
-                            RecordId id1 = store.getHead().getRecordId();
-                            RecordId id2 = null;
+                            RecordId id = store.getHead().getRecordId();
                             if (matcher.group(2) != null) {
-                                id1 = RecordId.fromString(
-                                        store.getTracker(), matcher.group(3));
-                                if (matcher.group(4) != null) {
-                                    id2 = RecordId.fromString(
-                                            store.getTracker(), matcher.group(5));
-                                }
+                                id = RecordId.fromString(
+                                        store.getTracker(), matcher.group(2));
                             }
                             String path = "/";
-                            if (matcher.group(6) != null) {
-                                path = matcher.group(6);
+                            if (matcher.group(3) != null) {
+                                path = matcher.group(3);
                             }
-
-                            if (id2 == null) {
-                                NodeState node = new SegmentNodeState(id1);
-                                System.out.println("/ (" + id1 + ") -> " + node);
-                                for (String name : PathUtils.elements(path)) {
-                                    node = node.getChildNode(name);
-                                    RecordId nid = null;
-                                    if (node instanceof SegmentNodeState) {
-                                        nid = ((SegmentNodeState) node).getRecordId();
-                                    }
-                                    System.out.println(
-                                            "  " + name  + " (" + nid + ") -> " + node);
-                                }
-                            } else {
-                                NodeState node1 = new SegmentNodeState(id1);
-                                NodeState node2 = new SegmentNodeState(id2);
-                                for (String name : PathUtils.elements(path)) {
-                                    node1 = node1.getChildNode(name);
-                                    node2 = node2.getChildNode(name);
-                                }
-                                System.out.println(JsopBuilder.prettyPrint(
-                                        JsopDiff.diffToJsop(node1, node2)));
+                            NodeState node = new SegmentNodeState(id);
+                            System.out.println("/ -> " + node);
+                            for (String name : PathUtils.elements(path)) {
+                                node = node.getChildNode(name);
+                                System.out.println(" " + name  + " -> " + node);
                             }
                         }
                     }
@@ -363,10 +298,10 @@ public class Main {
     private static void upgrade(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.accepts("datastore", "keep data store");
-        OptionSpec<String> nonOption = parser.nonOptions();
+
         OptionSet options = parser.parse(args);
 
-        List<String> argList = nonOption.values(options);
+        List<String> argList = options.nonOptionArguments();
         if (argList.size() == 2 || argList.size() == 3) {
             File dir = new File(argList.get(0));
             File xml = new File(dir, "repository.xml");
@@ -434,18 +369,12 @@ public class Main {
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
-        OptionSpec<String> nonOption = parser.nonOptions();
-        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        OptionSet options = parser.parse(args);
 
-        if (options.has(help)) {
-            parser.printHelpOn(System.out);
-            System.exit(0);
-        }
+        OptionSet options = parser.parse(args);
 
         OakFixture oakFixture;
 
-        List<String> arglist = nonOption.values(options);
+        List<String> arglist = options.nonOptionArguments();
         String uri = (arglist.isEmpty()) ? defaultUri : arglist.get(0);
         String fix = (arglist.size() <= 1) ? OakFixture.OAK_MEMORY : arglist.get(1);
 
@@ -485,7 +414,7 @@ public class Main {
             if (baseFile == null) {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
-            oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
+            oakFixture = OakFixture.getTar(baseFile, 256, cacheSize, mmap.value(options));
         } else if (fix.equals(OakFixture.OAK_H2)) {
             File baseFile = base.value(options);
             if (baseFile == null) {
@@ -585,19 +514,15 @@ public class Main {
     public enum Mode {
 
         BACKUP("backup"),
-        RESTORE("restore"),
         BENCHMARK("benchmark"),
-        CONSOLE("debug"),
         DEBUG("debug"),
         COMPACT("compact"),
         SERVER("server"),
-        UPGRADE("upgrade"),
-        SCALABILITY("scalability"),
-        EXPLORE("explore");
+        UPGRADE("upgrade");
 
         private final String name;
 
-        Mode(String name) {
+        private Mode(String name) {
             this.name = name;
         }
 

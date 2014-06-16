@@ -45,13 +45,16 @@ class PropertyHistory implements Iterable<NodeDocument> {
 
     private static final Logger LOG = LoggerFactory.getLogger(PropertyHistory.class);
 
+    private final DocumentStore store;
     private final NodeDocument doc;
     private final String property;
     // path of the main document
     private final String mainPath;
 
-    public PropertyHistory(@Nonnull NodeDocument doc,
+    public PropertyHistory(@Nonnull DocumentStore store,
+                           @Nonnull NodeDocument doc,
                            @Nonnull String property) {
+        this.store = checkNotNull(store);
         this.doc = checkNotNull(doc);
         this.property = checkNotNull(property);
         this.mainPath = doc.getMainPath();
@@ -67,7 +70,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                 Revision r = input.getKey();
                 int h = input.getValue().height;
                 String prevId = Utils.getPreviousIdFor(mainPath, r, h);
-                NodeDocument prev = doc.getPreviousDocument(prevId);
+                NodeDocument prev = store.find(Collection.NODES, prevId);
                 if (prev == null) {
                     LOG.warn("Document with previous revisions not found: " + prevId);
                     return null;

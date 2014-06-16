@@ -21,19 +21,10 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
+
 /**
  * The interface for the backend storage for documents.
- * <p>
- * In general atomicity of operations on a DocumentStore are limited to a single
- * document. That is, an implementation does not have to guarantee atomicity of
- * the entire effect of a method call. A method that fails with an exception may
- * have modified just some documents and then abort. However, an implementation
- * must not modify a document partially. Either the complete update operation
- * is applied to a document or no modification is done at all.
- * <p>
- * Even though none of the methods declare an exception, they will still throw
- * an implementation specific runtime exception when the operations fails (e.g.
- * an I/O error occurs).
  * <p>
  * For keys, the maximum length is 512 bytes in the UTF-8 representation.
  */
@@ -114,8 +105,7 @@ public interface DocumentStore {
                                        int limit);
 
     /**
-     * Remove a document. This method does nothing if there is no document
-     * with the given key.
+     * Remove a document.
      *
      * @param <T> the document type
      * @param collection the collection
@@ -124,10 +114,7 @@ public interface DocumentStore {
     <T extends Document> void remove(Collection<T> collection, String key);
 
     /**
-     * Batch remove documents with given key. Keys for documents that do not
-     * exist are simply ignored. If this method fails with an exception, then
-     * only some of the documents identified by {@code keys} may have been
-     * removed.
+     * Batch remove documents with given key.
      *
      * @param <T> the document type
      * @param collection the collection
@@ -136,16 +123,7 @@ public interface DocumentStore {
     <T extends Document> void remove(Collection<T> collection, List<String> keys);
 
     /**
-     * Try to create a list of documents. This method returns {@code code} iff
-     * none of the documents existed before and the create was successful. This
-     * method will return {@code false} if one of the documents already exists
-     * in the store. Some documents may still have been created in the store.
-     * An implementation does not have to guarantee an atomic create of all the
-     * documents described in the {@code updateOps}. It is the responsibility of
-     * the caller to check, which documents were created and take appropriate
-     * action. The same is true when this method throws an exception (e.g. when
-     * a communication error occurs). In this case only some documents may have
-     * been created.
+     * Try to create a list of documents.
      *
      * @param <T> the document type
      * @param collection the collection
@@ -156,10 +134,7 @@ public interface DocumentStore {
 
     /**
      * Update documents with the given keys. Only existing documents are
-     * updated and keys for documents that do not exist are simply ignored. If
-     * this method fails with an exception, then only some of the documents
-     * identified by {@code keys} may have been updated. There is no guarantee
-     * in which sequence the updates are performed.
+     * updated.
      *
      * @param <T> the document type.
      * @param collection the collection.
@@ -178,9 +153,11 @@ public interface DocumentStore {
      * @param collection the collection
      * @param update the update operation
      * @return the old document or <code>null</code> if it didn't exist before.
+     * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
+    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
+            throws MicroKernelException;
 
     /**
      * Performs a conditional update (e.g. using
@@ -193,9 +170,11 @@ public interface DocumentStore {
      * @param update the update operation with the condition
      * @return the old document or <code>null</code> if the condition is not met or
      *         if the document wasn't found
+     * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update);
+    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
+            throws MicroKernelException;
 
     /**
      * Invalidate the document cache.

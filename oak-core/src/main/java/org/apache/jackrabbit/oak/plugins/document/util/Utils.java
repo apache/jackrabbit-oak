@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -62,14 +61,14 @@ public class Utils {
      * possibly be too large to be used for the primary key for the document
      * store.
      */
-    static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
+    private static final int PATH_SHORT = Integer.getInteger("oak.pathShort", 165);
 
     /**
      * The maximum length of the parent path, in bytes. If the parent path is
      * longer, then the id of a document is no longer the path, but the hash of
      * the parent, and then the node name.
      */
-    static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
+    private static final int PATH_LONG = Integer.getInteger("oak.pathLong", 350);
 
     /**
      * The maximum size a node name, in bytes. This is only a problem for long path.
@@ -251,31 +250,6 @@ public class Utils {
         return depth + ":" + path;
     }
 
-    /**
-     * Returns the parent id for given id if possible
-     *
-     * <p>It would return null in following cases
-     * <ul>
-     *     <li>If id is from long path</li>
-     *     <li>If id is for root path</li>
-     * </ul>
-     *</p>
-     * @param id id for which parent id needs to be determined
-     * @return parent id. null if parent id cannot be determined
-     */
-    @CheckForNull
-    public static String getParentId(String id){
-        if(Utils.isIdFromLongPath(id)){
-            return null;
-        }
-        String path = Utils.getPathFromId(id);
-        if(PathUtils.denotesRoot(path)){
-            return null;
-        }
-        String parentPath = PathUtils.getParentPath(path);
-        return Utils.getIdFromPath(parentPath);
-    }
-
     public static boolean isLongPath(String path) {
         // the most common case: a short path
         // avoid calculating the parent path
@@ -377,23 +351,6 @@ public class Utils {
         to = getIdFromPath(to);
         to = to.substring(0, to.length() - 2) + "0";
         return to;
-    }
-
-    /**
-     * Returns parentId extracted from the fromKey. fromKey is usually constructed
-     * using Utils#getKeyLowerLimit
-     *
-     * @param fromKey key used as start key in queries
-     * @return parentId if possible.
-     */
-    @CheckForNull
-    public static String getParentIdFromLowerLimit(String fromKey){
-        //If key just ends with slash 2:/foo/ then append a fake
-        //name to create a proper id
-        if(fromKey.endsWith("/")){
-            fromKey = fromKey + "a";
-        }
-        return getParentId(fromKey);
     }
 
     /**

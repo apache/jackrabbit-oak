@@ -750,10 +750,11 @@ Lucene will flush based on whichever limit is hit first.  -->
         <lst name="invariants">
             <str name="fl">* score</str>
         </lst>
+
         <lst name="defaults">
-            <str name="echoParams">none</str>
+            <str name="echoParams">explicit</str>
             <int name="rows">10</int>
-            <str name="df">catch_all</str>
+            <str name="df">text</str>
         </lst>
         <!-- In addition to defaults, "appends" params can be specified
            to identify values which should be appended to the list of

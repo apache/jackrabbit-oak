@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.FixedNodeStateConfiguration}
@@ -38,22 +37,11 @@ public class FixedNodeStateConfigurationTest {
 
     @Before
     public void setUp() throws Exception {
-        store = new SegmentNodeStore();
-        NodeBuilder builder = store.getRoot().builder();
-        builder.setProperty("a", 1)
-               .setProperty("b", 2)
-               .setProperty("c", 3);
-
-        builder.setChildNode("x");
-        builder.setChildNode("y");
-        builder.setChildNode("z");
-
-        builder.setChildNode("oak:index").setChildNode("solrIdx")
-               .setProperty("coreName", "cn")
-               .setProperty("solrHomePath", "sh")
-               .setProperty("solrConfigPath", "sc");
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        MicroKernel microKernel = new MicroKernelImpl();
+        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{} " +
+                "+\"oak:index\":{\"solrIdx\":{\"coreName\":\"cn\", \"solrHomePath\":\"sh\", \"solrConfigPath\":\"sc\"}} ";
+        microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
+        store = new KernelNodeStore(microKernel);
     }
 
     @Test

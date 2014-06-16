@@ -23,10 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -34,14 +30,11 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -315,51 +308,6 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         }
     }
 
-    /**
-     *@see <a href="https://issues.apache.org/jira/browse/OAK-1697">OAK-1697</a>
-     */
-    @Test
-    public void testValidTokenCredentialsWithConflict() throws Exception {
-        ExecutorService pool = Executors.newFixedThreadPool(10);
-        List<ContentSession> sessions = new ArrayList<ContentSession>();
-
-        try {
-            TokenConfiguration tc = getSecurityProvider().getConfiguration(
-                    TokenConfiguration.class);
-            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
-
-            List<TokenProvider> tokenProviders = new ArrayList<TokenProvider>();
-
-            for (int i = 0; i < 10; i++) {
-                ContentSession session = login(getAdminCredentials());
-                Root r = session.getLatestRoot();
-                tokenProviders.add(tc.getTokenProvider(r));
-                sessions.add(session);
-            }
-
-            ArrayList<DataFuture> list = new ArrayList<DataFuture>();
-
-            for (TokenProvider tokenProvider : tokenProviders) {
-                list.add(createDataFuture(pool, tokenProvider, sc.getUserID(),
-                        Collections.<String, Object> emptyMap()));
-            }
-
-            for (DataFuture df : list) {
-                assertNotNull(df.future.get());
-            }
-        } finally {
-            for (ContentSession session : sessions) {
-                if (session != null) {
-                    session.close();
-                }
-            }
-
-            if (pool != null) {
-                pool.shutdown();
-            }
-        }
-    }
-
     //--------------------------------------------------------------------------
     private static void assertTokenInfo(TokenInfo info, String userId) {
         assertNotNull(info);
@@ -381,24 +329,5 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         tree.setProperty(tokenTree.getProperty(JcrConstants.JCR_UUID));
         tree.setProperty(tokenTree.getProperty("rep:token.key"));
         tree.setProperty(tokenTree.getProperty("rep:token.exp"));
-    }
-    
-    private static class DataFuture {
-        public Future<TokenInfo> future;
-
-        public DataFuture(Future<TokenInfo> future) {
-            super();
-            this.future = future;
-        }
-    }
-    
-    private DataFuture createDataFuture(ExecutorService pool , final TokenProvider tp,final String userId, final Map<String, ?> attributes){
-        Future<TokenInfo> future = pool.submit(new Callable<TokenInfo>() {
-            @Override
-            public TokenInfo call() throws Exception {
-                return tp.createToken(userId, attributes);
-            }
-        });
-        return new DataFuture(future);
     }
 }

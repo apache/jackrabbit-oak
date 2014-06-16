@@ -1080,7 +1080,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return Collections.emptyList();
         }
         if (revision == null) {
-            return new PropertyHistory(this, property);
+            return new PropertyHistory(store, this, property);
         } else {
             final String mainPath = getMainPath();
             // first try to lookup revision directly
@@ -1089,7 +1089,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 Revision r = entry.getKey();
                 int h = entry.getValue().height;
                 String prevId = Utils.getPreviousIdFor(mainPath, r, h);
-                NodeDocument prev = getPreviousDocument(prevId);
+                NodeDocument prev = store.find(Collection.NODES, prevId);
                 if (prev != null) {
                     if (prev.getValueMap(property).containsKey(revision)) {
                         return Collections.singleton(prev);
@@ -1116,12 +1116,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 }
             });
         }
-    }
-
-    NodeDocument getPreviousDocument(String prevId){
-        //Use the maxAge variant such that in case of Mongo call for
-        //previous doc are directed towards replicas first
-        return store.find(Collection.NODES, prevId, Integer.MAX_VALUE);
     }
 
     @Nonnull
@@ -1153,7 +1147,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     private NodeDocument getPreviousDoc(Revision rev, Range range){
         int h = range.height;
         String prevId = Utils.getPreviousIdFor(getMainPath(), rev, h);
-        NodeDocument prev = getPreviousDocument(prevId);
+        //TODO Use the maxAge variant such that in case of Mongo call for
+        //previous doc are directed towards replicas first
+        NodeDocument prev = store.find(Collection.NODES, prevId);
         if (prev != null) {
             return prev;
         } else {

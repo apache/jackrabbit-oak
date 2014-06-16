@@ -76,7 +76,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
             value = "SUFFICIENT",
             label = "JAAS Control Flag",
             description = "Property specifying whether or not a LoginModule is REQUIRED, REQUISITE, SUFFICIENT or " +
-                    "OPTIONAL. Refer to the JAAS configuration documentation for more details around the meaning of " +
+                    "OPTIONAL.Refer to the JAAS configuration documentation for more details around the meaning of " +
                     "these flags."
     )
     public static final String JAAS_CONTROL_FLAG = LoginModuleFactory.JAAS_CONTROL_FLAG;

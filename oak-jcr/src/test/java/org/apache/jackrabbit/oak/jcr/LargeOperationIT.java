@@ -50,8 +50,6 @@ import javax.jcr.SimpleCredentials;
 import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import com.google.common.collect.Lists;
 import org.apache.commons.math3.distribution.BinomialDistribution;
 import org.apache.commons.math3.exception.MathIllegalArgumentException;
@@ -63,8 +61,6 @@ import org.apache.commons.math3.exception.util.LocalizedFormats;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.DocumentFixture;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture.SegmentFixture;
-import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -161,14 +157,6 @@ public class LargeOperationIT {
 
     @Before
     public void setup() throws RepositoryException {
-        // Disable noisy logging we want to ignore for these tests
-        ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger(DocumentNodeStore.class).setLevel(Level.ERROR);
-        ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger("org.apache.jackrabbit.oak.jcr.observation.ChangeProcessor").setLevel(Level.ERROR);
-        ((LoggerContext)LoggerFactory.getILoggerFactory())
-                .getLogger(RefreshStrategy.class).setLevel(Level.ERROR);
-
         nodeStore = fixture.createNodeStore();
         repository  = new Jcr(nodeStore).createRepository();
         session = createAdminSession();
@@ -293,7 +281,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Copying {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1414
         assertOnLgn("large copy", scales, executionTimes, knownIssue);
     }
 
@@ -325,7 +313,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Moving {} node took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1415
         assertOnLgn("large move", scales, executionTimes, knownIssue);
     }
 
@@ -362,8 +350,7 @@ public class LargeOperationIT {
             executionTimes.add(t);
             LOG.info("Adding 100 siblings next to {} siblings took {} ns/node", scale, t);
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
-        assertOnLgn("many siblings", scales, executionTimes, knownIssue);
+        assertOnLgn("many siblings", scales, executionTimes, false);
     }
 
     /**
@@ -401,8 +388,7 @@ public class LargeOperationIT {
                 } catch (Exception ignore) {}
             }
         }
-        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
-        assertOnLgn("large number of pending events", scales, executionTimes, knownIssue);
+        assertOnLgn("large number of pending events", scales, executionTimes, false);
     }
 
     @Test
@@ -424,8 +410,7 @@ public class LargeOperationIT {
                 executionTimes.add(t);
                 LOG.info("Adding {} nodes took {} ns/node", scale, t);
             }
-            boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
-            assertOnLgn("slow listeners", scales, executionTimes, knownIssue);
+            assertOnLgn("slow listeners", scales, executionTimes, false);
         } finally {
             delayedEventHandling.stop();
             result.get();

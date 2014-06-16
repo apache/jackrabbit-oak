@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -57,9 +57,9 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.0.1</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-1.0.1</developerConnection>
+    <url>http://svn.apache.org/viewvc/jackrabbit/oak/tags/jackrabbit-oak-1.0.1</url>
   </scm>
 
   <build>
@@ -79,8 +79,6 @@
               <exclude>oak-doc/*.iml</exclude>
               <exclude>oak-doc/target/**</exclude>
               <exclude>oak-js/package.json</exclude>
-              <exclude>oak-mk-perf/.*/**</exclude>
-              <exclude>oak-mk-perf/target/**</exclude>
               <exclude>oak-mongomk-perf/.*/**</exclude>
               <exclude>oak-mongomk-perf/target/**</exclude>
             </excludes>

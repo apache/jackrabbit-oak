@@ -133,14 +133,7 @@ class OakDirectory extends Directory {
         return lockFactory;
     }
 
-    /**
-     * Size of the blob entries to which the Lucene files are split.
-     * Set to higher than the 4kB inline limit for the BlobStore, but
-     * just below the 16+kB inline limit in the SegmentMK. This way the
-     * Lucene index gets stored in the SegmentMK segments for best performance
-     * even when an external Data/BlobStore is being used for normal binaries.
-     */
-    private static final int BLOB_SIZE = 16 * 1024;
+    private static final int BLOB_SIZE = 32 * 1024; // > blob inline limit
 
     private static class OakIndexFile {
 

@@ -325,7 +325,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
             session.getNode(testNodePath).setProperty("foo2","bar2");
             session.save();
 
-            latch.await(60, TimeUnit.SECONDS);
+            latch.await(10,TimeUnit.SECONDS);
 
             //Only one event is recorded for foo2 modification
             assertEquals(1,events.size());

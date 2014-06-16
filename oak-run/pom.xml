@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,52 +33,10 @@
   <properties>
     <skip.deployment>true</skip.deployment>
     <jetty.version>8.1.2.v20120308</jetty.version>
-    <groovy.version>2.3.1</groovy.version>
   </properties>
 
   <build>
-    <resources>
-      <resource>
-        <directory>src/main/groovy</directory>
-        <includes>
-          <include>**/*.properties</include>
-        </includes>
-      </resource>
-      <resource>
-        <directory>src/main/resources</directory>
-        <includes>
-          <include>**/*.*</include>
-        </includes>
-      </resource>
-    </resources>
     <plugins>
-      <plugin>
-        <groupId>org.codehaus.gmaven</groupId>
-        <artifactId>gmaven-plugin</artifactId>
-        <version>1.4</version>
-        <!--suppress MavenModelInspection -->
-        <configuration>
-          <providerSelection>2.0</providerSelection>
-          <sourceEncoding>UTF-8</sourceEncoding>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>generateStubs</goal>
-              <goal>compile</goal>
-              <goal>generateTestStubs</goal>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-            <version>${groovy.version}</version>
-          </dependency>
-        </dependencies>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -95,9 +53,6 @@
                 <includes>
                   <include>*</include>
                 </includes>
-                <excludes>
-                  <exclude>${lucene.exclude}</exclude>
-                </excludes>
               </artifactSet>
               <filters>
                 <filter>
@@ -181,18 +136,13 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-lucene</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-remote</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
+      <version>1.3.175</version>
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
@@ -207,12 +157,6 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-core</artifactId>
       <version>${jackrabbit.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
@@ -225,11 +169,6 @@
       <version>2.0</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.8</version>
-    </dependency>
-    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-servlet</artifactId>
       <version>${jetty.version}</version>
@@ -237,7 +176,7 @@
     <dependency>
       <groupId>net.sf.jopt-simple</groupId>
       <artifactId>jopt-simple</artifactId>
-      <version>4.6</version>
+      <version>4.4</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -246,21 +185,6 @@
     <dependency>
       <groupId>org.apache.jclouds.provider</groupId>
       <artifactId>aws-s3</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
-      <version>${groovy.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>2.11</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.felix</groupId>
-      <artifactId>org.apache.felix.scr.annotations</artifactId>
-      <scope>provided</scope>
     </dependency>
     
     <!-- Findbugs annotations -->
@@ -277,64 +201,4 @@
     </dependency>
     
   </dependencies>
-
-  <profiles>
-    <profile>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <id>oak-run-jr2</id>
-      <properties>
-        <lucene.exclude>org.apache.jackrabbit:oak-lucene</lucene.exclude>
-      </properties>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>3.6.0</version>
-        </dependency>
-      </dependencies>
-    </profile>
-    <profile>
-      <id>oak-run-oak</id>
-      <activation>
-        <activeByDefault>false</activeByDefault>
-      </activation>
-      <properties>
-        <!--
-        Lucene classes are already part of oak-lucene so exclude
-        them in maven-shade-plugin. Otherwise it causes duplicate
-        classes warning
-        -->
-        <lucene.exclude>org.apache.lucene:*</lucene.exclude>
-      </properties>
-      <dependencies>
-        <!--
-         oak-lucene embeds the Lucene jar. However when running in IDE
-         the IDE use the module classpath. So need to explicitly list the
-         lucene jars
-        -->
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-core</artifactId>
-          <version>${lucene.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-analyzers-common</artifactId>
-          <version>${lucene.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-queryparser</artifactId>
-          <version>${lucene.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-queries</artifactId>
-          <version>${lucene.version}</version>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
 </project>

@@ -44,8 +44,7 @@ Session state and refresh behaviour
 In Jackrabbit 2 sessions always reflects the latest state of the repository. With Oak a session
 reflects a stable view of the repository from the time the session was acquired ([MVCC model]
 (http://en.wikipedia.org/wiki/MVCC)). This is a fundamental design aspect for achieving the
-distributed nature of an Oak repository. A rarely encountered side effect of this is that sessions
-expose [write skew](architecture/transactional-model.html).
+distributed nature of an Oak repository.
 
 This change can cause subtle differences in behavior when two sessions perform modifications
 relying on one session seeing the other session's changes. Oak requires explicit calls to
@@ -286,8 +285,3 @@ Security
 * [Privilege Management](security/privilege/differences.html)
 * [Principal Management](security/principal/differences.html)
 * [User Management](security/user/differences.html)
-
-Workspaces
-----------
-
-An Oak repository only has one default workspace.

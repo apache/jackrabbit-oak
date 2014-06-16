@@ -411,7 +411,6 @@ public final class DocumentNodeStore
             leaseUpdateThread = new Thread(
                     new BackgroundLeaseUpdate(this, isDisposed),
                     "DocumentNodeStore lease update thread");
-            leaseUpdateThread.setDaemon(true);
             leaseUpdateThread.start();
         }
 
@@ -857,12 +856,7 @@ public final class DocumentNodeStore
             @Override
             public DocumentNodeState apply(String input) {
                 String p = PathUtils.concat(parent.getPath(), input);
-                DocumentNodeState result = getNode(p, readRevision);
-                if (result == null) {
-                    throw new MicroKernelException("DocumentNodeState is null for revision " + readRevision + " of " + p
-                            + " (aborting getChildNodes())");
-                }
-                return result;
+                return getNode(p, readRevision);
             }
         });
     }

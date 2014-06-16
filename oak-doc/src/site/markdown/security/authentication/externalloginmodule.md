@@ -67,12 +67,6 @@ Note:
 * users (and groups) that are synced from the 3rd party system contain a `rep:externalId` property. This allows to identify the external users and distinguish them from others.
 * to reduce expensive syncing, the synced users and groups have sync timestamp `rep:lastSynced` and are considered valid for a configurable time. if they expire, they need to be validated against the 3rd party system again.
 
-Current this login module supports the following credentials:
-
-- `SimpleCredentials`
-
-The details of the external authentication are as follows:
-
 _Phase 1: Login_
 
 * if the user exists in the repository and is not an externally synced, **return `false`**
@@ -91,9 +85,7 @@ _Phase 2: Commit_
 
 #### External Identity Provider
 
-The `ExternalLoginModule` is designed to work with a pluggable [ExternalIdentityProvider]
-implementation that is responsible for validating the authentication request and
-provide information about the user that is associated with the specified credentials.
+_todo_
 
 See [External Identity Management](identitymanagement.html) for further information
 regarding the identity management API defined by Oak. Section [LDAP](ldap.html)
@@ -108,24 +100,13 @@ present on the IDP.
 See section [User Synchronization](usersync.html) for further details and a
 description of the default implementation.
 
-### Configuration
-
-##### Examples
-
-###### Example JAAS Configuration
+### Example JAAS Configuration
 
 The following JAAS configuration shows how the `ExternalLoginModule` could be
 used in a setup that not solely uses third party login:
 
-    jackrabbit.oak {
-         org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
-         org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl sufficient;
-         org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalLoginModule required
-            sync.handlerName="default"
-            idp.name="ldap";
-     };
+    _todo_
 
 <!-- references -->
 
-[ExternalIdentityProvider]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/ExternalIdentityProvider.html
 [DefaultSyncConfig]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/external/impl/DefaultSyncConfig.html

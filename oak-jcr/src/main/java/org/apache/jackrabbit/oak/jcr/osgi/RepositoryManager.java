@@ -35,10 +35,8 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardEditorProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
@@ -68,8 +66,6 @@ public class RepositoryManager {
             new WhiteboardIndexProvider();
 
     private final WhiteboardExecutor executor = new WhiteboardExecutor();
-
-    private Tracker<RepositoryInitializer> initializers;
 
     private Whiteboard whiteboard;
 
@@ -111,7 +107,6 @@ public class RepositoryManager {
         }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        initializers = whiteboard.track(RepositoryInitializer.class);
         editorProvider.start(whiteboard);
         indexEditorProvider.start(whiteboard);
         indexProvider.start(whiteboard);
@@ -137,7 +132,6 @@ public class RepositoryManager {
             registration.unregister();
         }
 
-        initializers.stop();
         executor.stop();
         indexProvider.stop();
         indexEditorProvider.stop();
@@ -155,10 +149,6 @@ public class RepositoryManager {
                 .with(indexProvider)
                 .withAsyncIndexing()
                 .with(executor);
-
-        for(RepositoryInitializer initializer : initializers.getServices()){
-            oak.with(initializer);
-        }
 
         if (commitRateLimiter != null) {
             oak.with(commitRateLimiter);

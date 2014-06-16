@@ -112,7 +112,7 @@ public interface UserConstants {
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
 
     /**
-     * Parameter used to change the number of levels that are used by default to
+     * Parameter used to change the number of levels that are used by default
      * store authorizable nodes.<br>The default number of levels is 2.
      */
     String PARAM_DEFAULT_DEPTH = "defaultDepth";

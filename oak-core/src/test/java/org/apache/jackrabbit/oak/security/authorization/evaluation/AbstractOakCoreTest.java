@@ -69,9 +69,6 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            // revert uncommited changes
-            root.refresh();
-
             // clean up policies at the root node
             AccessControlManager acMgr = getAccessControlManager(root);
             AccessControlPolicy[] policies = acMgr.getPolicies("/");

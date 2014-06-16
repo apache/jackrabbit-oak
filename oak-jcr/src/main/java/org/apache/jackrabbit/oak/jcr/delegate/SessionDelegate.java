@@ -16,24 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
-import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-
 import java.io.IOException;
+import java.util.Date;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -52,7 +40,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.observation.EventFactory;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
-import org.apache.jackrabbit.oak.jcr.session.SessionStats.Counters;
 import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -64,6 +51,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_READ_DURATION;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_COUNTER;
+import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.SESSION_WRITE_DURATION;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 
 /**
  * TODO document
@@ -99,7 +96,16 @@ public class SessionDelegate {
     private final Clock clock;
 
     // access time stamps and counters for statistics about this session
-    Counters sessionCounters;
+    private final long loginTime;
+    private long accessTime;
+    private long readTime = 0;
+    private long writeTime = 0;
+    private long refreshTime = 0;
+    private long saveTime = 0;
+    private long readCount = 0;
+    private long writeCount = 0;
+    private long refreshCount = 0;
+    private long saveCount = 0;
 
     // repository-wide counters for statistics about all sessions
     private final AtomicLong readCounter;
@@ -121,7 +127,7 @@ public class SessionDelegate {
      * synchronization in order to be able to log attempts to concurrently
      * use a session.
      */
-    private final WarningLock lock = new WarningLock(new ReentrantLock());
+    private final Lock lock = new ReentrantLock();
 
     /**
      * Create a new session delegate for a {@code ContentSession}. The refresh behaviour of the
@@ -150,10 +156,10 @@ public class SessionDelegate {
         this.sessionSaveCount = getThreadSaveCount();
         this.root = contentSession.getLatestRoot();
         this.idManager = new IdentifierManager(root);
+        this.sessionStats = new SessionStats(this);
         this.clock = checkNotNull(clock);
-        this.sessionStats = new SessionStats(contentSession.toString(),
-                contentSession.getAuthInfo(), clock);
-        this.sessionCounters = sessionStats.getCounters();
+        this.loginTime = clock.getTime();
+        this.accessTime = loginTime;
         checkNotNull(statisticManager);
         readCounter = statisticManager.getCounter(SESSION_READ_COUNTER);
         readDuration = statisticManager.getCounter(SESSION_READ_DURATION);
@@ -169,6 +175,54 @@ public class SessionDelegate {
     private long getThreadSaveCount() {
         Long c = threadSaveCount.get();
         return c == null ? 0 : c;
+    }
+
+    public long getSecondsSinceLogin() {
+        return SECONDS.convert(clock.getTime() - loginTime, MILLISECONDS);
+    }
+
+    public Date getLoginTime() {
+        return new Date(loginTime);
+    }
+
+    private Date getTime(long timestamp) {
+        if (timestamp != 0) {
+            return new Date(timestamp);
+        } else {
+            return null;
+        }
+    }
+
+    public Date getReadTime() {
+        return getTime(readTime);
+    }
+
+    public Date getWriteTime() {
+        return getTime(writeTime);
+    }
+
+    public Date getRefreshTime() {
+        return getTime(refreshTime);
+    }
+
+    public Date getSaveTime() {
+        return getTime(saveTime);
+    }
+
+    public long getReadCount() {
+        return readCount;
+    }
+
+    public long getWriteCount() {
+        return writeCount;
+    }
+
+    public long getRefreshCount() {
+        return refreshCount;
+    }
+
+    public long getSaveCount() {
+        return saveCount;
     }
 
     public void refreshAtNextAccess() {
@@ -188,7 +242,7 @@ public class SessionDelegate {
      * @return  synchronized iterator
      */
     public <T> Iterator<T> sync(Iterator<T> iterator) {
-        return new SynchronizedIterator<T>(iterator, lock);
+        return new SynchronizedIterator<T>(iterator);
     }
 
     /**
@@ -210,7 +264,25 @@ public class SessionDelegate {
         // Acquire the exclusive lock for accessing session internals.
         // No other session should be holding the lock, so we log a
         // message to let the user know of such cases.
-        lock.lock(sessionOperation);
+        if (!lock.tryLock()) {
+            if (sessionOperation.isUpdate()) {
+                Exception trace = new Exception(
+                        "Stack trace of concurrent access to " + contentSession);
+                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
+                        "concurrently writing to " + contentSession + ". Blocking until the " +
+                        "other thread is finished using this session. Please review your code " +
+                        "to avoid concurrent use of a session.", trace);
+            } else if (log.isDebugEnabled()) {
+                Exception trace = new Exception(
+                        "Stack trace of concurrent access to " + contentSession);
+                log.warn("Attempt to perform " + sessionOperation + " while another thread is " +
+                        "concurrently reading from " + contentSession + ". Blocking until the " +
+                        "other thread is finished using this session. Please review your code " +
+                        "to avoid concurrent use of a session.", trace);
+            }
+            lock.lock();
+        }
+
         try {
             if (sessionOpCount == 0) {
                 // Refresh and precondition checks only for non re-entrant
@@ -223,7 +295,7 @@ public class SessionDelegate {
                         && (refreshAtNextAccess
                         || sessionSaveCount != getThreadSaveCount()
                         || refreshStrategy.needsRefresh(
-                        SECONDS.convert(t0 - sessionCounters.accessTime, MILLISECONDS)))) {
+                        SECONDS.convert(t0 - accessTime, MILLISECONDS)))) {
                     refresh(true);
                     refreshAtNextAccess = false;
                     sessionSaveCount = getThreadSaveCount();
@@ -237,18 +309,18 @@ public class SessionDelegate {
                 logOperationDetails(contentSession, sessionOperation);
                 return result;
             } finally {
-                sessionCounters.accessTime = t0;
+                accessTime = t0;
                 long dt = NANOSECONDS.convert(clock.getTime() - t0, MILLISECONDS);
                 sessionOpCount--;
                 if (sessionOperation.isUpdate()) {
-                    sessionCounters.writeTime = t0;
-                    sessionCounters.writeCount++;
+                    writeTime = t0;
+                    writeCount++;
                     writeCounter.incrementAndGet();
                     writeDuration.addAndGet(dt);
                     updateCount++;
                 } else {
-                    sessionCounters.readTime = t0;
-                    sessionCounters.readCount++;
+                    readTime = t0;
+                    readCount++;
                     readCounter.incrementAndGet();
                     readDuration.addAndGet(dt);
                 }
@@ -473,8 +545,8 @@ public class SessionDelegate {
      * @throws RepositoryException
      */
     public void save(String path) throws RepositoryException {
-        sessionCounters.saveTime = clock.getTime();
-        sessionCounters.saveCount++;
+        saveTime = clock.getTime();
+        saveCount++;
         try {
             commit(root, path);
         } catch (CommitFailedException e) {
@@ -485,8 +557,8 @@ public class SessionDelegate {
     }
 
     public void refresh(boolean keepChanges) {
-        sessionCounters.refreshTime = clock.getTime();
-        sessionCounters.refreshCount++;
+        refreshTime = clock.getTime();
+        refreshCount++;
         if (keepChanges && hasPendingChanges()) {
             root.rebase();
         } else {
@@ -541,8 +613,8 @@ public class SessionDelegate {
                 throw new RepositoryException("Cannot move node at " + srcPath + " to " + destPath);
             }
             if (!transientOp) {
-                sessionCounters.saveTime = clock.getTime();
-                sessionCounters.saveCount++;
+                saveTime = clock.getTime();
+                saveCount++;
                 commit(moveRoot);
                 refresh(true);
             }
@@ -611,21 +683,21 @@ public class SessionDelegate {
 
     /**
      * This iterator delegates to a backing iterator and synchronises
-     * all calls wrt. the lock passed to its constructor.
+     * all calls to the backing iterator on this {@code SessionDelegate}
+     * instance.
+     *
      * @param <T>
      */
-    private static final class SynchronizedIterator<T> implements Iterator<T> {
+    private final class SynchronizedIterator<T> implements Iterator<T> {
         private final Iterator<T> iterator;
-        private final WarningLock lock;
 
-        SynchronizedIterator(Iterator<T> iterator, WarningLock lock) {
+        SynchronizedIterator(Iterator<T> iterator) {
             this.iterator = iterator;
-            this.lock = lock;
         }
 
         @Override
         public boolean hasNext() {
-            lock.lock(false, "hasNext()");
+            lock.lock();
             try {
                 return iterator.hasNext();
             } finally {
@@ -635,7 +707,7 @@ public class SessionDelegate {
 
         @Override
         public T next() {
-            lock.lock(false, "next()");
+            lock.lock();
             try {
                 return iterator.next();
             } finally {
@@ -645,7 +717,7 @@ public class SessionDelegate {
 
         @Override
         public void remove() {
-            lock.lock(true, "remove()");
+            lock.lock();
             try {
                 iterator.remove();
             } finally {
@@ -654,97 +726,4 @@ public class SessionDelegate {
         }
     }
 
-    /**
-     * A {@link Lock} implementation that has additional methods
-     * for acquiring the lock, which log a warning if the lock is
-     * already held by another thread and was also acquired through
-     * such a method.
-     */
-    private static final class WarningLock implements Lock {
-        private final Lock lock;
-
-        // All access to members only *after* the lock has been acquired
-        private boolean isUpdate;
-        private Exception holderTrace;
-        private String holderThread;
-
-        private WarningLock(Lock lock) {
-            this.lock = lock;
-        }
-
-        public void lock(boolean isUpdate, String opName) {
-            if (!lock.tryLock()) {
-                // Acquire the lock before logging the warnings. As otherwise race conditions
-                // on the involved fields might lead to wrong warnings.
-                lock.lock();
-                if (holderThread != null) {
-                    if (this.isUpdate) {
-                        log.warn("Attempted to perform " + opName + " while thread " + holderThread +
-                                " was concurrently writing to this session. Blocked until the " +
-                                "other thread finished using this session. Please review your code " +
-                                "to avoid concurrent use of a session.", holderTrace);
-                    } else if (log.isDebugEnabled()) {
-                        log.debug("Attempted to perform " + opName + " while thread " + holderThread +
-                                " was concurrently reading from this session. Blocked until the " +
-                                "other thread finished using this session. Please review your code " +
-                                "to avoid concurrent use of a session.", holderTrace);
-                    }
-                }
-            }
-            this.isUpdate = isUpdate;
-            holderTrace = new Exception("Stack trace of concurrent access to session");
-            holderThread = Thread.currentThread().getName();
-        }
-
-        public void lock(SessionOperation<?> sessionOperation) {
-            lock(sessionOperation.isUpdate(), sessionOperation.toString());
-        }
-
-        @Override
-        public void lock() {
-            lock.lock();
-            holderTrace = null;
-            holderThread = null;
-        }
-
-        @Override
-        public void lockInterruptibly() throws InterruptedException {
-            lock.lockInterruptibly();
-            holderTrace = null;
-            holderThread = null;
-        }
-
-        @Override
-        public boolean tryLock() {
-            if (lock.tryLock()) {
-                holderTrace = null;
-                holderThread = null;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-            if (lock.tryLock(time, unit)) {
-                holderTrace = null;
-                holderThread = null;
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public void unlock() {
-            lock.unlock();
-        }
-
-        @Override
-        public Condition newCondition() {
-            return lock.newCondition();
-        }
-
-    }
 }

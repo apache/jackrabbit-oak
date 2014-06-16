@@ -18,45 +18,6 @@
 Privilege Management
 --------------------------------------------------------------------------------
 
-### JCR API
-
-As of JSR 283 the API contains the following privilege related interfaces and methods:
-
-- `Privilege`: exposes the name and characteristics of a given privilege and provides constants for privilege names defined by JCR.
-- `AccessControlManager.getSupportedPrivileges(String)` (see also `PrivilegeManager.getRegisteredPrivileges()`)
-- `AccessControlManager.privilegeFromName(String)` equivalent to `PrivilegeManager.getPrivilege(String)`
-
-### Jackrabbit API
-
-Privilege management is outside of the scope provided by JCR and therefore provided
-by the extensions defined by the Jackrabbit API. It consists of a single interface:
-
-- [PrivilegeManager]: privilege discovery and registration of new custom privileges.
-    - `getRegisteredPrivileges()`
-    - `getPrivilege(String)`
-    - `registerPrivilege(String, boolean, String[])
-
-##### Examples
-
-###### Access PrivilegeManager in JCR
-
-    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
-
-###### Access PrivilegeManager in Oak
-
-    Root root = contentSession.getLatestRoot();
-    PrivilegeConfiguration config = securityProvider.getConfiguration(PrivilegeConfiguration.class);
-    PrivilegeManager privilegeManage = config.getPrivilegeManager(root, namePathMapper));
-
-###### Register Custom Privilege
-
-    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
-    String privilegeName = ...
-    boolean isAbstract = ...
-    String[] declaredAggregateNames = ...
-    // NOTE: workspace operation that doesn't require Session#save()
-    privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
-
 ### Characteristics of the Privilege Management Implementation
 
 #### General Notes
@@ -73,7 +34,8 @@ privileges are installed using a dedicated implementation of the `RepositoryInit
 A comprehensive list of changes compared to Jackrabbit 2.x can be found in the
 corresponding [documentation](privilege/differences.html).
 
-#### Built-in Privileges
+
+#### Built-in Privilege Definitions
 
 - All Privileges as defined by JSR 283
 
@@ -87,8 +49,8 @@ corresponding [documentation](privilege/differences.html).
         jcr:lockManagement
         jcr:versionManagement
         jcr:nodeTypeManagement
-        jcr:retentionManagement (NOTE: retention management not implemented in Oak 1.0)
-        jcr:lifecycleManagement (NOTE: lifecycle management not implemented in Oak 1.0)
+        jcr:retentionManagement (NOTE: retention management not yet implemented)
+        jcr:lifecycleManagement (NOTE: lifecycle management not yet implemented)
         jcr:write
         jcr:all
 
@@ -130,7 +92,8 @@ The new Privileges introduced with Oak 1.0 have the following effect:
 - `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate of `jcr:modifyProperties`)
 - `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index definitions.
 
-#### Privilege Representation in the Repository
+
+### Privilege Representation in the Repository
 
 As of Oak 1.0 all privilege definitions are stored in the repository itself
 underneath `/jcr:system/rep:privileges`. The following privilege related built-in
@@ -158,27 +121,39 @@ write operations.
 - [PrivilegeBitsProvider] : Internal provider to read `PrivilegeBits` from the repository content and map names to internal representation (and vice versa).
 - [PrivilegeBits]: Internal representation of JCR privileges.
 
-### Utilities
-
-The jcr-commons module present with Jackrabbit provide some privilege related
-utility methods:
-
-- `AccessControlUtils`
-    - `privilegesFromNames(Session session, String... privilegeNames)`
-    - `privilegesFromNames(AccessControlManager accessControlManager, String... privilegeNames)`
-
 
 ### Configuration
 
 The [PrivilegeConfiguration] is the Oak level entry point to obtain a new
-`PrivilegeManager` as well as privilege related configuration options. The default
-implementation of the `PrivilegeManager` interface is based on Oak API and can
+[PrivilegeManager] as well as privilege related configuration options. The default
+implementation of the [PrivilegeManager] interface is based on Oak API and can
 equally be used for privilege related tasks in the Oak layer.
 
 Please note: While it's in theory possible to replace the default privilege
 management implementation in Oak, this is only recommended if you have in depth
 knowledge and understanding of Jackrabbit/Oak internals and are familiar with
 the security risk associated with it.
+
+#### Examples
+
+##### Access PrivilegeManager in JCR
+
+    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
+
+##### Access PrivilegeManager in Oak
+
+    Root root = contentSession.getLatestRoot();
+    PrivilegeConfiguration config = securityProvider.getConfiguration(PrivilegeConfiguration.class);
+    PrivilegeManager privilegeManage = config.getPrivilegeManager(root, namePathMapper));
+
+##### Register Custom Privilege
+
+    PrivilegeManager privilegeManager = session.getWorkspace().getPrivilegeManager();
+    String privilegeName = ...
+    boolean isAbstract = ...
+    String[] declaredAggregateNames = ...
+    // NOTE: workspace operation that doesn't require Session#save()
+    privilegeManager.registerPrivilege(privilegeName, isAbstract, declaredAggregateNames);
 
 <!-- references -->
 [PrivilegeConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/privilege/PrivilegeConfiguration.html

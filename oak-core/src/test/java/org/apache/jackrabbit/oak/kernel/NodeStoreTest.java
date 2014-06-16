@@ -69,6 +69,7 @@ public class NodeStoreTest {
     @Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
+                {NodeStoreFixture.MK_IMPL},
                 {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},

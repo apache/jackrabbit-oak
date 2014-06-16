@@ -9,24 +9,17 @@ The following runmodes are currently available:
     * debug     : Print status information about an Oak repository.
     * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
     * server    : Run the Oak Server
-    * console   : Start an interactive console
-    * explore   : Starts a GUI browser based on java swing
 
 See the subsections below for more details on how to use these modes.
 
 Backup
 ------
 
-The 'backup' mode creates a backup from an existing oak repository. To start this mode, use:
+The 'backup' mode creates a backup from an existing oak repository. To start this
+mode, use:
 
     $ java -jar oak-run-*.jar backup /path/to/repository /path/to/backup
 
-Restore
--------
-
-The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
-
-    $ java -jar oak-run-*.jar restore /path/to/repository /path/to/backup
 
 Debug
 -----
@@ -36,42 +29,6 @@ store. Currently this is only supported for the TarMK. To start this mode, use:
 
     $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
-Console
--------
-
-The 'console' mode allows to work with an interactive console and browse an
-existing oak repository. Type ':help' within the console to get a list of all
-supported commands. The console currently supports TarMK and MongoMK. To start
-the console for a TarMK repository, use:
-
-    $ java -jar oak-run-*.jar console /path/to/oak/repository
-    
-To start the console for a MongoMK repository, use:
-
-    $ java -jar oak-run-*.jar console mongodb://host
-
-Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
-can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
-instance as through `session` variable. For example when using SegmentNodeStore you can 
-dump the current segment info to a file
-
-    > new File("segment.txt") << session.workingNode.segment.toString()
-    
-In above case the `workingNode` captures the current `NodeState` which in case of 
-Segment/TarMK is `SegmentNodeState`
-
-You can also load external script at launch time via passing an extra argument as shown 
-below
-
-    $ java -jar oak-run-*.jar console mongodb://host ":load /path/to/script.groovy"
-
-Explore
--------
-
-The 'explore' mode starts a desktop browser GUI based on java swing which allows for read-only
-browsing of an existing oak repository.
-
-    $ java -jar oak-run-*.jar explore /path/to/oak/repository
 
 Compact
 -------
@@ -134,19 +91,17 @@ repository backend.
 The optional fixture argument allows to specify the repository implementation
 to be used. The following fixtures are currently supported:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
+| Fixture     | Description                                           |
+|-------------|-------------------------------------------------------|
+| Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
+| Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-H2      | Oak with the MK using embedded H2 database            |
 
 
 Depending on the fixture the following options are available:
@@ -192,9 +147,6 @@ The following benchmark options (with default values) are currently supported:
     --report false         - Whether to output intermediate results
     --csvFile <file>       - Optional csv file to report the benchmark results
     --concurrency <levels> - Comma separated list of concurrency levels
-    --rdbjdbcuri           - JDBC URL for RDB persistence (defaults to local file-based H2)
-    --rdbjdbcuser          - JDBC username (defaults to "")
-    --rdbjdbcpasswd        - JDBC password (defaults to "")
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
@@ -204,13 +156,7 @@ controls the bundle cache size in Jackrabbit, the KernelNodeState
 cache size in MongoMK and the default H2 MK, and the segment cache
 size in SegmentMK.
 
-The `--concurrency` levels can be specified as comma separated list of values,
-eg: `--concurrency 1,4,8`, which will execute the same test with the number of
-respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed
-before and after the concurrency loop. eg. in the example above, the execution order
-is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`.
-Tests that create their own background threads, should be executed with
-`--concurrency 1` which is the default.
+The `--concurrency` levels can be specified as comma separated list of values, eg: `--concurrency 1,4,8`, which will execute the same test with the number of respective threads. Note that the `beforeSuite()` and `afterSuite()` are executed before and after the concurrency loop. eg. in the example above, the execution order is: `beforeSuite()`, 1x `runTest()`, 4x `runTest()`, 8x `runTest()`, `afterSuite()`. Tests that create their own background threads, should be executed with `--concurrency 1` which is the default.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 benchmark environment. It's also possible to attach the JVM to a
@@ -240,22 +186,18 @@ that we used to produce earlier.
 
 Finally the benchmark runner supports the following repository fixtures:
 
-| Fixture       | Description                                           |
-|---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
-| Oak-Memory    | Oak with default in-memory storage                    |
-| Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
-| Oak-Mongo     | Oak with the default Mongo backend                    |
-| Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
-| Oak-MongoNS   | Oak with the Mongo NodeStore                          |
-| Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
-| Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
-| Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
+| Fixture     | Description                                           |
+|-------------|-------------------------------------------------------|
+| Jackrabbit  | Jackrabbit with the default embedded Derby  bundle PM |
+| Oak-Memory  | Oak with default in-memory storage                    |
+| Oak-MemoryNS| Oak with default in-memory NodeStore                  |
+| Oak-MemoryMK| Oak with default in-memory MicroKernel                |
+| Oak-Mongo   | Oak with the default Mongo backend                    |
+| Oak-MongoNS | Oak with the Mongo NodeStore                          |
+| Oak-MongoMK | Oak with the Mongo MicroKernel                        |
+| Oak-Tar     | Oak with the Tar backend (aka Segment NodeStore)      |
+| Oak-H2      | Oak with the MK using embedded H2 database            |
 
-(Note that for Oak-RDB, the required JDBC drivers either need to be embedded
-into oak-run, or be specified separately in the class path.)
 
 Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the

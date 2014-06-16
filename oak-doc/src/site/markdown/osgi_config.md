@@ -37,9 +37,9 @@ Dynamic Configuration
 Each OSGi configuration is referred via a PID i.e. persistent identifier. Sections below
 provide details around various PID used in Oak
 
-### NodeStore
+## NodeStore
 
-#### SegmentNodeStore
+### SegmentNodeStore
 
 _PID `org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService`_
 
@@ -51,8 +51,7 @@ tarmk.size
 : Default - 256 (in MB)
 : Maximum file size (in MB)
 
-<a name="document-node-store"></a>
-#### DocumentNodeStore
+### DocumentNodeStore
 
 _PID `org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService`_
 
@@ -80,27 +79,7 @@ Example config file
 
     mongouri=mongodb://localhost:27017
     db=oak
-    
-##### Mongo Configuration
 
-All the configuration related to Mongo can be specified via [Mongo URI][1]
-
-* **Authentication** - Username and password should be specified as part of uri e.g. the following 
-  connects and logs in to the admin database as user sysop with the password moon:
-  
-        mongodb://sysop:moon@localhost
-    
-* **Read Preferences and Write Concern** - These also can be spcified as part of Mongo URI. Refer to 
-  [Read Preference and Write Concern](documentmk.html#rw-preference) section for more details. For
-  e.g. following would set _readPreference_ to _secondary_ and prefer replica with tag _dc:ny,rack:1_.
-  It would also specify the write timeout to 10 sec
-  
-        mongodb://db1.example.net,db2.example.com?readPreference=secondary&readPreferenceTags=dc:ny,rack:1&readPreferenceTags=dc:ny&readPreferenceTags=&w=1&wtimeoutMS=10000    
-  
-One can also specify the connection pool size, socket timeout etc. For complete details about various 
-possible option refer to [Mongo URI][1]  
-
-<a name="config-blobstore"></a>  
 ### Configuring DataStore/BlobStore
 BlobStores are used to store the binary content. Support for Jackrabbit 2 `DataStore` is also provided via
 a `DataStoreBlobStore` wrapper. To use a specific BlobStore implementation following two steps need to be
@@ -170,24 +149,6 @@ cacheSizeInMB
 : Default - 16
 : Size in MB. In memory cache for storing small files whose size is less than `maxCachedBinarySize`. This
   helps in better performance when lots of small binaries are accessed frequently.
-
-### System properties and Framework properties
-
-Following properties are supported by Oak. They are grouped in two parts _Stable_ and
-_Experimental_. The stable properties would be supported in future version but the experimental properties
-would _might_ not be supported in future versions
-
-#### Stable 
-
-oak.mongo.uri
-: Type - System property and Framework Property
-: Specifies the [MongoURI][1] required to connect to Mongo Database
-
-oak.mongo.db
-: Type - System property and Framework Property
-: Name of the database in Mongo
-
-#### Experimental
 
 ### Configuration Steps for Apache Sling
 

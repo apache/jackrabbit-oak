@@ -26,9 +26,7 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
@@ -45,19 +43,17 @@ class LoginContextProviderImpl implements LoginContextProvider {
     private static final Logger log = LoggerFactory.getLogger(LoginContextProviderImpl.class);
 
     private final String appName;
-    private final ConfigurationParameters params;
+    private final Configuration configuration;
     private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
     private final Whiteboard whiteboard;
 
-    private Configuration configuration;
-
-    LoginContextProviderImpl(String appName, ConfigurationParameters params,
+    LoginContextProviderImpl(String appName, Configuration configuration,
                              ContentRepository contentRepository,
                              SecurityProvider securityProvider,
                              Whiteboard whiteboard) {
         this.appName = appName;
-        this.params = params;
+        this.configuration = configuration;
         this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
         this.whiteboard = whiteboard;
@@ -77,7 +73,7 @@ class LoginContextProviderImpl implements LoginContextProvider {
             subject = new Subject();
         }
         CallbackHandler handler = getCallbackHandler(credentials, workspaceName);
-        return new JaasLoginContext(appName, subject, handler, getConfiguration());
+        return new JaasLoginContext(appName, subject, handler, configuration);
     }
 
     //------------------------------------------------------------< private >---
@@ -95,27 +91,5 @@ class LoginContextProviderImpl implements LoginContextProvider {
     @Nonnull
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
         return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider, whiteboard);
-    }
-
-    @Nonnull
-    private Configuration getConfiguration() {
-        if (configuration == null) {
-            Configuration loginConfig = null;
-            try {
-                loginConfig = Configuration.getConfiguration();
-                // NOTE: workaround for Java7 behavior (see OAK-497)
-                if (loginConfig.getAppConfigurationEntry(appName) == null) {
-                    loginConfig = null;
-                }
-            } catch (SecurityException e) {
-                log.info("Failed to retrieve login configuration: using default. " + e);
-            }
-            if (loginConfig == null) {
-                log.debug("No login configuration available for {}; using default", appName);
-                loginConfig = ConfigurationUtil.getDefaultConfiguration(params);
-            }
-            configuration = loginConfig;
-        }
-        return configuration;
     }
 }

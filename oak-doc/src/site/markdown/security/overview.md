@@ -34,7 +34,6 @@ The Oak Security Layer
  * [Overview](accesscontrol.html)
  * [Differences wrt Jackrabbit 2.x](accesscontrol/differences.html)
  * [Restriction Management](accesscontrol/restriction.html)
- * [Using the API](accesscontrol/editing.html)
 
 ### Permissions
 

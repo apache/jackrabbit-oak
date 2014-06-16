@@ -711,10 +711,6 @@ class TarReader {
         return number;
     }
 
-    File getFile(){
-        return file;
-    }
-
     //------------------------------------------------------------< Object >--
 
     @Override

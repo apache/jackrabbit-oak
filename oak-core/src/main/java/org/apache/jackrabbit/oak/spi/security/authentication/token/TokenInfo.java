@@ -68,6 +68,7 @@ public interface TokenInfo {
      * Tries to remove the login token and all related information. This method
      * returns {@code true} if the removal was successful.
      *
+     *
      * @return {@code true} if the removal was successful, {@code false} otherwise.
      */
     boolean remove();

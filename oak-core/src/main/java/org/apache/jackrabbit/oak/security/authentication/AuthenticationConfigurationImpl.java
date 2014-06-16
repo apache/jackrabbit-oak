@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import java.util.Map;
+
 import javax.annotation.Nonnull;
+import javax.security.auth.login.Configuration;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -109,6 +111,20 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
     @Override
     public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         String appName = getParameters().getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
+        Configuration loginConfig = null;
+        try {
+            loginConfig = Configuration.getConfiguration();
+            // NOTE: workaround for Java7 behavior (see OAK-497)
+            if (loginConfig.getAppConfigurationEntry(appName) == null) {
+                loginConfig = null;
+            }
+        } catch (SecurityException e) {
+            log.info("Failed to retrieve login configuration: using default. " + e);
+        }
+        if (loginConfig == null) {
+            log.debug("No login configuration available for {}; using default", appName);
+            loginConfig = ConfigurationUtil.getDefaultConfiguration(getParameters());
+        }
         // todo: temporary workaround
         SecurityProvider provider = getSecurityProvider();
         Whiteboard whiteboard = null;
@@ -117,6 +133,6 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         } else {
             log.warn("Unable to obtain whiteboard from SecurityProvider");
         }
-        return new LoginContextProviderImpl(appName, getParameters(), contentRepository, getSecurityProvider(), whiteboard);
+        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, getSecurityProvider(), whiteboard);
     }
 }

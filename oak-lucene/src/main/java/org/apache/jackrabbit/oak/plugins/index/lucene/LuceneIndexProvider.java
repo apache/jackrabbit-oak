@@ -40,9 +40,12 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     protected final IndexTracker tracker = new IndexTracker();
 
-    protected volatile Analyzer analyzer = LuceneIndexConstants.ANALYZER;
+    /**
+     * TODO how to inject this in an OSGi friendly way?
+     */
+    protected Analyzer analyzer = LuceneIndexConstants.ANALYZER;
 
-    protected volatile NodeAggregator aggregator = null;
+    protected NodeAggregator aggregator = null;
 
     public void close() {
         tracker.close();
@@ -92,7 +95,4 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
         return this;
     }
 
-    IndexTracker getTracker() {
-        return tracker;
-    }
 }

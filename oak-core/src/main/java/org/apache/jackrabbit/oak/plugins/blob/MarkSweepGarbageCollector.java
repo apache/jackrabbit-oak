@@ -95,7 +95,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
     /**
      * Creates an instance of MarkSweepGarbageCollector
      *
-     * @param marker BlobReferenceRetriever instanced used to fetch refereed blob entries
+     * @param marker BlobReferenceRetriever instanced used to fetch refereedd blob entries
      * @param root the root absolute path of directory under which temporary
      *             files would be created
      * @param batchCount batch sized used for saving intermediate state

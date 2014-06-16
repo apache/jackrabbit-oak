@@ -24,7 +24,7 @@ import java.util.Random;
  * data is designed to be non-compressible to prevent possible compression
  * mechanisms from affecting performance measurements.
  */
-public class TestInputStream extends InputStream {
+class TestInputStream extends InputStream {
 
     private final int n;
 

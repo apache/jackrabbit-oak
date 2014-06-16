@@ -22,11 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -35,7 +33,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
@@ -44,10 +41,8 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import static java.lang.Thread.UncaughtExceptionHandler;
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -57,10 +52,9 @@ import static org.junit.Assert.assertTrue;
  */
 public class ConcurrentAddNodesClusterIT {
 
-    private static final int NUM_CLUSTER_NODES = 5;
+    private static final int NUM_CLUSTER_NODES = 3;
     private static final int NODE_COUNT = 100;
     private static final int LOOP_COUNT = 10;
-    private static final int WORKER_COUNT = 20;
     private static final String PROP_NAME = "testcount";
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
@@ -109,92 +103,6 @@ public class ConcurrentAddNodesClusterIT {
         for (Thread t : workers) {
             t.start();
         }
-        for (Thread t : workers) {
-            t.join();
-        }
-        for (Map.Entry<String, Exception> entry : exceptions.entrySet()) {
-            // System.out.println("exception in thread " + entry.getKey());
-            throw entry.getValue();
-        }
-    }
-
-    @Ignore("OAK-1807")
-    @Test
-    public void addNodesConcurrent2() throws Exception {
-        final Thread mainThread = Thread.currentThread();
-        for (int i = 0; i < NUM_CLUSTER_NODES; i++) {
-            DocumentMK mk = new DocumentMK.Builder()
-                    .setMongoDB(createConnection().getDB())
-                    .setClusterId(i + 1).open();
-            mks.add(mk);
-        }
-        final Map<String, Exception> exceptions = Collections.synchronizedMap(
-                new HashMap<String, Exception>());
-        final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicBoolean stop = new AtomicBoolean();
-        final UncaughtExceptionHandler ueh = new UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread t, Throwable e) {
-                RuntimeException r = new RuntimeException("Exception in thread "+t.getName(), e);
-                r.printStackTrace();
-            }
-        };
-        for (int i = 0; i < mks.size(); i++) {
-            DocumentMK mk = mks.get(i);
-            final Repository repo = new Jcr(mk.getNodeStore()).createRepository();
-            repos.add(repo);
-            for (int w = 0; w <= WORKER_COUNT; w++) {
-                final String name = "Worker-" + (i + 1) + "-" + (w + 1);
-                final Runnable r = new Runnable() {
-                    final Session session = createAdminSession(repo);
-                    int count = 0;
-                    @Override
-                    public void run() {
-                        try {
-                            Uninterruptibles.awaitUninterruptibly(latch);
-                            session.refresh(false);
-                            Node node = session.getRootNode().addNode(name+count++, "oak:Unstructured");
-                            for (int j = 0; j < NODE_COUNT && !stop.get() ; j++) {
-                                node.addNode("node" + j);
-                                session.save();
-                            }
-                        } catch (RepositoryException e) {
-                            RuntimeException r = new RuntimeException("Exception in thread "+name, e);
-                            r.printStackTrace();
-                            exceptions.put(Thread.currentThread().getName(), r);
-                            stop.set(true);
-                            mainThread.interrupt();
-                        }
-                    }
-                };
-
-                //Last runnable would be a long running one
-                Runnable runnable = r;
-                if(w == WORKER_COUNT){
-                    runnable = new Runnable() {
-                        @Override
-                        public void run() {
-                            while(!stop.get()){
-                                r.run();
-                            }
-                        }
-                    };
-                }
-
-                Thread t = new Thread(runnable);
-                t.setName(name);
-                t.setUncaughtExceptionHandler(ueh);
-                workers.add(t);
-            }
-        }
-        for (Thread t : workers) {
-            t.start();
-        }
-        latch.countDown();
-
-        TimeUnit.MINUTES.sleep(10);
-        stop.set(true);
-
         for (Thread t : workers) {
             t.join();
         }
@@ -433,19 +341,16 @@ public class ConcurrentAddNodesClusterIT {
         @Override
         public void run() {
             try {
-                Session session = createAdminSession(repo);
+                Session session = repo.login(new SimpleCredentials(
+                        "admin", "admin".toCharArray()));
                 ensureIndex(session.getRootNode(), PROP_NAME);
+
                 String nodeName = "testroot-" + Thread.currentThread().getName();
                 createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
             } catch (Exception e) {
                 exceptions.put(Thread.currentThread().getName(), e);
             }
         }
-
-    }
-
-    private Session createAdminSession(Repository repository) throws RepositoryException {
-        return repository.login(new SimpleCredentials("admin", "admin".toCharArray()));
     }
 
     private void createNodes(Session session,

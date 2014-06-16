@@ -53,10 +53,11 @@ import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 
 /**
  * A Solr based {@link QueryIndex}
@@ -332,7 +333,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 if (p != null && p.indexOf('/') >= 0) {
                     p = getName(p);
                 }
-                if (p == null || "*".equals(p)) {
+                if (p == null) {
                     p = configuration.getCatchAllField();
                 }
                 fullTextString.append(partialEscape(p));
@@ -403,7 +404,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             solrQuery.setParam("df", catchAllField);
         }
 
-        solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
+        // TODO : can we handle this better? e.g. with deep paging support?
+        solrQuery.setParam("rows", "100000");
     }
 
     private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
@@ -543,6 +545,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             this.score = score;
         }
 
+
         SolrResultRow(String path, double score, SolrDocument doc) {
             this.path = path;
             this.score = score;
@@ -623,6 +626,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             };
         }
     }
+
 
     @Override
     @CheckForNull

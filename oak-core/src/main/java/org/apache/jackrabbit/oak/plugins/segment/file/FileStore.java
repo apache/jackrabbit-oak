@@ -36,7 +36,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -612,14 +611,6 @@ public class FileStore implements SegmentStore {
     @Override
     public void gc() {
         compactNeeded.set(true);
-    }
-
-    public Map<String, Set<UUID>> getTarReaderIndex() {
-        Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
-        for (TarReader reader : readers) {
-            index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
-        }
-        return index;
     }
 
 }

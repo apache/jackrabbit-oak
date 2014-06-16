@@ -41,7 +41,7 @@ public class SolrIndexInitializer implements RepositoryInitializer {
      */
     public SolrIndexInitializer() {
         this.name = SOLR_IDX;
-        this.async = ASYNC;
+        this.async = "async";
         this.reindex = true;
     }
 
@@ -64,7 +64,7 @@ public class SolrIndexInitializer implements RepositoryInitializer {
      */
     public SolrIndexInitializer(boolean async) {
         this.name = SOLR_IDX;
-        this.async = async ? ASYNC : null;
+        this.async = async ? "async" : null;
         this.reindex = true;
     }
 
@@ -76,9 +76,9 @@ public class SolrIndexInitializer implements RepositoryInitializer {
      * @param name    the name of the node holding the Solr index definition
      * @param reindex <code>true</code> if the reindexing should be enabled
      */
-    public SolrIndexInitializer(boolean async, String name, boolean reindex) {
+    public SolrIndexInitializer(String async, String name, boolean reindex) {
+        this.async = async;
         this.name = name;
-        this.async = async ? ASYNC : null;
         this.reindex = reindex;
     }
 

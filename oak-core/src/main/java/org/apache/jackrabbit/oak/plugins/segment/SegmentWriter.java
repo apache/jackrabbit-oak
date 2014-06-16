@@ -242,45 +242,28 @@ public class SegmentWriter {
         checkArgument(size >= 0);
         checkNotNull(ids);
 
-        int idcount = ids.size();
-        int recordSize = align(size + idcount * RECORD_ID_BYTES);
-
-        // First compute the header and segment sizes based on the assumption
-        // that *all* identifiers stored in this record point to previously
-        // unreferenced segments.
-        int refcount = segment.getRefCount() + idcount;
         int blobrefcount = blobrefs.size() + 1;
         int rootcount = roots.size() + 1;
-        int headerSize = refcount * 16 + rootcount * 3 + blobrefcount * 2;
-        int segmentSize = align(headerSize + recordSize + length, 16);
-
-        // If the size estimate looks too big, recompute it with a more
-        // accurate refcount value. We skip doing this when possible to
-        // avoid the somewhat expensive list and set traversals.
-        if (segmentSize > buffer.length - 1
-                || refcount > Segment.SEGMENT_REFERENCE_LIMIT) {
-            refcount -= idcount;
-
-            Set<SegmentId> segmentIds = newIdentityHashSet();
-            for (RecordId recordId : ids) {
-                SegmentId segmentId = recordId.getSegmentId();
-                if (segmentId != segment.getSegmentId()) {
-                    segmentIds.add(segmentId);
-                } else if (roots.containsKey(recordId)) {
-                    rootcount--;
-                }
+        int refcount = segment.getRefCount();
+        Set<SegmentId> segmentIds = newIdentityHashSet();
+        for (RecordId recordId : ids) {
+            SegmentId segmentId = recordId.getSegmentId();
+            if (segmentId != segment.getSegmentId()) {
+                segmentIds.add(segmentId);
+            } else if (roots.containsKey(recordId)) {
+                rootcount--;
             }
-            if (!segmentIds.isEmpty()) {
-                for (int refid = 1; refid < refcount; refid++) {
-                    segmentIds.remove(segment.getRefId(refid));
-                }
-                refcount += segmentIds.size();
+        }
+        if (!segmentIds.isEmpty()) {
+            for (int refid = 1; refid < refcount; refid++) {
+                segmentIds.remove(segment.getRefId(refid));
             }
-
-            headerSize = refcount * 16 + rootcount * 3 + blobrefcount * 2;
-            segmentSize = align(headerSize + recordSize + length, 16);
+            refcount += segmentIds.size();
         }
 
+        int recordSize = align(size + ids.size() * RECORD_ID_BYTES);
+        int headerSize = refcount * 16 + rootcount * 3 + blobrefcount * 2;
+        int segmentSize = align(headerSize + recordSize + length, 16);
         if (segmentSize > buffer.length - 1
                 || blobrefcount > 0xffff
                 || rootcount > 0xffff

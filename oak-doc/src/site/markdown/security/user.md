@@ -20,26 +20,13 @@ User Management
 
 ### JCR User Management
 
-JCR itself doesn't come with a dedicated user management API. The only method
-related and ultemately used for user management tasks is `Session.getUserID()`.
-Therefore an API for user and group management has been defined as part of the
-extensions present with Jackrabbit API.
+_todo_
 
 ### Jackrabbit User Management API
 
-The Jackrabbit API provides the user management related extensions that are
-missing in JCR. The relevant interfaces are defined in the
-`org.apache.jackrabbit.api.security.user' package space:
+_todo_
 
-- `UserManager`
-- `Authorizable`
-    - `User`
-    - `Group`
-- `Impersonation`
-- `QueryBuilder`
-    - `Query`
-
-### Oak User Management Implementation
+### Oak User Management
 
 The default user management implementation stores user/group information in the
 content repository. In contrast to Jackrabbit 2.x, which by default used a single,
@@ -51,14 +38,16 @@ all actions with this editing session. This corresponds to the behavior as defin
 the alternative implementation present with Jackrabbit 2.x ((see Jackrabbit 2.x `UserPerWorkspaceUserManager`).
 
 #### General
-* The Oak implementation is build on the Oak API. This allows for double usage as
-  extension to the JCR API as well as within the Oak layer (aka SPI).
 * The `UserManager` is always associated with the same JCR workspace as the editing
   `Session` from which the class has been obtained.
 * Changes made to the user management API are always transient and require `Session#save()` to be persisted.
-* In case of any failure during user management related write operations the API
-  consumer is in charge of specifically revert pending or invalid transient modifications
-  or calling `Session#refresh(false)`.
+* In case of any failure during user management related write operations `Session#refresh`
+  is no longer called in order to prevent reverting other changes unrelated to
+  the user management operation. Tt's the responsibility of the API consumer to
+  specifically revert pending or invalid transient modifications.
+* The implementation is no longer built on top of the JCR API but instead directly
+  acts on `Tree` and `PropertyState` defined by the OAK API. This also allows to
+  make use of the Jackrabbit user management API within the OAK layer (aka SPI).
 
 #### Differences wrt Jackrabbit 2.x
 
@@ -103,17 +92,19 @@ name [everyone] and corresponds to the `EveryonePrincipal`.
 
 This special group always contains all Authorizable as member and cannot be edited
 with user management API. As of OAK this fact is consistently reflected in all
-group membership related methods. See also [Principal Management](principal.html).
+group membership related methods.
+
+See also [Principal Management](principal.html).
 
 #### Reading Authorizables
 
 ##### Handling of the Authorizable ID
-* As of Oak the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
+* As of OAK the node type definition of `rep:Authorizable` defines a new property `rep:authorizableId` which is intended to store the ID of a user or group.
 * The default implementation comes with a dedicated property index for `rep:authorizableId` which asserts the uniqueness of that ID.
 * `Authorizable#getID` returns the string value contained in `rep:authorizableID` and for backwards compatibility falls back on the node name in case the ID property is missing.
 * The name of the authorizable node is generated based on a configurable implementation of the `AuthorizableNodeName` interface (see configuration section below). By default it uses the ID as name hint and includes a conversion to a valid JCR node name.
 
-##### equals() and hashCode()
+##### equals() and hashCode() for Authorizables
 The implementation of `Object#equals()` and `Object#hashCode()` for user and
 groups slightly differs from Jackrabbit 2.x. It no longer relies on the _sameness_
 of the underlaying JCR node but only compares IDs and the user manager instance.
@@ -143,7 +134,7 @@ application code has been written against the Jackrabbit API (and thus testing i
 auto-save mode is enabled or not) this configuration option can be used as last resort.
 
 
-#### User/Group Representation in the Repository
+### User/Group Representation in the Repository
 
 The following block lists the built-in node types related to user management tasks:
 
@@ -173,13 +164,15 @@ The following block lists the built-in node types related to user management tas
       + * (rep:Members) = rep:Members protected multiple
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
-
-#### XML Import
-As of Oak 1.0 user and group nodes can be imported both with Session and Workspace
-import. Other differences compared to Jackrabbit 2.x:
+### XML Import
+As of OAK 1.0 user and group nodes can be imported both with Session and Workspace
+import. The difference compare to Jackrabbit 2.x are listed below:
 
 * Importing an authorizable to another tree than the configured user/group node will only failed upon save (-> see `UserValidator` during the `Root#commit`). With Jackrabbit 2.x core it used to fail immediately.
-* The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
+* NEW: The `BestEffort` behavior is now also implemented for the import of impersonators (was missing in Jackrabbit /2.x).
+* NEW: Workspace Import
+
+
 
 ### API Extensions
 The Oak project introduces the following user management related public
@@ -188,31 +181,29 @@ interfaces and classes:
 #### Authorizable Actions
 
 The former internal Jackrabbit interface `AuthorizableAction` has been slightly
-adjusted to match Oak requirements and is now part of the public Oak SPI interfaces.
+adjusted to match OAK requirements and is now part of the public OAK SPI interfaces.
 In contrast to Jackrabbit-core the AuthorizableAction(s) now operate directly on
 the Oak API, which eases the handling of implementation specific tasks such as
 writing protected items.
 
-See section [Authorizable Actions](user/authorizableaction.html) for further
+_todo_
+
+`org.apache.jackrabbit.oak.spi.security.user.action.*`
+
+- `AuthorizableAction`
+- `AuthorizableActionProvider`
+
+See also section [Authorizable Actions](user/authorizableaction.html) for further
 details and examples.
 
 #### Node Name Generation
 
-The default user management implementation with Oak 1.0 allows to specify how
-the name of a new authorizable node is being generated. As in Jackrabbit 2.x
-the ID is used as name-hint by default. In order to prevent exposing identifier
-related information in the path of the authorizable node, it it's desirable to
-change this default behavior by pluggin a custom implementation of the
-`AuthorizableNodeName` interface.
+_todo_
+
+`org.apache.jackrabbit.oak.spi.security.user.*`
 
 - `AuthorizableNodeName` : Defines the generation of the authorizable node names
    in case the user management implementation stores user information in the repository.
-
-In the default implementation the corresponding configuration parameter is
-`PARAM_AUTHORIZABLE_NODE_NAME`. The default name generator can be replace
-by installing an OSGi service that implementats the `AuthorizableNodeName` interface.
-In a non-OSGi setup the user configuration must be initialized with configuration
-parameters that provide the custom generator implementation.
 
 #### Utilities
 
@@ -232,10 +223,10 @@ parameters that provide the custom generator implementation.
 
 ### Configuration
 
-The following user management specific methods are present with the [UserConfiguration]
-as of OAK 1.0:
+The following configuration options are present with the `UserConfiguration` as of OAK 1.0:
 
 * getUserManager: Obtain a new user manager instance
+* getAuthorizableActionProvider: Obtain a new instance of the AuthorizableActionProvider (see above)
 
 #### Configuration Parameters supported by the default implementation
 
@@ -247,80 +238,22 @@ as of OAK 1.0:
 | `PARAM_USER_PATH`                   | String  | "/rep:security/rep:authorizables/rep:users"  |
 | `PARAM_GROUP_PATH`                  | String  | "/rep:security/rep:authorizables/rep:groups" |
 | `PARAM_DEFAULT_DEPTH`               | int     | 2                                            |
+| `PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE` | int     |                                              |
 | `PARAM_PASSWORD_HASH_ALGORITHM`     | String  | "SHA-256"                                    |
 | `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         |
 | `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            |
 | `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    |
-| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider |
 | `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        |
-| `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    |
-| | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
 
-* 'compatibleJR16'
-* 'autoExpandTree'
-* 'autoExpandSize'
-* 'groupMembershipSplitSize'
-
-### Pluggability
-
-The default security setup as present with Oak 1.0 is able to provide custom
-implementation on various levels:
-
-1. The complete user management implementation can be changed by plugging a different
-   `UserConfiguration` implementations. In OSGi-base setup this is achieved by making
-   the configuration a service. In a non-OSGi-base setup the custom configuration
-   must be exposed by the `SecurityProvider` implementation.
-2. Within the default user management implementation the following parts can be
-   change/extended at runtime by providing corresponding OSGi services or passing
-   appropriate configuration parameters exposing the custom implementations:
-       - `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](user/authorizableaction.html).
-       - `AuthorizableNodeName`: Defines the generation of the authorizable node names
-          in case the user management implementation stores user information in the repository.
-
-##### Examples
-
-###### Example AuthorizableNodeName
-
-In an OSGi-based setup it's sufficient to make the service available to the repository
-in order to enable this custom node name generator.
-
-    @Component
-    @Service(value = {AuthorizableNodeName.class})
-    /**
-     * Custom implementation of the {@code AuthorizableNodeName} interface
-     * that uses a uuid as authorizable node name.
-     */
-    final class UUIDNodeName implements AuthorizableNodeName {
-
-        @Override
-        @Nonnull
-        public String generateNodeName(@Nonnull String authorizableId) {
-            return UUID.randomUUID().toString();
-        }
-    }
-
-In a non-OSGi setup this custom name generator can be plugged by making it available
-to the user configuration as follows:
-
-    Map<String, Object> userParams = new HashMap<String, Object>();
-    userParams.put(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new UUIDNodeName());
-    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
-    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
-
-
-### Further Reading
-
-- [Differences wrt Jackrabbit 2.x](user/differences.html)
-- [Group Membership](user/membership.html)
-- [Authorizable Actions](user/authorizableaction.html)
-- [Searching Users and Groups](user/query.html)
+* "compatibleJR16"
+* "autoExpandTree"
+* "autoExpandSize"
+* "groupMembershipSplitSize"
 
 <!-- hidden references -->
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME
-[UserConfiguration]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserConfiguration.html
 [OAK-118]: https://issues.apache.org/jira/browse/OAK-118
 [OAK-482]: https://issues.apache.org/jira/browse/OAK-482
 [OAK-793]: https://issues.apache.org/jira/browse/OAK-793

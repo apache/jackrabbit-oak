@@ -63,12 +63,6 @@ class MutableNodeState extends AbstractNodeState {
      */
     private final Map<String, MutableNodeState> nodes = newHashMap();
 
-    /**
-     * Flag to indicate that this child has been replace in its parent.
-     * @see org.apache.jackrabbit.oak.spi.state.NodeBuilder#isReplaced()
-     */
-    private boolean replaced;
-
     MutableNodeState(@Nonnull NodeState base) {
         checkNotNull(base);
         this.base = ModifiedNodeState.unwrap(base, properties, nodes);
@@ -109,12 +103,8 @@ class MutableNodeState extends AbstractNodeState {
         if (child == null) {
             checkValidName(name);
             child = new MutableNodeState(state);
-            if (base.hasChildNode(name)) {
-                child.replaced = true;
-            }
             nodes.put(name, child);
         } else {
-            child.replaced = true;
             child.reset(state);
         }
         return child;
@@ -159,7 +149,7 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     boolean isReplaced(NodeState before) {
-        return replaced;
+        return base != before;
     }
 
     boolean isReplaced(NodeState before, String name) {

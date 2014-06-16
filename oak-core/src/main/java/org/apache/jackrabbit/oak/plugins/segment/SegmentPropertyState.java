@@ -49,7 +49,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.URI;
 import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
-public class SegmentPropertyState extends Record implements PropertyState {
+class SegmentPropertyState extends Record implements PropertyState {
 
     private final PropertyTemplate template;
 

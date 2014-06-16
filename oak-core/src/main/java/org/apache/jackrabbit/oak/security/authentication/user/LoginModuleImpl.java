@@ -121,6 +121,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             userId = preAuthLogin.getUserId();
             Authentication authentication = new UserAuthentication(userId, getUserManager());
             success = authentication.authenticate(UserAuthentication.PRE_AUTHENTICATED);
+
         } else {
             userId = getUserId();
             Authentication authentication = new UserAuthentication(userId, getUserManager());

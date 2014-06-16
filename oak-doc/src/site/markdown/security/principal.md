@@ -60,7 +60,7 @@ the [CompositePrincipalProvider] is an example that combines multiple implementa
 
 ### Pluggability
 
-The default security setup as present with Oak 1.0 is able to provide custom
+The default security setup as present with Oak 1.0 is able to track custom
 `PrincipalConfiguration` implementations and will automatically combine the different
 principal provider implementations as noted above.
 
@@ -71,9 +71,9 @@ provider implementation:
 - create the `PrincipalConfiguration` that exposes the custom provider
 - make the configuration implementation an OSGi service and make it available to the Oak repository.
 
-##### Examples
+#### Examples
 
-###### Custom PrincipalConfiguration
+##### Custom PrincipalConfiguration
 
      @Component()
      @Service({PrincipalConfiguration.class, SecurityConfiguration.class})
@@ -115,7 +115,7 @@ provider implementation:
          }
      }
 
-###### Custom PrincipalProvider
+##### Custom PrincipalProvider
 
      final class MyPrincipalProvider implements PrincipalProvider {
 
