@@ -381,6 +381,8 @@ public class AsyncIndexUpdateTest {
         Set<String> checkpoints = newHashSet(store.listCheckpoints());
         assertTrue("Expecting the initial checkpoint",
                 checkpoints.size() == 1);
+        assertEquals(store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                .getString("async"), checkpoints.iterator().next());
 
         async.run();
         assertEquals("Expecting no checkpoint changes",
@@ -418,6 +420,48 @@ public class AsyncIndexUpdateTest {
         String secondCp = store.listCheckpoints().iterator().next();
         assertFalse("Store should keep only second checkpoint",
                 secondCp.equals(firstCp));
+        assertEquals(
+                secondCp,
+                store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                        .getString("async"));
+    }
+
+    @Test
+    public void cpCleanupWUnrelatedChanges() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        assertTrue("Expecting no checkpoints",
+                store.listCheckpoints().size() == 0);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.run();
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String firstCp = store.listCheckpoints().iterator().next();
+
+        // add content that's hidden from indexing
+        builder = store.getRoot().builder();
+        builder.child("testRoot").child(":hidden");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        async.run();
+
+        assertTrue("Expecting one checkpoint",
+                store.listCheckpoints().size() == 1);
+        String secondCp = store.listCheckpoints().iterator().next();
+        assertFalse("Store should keep only second checkpoint",
+                secondCp.equals(firstCp));
+        assertEquals(
+                secondCp,
+                store.getRoot().getChildNode(AsyncIndexUpdate.ASYNC)
+                        .getString("async"));
     }
 
     @Test
