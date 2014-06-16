@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -50,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -371,15 +371,20 @@ public class AsyncIndexUpdateTest {
     public void cpCleanupNoChanges() throws Exception {
         MemoryNodeStore store = new MemoryNodeStore();
         IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
 
         assertTrue("Expecting no checkpoints",
                 store.listCheckpoints().size() == 0);
 
         // no changes on diff, no checkpoints left behind
-        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
         async.run();
-        assertTrue("Expecting no checkpoints",
-                store.listCheckpoints().size() == 0);
+        Set<String> checkpoints = newHashSet(store.listCheckpoints());
+        assertTrue("Expecting the initial checkpoint",
+                checkpoints.size() == 1);
+
+        async.run();
+        assertEquals("Expecting no checkpoint changes",
+                checkpoints, store.listCheckpoints());
     }
 
     @Test
