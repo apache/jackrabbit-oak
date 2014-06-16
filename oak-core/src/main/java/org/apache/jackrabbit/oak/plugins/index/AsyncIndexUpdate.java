@@ -327,8 +327,6 @@ public class AsyncIndexUpdate implements Runnable {
                         && lease == async.getLong(name + "-lease")) {
                     return after;
                 } else {
-                    new Exception(checkpoint + " - " + async.getString(name)
-                            + " / " + lease + " - " + async.getLong(name + "-lease")).printStackTrace();
                     throw CONCURRENT_UPDATE;
                 }
             }
