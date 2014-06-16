@@ -62,7 +62,7 @@ public class AsyncIndexUpdate implements Runnable {
      * Name of the hidden node under which information about the checkpoints
      * seen and indexed by each async indexer is kept.
      */
-    private static final String ASYNC = ":async";
+    static final String ASYNC = ":async";
 
     private static final long DEFAULT_LIFETIME = TimeUnit.DAYS.toMillis(1000);
 
@@ -275,11 +275,8 @@ public class AsyncIndexUpdate implements Runnable {
                 throw exception;
             }
 
+            builder.child(ASYNC).setProperty(name, afterCheckpoint);
             if (callback.isDirty() || before == MISSING_NODE) {
-                builder.child(ASYNC).setProperty(name, afterCheckpoint);
-                mergeWithConcurrencyCheck(
-                        builder, beforeCheckpoint, callback.lease);
-
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(
                             indexUpdate.getReindexedDefinitions());
@@ -301,11 +298,9 @@ public class AsyncIndexUpdate implements Runnable {
                         c.removeProperty(ASYNC_PROPERTY_NAME);
                     }
                 }
-
-                mergeWithConcurrencyCheck(
-                        builder, beforeCheckpoint, callback.lease);
                 reindexedDefinitions.clear();
             }
+            mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
         } finally {
             callback.close();
         }
