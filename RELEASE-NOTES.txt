@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.1
 
 Introduction
 ------------
@@ -7,80 +7,54 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
+Apache Jackrabbit Oak 1.0.1 is a patch release that contains fixes and
+improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
+stable and targeted for production use.
+
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.0
+Changes in Oak 1.0.1
 --------------------
+
+New features
+
+  [OAK-1804] TarMK compaction
 
 Improvements
 
-  [OAK-14]   Identify and document changes in behaviour wrt. Jackrabbit 2
-  [OAK-364]  Runtime performance metrics
-  [OAK-925]  Query: Lucene index loads all path in memory
-  [OAK-1463] memory cache for RDB persistence
-  [OAK-1667] Encode Blob length as part of blobId in DataStoreBlobStore
-  [OAK-1687] Disable automatically cancel long running queries
-  [OAK-1711] Provide tools to manage externally synced users
-  [OAK-1722] Use a shared IndexSearcher for performing Lucene queries
-  [OAK-1726] Improve support for local caching in DataStoreBlobStore
-  [OAK-1730] Possible NPE in OrderedContentMirrorStoreStrategy
-  [OAK-1737] Add Lucene Codec for disabling field compression
-  [OAK-1738] Provide experimental config flag to enable/disable storing ...
-  [OAK-1740] Add a custom Lucene field visitor for the path
-  [OAK-1741] Ensure that package export version are proper for 1.0 release
-  [OAK-1748] Use Jackrabbit 2.8
-  [OAK-1756] Remove export package directive from oak-solr-*
-  [OAK-1758] Increased debug logging in SegmentMK
-  [OAK-1762] TarMK: Fall back to normal IO when mmap fails
-  [OAK-1772] Expose an extension point to move in memory state in ...
-  [OAK-1773] Optimize upgrade to DocumentNodeStore
-  [OAK-1780] Faster TarMK cleanup
-  [OAK-1728] Backport Solr indexer empty property query expansion ...
-  [OAK-1797] Missing documentation around Ordered Index
-  [OAK-1798] Simplify pluggability of custom principal providers
-  [OAK-1802] increase verbosity on migration progress
+  [OAK-1561] Implement optimised range queries
+  [OAK-1570] Improve perfomances of the OrderedIndex while insert
+  [OAK-1745] OrderedIndex should serve range queries regardless of direction
+  [OAK-1771] Avoid lock contention in Tracker.getServices()
+  [OAK-1775] Avoid lock contention in IndexTracker.getIndexNode()
+  [OAK-1800] Configurable number of rows in SolrQueryIndex
+  [OAK-1835] Solr index support for relative properties
+  [OAK-1854] Duplicate revisions
+  [OAK-1862] Checkpoints release method
+  [OAK-1875] Configurable filter restrictions to be used in SolrQueryIndex
 
 Bug fixes
 
-  [OAK-1076] XPath failures for typed properties
-  [OAK-1679] LdapLoginTestBase#testConcurrentLoginSameGroup fails if ...
-  [OAK-1684] Non-blocking reindexing doesn't save the initial checkpoint
-  [OAK-1689] XPath and union queries with "or" can return the same node ...
-  [OAK-1692] Document split may drop revisions
-  [OAK-1696] Repository  fails to restart on Windows
-  [OAK-1701] Backport OAK-1673 fix to SolrQueryIndex to 1.0 branch
-  [OAK-1719] Missing commit hooks in upgrade
-  [OAK-1720] PermissionValidator may throw AccessDenied if testing for ...
-  [OAK-1729] DocumentNodeStore revision GC removes intermediate docs
-  [OAK-1731] Repository upgrade does not copy default values of property ...
-  [OAK-1732] Cluster node lease not renewed in time
-  [OAK-1734] UserInitializer#initialize runs a query without any indexes
-  [OAK-1739] Incorrect handling of multivalued comparisons in queries
-  [OAK-1742] DocumentNodeStore on MongoDB returns incorrect diff for merge ...
-  [OAK-1749] AsyncIndexUpdate may resurrect nodes
-  [OAK-1751] DocumentNodeStore may detect conflict too late
-  [OAK-1753] Calling initializer after InitialContent.initialize() on a ...
-  [OAK-1755] Search fails if the property to be searched on is of ...
-  [OAK-1757] Oak eats too many CPU cycles when idle
-  [OAK-1760] RepositoryUpgrade leads to one large commit with ...
-  [OAK-1761] DocumentNodeStore does not make use of References while ...
-  [OAK-1765] An admin user should be able to unlock any node
-  [OAK-1770] Document split suppressed with steady load on many cluster nodes
-  [OAK-1774] Full text query expansion should escape fields
-  [OAK-1776] Ordered index returns the wrong nodes when ordering by ...
-  [OAK-1779] Stale cache after MongoMK GC
-  [OAK-1781] Too many branch commits on document node store
-  [OAK-1783] Ignore rep:excerpt property to support core query engine ...
-  [OAK-1784] Async index update persists conflict markers
-  [OAK-1787] RepositoryException thrown instead of InvalidItemStateException
-  [OAK-1789] Upgraded version history has UUIDs as jcr:frozenUuid of ...
-  [OAK-1793] MongoMK GC removes documents with data still in use
-  [OAK-1795] RepositoryUpgrade fails for very long path with DocumentNodeStore
-  [OAK-1801] Versionable path of version histories not set during migration
+  [OAK-1727] Cross foreign cluster revision comparison may be wrong
+  [OAK-1788] ConcurrentConflictTest fails occasionally
+  [OAK-1810] Incorrect TarMK graph metadata validation
+  [OAK-1813] LastRevSingleNodeRecoveryTest fails with Mongo
+  [OAK-1814] RevisionComparator my incorrectly report a revision as FUTURE
+  [OAK-1817] NPE in MarkSweepGarbageCollector.saveBatchToFile during ...
+  [OAK-1822] NodeDocument _modified may go back in time
+  [OAK-1827] ClassCastException in NodeDocument.split() when collisions ...
+  [OAK-1829] IllegalStateException when using "lowerCase"/"lower" on ...
+  [OAK-1865] Blob garbage collector deletes referenced blobs for ...
+  [OAK-1866] SegmentMK: Inefficient flat node comparisons
+  [OAK-1869] TarMK: Incorrect tar entry verification in recovery mode
+  [OAK-1874] Indexes: re-index automatically when adding an index
+  [OAK-1877] Hourly async reindexing on an idle instance
+  [OAK-1883] Unnecessary invocations of LastRevRecovery when recovery ...
+  [OAK-1886] OOM in org.apache.jackrabbit.oak.jcr.OrderedIndex...
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.20.0 release.
+all the changes included up to the Apache Jackrabbit Oak 1.0.0 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
