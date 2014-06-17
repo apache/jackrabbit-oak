@@ -262,7 +262,7 @@ public interface Tree {
     /**
      * Changes the nature of this tree such that the order of the children
      * is kept stable. The expected behavior is as follows:
-     * <p/>
+     * <p>
      * <ol>
      * <li>Calling {@code setOrderableChildren(true)} on a tree
      * the first time will stabilize the order of existing children. Any
@@ -277,7 +277,7 @@ public interface Tree {
      * list stable. The order of children upon {@link #getChildren()} is
      * subsequently undefined.</li>
      * </ol>
-     * <p/>
+     * <p>
      * Calling {@link #orderBefore(String)} on a tree, implicitly enables
      * orderable children on the parent tree.
      *

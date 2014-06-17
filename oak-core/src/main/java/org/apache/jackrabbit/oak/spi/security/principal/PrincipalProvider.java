@@ -54,7 +54,7 @@ public interface PrincipalProvider {
      * principal is either direct or indirect member of. Thus for any principal
      * returned in the iterator {@link java.security.acl.Group#isMember(Principal)}
      * must return {@code true}.
-     * <p/>
+     * <p>
      * Example:<br>
      * If Principal is member of Group A, and Group A is member of
      * Group B, this method will return Group A and Group B.

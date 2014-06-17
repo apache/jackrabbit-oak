@@ -22,7 +22,7 @@ import java.util.Random;
 
 /**
  * An {@code InputStream} based on pseudo-random data useful for testing.
- * <p/>
+ * <p>
  * Instances created with identical parameter values do produce identical byte
  * sequences.
  */

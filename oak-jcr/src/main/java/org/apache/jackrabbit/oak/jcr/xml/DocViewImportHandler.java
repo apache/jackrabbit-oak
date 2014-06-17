@@ -214,7 +214,7 @@ class DocViewImportHandler extends TargetImportHandler {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * See also {@link org.apache.jackrabbit.commons.xml.Exporter#exportProperties(Node)}
      * regarding special handling of multi-valued properties on export.
      */

@@ -35,7 +35,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * more wildcard characters ("{@code *}") according to the glob matching
  * defined by {@link javax.jcr.Node#getNodes(String[])}. In contrast to that
  * method the {@code GlobPattern} operates on path (not only names).
- * <p/>
+ * <p>
  *
  * <p>
  * Please note the following special cases:

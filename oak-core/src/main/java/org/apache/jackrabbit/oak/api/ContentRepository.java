@@ -25,17 +25,17 @@ import javax.security.auth.login.LoginException;
 /**
  * Oak content repository. The repository may be local or remote, or a cluster
  * of any size. These deployment details are all hidden behind this interface.
- * <p/>
+ * <p>
  * All access to the repository happens through authenticated
  * {@link ContentSession} instances acquired through the
  * {@link #login(Credentials, String)} method, which is why that is the only
  * method of this interface.
- * <p/>
+ * <p>
  * Starting and stopping ContentRepository instances is the responsibility
  * of each particular deployment and not covered by this interface.
  * Repository clients should use a deployment-specific mechanism (JNDI,
  * OSGi service, etc.) to acquire references to ContentRepository instances.
- * <p/>
+ * <p>
  * This interface is thread-safe.
  */
 public interface ContentRepository {
@@ -45,16 +45,16 @@ public interface ContentRepository {
      * out-of-band information and, if successful, returns a
      * {@link ContentSession} instance for accessing repository content
      * inside the specified workspace as the authenticated user.
-     * <p/>
+     * <p>
      * TODO clarify workspace handling once multiple workspaces are
      * supported. See OAK-118.
-     * <p/>
+     * <p>
      * The exact type of access credentials is undefined, as this method
      * simply acts as a generic messenger between clients and pluggable
      * login modules that take care of the actual authentication. See
      * the documentation of relevant login modules for the kind of access
      * credentials they expect.
-     * <p/>
+     * <p>
      * The client must explicitly {@link ContentSession#close()} the
      * returned session once it is no longer used. The recommended access
      * pattern is:

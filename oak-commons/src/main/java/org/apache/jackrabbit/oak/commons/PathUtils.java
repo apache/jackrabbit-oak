@@ -25,7 +25,7 @@ import javax.annotation.Nonnull;
 
 /**
  * Utility methods to parse a path.
- * <p/>
+ * <p>
  * Each method validates the input, except if the system property
  * {packageName}.SKIP_VALIDATION is set, in which case only minimal validation
  * takes place within this function, so when the parameter is an illegal path,
@@ -103,7 +103,7 @@ public final class PathUtils {
     /**
      * Get the nth ancestor of a path. The 1st ancestor is the parent path,
      * 2nd ancestor the grandparent path, and so on...
-     * <p/>
+     * <p>
      * If nth <= 0, the path argument is returned as is.
      *
      * @param path the path

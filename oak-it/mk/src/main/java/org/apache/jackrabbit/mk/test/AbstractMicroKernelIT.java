@@ -144,7 +144,7 @@ public abstract class AbstractMicroKernelIT {
     /**
      * Returns a {@code JSONParser} instance for parsing JSON format data.
      * This method returns a cached instance.
-     * <p/>
+     * <p>
      * {@code JSONParser} instances are <i>not</i> thread-safe. Multi-threaded
      * unit tests should therefore override this method and return a fresh
      * instance on every invocation.

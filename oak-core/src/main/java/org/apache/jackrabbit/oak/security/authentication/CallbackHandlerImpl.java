@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
  * supports the following {@code Callback} implementations:
- * <p/>
+ * <p>
  * <ul>
  * <li>{@link CredentialsCallback}</li>
  * <li>{@link NameCallback}</li>

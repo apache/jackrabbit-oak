@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 /**
  * {@code ProtectedNodeImporter} provides means to import protected
  * {@code Node}s and the subtree defined below such nodes.
- * <p/>
+ * <p>
  * The import of a protected tree is started by the {@code Importer} by
  * calling {@link #start(Tree)}. If the {@code ProtectedNodeImporter}
  * is able to deal with that type of protected node, it is in charge of dealing
@@ -82,7 +82,7 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
      * whole import fails.<p/>
      * In case this importer deals with multiple levels of nodes, it is in
      * charge of maintaining the hierarchical structure (see also {#link endChildInfo()}.
-     * <p/>
+     * <p>
      * If {@link #start(Tree)} hasn't been called before, this method returns
      * silently.
      *
@@ -99,7 +99,7 @@ public interface ProtectedNodeImporter extends ProtectedItemImporter {
 
     /**
      * Informs this importer about the end of a child info.
-     * <p/>
+     * <p>
      * If {@link #start(Tree)} hasn't been called before, this method returns
      * silently.
      *

@@ -26,21 +26,21 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
- * <p/>
+ * <p>
  * This Interface defines the version selector that needs to provide a version,
  * given some hints and a version history. the selector is used in the various
  * restore methods in order to select the correct version of previously versioned
  * OPV=Version children upon restore. JSR170 states: <em>"This determination
  * [of the version] depends on the configuration of the workspace and is outside
  * the scope of this specification."</em>
- * <p/>
+ * <p>
  * The version selection in jackrabbit works as follows:<br/>
  * The {@code Node.restore()} methods uses the
  * {@link DateVersionSelector} which is initialized with the creation date of
  * the parent version. This selector selects the latest version that is equal
  * or older than the given date. if no such version exists, the initial one
  * is restored.<br/>
- * <p/>
+ * <p>
  *
  * @see DateVersionSelector
  * @see javax.jcr.version.VersionManager#restore

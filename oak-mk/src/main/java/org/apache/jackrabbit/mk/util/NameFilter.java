@@ -35,12 +35,12 @@ import java.util.List;
  * none of the exclusion patterns</li>
  * </ul>
  * Examples:
- * <p/>
+ * <p>
  * {@code ["foo*", "-foo99"]} matches {@code "foo"} and {@code "foo bar"}
  * but not {@code "foo99"}.
- * <p/>
+ * <p>
  * {@code ["foo\*"]} matches {@code "foo*"} but not {@code "foo99"}.
- * <p/>
+ * <p>
  * {@code ["\-blah"]} matches {@code "-blah"}.
  */
 public class NameFilter {

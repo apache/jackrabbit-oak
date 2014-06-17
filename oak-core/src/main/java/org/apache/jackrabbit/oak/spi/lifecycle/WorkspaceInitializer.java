@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 /**
  * Initializer of a workspace and it's initial content. A module that needs
  * to add content to a workspace can implement this interface.
- * <p/>
+ * <p>
  * TODO: define if/how runtime configuration changes may affect the workspace content.
  * TODO: review params of initialize()
  */

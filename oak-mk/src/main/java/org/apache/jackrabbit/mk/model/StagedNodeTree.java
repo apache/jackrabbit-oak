@@ -103,7 +103,7 @@ public class StagedNodeTree {
      * and <i>their</i> tree (identified by {@code newBaseRevisionId}),
      * using the common ancestor revision {@code commonAncestorRevisionId} as
      * base reference.
-     * <p/>
+     * <p>
      * <I>This</I> instance will be initially reset to {@code newBaseRevisionId}, discarding
      * all currently staged changes.
      *
@@ -175,7 +175,7 @@ public class StagedNodeTree {
 
     /**
      * Creates or updates the property named {@code propName} of the specified node.
-     * <p/>
+     * <p>
      * if {@code propValue == null} the specified property will be removed.
      *
      * @param nodePath node path
@@ -292,7 +292,7 @@ public class StagedNodeTree {
      * If a {@code StagedNode} representation doesn't exist yet a new
      * {@code StagedNode} instance will be returned if {@code createIfNotStaged == true},
      * otherwise {@code null} will be returned.
-     * <p/>
+     * <p>
      * A {@code NotFoundException} will be thrown if there's no node at {@code path}.
      *
      * @param path              node path
@@ -619,7 +619,7 @@ public class StagedNodeTree {
          * If a {@code StagedNode} representation doesn't exist yet a new
          * {@code StagedNode} instance will be returned if {@code createIfNotStaged == true},
          * otherwise {@code null} will be returned.
-         * <p/>
+         * <p>
          * A {@code NotFoundException} will be thrown if there's no child node
          * with the given name.
          *

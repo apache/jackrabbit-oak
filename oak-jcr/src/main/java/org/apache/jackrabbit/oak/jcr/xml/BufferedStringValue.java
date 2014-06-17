@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * {@code BufferedStringValue} represents an appendable
  * serialized value that is either buffered in-memory or backed
  * by a temporary file if its size exceeds a certain limit.
- * <p/>
+ * <p>
  * <b>Important:</b> Note that in order to free resources
  * {@code {@link #dispose()}} should be called as soon as
  * {@code BufferedStringValue} instance is not used anymore.

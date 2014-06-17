@@ -73,7 +73,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
      * {@link #unregisterNodeType(String)} and {@link #unregisterNodeTypes(String[])}
      * to acquire a fresh {@link Root} instance that can be used to persist the
      * requested node type changes (and nothing else).
-     * <p/>
+     * <p>
      * This default implementation throws an {@link UnsupportedOperationException}.
      *
      * @return fresh {@link Root} instance.
