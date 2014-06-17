@@ -26,11 +26,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -246,6 +247,24 @@ public final class ConfigurationParameters implements Map<String, Object> {
                 return (T) Double.valueOf(str);
             } else if (clazz == Boolean.class || clazz == boolean.class) {
                 return (T) Boolean.valueOf(str);
+            } else if (clazz == String[].class){
+                return (T) PropertiesUtil.toStringArray(configProperty, (String[]) defaultValue);
+            } else if (clazz == Set.class || Set.class.isAssignableFrom(clazz)) {
+                if (configProperty instanceof Set) {
+                    return (T) configProperty;
+                } else if (configProperty instanceof Collection) {
+                    return (T) ImmutableSet.copyOf((Collection) configProperty);
+                } else if (configProperty.getClass().isArray()) {
+                    return (T) ImmutableSet.copyOf((Object[]) configProperty);
+                } else {
+                    String[] arr = PropertiesUtil.toStringArray(configProperty);
+                    if (arr != null) {
+                        return (T) ImmutableSet.copyOf(arr);
+                    } else {
+                        log.warn("Unsupported target type {} for value {}", clazz.getName(), str);
+                        throw new IllegalArgumentException("Cannot convert config entry " + str + " to " + clazz.getName());
+                    }
+                }
             } else {
                 // unsupported target type
                 log.warn("Unsupported target type {} for value {}", clazz.getName(), str);

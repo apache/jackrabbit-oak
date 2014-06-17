@@ -221,7 +221,7 @@ class TokenProviderImpl implements TokenProvider {
                 String nodeId = getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
-                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, userId));
+                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, userId), options);
                 tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
 
                 long exp;

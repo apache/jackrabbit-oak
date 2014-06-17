@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -154,6 +159,13 @@ public class ConfigurationParametersTest {
     }
 
     @Test
+    public void testCollectionAsArray() throws Exception{
+        String[] testArray = {"t"};
+        ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", Arrays.asList(testArray)));
+        assertArrayEquals(testArray, options.getConfigValue("test", null, String[].class));
+    }
+
+    @Test
     public void testConversion() {
         TestObject testObject = new TestObject("t");
         Integer int1000 = 1000;
@@ -258,6 +270,122 @@ public class ConfigurationParametersTest {
     }
 
     @Test
+    public void testConversionToSet() {
+        String[] stringArray = new String[] {"a", "b"};
+        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+
+        TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
+        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+
+        // map of config value (key) and expected result set.
+        Map<Object, Set> configValues = new HashMap<Object, Set>();
+        configValues.put("a", ImmutableSet.of("a"));
+        configValues.put(stringArray, stringSet);
+        configValues.put(stringSet, stringSet);
+        configValues.put(testObjectArray, testObjectSet);
+        configValues.put(testObjectSet, testObjectSet);
+        configValues.put(new String[0], Collections.<String>emptySet());
+        configValues.put(new HashSet(), Collections.emptySet());
+        configValues.put(ImmutableSet.of(), Collections.emptySet());
+        configValues.put(new ArrayList(), Collections.emptySet());
+        configValues.put(ConfigurationParameters.EMPTY, Collections.<String>emptySet());
+
+        Set<String> defaultStrings = ImmutableSet.of("abc", "def", "ghi");
+        Set<TestObject> defaultObjects = ImmutableSet.of(new TestObject("abc"), new TestObject("def"));
+
+        for (Object value : configValues.keySet()) {
+            ConfigurationParameters config;
+            if (value instanceof ConfigurationParameters) {
+                config = ConfigurationParameters.of((ConfigurationParameters) value);
+            } else {
+                config = ConfigurationParameters.of(Collections.singletonMap("key", value));
+            }
+
+            Set expected = configValues.get(value);
+            assertEquals(expected, config.getConfigValue("key", Collections.emptySet()));
+            assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet()));
+            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of()));
+
+            assertEquals(expected, config.getConfigValue("key", Collections.emptySet(), Set.class));
+            assertEquals(expected, config.getConfigValue("key", Collections.<String>emptySet(), Set.class));
+            assertEquals(expected, config.getConfigValue("key", ImmutableSet.of(), Set.class));
+
+            // test with default values
+            if (!config.containsKey("key")) {
+                assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings, Set.class));
+                assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects, Set.class));
+                assertEquals(null, config.getConfigValue("key", null, Set.class));
+                assertEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
+                assertEquals(defaultObjects, config.getConfigValue("key", defaultObjects));
+            } else {
+                assertEquals(expected, config.getConfigValue("key", defaultStrings, Set.class));
+                assertEquals(expected, config.getConfigValue("key", defaultObjects, Set.class));
+                assertEquals(expected, config.getConfigValue("key", null, Set.class));
+                assertEquals(expected, config.getConfigValue("key", defaultStrings));
+                assertEquals(expected, config.getConfigValue("key", defaultObjects));
+            }
+
+            // non existing kez with default values
+            assertEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
+            assertEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, Set.class));
+            assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects));
+            assertEquals(defaultObjects, config.getConfigValue("nonexisting", defaultObjects, Set.class));
+        }
+    }
+
+    @Test
+    public void testConversionToStringArray() {
+        String[] stringArray = new String[] {"a", "b"};
+        Set<String> stringSet = ImmutableSet.copyOf(stringArray);
+
+        TestObject[] testObjectArray = new TestObject[] {new TestObject("a"), new TestObject("b")};
+        Set<TestObject> testObjectSet = ImmutableSet.copyOf(testObjectArray);
+
+        String[] defaultStrings = new String[]{"abc", "def", "ghi"};
+
+        // map of config value (key) and expected result set.
+        Map<Object, Object[]> configValues = new HashMap<Object, Object[]>();
+        configValues.put("a", new String[] {"a"});
+        configValues.put(stringArray, stringArray);
+        configValues.put(stringSet, stringArray);
+        configValues.put(testObjectArray, stringArray);
+        configValues.put(testObjectSet, stringArray);
+        configValues.put(new String[0], new String[0]);
+        configValues.put(new HashSet(), new String[0]);
+        configValues.put(ImmutableSet.of(), new String[0]);
+        configValues.put(new ArrayList(), new String[0]);
+        configValues.put(ConfigurationParameters.EMPTY, new String[0]);
+
+        for (Object value : configValues.keySet()) {
+            ConfigurationParameters config;
+            if (value instanceof ConfigurationParameters) {
+                config = ConfigurationParameters.of((ConfigurationParameters) value);
+            } else {
+                config = ConfigurationParameters.of(Collections.singletonMap("key", value));
+            }
+            Object[] expected = configValues.get(value);
+
+            assertArrayEquals(expected, config.getConfigValue("key", new String[0]));
+            assertArrayEquals(expected, config.getConfigValue("key", new String[0], String[].class));
+
+            // test with default values
+            if (!config.containsKey("key")) {
+                assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings, String[].class));
+                assertArrayEquals(null, config.getConfigValue("key", null, String[].class));
+                assertArrayEquals(defaultStrings, config.getConfigValue("key", defaultStrings));
+            } else {
+                assertArrayEquals(expected, config.getConfigValue("key", defaultStrings, String[].class));
+                assertArrayEquals(expected, config.getConfigValue("key", null, String[].class));
+                assertArrayEquals(expected, config.getConfigValue("key", defaultStrings));
+            }
+
+            // non existing kez with default values
+            assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings));
+            assertArrayEquals(defaultStrings, config.getConfigValue("nonexisting", defaultStrings, String[].class));
+        }
+    }
+
+    @Test
     public void testNullValue() {
         ConfigurationParameters options = ConfigurationParameters.of(Collections.singletonMap("test", null));
 
@@ -280,6 +408,24 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("test", false, null));
     }
 
+    @Test
+    public void testDurationParser() {
+        assertNull(ConfigurationParameters.Milliseconds.of(""));
+        assertNull(ConfigurationParameters.Milliseconds.of(null));
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ").value);
+        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar").value);
+        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s").value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s").value);
+        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms").value);
+        assertEquals(60 * 1000, ConfigurationParameters.Milliseconds.of("1m").value);
+        assertEquals(90 * 1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
+        assertEquals(60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
+        assertEquals(36 * 60 * 60 * 1000 + 60 * 60 * 1000 + 90 * 1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
+    }
+
     private class TestObject {
 
         private final String name;
@@ -299,23 +445,5 @@ public class ConfigurationParametersTest {
         public boolean equals(Object object) {
             return object == this || object instanceof TestObject && name.equals(((TestObject) object).name);
         }
-    }
-
-    @Test
-    public void testDurationParser() {
-        assertNull(ConfigurationParameters.Milliseconds.of(""));
-        assertNull(ConfigurationParameters.Milliseconds.of(null));
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("1ms").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms   ").value);
-        assertEquals(1, ConfigurationParameters.Milliseconds.of("  1ms  foobar").value);
-        assertEquals(1000, ConfigurationParameters.Milliseconds.of("1s").value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1.5s").value);
-        assertEquals(1500, ConfigurationParameters.Milliseconds.of("1s 500ms").value);
-        assertEquals(60*1000, ConfigurationParameters.Milliseconds.of("1m").value);
-        assertEquals(90*1000, ConfigurationParameters.Milliseconds.of("1m30s").value);
-        assertEquals(60*60*1000+90*1000, ConfigurationParameters.Milliseconds.of("1h1m30s").value);
-        assertEquals(36*60*60*1000 + 60*60*1000+90*1000, ConfigurationParameters.Milliseconds.of("1.5d1h1m30s").value);
     }
 }
