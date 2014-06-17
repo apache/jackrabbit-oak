@@ -754,8 +754,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
-                                               @Nullable DBObject n) {
+    protected <T extends Document> T convertFromDBObject(@Nonnull Collection<T> collection,
+                                                         @Nullable DBObject n) {
         T copy = null;
         if (n != null) {
             copy = collection.newDocument(this);
