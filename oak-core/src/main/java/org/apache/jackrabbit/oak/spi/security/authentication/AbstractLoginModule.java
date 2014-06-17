@@ -58,11 +58,11 @@ import org.slf4j.LoggerFactory;
  * Abstract implementation of the {@link LoginModule} interface that can act
  * as base class for login modules that aim to authenticate subjects against
  * information stored in the content repository.
- * <p/>
+ * <p>
  * <h2>LoginModule Methods</h2>
  * This base class provides a simple implementation for the following methods
  * of the {@code LoginModule} interface:
- * <p/>
+ * <p>
  * <ul>
  * <li>{@link LoginModule#initialize(Subject, CallbackHandler, Map, Map) Initialize}:
  * Initialization of this abstract module sets the following protected instance
@@ -84,19 +84,19 @@ import org.slf4j.LoggerFactory;
  * to {@code null}. Subclasses are in charge of releasing their own state
  * information by either overriding {@link #clearState()}.</li>
  * </ul>
- * <p/>
+ * <p>
  * <h2>Utility Methods</h2>
  * The following methods are provided in addition:
- * <p/>
+ * <p>
  * <ul>
  * <li>{@link #clearState()}: Clears all private state information that has
  * be created during login. This method in called in {@link #abort()} and
  * subclasses are expected to override this method.</li>
- * <p/>
+ * <p>
  * <li>{@link #getSupportedCredentials()}: Abstract method used by
  * {@link #getCredentials()} that reveals which credential implementations
  * are supported by the {@code LoginModule}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
  * Credentials in the following order:
  * <ol>
@@ -105,31 +105,31 @@ import org.slf4j.LoggerFactory;
  * state (see also {@link #getSharedCredentials()} and finally by</li>
  * <li>searching for valid credentials in the subject.</li>
  * </ol></li>
- * <p/>
+ * <p>
  * <li>{@link #getSharedCredentials()}: This method returns credentials
  * passed to the login module with the share state. The key to share credentials
  * with a another module extending from this base class is
  * {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
  * if the credentials provided by the shared state are
  * {@link #getSupportedCredentials() supported}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getSharedLoginName()}: If the shared state contains an entry
  * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.</li>
- * <p/>
+ * <p>
  * <li>{@link #getSecurityProvider()}: Returns the configured security
  * provider or {@code null}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getRoot()}: Provides access to the latest state of the
  * repository in order to retrieve user or principal information required to
  * authenticate the subject as well as to write back information during
  * {@link #commit()}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getUserManager()}: Returns an instance of the configured
  * {@link UserManager} or {@code null}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
  * principal provider or {@code null}.</li>
- * <p/>
+ * <p>
  * <li>{@link #getPrincipals(String)}: Utility that returns all principals
  * associated with a given user id. This method might be be called after
  * successful authentication in order to be able to populate the subject

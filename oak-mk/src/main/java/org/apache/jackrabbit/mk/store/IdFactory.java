@@ -25,9 +25,9 @@ public abstract class IdFactory {
 
     /**
      * Creates a new id based on the specified serialized data.
-     * <p/>
+     * <p>
      * The general contract of {@code createContentId} is:
-     * <p/>
+     * <p>
      * {@code createId(data1).equals(createId(data2)) == Arrays.equals(data1, data2)}
      *
      * @param serialized serialized data

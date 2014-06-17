@@ -21,7 +21,7 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 
 /**
  * A pool implementation for LdapConnection objects.
- * <p/>
+ * <p>
  * This class is just a wrapper around the commons GenericObjectPool, and has
  * a more meaningful name to represent the pool type.
  */

@@ -23,11 +23,11 @@ import java.util.Arrays;
 /**
  * Represents an internal identifier, uniquely identifying 
  * a {@link Node} or a {@link Commit}.
- * <p/>
+ * <p>
  * This implementation aims at minimizing the in-memory footprint
  * of an identifier instance. therefore it doesn't cache e.g. the hashCode
  * or the string representation.
- * <p/>
+ * <p>
  * <b>Important Note:</b><p/>
  * An {@link Id} is considered immutable. The {@code byte[]}
  * passed to {@link Id#Id(byte[])} must not be reused or modified, the same
@@ -40,7 +40,7 @@ public class Id implements Comparable<Id> {
 
     /**
      * Creates a new instance based on the passed {@code byte[]}.
-     * <p/>
+     * <p>
      * The passed {@code byte[]} mus not be reused, it's assumed
      * to be owned by the new {@code Id} instance.
      *
@@ -54,7 +54,7 @@ public class Id implements Comparable<Id> {
     /**
      * Creates an {@code Id} instance from its
      * string representation as returned by {@link #toString()}.
-     * <p/>
+     * <p>
      * The following condition holds true:
      * <pre>
      * Id someId = ...;
@@ -123,7 +123,7 @@ public class Id implements Comparable<Id> {
 
     /**
      * Returns the raw byte representation of this identifier.
-     * <p/>
+     * <p>
      * The returned {@code byte[]} <i>MUST NOT</i> be modified!
      *
      * @return the raw byte representation

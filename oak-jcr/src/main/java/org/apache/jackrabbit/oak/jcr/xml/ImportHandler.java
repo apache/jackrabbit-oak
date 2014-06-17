@@ -41,12 +41,12 @@ import org.xml.sax.helpers.DefaultHandler;
  * data in System View XML or Document View XML. Processing of the XML is
  * handled by specialized {@code ContentHandler}s
  * (i.e. {@code SysViewImportHandler} and {@code DocViewImportHandler}).
- * <p/>
+ * <p>
  * The actual task of importing though is delegated to the implementation of
  * the {@code {@link Importer}} interface.
- * <p/>
+ * <p>
  * <b>Important Note:</b>
- * <p/>
+ * <p>
  * These SAX Event Handlers expect that Namespace URI's and local names are
  * reported in the {@code start/endElement} events and that
  * {@code start/endPrefixMapping} events are reported
@@ -128,7 +128,7 @@ public class ImportHandler extends DefaultHandler {
      * namespace context. The local namespace context is instantiated
      * in {@link #startElement(String, String, String, Attributes)} using
      * all the the namespace mappings recorded for the current XML element.
-     * <p/>
+     * <p>
      * The namespace is also recorded in the persistent namespace registry
      * unless it is already known.
      *

@@ -142,7 +142,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     /**
      * Validation of the privilege definition including the following steps:
-     * <p/>
+     * <p>
      * - privilege bits must not collide with an existing privilege
      * - next bits must have been adjusted in case of a non-aggregate privilege
      * - all aggregates must have been registered before

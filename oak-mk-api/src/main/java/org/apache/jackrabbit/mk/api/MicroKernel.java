@@ -101,7 +101,7 @@ public interface MicroKernel {
      * Returns a list of all currently available (historical) head revisions in
      * chronological order since a specific point. <i>Private</i> branch
      * revisions won't be included in the result.
-     * <p/>
+     * <p>
      * Format:
      * <pre>
      * [
@@ -116,7 +116,7 @@ public interface MicroKernel {
      * The {@code path} parameter allows to filter the revisions by path, i.e.
      * only those revisions that affected the subtree rooted at {@code path}
      * will be included.
-     * <p/>
+     * <p>
      * The {@code maxEntries} parameter allows to limit the number of revisions
      * returned. if {@code maxEntries < 0} no limit will be applied. otherwise,
      * if the number of revisions satisfying the specified {@code since} and
@@ -137,16 +137,16 @@ public interface MicroKernel {
 
     /**
      * Waits for a commit to occur that is more recent than {@code oldHeadRevisionId}.
-     * <p/>
+     * <p>
      * This method allows for efficient polling for new revisions. The method
      * will return the id of the current head revision if it is more recent than
      * {@code oldHeadRevisionId}, or waits if either the specified amount of time
      * has elapsed or a new head revision has become available.
-     * <p/>
+     * <p>
      * if a zero or negative {@code timeout} value has been specified the method
      * will return immediately, i.e. calling {@code waitForCommit(oldHeadRevisionId, 0)} is
      * equivalent to calling {@code getHeadRevision()}.
-     * <p/>
+     * <p>
      * Note that commits on a <i>private</i> branch will be ignored.
      *
      * @param oldHeadRevisionId id of earlier head revision
@@ -161,7 +161,7 @@ public interface MicroKernel {
     /**
      * Returns a revision journal, starting with {@code fromRevisionId}
      * and ending with {@code toRevisionId} in chronological order.
-     * <p/>
+     * <p>
      * Format:
      * <pre>
      * [
@@ -176,19 +176,19 @@ public interface MicroKernel {
      * </pre>
      * If {@code fromRevisionId} and {@code toRevisionId} are not in chronological
      * order the returned journal will be empty (i.e. {@code []})
-     * <p/>
+     * <p>
      * The {@code path} parameter allows to filter the revisions by path, i.e.
      * only those revisions that affected the subtree rooted at {@code path}
      * will be included. The filter will also be applied to the JSON diff, i.e.
      * the diff will include only those changes that affected the subtree rooted
      * at {@code path}.
-     * <p/>
+     * <p>
      * A {@code MicroKernelException} is thrown if either {@code fromRevisionId}
      * or {@code toRevisionId} doesn't exist, if {@code fromRevisionId} denotes
      * a <i>private</i> branch revision <i>and</i> {@code toRevisionId} denotes
      * either a head revision or a revision on a different <i>private</i> branch,
      * or if another error occurs.
-     * <p/>
+     * <p>
      * If the journal includes <i>private</i> branch revisions, those entries
      * will include a {@code "branchRootId"} denoting the head revision the
      * <i>private</i> branch is based on.
@@ -211,11 +211,11 @@ public interface MicroKernel {
      * revisions. The changes will be consolidated if the specified range
      * covers intermediary revisions. {@code fromRevisionId} and {@code toRevisionId}
      * don't need not be in a specific chronological order.
-     * <p/>
+     * <p>
      * The {@code path} parameter allows to filter the changes included in the
      * JSON diff, i.e. only those changes that affected the subtree rooted at
      * {@code path} will be included.
-     * <p/>
+     * <p>
      * The {@code depth} limit applies to the subtree rooted at {@code path}.
      * It allows to limit the depth of the diff, i.e. only changes up to the
      * specified depth will be included in full detail. changes at paths exceeding
@@ -266,7 +266,7 @@ public interface MicroKernel {
 
     /**
      * Returns the number of child nodes of the specified node.
-     * <p/>
+     * <p>
      * This is a convenience method since the number of child nodes can be also
      * determined by calling {@code getNodes(path, revisionId, 0, 0, 0, null)}
      * and evaluating the {@code :childNodeCount} property.
@@ -299,7 +299,7 @@ public interface MicroKernel {
      * <td>[and so on...]</td>
      * </tr>
      * </table>
-     * <p/>
+     * <p>
      * Example (depth=0):
      * <pre>
      * {
@@ -337,20 +337,20 @@ public interface MicroKernel {
      * The {@code offset} parameter is only applied to the direct child nodes
      * of the root of the returned node tree. {@code maxChildNodes} however
      * is applied on all hierarchy levels.
-     * <p/>
+     * <p>
      * An {@code IllegalArgumentException} is thrown if both an {@code offset}
      * greater than zero and a {@code filter} on node names (see below) have been
      * specified.
-     * <p/>
+     * <p>
      * The order of the child nodes is stable for any given {@code revisionId},
      * i.e. calling {@code getNodes} repeatedly with the same {@code revisionId}
      * is guaranteed to return the child nodes in the same order, but the
      * specific order used is implementation-dependent and may change across
      * different revisions of the same node.
-     * <p/>
+     * <p>
      * The optional {@code filter} parameter allows to specify glob patterns for names of
      * nodes and/or properties to be included or excluded.
-     * <p/>
+     * <p>
      * Example:
      * <pre>
      * {
@@ -361,7 +361,7 @@ public interface MicroKernel {
      * In the above example all child nodes with names starting with "foo" will
      * be included, except for nodes named "foo1"; similarly, all properties will
      * be included except for the ":childNodeCount" metadata property (see below).
-     * <p/>
+     * <p>
      * Glob Syntax:
      * <ul>
      * <li>a {@code nodes} or {@code properties} filter consists of one or more <i>globs</i>.</li>
@@ -378,7 +378,7 @@ public interface MicroKernel {
      * </ul>
      * If no filter is specified the implicit default filter is assumed:
      * {@code {"nodes":["*"],"properties":["*"]}}
-     * <p/>
+     * <p>
      * System-provided metadata properties:
      * <ul>
      *     <li>{@code :childNodeCount} provides the actual number of direct child nodes; this property
@@ -461,7 +461,7 @@ public interface MicroKernel {
     /**
      * Creates a <i>private</i> branch revision off the specified <i>public</i>
      * trunk revision.
-     * <p/>
+     * <p>
      * A {@code MicroKernelException} is thrown if {@code trunkRevisionId} doesn't
      * exist, if it's not a <i>trunk</i> revision (i.e. it's not reachable
      * by traversing the revision history in reverse chronological order starting
@@ -481,7 +481,7 @@ public interface MicroKernel {
     /**
      * Merges the specified <i>private</i> branch revision with the current
      * head revision.
-     * <p/>
+     * <p>
      * A {@code MicroKernelException} is thrown if {@code branchRevisionId} doesn't
      * exist, if it's not a branch revision, if the merge fails because of
      * conflicting changes or if another error occurs.
@@ -501,16 +501,16 @@ public interface MicroKernel {
     /**
      * Rebases the specified <i>private</i> branch revision on top of specified new base
      * revision.
-     * <p/>
+     * <p>
      * A {@code MicroKernelException} is thrown if {@code branchRevisionId} doesn't
      * exist, if it's not a branch revision, if {@code newBaseRevisionId} doesn't exist,
      * if it's a branch revision or if another error occurs.
-     * <p/>
+     * <p>
      * If rebasing results in a conflict, conflicting nodes are annotated with a conflict
      * marker denoting the type of the conflict and the value(s) before the rebase operation.
      * The conflict marker is an internal node with the name {@link #CONFLICT} and is added
      * to the node whose properties or child nodes are in conflict.
-     * <p/>
+     * <p>
      * type of conflicts:
      * <dl>
      *     <dt>addExistingProperty:</dt>
@@ -539,7 +539,7 @@ public interface MicroKernel {
      * In this context a node is regarded as changed if a property was added, a property was removed,
      * a property was set to a different value, a child node was added, a child node was removed or
      * a child node was changed.
-     * <p/>
+     * <p>
      * On conflict the conflict marker node carries the conflicting value of the branch while the rebased
      * value in the branch itself will be set to the conflicting value of the trunk. In the case of conflicting
      * properties, the conflicting value is the property value from the branch. In the case of conflicting

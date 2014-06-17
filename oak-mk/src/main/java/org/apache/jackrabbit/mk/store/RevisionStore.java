@@ -82,7 +82,7 @@ public interface RevisionStore extends RevisionProvider {
 
     /**
      * Store a new commit.
-     * <p/>
+     * <p>
      * Unlike {@code putHeadCommit(MutableCommit)}, this method
      * does not affect the current head commit and therefore doesn't
      * require a lock on the head.

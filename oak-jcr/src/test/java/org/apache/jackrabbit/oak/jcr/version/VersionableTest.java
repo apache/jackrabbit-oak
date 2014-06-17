@@ -69,7 +69,7 @@ public class VersionableTest extends AbstractJCRTest {
 
     /**
      * Test from Jackrabbit: JCR-3635 (OAK-940)
-     * <p/>
+     * <p>
      * Tests the case when a node already has a manual set
      * JcrConstants.JCR_FROZENUUID property and is versioned. The manual set
      * frozenUuid will overwrite the one that is automatically assigned by the

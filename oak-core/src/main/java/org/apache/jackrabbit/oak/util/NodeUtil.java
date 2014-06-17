@@ -134,7 +134,7 @@ public class NodeUtil {
 
     /**
      * TODO: clean up. workaround for OAK-426
-     * <p/>
+     * <p>
      * Create the tree at the specified relative path including all missing
      * intermediate trees using the specified {@code primaryTypeName}. This
      * method treats ".." parent element and "." as current element and

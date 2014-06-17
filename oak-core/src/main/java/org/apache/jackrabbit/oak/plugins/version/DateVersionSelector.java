@@ -28,7 +28,7 @@ import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * <i>Inspired by Jackrabbit 2.x</i>
- * <p/>
+ * <p>
  * This Class implements a version selector that selects a version by creation
  * date. The selected version is the latest that is older or equal than the
  * given date. If no version could be found {@code null} is returned

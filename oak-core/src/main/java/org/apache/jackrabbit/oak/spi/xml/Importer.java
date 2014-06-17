@@ -55,7 +55,7 @@ public interface Importer {
      * a {@link #startNode(NodeInfo, List)} call with the same node
      * information and after all the possible child nodes have been
      * imported with respective startNode/endNode calls.
-     * <p/>
+     * <p>
      * Just like XML elements, the startNode/endNode calls are guaranteed
      * to be properly nested and complete.
      *

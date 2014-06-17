@@ -289,7 +289,7 @@ public final class IOUtils {
 
     /**
      * Unconditionally close a {@code Closeable}.
-     * <p/>
+     * <p>
      * Equivalent to {@link Closeable#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
      *
@@ -307,7 +307,7 @@ public final class IOUtils {
 
     /**
      * Unconditionally close a {@code Socket}.
-     * <p/>
+     * <p>
      * Equivalent to {@link Socket#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
      *
@@ -326,7 +326,7 @@ public final class IOUtils {
     /**
      * Copy bytes from an {@code InputStream} to an
      * {@code OutputStream}.
-     * <p/>
+     * <p>
      * This method buffers the input internally, so there is no need to use a
      * {@code BufferedInputStream}.
      *

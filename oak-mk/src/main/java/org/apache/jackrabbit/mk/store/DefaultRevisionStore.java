@@ -610,7 +610,7 @@ public class DefaultRevisionStore implements RevisionStore, Closeable {
      * Mark all commits and nodes in a garbage collection cycle. Can be
      * customized by subclasses. The default implementation preserves all
      * commits that were created within 60 minutes of the current head commit.
-     * <p/>
+     * <p>
      * If this method throws an exception, the cycle will be stopped without
      * sweeping.
      * 

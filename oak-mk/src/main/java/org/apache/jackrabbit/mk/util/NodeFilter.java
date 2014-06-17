@@ -25,7 +25,7 @@ import java.util.List;
  * A {@code NodeFilter} represents a filter on property and/or node names specified
  * in JSON format. It allows to specify glob patterns for names of nodes and/or
  * properties to be included or excluded.
- * <p/>
+ * <p>
  * Example:
  * <pre>
  * {

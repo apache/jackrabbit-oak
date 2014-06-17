@@ -51,9 +51,9 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 /**
  * User provider implementation and manager for group memberships with the
  * following characteristics:
- * <p/>
+ * <p>
  * <h1>UserProvider</h1>
- * <p/>
+ * <p>
  * <h2>User and Group Creation</h2>
  * This implementation creates the JCR nodes corresponding the a given
  * authorizable ID with the following behavior:
