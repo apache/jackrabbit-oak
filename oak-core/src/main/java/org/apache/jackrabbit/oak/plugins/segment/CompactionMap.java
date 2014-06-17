@@ -124,7 +124,12 @@ class CompactionMap {
         return null;
     }
 
+    /**
+     * Adds a new entry to the compaction map. Overwriting a previously
+     * added entry is not supported.
+     */
     void put(RecordId before, RecordId after) {
+        assert get(before) == null;
         recent.put(before, after);
         if (recent.size() >= compressInterval) {
             compress();
