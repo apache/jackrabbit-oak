@@ -72,9 +72,13 @@ public class CompactionMapTest {
         for (int i = 0; i < segments; i++) {
             SegmentId id = factory.newDataSegmentId();
             int n = r.nextInt(maxEntriesPerSegment);
+            int offset = MAX_SEGMENT_SIZE;
             for (int j = 0; j < n; j++) {
-                RecordId before = new RecordId(id, newValidOffset(r));
-                RecordId after = new RecordId(factory.newDataSegmentId(), newValidOffset(r));
+                offset = newValidOffset(r, (n - j) << RECORD_ALIGN_BITS, offset);
+                RecordId before = new RecordId(id, offset);
+                RecordId after = new RecordId(
+                        factory.newDataSegmentId(),
+                        newValidOffset(r, 0, MAX_SEGMENT_SIZE));
                 entries.put(before, after);
                 map.put(before, after);
                 assertTrue("Failed with seed " + seed,
@@ -93,8 +97,13 @@ public class CompactionMapTest {
         }
     }
 
-    private int newValidOffset(Random random) {
-        return random.nextInt(MAX_SEGMENT_SIZE >> RECORD_ALIGN_BITS)
-                << RECORD_ALIGN_BITS;
+    /**
+     * Returns a new valid record offset, between {@code a} and {@code b},
+     * exclusive.
+     */
+    private int newValidOffset(Random random, int a, int b) {
+        int p = (a >> RECORD_ALIGN_BITS) + 1;
+        int q = (b >> RECORD_ALIGN_BITS);
+        return (p + random.nextInt(q - p)) << RECORD_ALIGN_BITS;
     }
 }
