@@ -60,6 +60,7 @@ public class RDBDataSourceFactory {
                 try {
                     Class.forName(defaultDriver);
                 } catch (ClassNotFoundException ex) {
+                    ex.printStackTrace(System.err);
                     LOG.error("driver " + defaultDriver + " not loaded", ex);
                 }
             }
@@ -67,7 +68,7 @@ public class RDBDataSourceFactory {
 
         try {
             BasicDataSource bds = new BasicDataSource();
-            LOG.debug("Getting Dricer for " + url);
+            LOG.debug("Getting driver for " + url);
             Driver d = DriverManager.getDriver(url);
             bds.setDriverClassName(d.getClass().getName());
             bds.setUsername(username);
