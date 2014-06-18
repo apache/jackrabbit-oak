@@ -212,7 +212,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testQueryCollation() {
         // create ten documents
-        String base = this.getClass().getName() + ".testQueryCollation";
+        String base = "2:/" + this.getClass().getName() + ".testQueryCollation";
         List<UpdateOp> creates = new ArrayList<UpdateOp>();
 
         List<String>expected = new ArrayList<String>();

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
@@ -55,7 +55,6 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
         mk = builder.setDocumentStore(store).open();
     }
 
-    @Ignore("OAK-1897")
     @Test
     public void cacheConsistency() throws Exception {
         mk.commit("/", "+\"node\":{}", null, null);
@@ -82,8 +81,18 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
             Thread.sleep(10);
         }
 
-        // trigger write back of _lastRevs
-        mk.runBackgroundOperations();
+        final Semaphore done = new Semaphore(0);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // trigger write back of _lastRevs
+                mk.runBackgroundOperations();
+                done.release();
+            }
+        }).start();
+
+        // wait at most one second for background thread
+        done.tryAcquire(1, TimeUnit.SECONDS);
 
         // release thread
         store.semaphores.get(t).release();
