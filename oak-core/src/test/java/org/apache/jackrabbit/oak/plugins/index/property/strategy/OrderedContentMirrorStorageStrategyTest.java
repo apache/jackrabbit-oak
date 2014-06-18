@@ -1692,8 +1692,22 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("b", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 1));
         assertEquals("c", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 2));
         assertEquals("d", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 3));
-        assertEquals("if we provide a number outside the range an empty next is expeted", "",
+        assertEquals("the highest available lane is expected", "d",
             OrderedContentMirrorStoreStrategy.getPropertyNext(node, OrderedIndex.LANES + 100));
+        
+        node.setProperty(NEXT, "a", Type.STRING);
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node));
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 0));
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 1));
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 2));
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 3));
+
+        node.setProperty(NEXT, ImmutableList.of("a", "b"), Type.STRINGS);
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node));
+        assertEquals("a", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 0));
+        assertEquals("b", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 1));
+        assertEquals("b", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 2));
+        assertEquals("b", OrderedContentMirrorStoreStrategy.getPropertyNext(node, 3));
     }
     
     @Test
