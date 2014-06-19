@@ -23,10 +23,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -258,6 +256,7 @@ public class Utils {
      * <ul>
      *     <li>If id is from long path</li>
      *     <li>If id is for root path</li>
+     *     <li>If id is for an invalid path</li>
      * </ul>
      *</p>
      * @param id id for which parent id needs to be determined
@@ -269,6 +268,9 @@ public class Utils {
             return null;
         }
         String path = Utils.getPathFromId(id);
+        if (!PathUtils.isValid(path)) {
+            return null;
+        }
         if(PathUtils.denotesRoot(path)){
             return null;
         }
