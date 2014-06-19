@@ -708,10 +708,20 @@ public final class DocumentNodeStore
         return children;
     }
 
-    DocumentNodeState.Children readChildren(DocumentNodeState parent, String name, int limit) {
-        // TODO use offset, to avoid O(n^2) and running out of memory
-        // to do that, use the *name* of the last entry of the previous batch of children
-        // as the starting point
+    /**
+     * Read the children of the given parent node state starting at the child
+     * node with {@code name}. The given {@code name} is exclusive and will not
+     * appear in the list of children. The returned children are sorted in
+     * ascending order.
+     *
+     * @param parent the parent node.
+     * @param name the name of the lower bound child node (exclusive) or
+     *              {@code null} if no lower bound is given.
+     * @param limit the maximum number of child nodes to return.
+     * @return the children of {@code parent}.
+     */
+    DocumentNodeState.Children readChildren(DocumentNodeState parent,
+                                            String name, int limit) {
         String path = parent.getPath();
         Revision rev = parent.getLastRevision();
         Iterable<NodeDocument> docs;
@@ -721,13 +731,15 @@ public final class DocumentNodeStore
         // child nodes than requested.
         int rawLimit = (int) Math.min(Integer.MAX_VALUE, ((long) limit) + 1);
         for (;;) {
-            c.children.clear();
             docs = readChildDocs(path, name, rawLimit);
             int numReturned = 0;
             for (NodeDocument doc : docs) {
                 numReturned++;
-                // filter out deleted children
                 String p = doc.getPath();
+                // remember name of last returned document for
+                // potential next round of readChildDocs()
+                name = PathUtils.getName(p);
+                // filter out deleted children
                 DocumentNodeState child = getNode(p, rev);
                 if (child == null) {
                     continue;
@@ -748,8 +760,6 @@ public final class DocumentNodeStore
                 c.hasMore = false;
                 return c;
             }
-            // double rawLimit for next round
-            rawLimit = (int) Math.min(((long) rawLimit) * 2, Integer.MAX_VALUE);
         }
     }
 
