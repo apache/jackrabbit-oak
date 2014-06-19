@@ -148,6 +148,9 @@ public class DocumentNodeStoreService {
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
     private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
 
+    private static final long DEFAULT_MAX_REPLICATION_LAG = TimeUnit.HOURS.toSeconds(6);
+    public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
+    private long maxReplicationLagInSecs = DEFAULT_MAX_REPLICATION_LAG;
 
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
@@ -155,6 +158,8 @@ public class DocumentNodeStoreService {
         this.whiteboard = new OsgiWhiteboard(context.getBundleContext());
         this.executor = new WhiteboardExecutor();
         executor.start(whiteboard);
+        this.maxReplicationLagInSecs = PropertiesUtil.toLong(config.get(PROP_REPLICATION_LAG),
+                DEFAULT_MAX_REPLICATION_LAG);
 
         if (blobStore == null &&
                 PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)) {
@@ -187,8 +192,9 @@ public class DocumentNodeStoreService {
             // Take care around not logging the uri directly as it
             // might contain passwords
             String type = useMK ? "MK" : "NodeStore";
-            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
-                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize);
+            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
+                            "'changes' collection size (MB)={}, maxReplicationLagInSecs={}",
+                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, maxReplicationLagInSecs);
             log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
         }
 
@@ -205,6 +211,7 @@ public class DocumentNodeStoreService {
             mkBuilder.setBlobStore(blobStore);
         }
 
+        mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
         mkBuilder.setMongoDB(mongoDB, changesSize);
         mkBuilder.setExecutor(executor);
         mk = mkBuilder.open();

@@ -28,7 +28,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
-import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.document.BlobCollector;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -78,7 +77,8 @@ public class MongoBlobReferenceIterator extends AbstractIterator<Blob> implement
                     .is(NodeDocument.HAS_BINARY_VAL)
                     .get();
             //TODO It currently prefers secondary. Would that be Ok?
-            cursor = getNodeCollection().find(query).setReadPreference(ReadPreference.secondaryPreferred());
+            cursor = getNodeCollection().find(query)
+                    .setReadPreference(documentStore.getConfiguredReadPreference(Collection.NODES));
         }
     }
 
