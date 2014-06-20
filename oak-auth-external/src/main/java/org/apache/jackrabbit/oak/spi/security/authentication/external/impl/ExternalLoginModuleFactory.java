@@ -33,7 +33,6 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProviderManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.jmx.SyncMBeanImpl;
@@ -103,16 +102,13 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory {
     public static final String PARAM_SYNC_HANDLER_NAME = ExternalLoginModule.PARAM_SYNC_HANDLER_NAME;
 
     @Reference
-    SyncManager syncManager;
+    private SyncManager syncManager;
 
     @Reference
-    ExternalIdentityProviderManager idpManager;
+    private ExternalIdentityProviderManager idpManager;
 
     @Reference
-    SecurityProvider securityProvider;
-
-    @Reference
-    Repository repository;
+    private Repository repository;
 
     /**
      * default configuration for the login modules
