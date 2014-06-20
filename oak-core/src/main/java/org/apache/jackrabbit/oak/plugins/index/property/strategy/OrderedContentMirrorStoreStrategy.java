@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * Same as for {@link ContentMirrorStoreStrategy} but the order of the keys is kept by using the
@@ -149,6 +151,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                                         
     @Override
     void prune(final NodeBuilder index, final Deque<NodeBuilder> builders, final String key) {
+        LOG.debug("prune() - deleting: {}", key);
         for (NodeBuilder node : builders) {
             if (node.hasProperty("match") || node.getChildNodeCount(1) > 0) {
                 return;
@@ -166,11 +169,25 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                             walkedLanes
                             );
                         lane0Next = getPropertyNext(walkedLanes[0]);
+                        if (LOG.isDebugEnabled()) {
+                            for (int i = 0; i < walkedLanes.length; i++) {
+                                LOG.debug("prune() - walkedLanes[{}]: {}", i,
+                                    walkedLanes[i].getName());
+                            }
+                        }
                         for (int lane = walkedLanes.length - 1; lane >= 0; lane--) {
                             prevNext = getPropertyNext(walkedLanes[lane], lane);
                             if (key.equals(prevNext)) {
                                 // if it's actually pointing to us let's deal with it
                                 currNext = getPropertyNext(node, lane);
+                                if (LOG.isDebugEnabled()) {
+                                    LOG.debug(
+                                        "prune() - setting next for '{}' on lane '{}' with '{}'",
+                                        new Object[] {
+                                        walkedLanes[lane].getName(),
+                                        lane,
+                                        currNext});
+                                }
                                 setPropertyNext(index.getChildNode(walkedLanes[lane].getName()),
                                     currNext, lane);
                             }
@@ -997,7 +1014,23 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         if (node != null && value != null && lane >= 0 && lane < OrderedIndex.LANES) {
             PropertyState next = node.getProperty(NEXT);
             if (next != null) {
-                String[] values = Iterables.toArray(next.getValue(Type.STRINGS), String.class);
+                String[] values;
+                if (next.isArray()) {
+                    values = Iterables.toArray(next.getValue(Type.STRINGS), String.class);
+                    if (values.length < OrderedIndex.LANES) {
+                        // it could be we increased the number of lanes and running on some existing
+                        // content
+                        LOG.debug("topping-up the number of lanes.");
+                        List<String> vv = Lists.newArrayList(values);
+                        for (int i = vv.size(); i <= OrderedIndex.LANES; i++) {
+                            vv.add("");
+                        }
+                        values = vv.toArray(new String[0]);
+                    }
+                } else {
+                    values = Iterables.toArray(EMPTY_NEXT, String.class);
+                    values[0] = next.getValue(Type.STRING);
+                }
                 values[lane] = value;
                 setPropertyNext(node, values);
             }

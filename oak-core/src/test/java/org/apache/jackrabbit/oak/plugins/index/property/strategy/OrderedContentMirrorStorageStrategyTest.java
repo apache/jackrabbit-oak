@@ -1662,7 +1662,55 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertNotNull(":next cannot be null", n.getProperty(NEXT));
         assertEquals(ImmutableList.of("a", "b", "c", "a"),
             n.getProperty(NEXT).getValue(Type.STRINGS));
-    }
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, "a", Type.STRING);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "b", 0);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("b", "", "", ""),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, "a", Type.STRING);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "b", 1);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("a", "b", "", ""),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, "a", Type.STRING);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "b", 2);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("a", "", "b", ""),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, "a", Type.STRING);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "b", 3);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("a", "", "", "b"),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, ImmutableList.of("a", "b"), Type.STRINGS);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "c", 1);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("a", "c", "", ""),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+
+        n = EmptyNodeState.EMPTY_NODE.builder();
+        n.setProperty(NEXT, ImmutableList.of("a", "b"), Type.STRINGS);
+        OrderedContentMirrorStoreStrategy.setPropertyNext(n, "c", 3);
+        assertNotNull(n);
+        assertNotNull(":next cannot be null", n.getProperty(NEXT));
+        assertEquals(ImmutableList.of("a", "b", "", "c"),
+            n.getProperty(NEXT).getValue(Type.STRINGS));
+}
     
     @Test
     public void getNext() {
