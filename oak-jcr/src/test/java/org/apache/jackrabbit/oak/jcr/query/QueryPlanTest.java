@@ -44,7 +44,40 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     }
     
     @Test
-    @Ignore("OAK-1155")
+    // OAK-1898
+    public void traversalVersusPropertyIndex() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        Node n = testRootNode;
+        for (int i = 0; i < 20; i++) {
+            n.setProperty("depth", i + 2);
+            n = n.addNode("n", "oak:Unstructured");
+            n.addMixin("mix:referenceable");
+        }
+        session.save();
+       
+        String xpath = "/jcr:root/testroot/n/n/n/n/n/n/n//*[jcr:uuid]";
+        
+        Query q;
+        QueryResult result;
+        RowIterator it;
+        
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        System.out.println("plan: " + plan);
+        // should not use the index on "jcr:uuid"
+        assertEquals("[nt:base] as [a] /* property jcr:uuid " + 
+                "where ([a].[jcr:uuid] is not null) and " + 
+                "(isdescendantnode([a], [/testroot/n/n/n/n/n/n/n])) */", 
+                plan);
+
+    }        
+    
+    @Test
     public void nodeType() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
