@@ -49,7 +49,12 @@ public class TraversingIndex implements QueryIndex {
         if (filter.isAlwaysFalse()) {
             return 0;
         }
-        double nodeCount = 10000000;
+        
+        // worst case 100 million nodes
+        double nodeCount = 100000000;
+        // worst case 100 thousand children
+        double nodeCountChildren = 100000;
+        
         // if the path is from a join, then the depth is not correct
         // (the path might be the root node), but that's OK
         String path = filter.getPath();
@@ -62,9 +67,14 @@ public class TraversingIndex implements QueryIndex {
             break;
         case ALL_CHILDREN:
             if (!PathUtils.denotesRoot(path)) {
-                for (int depth = PathUtils.getDepth(path); depth > 0; depth--) {
-                    // estimate 10 child nodes per node
-                    nodeCount /= 10;
+                int depth = PathUtils.getDepth(path);
+                for (int i = depth; i > 0; i--) {
+                    // estimate 10 child nodes per node,
+                    // but higher than the cost for DIRECT_CHILDREN
+                    // (about 100'000)
+                    // in any case, the higher the depth of the path,
+                    // the lower the cost
+                    nodeCount = Math.max(nodeCountChildren * 2 - depth, nodeCount / 10);
                 }
             }
             break;
@@ -76,8 +86,10 @@ public class TraversingIndex implements QueryIndex {
             }
             break;
         case DIRECT_CHILDREN:
-            // we expect 1 million child nodes in the worst case
-            nodeCount = 1000000;
+            // estimate 100'000 children for now, 
+            // to ensure an index is used if there is one
+            // TODO we need to have better estimates, see also OAK-1898
+             nodeCount = nodeCountChildren;
             break;
         default:
             throw new IllegalArgumentException("Unknown restriction: " + restriction);
