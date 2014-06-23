@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Iterables;
@@ -90,6 +92,8 @@ class PropertyIndex implements QueryIndex {
      */
     private static final String EMPTY_TOKEN = ":";
 
+    private static final Logger LOG = LoggerFactory.getLogger(PropertyIndex.class);
+
     static Set<String> encode(PropertyValue value) {
         if (value == null) {
             return null;
@@ -111,6 +115,37 @@ class PropertyIndex implements QueryIndex {
             }
         }
         return values;
+    }
+
+    private Cheapest findCheapestProperty(Filter filter, PropertyIndexLookup lookup) {
+        Cheapest cost = new Cheapest();
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = PathUtils.getName(pr.propertyName);
+            double propertyCost = Double.POSITIVE_INFINITY;
+            // TODO support indexes on a path
+            // currently, only indexes on the root node are supported
+            if (lookup.isIndexed(propertyName, "/", filter)) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
+                    // "[property] = $value"
+                    propertyCost = lookup.getCost(filter, propertyName, pr.first);
+                } else if (pr.list != null) {
+                    propertyCost = 0;
+                    for (PropertyValue p : pr.list) {
+                        propertyCost += lookup.getCost(filter, propertyName, p);
+                    }
+                } else {
+                    // processed as "[property] is not null"
+                    propertyCost = lookup.getCost(filter, propertyName, null);
+                }
+            }
+            LOG.debug("property cost for {} is {}", propertyName, propertyCost);
+            if (propertyCost < cost.cost) {
+                cost.cost = propertyCost;
+                cost.propertyRestriction = pr;
+            }
+        }
+        return cost;
     }
 
     //--------------------------------------------------------< QueryIndex >--
@@ -142,29 +177,9 @@ class PropertyIndex implements QueryIndex {
         }
 
         PropertyIndexLookup lookup = getLookup(root);
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            String propertyName = PathUtils.getName(pr.propertyName);
-            // TODO support indexes on a path
-            // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first != null && pr.first.equals(pr.last)) {
-                    // "[property] = $value"
-                    return lookup.getCost(filter, propertyName, pr.first);
-                } else if (pr.list != null) {
-                    double cost = 0;
-                    for (PropertyValue p : pr.list) {
-                        cost += lookup.getCost(filter, propertyName, p);
-                    }
-                    return cost;
-                } else {
-                    // processed as "[property] is not null"
-                    return lookup.getCost(filter, propertyName, null);
-                }
-            }
-        }
-        // not an appropriate index
-        return Double.POSITIVE_INFINITY;
+        Cheapest cheapest = findCheapestProperty(filter, lookup);
+        LOG.debug("Cheapest property cost is {} for property {}", cheapest.cost, cheapest.propertyRestriction != null ? cheapest.propertyRestriction.propertyName : null);
+        return cheapest.cost;
     }
 
     @Override
@@ -173,7 +188,11 @@ class PropertyIndex implements QueryIndex {
 
         PropertyIndexLookup lookup = getLookup(root);
         int depth = 1;
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+
+        Cheapest cheapest = findCheapestProperty(filter, lookup);
+        PropertyRestriction pr = cheapest.propertyRestriction;
+
+        if (pr != null) {
             String propertyName = PathUtils.getName(pr.propertyName);
             depth = PathUtils.getDepth(pr.propertyName);
             // TODO support indexes on a path
@@ -184,7 +203,6 @@ class PropertyIndex implements QueryIndex {
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
-                    break;
                 } else if (pr.list != null) {
                     for (PropertyValue pv : pr.list) {
                         Iterable<String> p = lookup.query(filter, propertyName, pv);
@@ -194,11 +212,9 @@ class PropertyIndex implements QueryIndex {
                             paths = Iterables.concat(paths, p);
                         }
                     }
-                    break;
                 } else {
                     // processed as "[property] is not null"
                     paths = lookup.query(filter, propertyName, null);
-                    break;
                 }
             }
         }
@@ -217,7 +233,10 @@ class PropertyIndex implements QueryIndex {
         StringBuilder buff = new StringBuilder("property");
         StringBuilder notIndexed = new StringBuilder();
         PropertyIndexLookup lookup = getLookup(root);
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+        Cheapest cheapest = findCheapestProperty(filter, lookup);
+        PropertyRestriction pr = cheapest.propertyRestriction;
+
+        if (pr != null) {
             String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
@@ -249,6 +268,11 @@ class PropertyIndex implements QueryIndex {
             buff.append(" (").append(notIndexed.toString().trim()).append(")");
         }
         return buff.toString();
+    }
+
+    private static class Cheapest {
+        private double cost = Double.POSITIVE_INFINITY;
+        private PropertyRestriction propertyRestriction;
     }
 
 }
