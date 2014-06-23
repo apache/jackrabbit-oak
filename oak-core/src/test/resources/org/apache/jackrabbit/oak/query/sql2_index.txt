@@ -212,7 +212,7 @@ explain select *
 explain select [rep:excerpt]
   from [nt:base]
   where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* property jcr:uuid (rep:excerpt)
+[nt:base] as [nt:base] /* property jcr:uuid
   where [nt:base].[jcr:uuid] is not null */
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
