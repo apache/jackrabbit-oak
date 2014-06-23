@@ -168,8 +168,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             CountingNodeVisitor v = new CountingNodeVisitor(max);
             v.visit(index);
             count = v.getEstimatedCount();
-            // "is not null" queries typically read more data
-            count *= 10;
+            if (count >= max) {
+                // "is not null" queries typically read more data
+                count *= 10;
+            }
         } else {
             int size = values.size();
             if (size == 0) {
