@@ -77,7 +77,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         it = result.getRows();
         assertTrue(it.hasNext());
         String plan = it.nextRow().getValue("plan").getString();
-        System.out.println("plan: " + plan);
+        // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
         assertEquals("[nt:base] as [a] /* property tenPercent " + 
                 "where ((([a].[tenPercent] is not null) " + 
@@ -112,7 +112,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         it = result.getRows();
         assertTrue(it.hasNext());
         String plan = it.nextRow().getValue("plan").getString();
-        System.out.println("plan: " + plan);
+        // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
         assertEquals("[nt:base] as [a] /* property jcr:uuid " + 
                 "where ([a].[jcr:uuid] is not null) and " + 
