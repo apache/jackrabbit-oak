@@ -39,6 +39,8 @@ public interface IndexConstants {
 
     String ENTRY_COUNT_PROPERTY_NAME = "entryCount";
 
+    String KEY_COUNT_PROPERTY_NAME = "keyCount";
+
     /**
      * Marks a unique property index.
      */
