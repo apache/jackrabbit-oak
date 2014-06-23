@@ -23,6 +23,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
@@ -42,7 +44,49 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     public QueryPlanTest(NodeStoreFixture fixture) {
         super(fixture);
     }
-    
+
+    @Test
+    // OAK-1898
+    public void correctPropertyIndexUsage() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        createPropertyIndex(session, "fiftyPercent");
+        createPropertyIndex(session, "tenPercent");
+        createPropertyIndex(session, "hundredPercent");
+        for (int i = 0; i < 300; i++) {
+            Node n = testRootNode.addNode("n" + i, "oak:Unstructured");
+            if (i % 10 == 0) {
+                n.setProperty("tenPercent", i);
+            }
+            if (i % 2 == 0) {
+                n.setProperty("fiftyPercent", i);
+            }
+            n.setProperty("hundredPercent", i);
+        }
+        session.save();
+       
+        String xpath = "/jcr:root//*[@tenPercent and @fiftyPercent and @hundredPercent]";
+        
+        Query q;
+        QueryResult result;
+        RowIterator it;
+        
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        System.out.println("plan: " + plan);
+        // should not use the index on "jcr:uuid"
+        assertEquals("[nt:base] as [a] /* property tenPercent " + 
+                "where ((([a].[tenPercent] is not null) " + 
+                "and ([a].[fiftyPercent] is not null)) " + 
+                "and ([a].[hundredPercent] is not null)) " + 
+                "and (isdescendantnode([a], [/])) */", 
+                plan);
+    }           
+
     @Test
     // OAK-1898
     public void traversalVersusPropertyIndex() throws Exception {
@@ -74,7 +118,6 @@ public class QueryPlanTest extends AbstractRepositoryTest {
                 "where ([a].[jcr:uuid] is not null) and " + 
                 "(isdescendantnode([a], [/testroot/n/n/n/n/n/n/n])) */", 
                 plan);
-
     }        
     
     @Test
@@ -250,4 +293,13 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         assertEquals("/testroot/b/c/d/e2", path);
         assertFalse(it.hasNext());
     }
+    
+    private static void createPropertyIndex(Session s, String propertyName) throws RepositoryException {
+        Node n = s.getRootNode().getNode("oak:index").
+                addNode(propertyName, "oak:QueryIndexDefinition");
+        n.setProperty("type", "property");
+        n.setProperty("propertyNames", new String[]{propertyName}, PropertyType.NAME);
+        s.save();
+    }
+    
 }
