@@ -44,6 +44,43 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     public QueryPlanTest(NodeStoreFixture fixture) {
         super(fixture);
     }
+    
+    @Test
+    // OAK-1903
+    public void propertyEqualsVersusPropertyNotNull() throws Exception {
+        Session session = getAdminSession();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        createPropertyIndex(session, "notNull");
+        createPropertyIndex(session, "equals");
+        for (int i = 0; i < 100; i++) {
+            Node n = testRootNode.addNode("n" + i, "oak:Unstructured");
+            if (i % 2 == 0) {
+                n.setProperty("notNull", i);
+            }
+            n.setProperty("equals", 1);
+        }
+        session.save();
+       
+        String xpath = "/jcr:root//*[@notNull and @equals=1]";
+        
+        Query q;
+        QueryResult result;
+        RowIterator it;
+        
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        // System.out.println("plan: " + plan);
+        // should not use the index on "jcr:uuid"
+        assertEquals("[nt:base] as [a] /* property notNull " + 
+                "where (([a].[notNull] is not null) " + 
+                "and ([a].[equals] = cast('1' as long))) " + 
+                "and (isdescendantnode([a], [/])) */", 
+                plan);
+    }           
 
     @Test
     // OAK-1898
