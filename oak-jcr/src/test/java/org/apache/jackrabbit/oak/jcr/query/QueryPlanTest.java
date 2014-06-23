@@ -46,6 +46,55 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     }
     
     @Test
+    // OAK-1902
+    public void propertyIndexVersusNodeTypeIndex() throws Exception {
+        Session session = getAdminSession();
+        Node nt = session.getRootNode().getNode("oak:index").getNode("nodetype");
+        nt.setProperty("entryCount", Long.MAX_VALUE);
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Node testRootNode = session.getRootNode().addNode("testroot");
+        for (int i = 0; i < 100; i++) {
+            Node n = testRootNode.addNode("n" + i, "oak:Unstructured");
+            n.addMixin("mix:referenceable");
+        }
+        session.save();
+       
+        Query q;
+        QueryResult result;
+        RowIterator it;
+
+        String xpath = "/jcr:root/a/b/c/d/e/f/g/h/i/j/k/element(*, oak:Unstructured)";
+        q = qm.createQuery("explain " + xpath, "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        String plan = it.nextRow().getValue("plan").getString();
+        // System.out.println("plan: " + plan);
+        // should use the node type index
+        assertEquals("[oak:Unstructured] as [a] " + 
+                "/* Filter(query=explain select [jcr:path], [jcr:score], * " + 
+                "from [oak:Unstructured] as a " + 
+                "where ischildnode(a, '/a/b/c/d/e/f/g/h/i/j/k') " + 
+                "/* xpath: /jcr:root/a/b/c/d/e/f/g/h/i/j/k/element(*, oak:Unstructured) */" + 
+                ", path=/a/b/c/d/e/f/g/h/i/j/k/*) where " + 
+                "ischildnode([a], [/a/b/c/d/e/f/g/h/i/j/k]) */", 
+                plan);
+
+        String xpath2 = "/jcr:root/a/b/c/d/e/f/g/h/i/j/k/element(*, oak:Unstructured)[@jcr:uuid]";
+        q = qm.createQuery("explain " + xpath2 + "", "xpath");
+        result = q.execute();
+        it = result.getRows();
+        assertTrue(it.hasNext());
+        plan = it.nextRow().getValue("plan").getString();
+        // System.out.println("plan: " + plan);
+        // should use the index on "jcr:uuid"
+        assertEquals("[oak:Unstructured] as [a] " + 
+                "/* property jcr:uuid where ([a].[jcr:uuid] is not null) " + 
+                "and (ischildnode([a], [/a/b/c/d/e/f/g/h/i/j/k])) */", 
+                plan);
+    }     
+    
+    @Test
     // OAK-1903
     public void propertyEqualsVersusPropertyNotNull() throws Exception {
         Session session = getAdminSession();
