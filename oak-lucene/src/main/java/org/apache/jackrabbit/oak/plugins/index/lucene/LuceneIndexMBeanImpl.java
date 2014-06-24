@@ -23,9 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
-import javax.management.MBeanOperationInfo;
-import javax.management.MBeanParameterInfo;
-import javax.management.StandardMBean;
+import javax.management.NotCompliantMBeanException;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
@@ -35,6 +33,7 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.store.Directory;
@@ -45,12 +44,12 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class LuceneIndexMBeanImpl extends StandardMBean implements LuceneIndexMBean {
+public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final IndexTracker indexTracker;
 
-    public LuceneIndexMBeanImpl(IndexTracker indexTracker) {
-        super(LuceneIndexMBean.class, false);
+    public LuceneIndexMBeanImpl(IndexTracker indexTracker) throws NotCompliantMBeanException {
+        super(LuceneIndexMBean.class);
         this.indexTracker = indexTracker;
     }
 
@@ -105,19 +104,6 @@ public class LuceneIndexMBeanImpl extends StandardMBean implements LuceneIndexMB
                 indexNode.release();
             }
         }
-    }
-
-    //~------------------------------------------------------< StandardMBean >
-
-    @Override
-    protected String getDescription(MBeanOperationInfo op, MBeanParameterInfo param, int sequence) {
-        if(op.getName().equals("dumpIndexContent")){
-            switch(sequence){
-                case 0 : return "Index path in content. Can be null";
-                case 1 : return "Target directory path on server";
-            }
-        }
-        return super.getDescription(op, param, sequence);
     }
 
     private static class IndexStats {
