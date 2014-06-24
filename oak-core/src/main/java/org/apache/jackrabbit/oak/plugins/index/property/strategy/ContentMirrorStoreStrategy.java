@@ -181,6 +181,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);       
             if (ec != null) {
                 long entryCount = ec.getValue(Type.LONG);
+                // assume 10000 entries per key, so that this index is used
+                // instead of traversal, but not instead of a regular property index
                 long keyCount = entryCount / 10000;
                 ec = indexMeta.getProperty(KEY_COUNT_PROPERTY_NAME);
                 if (ec != null) {
