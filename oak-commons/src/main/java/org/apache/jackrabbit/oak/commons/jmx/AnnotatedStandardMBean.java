@@ -72,7 +72,7 @@ public class AnnotatedStandardMBean extends StandardMBean {
 
     @Override
     protected int getImpact(MBeanOperationInfo info) {
-        String opt = (String)info.getDescriptor().getFieldValue(Impact.NAME);
+        String opt = getValue(info, Impact.NAME);
         return opt == null ? super.getImpact(info) : ImpactOption.valueOf(opt).value();
     }
 
