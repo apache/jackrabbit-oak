@@ -87,6 +87,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -489,11 +490,11 @@ public class Oak {
 
     /**
      * Enable the asynchronous (background) indexing behavior.
-     * 
+     *
      * Please not that when enabling the background indexer, you need to take
      * care of calling
      * <code>#shutdown<code> on the <code>executor<code> provided for this Oak instance.
-     * 
+     *
      */
     public Oak withAsyncIndexing() {
         this.asyncIndexing = true;
@@ -506,7 +507,8 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap());
+        final List<Registration> regs = Lists.newArrayList();
+        regs.add(whiteboard.register(Executor.class, getExecutor(), Collections.emptyMap()));
 
         IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
@@ -521,20 +523,20 @@ public class Oak {
             String name = "async";
             AsyncIndexUpdate task = new AsyncIndexUpdate(name, store,
                     indexEditors);
-            scheduleWithFixedDelay(whiteboard, task, 5, true);
-            registerMBean(whiteboard, IndexStatsMBean.class,
-                    task.getIndexStats(), IndexStatsMBean.TYPE, name);
+            regs.add(scheduleWithFixedDelay(whiteboard, task, 5, true));
+            regs.add(registerMBean(whiteboard, IndexStatsMBean.class,
+                    task.getIndexStats(), IndexStatsMBean.TYPE, name));
 
             PropertyIndexAsyncReindex asyncPI = new PropertyIndexAsyncReindex(
                     new AsyncIndexUpdate("async-reindex", store, indexEditors,
                             true), getExecutor()
             );
-            registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class,
-                    asyncPI, PropertyIndexAsyncReindexMBean.TYPE, name);
+            regs.add(registerMBean(whiteboard, PropertyIndexAsyncReindexMBean.class,
+                    asyncPI, PropertyIndexAsyncReindexMBean.TYPE, name));
         }
 
-        registerMBean(whiteboard, QueryEngineSettingsMBean.class,
-                queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings");
+        regs.add(registerMBean(whiteboard, QueryEngineSettingsMBean.class,
+                queryEngineSettings, QueryEngineSettingsMBean.TYPE, "settings"));
 
         // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
@@ -555,12 +557,12 @@ public class Oak {
 
         // Register observer last to prevent sending events while initialising
         for (Observer observer : observers) {
-            registerObserver(whiteboard, observer);
+            regs.add(registerObserver(whiteboard, observer));
         }
 
         RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
-        registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
-                RepositoryManagementMBean.TYPE, repositoryManager.getName());
+        regs.add(registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
+                RepositoryManagementMBean.TYPE, repositoryManager.getName()));
 
         return new ContentRepositoryImpl(
                 store,
@@ -568,7 +570,13 @@ public class Oak {
                 defaultWorkspaceName,
                 queryEngineSettings,
                 indexProvider,
-                securityProvider);
+                securityProvider) {
+            @Override
+            public void close() throws IOException {
+                super.close();
+                new CompositeRegistration(regs).unregister();
+            }
+        };
     }
 
     /**
