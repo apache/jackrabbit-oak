@@ -58,6 +58,24 @@ point, see also http://en.wikipedia.org/wiki/SHA-2 "Federal agencies ...
 must use the SHA-2 family of hash functions for these applications
 after 2010". This might affect some potential users.
 
+### Blob Garbage Collection
+
+Oak implements a Mark and Sweep based Garbage Collection logic. 
+ 
+1. Mark Phase - In this phase the binary references are marked in both
+   BlobStore and NodeStore
+    1. Mark BlobStore - GC logic would make a record of all the blob
+       references present in the BlobStore. In doing so it would only
+       consider those blobs which are older than a specified time 
+       interval. So only those blob references are fetched which are 
+       last modified say 24 hrs (default) ago. 
+    2. Mark NodeStore - GC logic would make a record of all the blob
+       references which are referred by any node present in NodeStore.
+       Note that any blob references from old revisions of node would also be 
+       considered as a valid references. 
+2. Sweep Phase - In this phase all blob references form Mark BlobStore phase 
+    which were not found in Mark NodeStore part would considered as GC candidates
+    and would be deleted.
 
 ### Support for Jackrabbit 2 DataStore
 
