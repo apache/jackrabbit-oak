@@ -116,10 +116,14 @@ public class SegmentNodeState extends Record implements NodeState {
     public PropertyState getProperty(String name) {
         checkNotNull(name);
         Template template = getTemplate();
+        PropertyState property = null;
         if (JCR_PRIMARYTYPE.equals(name)) {
-            return template.getPrimaryType();
+            property = template.getPrimaryType();
         } else if (JCR_MIXINTYPES.equals(name)) {
-            return template.getMixinTypes();
+            property = template.getMixinTypes();
+        }
+        if (property != null) {
+            return property;
         }
 
         PropertyTemplate propertyTemplate =

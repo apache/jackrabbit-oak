@@ -17,8 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.singletonList;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.junit.Assert.assertEquals;
@@ -352,6 +356,22 @@ public class RecordTest {
                 fail("OAK-1374");
             }
         }
+    }
+
+    @Test
+    public void testStringPrimaryType() {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty("jcr:primaryType", "foo", STRING);
+        NodeState state = writer.writeNode(builder.getNodeState());
+        assertNotNull(state.getProperty("jcr:primaryType"));
+    }
+
+    @Test
+    public void testStringMixinTypes() {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty("jcr:mixinTypes", singletonList("foo"), STRINGS);
+        NodeState state = writer.writeNode(builder.getNodeState());
+        assertNotNull(state.getProperty("jcr:mixinTypes"));
     }
 
 }
