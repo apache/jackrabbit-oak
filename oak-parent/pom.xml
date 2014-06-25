@@ -475,6 +475,21 @@
       </dependencies>
     </profile>
     <profile>
+      <!-- requires local copy of Oracle JDBC driver deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=ojdbc6.jar -Dpackaging=jar\
+          -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.3.0
+       -->
+      <id>rdb-oracle</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle</groupId>
+          <artifactId>ojdbc6</artifactId>
+          <version>11.2.0.3.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <!-- requires local copy of DB2 JDBC drivers -->
       <!-- run with -Ddb2.jdbc=foldername where foldername contains the 2 JARs-->
       <id>rdb-db2</id>
