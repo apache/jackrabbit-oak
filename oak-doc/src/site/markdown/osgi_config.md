@@ -76,6 +76,24 @@ customBlobStore
 : Default false
 : Boolean value indicating that custom `BlobStore` to use. By default it uses `MongoBlobStore`.
 
+maxReplicationLagInSecs
+: Default 21600 (6 hours)
+: Determines the duration beyond which it can be safely assumed that state on secondary would be consistent 
+  with primary and its safe to read from them. (See [OAK-1645][OAK-1645])
+  
+blobGcMaxAgeInSecs
+: Default 86400 (24 hrs)
+: Blob Garbage Collector (GC) logic would only consider those blobs for GC which are not accessed recently 
+  (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For example as per default only those blobs which have
+  been created 24 hrs ago would be considered for GC
+  
+versionGcMaxAgeInSecs
+: Default 86400 (24 hrs)
+: Oak uses MVCC model to store the data. So each update to a node results in new version getting created. This 
+  duration controls how much old revision data should be kept. For example if a node is deleted at time T1 then its
+  content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision
+  GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs)
+
 Example config file
 
     mongouri=mongodb://localhost:27017
@@ -238,3 +256,4 @@ need not be specified in config files
 
 [1]: http://docs.mongodb.org/manual/reference/connection-string/
 [2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
+[OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
