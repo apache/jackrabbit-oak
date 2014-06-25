@@ -126,7 +126,7 @@ import com.google.common.util.concurrent.Striped;
  * <td>modification counter, used for avoiding overlapping updates</td>
  * </tr>
  * <tr>
- * <th>SIZE</th>
+ * <th>DSIZE</th>
  * <td>bigint</td>
  * <td>the size of the document's JSON serialization (for debugging purposes)</td>
  * </tr>
@@ -302,6 +302,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
 
         Connection con = ds.getConnection();
+        String dbtype = con.getMetaData().getDatabaseProductName();
+
+        if ("Oracle".equals(dbtype)) {
+            // https://issues.apache.org/jira/browse/OAK-1914
+            // for some reason, the default for NLS_SORT is incorrect
+            Statement stmt = con.createStatement();
+            stmt.execute("ALTER SESSION SET NLS_SORT='BINARY'");
+            stmt.close();
+            con.commit();
+        }
 
         try {
             con.setAutoCommit(false);
@@ -315,7 +325,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     // table does not appear to exist
                     con.rollback();
 
-                    String dbtype = con.getMetaData().getDatabaseProductName();
                     LOG.info("Attempting to create table " + tableName + " in " + dbtype);
 
                     Statement stmt = con.createStatement();
@@ -325,20 +334,25 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     if ("PostgreSQL".equals(dbtype)) {
                         stmt.execute("create table "
                                 + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA bytea)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
                     } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
                         stmt.execute("create table "
                                 + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
                     } else if ("MySQL".equals(dbtype)) {
                         // see http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html#sysvar_innodb_large_prefix
                         stmt.execute("create table "
                                 + tableName
-                                + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA mediumblob)");
+                                + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
+                    } else if ("Oracle".equals(dbtype)) {
+                        // see https://issues.apache.org/jira/browse/OAK-1914
+                        stmt.execute("create table "
+                                + tableName
+                                + " (ID varchar(767) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
                     } else {
                         stmt.execute("create table "
                                 + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, SIZE bigint, DATA varchar(16384), BDATA blob)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
                     }
                     stmt.close();
 
@@ -868,7 +882,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount, Long oldmodcount,
             String data) throws SQLException {
-        String t = "update " + tableName + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, SIZE = ?, DATA = ?, BDATA = ? where ID = ?";
+        String t = "update " + tableName + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?";
         if (oldmodcount != null) {
             t += " and MODCOUNT = ?";
         }
@@ -906,7 +920,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount,
             String data) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("insert into " + tableName
-                + "(ID, MODIFIED, HASBINARY, MODCOUNT, SIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?)");
+                + "(ID, MODIFIED, HASBINARY, MODCOUNT, DSIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?)");
         try {
             int si = 1;
             stmt.setString(si++, id);
