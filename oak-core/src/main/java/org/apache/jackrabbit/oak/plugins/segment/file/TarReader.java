@@ -611,14 +611,15 @@ class TarReader {
         size += getEntrySize(24 * count + 16);
         size += 2 * BLOCK_SIZE;
 
-        if (graph != null) {
-            if (count == 0) {
-                // none of the entries within this tar file are referenceable
-                return null;
-            } else if (size >= access.length() * 3 / 4) {
-                // the space savings are not worth it at less than 25%
-                return this;
-            }
+        if (count == 0) {
+            // none of the entries within this tar file are referenceable
+            return null;
+        } else if (size >= access.length() * 3 / 4 && graph != null) {
+            // the space savings are not worth it at less than 25%,
+            // unless this tar file lacks a pre-compiled segment graph
+            // in which case we'll always generate a new tar file with
+            // the graph to speed up future garbage collection runs.
+            return this;
         }
 
         String name = file.getName();
