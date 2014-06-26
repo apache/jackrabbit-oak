@@ -430,7 +430,7 @@ public class Main {
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping").withOptionalArg().ofType(Boolean.class).defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
 
         // mongo specific options:
-        OptionSpec<String> host = parser.accepts("host", "MongoDB host").withRequiredArg().defaultsTo("localhost");
+        OptionSpec<String> host = parser.accepts("host", "MongoDB host").withRequiredArg().defaultsTo("127.0.0.1");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
