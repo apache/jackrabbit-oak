@@ -68,7 +68,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         while (max - min >= 2) {
             test = (max + min) / 2;
-            String id = generateString(test);
+            String id = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -95,7 +95,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         while (max - min >= 256) {
             test = (max + min) / 2;
             String id = this.getClass().getName() + ".testMaxProperty-" + test;
-            String pval = generateString(test);
+            String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", pval);
@@ -112,6 +112,23 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         LOG.info("max prop length for " + super.dsname + " was " + test);
+    }
+
+    @Test
+    public void testInterestingPropLengths() {
+        int lengths[] = {1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 20000};
+
+        for (int test : lengths) {
+            String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
+            String pval = generateString(test, false);
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("foo", pval);
+            super.ds.remove(Collection.NODES, id);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("failed to insert a document with property of length " + test, success);
+            super.ds.remove(Collection.NODES, id);
+        }
     }
 
     @Test
@@ -275,7 +292,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private void createPerf(int size, int amount) {
-        String pval = generateString(size);
+        String pval = generateString(size, true);
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
         long cnt = 0;
@@ -312,7 +329,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private void updatePerf(int size) {
-        String pval = generateString(size);
+        String pval = generateString(size, true);
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
         long cnt = 0;
@@ -332,11 +349,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 + (cnt / (duration / 1000f)) + "/s)");
     }
 
-    private static String generateString(int length) {
-        StringBuffer buf = new StringBuffer(length);
-        while (length-- > 0) {
-            buf.append('A' + ((int) (26 * Math.random())));
+    private static String generateString(int length, boolean ascii) {
+        char[] s = new char[length];
+        for (int i = 0; i < length; i++) {
+            if (ascii) {
+                s[i] = (char)(32 + (int) (95 * Math.random()));
+            }
+            else {
+                s[i] = (char)(32 + (int) ((0xd7ff - 32) * Math.random()));
+            }
         }
-        return buf.toString();
-    }
+        return new String(s);
+   }
 }
