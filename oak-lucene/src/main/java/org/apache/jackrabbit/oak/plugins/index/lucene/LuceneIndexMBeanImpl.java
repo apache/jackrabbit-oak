@@ -81,7 +81,6 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return tds;
     }
 
-    @Override
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
         IndexNode indexNode = null;
         try {
