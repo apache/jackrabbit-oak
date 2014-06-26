@@ -23,26 +23,9 @@ import java.io.IOException;
 
 import javax.management.openmbean.TabularData;
 
-import org.apache.jackrabbit.oak.commons.jmx.Description;
-import org.apache.jackrabbit.oak.commons.jmx.Name;
-
 public interface LuceneIndexMBean {
     String TYPE = "LuceneIndex";
 
     TabularData getIndexStats() throws IOException;
 
-    /**
-     * Dumps the lucene index files on to the filesystem
-     *
-     * @param sourcePath path in content where the index files are stores
-     * @param destPath path on server where the index content needs to be copied
-     * @throws IOException
-     */
-    void dumpIndexContent(@Name("sourcePath")
-                          @Description("Index path in content. Can be null")
-                          String sourcePath,
-
-                          @Name("destPath")
-                          @Description("Target directory path on server where the index content needs to be copied")
-                          String destPath) throws IOException;
 }
