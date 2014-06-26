@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -283,8 +284,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private DataSource ds;
 
-    // string length at which we switch to BLOB storage
-    private static int DATALIMIT = 16384 / 4;
+    // capacity of DATA column
+    // we assume six octets per Java character as worst case for now
+    private int datalimit = 16384 / 6;
 
     // number of retries for updates
     private static int RETRIES = 10;
@@ -318,9 +320,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
             for (String tableName : new String[] { "CLUSTERNODES", "NODES", "SETTINGS" }) {
                 try {
-                    PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
+                    PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
                     stmt.setString(1, "0:/");
-                    stmt.executeQuery();
+                    ResultSet rs = stmt.executeQuery();
+
+                    if ("NODES".equals(tableName)) {
+                        // try to discover size of DATA column
+                        ResultSetMetaData met = rs.getMetaData();
+                        datalimit = met.getPrecision(1) / 6;
+                    }
                 } catch (SQLException ex) {
                     // table does not appear to exist
                     con.rollback();
@@ -348,7 +356,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         // see https://issues.apache.org/jira/browse/OAK-1914
                         stmt.execute("create table "
                                 + tableName
-                                + " (ID varchar(767) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+                                + " (ID varchar(1000) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
                     } else {
                         stmt.execute("create table "
                                 + tableName
@@ -894,7 +902,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
-            if (data.length() < DATALIMIT) {
+            if (data.length() < datalimit) {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
@@ -928,15 +936,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
-            if (data.length() < DATALIMIT) {
+            if (data.length() < datalimit) {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, 1023));
+                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 20));
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
-
             int result = stmt.executeUpdate();
             if (result != 1) {
                 LOG.debug("DB insert failed for " + tableName + "/" + id);
