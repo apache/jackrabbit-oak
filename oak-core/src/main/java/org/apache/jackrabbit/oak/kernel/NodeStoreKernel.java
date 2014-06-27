@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CheckedInputStream;
+import java.util.zip.Checksum;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
