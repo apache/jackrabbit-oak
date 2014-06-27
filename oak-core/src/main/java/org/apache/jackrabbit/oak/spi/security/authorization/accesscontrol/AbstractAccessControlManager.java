@@ -203,8 +203,8 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
 
     @Nonnull
     private Privilege[] getPrivileges(@Nullable String absPath,
-                                        @Nonnull PermissionProvider provider,
-                                        long permissions) throws RepositoryException {
+                                      @Nonnull PermissionProvider provider,
+                                      long permissions) throws RepositoryException {
         Tree tree;
         if (absPath == null) {
             tree = null;

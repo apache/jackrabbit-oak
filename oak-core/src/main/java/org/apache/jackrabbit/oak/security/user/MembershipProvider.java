@@ -232,7 +232,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
      */
     @Nonnull
     private Iterator<String> getMembers(@Nonnull final Tree groupTree, @Nonnull final AuthorizableType authorizableType,
-                                final boolean includeInherited, @Nonnull final Set<String> processedRefs) {
+                                        final boolean includeInherited, @Nonnull final Set<String> processedRefs) {
 
         return new AbstractLazyIterator<String>() {
 
