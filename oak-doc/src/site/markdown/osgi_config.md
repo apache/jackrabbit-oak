@@ -131,36 +131,14 @@ performed
 Refer to [Config steps in Apache Sling](#config-sling) for an example on how to configure a `FileDataStore`
 with `DocumentNodeStore`
 
-#### Oak FileBlobStore
-
-_PID `org.apache.jackrabbit.oak.spi.blob.FileBlobStore`_
-
-repository.home
-: Path to repository home under which various repository related data is stored. Blob files would be
-stored under _${repository.home}/datastore_ directory
-
-blockSizeMin
-: Default - 4096
-: Size in bytes. Binary content less than `blockSizeMin` would be inlined i.e. the data store id is
-the data itself).
-
-blockSize
-: Default - 2097152 (i.e. 2 MB)
-: Size in bytes. Binary content would be broken in `blockSize` chunks and stored on file system.
-
 #### Jackrabbit 2 - FileDataStore
 Jackrabbit 2 [FileDataStore][2] can be configured via following _pid_
 
 _PID `org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore`_
 
-repository.home
-: Path to repository home under which various repository related data is stored. Blob files would be
-stored under _${repository.home}/repository/datastore_ directory
-
 path
 : Default - Not specified
-: Path to the directory under which the files would be stored. If specified then it takes precedence over
-_repository.home_ value
+: Path to the directory under which the files would be stored. 
 
 minRecordLength
 : Default - 100
