@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 import junit.framework.Assert;
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

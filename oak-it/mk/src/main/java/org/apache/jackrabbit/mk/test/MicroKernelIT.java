@@ -34,7 +34,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.test.util.TestInputStream;
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.junit.Test;

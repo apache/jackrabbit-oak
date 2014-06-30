@@ -21,7 +21,7 @@ import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Test;
 
