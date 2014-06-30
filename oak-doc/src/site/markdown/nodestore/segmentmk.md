@@ -140,6 +140,21 @@ it possible to quickly find all such references without having to do a full
 traversal of all repository content. The list of active references is given
 to data store garbage collection so it won't collect the referenced binaries.
 
+Segment Compaction
+------------------
+
+Segment compaction is needed when the repository size grows to an unmanageable
+size. The growth can happen when there are a lot of repository write operations
+which might create a considerable amount of content revisions that need to get
+garbage collected.
+The simplest solution is to schedule the revision garbage collection exposed as
+a jmx operation via the `RevisionGarbageCollection` MBean. This is a non-blocking
+operation, it will set an internal flag for compaction during the next `flush` call.
+
+As a workaround in the case where the size is already too big, you might want to run
+a manual compaction using the [Oak run](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-run/README.md)
+tool.
+
 Journals
 ========
 
