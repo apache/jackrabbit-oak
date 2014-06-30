@@ -29,4 +29,3 @@ maximal scalability in clustered deployments.
 ## See also
 
 * [MicroKernel integration tests](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-it/mk/README.md)
-* [MicroKernel performance tests](https://github.com/apache/jackrabbit-oak/blob/trunk/oak-mk-perf/README.md)
