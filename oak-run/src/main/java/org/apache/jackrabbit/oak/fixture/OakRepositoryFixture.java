@@ -25,10 +25,6 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 
 public class OakRepositoryFixture implements RepositoryFixture {
 
-    public static RepositoryFixture getMemory(long cacheSize) {
-        return getMemory(OakFixture.OAK_MEMORY, false, cacheSize);
-    }
-
     public static RepositoryFixture getMemoryNS(long cacheSize) {
         return getMemory(OakFixture.OAK_MEMORY_NS, false, cacheSize);
     }

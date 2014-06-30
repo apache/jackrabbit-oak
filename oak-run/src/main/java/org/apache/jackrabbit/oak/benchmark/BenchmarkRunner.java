@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -26,18 +28,14 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
-
-import static java.util.Arrays.asList;
 
 public class BenchmarkRunner {
 
@@ -111,7 +109,6 @@ public class BenchmarkRunner {
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
-                OakRepositoryFixture.getMemory(cacheSize * MB),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
                 OakRepositoryFixture.getMemoryMK(cacheSize * MB),
                 OakRepositoryFixture.getH2MK(base.value(options), cacheSize * MB),
