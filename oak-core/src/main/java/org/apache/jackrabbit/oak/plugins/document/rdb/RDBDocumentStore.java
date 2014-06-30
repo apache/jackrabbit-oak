@@ -906,7 +906,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, 1023));
+                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 32));
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
