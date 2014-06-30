@@ -467,6 +467,47 @@ public class DocumentNodeStoreTest {
         ns2.dispose();
     }
 
+    // OAK-1861
+    @Test
+    public void readChildrenWithDeletedSiblings() throws Exception {
+        final AtomicInteger maxLimit = new AtomicInteger(0);
+        DocumentStore docStore = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      int limit) {
+                if (collection == Collection.NODES) {
+                    maxLimit.set(Math.max(limit, maxLimit.get()));
+                }
+                return super.query(collection, fromKey, toKey, limit);
+            }
+        };
+        DocumentNodeStore ns = new DocumentMK.Builder()
+                .setDocumentStore(docStore)
+                .setAsyncDelay(0).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < 1000; i++) {
+            builder.child("node-" + i);
+        }
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        builder = ns.getRoot().builder();
+        // now remove all except the last one
+        for (int i = 0; i < 999; i++) {
+            builder.getChildNode("node-" + i).remove();
+        }
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
+            entry.getName();
+        }
+        // must not read more than DocumentNodeState.INITIAL_FETCH_SIZE + 1
+        assertTrue(maxLimit.get() + " > " + (DocumentNodeState.INITIAL_FETCH_SIZE + 1),
+                maxLimit.get() <= DocumentNodeState.INITIAL_FETCH_SIZE + 1);
+    }
+
     private static class TestHook extends EditorHook {
 
         TestHook(final String prefix) {
