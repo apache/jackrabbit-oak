@@ -151,6 +151,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         boolean memoryMapping = "64".equals(mode);
         if (customBlobStore) {
+            log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
             store = new FileStore(
                     blobStore,
                     new File(directory),
@@ -224,7 +225,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
-        log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
         this.blobStore = blobStore;
         registerNodeStore();
     }
