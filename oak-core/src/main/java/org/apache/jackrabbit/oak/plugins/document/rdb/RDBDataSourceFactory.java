@@ -114,6 +114,8 @@ public class RDBDataSourceFactory {
             return "com.ibm.db2.jcc.DB2Driver";
         } else if ("mysql".equals(type)) {
             return "com.mysql.jdbc.Driver";
+        } else if ("oracle".equals(type)) {
+            return "oracle.jdbc.OracleDriver";
         } else {
             return "";
         }
