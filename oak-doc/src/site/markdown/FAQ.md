@@ -27,6 +27,9 @@ You might be missing an index. See [Query engine](query.html).
 You are accessing a `Session` instance concurrently from multiple threads. Session instances are
 [not thread safe](dos_and_donts.html#Anti_pattern:_concurrent_session_access).
 
+#### I have a SegmentMK store and the size is growing beyond control
+
+You need to setup a regular job for [compacting the segments](nodestore/segmentmk.html#Segment_Compaction).
 
 #### My question is not listed here
 
