@@ -75,10 +75,10 @@
       <scope>provided</scope>
     </dependency>
     
-    <!-- mk dependency -->
+    <!-- mk-api dependency -->
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-mk</artifactId>
+      <artifactId>oak-mk-api</artifactId>
       <version>${project.version}</version>
     </dependency>
 

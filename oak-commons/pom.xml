@@ -88,8 +88,13 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-mk-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
-      <!-- Test dependencies -->
+    <!-- Test dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>

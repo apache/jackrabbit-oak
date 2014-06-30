@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Test;
 
