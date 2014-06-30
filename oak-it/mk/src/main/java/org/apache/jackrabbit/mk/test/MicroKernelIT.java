@@ -37,6 +37,7 @@ import org.apache.jackrabbit.mk.test.util.TestInputStream;
 import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1384,5 +1385,16 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         } catch (IOException e) {
             fail(e.getMessage());
         }
+    }
+
+    @Ignore("OAK-1931")  // FIXME OAK-1931
+    @Test
+    public void testReadReturnsNonNegative() {
+        TestInputStream in = new TestInputStream(0);
+        String id = mk.write(in);
+        assertNotNull(id);
+        assertTrue(in.isClosed());
+
+        assertTrue("read returns negative value", mk.read(id, 0, new byte[1], 0, 1) >= 0);
     }
 }
