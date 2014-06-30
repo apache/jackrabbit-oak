@@ -98,10 +98,13 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     if (tableName.equals("DATASTORE_META")) {
                         if ("MySQL".equals(dbtype)) {
                             stmt.execute("create table " + tableName
-                                    + " (ID varchar(767) not null primary key, LEVEL int, LASTMOD bigint)");
+                                    + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)");
+                        } else if ("Oracle".equals(dbtype)) {
+                            stmt.execute("create table " + tableName
+                                    + " (ID varchar(1000) not null primary key, LVL number, LASTMOD number)");
                         } else {
                             stmt.execute("create table " + tableName
-                                    + " (ID varchar(1000) not null primary key, LEVEL int, LASTMOD bigint)");
+                                    + " (ID varchar(1000) not null primary key, LVL int, LASTMOD bigint)");
                         }
                     } else {
                         // the code below likely will need to be extended for
@@ -175,7 +178,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     throw new RuntimeException(message, ex);
                 }
                 try {
-                    prep = con.prepareStatement("insert into datastore_meta(id, level, lastMod) values(?, ?, ?)");
+                    prep = con.prepareStatement("insert into datastore_meta(id, lvl, lastMod) values(?, ?, ?)");
                     try {
                         prep.setString(1, id);
                         prep.setInt(2, level);
@@ -403,7 +406,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         private long maxLastModifiedTime;
         private DataSource ds;
-        private static int BATCHSIZE = 1024 * 256;
+        private static int BATCHSIZE = 1024 * 64;
         private List<String> results = new LinkedList<String>();
         private String lastId = null;
 
@@ -439,7 +442,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     query.append(" where id > ?");
                 }
             }
-            query.append(" order by id limit " + BATCHSIZE);
+            query.append(" order by id");
 
             Connection connection = null;
             try {
@@ -454,7 +457,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     if (lastId != null) {
                         prep.setString(idx++, lastId);
                     }
-
+                    prep.setFetchSize(BATCHSIZE);
                     ResultSet rs = prep.executeQuery();
                     while (rs.next()) {
                         lastId = rs.getString(1);
@@ -466,6 +469,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     connection.close();
                 }
             } catch (SQLException ex) {
+                LOG.debug("error executing ID lookup", ex);
                 try {
                     if (connection != null) {
                         connection.rollback();

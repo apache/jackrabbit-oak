@@ -405,7 +405,7 @@ public abstract class AbstractBlobStoreTest {
             ids.remove(iter.next());
         }
 
-        assertTrue(ids.isEmpty());
+        assertTrue("unexpected ids in store: " + ids, ids.isEmpty());
     }
 
     @Test
