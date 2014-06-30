@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -469,7 +468,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-1861
-    @Ignore
     @Test
     public void readChildrenWithDeletedSiblings() throws Exception {
         final AtomicInteger maxLimit = new AtomicInteger(0);
@@ -495,12 +493,12 @@ public class DocumentNodeStoreTest {
         }
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        builder = ns.getRoot().builder();
         // now remove all except the last one
         for (int i = 0; i < 999; i++) {
+            builder = ns.getRoot().builder();
             builder.getChildNode("node-" + i).remove();
+            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         for (ChildNodeEntry entry : ns.getRoot().getChildNodeEntries()) {
             entry.getName();
