@@ -64,7 +64,7 @@ import java.util.UUID;
  * average, the amortized size of each entry in this mapping is about
  * {@code 20/n + 8} bytes, assuming compressed pointers.
  */
-class CompactionMap {
+public class CompactionMap {
 
     private final int compressInterval;
     private final Map<RecordId, RecordId> recent = newHashMap();

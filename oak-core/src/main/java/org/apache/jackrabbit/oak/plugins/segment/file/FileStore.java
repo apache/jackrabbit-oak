@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -239,7 +240,6 @@ public class FileStore implements SegmentStore {
                     timeToClose.await(1, SECONDS);
                     while (timeToClose.getCount() > 0) {
                         long start = System.nanoTime();
-                        compact();
                         try {
                             flush();
                         } catch (IOException e) {
@@ -335,7 +335,19 @@ public class FileStore implements SegmentStore {
         return dataFiles;
     }
 
+    public synchronized long size() throws IOException {
+        long size = writeFile.length();
+        for (TarReader reader : readers) {
+            size += reader.size();
+        }
+        return size;
+    }
+
     public void flush() throws IOException {
+        if (compactNeeded.getAndSet(false)) {
+            compact();
+        }
+
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
             RecordId after = head.get();
@@ -356,39 +368,7 @@ public class FileStore implements SegmentStore {
                     persistedHead.set(after);
 
                     if (cleanup) {
-                        long start = System.nanoTime();
-
-                        // Suggest to the JVM that now would be a good time
-                        // to clear stale weak references in the SegmentTracker
-                        System.gc();
-
-                        Set<UUID> ids = newHashSet();
-                        for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                            ids.add(new UUID(
-                                    id.getMostSignificantBits(),
-                                    id.getLeastSignificantBits()));
-                        }
-                        writer.cleanup(ids);
-
-                        List<TarReader> list =
-                                newArrayListWithCapacity(readers.size());
-                        for (TarReader reader : readers) {
-                            TarReader cleaned = reader.cleanup(ids);
-                            if (cleaned == reader) {
-                                list.add(reader);
-                            } else {
-                                if (cleaned != null) {
-                                    list.add(cleaned);
-                                }
-                                File file = reader.close();
-                                log.info("TarMK GC: Cleaned up file {}", file);
-                                toBeRemoved.addLast(file);
-                            }
-                        }
-                        readers = list;
-
-                        log.debug("TarMK GC: Completed in {}ms",
-                                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
+                        cleanup();
                     }
                 }
 
@@ -405,15 +385,65 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    public void compact() {
-        if (compactNeeded.getAndSet(false)) {
-            long start = System.nanoTime();
-            tracker.getWriter().dropCache();
-            tracker.setCompactionMap(Compactor.compact(this));
-            log.info("TarMK Compaction: Completed in {}ms", MILLISECONDS
-                    .convert(System.nanoTime() - start, NANOSECONDS));
-            cleanupNeeded.set(true);
+    synchronized void cleanup() throws IOException {
+        long start = System.nanoTime();
+        log.info("TarMK revision cleanup started");
+
+        // Suggest to the JVM that now would be a good time
+        // to clear stale weak references in the SegmentTracker
+        System.gc();
+
+        Set<UUID> ids = newHashSet();
+        for (SegmentId id : tracker.getReferencedSegmentIds()) {
+            ids.add(new UUID(
+                    id.getMostSignificantBits(),
+                    id.getLeastSignificantBits()));
         }
+        writer.cleanup(ids);
+
+        List<TarReader> list =
+                newArrayListWithCapacity(readers.size());
+        for (TarReader reader : readers) {
+            TarReader cleaned = reader.cleanup(ids);
+            if (cleaned == reader) {
+                list.add(reader);
+            } else {
+                if (cleaned != null) {
+                    list.add(cleaned);
+                }
+                File file = reader.close();
+                log.info("TarMK revision cleanup reclaiming {}", file.getName());
+                toBeRemoved.addLast(file);
+            }
+        }
+        readers = list;
+
+        log.info("TarMK revision cleanup completed in {}ms",
+                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
+    }
+
+    public void compact() {
+        long start = System.nanoTime();
+        log.info("TarMK compaction started");
+
+        SegmentWriter writer = new SegmentWriter(this, tracker);
+        Compactor compactor = new Compactor(writer);
+
+        SegmentNodeState before = getHead();
+        SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
+        while (!setHead(before, after)) {
+            // Some other concurrent changes have been made.
+            // Rebase (and compact) those changes on top of the
+            // compacted state before retrying to set the head.
+            SegmentNodeState head = getHead();
+            after = compactor.compact(before, head);
+            before = head;
+        }
+        tracker.setCompactionMap(compactor.getCompactionMap());
+
+        log.info("TarMK compaction completed in {}ms", MILLISECONDS
+                .convert(System.nanoTime() - start, NANOSECONDS));
+        cleanupNeeded.set(true);
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
