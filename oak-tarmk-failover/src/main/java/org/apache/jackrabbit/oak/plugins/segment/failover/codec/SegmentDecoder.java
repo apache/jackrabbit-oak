@@ -23,11 +23,17 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
+import java.nio.ByteBuffer;
+import java.util.UUID;
+
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 
 public class SegmentDecoder extends LengthFieldBasedFrameDecoder {
 
@@ -37,7 +43,7 @@ public class SegmentDecoder extends LengthFieldBasedFrameDecoder {
     private final SegmentStore store;
 
     public SegmentDecoder(SegmentStore store) {
-        super(Segment.MAX_SEGMENT_SIZE + 21, 0, 4, 0, 4);
+        super(Segment.MAX_SEGMENT_SIZE + 21, 0, 4, 0, 0);
         this.store = store;
     }
 
@@ -48,14 +54,26 @@ public class SegmentDecoder extends LengthFieldBasedFrameDecoder {
         if (frame == null) {
             return null;
         }
+        int len = frame.readInt();
         byte type = frame.readByte();
         long msb = frame.readLong();
         long lsb = frame.readLong();
-        frame.discardReadBytes();
-        SegmentId id = new SegmentId(store.getTracker(), msb, lsb);
-        Segment s = new Segment(store.getTracker(), id, frame.nioBuffer());
-        log.debug("received type {} with id {} and size {}", type, id, s.size());
-        return s;
+        long hash = frame.readLong();
+        byte[] segment = new byte[len - 25];
+        frame.getBytes(29, segment);
+        Hasher hasher = Hashing.murmur3_32().newHasher();
+        long check = hasher.putBytes(segment).hash().padToLong();
+        if (hash == check) {
+            SegmentId id = new SegmentId(store.getTracker(), msb, lsb);
+            Segment s = new Segment(store.getTracker(), id,
+                    ByteBuffer.wrap(segment));
+            log.debug("received type {} with id {} and size {}", type, id,
+                    s.size());
+            return s;
+        }
+        log.debug("received corrupted segment {}, ignoring", new UUID(msb, lsb));
+        return null;
+
     }
 
     @Override

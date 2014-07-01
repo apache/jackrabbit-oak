@@ -7,8 +7,8 @@ Failover
 The component should be installed when failover support is needed.
 
 The setup is expected to be: one master to one/many slaves nodes.
-The slave will periodically poll the master for the head state over http
-on a custom port, if it changed, it should pull in all the new segments.
+The slave will periodically poll the master for the head state, if this
+changed, it will pull in all the new segments since the last sync.
 
 Setup in OSGi
 -------------
@@ -24,7 +24,7 @@ Master host represents the master host info.
 Interval represents how often the sync thread should run, in seconds.
 
 See examples in the osgi-conf folder for each run mode. To install a new OSGI config in the sling launcher,
-you only need to create a new folder called 'install' in the sling.home folder and copy the configs there.
+you only need to create a new folder called 'install' in the sling.home folder and copy the specific config there.
 
 TODO
 ----
@@ -32,7 +32,6 @@ TODO
   - timeout handling doesn't cover everything on both server and slave
   - error handling on the slave still has some issues (the slave hangs)
   - maybe enable compression of the segments over the wire
-  - maybe add a checksum to the segment encoder/decoder to verify the integrity of the transfer
   - slave runmode could possibly be a read-only mode (no writes permitted)
 
 License

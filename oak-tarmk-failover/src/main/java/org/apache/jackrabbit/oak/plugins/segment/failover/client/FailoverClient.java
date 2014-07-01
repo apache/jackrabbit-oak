@@ -80,12 +80,6 @@ public final class FailoverClient implements Runnable, Closeable {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
-
-                // p.addLast(new LoggingHandler(LogLevel.INFO));
-                // Enable stream compression
-                // p.addLast(ZlibCodecFactory.newZlibEncoder(ZlibWrapper.GZIP));
-                // p.addLast(ZlibCodecFactory.newZlibDecoder(ZlibWrapper.GZIP));
-
                 // WriteTimeoutHandler & ReadTimeoutHandler
                 p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
                         readTimeoutMs, TimeUnit.MILLISECONDS));

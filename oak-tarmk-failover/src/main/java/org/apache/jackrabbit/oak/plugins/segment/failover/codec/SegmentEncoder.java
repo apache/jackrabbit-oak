@@ -20,12 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.segment.failover.codec;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 
+import java.io.ByteArrayOutputStream;
+
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 
 public class SegmentEncoder extends MessageToByteEncoder<Segment> {
 
@@ -33,14 +37,19 @@ public class SegmentEncoder extends MessageToByteEncoder<Segment> {
     protected void encode(ChannelHandlerContext ctx, Segment s, ByteBuf out)
             throws Exception {
         SegmentId id = s.getSegmentId();
-        int len = s.size() + 17;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(s.size());
+        s.writeTo(baos);
+        byte[] segment = baos.toByteArray();
+
+        Hasher hasher = Hashing.murmur3_32().newHasher();
+        long hash = hasher.putBytes(segment).hash().padToLong();
+
+        int len = segment.length + 25;
         out.writeInt(len);
         out.writeByte(Messages.HEADER_SEGMENT);
         out.writeLong(id.getMostSignificantBits());
         out.writeLong(id.getLeastSignificantBits());
-        ByteBufOutputStream bout = new ByteBufOutputStream(out);
-        s.writeTo(bout);
-        bout.flush();
-        bout.close();
+        out.writeLong(hash);
+        out.writeBytes(segment);
     }
 }
