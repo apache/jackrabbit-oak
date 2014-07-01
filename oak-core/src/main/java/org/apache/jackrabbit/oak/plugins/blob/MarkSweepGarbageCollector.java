@@ -416,7 +416,6 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                 bufferWriter = new BufferedWriter(
                         new FileWriter(fs.getAvailableRefs()));
                 Iterator<String> idsIter = blobStore.getAllChunkIds(getLastMaxModifiedTime());
-                
                 List<String> ids = Lists.newArrayList();
 
                 while (idsIter.hasNext()) {
@@ -424,6 +423,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                     if (ids.size() > getBatchCount()) {
                         blobsCount += ids.size();
                         saveBatchToFile(ids, bufferWriter);
+                        LOG.debug("retrieved {} blobs", blobsCount);
                     }
                 }
 
