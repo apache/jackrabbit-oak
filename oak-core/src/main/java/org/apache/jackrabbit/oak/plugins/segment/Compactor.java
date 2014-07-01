@@ -52,33 +52,6 @@ public class Compactor {
     /** Logger instance */
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
-    public static CompactionMap compact(SegmentStore store) {
-        SegmentWriter writer = store.getTracker().getWriter();
-        Compactor compactor = new Compactor(writer);
-
-        log.debug("TarMK compaction");
-
-        SegmentNodeBuilder builder = writer.writeNode(EMPTY_NODE).builder();
-        SegmentNodeState before = store.getHead();
-        EmptyNodeState.compareAgainstEmptyState(
-                before, compactor.newCompactDiff(builder));
-
-        SegmentNodeState after = builder.getNodeState();
-        while (!store.setHead(before, after)) {
-            // Some other concurrent changes have been made.
-            // Rebase (and compact) those changes on top of the
-            // compacted state before retrying to set the head.
-            SegmentNodeState head = store.getHead();
-            head.compareAgainstBaseState(
-                    before, compactor.newCompactDiff(builder));
-            before = head;
-            after = builder.getNodeState();
-        }
-
-        compactor.map.compress();
-        return compactor.map;
-    }
-
     /**
      * Locks down the RecordId persistence structure
      */
@@ -89,6 +62,8 @@ public class Compactor {
 
     private final SegmentWriter writer;
 
+    private final SegmentNodeBuilder builder;
+
     private CompactionMap map = new CompactionMap(100000);
 
     /**
@@ -98,12 +73,19 @@ public class Compactor {
      */
     private final Map<String, List<RecordId>> binaries = newHashMap();
 
-    private Compactor(SegmentWriter writer) {
+    public Compactor(SegmentWriter writer) {
         this.writer = writer;
+        this.builder = writer.writeNode(EMPTY_NODE).builder();
     }
 
-    private CompactDiff newCompactDiff(NodeBuilder builder) {
-        return new CompactDiff(builder);
+    public SegmentNodeState compact(NodeState before, NodeState after) {
+        after.compareAgainstBaseState(before, new CompactDiff(builder));
+        return builder.getNodeState();
+    }
+
+    public CompactionMap getCompactionMap() {
+        map.compress();
+        return map;
     }
 
     private class CompactDiff extends ApplyDiff {
