@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static java.lang.System.nanoTime;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.lang.System.currentTimeMillis;
+
+import java.util.Calendar;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +33,11 @@ class BackgroundThread extends Thread {
 
     private final long interval;
 
-    private long backlog = 0;
+    private boolean alive = true;
 
-    private long lastDuration = 0;
+    private long iterations = 0;
+
+    private long sumDuration = 0;
 
     private long maxDuration = 0;
 
@@ -54,18 +56,21 @@ class BackgroundThread extends Thread {
     public void run() {
         try {
             while (waitUntilNextIteration()) {
-                long start = nanoTime();
-                super.run();
-                long seconds = SECONDS.convert(nanoTime() - start, NANOSECONDS);
+                setName(name + ", active since " + Calendar.getInstance()
+                        + ", previous max duration " + maxDuration + "ms");
 
-                if (lastDuration != seconds) {
-                    lastDuration = seconds;
-                    if (maxDuration < seconds) {
-                        maxDuration = seconds;
-                    }
-                    // make execution statistics visible in thread dumps
-                    setName(name + " " + lastDuration + "/" + maxDuration);
-                }
+                long start = currentTimeMillis();
+                super.run();
+                long duration = currentTimeMillis() - start;
+
+                iterations++;
+                sumDuration += duration;
+                maxDuration = Math.max(maxDuration, duration);
+
+                // make execution statistics visible in thread dumps
+                setName(name
+                        + ", avg " + (sumDuration / iterations) + "ms"
+                        + ", max " + maxDuration + "ms");
             }
         } catch (InterruptedException e) {
             log.error(name + " interrupted", e);
@@ -88,29 +93,21 @@ class BackgroundThread extends Thread {
 
     private synchronized void trigger(boolean close) {
         if (close) {
-            backlog = -1;
-        } else if (backlog >= 0) {
-            backlog++;
+            alive = false;
         }
         notify();
     }
 
     private synchronized boolean waitUntilNextIteration()
             throws InterruptedException {
-        if (backlog == 0) {
-            // no backlog to process (and not closed), so wait...
+        if (alive) {
             if (interval < 0) {
                 wait();
             } else {
                 wait(interval);
             }
         }
-
-        if (backlog > 0) {
-            backlog--;
-        }
-
-        return backlog >= 0;
+        return alive;
     }
 
 }
