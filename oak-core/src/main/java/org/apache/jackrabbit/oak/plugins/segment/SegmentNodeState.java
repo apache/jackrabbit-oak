@@ -390,7 +390,7 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         SegmentNodeState that = (SegmentNodeState) base;
-        if (wasCompactedTo(that)) {
+        if (that.wasCompactedTo(this)) {
             return true; // no changes during compaction
         }
 
