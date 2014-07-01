@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -227,31 +226,56 @@ class MutableTree extends AbstractTree {
     public boolean orderBefore(final String name) {
         beforeWrite();
         if (parent == null) {
-            // root does not have siblings
-            return false;
+            return false; // root does not have siblings
+        } else if (this.name.equals(name)) {
+            return false; // same node
         }
-        if (name != null) {
-            if (name.equals(this.name) || !parent.hasChild(name)) {
-                // same node or no such sibling (not existing or not accessible)
-                return false;
-            }
-        }
+
         // perform the reorder
-        List<String> names = newArrayList();
-        for (String n : parent.getChildNames()) {
-            if (n.equals(name)) {
+        List<String> names = newArrayListWithCapacity(10000);
+        NodeBuilder builder = parent.nodeBuilder;
+        boolean found = false;
+
+        // first try reordering based on the (potentially out-of-sync)
+        // child order property in the parent node
+        for (String n : builder.getNames(OAK_CHILD_ORDER)) {
+            if (n.equals(name) && parent.hasChild(name)) {
                 names.add(this.name);
+                found = true;
             }
             if (!n.equals(this.name)) {
                 names.add(n);
             }
         }
+
+        // if the target node name was not found in the parent's child order
+        // property, we need to fall back to recreating the child order list
+        if (!found) {
+            names.clear();
+            for (String n : parent.getChildNames()) {
+                if (n.equals(name)) {
+                    names.add(this.name);
+                    found = true;
+                }
+                if (!n.equals(this.name)) {
+                    names.add(n);
+                }
+            }
+        }
+
         if (name == null) {
             names.add(this.name);
+            found = true;
         }
-        parent.nodeBuilder.setProperty(OAK_CHILD_ORDER, names, NAMES);
-        root.updated();
-        return true;
+
+        if (found) {
+            builder.setProperty(OAK_CHILD_ORDER, names, NAMES);
+            root.updated();
+            return true;
+        } else {
+            // no such sibling (not existing or not accessible)
+            return false;
+        }
     }
 
     @Override
