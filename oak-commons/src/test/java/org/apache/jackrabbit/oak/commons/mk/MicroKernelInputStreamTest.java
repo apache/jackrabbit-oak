@@ -250,7 +250,8 @@ public class MicroKernelInputStreamTest {
                     InputStream stream = new ByteArrayInputStream(data);
                     try {
                         ByteStreams.skipFully(stream, pos);
-                        return stream.read(buff, off, length);
+                        int read = stream.read(buff, off, length);
+                        return read < 0 ? 0 : read;
                     } finally {
                         stream.close();
                     }

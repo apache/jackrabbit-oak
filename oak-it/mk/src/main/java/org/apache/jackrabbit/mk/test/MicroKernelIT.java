@@ -1387,7 +1387,6 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         }
     }
 
-    @Ignore("OAK-1931")  // FIXME OAK-1931
     @Test
     public void testReadReturnsNonNegative() {
         TestInputStream in = new TestInputStream(0);

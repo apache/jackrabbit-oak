@@ -54,8 +54,8 @@ public class MicroKernelInputStream extends InputStream {
     @Override
     public int read(byte[] b, int off, int len) {
         int l = mk.read(id, pos, b, off, len);
-        if (l < 0) {
-            return l;
+        if (l <= 0) {
+            return -1;
         }
         pos += l;
         return l;

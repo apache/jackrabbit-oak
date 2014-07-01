@@ -630,7 +630,8 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
         try {
-            return rep.getBlobStore().readBlob(blobId, pos, buff, off, length);
+            int read = rep.getBlobStore().readBlob(blobId, pos, buff, off, length);
+            return read < 0 ? 0 : read;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }

@@ -319,7 +319,8 @@ public class DocumentMK implements MicroKernel {
     public int read(String blobId, long pos, byte[] buff, int off, int length)
             throws MicroKernelException {
         try {
-            return nodeStore.getBlobStore().readBlob(blobId, pos, buff, off, length);
+            int read = nodeStore.getBlobStore().readBlob(blobId, pos, buff, off, length);
+            return read < 0 ? 0 : read;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
