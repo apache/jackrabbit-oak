@@ -318,7 +318,7 @@ public class EventGenerator {
         private boolean fullQueue() {
             if (counter > skip // must have processed at least one event
                     && continuations.size() >= MAX_QUEUED_CONTINUATIONS) {
-                continuations.addFirst(new Continuation(
+                continuations.add(new Continuation(
                         handler, this.before, this.after, counter));
                 return true;
             } else {
