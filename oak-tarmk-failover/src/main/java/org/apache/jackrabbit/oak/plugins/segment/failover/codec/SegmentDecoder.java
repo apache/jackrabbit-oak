@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.failover.codec;
 
+import static org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentEncoder.EXTRA_HEADERS_LEN;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -40,10 +41,16 @@ public class SegmentDecoder extends LengthFieldBasedFrameDecoder {
     private static final Logger log = LoggerFactory
             .getLogger(SegmentDecoder.class);
 
+    /**
+     * the maximum possible size a header message might have
+     */
+    private static final int MAX_LENGHT = Segment.MAX_SEGMENT_SIZE
+            + EXTRA_HEADERS_LEN;
+
     private final SegmentStore store;
 
     public SegmentDecoder(SegmentStore store) {
-        super(Segment.MAX_SEGMENT_SIZE + 21, 0, 4, 0, 0);
+        super(MAX_LENGHT, 0, 4, 0, 0);
         this.store = store;
     }
 
