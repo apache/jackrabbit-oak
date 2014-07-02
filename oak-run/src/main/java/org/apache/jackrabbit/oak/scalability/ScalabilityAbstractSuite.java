@@ -207,7 +207,12 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * 
      * @throws Exception
      */
-    protected void beforeSuite() throws Exception {}
+    protected void beforeSuite() throws Exception {
+        // Start the profiler. Giving a chance to overriding classes to call it at a different stage
+        if (PROFILE) {
+            context.startProfiler();
+        }
+    }
 
     /**
      * Prepares this performance benchmark.
@@ -227,9 +232,6 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
         beforeSuite();
 
-        if (PROFILE) {
-            context.startProfiler();
-        }
     }
 
     /**
@@ -496,9 +498,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         }
 
         public void startProfiler() {
-            if (PROFILE) {
                 profiler = new Profiler().startCollecting();
-            }
         }
 
         public void stopProfiler() {

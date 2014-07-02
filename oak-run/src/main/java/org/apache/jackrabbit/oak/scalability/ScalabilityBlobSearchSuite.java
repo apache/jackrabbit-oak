@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.scalability;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 
@@ -37,6 +36,11 @@ import javax.jcr.ValueFormatException;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
+import javax.jcr.version.OnParentVersionAction;
 import javax.jcr.version.VersionException;
 
 import org.apache.commons.io.output.NullOutputStream;
@@ -52,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -94,6 +99,14 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
      */
     private static final int MAX_ASSETS_PER_LEVEL = Integer.getInteger("maxAssets", 500);
 
+    /**
+     * Controls if the index definitions are to be created.
+     */
+    private static final boolean INDEX = Boolean.getBoolean("index");
+    /**
+     * Controls if a customType is to be created
+     */
+    private static final boolean CUSTOM_TYPE = Boolean.getBoolean("customType");
     public static final String CTX_SEARCH_PATHS_PROP = "searchPaths";
     
     public static final String CTX_ROOT_NODE_NAME_PROP = "rootNodeName";
@@ -104,8 +117,9 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
 
     private static final String CUSTOM_REF_PROP = "references";
 
-    public static final String FORMAT_PROP = "format";
+    private static final String CUSTOM_NODE_TYPE = "Asset";
 
+    private static final String CUSTOM_INDEX_TYPE = "AssetIndex";
     protected static final String ROOT_NODE_NAME =
             "LongevitySearchAssets" + TEST_ID;
 
@@ -114,7 +128,8 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
     private List<String> searchPaths;
 
     private List<String> readPaths;
-
+    private String nodeType;
+    private String indexType;
     private final Boolean storageEnabled;
 
     public ScalabilityBlobSearchSuite(Boolean storageEnabled) {
@@ -136,9 +151,30 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
         
         root.addNode(ROOT_NODE_NAME);
 
+        if (CUSTOM_TYPE) {
+            indexType = (createCustomMixinType(session, CUSTOM_INDEX_TYPE,
+                    new String[] {}));
+            setNodeType(createCustomNodeType(session, CUSTOM_NODE_TYPE,
+                    new String[] {CUSTOM_PATH_PROP, CUSTOM_REF_PROP}, 
+                    new String[] {indexType}));
+        } else {
+            String type = NodeTypeConstants.NT_UNSTRUCTURED;
+            if (session.getWorkspace().getNodeTypeManager().hasNodeType(
+                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+            }
+            setNodeType(type);
+        }
         // defining indexes
-        createIndexDefinition(root, FORMAT_PROP, PropertyIndexEditorProvider.TYPE,
-            new String[] { FORMAT_PROP }, false);
+        if (INDEX) {
+            createIndexDefinition(root, NodeTypeConstants.JCR_MIMETYPE,
+                    PropertyIndexEditorProvider.TYPE,
+                    new String[] {NodeTypeConstants.JCR_MIMETYPE}, false,
+                    new String[] {indexType});
+            createIndexDefinition(root, NodeTypeConstants.JCR_LASTMODIFIED, OrderedIndex.TYPE,
+                    new String[] {NodeTypeConstants.JCR_LASTMODIFIED}, false,
+                    new String[] {indexType});
+        }
 
         session.save();
     }
@@ -156,7 +192,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
      */
     private static Node createIndexDefinition(final Node root, final String indexDefinitionName,
             final String indexType, final String[] propertyNames,
-            final boolean unique) throws RepositoryException {
+            final boolean unique, String[] enclosingNodeTypes) throws RepositoryException {
         Node indexDefRoot = JcrUtils.getOrAddNode(root, IndexConstants.INDEX_DEFINITIONS_NAME,
             NodeTypeConstants.NT_UNSTRUCTURED);
         Node indexDef = JcrUtils.getOrAddNode(indexDefRoot, indexDefinitionName,
@@ -166,11 +202,51 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
         indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
             PropertyType.NAME);
         indexDef.setProperty(IndexConstants.UNIQUE_PROPERTY_NAME, unique);
-        // TODO declaring nodeTypes
+        indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
+                PropertyType.NAME);
         // TODO any additional properties
         return indexDef;
     }
     
+    @SuppressWarnings("unchecked")
+    private static String createCustomNodeType(Session session, String name,
+            String[] properties, String[] mixinType)
+            throws RepositoryException {
+        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
+        NodeTypeDefinition ntd = ntm.getNodeType(NodeTypeConstants.NT_FILE);
+        NodeTypeTemplate ntt = ntm.createNodeTypeTemplate(ntd);
+        ntt.setDeclaredSuperTypeNames(mixinType);
+        ntt.setOrderableChildNodes(false);
+        ntt.setName(name);
+        for (String property : properties) {
+            ntt.getPropertyDefinitionTemplates().add(
+                    createCustomPropertyDefTemplate(ntm, property));
+        }
+        ntm.registerNodeType(ntt, true);
+        return ntt.getName();
+    }
+    @SuppressWarnings("unchecked")
+    private static String createCustomMixinType(Session session, String name,
+            String[] properties)
+            throws RepositoryException {
+        NodeTypeManager ntm = session.getWorkspace().getNodeTypeManager();
+        NodeTypeTemplate ntt = ntm.createNodeTypeTemplate();
+        ntt.setName(name);
+        ntt.setMixin(true);
+        ntm.registerNodeType(ntt, true);
+        return ntt.getName();
+    }
+    private static PropertyDefinitionTemplate createCustomPropertyDefTemplate(NodeTypeManager ntm,
+            String prop) throws RepositoryException {
+        PropertyDefinitionTemplate pdt = ntm.createPropertyDefinitionTemplate();
+        pdt.setName(prop);
+        pdt.setOnParentVersion(OnParentVersionAction.IGNORE);
+        pdt.setRequiredType(PropertyType.STRING);
+        pdt.setValueConstraints(null);
+        pdt.setDefaultValues(null);
+        pdt.setFullTextSearchable(true);
+        return pdt;
+    }
     /**
      * Executes before each test run
      */
@@ -233,7 +309,11 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
     }
 
     @Override
-    protected void executeBenchmark(final ScalabilityBenchmark benchmark, final ExecutionContext context) throws Exception {
+    protected void executeBenchmark(final ScalabilityBenchmark benchmark,
+            final ExecutionContext context) throws Exception {
+        if (PROFILE) {
+            context.startProfiler();
+        }
         //Execute the benchmark with the number threads configured 
         List<Thread> threads = newArrayListWithCapacity(SEARCHERS);
         for (int idx = 0; idx < SEARCHERS;idx++) {
@@ -258,6 +338,7 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
                 e.printStackTrace();
             }
         }
+        context.stopProfiler();
     }
 
     @Override
@@ -303,6 +384,12 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
         }
     }
     
+    public String getNodeType() {
+        return nodeType;
+    }
+    protected void setNodeType(String nodeType) {
+        this.nodeType = nodeType;
+    }
     private class Reader implements Runnable {
 
         private final Session session = loginWriter();
@@ -376,21 +463,28 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
             }
         }
 
+        /**
+         * Puts the file at the given path with the given prefix.
+         * 
+         * @param fileNamePrefix
+         * @param parentDir
+         * @return
+         * @throws RepositoryException
+         * @throws UnsupportedRepositoryOperationException
+         * @throws ValueFormatException
+         * @throws VersionException
+         * @throws LockException
+         * @throws ConstraintViolationException
+         */
         private Node putFile(String fileNamePrefix, String parentDir) throws RepositoryException,
                 UnsupportedRepositoryOperationException, ValueFormatException, VersionException,
                 LockException, ConstraintViolationException {
-            String type = getType();
 
-            Node filepath = JcrUtils.getOrAddNode(parent, parentDir, type);
+            Node filepath = JcrUtils.getOrAddNode(parent, parentDir, getParentType());
             Node file =
                     JcrUtils.getOrAddNode(filepath,
                             (fileNamePrefix + "File" + counter++),
-                            type);
-            
-            // adding a custom format/mime-type for later querying.
-            file.setProperty(FORMAT_PROP, MimeType.randomMimeType().getValue());
-            // adding a last modified for later querying
-            file.setProperty(Property.JCR_LAST_MODIFIED, Date.randomDate().getCalendar());
+                            getType());
             
             Binary binary =
                     parent.getSession().getValueFactory().createBinary(
@@ -398,11 +492,12 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
             try {
                 Node content =
                         JcrUtils.getOrAddNode(file, Node.JCR_CONTENT, NodeType.NT_RESOURCE);
-
-                content.setProperty(Property.JCR_MIMETYPE, "application/octet-stream");
-                content.setProperty(Property.JCR_LAST_MODIFIED, Calendar.getInstance());
+                content.addMixin(CUSTOM_INDEX_TYPE);
+                content.setProperty(Property.JCR_MIMETYPE, MimeType.randomMimeType().getValue());
+                content.setProperty(Property.JCR_LAST_MODIFIED, Date.randomDate().getCalendar());
                 content.setProperty(Property.JCR_DATA, binary);
 
+                file.addMixin(CUSTOM_INDEX_TYPE);
                 file.setProperty(CUSTOM_PATH_PROP, file.getPath());
                 String reference = getRandomReadPath();
                 if (!Strings.isNullOrEmpty(reference)) {
@@ -414,10 +509,33 @@ public class ScalabilityBlobSearchSuite extends ScalabilityAbstractSuite {
             return file;
         }
 
-        private String getType() throws RepositoryException {
+        /**
+         * Gets the node type of the parent.
+         * 
+         * @return the parent type
+         * @throws RepositoryException the repository exception
+         */
+        protected String getParentType() throws RepositoryException {
+            String type = NodeTypeConstants.NT_UNSTRUCTURED;
+            if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
+                    NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
+                type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+            }
+            return type;
+        }
+
+        /**
+         * Order of precedence is customNodeType, oak:Unstructured, nt:unstructured
+         * 
+         * @return
+         * @throws RepositoryException
+         */
+        protected String getType() throws RepositoryException {
             String type = NodeTypeConstants.NT_UNSTRUCTURED;
             if (!context.getMap().containsKey(CTX_FILE_NODE_TYPE_PROP)) {
-                if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
+                if (getNodeType() != null) {
+                    type = getNodeType();
+                } else if (parent.getSession().getWorkspace().getNodeTypeManager().hasNodeType(
                         NodeTypeConstants.NT_OAK_UNSTRUCTURED)) {
                     type = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
                 }
