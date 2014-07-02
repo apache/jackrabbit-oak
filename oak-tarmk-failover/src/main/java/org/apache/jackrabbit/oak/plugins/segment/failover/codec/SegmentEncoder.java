@@ -33,6 +33,24 @@ import com.google.common.hash.Hashing;
 
 public class SegmentEncoder extends MessageToByteEncoder<Segment> {
 
+    /**
+     * A segment message is composed of:
+     * 
+     * <pre>
+     *  - (4 bytes) the message length
+     *  - (1 byte ) a message type (not currently used)
+     *  - (8 bytes) segment id most significant bits
+     *  - (8 bytes) segment id least significant bits
+     *  - (8 bytes) checksum hash
+     * </pre>
+     */
+    static int EXTRA_HEADERS_LEN = 29;
+
+    /**
+     * the header size not including the length
+     */
+    private int EXTRA_HEADERS_WO_SIZE = EXTRA_HEADERS_LEN - 4;
+
     @Override
     protected void encode(ChannelHandlerContext ctx, Segment s, ByteBuf out)
             throws Exception {
@@ -44,7 +62,7 @@ public class SegmentEncoder extends MessageToByteEncoder<Segment> {
         Hasher hasher = Hashing.murmur3_32().newHasher();
         long hash = hasher.putBytes(segment).hash().padToLong();
 
-        int len = segment.length + 25;
+        int len = segment.length + EXTRA_HEADERS_WO_SIZE;
         out.writeInt(len);
         out.writeByte(Messages.HEADER_SEGMENT);
         out.writeLong(id.getMostSignificantBits());
