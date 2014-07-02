@@ -23,6 +23,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
 import org.apache.jackrabbit.oak.benchmark.util.MimeType;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.ScalabilityAbstractSuite.ExecutionContext;
 
 /**
@@ -33,15 +34,15 @@ public class FormatSearcher extends SearchScalabilityBenchmark {
     @SuppressWarnings("deprecation")
     @Override
     protected Query getQuery(QueryManager qm, ExecutionContext context) throws RepositoryException {
-        StringBuilder statement = new StringBuilder("/jcr:content/");
+        StringBuilder statement = new StringBuilder("/jcr:root/");
         
-        statement.append(((String) context.getMap().get("ROOT_NODE_NAME"))).append("//element(*, ")
+        statement.append(((String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP))).append("//element(*, ")
             .append(context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP)).append(")");
         statement.append("[((");
         
         // adding all the possible mime-types in an OR fashion
         for (MimeType mt : MimeType.values()) {
-            statement.append("@").append(ScalabilityBlobSearchSuite.FORMAT_PROP).append(" = '")
+            statement.append("jcr:content/@").append(NodeTypeConstants.JCR_MIMETYPE).append(" = '")
                 .append(mt.getValue()).append("' or ");
         }
 

@@ -42,7 +42,7 @@ public class LastModifiedSearcher extends SearchScalabilityBenchmark {
         final String path = (String) context.getMap().get(ScalabilityBlobSearchSuite.CTX_ROOT_NODE_NAME_PROP);
         final String statement = "/jcr:root/" + path + "//element(*, "
                                  + context.getMap().get(ScalabilityBlobSearchSuite.CTX_FILE_NODE_TYPE_PROP)
-                                 + ")[(@jcr:lastModified >= xs:dateTime('"
+                                 + ")[(jcr:content/@jcr:lastModified >= xs:dateTime('"
                                  + timeframe.toISO_8601_2000() + "'))]";
         
         LOG.debug("LastModifiedSearcher: {}", statement);

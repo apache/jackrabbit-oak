@@ -24,6 +24,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.TimeZone;
 
 /**
  * Enumerates some Calendar with math applied for easying tests
@@ -88,7 +89,7 @@ public enum Date {
 
     private static final List<Date> VALUES = Collections.unmodifiableList(Arrays.asList(values()));
     private static final int SIZE = VALUES.size();
-    private static final Random RND = new Random();
+    private static final Random RND = new Random(30);
     
     /**
      * return a random Date
@@ -100,8 +101,10 @@ public enum Date {
     }
     
     public String toISO_8601_2000() {
-        return new SimpleDateFormat(
-                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(getCalendar().getTime());
+        SimpleDateFormat format = new SimpleDateFormat(
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return format.format(getCalendar().getTime());
     }
 }
 
