@@ -1378,7 +1378,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
 
         assertNull("The item should have not been found", store.seek(
-            index.getNodeState(),
+            index,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(nonExisting)));
     }
 
@@ -1399,11 +1399,11 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n1;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor));
 
         assertNotNull("we should have found an item", item);
-        assertEquals(searchFor, item.getName());
+        assertEquals(searchFor, item);
     }
 
     @Test
@@ -1423,7 +1423,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n1;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor));
 
         assertNull("no item should have been found", item);
@@ -1448,11 +1448,11 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         String searchFor = n2;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor));
 
         assertNotNull("we should have found an item", item);
-        assertEquals(n1, item.getName());
+        assertEquals(n1, item);
     }
 
     @Test
@@ -1470,7 +1470,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = KEYS[3];
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor, true));
 
         assertNull("we should have not found an item", item);
@@ -1491,11 +1491,11 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n2;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateGreaterThan(searchFor, true));
 
         assertNotNull("we should have found an item", item);
-        assertEquals(n2, item.getName());
+        assertEquals(n2, item);
     }
 
     @Test
@@ -1514,10 +1514,10 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n3;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor));
 
-        assertNull("we should have not found an item", item);
+        assertNull("we should have not found an item. '" + item + "'", item);
     }
 
     @Test
@@ -1536,11 +1536,11 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n2;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor));
 
         assertNotNull("we should have found an item", item);
-        assertEquals(n0, item.getName());
+        assertEquals(n0, item);
     }
 
     @Test
@@ -1559,7 +1559,7 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = KEYS[0];
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor, true));
 
         assertNull("we should have not found an item", item);
@@ -1581,11 +1581,11 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         String searchFor = n2;
 
-        ChildNodeEntry item = store.seek(index.getNodeState(),
+        String item = store.seek(index,
             new OrderedContentMirrorStoreStrategy.PredicateLessThan(searchFor, true));
 
         assertNotNull("we should have found an item", item);
-        assertEquals(n2, item.getName());
+        assertEquals(n2, item);
     }
     
     private static String getNext(@Nonnull NodeBuilder node) {
@@ -3131,15 +3131,13 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         // testing the exception in case of wrong parameters
         String searchFor = "wedontcareaswetesttheexception";
-        NodeState node = index.getChildNode(searchFor);
-        ChildNodeEntry entry = new OrderedChildNodeEntry(
-            searchFor, node);
-        ChildNodeEntry[] wl = new ChildNodeEntry[0];
-        ChildNodeEntry item = null;
-        ChildNodeEntry lane0, lane1, lane2, lane3;
+        String entry = searchFor;
+        String[] wl = new String[0];
+        String item = null;
+        String lane0, lane1, lane2, lane3;
         
         try {
-            item = store.seek(index,
+            item = store.seek(builder,
                 new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
             fail("With a wrong size for the lane it should have raised an exception");
         } catch (IllegalArgumentException e) {
@@ -3148,14 +3146,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         // testing equality
         searchFor = n12;
-        lane3 = new OrderedChildNodeEntry(n10, index.getChildNode(n10));
-        lane2 = new OrderedChildNodeEntry(n10, index.getChildNode(n10));
-        lane1 = new OrderedChildNodeEntry(n10, index.getChildNode(n10));
-        lane0 = new OrderedChildNodeEntry(n11, index.getChildNode(n11));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = n10;
+        lane2 = n10;
+        lane1 = n10;
+        lane0 = n11;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3166,14 +3163,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("Wrong item returned", entry, item);
 
         searchFor = n08;
-        lane3 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane2 = new OrderedChildNodeEntry(n07, index.getChildNode(n07));
-        lane1 = new OrderedChildNodeEntry(n07, index.getChildNode(n07));
-        lane0 = new OrderedChildNodeEntry(n07, index.getChildNode(n07));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = START;
+        lane2 = n07;
+        lane1 = n07;
+        lane0 = n07;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3184,14 +3180,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("Wrong item returned", entry, item);
 
         searchFor = n06;
-        lane3 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane2 = new OrderedChildNodeEntry(n03, index.getChildNode(n03));
-        lane1 = new OrderedChildNodeEntry(n05, index.getChildNode(n05));
-        lane0 = new OrderedChildNodeEntry(n05, index.getChildNode(n05));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = START;
+        lane2 = n03;
+        lane1 = n05;
+        lane0 = n05;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3259,14 +3254,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         // testing the exception in case of wrong parameters
         String searchFor = "wedontcareaswetesttheexception";
         NodeState node = index.getChildNode(searchFor);
-        ChildNodeEntry entry = new OrderedChildNodeEntry(
-            searchFor, node);
-        ChildNodeEntry[] wl = new ChildNodeEntry[0];
-        ChildNodeEntry item = null;
-        ChildNodeEntry lane0, lane1, lane2, lane3;
+        String entry = searchFor;
+        String[] wl = new String[0];
+        String item = null;
+        String lane0, lane1, lane2, lane3;
         
         try {
-            item = store.seek(index,
+            item = store.seek(builder,
                 new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
             fail("With a wrong size for the lane it should have raised an exception");
         } catch (IllegalArgumentException e) {
@@ -3275,14 +3269,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         // testing equality
         searchFor = n12;
-        lane3 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane2 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane1 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane0 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = START;
+        lane2 = START;
+        lane1 = START;
+        lane0 = START;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3293,14 +3286,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("Wrong item returned", entry, item);
 
         searchFor = n08;
-        lane3 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane2 = new OrderedChildNodeEntry(n09, index.getChildNode(n09));
-        lane1 = new OrderedChildNodeEntry(n09, index.getChildNode(n09));
-        lane0 = new OrderedChildNodeEntry(n09, index.getChildNode(n09));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = START;
+        lane2 = n09;
+        lane1 = n09;
+        lane0 = n09;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3311,14 +3303,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("Wrong item returned", entry, item);
 
         searchFor = n06;
-        lane3 = new OrderedChildNodeEntry(START, index.getChildNode(START));
-        lane2 = new OrderedChildNodeEntry(n09, index.getChildNode(n09));
-        lane1 = new OrderedChildNodeEntry(n07, index.getChildNode(n07));
-        lane0 = new OrderedChildNodeEntry(n07, index.getChildNode(n07));
-        entry = new OrderedChildNodeEntry(searchFor,
-            index.getChildNode(searchFor));
-        wl = new ChildNodeEntry[OrderedIndex.LANES];
-        item = store.seek(index,
+        lane3 = START;
+        lane2 = n09;
+        lane1 = n07;
+        lane0 = n07;
+        entry = searchFor;
+        wl = new String[OrderedIndex.LANES];
+        item = store.seek(builder,
             new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
@@ -3381,18 +3372,18 @@ public class OrderedContentMirrorStorageStrategyTest {
     
     @Test
     public void predicateLessThan() { 
-        Predicate<ChildNodeEntry> predicate;
+        Predicate<String> predicate;
         String searchfor;
-        ChildNodeEntry entry;
+        String entry;
         
         searchfor = "b";
         predicate = new PredicateLessThan(searchfor, true);
-        entry = new OrderedChildNodeEntry("a", EmptyNodeState.EMPTY_NODE);
+        entry = "a";
         assertTrue(predicate.apply(entry));
 
         searchfor = "a";
         predicate = new PredicateLessThan(searchfor, true);
-        entry = new OrderedChildNodeEntry("b", EmptyNodeState.EMPTY_NODE);
+        entry = "b";
         assertFalse(predicate.apply(entry));
 
         searchfor = "a";
