@@ -76,7 +76,7 @@ public class FailoverServer implements Closeable {
 
     public void start() {
         try {
-            b.bind("127.0.0.1", port).sync().channel().closeFuture().sync();
+            b.bind(port).sync().channel().closeFuture().sync();
         } catch (InterruptedException e) {
             close();
         }
