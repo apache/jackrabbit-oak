@@ -490,23 +490,24 @@
       </dependencies>
     </profile>
     <profile>
-      <!-- requires local copy of DB2 JDBC drivers -->
-      <!-- run with -Ddb2.jdbc=foldername where foldername contains the 2 JARs-->
+      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.16.53
+        mvn install:install-file -Dfile=db2jcc_license_cu.jar -Dpackaging=jar\
+          -DgroupId=com.ibm.db2 -DartifactId=db2-license -Dversion=4.16.53
+       -->
       <id>rdb-db2</id>
       <dependencies>
         <dependency>
-          <groupId>com.ibm.db2.jcc</groupId>
+          <groupId>com.ibm.db2</groupId>
           <artifactId>db2</artifactId>
-          <version>1.0</version>
-          <scope>system</scope>
-          <systemPath>${db2.jdbc}/db2jcc4.jar</systemPath>
+          <version>4.16.53</version>
         </dependency>
         <dependency>
-          <groupId>com.ibm.db2.jcc</groupId>
+          <groupId>com.ibm.db2</groupId>
           <artifactId>db2-license</artifactId>
-          <version>1.0</version>
-          <scope>system</scope>
-          <systemPath>${db2.jdbc}/db2jcc_license_cu.jar</systemPath>
+          <version>4.16.53</version>
         </dependency>
       </dependencies>
     </profile>
