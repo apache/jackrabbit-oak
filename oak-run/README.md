@@ -19,14 +19,16 @@ Backup
 
 The 'backup' mode creates a backup from an existing oak repository. To start this mode, use:
 
-    $ java -jar oak-run-*.jar backup /path/to/repository /path/to/backup
+    $ java -jar oak-run-*.jar backup \
+          { /path/to/oak/repository | mongodb://host:port/database } /path/to/backup
 
 Restore
 -------
 
 The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
 
-    $ java -jar oak-run-*.jar restore /path/to/repository /path/to/backup
+    $ java -jar oak-run-*.jar restore \
+          { /path/to/oak/repository | mongodb://host:port/database } /path/to/backup
 
 Debug
 -----

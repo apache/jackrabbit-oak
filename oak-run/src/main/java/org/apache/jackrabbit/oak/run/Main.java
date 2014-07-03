@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,8 +37,10 @@ import javax.jcr.Repository;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -46,7 +49,6 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -61,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -175,32 +178,106 @@ public class Main {
     }
 
     private static void backup(String[] args) throws IOException {
-        if (args.length == 2) {
-            // TODO: enable backup for other node store implementations
-            FileStore store = new FileStore(new File(args[0]), 256, false);
-            FileStoreBackup.backup(new SegmentNodeStore(store), new File(args[1]));
-            store.close();
-        } else {
-            System.err.println("usage: backup <repository> <backup>");
-            System.exit(1);
+        Closer closer = Closer.create();
+        String h = "backup { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            FileStoreBackup.backup(store, new File(args[1]));
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
         }
     }
 
     private static void restore(String[] args) throws IOException {
-        if (args.length == 2) {
-            // TODO: enable restore for other node store implementations
-            FileStore store = new FileStore(new File(args[0]), 256, false);
-            File target = new File(args[1]);
-            try {
-                FileStoreRestore.restore(target, new SegmentNodeStore(store));
-            } catch (CommitFailedException e) {
-                throw new IOException(e);
-            }
-            store.close();
-        } else {
-            System.err.println("usage: restore <repository> <backup>");
+        Closer closer = Closer.create();
+        String h = "restore { /path/to/oak/repository | mongodb://host:port/database } <path/to/backup>";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            FileStoreRestore.restore(new File(args[1]), store);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    }
+
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer,
+            String h) throws IOException {
+        //TODO add support for other NodeStore flags
+        OptionParser parser = new OptionParser();
+        OptionSpec<Integer> clusterId = parser
+                .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
+                .ofType(Integer.class).defaultsTo(1);
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
+                "show help").forHelp();
+        OptionSpec<String> nonOption = parser
+                .nonOptions(h);
+
+        OptionSet options = parser.parse(args);
+        List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        if (nonOptions.isEmpty()) {
+            parser.printHelpOn(System.err);
             System.exit(1);
         }
+
+        String src = nonOptions.get(0);
+        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
+            MongoClientURI uri = new MongoClientURI(src);
+            if (uri.getDatabase() == null) {
+                System.err.println("Database missing in MongoDB URI: "
+                        + uri.getURI());
+                System.exit(1);
+            }
+            MongoConnection mongo = new MongoConnection(uri.getURI());
+            closer.register(asCloseable(mongo));
+            DocumentNodeStore store = new DocumentMK.Builder()
+                    .setMongoDB(mongo.getDB())
+                    .setClusterId(clusterId.value(options)).getNodeStore();
+            closer.register(asCloseable(store));
+            return store;
+        } else {
+            FileStore fs = new FileStore(new File(src), 256, false);
+            closer.register(asCloseable(fs));
+            return new SegmentNodeStore(fs);
+        }
+    }
+
+    private static Closeable asCloseable(final FileStore fs) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                fs.close();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final DocumentNodeStore dns) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                dns.dispose();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final MongoConnection con) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                con.close();
+            }
+        };
     }
 
     private static void compact(String[] args) throws IOException {
