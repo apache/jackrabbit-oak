@@ -707,7 +707,12 @@
   mixin
   - rep:impersonators (STRING) protected multiple
 
+[rep:Password]
+  - * (UNDEFINED) protected
+  - * (UNDEFINED) protected multiple
+
 [rep:User] > rep:Authorizable, rep:Impersonatable
+  + rep:pwd (rep:Password) = rep:Password protected
   - rep:password (STRING) protected
   - rep:disabled (STRING) protected
 

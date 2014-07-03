@@ -30,6 +30,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.slf4j.Logger;
@@ -142,6 +143,19 @@ public final class ConfigurationParameters implements Map<String, Object> {
             options.put(String.valueOf(e.getKey()), e.getValue());
         }
         return new ConfigurationParameters(options);
+    }
+
+    /**
+     * Creates new a single valued configuration parameters instance from the
+     * given key and value.
+     *
+     * @param key The key
+     * @param value The value
+     * @return a new instance of configuration parameters.
+     */
+    @Nonnull
+    public static ConfigurationParameters of(@Nonnull String key, @Nonnull Object value) {
+        return new ConfigurationParameters(ImmutableMap.of(key, value));
     }
 
     /**

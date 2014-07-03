@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.user;
+package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -51,18 +51,12 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
         userId = getTestUser().getID();
-        authentication = new UserAuthentication(userId, getUserManager(root));
-    }
-
-    @Test
-    public void testAuthenticateWithoutUserManager() throws Exception {
-        UserAuthentication authentication = new UserAuthentication(userId, null);
-        assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
+        authentication = new UserAuthentication(getUserConfiguration(), root, userId);
     }
 
     @Test
     public void testAuthenticateWithoutUserId() throws Exception {
-        UserAuthentication authentication = new UserAuthentication(null, getUserManager(root));
+        authentication = new UserAuthentication(getUserConfiguration(), root, null);
         assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
@@ -80,7 +74,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateCannotResolveUser() throws Exception {
         SimpleCredentials sc = new SimpleCredentials("unknownUser", "pw".toCharArray());
-        Authentication a = new UserAuthentication(sc.getUserID(), getUserManager(root));
+        Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
 
         assertFalse(a.authenticate(sc));
     }
@@ -89,7 +83,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     public void testAuthenticateResolvesToGroup() throws Exception {
         Group g = getUserManager(root).createGroup("g1");
         SimpleCredentials sc = new SimpleCredentials(g.getID(), "pw".toCharArray());
-        Authentication a = new UserAuthentication(sc.getUserID(), getUserManager(root));
+        Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
 
         try {
             a.authenticate(sc);

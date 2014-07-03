@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -100,14 +102,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
         Tree userTree = root.getTree(user.getPath());
         for (String pw : pwds) {
-            userMgr.setPassword(userTree, pw, true);
+            userMgr.setPassword(userTree, testUserId, pw, true);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
             assertTrue(PasswordUtil.isSame(pwHash, pw));
         }
 
         for (String pw : pwds) {
-            userMgr.setPassword(userTree, pw, false);
+            userMgr.setPassword(userTree, testUserId, pw, false);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
             assertNotNull(pwHash);
             if (!pw.startsWith("{")) {
@@ -126,14 +128,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
         Tree userTree = root.getTree(user.getPath());
         try {
-            userMgr.setPassword(userTree, null, true);
+            userMgr.setPassword(userTree, testUserId, null, true);
             fail("setting null password should fail");
         } catch (NullPointerException e) {
             // expected
         }
 
         try {
-            userMgr.setPassword(userTree, null, false);
+            userMgr.setPassword(userTree, testUserId, null, false);
             fail("setting null password should fail");
         } catch (NullPointerException e) {
             // expected
@@ -281,6 +283,30 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         }
         if (!exceptions.isEmpty()) {
             throw exceptions.get(0);
+        }
+    }
+
+    /**
+     * Test related to OAK-1922: Asserting that the default behavior is such that
+     * no rep:pwd node is created upon user-creation.
+     *
+     * @since Oak 1.1
+     */
+    @Test
+    public void testNewUserHasNoPwdNode() throws Exception {
+        String newUserId = "newuser" + UUID.randomUUID();
+        User user = null;
+        try {
+            user = getUserManager(root).createUser(newUserId, newUserId);
+            root.commit();
+
+            Assert.assertFalse(root.getTree(user.getPath()).hasChild(UserConstants.REP_PWD));
+            Assert.assertFalse(user.hasProperty(UserConstants.REP_PWD + "/" + UserConstants.REP_PASSWORD_LAST_MODIFIED));
+        } finally {
+            if (user != null) {
+                user.remove();
+                root.commit();
+            }
         }
     }
 }

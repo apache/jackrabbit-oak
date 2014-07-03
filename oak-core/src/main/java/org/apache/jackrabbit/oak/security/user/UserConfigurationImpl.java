@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
@@ -90,9 +91,19 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = UserConstants.PARAM_SUPPORT_AUTOSAVE,
                 label = "Autosave Support",
                 description = "Configuration option to enable autosave behavior. Note: this config option is present for backwards compatibility with Jackrabbit 2.x and should only be used for broken code that doesn't properly verify the autosave behavior (see Jackrabbit API). If this option is turned on autosave will be enabled by default; otherwise autosave is not supported.",
-                boolValue = false)
+                boolValue = false),
+        @Property(name = UserConstants.PARAM_PASSWORD_MAX_AGE,
+                label = "Maximum Password Age",
+                description = "Maximum age in days a password may have. Values greater 0 will implicitly enable password expiry. A value of 0 indicates unlimited password age.",
+                intValue = UserConstants.DEFAULT_PASSWORD_MAX_AGE),
+        @Property(name = UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
+                label = "Change Password On First Login",
+                description = "When enabled, forces users to change their password upon first login. Note that a maximum password age must be set to a value > 0 in order to make this option functional.",
+                boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
+
+    private final UserAuthenticationFactory defaultAuthFactory = new UserAuthenticationFactoryImpl();
 
     public UserConfigurationImpl() {
         super();
@@ -112,6 +123,19 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Nonnull
+    @Override
+    public ConfigurationParameters getParameters() {
+        ConfigurationParameters params = super.getParameters();
+        if (!params.containsKey(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY)) {
+            return ConfigurationParameters.of(
+                    params,
+                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, defaultAuthFactory));
+        } else {
+            return params;
+        }
     }
 
     @Nonnull
