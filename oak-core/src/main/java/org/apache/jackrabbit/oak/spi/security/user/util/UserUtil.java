@@ -40,6 +40,11 @@ public final class UserUtil implements UserConstants {
     }
 
     @Nonnull
+    public static boolean isAdmin(@Nonnull ConfigurationParameters parameters, @Nonnull String userId) {
+        return getAdminId(parameters).equals(userId);
+    }
+
+    @Nonnull
     public static String getAdminId(@Nonnull ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
     }

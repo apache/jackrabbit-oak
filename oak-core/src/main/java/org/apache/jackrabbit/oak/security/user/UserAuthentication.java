@@ -14,23 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.user;
+package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
+import javax.security.auth.login.CredentialExpiredException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.security.user.CredentialsImpl;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
+import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthenticatedLogin;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,29 +69,30 @@ import org.slf4j.LoggerFactory;
  * will return {@code false} indicating that this implementation is not able
  * to verify their validity.
  */
-class UserAuthentication implements Authentication {
-
-    static final Credentials PRE_AUTHENTICATED = new Credentials() { };
+class UserAuthentication implements Authentication, UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
+    private final UserConfiguration config;
+    private final Root root;
     private final String userId;
-    private final UserManager userManager;
 
-    UserAuthentication(String userId, UserManager userManager) {
+    UserAuthentication(@Nonnull UserConfiguration config, @Nonnull Root root, @Nullable String userId) {
+        this.config = config;
+        this.root = root;
         this.userId = userId;
-        this.userManager = userManager;
     }
 
     //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(Credentials credentials) throws LoginException {
-        if (userId == null || userManager == null || credentials == null) {
+        if (credentials == null || userId == null) {
             return false;
         }
 
         boolean success = false;
         try {
+            UserManager userManager = config.getUserManager(root, NamePathMapper.DEFAULT);
             Authorizable authorizable = userManager.getAuthorizable(userId);
             if (authorizable == null) {
                 return false;
@@ -100,6 +114,10 @@ class UserAuthentication implements Authentication {
                     success = PasswordUtil.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
+
+                if (isPasswordExpired(user)) {
+                    throw new CredentialExpiredException("User password has expired");
+                }
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
                 AuthInfo info = ipCreds.getImpersonatorInfo();
@@ -107,7 +125,7 @@ class UserAuthentication implements Authentication {
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
-                success = (credentials instanceof GuestCredentials) || credentials == PRE_AUTHENTICATED;
+                success = (credentials instanceof GuestCredentials) || credentials == PreAuthenticatedLogin.PRE_AUTHENTICATED;
             }
         } catch (RepositoryException e) {
             throw new LoginException(e.getMessage());
@@ -141,5 +159,47 @@ class UserAuthentication implements Authentication {
             log.debug("Error while validating impersonation", e.getMessage());
         }
         return false;
+    }
+
+    @CheckForNull
+    private Long getPasswordLastModified(User user) throws RepositoryException {
+        Tree userTree;
+        if (user instanceof UserImpl) {
+            userTree = ((UserImpl) user).getTree();
+        } else {
+            userTree = root.getTree(user.getPath());
+        }
+        PropertyState property = userTree.getChild(REP_PWD).getProperty(REP_PASSWORD_LAST_MODIFIED);
+        return (property != null) ? property.getValue(Type.LONG) : null;
+    }
+
+    private boolean isPasswordExpired(@Nonnull User user) throws RepositoryException {
+        // the password of the "admin" user never expires
+        if (user.isAdmin()) {
+            return false;
+        }
+
+        boolean expired = false;
+        ConfigurationParameters params = config.getParameters();
+        int maxAge = params.getConfigValue(PARAM_PASSWORD_MAX_AGE, DEFAULT_PASSWORD_MAX_AGE);
+        boolean forceInitialPwChange = params.getConfigValue(PARAM_PASSWORD_INITIAL_CHANGE, DEFAULT_PASSWORD_INITIAL_CHANGE);
+        if (maxAge > 0) {
+            // password expiry is enabled
+            Long passwordLastModified = getPasswordLastModified(user);
+            if (passwordLastModified == null) {
+                // no pw last modified property exists (yet) => expire!
+                expired = true;
+            } else {
+                // calculate expiry time (pw last mod + pw max age) and compare
+                long expiryTime = passwordLastModified + TimeUnit.MILLISECONDS.convert(maxAge, TimeUnit.DAYS);
+                // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
+                expired = expiryTime < System.currentTimeMillis();
+            }
+        } else if (forceInitialPwChange) {
+            Long passwordLastModified = getPasswordLastModified(user);
+            // no pw last modified property exists (yet) => expire!
+            expired = (null == passwordLastModified);
+        }
+        return expired;
     }
 }

@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
@@ -51,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProv
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,7 +156,7 @@ public class UserManagerImpl implements UserManager {
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
         if (password != null) {
-            setPassword(userTree, password, true);
+            setPassword(userTree, userID, password, true);
         }
 
         User user = new UserImpl(userID, userTree, this);
@@ -358,7 +360,7 @@ public class UserManagerImpl implements UserManager {
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
-    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
+    void setPassword(Tree userTree, String userId, String password, boolean forceHash) throws RepositoryException {
         String pwHash;
         if (forceHash || PasswordUtil.isPlainTextPassword(password)) {
             try {
@@ -372,6 +374,33 @@ public class UserManagerImpl implements UserManager {
             pwHash = password;
         }
         userTree.setProperty(UserConstants.REP_PASSWORD, pwHash);
+
+        // set last-modified property if pw-expiry is enabled and the user is not
+        // admin. if initial-pw-change is enabled, we don't set the last modified
+        // for new users, in order to force a pw change upon the next login
+        boolean expiryEnabled = passwordExpiryEnabled();
+        boolean forceInitialPwChange = forceInitialPasswordChangeEnabled();
+        boolean isNewUser = userTree.getStatus() == Tree.Status.NEW;
+
+        if (!UserUtil.isAdmin(config, userId)
+                // only expiry is enabled, set in all cases
+                && ((expiryEnabled && !forceInitialPwChange)
+                // as soon as force initial pw is enabled, we set in all cases except new users,
+                // irrespective of password expiry being enabled or not
+                || (forceInitialPwChange && !isNewUser))) {
+
+            Tree pwdTree = new NodeUtil(userTree).getOrAddChild(UserConstants.REP_PWD, UserConstants.NT_REP_PASSWORD).getTree();
+            // System.currentTimeMillis() may be inaccurate on windows. This is accepted for this feature.
+            pwdTree.setProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED, System.currentTimeMillis(), Type.LONG);
+        }
+    }
+
+    private boolean passwordExpiryEnabled() {
+        return config.getConfigValue(UserConstants.PARAM_PASSWORD_MAX_AGE, UserConstants.DEFAULT_PASSWORD_MAX_AGE) > 0;
+    }
+
+    private boolean forceInitialPasswordChangeEnabled() {
+        return config.getConfigValue(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE);
     }
 
     private UserQueryManager getQueryManager() {

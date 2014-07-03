@@ -44,7 +44,7 @@ class UserImpl extends AuthorizableImpl implements User {
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
 
-        isAdmin = UserUtil.getAdminId(userManager.getConfig()).equals(id);
+        isAdmin = UserUtil.isAdmin(userManager.getConfig(), id);
     }
 
     //---------------------------------------------------< AuthorizableImpl >---
@@ -96,7 +96,7 @@ class UserImpl extends AuthorizableImpl implements User {
         }
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
-        userManager.setPassword(getTree(), password, true);
+        userManager.setPassword(getTree(), getID(),  password, true);
     }
 
     @Override

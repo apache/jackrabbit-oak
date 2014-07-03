@@ -14,26 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication;
+package org.apache.jackrabbit.oak.security.user;
 
-import javax.jcr.Credentials;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
+import org.apache.jackrabbit.oak.spi.security.user.UserAuthenticationFactory;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
-/**
- * {@code PreAuthenticatedLogin} is used as marker in the shared map of the login context. it indicates that the
- * respective user is pre authenticated on an external system. Note that is class is only used internally by the
- * login modules and cannot be "abused" from outside.
- */
-final public class PreAuthenticatedLogin {
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-    public static final Credentials PRE_AUTHENTICATED = new Credentials() { };
+public class UserAuthenticationFactoryImpl implements UserAuthenticationFactory {
 
-    private final String userId;
-
-    public PreAuthenticatedLogin(String userId) {
-        this.userId = userId;
+    public UserAuthenticationFactoryImpl() {
     }
 
-    public String getUserId() {
-        return userId;
+    @Nonnull
+    @Override
+    public Authentication getAuthentication(@Nonnull UserConfiguration userConfiguration, @Nonnull Root root, @Nullable String userId) {
+        return new UserAuthentication(userConfiguration, root, userId);
     }
 }

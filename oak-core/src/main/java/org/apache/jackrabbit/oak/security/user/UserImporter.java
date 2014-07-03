@@ -283,7 +283,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             String pw = propInfo.getTextValue().getString();
-            userManager.setPassword(parent, pw, false);
+            userManager.setPassword(parent, a.getID(), pw, false);
 
             /*
             Execute authorizable actions for a NEW user at this point after
