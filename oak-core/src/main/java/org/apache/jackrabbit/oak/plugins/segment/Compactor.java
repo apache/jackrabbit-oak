@@ -20,7 +20,6 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,8 +61,6 @@ public class Compactor {
 
     private final SegmentWriter writer;
 
-    private final SegmentNodeBuilder builder;
-
     private CompactionMap map = new CompactionMap(100000);
 
     /**
@@ -75,11 +72,11 @@ public class Compactor {
 
     public Compactor(SegmentWriter writer) {
         this.writer = writer;
-        this.builder =
-                new SegmentNodeBuilder(writer.writeNode(EMPTY_NODE), writer);
     }
 
     public SegmentNodeState compact(NodeState before, NodeState after) {
+        SegmentNodeBuilder builder = new SegmentNodeBuilder(
+                writer.writeNode(before), writer);
         after.compareAgainstBaseState(before, new CompactDiff(builder));
         return builder.getNodeState();
     }
