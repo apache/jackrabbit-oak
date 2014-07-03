@@ -75,7 +75,8 @@ public class Compactor {
 
     public Compactor(SegmentWriter writer) {
         this.writer = writer;
-        this.builder = writer.writeNode(EMPTY_NODE).builder();
+        this.builder =
+                new SegmentNodeBuilder(writer.writeNode(EMPTY_NODE), writer);
     }
 
     public SegmentNodeState compact(NodeState before, NodeState after) {
