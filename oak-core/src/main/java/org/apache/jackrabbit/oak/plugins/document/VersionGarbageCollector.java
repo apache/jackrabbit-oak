@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +35,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
+
 public class VersionGarbageCollector {
     private final DocumentNodeStore nodeStore;
     private final VersionGCSupport versionStore;
@@ -42,11 +45,10 @@ public class VersionGarbageCollector {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
-     * Split document types which can be safely Garbage Collected
-     * OAK-1793: SplitDocType.DEFAULT_NO_CHILD and SplitDocType.PROP_COMMIT_ONLY
-     * have been removed, but should be added again when OAK-1794 is fixed.
+     * Split document types which can be safely garbage collected
      */
-    private static final Set<NodeDocument.SplitDocType> GC_TYPES = Collections.emptySet();
+    private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
+            DEFAULT_LEAF, COMMIT_ROOT_ONLY);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
@@ -81,8 +83,7 @@ public class VersionGarbageCollector {
         }
 
         collectDeletedDocuments(stats, headRevision, oldestRevTimeStamp);
-        // FIXME: OAK-1793 and OAK-1794
-        // collectSplitDocuments(stats, oldestRevTimeStamp);
+        collectSplitDocuments(stats, oldestRevTimeStamp);
 
         sw.stop();
         log.info("Version garbage collected in {}. {}", sw, stats);

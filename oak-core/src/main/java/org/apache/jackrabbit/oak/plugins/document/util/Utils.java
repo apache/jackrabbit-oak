@@ -37,6 +37,7 @@ import com.mongodb.BasicDBObject;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -447,4 +448,18 @@ public class Utils {
     public static String timestampToString(long timestamp){
         return (new Timestamp(timestamp) + "00").substring(0, 23);
     }
+
+    /**
+     * Checks that revision x is newer than another revision.
+     *
+     * @param x the revision to check
+     * @param previous the presumed earlier revision
+     * @return true if x is newer
+     */
+    public static boolean isRevisionNewer(@Nonnull RevisionContext context,
+                                          @Nonnull Revision x,
+                                          @Nonnull Revision previous) {
+        return context.getRevisionComparator().compare(x, previous) > 0;
+    }
+
 }

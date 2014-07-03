@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -167,7 +166,6 @@ public class VersionGarbageCollectorTest {
 
     }
 
-    @Ignore("OAK-1794")
     @Test
     public void gcSplitDocs() throws Exception{
         long maxAge = 1; //hrs
@@ -200,8 +198,8 @@ public class VersionGarbageCollectorTest {
         assertEquals(1, previousDocTestFoo.size());
         assertEquals(1, previousDocTestFoo2.size());
 
-        assertEquals(SplitDocType.PROP_COMMIT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
-        assertEquals(SplitDocType.DEFAULT_NO_CHILD, previousDocTestFoo2.get(0).getSplitDocType());
+        assertEquals(SplitDocType.COMMIT_ROOT_ONLY, previousDocTestFoo.get(0).getSplitDocType());
+        assertEquals(SplitDocType.DEFAULT_LEAF, previousDocTestFoo2.get(0).getSplitDocType());
 
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
@@ -217,7 +215,6 @@ public class VersionGarbageCollectorTest {
     }
 
     // OAK-1729
-    @Ignore("OAK-1794")
     @Test
     public void gcIntermediateDocs() throws Exception {
         long maxAge = 1; //hrs
@@ -225,7 +222,7 @@ public class VersionGarbageCollectorTest {
 
         NodeBuilder b1 = store.getRoot().builder();
         // adding the foo node will cause the commit root to be placed
-        // on the rood document, because the children flag is set on the
+        // on the root document, because the children flag is set on the
         // root document
         b1.child("foo");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -235,7 +232,7 @@ public class VersionGarbageCollectorTest {
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         assertTrue(!getDoc("/test").getLocalRevisions().isEmpty());
 
-        for (int i = 0; i < PREV_SPLIT_FACTOR + 1; i++) {
+        for (int i = 0; i < PREV_SPLIT_FACTOR; i++) {
             for (int j = 0; j < NUM_REVS_THRESHOLD; j++) {
                 b1 = store.getRoot().builder();
                 b1.child("test").setProperty("prop", i * NUM_REVS_THRESHOLD + j);
@@ -243,6 +240,10 @@ public class VersionGarbageCollectorTest {
             }
             store.runBackgroundOperations();
         }
+        // trigger another split, now that we have 10 previous docs
+        // this will create an intermediate previous doc
+        store.addSplitCandidate(Utils.getIdFromPath("/test"));
+        store.runBackgroundOperations();
 
         Map<Revision, Range> prevRanges = getDoc("/test").getPreviousRanges();
         boolean hasIntermediateDoc = false;
@@ -319,8 +320,7 @@ public class VersionGarbageCollectorTest {
         clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(maxAge) + delta);
 
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.HOURS);
-        // TODO: uncomment once OAK-1794 is fixed
-        // assertEquals(2, stats.splitDocGCCount);
+        assertEquals(2, stats.splitDocGCCount);
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
