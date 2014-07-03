@@ -143,25 +143,7 @@ public class FileStoreTest {
         assertTrue(store.setHead(head, compacted));
         store.close();
 
-        // Revision cleanup is still unable to reclaim extra space (OAK-1932)
-        store = new FileStore(directory, 1, false);
-        assertTrue(store.size() > largeBinarySize);
-        store.cleanup();
-        assertTrue(store.size() > largeBinarySize); // FIXME: should be <
-        store.close();
-
-        // Finally do the compaction without concurrent writes
-        store = new FileStore(directory, 1, false);
-        head = store.getHead();
-        assertTrue(store.size() > largeBinarySize);
-        writer = new SegmentWriter(store, store.getTracker());
-        compactor = new Compactor(writer);
-        compacted = compactor.compact(EmptyNodeState.EMPTY_NODE, head);
-        writer.flush();
-        assertTrue(store.setHead(head, compacted));
-        store.close();
-
-        // Now the revision cleanup is able to reclaim the extra space
+        // Revision cleanup is now able to reclaim the extra space (OAK-1932)
         store = new FileStore(directory, 1, false);
         assertTrue(store.size() > largeBinarySize);
         store.cleanup();

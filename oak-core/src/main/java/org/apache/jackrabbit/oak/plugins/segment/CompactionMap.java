@@ -93,6 +93,19 @@ public class CompactionMap {
         return after.equals(get(before));
     }
 
+    /**
+     * Checks whether content in the segment with the given identifier was
+     * compacted to new segments.
+     *
+     * @param id segment identifier
+     * @return whether the identified segment was compacted
+     */
+    boolean wasCompacted(SegmentId id) {
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        return findEntry(msb, lsb) != -1;
+    }
+
     public RecordId get(RecordId before) {
         RecordId after = recent.get(before);
         if (after != null) {

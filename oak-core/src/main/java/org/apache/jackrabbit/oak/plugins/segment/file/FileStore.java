@@ -415,6 +415,7 @@ public class FileStore implements SegmentStore {
 
         SegmentNodeState before = getHead();
         SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
+        writer.flush();
         while (!setHead(before, after)) {
             // Some other concurrent changes have been made.
             // Rebase (and compact) those changes on top of the
@@ -422,8 +423,15 @@ public class FileStore implements SegmentStore {
             SegmentNodeState head = getHead();
             after = compactor.compact(before, head);
             before = head;
+            writer.flush();
         }
         tracker.setCompactionMap(compactor.getCompactionMap());
+
+        // Drop the SegmentWriter caches and flush any existing state
+        // in an attempt to prevent new references to old pre-compacted
+        // content. TODO: There should be a cleaner way to do this.
+        tracker.getWriter().dropCache();
+        tracker.getWriter().flush();
 
         log.info("TarMK compaction completed in {}ms", MILLISECONDS
                 .convert(System.nanoTime() - start, NANOSECONDS));
