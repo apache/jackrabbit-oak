@@ -64,7 +64,7 @@ public class FileStoreBackupTest {
 
     @Test
     public void testBackup() throws Exception {
-        FileStore source = new FileStore(src, 256, false);
+        FileStore source = new FileStore(src, 8, false);
 
         NodeStore store = new SegmentNodeStore(source);
         init(store);
@@ -83,7 +83,7 @@ public class FileStoreBackupTest {
 
     @Test
     public void testRestore() throws Exception {
-        FileStore source = new FileStore(src, 256, false);
+        FileStore source = new FileStore(src, 8, false);
 
         NodeStore store = new SegmentNodeStore(source);
         init(store);
@@ -110,7 +110,7 @@ public class FileStoreBackupTest {
 
     private static void compare(NodeStore store, File destination)
             throws IOException {
-        FileStore backup = new FileStore(destination, 256, false);
+        FileStore backup = new FileStore(destination, 8, false);
         assertEquals(store.getRoot(), new SegmentNodeStore(backup).getRoot());
         backup.close();
     }
@@ -147,7 +147,7 @@ public class FileStoreBackupTest {
         }
 
         for (File f : destination.listFiles()) {
-            if(!f.getName().endsWith(".tar")){
+            if (!f.getName().endsWith(".tar")) {
                 continue;
             }
             assertTrue(f.getName() + " is missing from the backup",
