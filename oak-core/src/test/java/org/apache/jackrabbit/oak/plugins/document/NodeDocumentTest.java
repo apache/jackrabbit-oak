@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.Comparator;
-
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
@@ -40,32 +38,6 @@ public class NodeDocumentTest {
             NodeDocument.addCollision(op, r);
         }
         UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
-        doc.split(CONTEXT);
+        doc.split(DummyRevisionContext.INSTANCE);
     }
-
-    private static final RevisionContext CONTEXT = new RevisionContext() {
-
-        private final Comparator<Revision> comparator
-                = StableRevisionComparator.INSTANCE;
-
-        @Override
-        public UnmergedBranches getBranches() {
-            return new UnmergedBranches(comparator);
-        }
-
-        @Override
-        public UnsavedModifications getPendingModifications() {
-            return new UnsavedModifications();
-        }
-
-        @Override
-        public Comparator<Revision> getRevisionComparator() {
-            return comparator;
-        }
-
-        @Override
-        public int getClusterId() {
-            return 1;
-        }
-    };
 }

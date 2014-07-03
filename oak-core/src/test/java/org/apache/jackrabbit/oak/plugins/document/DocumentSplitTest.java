@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -45,11 +46,11 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest.randomStream;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_RATIO;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.REMOVE_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -152,8 +153,10 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         doc = store.find(NODES, Utils.getIdFromPath("/foo"));
         assertNotNull(doc);
         Map<Revision, String> commits = doc.getLocalCommitRoot();
-        // one remaining in the local commit root map
-        assertEquals(1, commits.size());
+        // two remaining in the local commit root map
+        // the first _commitRoot entry for the _deleted when the node was created
+        // the second _commitRoot entry for the most recent prop change
+        assertEquals(2, commits.size());
         for (Revision rev : commitRoots) {
             assertTrue(doc.isCommitted(rev));
         }
@@ -332,7 +335,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
         List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
-        assertEquals(SplitDocType.DEFAULT_NO_CHILD, prevDocs.get(0).getSplitDocType());
+        assertEquals(SplitDocType.DEFAULT_LEAF, prevDocs.get(0).getSplitDocType());
     }
 
     @Test
@@ -355,7 +358,7 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test/foo"));
         List<NodeDocument> prevDocs = ImmutableList.copyOf(doc.getAllPreviousDocs());
         assertEquals(1, prevDocs.size());
-        assertEquals(SplitDocType.PROP_COMMIT_ONLY, prevDocs.get(0).getSplitDocType());
+        assertEquals(SplitDocType.COMMIT_ROOT_ONLY, prevDocs.get(0).getSplitDocType());
     }
 
     @Test
@@ -585,6 +588,78 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         String prevId = Utils.getPreviousIdFor("/test", revs.get(revs.size() - 2), 0);
         assertEquals(prevId, splitOps.get(0).getId());
         assertEquals(id, splitOps.get(1).getId());
+    }
+
+    // OAK-1794
+    @Test
+    public void keepRevisionsForMostRecentChanges() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        NodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.setProperty("foo", -1);
+        builder.setProperty("bar", -1);
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = ns.getRoot().builder();
+            builder.setProperty("foo", i);
+            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        mk.runBackgroundOperations();
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/"));
+        assertNotNull(doc);
+        // the local _revisions map must still contain the entry for
+        // the initial 'bar' property
+        Map<Revision, String> valueMap = doc.getValueMap("bar");
+        assertFalse(valueMap.isEmpty());
+        Revision r = valueMap.keySet().iterator().next();
+        assertTrue(doc.getLocalRevisions().containsKey(r));
+        // but also the previous document must contain the revision
+        List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        NodeDocument prev = prevDocs.get(0);
+        assertTrue(prev.getLocalRevisions().containsKey(r));
+    }
+
+    // OAK-1794
+    @Test
+    public void keepCommitRootForMostRecentChanges() throws Exception {
+        DocumentStore store = mk.getDocumentStore();
+        NodeStore ns = mk.getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.setProperty("p", -1);
+        NodeBuilder test = builder.child("test");
+        test.setProperty("foo", -1);
+        test.setProperty("bar", -1);
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = ns.getRoot().builder();
+            builder.setProperty("p", i);
+            test = builder.child("test");
+            test.setProperty("foo", i);
+            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        mk.runBackgroundOperations();
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+        // the local _commitRoot map must still contain the entry for
+        // the initial 'bar' property
+        Map<Revision, String> valueMap = doc.getValueMap("bar");
+        assertFalse(valueMap.isEmpty());
+        Revision r = valueMap.keySet().iterator().next();
+        assertTrue(doc.getLocalCommitRoot().containsKey(r));
+        // but also the previous document must contain the commitRoot entry
+        List<NodeDocument> prevDocs = Lists.newArrayList(doc.getAllPreviousDocs());
+        assertEquals(1, prevDocs.size());
+        NodeDocument prev = prevDocs.get(0);
+        assertTrue(prev.getLocalCommitRoot().containsKey(r));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void splitPreviousDocument() {
+        NodeDocument doc = new NodeDocument(mk.getDocumentStore());
+        doc.put(NodeDocument.ID, Utils.getIdFromPath("/test"));
+        doc.put(NodeDocument.SD_TYPE, NodeDocument.SplitDocType.DEFAULT.type);
+        SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE);
     }
 
     private void syncMKs(List<DocumentMK> mks, int idx) {
