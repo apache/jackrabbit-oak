@@ -45,6 +45,8 @@ final class UserContext implements Context, UserConstants {
             return USER_PROPERTY_NAMES.contains(property.getName());
         } else if (NT_REP_GROUP.equals(ntName)) {
             return GROUP_PROPERTY_NAMES.contains(property.getName());
+        } else if (NT_REP_PASSWORD.equals(ntName)) {
+            return PWD_PROPERTY_NAMES.contains(property.getName());
         } else if (NT_REP_MEMBERS.equals(ntName)) {
             return true;
         }
@@ -59,7 +61,10 @@ final class UserContext implements Context, UserConstants {
     @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return NT_REP_GROUP.equals(ntName) || NT_REP_USER.equals(ntName) || NT_REP_MEMBERS.equals(ntName);
+        return NT_REP_GROUP.equals(ntName)
+                || NT_REP_USER.equals(ntName)
+                || NT_REP_MEMBERS.equals(ntName)
+                || NT_REP_PASSWORD.equalsIgnoreCase(ntName);
     }
 
     @Override
@@ -71,7 +76,10 @@ final class UserContext implements Context, UserConstants {
         } else {
             String path = location.getPath();
             String name = Text.getName(path);
-            if (USER_PROPERTY_NAMES.contains(name) || GROUP_PROPERTY_NAMES.contains(name) || path.contains(REP_MEMBERS)) {
+            if (USER_PROPERTY_NAMES.contains(name)
+                    || GROUP_PROPERTY_NAMES.contains(name)
+                    || path.contains(REP_MEMBERS)
+                    || path.contains(REP_PWD)) {
                 return true;
             } else {
                 // undefined: unable to determine if the specified location
