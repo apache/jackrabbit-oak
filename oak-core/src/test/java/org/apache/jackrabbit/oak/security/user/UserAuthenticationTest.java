@@ -24,10 +24,14 @@ import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.AccountLockedException;
+import javax.security.auth.login.AccountNotFoundException;
+import javax.security.auth.login.FailedLoginException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
@@ -90,11 +94,33 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             fail("Authenticating Group should fail");
         } catch (LoginException e) {
             // success
+            assertTrue(e instanceof AccountNotFoundException);
         } finally {
             if (g != null) {
                 g.remove();
                 root.commit();
             }
+        }
+    }
+
+    @Test
+    public void testAuthenticateResolvesToDisabledUser() throws Exception {
+        User testUser = getTestUser();
+        SimpleCredentials sc = new SimpleCredentials(testUser.getID(), testUser.getID().toCharArray());
+        Authentication a = new UserAuthentication(getUserConfiguration(), root, sc.getUserID());
+
+        try {
+            getTestUser().disable("disabled");
+            root.commit();
+
+            a.authenticate(sc);
+            fail("Authenticating disabled user should fail");
+        } catch (LoginException e) {
+            // success
+            assertTrue(e instanceof AccountLockedException);
+        } finally {
+            getTestUser().disable(null);
+            root.commit();
         }
     }
 
@@ -111,6 +137,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
                 fail("LoginException expected");
             } catch (LoginException e) {
                 // success
+                assertTrue(e instanceof FailedLoginException);
             }
         }
     }
@@ -122,6 +149,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
             fail("LoginException expected");
         } catch (LoginException e) {
             // success
+            assertTrue(e instanceof FailedLoginException);
         }
     }
 
@@ -144,6 +172,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
                 fail("LoginException expected");
             } catch (LoginException e) {
                 // success
+                assertTrue(e instanceof FailedLoginException);
             }
         }
     }

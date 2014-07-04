@@ -26,6 +26,9 @@ import javax.jcr.GuestCredentials;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
+import javax.security.auth.login.AccountLockedException;
+import javax.security.auth.login.AccountNotFoundException;
+import javax.security.auth.login.FailedLoginException;
 import javax.security.auth.login.CredentialExpiredException;
 import javax.security.auth.login.LoginException;
 
@@ -99,12 +102,12 @@ class UserAuthentication implements Authentication, UserConstants {
             }
 
             if (authorizable.isGroup()) {
-                throw new LoginException("Not a user " + userId);
+                throw new AccountNotFoundException("Not a user " + userId);
             }
 
             User user = (User) authorizable;
             if (user.isDisabled()) {
-                throw new LoginException("User with ID " + userId + " has been disabled: "+ user.getDisabledReason());
+                throw new AccountLockedException("User with ID " + userId + " has been disabled: "+ user.getDisabledReason());
             }
 
             if (credentials instanceof SimpleCredentials) {
@@ -136,7 +139,7 @@ class UserAuthentication implements Authentication, UserConstants {
     //--------------------------------------------------------------------------
     private static void checkSuccess(boolean success, String msg) throws LoginException {
         if (!success) {
-            throw new LoginException(msg);
+            throw new FailedLoginException(msg);
         }
     }
 
