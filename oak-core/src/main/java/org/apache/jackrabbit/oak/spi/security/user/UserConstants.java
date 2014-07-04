@@ -63,6 +63,10 @@ public interface UserConstants {
             REP_IMPERSONATORS
     );
 
+    Collection<String> PWD_PROPERTY_NAMES = ImmutableSet.of(
+            REP_PASSWORD_LAST_MODIFIED
+    );
+
     /**
      * Configuration option defining the ID of the administrator user.
      */
