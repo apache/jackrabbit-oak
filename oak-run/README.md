@@ -148,7 +148,6 @@ to be used. The following fixtures are currently supported:
 | Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
 
 
 Depending on the fixture the following options are available:
@@ -158,7 +157,7 @@ Depending on the fixture the following options are available:
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
     --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
-    --base <file>          - Tar and H2: Path to the base file
+    --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
 
 Examples:
@@ -185,7 +184,7 @@ The following benchmark options (with default values) are currently supported:
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
     --dropDBAfterTest true - Whether to drop the MongoDB database after the test
-    --base target          - Path to the base file (Tar and H2 setup),
+    --base target          - Path to the base file (Tar setup),
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
     --cache 100            - cache size (in MB)
     --wikipedia <file>     - Wikipedia dump
@@ -203,8 +202,7 @@ that need them. For example the Wikipedia dump option is needed by the
 WikipediaImport test case and the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
 controls the bundle cache size in Jackrabbit, the KernelNodeState
-cache size in MongoMK and the default H2 MK, and the segment cache
-size in SegmentMK.
+cache size in MongoMK, and the segment cache size in SegmentMK.
 
 The `--concurrency` levels can be specified as comma separated list of values,
 eg: `--concurrency 1,4,8`, which will execute the same test with the number of
@@ -253,7 +251,6 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
 | Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
@@ -381,7 +378,7 @@ The following scalability options (with default values) are currently supported:
     --port 27101           - MongoDB port
     --db <name>            - MongoDB database (default is a generated name)
     --dropDBAfterTest true - Whether to drop the MongoDB database after the test
-    --base target          - Path to the base file (Tar and H2 setup),
+    --base target          - Path to the base file (Tar setup),
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
     --cache 100            - cache size (in MB)
     --csvFile <file>       - Optional csv file to report the benchmark results
@@ -392,8 +389,8 @@ The following scalability options (with default values) are currently supported:
 These options are passed to the various suites and repository fixtures
 that need them. For example the the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
-controls the KernelNodeState cache size in MongoMK and the default H2 MK, and the 
-segment cache size in SegmentMK.
+controls the KernelNodeState cache size in MongoMK, and the segment
+cache size in SegmentMK.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 scalability suite test environment. It's also possible to attach the JVM to a
@@ -428,7 +425,6 @@ Finally the scalability runner supports the following repository fixtures:
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
 | Oak-MongoMK   | Oak with the Mongo MicroKernel                        |
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
-| Oak-H2        | Oak with the MK using embedded H2 database            |
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
