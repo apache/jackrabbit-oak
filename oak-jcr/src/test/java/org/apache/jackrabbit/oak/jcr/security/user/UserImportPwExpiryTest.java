@@ -22,6 +22,7 @@ import javax.jcr.Property;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -143,6 +144,47 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
         Property custom = pwdNode.getProperty("customProp");
         assertTrue(custom.getDefinition().isProtected());
         assertEquals("abc", custom.getString());
+    }
 
+    /**
+     * @since Oak 1.1
+     */
+    @Test
+    public void testImportExistingUserWithoutExpiryProperty() throws Exception {
+
+        String uid = "existing";
+        User user = userMgr.createUser(uid, uid);
+
+        // change password to force existence of password last modified property
+        user.changePassword(uid);
+        adminSession.save();
+
+        Node userNode = adminSession.getNode(user.getPath());
+        assertTrue(userNode.hasNode(UserConstants.REP_PWD));
+        Node pwdNode = userNode.getNode(UserConstants.REP_PWD);
+        assertTrue(pwdNode.hasProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED));
+
+        // overwrite user via import
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<sv:node sv:name=\"" + uid + "\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
+                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\">" +
+                "      <sv:value>rep:User</sv:value>" +
+                "   </sv:property>" +
+                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\">" +
+                "      <sv:value>" + uid + "</sv:value>" +
+                "   </sv:property>" +
+                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
+                "      <sv:value>" + uid + "Principal</sv:value>" +
+                "   </sv:property>" +
+                "</sv:node>";
+
+        doImport(USERPATH, xml);
+
+        Authorizable authorizable = userMgr.getAuthorizable(uid);
+        userNode = adminSession.getNode(authorizable.getPath());
+        assertTrue(userNode.hasNode(UserConstants.REP_PWD));
+
+        pwdNode = userNode.getNode(UserConstants.REP_PWD);
+        assertTrue(pwdNode.hasProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED));
     }
 }
