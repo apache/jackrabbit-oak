@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDATA;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
+import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
+import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,19 +38,10 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.NAMESPACES_PATH;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_NSDATA;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_PREFIXES;
-import static org.apache.jackrabbit.oak.plugins.name.NamespaceConstants.REP_URIS;
-import static org.apache.jackrabbit.oak.plugins.name.Namespaces.encodeUri;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -75,6 +77,10 @@ public class GlobalNameMapper implements NameMapper {
     public GlobalNameMapper(Root root) {
         this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
+    }
+
+    public GlobalNameMapper(NodeState root) {
+        this(new ImmutableRoot(root));
     }
 
     public GlobalNameMapper(Map<String, String> mappings) {
