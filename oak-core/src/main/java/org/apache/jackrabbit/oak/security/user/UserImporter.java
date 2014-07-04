@@ -29,6 +29,7 @@ import java.util.TreeSet;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -48,6 +49,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -219,7 +221,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         checkInitialized();
 
         String propName = propInfo.getName();
-        Authorizable a = userManager.getAuthorizable(parent);
+        boolean isPwdNode = isPwdNode(parent);
+        Tree authorizableTree = (isPwdNode) ? parent.getParent() : parent;
+        Authorizable a = userManager.getAuthorizable(authorizableTree);
 
         if (a == null) {
             log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
@@ -332,7 +336,22 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             getMembership(a.getID()).addMembers(propInfo.getTextValues());
             return true;
 
-        } // else: cannot handle -> return false
+        } else if (isPwdNode) {
+            // overwrite any properties generated underneath the rep:pwd node
+            // by "UserManagerImpl#setPassword" by the properties defined by
+            // the XML to be imported. see OAK-1943 for the corresponding discussion.
+            int targetType = def.getRequiredType();
+            if (targetType == PropertyType.UNDEFINED) {
+                targetType = (REP_PASSWORD_LAST_MODIFIED.equals(propName)) ? PropertyType.LONG : PropertyType.STRING;
+            }
+            PropertyState property;
+            if (def.isMultiple()) {
+                property = PropertyStates.createProperty(propName, propInfo.getValues(targetType));
+            } else {
+                property = PropertyStates.createProperty(propName, propInfo.getValue(targetType));
+            };
+            parent.setProperty(property);
+        }// else: cannot handle -> return false
 
         return false;
     }
@@ -469,6 +488,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private static boolean isMemberReferencesListNode(@Nullable Tree tree) {
         return tree != null && NT_REP_MEMBER_REFERENCES_LIST.equals(TreeUtil.getPrimaryTypeName(tree));
+    }
+
+    private static boolean isPwdNode(@Nonnull Tree tree) {
+        return REP_PWD.equals(tree.getName()) && NT_REP_PASSWORD.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**

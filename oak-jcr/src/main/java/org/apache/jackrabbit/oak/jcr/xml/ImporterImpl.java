@@ -281,6 +281,35 @@ public class ImporterImpl implements Importer {
         return tree;
     }
 
+    private void importProperties(@Nonnull Tree tree,
+                                  @Nonnull List<PropInfo> propInfos,
+                                  boolean ignoreRegular) throws RepositoryException {
+        // process properties
+        for (PropInfo pi : propInfos) {
+            // find applicable definition
+            //TODO find better heuristics?
+            PropertyDefinition def = pi.getPropertyDef(effectiveNodeTypeProvider.getEffectiveNodeType(tree));
+            if (def.isProtected()) {
+                // skip protected property
+                log.debug("Protected property " + pi.getName());
+
+                // notify the ProtectedPropertyImporter.
+                for (ProtectedItemImporter ppi : pItemImporters) {
+                    if (ppi instanceof ProtectedPropertyImporter
+                            && ((ProtectedPropertyImporter) ppi).handlePropInfo(tree, pi, def)) {
+                        log.debug("Protected property -> delegated to ProtectedPropertyImporter");
+                        break;
+                    } /* else: p-i-Importer isn't able to deal with this property.
+                                     try next pp-importer */
+
+                }
+            } else if (!ignoreRegular) {
+                // regular property -> create the property
+                createProperty(tree, pi, def);
+            }
+        }
+    }
+
     //-----------------------------------------------------------< Importer >---
 
     @Override
@@ -362,6 +391,12 @@ public class ImporterImpl implements Importer {
                     */
                     log.debug("Skipping protected node: " + existing);
                     parents.push(existing);
+                    /**
+                     * let ProtectedPropertyImporters handle the properties
+                     * associated with the imported node. this may include overwriting,
+                     * merging or just adding missing properties.
+                     */
+                    importProperties(existing, propInfos, true);
                     return;
                 }
                 if (def.isAutoCreated() && isNodeType(existing, ntName)) {
@@ -429,30 +464,7 @@ public class ImporterImpl implements Importer {
         }
 
         // process properties
-        for (PropInfo pi : propInfos) {
-            // find applicable definition
-            //TODO find better heuristics?
-            PropertyDefinition def = pi.getPropertyDef(effectiveNodeTypeProvider.getEffectiveNodeType(tree));
-
-            if (def.isProtected()) {
-                // skip protected property
-                log.debug("Skipping protected property " + pi.getName());
-
-                // notify the ProtectedPropertyImporter.
-                for (ProtectedItemImporter ppi : pItemImporters) {
-                    if (ppi instanceof ProtectedPropertyImporter
-                            && ((ProtectedPropertyImporter) ppi).handlePropInfo(tree, pi, def)) {
-                        log.debug("Protected property -> delegated to ProtectedPropertyImporter");
-                        break;
-                    } /* else: p-i-Importer isn't able to deal with this property.
-                             try next pp-importer */
-
-                }
-            } else {
-                // regular property -> create the property
-                createProperty(tree, pi, def);
-            }
-        }
+        importProperties(tree, propInfos, false);
 
         parents.push(tree);
     }
