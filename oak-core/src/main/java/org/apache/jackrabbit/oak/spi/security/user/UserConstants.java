@@ -30,8 +30,8 @@ public interface UserConstants {
     String NT_REP_AUTHORIZABLE = "rep:Authorizable";
     String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
     String NT_REP_USER = "rep:User";
-    String NT_REP_PASSWORD = "rep:Password";
     String NT_REP_GROUP = "rep:Group";
+    String NT_REP_PASSWORD = "rep:Password";
     @Deprecated
     String NT_REP_MEMBERS = "rep:Members";
     String NT_REP_MEMBER_REFERENCES_LIST = "rep:MemberReferencesList";
@@ -66,6 +66,10 @@ public interface UserConstants {
     Collection<String> PWD_PROPERTY_NAMES = ImmutableSet.of(
             REP_PASSWORD_LAST_MODIFIED
     );
+
+    Collection<String> NT_NAMES = ImmutableSet.of(
+            NT_REP_USER, NT_REP_GROUP, NT_REP_PASSWORD,
+            NT_REP_MEMBERS, NT_REP_MEMBER_REFERENCES, NT_REP_MEMBER_REFERENCES_LIST);
 
     /**
      * Configuration option defining the ID of the administrator user.

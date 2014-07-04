@@ -40,13 +40,16 @@ final class UserContext implements Context, UserConstants {
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
+        String propName = property.getName();
         String ntName = TreeUtil.getPrimaryTypeName(parent);
         if (NT_REP_USER.equals(ntName)) {
-            return USER_PROPERTY_NAMES.contains(property.getName());
+            return USER_PROPERTY_NAMES.contains(propName);
         } else if (NT_REP_GROUP.equals(ntName)) {
-            return GROUP_PROPERTY_NAMES.contains(property.getName());
+            return GROUP_PROPERTY_NAMES.contains(propName);
         } else if (NT_REP_PASSWORD.equals(ntName)) {
-            return PWD_PROPERTY_NAMES.contains(property.getName());
+            return PWD_PROPERTY_NAMES.contains(propName);
+        } else if (NT_REP_MEMBER_REFERENCES.equals(ntName)) {
+            return REP_MEMBERS.equals(propName);
         } else if (NT_REP_MEMBERS.equals(ntName)) {
             return true;
         }
@@ -61,10 +64,7 @@ final class UserContext implements Context, UserConstants {
     @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return NT_REP_GROUP.equals(ntName)
-                || NT_REP_USER.equals(ntName)
-                || NT_REP_MEMBERS.equals(ntName)
-                || NT_REP_PASSWORD.equalsIgnoreCase(ntName);
+        return NT_NAMES.contains(ntName);
     }
 
     @Override
@@ -79,6 +79,7 @@ final class UserContext implements Context, UserConstants {
             if (USER_PROPERTY_NAMES.contains(name)
                     || GROUP_PROPERTY_NAMES.contains(name)
                     || path.contains(REP_MEMBERS)
+                    || path.contains(REP_MEMBERS_LIST)
                     || path.contains(REP_PWD)) {
                 return true;
             } else {
