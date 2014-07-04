@@ -110,8 +110,6 @@ public class BenchmarkRunner {
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
                 new JackrabbitRepositoryFixture(base.value(options), cacheSize),
                 OakRepositoryFixture.getMemoryNS(cacheSize * MB),
-                OakRepositoryFixture.getMemoryMK(cacheSize * MB),
-                OakRepositoryFixture.getH2MK(base.value(options), cacheSize * MB),
                 OakRepositoryFixture.getMongo(
                         host.value(options), port.value(options),
                         dbName.value(options), dropDBAfterTest.value(options),

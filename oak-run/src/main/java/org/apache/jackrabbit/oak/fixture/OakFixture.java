@@ -22,13 +22,10 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import com.google.common.collect.Maps;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
@@ -49,7 +46,6 @@ public abstract class OakFixture {
 
     public static final String OAK_MEMORY = "Oak-Memory";
     public static final String OAK_MEMORY_NS = "Oak-MemoryNS";
-    public static final String OAK_MEMORY_MK = "Oak-MemoryMK";
 
     public static final String OAK_MONGO = "Oak-Mongo";
     public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
@@ -58,7 +54,6 @@ public abstract class OakFixture {
 
     public static final String OAK_RDB = "Oak-RDB";
 
-    public static final String OAK_H2 = "Oak-H2";
     public static final String OAK_TAR = "Oak-Tar";
     public static final String OAK_TAR_FDS = "Oak-Tar-FDS";
 
@@ -85,28 +80,19 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getMemory(long cacheSize) {
-        return getMemory(OAK_MEMORY, false, cacheSize);
+        return getMemory(OAK_MEMORY, cacheSize);
     }
 
     public static OakFixture getMemoryNS(long cacheSize) {
-        return getMemory(OAK_MEMORY_NS, false, cacheSize);
+        return getMemory(OAK_MEMORY_NS, cacheSize);
     }
 
-    public static OakFixture getMemoryMK(long cacheSize) {
-        return getMemory(OAK_MEMORY_MK, true, cacheSize);
-    }
-
-    public static OakFixture getMemory(String name, final boolean useMk, final long cacheSize) {
+    public static OakFixture getMemory(String name, final long cacheSize) {
         return new OakFixture(name) {
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 Oak oak;
-                if (useMk) {
-                    MicroKernel kernel = new MicroKernelImpl();
-                    oak = new Oak(new KernelNodeStore(kernel, cacheSize));
-                } else {
-                    oak = new Oak(new MemoryNodeStore());
-                }
+                oak = new Oak(new MemoryNodeStore());
                 return oak;
             }
 
@@ -115,12 +101,7 @@ public abstract class OakFixture {
                 Oak[] cluster = new Oak[n];
                 for (int i = 0; i < cluster.length; i++) {
                     Oak oak;
-                    if (useMk) {
-                        MicroKernel kernel = new MicroKernelImpl();
-                        oak = new Oak(new KernelNodeStore(kernel, cacheSize));
-                    } else {
-                        oak = new Oak(new MemoryNodeStore());
-                    }
+                    oak = new Oak(new MemoryNodeStore());
                     cluster[i] = oak;
                 }
                 return cluster;
@@ -423,34 +404,4 @@ public abstract class OakFixture {
         };
     }
 
-
-
-    public static OakFixture getH2MK(final File base, final long cacheSize) {
-        return new OakFixture(OAK_H2) {
-            private MicroKernelImpl[] kernels;
-
-            @Override
-            public Oak getOak(int clusterId) throws Exception {
-                return new Oak(new KernelNodeStore(new MicroKernelImpl(base.getPath()), cacheSize));
-            }
-
-            @Override
-            public Oak[] setUpCluster(int n) throws Exception {
-                Oak[] cluster = new Oak[n];
-                kernels = new MicroKernelImpl[cluster.length];
-                for (int i = 0; i < cluster.length; i++) {
-                    kernels[i] = new MicroKernelImpl(new File(base, unique).getPath());
-                    cluster[i] = new Oak(new KernelNodeStore(kernels[i], cacheSize));
-                }
-                return cluster;
-            }
-            @Override
-            public void tearDownCluster() {
-                for (MicroKernelImpl kernel : kernels) {
-                    kernel.dispose();
-                }
-                FileUtils.deleteQuietly(new File(base, unique));
-            }
-        };
-    }
 }

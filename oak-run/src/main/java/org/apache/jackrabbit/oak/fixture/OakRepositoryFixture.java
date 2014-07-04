@@ -26,19 +26,11 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 public class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getMemoryNS(long cacheSize) {
-        return getMemory(OakFixture.OAK_MEMORY_NS, false, cacheSize);
+        return getMemory(OakFixture.OAK_MEMORY_NS, cacheSize);
     }
 
-    public static RepositoryFixture getMemoryMK(long cacheSize) {
-        return getMemory(OakFixture.OAK_MEMORY_MK, true, cacheSize);
-    }
-
-    private static RepositoryFixture getMemory(String name, boolean useMK, long cacheSize) {
-        return new OakRepositoryFixture(OakFixture.getMemory(name, useMK, cacheSize));
-    }
-
-    public static RepositoryFixture getH2MK(File base, long cacheSize) {
-        return new OakRepositoryFixture(OakFixture.getH2MK(base, cacheSize));
+    private static RepositoryFixture getMemory(String name, long cacheSize) {
+        return new OakRepositoryFixture(OakFixture.getMemory(name, cacheSize));
     }
 
     public static RepositoryFixture getMongo(String host, int port, String database,

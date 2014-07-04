@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -45,7 +48,6 @@ import com.mongodb.MongoURI;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
@@ -81,9 +83,6 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-
-import static com.google.common.collect.Sets.newHashSet;
-import static java.util.Arrays.asList;
 
 public class Main {
 
@@ -530,8 +529,6 @@ public class Main {
         if (fix.startsWith(OakFixture.OAK_MEMORY)) {
             if (OakFixture.OAK_MEMORY_NS.equals(fix)) {
                 oakFixture = OakFixture.getMemoryNS(cacheSize * MB);
-            } else if (OakFixture.OAK_MEMORY_MK.equals(fix)) {
-                oakFixture = OakFixture.getMemoryMK(cacheSize * MB);
             } else {
                 oakFixture = OakFixture.getMemory(cacheSize * MB);
             }
@@ -562,12 +559,6 @@ public class Main {
                 throw new IllegalArgumentException("Required argument base missing.");
             }
             oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
-        } else if (fix.equals(OakFixture.OAK_H2)) {
-            File baseFile = base.value(options);
-            if (baseFile == null) {
-                throw new IllegalArgumentException("Required argument base missing.");
-            }
-            oakFixture = OakFixture.getH2MK(baseFile, cacheSize * MB);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }
