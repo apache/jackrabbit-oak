@@ -25,7 +25,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -54,7 +53,7 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
     @CheckForNull
     protected ConfigurationParameters getConfigurationParameters() {
         HashMap<String, Object> userParams = new HashMap<String, Object>() {{
-            put(UserConstants.PARAM_PASSWORD_MAX_AGE, Long.valueOf(10));
+            put(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
         }};
         return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
     }
@@ -63,8 +62,7 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
      * @since Oak 1.1
      */
     @Test
-    @Ignore("OAK-1943") // FIXME OAK-1943
-    public void testImportUser() throws Exception {
+    public void testImportUserCreatesPasswordLastModified() throws Exception {
         // import user
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"x\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -102,8 +100,7 @@ public class UserImportPwExpiryTest extends AbstractImportTest {
      * @since Oak 1.1
      */
     @Test
-    @Ignore("OAK-1943") // FIXME OAK-1943
-    public void testImportUserWithCustomPwdProperties() throws Exception {
+    public void testImportUserWithPwdProperties() throws Exception {
         // import user
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"y\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
