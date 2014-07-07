@@ -299,8 +299,7 @@ public class Main {
             System.out.println("    -> cleaning up");
             store = new FileStore(directory, 256, false);
             try {
-                store.gc();
-                store.flush();
+                store.cleanup();
             } finally {
                 store.close();
             }
