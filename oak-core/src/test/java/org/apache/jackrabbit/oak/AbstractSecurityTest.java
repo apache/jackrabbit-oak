@@ -196,6 +196,13 @@ public abstract class AbstractSecurityTest {
         return new ValueFactoryImpl(root, getNamePathMapper());
     }
 
+    protected long waitForSystemTimeIncrement(long old) {
+        while (old == System.currentTimeMillis()) {
+            // wait for system timer to move
+        }
+        return System.currentTimeMillis();
+    }
+
     protected User getTestUser() throws Exception {
         if (testUser == null) {
             String uid = "testUser" + UUID.randomUUID();

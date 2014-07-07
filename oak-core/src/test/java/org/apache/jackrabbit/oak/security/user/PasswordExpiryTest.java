@@ -99,6 +99,7 @@ public class PasswordExpiryTest extends AbstractSecurityTest {
         PropertyState p1 = root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
         long oldModTime = p1.getValue(Type.LONG, 0);
         assertTrue(oldModTime > 0);
+        waitForSystemTimeIncrement(oldModTime);
         user.changePassword(userId);
         root.commit();
         PropertyState p2 = root.getTree(user.getPath()).getChild(UserConstants.REP_PWD).getProperty(UserConstants.REP_PASSWORD_LAST_MODIFIED);
