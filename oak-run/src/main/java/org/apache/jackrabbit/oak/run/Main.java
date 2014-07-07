@@ -208,7 +208,7 @@ public class Main {
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser
                 .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
-                .ofType(Integer.class).defaultsTo(1);
+                .ofType(Integer.class).defaultsTo(0);
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
                 "show help").forHelp();
         OptionSpec<String> nonOption = parser
