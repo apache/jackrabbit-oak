@@ -923,10 +923,22 @@ public class SegmentWriter {
         return id;
     }
 
+    private SegmentNodeState uncompact(SegmentNodeState state) {
+        RecordId id = tracker.getCompactionMap().get(state.getRecordId());
+        if (id != null) {
+            return new SegmentNodeState(id);
+        } else {
+            return state;
+        }
+    }
+
     public SegmentNodeState writeNode(NodeState state) {
-        if (state instanceof SegmentNodeState
-                && store.containsSegment(((SegmentNodeState) state).getRecordId().getSegmentId())) {
-            return (SegmentNodeState) state;
+        if (state instanceof SegmentNodeState) {
+            SegmentNodeState sns = uncompact((SegmentNodeState) state);
+            if (sns != state || store.containsSegment(
+                    sns.getRecordId().getSegmentId())) {
+                return sns;
+            }
         }
 
         SegmentNodeState before = null;
@@ -935,10 +947,13 @@ public class SegmentWriter {
         if (state instanceof ModifiedNodeState) {
             after = (ModifiedNodeState) state;
             NodeState base = after.getBaseState();
-            if (base instanceof SegmentNodeState
-                    && store.containsSegment(((SegmentNodeState) base).getRecordId().getSegmentId())) {
-                before = (SegmentNodeState) base;
-                beforeTemplate = before.getTemplate();
+            if (base instanceof SegmentNodeState) {
+                SegmentNodeState sns = uncompact((SegmentNodeState) base);
+                if (sns != base || store.containsSegment(
+                        sns.getRecordId().getSegmentId())) {
+                    before = sns;
+                    beforeTemplate = before.getTemplate();
+                }
             }
         }
 

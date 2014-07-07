@@ -64,7 +64,7 @@ import java.util.UUID;
  * average, the amortized size of each entry in this mapping is about
  * {@code 20/n + 8} bytes, assuming compressed pointers.
  */
-class CompactionMap {
+public class CompactionMap {
 
     private final int compressInterval;
     private final Map<RecordId, RecordId> recent = newHashMap();
@@ -91,6 +91,19 @@ class CompactionMap {
      */
     boolean wasCompactedTo(RecordId before, RecordId after) {
         return after.equals(get(before));
+    }
+
+    /**
+     * Checks whether content in the segment with the given identifier was
+     * compacted to new segments.
+     *
+     * @param id segment identifier
+     * @return whether the identified segment was compacted
+     */
+    boolean wasCompacted(SegmentId id) {
+        long msb = id.getMostSignificantBits();
+        long lsb = id.getLeastSignificantBits();
+        return findEntry(msb, lsb) != -1;
     }
 
     public RecordId get(RecordId before) {
