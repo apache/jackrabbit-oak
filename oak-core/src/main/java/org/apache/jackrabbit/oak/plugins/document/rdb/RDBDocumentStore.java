@@ -87,6 +87,7 @@ import com.google.common.util.concurrent.Striped;
  * <li>IBM DB2</li>
  * <li>Postgres</li>
  * <li>MariaDB (MySQL) (experimental)</li>
+ * <li>Oracle (experimental)</li>
  * </ul>
  * 
  * <h3>Table Layout</h3>
@@ -151,7 +152,7 @@ import com.google.common.util.concurrent.Striped;
  * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
  * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased tu support ~2M blobs.</em>
+ * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~2M blobs.</em>
  * 
  * <h3>Caching</h3>
  * <p>
