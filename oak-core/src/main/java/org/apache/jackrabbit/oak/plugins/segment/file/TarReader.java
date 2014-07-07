@@ -481,6 +481,10 @@ class TarReader {
         this.graph = loadGraph(file, access, index);
     }
 
+    long size() {
+        return file.length();
+    }
+
     Set<UUID> getUUIDs() {
         Set<UUID> uuids = newHashSetWithExpectedSize(index.remaining() / 24);
         int position = index.position();

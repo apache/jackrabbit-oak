@@ -27,7 +27,6 @@ import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.File;
@@ -42,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -57,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -117,7 +116,13 @@ public class FileStore implements SegmentStore {
      * The background flush thread. Automatically flushes the TarMK state
      * once every five seconds.
      */
-    private final Thread flushThread;
+    private final BackgroundThread flushThread;
+
+    /**
+     * The background compaction thread. Compacts the TarMK contents whenever
+     * triggered by the {@link #gc()} method.
+     */
+    private final BackgroundThread compactionThread;
 
     /**
      * Flag to request revision cleanup during the next flush.
@@ -125,20 +130,9 @@ public class FileStore implements SegmentStore {
     private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
 
     /**
-     * Flag to request segment compaction during the next flush.
-     */
-    private final AtomicBoolean compactNeeded = new AtomicBoolean(false);
-
-    /**
      * List of old tar file generations that are waiting to be removed.
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
-
-    /**
-     * Synchronization aid used by the background flush thread to stop itself
-     * as soon as the {@link #close()} method is called.
-     */
-    private final CountDownLatch timeToClose = new CountDownLatch(1);
 
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
@@ -231,33 +225,27 @@ public class FileStore implements SegmentStore {
             persistedHead = new AtomicReference<RecordId>(null);
         }
 
-        this.flushThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    timeToClose.await(1, SECONDS);
-                    while (timeToClose.getCount() > 0) {
-                        long start = System.nanoTime();
-                        compact();
+        this.flushThread = new BackgroundThread(
+                "TarMK flush thread [" + directory + "]", 5000, // 5s interval
+                new Runnable() {
+                    @Override
+                    public void run() {
                         try {
                             flush();
                         } catch (IOException e) {
                             log.warn("Failed to flush the TarMK at" +
                                     directory, e);
                         }
-                        long time = SECONDS.convert(
-                                System.nanoTime() - start, NANOSECONDS);
-                        timeToClose.await(Math.max(5, 2 * time), SECONDS);
                     }
-                } catch (InterruptedException e) {
-                    log.warn("TarMK flush thread interrupted");
-                }
-            }
-        });
-        flushThread.setName("TarMK flush thread: " + directory);
-        flushThread.setDaemon(true);
-        flushThread.setPriority(Thread.MIN_PRIORITY);
-        flushThread.start();
+                });
+        this.compactionThread = new BackgroundThread(
+                "TarMK compaction thread [" + directory + "]", -1,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        compact();
+                    }
+                });
 
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
     }
@@ -334,6 +322,14 @@ public class FileStore implements SegmentStore {
         return dataFiles;
     }
 
+    public synchronized long size() throws IOException {
+        long size = writeFile.length();
+        for (TarReader reader : readers) {
+            size += reader.size();
+        }
+        return size;
+    }
+
     public void flush() throws IOException {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
@@ -355,39 +351,7 @@ public class FileStore implements SegmentStore {
                     persistedHead.set(after);
 
                     if (cleanup) {
-                        long start = System.nanoTime();
-
-                        // Suggest to the JVM that now would be a good time
-                        // to clear stale weak references in the SegmentTracker
-                        System.gc();
-
-                        Set<UUID> ids = newHashSet();
-                        for (SegmentId id : tracker.getReferencedSegmentIds()) {
-                            ids.add(new UUID(
-                                    id.getMostSignificantBits(),
-                                    id.getLeastSignificantBits()));
-                        }
-                        writer.cleanup(ids);
-
-                        List<TarReader> list =
-                                newArrayListWithCapacity(readers.size());
-                        for (TarReader reader : readers) {
-                            TarReader cleaned = reader.cleanup(ids);
-                            if (cleaned == reader) {
-                                list.add(reader);
-                            } else {
-                                if (cleaned != null) {
-                                    list.add(cleaned);
-                                }
-                                File file = reader.close();
-                                log.info("TarMK GC: Cleaned up file {}", file);
-                                toBeRemoved.addLast(file);
-                            }
-                        }
-                        readers = list;
-
-                        log.debug("TarMK GC: Completed in {}ms",
-                                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
+                        cleanup();
                     }
                 }
 
@@ -404,15 +368,73 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    public void compact() {
-        if (compactNeeded.getAndSet(false)) {
-            long start = System.nanoTime();
-            tracker.getWriter().dropCache();
-            tracker.setCompactionMap(Compactor.compact(this));
-            log.info("TarMK Compaction: Completed in {}ms", MILLISECONDS
-                    .convert(System.nanoTime() - start, NANOSECONDS));
-            cleanupNeeded.set(true);
+    public synchronized void cleanup() throws IOException {
+        long start = System.nanoTime();
+        log.info("TarMK revision cleanup started");
+
+        // Suggest to the JVM that now would be a good time
+        // to clear stale weak references in the SegmentTracker
+        System.gc();
+
+        Set<UUID> ids = newHashSet();
+        for (SegmentId id : tracker.getReferencedSegmentIds()) {
+            ids.add(new UUID(
+                    id.getMostSignificantBits(),
+                    id.getLeastSignificantBits()));
         }
+        writer.cleanup(ids);
+
+        List<TarReader> list =
+                newArrayListWithCapacity(readers.size());
+        for (TarReader reader : readers) {
+            TarReader cleaned = reader.cleanup(ids);
+            if (cleaned == reader) {
+                list.add(reader);
+            } else {
+                if (cleaned != null) {
+                    list.add(cleaned);
+                }
+                File file = reader.close();
+                log.info("TarMK revision cleanup reclaiming {}", file.getName());
+                toBeRemoved.addLast(file);
+            }
+        }
+        readers = list;
+
+        log.info("TarMK revision cleanup completed in {}ms",
+                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
+    }
+
+    public void compact() {
+        long start = System.nanoTime();
+        log.info("TarMK compaction started");
+
+        SegmentWriter writer = new SegmentWriter(this, tracker);
+        Compactor compactor = new Compactor(writer);
+
+        SegmentNodeState before = getHead();
+        SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
+        writer.flush();
+        while (!setHead(before, after)) {
+            // Some other concurrent changes have been made.
+            // Rebase (and compact) those changes on top of the
+            // compacted state before retrying to set the head.
+            SegmentNodeState head = getHead();
+            after = compactor.compact(before, head);
+            before = head;
+            writer.flush();
+        }
+        tracker.setCompactionMap(compactor.getCompactionMap());
+
+        // Drop the SegmentWriter caches and flush any existing state
+        // in an attempt to prevent new references to old pre-compacted
+        // content. TODO: There should be a cleaner way to do this.
+        tracker.getWriter().dropCache();
+        tracker.getWriter().flush();
+
+        log.info("TarMK compaction completed in {}ms", MILLISECONDS
+                .convert(System.nanoTime() - start, NANOSECONDS));
+        cleanupNeeded.set(true);
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
@@ -451,17 +473,13 @@ public class FileStore implements SegmentStore {
 
     @Override
     public void close() {
-        try {
-            // avoid deadlocks while joining the flush thread
-            timeToClose.countDown();
-            try {
-                flushThread.join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("Interrupted while joining the TarMK flush thread", e);
-            }
+        // avoid deadlocks by closing (and joining) the background
+        // threads before acquiring the synchronization lock
+        compactionThread.close();
+        flushThread.close();
 
-            synchronized (this) {
+        synchronized (this) {
+            try {
                 flush();
 
                 writer.close();
@@ -474,13 +492,13 @@ public class FileStore implements SegmentStore {
 
                 journalLock.release();
                 journalFile.close();
-
-                System.gc(); // for any memory-mappings that are no longer used
+            } catch (IOException e) {
+                throw new RuntimeException(
+                        "Failed to close the TarMK at " + directory, e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(
-                    "Failed to close the TarMK at " + directory, e);
         }
+
+        System.gc(); // for any memory-mappings that are no longer used
 
         log.info("TarMK closed: {}", directory);
     }
@@ -610,7 +628,7 @@ public class FileStore implements SegmentStore {
 
     @Override
     public void gc() {
-        compactNeeded.set(true);
+        compactionThread.trigger();
     }
 
 }
