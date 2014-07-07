@@ -46,10 +46,12 @@ public interface NodeStore {
     NodeState getRoot();
 
     /**
-     * Merges the changes from the passed {@code builder} into
-     * the store.
+     * Merges the changes between the
+     * {@link NodeBuilder#getBaseState() base} and
+     * {@link NodeBuilder#getNodeState() head} states
+     * of the given builder to this store.
      *
-     * @param builder  the builder whose changes to apply
+     * @param builder the builder whose changes to apply
      * @param commitHook the commit hook to apply while merging changes
      * @param info commit info associated with this merge operation
      * @return the node state resulting from the merge.
@@ -63,9 +65,15 @@ public interface NodeStore {
             @Nonnull CommitInfo info) throws CommitFailedException;
 
     /**
-     * Rebase the changes in the passed {@code builder} on top of the current root state.
+     * Rebases the changes between the
+     * {@link NodeBuilder#getBaseState() base} and
+     * {@link NodeBuilder#getNodeState() head} states
+     * of the given builder on top of the current root state.
+     * The base state of the given builder becomes the latest
+     * {@link #getRoot() root} state of the repository, and the
+     * head state will contain the rebased changes.
      *
-     * @param builder  the builder to rebase
+     * @param builder the builder to rebase
      * @return the node state resulting from the rebase.
      * @throws IllegalArgumentException if the builder is not acquired
      *                                  from a root state of this store
