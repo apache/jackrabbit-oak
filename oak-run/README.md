@@ -141,7 +141,6 @@ to be used. The following fixtures are currently supported:
 | Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
 | Oak-Memory    | Oak with default in-memory storage                    |
 | Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
@@ -245,7 +244,6 @@ Finally the benchmark runner supports the following repository fixtures:
 | Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
 | Oak-Memory    | Oak with default in-memory storage                    |
 | Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
@@ -419,7 +417,6 @@ Finally the scalability runner supports the following repository fixtures:
 |---------------|-------------------------------------------------------|
 | Oak-Memory    | Oak with default in-memory storage                    |
 | Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
-| Oak-MemoryMK  | Oak with default in-memory MicroKernel                |
 | Oak-Mongo     | Oak with the default Mongo backend                    |
 | Oak-Mongo-FDS | Oak with the default Mongo backend and FileDataStore  |
 | Oak-MongoNS   | Oak with the Mongo NodeStore                          |
