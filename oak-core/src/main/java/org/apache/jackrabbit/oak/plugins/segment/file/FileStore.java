@@ -369,7 +369,7 @@ public class FileStore implements SegmentStore {
         }
     }
 
-    synchronized void cleanup() throws IOException {
+    public synchronized void cleanup() throws IOException {
         long start = System.nanoTime();
         log.info("TarMK revision cleanup started");
 

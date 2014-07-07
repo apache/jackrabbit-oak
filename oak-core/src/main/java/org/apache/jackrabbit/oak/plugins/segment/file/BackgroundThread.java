@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import static java.lang.System.currentTimeMillis;
 
-import java.util.Calendar;
+import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ class BackgroundThread extends Thread {
     public void run() {
         try {
             while (waitUntilNextIteration()) {
-                setName(name + ", active since " + Calendar.getInstance()
+                setName(name + ", active since " + new Date()
                         + ", previous max duration " + maxDuration + "ms");
 
                 long start = currentTimeMillis();
