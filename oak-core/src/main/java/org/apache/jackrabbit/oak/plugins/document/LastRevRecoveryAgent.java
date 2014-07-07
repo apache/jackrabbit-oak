@@ -78,11 +78,11 @@ public class LastRevRecoveryAgent {
         final long asyncDelay = nodeStore.getAsyncDelay();
 
         if (nodeInfo != null) {
-            long leaseEnd = nodeInfo.getLeaseEndTime();
-
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && recoveryLock not held by someone
-            if (isRecoveryNeeded(nodeInfo)) {            
+            if (isRecoveryNeeded(nodeInfo)) {
+                long leaseEnd = nodeInfo.getLeaseEndTime();
+
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
