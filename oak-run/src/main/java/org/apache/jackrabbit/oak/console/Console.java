@@ -42,7 +42,7 @@ public class Console {
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<Integer> clusterId = parser.accepts("clusterId", "MongoMK clusterId")
-                .withRequiredArg().ofType(Integer.class).defaultsTo(1);
+                .withRequiredArg().ofType(Integer.class).defaultsTo(0);
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
