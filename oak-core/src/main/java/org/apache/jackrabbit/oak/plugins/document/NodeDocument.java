@@ -594,12 +594,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public String getCommitRootPath(Revision revision) {
         String depth = getCommitRootDepth(revision);
         if (depth != null) {
-            if (depth.equals("0")) {
-                return "/";
-            }
-            String p = getPath();
-            return PathUtils.getAncestorPath(p,
-                    PathUtils.getDepth(p) - Integer.parseInt(depth));
+            return getPathAtDepth(depth);
         }
         return null;
     }
@@ -834,7 +829,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             value = getLatestValue(context, getDeleted(),
                     null, maxRev, validRevisions);
         }
-        return value != null && value.value.equals("false") ? value.revision : null;
+
+        return value != null && "false".equals(value.value) ? value.revision : null;
     }
 
     /**
@@ -1181,17 +1177,46 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @CheckForNull
     private NodeDocument getCommitRoot(@Nonnull Revision rev) {
-        if (containsRevision(rev)) {
+        // check local revisions and commitRoot first
+        if (getLocalRevisions().containsKey(rev)) {
             return this;
         }
-        String commitRootPath = getCommitRootPath(rev);
-        if (commitRootPath == null) {
-            // may happen for a commit root document, which hasn't been
-            // updated with the commit revision yet
-            return null;
+        String commitRootPath;
+        String depth = getLocalCommitRoot().get(rev);
+        if (depth != null) {
+            commitRootPath = getPathAtDepth(depth);
+        } else {
+            // fall back to complete check, including previous documents
+            if (containsRevision(rev)) {
+                return this;
+            }
+            commitRootPath = getCommitRootPath(rev);
+            if (commitRootPath == null) {
+                // may happen for a commit root document, which hasn't been
+                // updated with the commit revision yet
+                return null;
+            }
         }
         // get root of commit
         return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath));
+    }
+
+    /**
+     * Returns the path at the given {@code depth} based on the path of this
+     * document.
+     *
+     * @param depth the depth as a string.
+     * @return the path.
+     * @throws NumberFormatException if {@code depth} cannot be parsed as an
+     *              integer.
+     */
+    @Nonnull
+    private String getPathAtDepth(@Nonnull String depth) {
+        if (checkNotNull(depth).equals("0")) {
+            return "/";
+        }
+        String p = getPath();
+        return PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - Integer.parseInt(depth));
     }
 
     /**
@@ -1321,7 +1346,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Get the latest property value that is larger or equal the min revision,
-     * and smaller or equal the readRevision revision.
+     * and smaller or equal the readRevision revision. A {@code null} return
+     * value indicates that the property was not set or removed within the given
+     * range. A non-null value means the the property was either set or removed
+     * depending on {@link Value#value}.
      *
      * @param valueMap the sorted revision-value map
      * @param min the minimum revision (null meaning unlimited)
@@ -1336,8 +1364,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                  @Nullable Revision min,
                                  @Nonnull Revision readRevision,
                                  @Nonnull Map<Revision, String> validRevisions) {
-        String value = null;
-        Revision latestRev = null;
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision propRev = entry.getKey();
             // ignore revisions newer than readRevision
@@ -1363,12 +1389,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             if (isValidRevision(context, propRev, commitValue, readRevision, validRevisions)) {
                 // TODO: need to check older revisions as well?
-                latestRev = Utils.resolveCommitRevision(propRev, commitValue);
-                value = entry.getValue();
-                break;
+                return new Value(
+                        Utils.resolveCommitRevision(propRev, commitValue),
+                        entry.getValue());
             }
         }
-        return value != null ? new Value(value, latestRev) : null;
+        return null;
     }
 
     @Override
@@ -1429,12 +1455,16 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     private static final class Value {
 
-        final String value;
         final Revision revision;
+        /**
+         * The value of a property at the given revision. A {@code null} value
+         * indicates the property was removed.
+         */
+        final String value;
 
-        Value(@Nonnull String value, @Nonnull Revision revision) {
-            this.value = checkNotNull(value);
+        Value(@Nonnull Revision revision, @Nullable String value) {
             this.revision = checkNotNull(revision);
+            this.value = value;
         }
     }
 }
