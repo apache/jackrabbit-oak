@@ -110,7 +110,13 @@ public class AndImpl extends ConstraintImpl {
         for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e2 : m2.entrySet()) {
             Set<StaticOperandImpl> s = result.get(e2.getKey());
             if (s != null) {
-                s.retainAll(e2.getValue());
+                // OAK-1933
+                // a property can have multiple values at the same time,
+                // so that "where a=1 and a=2" needs to be kept and can not
+                // be reduced to "where false" - in fact, we could 
+                // extend it to "where a in (1, 2)" so that an index can be used,
+                // but we might as well keep it at "where a = 1" as that would
+                // also use an index
             } else {
                 result.put(e2.getKey(), e2.getValue());
             }

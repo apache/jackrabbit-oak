@@ -194,8 +194,8 @@ public interface QueryIndex {
         double getCostPerEntry();
 
         /**
-         * The estimated number of entries. This value does not have to be
-         * accurate.
+         * The estimated number of entries in the cursor that is returned by the query method,
+         * when using this plan. This value does not have to be accurate.
          * 
          * @return the estimated number of entries
          */

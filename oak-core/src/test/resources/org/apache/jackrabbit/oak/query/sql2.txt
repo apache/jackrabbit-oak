@@ -29,6 +29,9 @@
 
 commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
 
+select * from [nt:base] 
+  where [a] = 1 and [b] = 2 and [b] = 3 or [c] = 4
+
 select [jcr:path]
   from [nt:base]
   where [a/name] = 'Hello' or [b/name] = 'World'
