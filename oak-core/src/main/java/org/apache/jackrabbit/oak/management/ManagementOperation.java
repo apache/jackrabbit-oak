@@ -21,8 +21,13 @@ package org.apache.jackrabbit.oak.management;
 
 import static com.google.common.base.Objects.toStringHelper;
 import static java.lang.Thread.currentThread;
-import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode;
@@ -40,6 +45,7 @@ import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.su
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.openmbean.CompositeData;
@@ -59,7 +65,7 @@ import org.slf4j.LoggerFactory;
  *
  * @see org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean
  */
-public class ManagementOperation extends FutureTask<Long> {
+public class ManagementOperation<R> extends FutureTask<R> {
     private static final Logger LOG = LoggerFactory.getLogger(ManagementOperation.class);
     private static final AtomicInteger idGen = new AtomicInteger();
 
@@ -73,18 +79,58 @@ public class ManagementOperation extends FutureTask<Long> {
      * @param name  informal name
      * @param task  task to execute for this operation
      */
-    public ManagementOperation(String name, Callable<Long> task) {
+    public static <R> ManagementOperation<R> newManagementOperation(String name, Callable<R> task) {
+        return new ManagementOperation<R>(name, task);
+    }
+
+    /**
+     * An operation that is already done with the given {@code value}.
+     *
+     * @param name   name of the operation
+     * @param result result returned by the operation
+     * @return  a {@code ManagementOperation} instance that is already done.
+     */
+    public static <R> ManagementOperation<R> done(String name, final R result) {
+        return new ManagementOperation<R>("not started", new Callable<R>() {
+            @Override
+            public R call() throws Exception {
+                return result;
+            }
+        }) {
+            @Override
+            public boolean isDone() {
+                return true;
+            }
+
+            @Override
+            public R get() {
+                return result;
+            }
+
+            @Override
+            public void run() {
+                throw new IllegalStateException("This task is done");
+            }
+
+            @Override
+            public Status getStatus() {
+                return none(id, name + " not started");
+            }
+        };
+    }
+
+    /**
+     * Create a new {@code ManagementOperation} of the given name. The name
+     * is an informal value attached to this instance.
+     *
+     * @param name  informal name
+     * @param task  task to execute for this operation
+     */
+    private ManagementOperation(String name, Callable<R> task) {
         super(task);
         this.id = idGen.incrementAndGet();
         this.name = name;
     }
-
-    private static final Callable<Long> NOP = new Callable<Long>() {
-        @Override
-        public Long call() throws Exception {
-            return 0L;
-        }
-    };
 
     /**
      * Each instance of a {@code ManagementOperation} has an unique id
@@ -106,37 +152,6 @@ public class ManagementOperation extends FutureTask<Long> {
     }
 
     /**
-     * An operation that is already done with the given {@code value}.
-     *
-     * @param name  name of the operation
-     * @param value value returned by the operation
-     * @return  a {@code ManagementOperation} instance that is already done.
-     */
-    public static ManagementOperation done(String name, final long value) {
-        return new ManagementOperation("not started", NOP) {
-            @Override
-            public boolean isDone() {
-                return true;
-            }
-
-            @Override
-            public Long get() {
-                return value;
-            }
-
-            @Override
-            public void run() {
-                throw new IllegalStateException("This task is done");
-            }
-
-            @Override
-            public Status getStatus() {
-                return none(id, name + " not started");
-            }
-        };
-    }
-
-    /**
      * The {@link ManagementOperation.Status status} of this operation:
      * <ul>
      *     <li>{@link Status#running(String) running} if the operation is currently
@@ -155,7 +170,7 @@ public class ManagementOperation extends FutureTask<Long> {
             return failed(id, name + " cancelled");
         } else if (isDone()) {
             try {
-                return succeeded(id, name + " completed in " + formatTime(get()));
+                return succeeded(id, name + " succeeded: " + get());
             } catch (InterruptedException e) {
                 currentThread().interrupt();
                 return failed(id, name + " status unknown: " + e.getMessage());
@@ -166,10 +181,6 @@ public class ManagementOperation extends FutureTask<Long> {
         } else {
             return running(id, name + " running");
         }
-    }
-
-    private static String formatTime(long nanos) {
-        return MINUTES.convert(nanos, NANOSECONDS) + " minutes";
     }
 
     @Override
@@ -262,6 +273,61 @@ public class ManagementOperation extends FutureTask<Long> {
 
         static Status failed(int id, String message) {
             return new Status(FAILED, id, message);
+        }
+
+        /**
+         * Utility method for formatting a duration in nano seconds
+         * into a human readable string.
+         * @param nanos  number of nano seconds
+         * @return human readable string
+         */
+        public static String formatTime(long nanos) {
+            TimeUnit unit = chooseUnit(nanos);
+            double value = (double) nanos / NANOSECONDS.convert(1, unit);
+            return String.format("%.4g %s", value, abbreviate(unit));
+        }
+
+        private static TimeUnit chooseUnit(long nanos) {
+            if (DAYS.convert(nanos, NANOSECONDS) > 0) {
+                return DAYS;
+            }
+            if (HOURS.convert(nanos, NANOSECONDS) > 0) {
+                return HOURS;
+            }
+            if (MINUTES.convert(nanos, NANOSECONDS) > 0) {
+                return MINUTES;
+            }
+            if (SECONDS.convert(nanos, NANOSECONDS) > 0) {
+                return SECONDS;
+            }
+            if (MILLISECONDS.convert(nanos, NANOSECONDS) > 0) {
+                return MILLISECONDS;
+            }
+            if (MICROSECONDS.convert(nanos, NANOSECONDS) > 0) {
+                return MICROSECONDS;
+            }
+            return NANOSECONDS;
+        }
+
+        private static String abbreviate(TimeUnit unit) {
+            switch (unit) {
+                case NANOSECONDS:
+                    return "ns";
+                case MICROSECONDS:
+                    return "\u03bcs"; // μs
+                case MILLISECONDS:
+                    return "ms";
+                case SECONDS:
+                    return "s";
+                case MINUTES:
+                    return "min";
+                case HOURS:
+                    return "h";
+                case DAYS:
+                    return "d";
+                default:
+                    throw new IllegalArgumentException(String.valueOf(unit));
+            }
         }
 
         /**
@@ -367,4 +433,5 @@ public class ManagementOperation extends FutureTask<Long> {
             return result;
         }
     }
+
 }

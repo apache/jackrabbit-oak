@@ -28,6 +28,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.FAILED;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.RUNNING;
 import static org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean.StatusCode.SUCCEEDED;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -60,15 +61,15 @@ public class ManagementOperationTest {
 
     @Test(expected = IllegalStateException.class)
     public void notStarted() throws ExecutionException, InterruptedException {
-        ManagementOperation op = ManagementOperation.done("test", 42);
+        ManagementOperation<Integer> op = ManagementOperation.done("test", 42);
         assertTrue(op.isDone());
-        assertEquals(42, (long) op.get());
+        assertEquals(42, (int) op.get());
         sameThreadExecutor().execute(op);
     }
 
     @Test
     public void succeeded() throws InterruptedException, ExecutionException, TimeoutException {
-        ManagementOperation op = new ManagementOperation("test", new Callable<Long>() {
+        ManagementOperation<Long> op = newManagementOperation("test", new Callable<Long>() {
             @Override
             public Long call() throws Exception {
                 return 42L;
@@ -76,27 +77,26 @@ public class ManagementOperationTest {
         });
 
         executor.execute(op);
-        assertEquals(42, (long) op.get(5, SECONDS));
+        assertEquals(42L, (long) op.get(5, SECONDS));
         assertTrue(op.isDone());
         Status status = op.getStatus();
         assertEquals(op.getId(), status.getId());
         assertEquals(SUCCEEDED, status.getCode());
-        assertTrue(status.getMessage().contains("test completed in"));
     }
 
     @Test
     public void failed() throws InterruptedException, TimeoutException {
         final Exception failure = new Exception("fail");
-        ManagementOperation op = new ManagementOperation("test", new Callable<Long>() {
+        ManagementOperation<Void> op = newManagementOperation("test", new Callable<Void>() {
             @Override
-            public Long call() throws Exception {
+            public Void call() throws Exception {
                 throw failure;
             }
         });
 
         executor.execute(op);
         try {
-            assertEquals(42, (long) op.get(5, SECONDS));
+            assertEquals(null, op.get(5, SECONDS));
             fail("Expected " + failure);
         } catch (ExecutionException e) {
             assertEquals(failure, e.getCause());
@@ -112,12 +112,12 @@ public class ManagementOperationTest {
     public void running() throws InterruptedException {
         final LinkedBlockingDeque<Thread> thread = new LinkedBlockingDeque<Thread>(1);
 
-        ManagementOperation op = new ManagementOperation("test", new Callable<Long>() {
+        ManagementOperation<Void> op = newManagementOperation("test", new Callable<Void>() {
             @Override
-            public Long call() throws Exception {
+            public Void call() throws Exception {
                 thread.add(currentThread());
                 sleep(100000);
-                return 0L;
+                return null;
             }
         });
 
@@ -142,10 +142,10 @@ public class ManagementOperationTest {
 
     @Test
     public void cancelled() {
-        ManagementOperation op = new ManagementOperation("test", new Callable<Long>() {
+        ManagementOperation<Void> op = newManagementOperation("test", new Callable<Void>() {
             @Override
-            public Long call() throws Exception {
-                return 0L;
+            public Void call() throws Exception {
+                return null;
             }
         });
 

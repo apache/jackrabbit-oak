@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.plugins.backup;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 import static org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup.backup;
 import static org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore.restore;
 
@@ -50,8 +52,8 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     private final File file;
     private final Executor executor;
 
-    private ManagementOperation backupOp = done(BACKUP_OP_NAME, 0);
-    private ManagementOperation restoreOp = done(RESTORE_OP_NAME, 0);
+    private ManagementOperation<String> backupOp = done(BACKUP_OP_NAME, "");
+    private ManagementOperation<String> restoreOp = done(RESTORE_OP_NAME, "");
 
     /**
      * @param store  store to back up from or restore to
@@ -70,12 +72,12 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     @Override
     public synchronized CompositeData startBackup() {
         if (backupOp.isDone()) {
-            backupOp = new ManagementOperation("Backup", new Callable<Long>() {
+            backupOp = newManagementOperation("Backup", new Callable<String>() {
                 @Override
-                public Long call() throws Exception {
+                public String call() throws Exception {
                     long t0 = nanoTime();
                     backup(store, file);
-                    return nanoTime() - t0;
+                    return "Backup completed in " + formatTime(nanoTime() - t0);
                 }
             });
             executor.execute(backupOp);
@@ -91,12 +93,12 @@ public class FileStoreBackupRestore implements FileStoreBackupRestoreMBean {
     @Override
     public synchronized CompositeData startRestore() {
         if (restoreOp.isDone()) {
-            restoreOp = new ManagementOperation("Restore", new Callable<Long>() {
+            restoreOp = newManagementOperation("Restore", new Callable<String>() {
                 @Override
-                public Long call() throws Exception {
+                public String call() throws Exception {
                     long t0 = nanoTime();
                     restore(file, store);
-                    return nanoTime() - t0;
+                    return "Restore completed in " + formatTime(nanoTime() - t0);
                 }
             });
             executor.execute(restoreOp);
