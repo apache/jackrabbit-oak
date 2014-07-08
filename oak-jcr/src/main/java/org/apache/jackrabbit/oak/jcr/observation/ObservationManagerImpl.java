@@ -207,7 +207,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         String[] nodeTypeName = filter.getNodeTypes();
         boolean noLocal = filter.getNoLocal();
         boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
-        boolean noInternal = false; // FIXME OAK-1618 filter.getNoInternal(); once JCR-3759 is resolved
+        boolean noInternal = filter.getNoInternal();
         List<String> absPaths = Lists.newArrayList(filter.getAdditionalPaths());
         String absPath = filter.getAbsPath();
         if (absPath != null) {
