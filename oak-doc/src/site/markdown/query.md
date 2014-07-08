@@ -324,6 +324,7 @@ The index definition node for a Solr-based index:
  * must contain the `async` property set to the value `async`, this is what sends the 
 
 index update process to a background thread.
+
 _Optionally_ one can add
 
  * the `reindex` flag which when set to `true`, triggers a full content re-index.
@@ -346,14 +347,14 @@ Apache Solr supports multiple deployment architectures:
  * embedded Solr instance running in the same JVM the client runs into
  * single remote instance
  * master / slave architecture, eventually with multiple shards and replicas
- * SolrCloud cluster, with Zookeeper instance(s) to control a dynamic, resilient set of Solr instances for high 
+ * SolrCloud cluster, with Zookeeper instance(s) to control a dynamic, resilient set of Solr servers for high 
  availability and fault tolerance
 
 The Oak Solr index can be configured to use an 'embedded Solr server' or either a 'remote Solr server' (being able to 
 connect to a single remote instance or to a SolrCloud cluster via Zookeeper).
 
 ##### OSGi environment
-TODO
+see the 'Solr Server Configuration' section on the [OSGi configuration](osgi_config.html) page
 
 ##### non OSGi environment
 TODO
