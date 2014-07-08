@@ -662,6 +662,54 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         SplitOperations.forDocument(doc, DummyRevisionContext.INSTANCE);
     }
 
+    @Test
+    public void readLocalCommitInfo() throws Exception {
+        final Set<String> readSet = Sets.newHashSet();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key,
+                                               int maxCacheAge) {
+                readSet.add(key);
+                return super.find(collection, key, maxCacheAge);
+            }
+        };
+        DocumentNodeStore ns = new DocumentMK.Builder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        builder.child("test");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = ns.getRoot().builder();
+            builder.setProperty("p", i);
+            builder.child("test").setProperty("p", i);
+            builder.child("test").setProperty("q", i);
+            ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        builder = ns.getRoot().builder();
+        builder.child("test").removeProperty("q");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        ns.runBackgroundOperations();
+
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+
+        readSet.clear();
+
+        // must not access previous document of /test
+        doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+        for (String id : Sets.newHashSet(readSet)) {
+            doc = store.find(NODES, id);
+            assertNotNull(doc);
+            if (doc.isSplitDocument() && !doc.getMainPath().equals("/")) {
+                fail("must not access previous document: " + id);
+            }
+        }
+
+        ns.dispose();
+    }
+
     private void syncMKs(List<DocumentMK> mks, int idx) {
         mks.get(idx).runBackgroundOperations();
         for (int i = 0; i < mks.size(); i++) {
