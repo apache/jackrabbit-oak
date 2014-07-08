@@ -20,8 +20,8 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static java.lang.System.nanoTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -44,7 +44,7 @@ public class RevisionGC implements RevisionGCMBean {
     private final Runnable gc;
     private final Executor executor;
 
-    private ManagementOperation gcOp = done(OP_NAME, 0);
+    private ManagementOperation<String> gcOp = done(OP_NAME, "");
 
     /**
      * @param gc               Revision garbage collector
@@ -61,12 +61,11 @@ public class RevisionGC implements RevisionGCMBean {
     @Override
     public CompositeData startRevisionGC() {
         if (gcOp.isDone()) {
-            gcOp = new ManagementOperation(OP_NAME, new Callable<Long>() {
+            gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
-                public Long call() throws Exception {
-                    long t0 = nanoTime();
+                public String call() throws Exception {
                     gc.run();
-                    return nanoTime() - t0;
+                    return "Revision GC initiated";
                 }
             });
             executor.execute(gcOp);

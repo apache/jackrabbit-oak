@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.property.jmx;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -42,11 +44,10 @@ public class PropertyIndexAsyncReindex implements
     private final AsyncIndexUpdate async;
     private final Executor executor;
 
-    private ManagementOperation arOp = done(OP_NAME, 0);
+    private ManagementOperation<String> arOp = done(OP_NAME, "");
 
     /**
-     * @param gc
-     *            Revision garbage collector
+     * @param async
      * @param executor
      *            executor for running the garbage collection task
      */
@@ -60,16 +61,16 @@ public class PropertyIndexAsyncReindex implements
     @Override
     public CompositeData startPropertyIndexAsyncReindex() {
         if (arOp.isDone()) {
-            arOp = new ManagementOperation(OP_NAME, new Callable<Long>() {
+            arOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
-                public Long call() throws Exception {
+                public String call() throws Exception {
                     long t0 = nanoTime();
                     boolean done = false;
                     while (!done) {
                         async.run();
                         done = async.isFinished();
                     }
-                    return nanoTime() - t0;
+                    return "Reindex completed in " + formatTime(nanoTime() - t0);
                 }
             });
             executor.execute(arOp);

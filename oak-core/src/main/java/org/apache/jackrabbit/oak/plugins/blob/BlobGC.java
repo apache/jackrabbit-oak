@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.System.nanoTime;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.Status.formatTime;
 import static org.apache.jackrabbit.oak.management.ManagementOperation.done;
+import static org.apache.jackrabbit.oak.management.ManagementOperation.newManagementOperation;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -44,7 +46,7 @@ public class BlobGC implements BlobGCMBean {
     private final BlobGarbageCollector blobGarbageCollector;
     private final Executor executor;
 
-    private ManagementOperation gcOp = done(OP_NAME, 0);
+    private ManagementOperation<String> gcOp = done(OP_NAME, "");
 
     /**
      * @param blobGarbageCollector  Blob garbage collector
@@ -61,12 +63,12 @@ public class BlobGC implements BlobGCMBean {
     @Override
     public CompositeData startBlobGC() {
         if (gcOp.isDone()) {
-            gcOp = new ManagementOperation(OP_NAME, new Callable<Long>() {
+            gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
-                public Long call() throws Exception {
+                public String call() throws Exception {
                     long t0 = nanoTime();
                     blobGarbageCollector.collectGarbage();
-                    return nanoTime() - t0;
+                    return "Blob gc completed in " + formatTime(nanoTime() - t0);
                 }
             });
             executor.execute(gcOp);
