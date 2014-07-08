@@ -4,13 +4,17 @@ Oak Runnable Jar
 This jar contains everything you need for a simple Oak installation.
 The following runmodes are currently available:
 
-    * backup    : Backup an existing Oak repository
-    * benchmark : Run benchmark tests against different Oak repository fixtures.
-    * debug     : Print status information about an Oak repository.
-    * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
-    * server    : Run the Oak Server
-    * console   : Start an interactive console
-    * explore   : Starts a GUI browser based on java swing
+    * backup      : Backup an existing Oak repository.
+    * restore     : Restore a backup of an Oak repository.
+    * benchmark   : Run benchmark tests against different Oak repository fixtures.
+    * debug       : Print status information about an Oak repository.
+    * compact     : Segment compaction on a TarMK repository.
+    * upgrade     : Upgrade from Jackrabbit 2.x repository to Oak.
+    * server      : Run the Oak Server.
+    * console     : Start an interactive console.
+    * explore     : Starts a GUI browser based on java swing.
+    * scalability : Run scalability tests against different Oak repository fixtures.
+    * help        : Print a list of available runmodes
 
 See the subsections below for more details on how to use these modes.
 

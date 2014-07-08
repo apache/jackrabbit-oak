@@ -38,6 +38,7 @@ import java.util.regex.Pattern;
 
 import javax.jcr.Repository;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
@@ -99,7 +100,12 @@ public class Main {
 
         Mode mode = Mode.SERVER;
         if (args.length > 0) {
-            mode = Mode.valueOf(args[0].toUpperCase(Locale.ENGLISH));
+            try {
+                mode = Mode.valueOf(args[0].toUpperCase(Locale.ENGLISH));
+            } catch (IllegalArgumentException e) {
+                System.err.println("Unknown run mode: " + args[0]);
+                mode = Mode.HELP;
+            }
             String[] tail = new String[args.length - 1];
             System.arraycopy(args, 1, tail, 0, tail.length);
             args = tail;
@@ -135,8 +141,10 @@ public class Main {
             case EXPLORE:
                 Explorer.main(args);
                 break;
+            case HELP:
             default:
-                System.err.println("Unknown command: " + mode);
+                System.err.print("Available run modes: ");
+                System.err.println(Joiner.on(',').join(Mode.values()));
                 System.exit(1);
 
         }
@@ -653,13 +661,14 @@ public class Main {
         BACKUP("backup"),
         RESTORE("restore"),
         BENCHMARK("benchmark"),
-        CONSOLE("debug"),
+        CONSOLE("console"),
         DEBUG("debug"),
         COMPACT("compact"),
         SERVER("server"),
         UPGRADE("upgrade"),
         SCALABILITY("scalability"),
-        EXPLORE("explore");
+        EXPLORE("explore"),
+        HELP("help");
 
         private final String name;
 
