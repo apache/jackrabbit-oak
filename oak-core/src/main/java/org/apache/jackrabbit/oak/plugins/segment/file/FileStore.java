@@ -598,9 +598,6 @@ public class FileStore implements SegmentStore {
                 list.addAll(readers);
                 readers = list;
 
-                // trigger revision cleanup after next flush
-                cleanupNeeded.set(true);
-
                 writeNumber++;
                 writeFile = new File(
                         directory,
