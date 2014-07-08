@@ -235,3 +235,78 @@ need not be specified in config files
 [1]: http://docs.mongodb.org/manual/reference/connection-string/
 [2]: http://jackrabbit.apache.org/api/2.4/org/apache/jackrabbit/core/data/FileDataStore.html
 [OAK-1645]: https://issues.apache.org/jira/browse/OAK-1645
+
+### Solr Server Configuration
+Solr index requires some configuration to be properly used, in OSGi environments such configurations can be performed 
+via OSGi Configuration Admin.
+
+The following configuration items can be defined (e.g. through Apache Felix WebConsole).
+
+1. Oak Solr indexing / search configuration: Configuration for _OakSolrConfigurationProvider_ service with the following parameters:
+
+        #field for searching for nodes having a certain exact path
+        path.exact.field = path_exact
+        
+        #field for searching for nodes descendants of a node with a certain path
+        path.desc.field = path_des
+        
+        #field for searching for nodes children of a node with a certain path
+        path.child.field = path_child
+        
+        #field for searching for nodes parents of a node with a certain path
+        path.parent.field = path_anc
+        
+        #field to be used for searching when no field is defined in the search query (e.g. user entered queries like 'foo bar')
+        catch.all.field = catch_all
+        
+        #number of documents per 'page' to be fetched for each query 
+        rows = 100000
+        
+        #Solr commit policy to be used when indexing nodes as documents in Solr 
+        commit.policy = SOFT
+        
+        #wether the Solr index should be used also for filtering nodes by path restrictions 
+        path.restrictions = false
+        
+        #wether the Solr index should be used also for filtering nodes by property restrictions 
+        property.restrictions = false
+        
+        #wether the Solr index should be used also for filtering nodes by primary type 
+        primarytypes.restrictions = false
+
+2. Oak Solr remote server configuration: Configuration for _RemoteSolrServerProvider_ service with the following parameters:
+       
+        #URL to connect to a single remote Solr instance, including the core name (e.g. http://10.10.1.107:8983/solr/oak)
+        solr.http.url = 
+        
+        #Zookeeper host to connect to when using SolrCloud clusters (e.g. 10.10.1.102:9983)
+        solr.zk.host =
+        
+        #name ot the Solr collection to use when connecting to a SolrCloud cluster
+        solr.collection = oak 
+        
+        #number of shards to be used for the collection to be used with SolrCloud
+        solr.shards.no = 2
+        
+        #Solr replication factor, no. of replicas to be created for each shard (for each collection) with SolrCloud 
+        solr.replication.factor = 2
+        
+        #number of documents per 'page' to be fetched for each query 
+        solr.conf.dir = directory eventually containing the configuration files to be uploaded for creating the SolrCloud collection 
+        
+3. Oak Solr embedded server configuration: Configuration for _EmbeddedSolrServerProvider_ service with the following parameters:
+
+        #path to the Solr home directory to be used for starting the EmbeddedSolrServer (can be absolute or relative)
+        solr.home.path = solr 
+        
+        #name of the Solr core to be created within the EmbeddedSolrServer
+        solr.core.name = oak
+        
+        #path to the cores config file to be used for starting Solr
+        solr.config.path = solr.xml 
+
+4. Oak Solr server provider: Configuration for _SolrServerProvider_ service with the following parameters:
+
+        #type of Solr server provider to be used, supported types are none, remote (RemoteSolrServerProvider) and embedded (EmbeddedSolrServerProvider)
+        server.type = none
+
