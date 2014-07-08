@@ -29,6 +29,7 @@
 
   <artifactId>oak-doc</artifactId>
   <name>Oak Documentation</name>
+  <url>http://jackrabbit.apache.org/oak/docs/</url>
   <packaging>jar</packaging>
 
   <build>
