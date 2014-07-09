@@ -129,7 +129,11 @@ public class DocumentMK implements MicroKernel {
 
     @Override @Nonnull
     public String checkpoint(long lifetime) throws MicroKernelException {
-        return nodeStore.checkpoint(lifetime);
+        try {
+            return nodeStore.checkpoint(lifetime);
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
@@ -164,7 +168,11 @@ public class DocumentMK implements MicroKernel {
         if (path == null || path.equals("")) {
             path = "/";
         }
-        return nodeStore.diff(fromRevisionId, toRevisionId, path);
+        try {
+            return nodeStore.diff(fromRevisionId, toRevisionId, path);
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
@@ -175,7 +183,12 @@ public class DocumentMK implements MicroKernel {
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
-        DocumentNodeState n = nodeStore.getNode(path, rev);
+        DocumentNodeState n;
+        try {
+            n = nodeStore.getNode(path, rev);
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
+        }
         return n != null;
     }
 
@@ -195,40 +208,44 @@ public class DocumentMK implements MicroKernel {
         }
         revisionId = revisionId != null ? revisionId : nodeStore.getHeadRevision().toString();
         Revision rev = Revision.fromString(revisionId);
-        DocumentNodeState n = nodeStore.getNode(path, rev);
-        if (n == null) {
-            return null;
-        }
-        JsopStream json = new JsopStream();
-        boolean includeId = filter != null && filter.contains(":id");
-        includeId |= filter != null && filter.contains(":hash");
-        json.object();
-        n.append(json, includeId);
-        int max;
-        if (maxChildNodes == -1) {
-            max = Integer.MAX_VALUE;
-            maxChildNodes = Integer.MAX_VALUE;
-        } else {
-            // use long to avoid overflows
-            long m = ((long) maxChildNodes) + offset;
-            max = (int) Math.min(m, Integer.MAX_VALUE);
-        }
-        Children c = nodeStore.getChildren(n, null, max);
-        for (long i = offset; i < c.children.size(); i++) {
-            if (maxChildNodes-- <= 0) {
-                break;
+        try {
+            DocumentNodeState n = nodeStore.getNode(path, rev);
+            if (n == null) {
+                return null;
             }
-            String name = c.children.get((int) i);
-            json.key(name).object().endObject();
+            JsopStream json = new JsopStream();
+            boolean includeId = filter != null && filter.contains(":id");
+            includeId |= filter != null && filter.contains(":hash");
+            json.object();
+            n.append(json, includeId);
+            int max;
+            if (maxChildNodes == -1) {
+                max = Integer.MAX_VALUE;
+                maxChildNodes = Integer.MAX_VALUE;
+            } else {
+                // use long to avoid overflows
+                long m = ((long) maxChildNodes) + offset;
+                max = (int) Math.min(m, Integer.MAX_VALUE);
+            }
+            Children c = nodeStore.getChildren(n, null, max);
+            for (long i = offset; i < c.children.size(); i++) {
+                if (maxChildNodes-- <= 0) {
+                    break;
+                }
+                String name = c.children.get((int) i);
+                json.key(name).object().endObject();
+            }
+            if (c.hasMore) {
+                // TODO use a better way to notify there are more children
+                json.key(":childNodeCount").value(Long.MAX_VALUE);
+            } else {
+                json.key(":childNodeCount").value(c.children.size());
+            }
+            json.endObject();
+            return json.toString();
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
         }
-        if (c.hasMore) {
-            // TODO use a better way to notify there are more children
-            json.key(":childNodeCount").value(Long.MAX_VALUE);
-        } else {
-            json.key(":childNodeCount").value(c.children.size());
-        }
-        json.endObject();
-        return json.toString();
     }
 
     @Override
@@ -244,6 +261,8 @@ public class DocumentMK implements MicroKernel {
             parseJsonDiff(commit, jsonDiff, rootPath);
             rev = commit.apply();
             success = true;
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
         } finally {
             if (!success) {
                 nodeStore.canceled(commit);
@@ -273,8 +292,10 @@ public class DocumentMK implements MicroKernel {
         }
         try {
             return nodeStore.merge(revision, null).toString();
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
         } catch (CommitFailedException e) {
-            throw new MicroKernelException(e.getMessage(), e);
+            throw new MicroKernelException(e);
         }
     }
 
@@ -303,7 +324,11 @@ public class DocumentMK implements MicroKernel {
         if (!ancestor.isBranch()) {
             throw new MicroKernelException("Not a branch revision: " + ancestorRevisionId);
         }
-        return nodeStore.reset(branch, ancestor).toString();
+        try {
+            return nodeStore.reset(branch, ancestor).toString();
+        } catch (DocumentStoreException e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

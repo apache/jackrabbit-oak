@@ -27,7 +27,6 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
@@ -295,7 +294,7 @@ public class ClusterNodeInfo {
                 return clusterNode;
             }
         }
-        throw new MicroKernelException("Could not get cluster node info");
+        throw new DocumentStoreException("Could not get cluster node info");
     }
 
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,

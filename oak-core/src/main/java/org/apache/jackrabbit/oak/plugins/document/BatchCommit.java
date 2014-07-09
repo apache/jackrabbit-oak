@@ -20,9 +20,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +83,11 @@ final class BatchCommit {
                                 BatchCommit.this.wait();
                             }
                         }
-                        return execute(idx).get();
+                        try {
+                            return execute(idx).get();
+                        } catch (ExecutionException e) {
+                            throw DocumentStoreException.convert(e.getCause());
+                        }
                     }
                 };
             } else {
@@ -138,7 +142,7 @@ final class BatchCommit {
                 finished.await();
             } catch (InterruptedException e) {
                 String msg = "Interrupted while waiting for batch commit to finish";
-                return Futures.immediateFailedFuture(new MicroKernelException(msg));
+                return Futures.immediateFailedFuture(new DocumentStoreException(msg));
             }
         }
         return results.get(idx);

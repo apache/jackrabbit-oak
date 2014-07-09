@@ -28,10 +28,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 
 /**
@@ -217,8 +217,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @CheckForNull
-    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         try {
             long start = now();
             T result = base.createOrUpdate(collection, update);
@@ -234,8 +233,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     @CheckForNull
-    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         try {
             long start = now();
             T result = base.findAndUpdate(collection, update);
@@ -336,7 +334,7 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         if (e instanceof RuntimeException) {
             return (RuntimeException) e;
         }
-        return new MicroKernelException("Unexpected exception: " + e.toString(), e);
+        return new DocumentStoreException("Unexpected exception: " + e.toString(), e);
     }
 
     private void log(String message) {

@@ -30,9 +30,9 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +48,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         try {
             initialize(ds);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB blob store", ex);
+            throw new DocumentStoreException("initializing RDB blob store", ex);
         }
     }
 
@@ -485,7 +485,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     private Connection getConnection() throws SQLException {
         DataSource ds = this.ds;
         if (ds == null) {
-            throw new MicroKernelException("This instance of the RDBBlobStore has already been closed.");
+            throw new DocumentStoreException("This instance of the RDBBlobStore has already been closed.");
         }
         Connection c = ds.getConnection();
         c.setAutoCommit(false);
