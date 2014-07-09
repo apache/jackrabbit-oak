@@ -165,18 +165,38 @@ public class ObservationTest extends AbstractRepositoryTest {
 
     @Test
     public void infoMap() throws RepositoryException, ExecutionException, InterruptedException {
+        Node n = getNode(TEST_PATH);
+        Node n3 = n.addNode("n3");
+        n3.setProperty("p1", "q1");
+        n3.setProperty("p2", "q2");
+        getAdminSession().save();
+
         ExpectationListener listener = new ExpectationListener();
-        observationManager.addEventListener(listener, NODE_ADDED, "/", true, null, null, false);
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
         try {
-            Node n = getNode(TEST_PATH);
             n.addNode("n1", "oak:Unstructured");
             n.addNode("n2");
             n.getNode("n2").addMixin(TEST_TYPE);
+            n3.setProperty("p1", "changed");
+            n3.setProperty("p2", (String) null);
 
             listener.expect(new Expectation("infoMap for n1") {
                 @Override
                 public boolean onEvent(Event event) throws Exception {
-                    if (event.getPath().endsWith("n1")) {
+                    if (event.getType() == NODE_ADDED && event.getPath().endsWith("n1")) {
+                        Map<?, ?> info = event.getInfo();
+                        return info != null &&
+                                "oak:Unstructured".equals(info.get(JCR_PRIMARYTYPE));
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            listener.expect(new Expectation("infoMap for n1/jcr:primaryType") {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    if (event.getType() == PROPERTY_ADDED &&
+                            event.getPath().endsWith("n1/jcr:primaryType")) {
                         Map<?, ?> info = event.getInfo();
                         return info != null &&
                                 "oak:Unstructured".equals(info.get(JCR_PRIMARYTYPE));
@@ -189,7 +209,7 @@ public class ObservationTest extends AbstractRepositoryTest {
             listener.expect(new Expectation("infoMap for n2") {
                 @Override
                 public boolean onEvent(Event event) throws Exception {
-                    if (event.getPath().endsWith("n2")) {
+                    if (event.getType() == NODE_ADDED && event.getPath().endsWith("n2")) {
                         Map<?, ?> info = event.getInfo();
                         if (info == null) {
                             return false;
@@ -204,6 +224,47 @@ public class ObservationTest extends AbstractRepositoryTest {
                         return NT_UNSTRUCTURED.equals(primaryType) &&
                                 mixins.length == 1 &&
                                 TEST_TYPE.equals(mixins[0]);
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            listener.expect(new Expectation("n2/jcr:primaryType") {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    return event.getType() == PROPERTY_ADDED &&
+                            event.getPath().endsWith("n2/jcr:primaryType");
+                }
+            });
+            listener.expect(new Expectation("n2/jcr:mixinTypes") {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    return event.getType() == PROPERTY_ADDED &&
+                            event.getPath().endsWith("n2/jcr:mixinTypes");
+                }
+            });
+
+            listener.expect(new Expectation("infoMap for n3/p1") {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    if (event.getType() == PROPERTY_CHANGED &&
+                            event.getPath().endsWith("n3/p1")) {
+                        Map<?, ?> info = event.getInfo();
+                        return info != null &&
+                                NT_UNSTRUCTURED.equals(info.get(JCR_PRIMARYTYPE));
+                    } else {
+                        return false;
+                    }
+                }
+            });
+            listener.expect(new Expectation("infoMap for n3/p2") {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    if (event.getType() == PROPERTY_REMOVED &&
+                            event.getPath().endsWith("n3/p2")) {
+                        Map<?, ?> info = event.getInfo();
+                        return info != null &&
+                                NT_UNSTRUCTURED.equals(info.get(JCR_PRIMARYTYPE));
                     } else {
                         return false;
                     }

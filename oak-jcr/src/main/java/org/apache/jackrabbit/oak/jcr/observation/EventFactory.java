@@ -75,46 +75,49 @@ public class EventFactory {
         }
     }
 
-    Event propertyAdded(String path, String name, String identifier) {
+    Event propertyAdded(
+            final String primaryType, final Iterable<String> mixinTypes,
+            String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_ADDED;
             }
+            @Override
+            public Map<?, ?> getInfo() {
+                return createInfoMap(primaryType, mixinTypes);
+            }
         };
     }
 
-    Event propertyChanged(String path, String name, String identifier) {
+    Event propertyChanged(
+            final String primaryType, final Iterable<String> mixinTypes,
+            String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_CHANGED;
             }
+            @Override
+            public Map<?, ?> getInfo() {
+                return createInfoMap(primaryType, mixinTypes);
+            }
         };
     }
 
-    Event propertyDeleted(String path, String name, String identifier) {
+    Event propertyDeleted(
+            final String primaryType, final Iterable<String> mixinTypes,
+            String path, String name, String identifier) {
         return new EventImpl(path, name, identifier) {
             @Override
             public int getType() {
                 return PROPERTY_REMOVED;
             }
-        };
-    }
-
-    private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
-        if (isEmpty(mixinTypes)) {
-            return ImmutableMap.of(
-                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
-        } else {
-            List<String> jcrNames = Lists.newArrayList();
-            for (String name : mixinTypes) {
-                jcrNames.add(mapper.getJcrName(name));
+            @Override
+            public Map<?, ?> getInfo() {
+                return createInfoMap(primaryType, mixinTypes);
             }
-            return ImmutableMap.of(
-                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
-                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
-        }
+        };
     }
 
     Event nodeAdded(final String primaryType, final Iterable<String> mixinTypes,
@@ -146,6 +149,7 @@ public class EventFactory {
     }
 
     Event nodeMoved(
+            final String primaryType, final Iterable<String> mixinTypes,
             String parent, String name, String identifier,
             final String sourcePath) {
         return new EventImpl(parent, name, identifier) {
@@ -155,14 +159,17 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.of(
-                        "srcAbsPath", mapper.getJcrPath(sourcePath),
-                        "destAbsPath", getPath());
+                return ImmutableMap.builder()
+                    .put("srcAbsPath", mapper.getJcrPath(sourcePath))
+                    .put("destAbsPath", getPath())
+                    .putAll(createInfoMap(primaryType, mixinTypes))
+                    .build();
             }
         };
     }
 
     Event nodeReordered(
+            final String primaryType, final Iterable<String> mixinTypes,
             String parent, String name, String identifier,
             final String destName) {
         return new EventImpl(parent, name, identifier) {
@@ -172,11 +179,28 @@ public class EventFactory {
             }
             @Override
             public Map<?, ?> getInfo() {
-                return ImmutableMap.of(
-                        "srcChildRelPath", mapper.getJcrName(name),
-                        "destChildRelPath", mapper.getJcrName(destName));
+                return ImmutableMap.builder()
+                    .put("srcChildRelPath", mapper.getJcrName(name))
+                    .put("destChildRelPath", mapper.getJcrName(destName))
+                    .putAll(createInfoMap(primaryType, mixinTypes))
+                    .build();
             }
         };
+    }
+
+    private Map<String, ?> createInfoMap(String primaryType, Iterable<String> mixinTypes) {
+        if (isEmpty(mixinTypes)) {
+            return ImmutableMap.of(
+                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType));
+        } else {
+            List<String> jcrNames = Lists.newArrayList();
+            for (String name : mixinTypes) {
+                jcrNames.add(mapper.getJcrName(name));
+            }
+            return ImmutableMap.of(
+                    JCR_PRIMARYTYPE, mapper.getJcrName(primaryType),
+                    JCR_MIXINTYPES, toArray(jcrNames, String.class));
+        }
     }
 
     //---------------------------------------------------------< EventImpl >--

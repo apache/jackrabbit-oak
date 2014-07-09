@@ -44,6 +44,10 @@ class QueueingHandler extends DefaultEventHandler {
 
     private final PathTracker pathTracker;
 
+    private final String parentType;
+
+    private final Iterable<String> parentMixins;
+
     // need to track identifiers for both before and after trees,
     // to get correct identifiers for events in removed subtrees
     private final IdentifierTracker beforeIdentifierTracker;
@@ -59,8 +63,12 @@ class QueueingHandler extends DefaultEventHandler {
         this.beforeIdentifierTracker = new IdentifierTracker(before);
         if (after.exists()) {
             this.identifierTracker = new IdentifierTracker(after);
+            this.parentType = getPrimaryType(after);
+            this.parentMixins = getMixinTypes(after);
         } else {
             this.identifierTracker = beforeIdentifierTracker;
+            this.parentType = getPrimaryType(before);
+            this.parentMixins = getMixinTypes(before);
         }
     }
 
@@ -75,8 +83,12 @@ class QueueingHandler extends DefaultEventHandler {
         if (after.exists()) {
             this.identifierTracker =
                     parent.identifierTracker.getChildTracker(name, after);
+            this.parentType = getPrimaryType(after);
+            this.parentMixins = getMixinTypes(after);
         } else {
             this.identifierTracker = beforeIdentifierTracker;
+            this.parentType = getPrimaryType(before);
+            this.parentMixins = getMixinTypes(before);
         }
     }
 
@@ -91,6 +103,7 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyAdded(PropertyState after) {
         queue.addEvent(factory.propertyAdded(
+                parentType, parentMixins,
                 pathTracker.getPath(), after.getName(),
                 identifierTracker.getIdentifier()));
     }
@@ -98,6 +111,7 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         queue.addEvent(factory.propertyChanged(
+                parentType, parentMixins,
                 pathTracker.getPath(), after.getName(),
                 identifierTracker.getIdentifier()));
     }
@@ -105,26 +119,9 @@ class QueueingHandler extends DefaultEventHandler {
     @Override
     public void propertyDeleted(PropertyState before) {
         queue.addEvent(factory.propertyDeleted(
+                parentType, parentMixins,
                 pathTracker.getPath(), before.getName(),
                 identifierTracker.getIdentifier()));
-    }
-
-    private static String getPrimaryType(NodeState before) {
-        PropertyState primaryType = before.getProperty(JCR_PRIMARYTYPE);
-        if (primaryType != null && primaryType.getType() == NAME) {
-            return primaryType.getValue(NAME);
-        } else {
-            return null;
-        }
-    }
-
-    private static Iterable<String> getMixinTypes(NodeState before) {
-        PropertyState mixinTypes = before.getProperty(JCR_MIXINTYPES);
-        if (mixinTypes != null && mixinTypes.getType() == NAMES) {
-            return mixinTypes.getValue(NAMES);
-        } else {
-            return emptyList();
-        }
     }
 
     @Override
@@ -152,6 +149,7 @@ class QueueingHandler extends DefaultEventHandler {
         IdentifierTracker tracker =
                 identifierTracker.getChildTracker(name, moved);
         queue.addEvent(factory.nodeMoved(
+                getPrimaryType(moved), getMixinTypes(moved),
                 pathTracker.getPath(), name, tracker.getIdentifier(),
                 sourcePath));
     }
@@ -162,8 +160,27 @@ class QueueingHandler extends DefaultEventHandler {
         IdentifierTracker tracker =
                 identifierTracker.getChildTracker(name, reordered);
         queue.addEvent(factory.nodeReordered(
+                getPrimaryType(reordered), getMixinTypes(reordered),
                 pathTracker.getPath(), name, tracker.getIdentifier(),
                 destName));
+    }
+
+    private static String getPrimaryType(NodeState before) {
+        PropertyState primaryType = before.getProperty(JCR_PRIMARYTYPE);
+        if (primaryType != null && primaryType.getType() == NAME) {
+            return primaryType.getValue(NAME);
+        } else {
+            return null;
+        }
+    }
+
+    private static Iterable<String> getMixinTypes(NodeState before) {
+        PropertyState mixinTypes = before.getProperty(JCR_MIXINTYPES);
+        if (mixinTypes != null && mixinTypes.getType() == NAMES) {
+            return mixinTypes.getValue(NAMES);
+        } else {
+            return emptyList();
+        }
     }
 
 }
