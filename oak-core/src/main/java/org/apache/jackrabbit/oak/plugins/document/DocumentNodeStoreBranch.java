@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 /**
  * Implementation of a DocumentMK based node store branch.
@@ -119,6 +120,18 @@ class DocumentNodeStoreBranch
                 store.moveNode(src, target, c);
             }
         }, base, null);
+    }
+
+    @Override
+    protected CommitFailedException convertUnchecked(Exception cause,
+                                                     String msg) {
+        String type;
+        if (cause instanceof DocumentStoreException) {
+            type = MERGE;
+        } else {
+            type = OAK;
+        }
+        return new CommitFailedException(type, 1, msg, cause);
     }
 
     @Nonnull

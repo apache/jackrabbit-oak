@@ -29,10 +29,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -159,14 +159,12 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @CheckForNull
     @Override
-    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         return internalCreateOrUpdate(collection, update, false);
     }
 
     @Override
-    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         return internalCreateOrUpdate(collection, update, true);
     }
 
@@ -206,7 +204,7 @@ public class MemoryDocumentStore implements DocumentStore {
             T doc = collection.newDocument(this);
             if (oldDoc == null) {
                 if (!update.isNew()) {
-                    throw new MicroKernelException("Document does not exist: " + update.getId());
+                    throw new DocumentStoreException("Document does not exist: " + update.getId());
                 }
             } else {
                 oldDoc.deepCopy(doc);

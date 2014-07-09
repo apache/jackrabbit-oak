@@ -32,7 +32,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
@@ -197,6 +196,17 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
      * @return the result of the move operation.
      */
     protected abstract N move(String source, String target, N base);
+
+    /**
+     * Convert an implementation specific unchecked exception into a
+     * {@link CommitFailedException}.
+     *
+     * @param cause the unchecked exception cause.
+     * @param msg the message to use for the {@link CommitFailedException}.
+     * @return a {@link CommitFailedException}.
+     */
+    protected abstract CommitFailedException convertUnchecked(Exception cause,
+                                                              String msg);
 
     @Override
     public String toString() {
@@ -501,12 +511,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                     dispatcher.contentChanged(newHead, info);
                     branchState = new Merged(base);
                     return newHead;
-                } catch (MicroKernelException e) {
-                    throw new CommitFailedException(MERGE, 1,
-                            "Failed to merge changes to the underlying store", e);
                 } catch (Exception e) {
-                    throw new CommitFailedException(OAK, 1,
-                            "Failed to merge changes to the underlying store", e);
+                    throw convertUnchecked(e,
+                            "Failed to merge changes to the underlying store");
                 }
             } finally {
                 dispatcher.contentChanged(getRoot(), null);

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
 /**
  * {@code NodeStoreBranch} based on {@link MicroKernel} branching and merging.
@@ -125,7 +126,19 @@ public class KernelNodeStoreBranch extends
         return store.commit(">\"" + source + "\":\"" + target + '"', base);
     }
 
-//------------------------< NodeStoreBranch >-------------------------------
+    @Override
+    protected CommitFailedException convertUnchecked(Exception cause,
+                                                     String msg) {
+        String type;
+        if (cause instanceof MicroKernelException) {
+            type = MERGE;
+        } else {
+            type = OAK;
+        }
+        return new CommitFailedException(type, 1, msg, cause);
+    }
+
+    //------------------------< NodeStoreBranch >-------------------------------
 
     @Nonnull
     @Override

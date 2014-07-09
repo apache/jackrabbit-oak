@@ -30,7 +30,7 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -78,7 +78,7 @@ public class RDBDataSourceFactory {
         } catch (SQLException ex) {
             String message = "trying to obtain driver for " + url;
             LOG.info(message, ex);
-            throw new MicroKernelException(message, ex);
+            throw new DocumentStoreException(message, ex);
         }
     }
 

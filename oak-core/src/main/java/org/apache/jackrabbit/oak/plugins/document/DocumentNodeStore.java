@@ -56,7 +56,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
@@ -668,14 +667,14 @@ public final class DocumentNodeStore
             });
             return node == missing ? null : node;
         } catch (ExecutionException e) {
-            throw new MicroKernelException(e);
+            throw DocumentStoreException.convert(e.getCause());
         }
     }
 
     DocumentNodeState.Children getChildren(@Nonnull final DocumentNodeState parent,
                               @Nullable final String name,
                               final int limit)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         if (checkNotNull(parent).hasNoChildren()) {
             return DocumentNodeState.NO_CHILDREN;
         }
@@ -692,9 +691,9 @@ public final class DocumentNodeStore
                     }
                 });
             } catch (ExecutionException e) {
-                throw new MicroKernelException(
+                throw DocumentStoreException.convert(e.getCause(),
                         "Error occurred while fetching children for path "
-                                + path, e.getCause());
+                                + path);
             }
             if (children.hasMore && limit > children.children.size()) {
                 // there are potentially more children and
@@ -869,7 +868,7 @@ public final class DocumentNodeStore
                 String p = PathUtils.concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
-                    throw new MicroKernelException("DocumentNodeState is null for revision " + readRevision + " of " + p
+                    throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p
                             + " (aborting getChildNodes())");
                 }
                 return result;
@@ -987,10 +986,10 @@ public final class DocumentNodeStore
      * @param commit the updates to apply on the commit root document.
      * @return the document before the update was applied or <code>null</code>
      *          if the update failed because of a collision.
-     * @throws MicroKernelException if the update fails with an error.
+     * @throws DocumentStoreException if the update fails with an error.
      */
     @CheckForNull
-    NodeDocument updateCommitRoot(UpdateOp commit) throws MicroKernelException {
+    NodeDocument updateCommitRoot(UpdateOp commit) throws DocumentStoreException {
         // use batch commit when there are only revision and modified updates
         // and collision checks
         boolean batch = true;
@@ -1012,25 +1011,15 @@ public final class DocumentNodeStore
     }
 
     private NodeDocument batchUpdateCommitRoot(UpdateOp commit)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         try {
             return batchCommitQueue.updateDocument(commit).call();
         } catch (InterruptedException e) {
-            throw new MicroKernelException("Interrupted while updating commit root document");
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof MicroKernelException) {
-                throw (MicroKernelException) e.getCause();
-            } else {
-                String msg = "Update of commit root document failed";
-                throw new MicroKernelException(msg, e.getCause());
-            }
+            throw DocumentStoreException.convert(e,
+                    "Interrupted while updating commit root document");
         } catch (Exception e) {
-            if (e instanceof MicroKernelException) {
-                throw (MicroKernelException) e;
-            } else {
-                String msg = "Update of commit root document failed";
-                throw new MicroKernelException(msg, e);
-            }
+            throw DocumentStoreException.convert(e,
+                    "Update of commit root document failed");
         }
     }
 
@@ -1088,14 +1077,14 @@ public final class DocumentNodeStore
         checkNotNull(ancestor);
         Branch b = getBranches().getBranch(branchHead);
         if (b == null) {
-            throw new MicroKernelException("Empty branch cannot be reset");
+            throw new DocumentStoreException("Empty branch cannot be reset");
         }
         if (!b.getCommits().last().equals(branchHead)) {
-            throw new MicroKernelException(branchHead + " is not the head " +
+            throw new DocumentStoreException(branchHead + " is not the head " +
                     "of a branch");
         }
         if (!b.containsCommit(ancestor)) {
-            throw new MicroKernelException(ancestor + " is not " +
+            throw new DocumentStoreException(ancestor + " is not " +
                     "an ancestor revision of " + branchHead);
         }
         if (branchHead.equals(ancestor)) {
@@ -1220,7 +1209,7 @@ public final class DocumentNodeStore
 
     String diff(@Nonnull final String fromRevisionId,
                 @Nonnull final String toRevisionId,
-                @Nonnull final String path) throws MicroKernelException {
+                @Nonnull final String path) throws DocumentStoreException {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
         }
@@ -1233,7 +1222,7 @@ public final class DocumentNodeStore
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
                     "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
                     path, fromRev, from != null, toRev, to != null);
-            throw new MicroKernelException(msg);
+            throw new DocumentStoreException(msg);
         }
         String compactDiff = diffCache.getChanges(fromRev, toRev, path);
         if (compactDiff == null) {
@@ -1527,7 +1516,7 @@ public final class DocumentNodeStore
     }
 
     private String diffImpl(DocumentNodeState from, DocumentNodeState to)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         JsopWriter w = new JsopStream();
         // TODO this does not work well for large child node lists
         // use a document store index instead

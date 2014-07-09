@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -227,7 +226,7 @@ public class DocumentNodeStoreTest {
                     c.addNode(new DocumentNodeState(store, "/foo/node", r));
                     c.addNode(new DocumentNodeState(store, "/bar/node", r));
                     c.apply();
-                } catch (MicroKernelException e) {
+                } catch (DocumentStoreException e) {
                     exceptions.add(e);
                 }
             }

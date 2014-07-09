@@ -40,13 +40,13 @@ import javax.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -310,6 +310,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 }
             }
         }
+        Throwable t;
         try {
             TreeLock lock = acquire(key);
             try {
@@ -345,8 +346,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 return (T) doc;
             }
         } catch (ExecutionException e) {
-            throw new IllegalStateException("Failed to load document with " + key, e);
+            t = e.getCause();
         }
+        throw new DocumentStoreException("Failed to load document with " + key, t);
     }
 
     @CheckForNull
@@ -476,7 +478,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get(), WriteConcern.SAFE);
             invalidateCache(collection, key);
             if (writeResult.getError() != null) {
-                throw new MicroKernelException("Remove failed: " + writeResult.getError());
+                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
             }
         } finally {
             end("remove", start);
@@ -491,7 +493,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             WriteResult writeResult = dbCollection.remove(query, WriteConcern.SAFE);
             invalidateCache(collection, keyBatch);
             if (writeResult.getError() != null) {
-                throw new MicroKernelException("Remove failed: " + writeResult.getError());
+                throw new DocumentStoreException("Remove failed: " + writeResult.getError());
             }
         }
 
@@ -558,7 +560,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             }
             return oldDoc;
         } catch (Exception e) {
-            throw new MicroKernelException(e);
+            throw DocumentStoreException.convert(e);
         } finally {
             lock.unlock();
             end("findAndModify", start);
@@ -568,7 +570,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     @CheckForNull
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         log("createOrUpdate", update);
         T doc = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", doc);
@@ -577,7 +579,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException {
+            throws DocumentStoreException {
         log("findAndUpdate", update);
         T doc = findAndModify(collection, update, false, true);
         log("findAndUpdate returns ", doc);
@@ -678,7 +680,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
             try {
                 WriteResult writeResult = dbCollection.update(query.get(), update, false, true, WriteConcern.SAFE);
                 if (writeResult.getError() != null) {
-                    throw new MicroKernelException("Update failed: " + writeResult.getError());
+                    throw new DocumentStoreException("Update failed: " + writeResult.getError());
                 }
                 if (collection == Collection.NODES) {
                     // update cache
@@ -698,7 +700,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     }
                 }
             } catch (MongoException e) {
-                throw new MicroKernelException(e);
+                throw DocumentStoreException.convert(e);
             }
         } finally {
             end("update", start);

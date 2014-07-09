@@ -48,12 +48,12 @@ import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -162,7 +162,7 @@ import com.google.common.util.concurrent.Striped;
  * <h3>Queries</h3>
  * <p>
  * The implementation currently supports only two indexed properties: "_modified" and
- * "_bin". Attempts to use a different indexed property will cause a {@link MicroKernelException}.
+ * "_bin". Attempts to use a different indexed property will cause a {@link DocumentStoreException}.
  */
 public class RDBDocumentStore implements CachingDocumentStore {
 
@@ -174,7 +174,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             initialize(ds, builder);
         } catch (Exception ex) {
-            throw new MicroKernelException("initializing RDB document store", ex);
+            throw new DocumentStoreException("initializing RDB document store", ex);
         }
     }
 
@@ -226,12 +226,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @Override
-    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) throws MicroKernelException {
+    public <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update) {
         return internalCreateOrUpdate(collection, update, true, false);
     }
 
     @Override
-    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) throws MicroKernelException {
+    public <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update) {
         return internalCreateOrUpdate(collection, update, false, true);
     }
 
@@ -442,7 +442,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     update.increment(MODCOUNT, 1);
                     UpdateUtils.applyChanges(doc, update, comparator);
                     if (!update.getId().equals(doc.getId())) {
-                        throw new MicroKernelException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
+                        throw new DocumentStoreException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
                                 + doc.getId());
                     }
                     docs.add(doc);
@@ -453,7 +453,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
             }
             return true;
-        } catch (MicroKernelException ex) {
+        } catch (DocumentStoreException ex) {
             return false;
         }
     }
@@ -467,7 +467,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (!allowCreate) {
                 return null;
             } else if (!update.isNew()) {
-                throw new MicroKernelException("Document does not exist: " + update.getId());
+                throw new DocumentStoreException("Document does not exist: " + update.getId());
             }
             T doc = collection.newDocument(this);
             if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
@@ -479,7 +479,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 insertDocuments(collection, Collections.singletonList(doc));
                 addToCache(collection, doc);
                 return oldDoc;
-            } catch (MicroKernelException ex) {
+            } catch (DocumentStoreException ex) {
                 // may have failed due to a race condition; try update instead
                 // this is an edge case, so it's ok to bypass the cache
                 // (avoiding a race condition where the DB is already updated
@@ -546,7 +546,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
 
                 if (!success) {
-                    throw new MicroKernelException("failed update of " + doc.getId() + " (race?) after " + maxRetries + " retries");
+                    throw new DocumentStoreException("failed update of " + doc.getId() + " (race?) after " + maxRetries + " retries");
                 }
 
                 return oldDoc;
@@ -587,7 +587,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         if (indexedProperty != null && (!INDEXEDPROPERTIES.contains(indexedProperty))) {
             String message = "indexed property " + indexedProperty + " not supported, query was '>= '" + startValue + "'; supported properties are "+ INDEXEDPROPERTIES;
             LOG.info(message);
-            throw new MicroKernelException(message);
+            throw new DocumentStoreException(message);
         }
         try {
             connection = getConnection();
@@ -600,7 +600,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
         }
@@ -668,7 +668,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             String in = dbRead(connection, tableName, id);
             return in != null ? fromString(collection, in) : null;
         } catch (Exception ex) {
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
         }
@@ -682,7 +682,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             dbDelete(connection, tableName, Collections.singletonList(id));
             connection.commit();
         } catch (Exception ex) {
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
         }
@@ -697,7 +697,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 dbDelete(connection, tableName, sublist);
                 connection.commit();
             } catch (Exception ex) {
-                throw new MicroKernelException(ex);
+                throw new DocumentStoreException(ex);
             } finally {
                 closeConnection(connection);
             }
@@ -725,7 +725,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             } catch (SQLException e) {
                 // TODO
             }
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
         }
@@ -755,7 +755,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             } catch (SQLException e) {
                 // TODO
             }
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
         }
@@ -797,7 +797,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             bytes = data.getBytes("UTF-8");
         } catch (UnsupportedEncodingException ex) {
             LOG.error("UTF-8 not supported??", ex);
-            throw new MicroKernelException(ex);
+            throw new DocumentStoreException(ex);
         }
 
         if (NOGZIP) {
@@ -816,7 +816,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 return bos.toByteArray();
             } catch (IOException ex) {
                 LOG.error("Error while gzipping contents", ex);
-                throw new MicroKernelException(ex);
+                throw new DocumentStoreException(ex);
             }
         }
     }
@@ -856,7 +856,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
                 if (startValue != NodeDocument.HAS_BINARY_VAL) {
-                    throw new MicroKernelException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
+                    throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
                 }
                 t += " and HASBINARY = 1";
             }
@@ -878,7 +878,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             while (rs.next() && result.size() < limit) {
                 String id = rs.getString(1);
                 if (id.compareTo(minId) < 0 || id.compareTo(maxId) > 0) {
-                    throw new MicroKernelException("unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
+                    throw new DocumentStoreException("unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
                 }
                 String data = getData(rs, 2, 3);
                 result.add(data);
