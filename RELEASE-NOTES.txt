@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.2
 
 Introduction
 ------------
@@ -7,51 +7,45 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.1 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.2 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.1
+Changes in Oak 1.0.2
 --------------------
-
-New features
-
-  [OAK-1804] TarMK compaction
 
 Improvements
 
-  [OAK-1561] Implement optimised range queries
-  [OAK-1570] Improve perfomances of the OrderedIndex while insert
-  [OAK-1745] OrderedIndex should serve range queries regardless of direction
-  [OAK-1771] Avoid lock contention in Tracker.getServices()
-  [OAK-1775] Avoid lock contention in IndexTracker.getIndexNode()
-  [OAK-1800] Configurable number of rows in SolrQueryIndex
-  [OAK-1835] Solr index support for relative properties
-  [OAK-1854] Duplicate revisions
-  [OAK-1862] Checkpoints release method
-  [OAK-1875] Configurable filter restrictions to be used in SolrQueryIndex
+  [OAK-1645] Route find queries to Mongo secondary in MongoDocumentStore
+  [OAK-1861] Limit memory usage of DocumentNodeStore.readChildren()
+  [OAK-1934] Optimize MutableTree.orderBefore for the common case
+  [OAK-1937] Add progress logs to MarkSweepGarbageCollector
 
 Bug fixes
 
-  [OAK-1727] Cross foreign cluster revision comparison may be wrong
-  [OAK-1788] ConcurrentConflictTest fails occasionally
-  [OAK-1810] Incorrect TarMK graph metadata validation
-  [OAK-1813] LastRevSingleNodeRecoveryTest fails with Mongo
-  [OAK-1814] RevisionComparator my incorrectly report a revision as FUTURE
-  [OAK-1817] NPE in MarkSweepGarbageCollector.saveBatchToFile during ...
-  [OAK-1822] NodeDocument _modified may go back in time
-  [OAK-1827] ClassCastException in NodeDocument.split() when collisions ...
-  [OAK-1829] IllegalStateException when using "lowerCase"/"lower" on ...
-  [OAK-1865] Blob garbage collector deletes referenced blobs for ...
-  [OAK-1866] SegmentMK: Inefficient flat node comparisons
-  [OAK-1869] TarMK: Incorrect tar entry verification in recovery mode
-  [OAK-1874] Indexes: re-index automatically when adding an index
-  [OAK-1877] Hourly async reindexing on an idle instance
-  [OAK-1883] Unnecessary invocations of LastRevRecovery when recovery ...
-  [OAK-1886] OOM in org.apache.jackrabbit.oak.jcr.OrderedIndex...
+  [OAK-1462] - Aggregate Index isn't usable in an osgi environment
+  [OAK-1703] - Improve warning logged on concurrent Session access
+  [OAK-1807] - ConstraintViolationException seen with multiple Oak/Mongo ...
+  [OAK-1890] - Concurrent System Login: slowdown for high concurrency levels
+  [OAK-1894] - PropertyIndex only considers the cost of a single indexed ...
+  [OAK-1895] - ClassCastException can occur if the TraversalIndex is ...
+  [OAK-1897] - Stale documents in MongoDocumentStore cache
+  [OAK-1898] - Query: Incorrect cost calculation for traversal
+  [OAK-1899] - Ordered index fails with old index content
+  [OAK-1902] - NodeTypeIndex is not conversative enough about its cost
+  [OAK-1903] - PropertyIndex applies 10x penalty to is not null queries ...
+  [OAK-1916] - NodeStoreKernel doesn't handle array properties correctly
+  [OAK-1917] - FileNotFoundException during TarMK GC
+  [OAK-1921] - Backup: "Attempt to read external blob" error
+  [OAK-1927] - TarMK compaction delays journal updates
+  [OAK-1931] - MicroKernel.read() returns negative value
+  [OAK-1932] - TarMK compaction can create mixed segments
+  [OAK-1936] - TarMK compaction map check should switch comparison sides
+  [OAK-1958] - Session.logout performance poor
+  [OAK-1959] - AsyncIndexUpdate unable to cope with missing checkpoint ref
 
 In addition to the above-mentioned changes, this release contains
 all the changes included up to the Apache Jackrabbit Oak 1.0.0 release.
