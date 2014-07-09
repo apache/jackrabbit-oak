@@ -52,7 +52,7 @@ class GroovyConsole {
     private final Groovysh shell
     private final IO io;
 
-    GroovyConsole(ConsoleSession session, IO io) {
+    GroovyConsole(ConsoleSession session, IO io, Closeable closeable) {
         this.session = session
         this.io = io
         this.shell = prepareShell()
@@ -60,6 +60,7 @@ class GroovyConsole {
             if (shell.history) {
                 shell.history.flush()
             }
+            closeable.close()
         }
     }
 

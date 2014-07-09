@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.console;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,8 +28,10 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.codehaus.groovy.tools.shell.IO;
@@ -61,7 +65,7 @@ public class Console {
             System.exit(1);
         }
 
-        NodeStore store;
+        NodeStoreFixture fixture;
         if (nonOptions.get(0).startsWith(MongoURI.MONGODB_PREFIX)) {
             MongoClientURI uri = new MongoClientURI(nonOptions.get(0));
             if (uri.getDatabase() == null) {
@@ -69,11 +73,12 @@ public class Console {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
-            store = new DocumentMK.Builder().
+            DocumentNodeStore store = new DocumentMK.Builder().
                     setMongoDB(mongo.getDB()).
                     setClusterId(clusterId.value(options)).getNodeStore();
+            fixture = new MongoFixture(store);
         } else {
-            store = new SegmentNodeStore(new FileStore(
+            fixture = new SegmentFixture(new FileStore(
                     new File(nonOptions.get(0)), 256));
         }
         
@@ -88,7 +93,7 @@ public class Console {
         }
 
         GroovyConsole console =
-                new GroovyConsole(ConsoleSession.create(store), new IO());
+                new GroovyConsole(ConsoleSession.create(fixture.getStore()), new IO(), fixture);
 
         int code = 0;
         if(!scriptArgs.isEmpty()){
@@ -100,5 +105,47 @@ public class Console {
         }
 
         System.exit(code);
+    }
+
+    private static interface NodeStoreFixture extends Closeable{
+        NodeStore getStore();
+    }
+
+    private static class MongoFixture implements NodeStoreFixture {
+        private final DocumentNodeStore nodeStore;
+
+        private MongoFixture(DocumentNodeStore nodeStore) {
+            this.nodeStore = nodeStore;
+        }
+
+        @Override
+        public NodeStore getStore() {
+            return nodeStore;
+        }
+
+        @Override
+        public void close() throws IOException {
+            nodeStore.dispose();
+        }
+    }
+
+    private static class SegmentFixture implements NodeStoreFixture {
+        private final SegmentStore segmentStore;
+        private final SegmentNodeStore nodeStore;
+
+        private SegmentFixture(SegmentStore segmentStore) {
+            this.segmentStore = segmentStore;
+            this.nodeStore = new SegmentNodeStore(segmentStore);
+        }
+
+        @Override
+        public NodeStore getStore() {
+            return nodeStore;
+        }
+
+        @Override
+        public void close() throws IOException {
+            segmentStore.close();
+        }
     }
 }
