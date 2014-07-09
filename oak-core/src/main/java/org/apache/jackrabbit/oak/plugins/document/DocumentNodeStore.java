@@ -55,6 +55,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -666,6 +667,8 @@ public final class DocumentNodeStore
                 }
             });
             return node == missing ? null : node;
+        } catch (UncheckedExecutionException e) {
+            throw DocumentStoreException.convert(e.getCause());
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
@@ -690,6 +693,10 @@ public final class DocumentNodeStore
                         return readChildren(parent, name, limit);
                     }
                 });
+            } catch (UncheckedExecutionException e) {
+                throw DocumentStoreException.convert(e.getCause(),
+                        "Error occurred while fetching children for path "
+                                + path);
             } catch (ExecutionException e) {
                 throw DocumentStoreException.convert(e.getCause(),
                         "Error occurred while fetching children for path "
