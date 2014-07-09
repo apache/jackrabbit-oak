@@ -74,11 +74,15 @@ public class Compactor {
         this.writer = writer;
     }
 
-    public SegmentNodeState compact(NodeState before, NodeState after) {
+    protected SegmentNodeBuilder process(NodeState before, NodeState after) {
         SegmentNodeBuilder builder = new SegmentNodeBuilder(
                 writer.writeNode(before), writer);
         after.compareAgainstBaseState(before, new CompactDiff(builder));
-        return builder.getNodeState();
+        return builder;
+    }
+
+    public SegmentNodeState compact(NodeState before, NodeState after) {
+        return process(before, after).getNodeState();
     }
 
     public CompactionMap getCompactionMap() {
