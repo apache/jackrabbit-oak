@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -345,6 +346,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
             } else {
                 return (T) doc;
             }
+        } catch (UncheckedExecutionException e) {
+            t = e.getCause();
         } catch (ExecutionException e) {
             t = e.getCause();
         }
