@@ -367,6 +367,36 @@ public class AsyncIndexUpdateTest {
         }
     }
 
+    /**
+     * OAK-1959, stale ref to checkpoint thorws the indexer into a reindexing
+     * loop
+     */
+    @Test
+    public void recoverFromMissingCpRef() throws Exception {
+        MemoryNodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        new AsyncIndexUpdate("async", store, provider).run();
+        checkPathExists(store.getRoot(), INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME, "abc", "testRoot");
+
+        builder = store.getRoot().builder();
+        // change cp ref to point to a non-existing one
+        builder.child(AsyncIndexUpdate.ASYNC).setProperty("async", "faulty");
+        builder.child("testAnother").setProperty("foo", "def");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        new AsyncIndexUpdate("async", store, provider).run();
+        checkPathExists(store.getRoot(), INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME, "def", "testAnother");
+    }
+
     @Test
     public void cpCleanupNoChanges() throws Exception {
         MemoryNodeStore store = new MemoryNodeStore();

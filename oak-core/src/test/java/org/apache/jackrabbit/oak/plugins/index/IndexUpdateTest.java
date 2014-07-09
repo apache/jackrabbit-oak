@@ -240,7 +240,7 @@ public class IndexUpdateTest {
                 PropertyValues.newString(value)));
     }
 
-    private static NodeState checkPathExists(NodeState state, String... verify) {
+    static NodeState checkPathExists(NodeState state, String... verify) {
         NodeState c = state;
         for (String p : verify) {
             c = c.getChildNode(p);
