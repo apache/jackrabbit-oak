@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.jcr.repository;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -39,11 +41,6 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -58,7 +55,6 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.apache.jackrabbit.oak.util.GenericDescriptors;
@@ -112,7 +108,7 @@ public class RepositoryImpl implements JackrabbitRepository {
      */
     private final ThreadLocal<Long> threadSaveCount = new ThreadLocal<Long>();
 
-    private final ListeningScheduledExecutorService scheduledExecutor =
+    private final ScheduledExecutorService scheduledExecutor =
             createListeningScheduledExecutorService();
 
     private final StatisticManager statisticManager;
@@ -274,25 +270,14 @@ public class RepositoryImpl implements JackrabbitRepository {
                 threadSaveCount, statisticManager, clock) {
             // Defer session MBean registration to avoid cluttering the
             // JMX name space with short lived sessions
-            ListenableScheduledFuture<Registration> registration = scheduledExecutor.schedule(
-                    new RegistrationCallable(getSessionStats(), whiteboard), 1, TimeUnit.MINUTES);
+            RegistrationTask registrationTask = new RegistrationTask(getSessionStats(), whiteboard);
+            ScheduledFuture<?> scheduledTask = scheduledExecutor.schedule(registrationTask, 1, TimeUnit.MINUTES);
 
             @Override
             public void logout() {
-                // Cancel session MBean registration and unregister MBean
-                // if registration succeed before the cancellation
-                registration.cancel(false);
-                Futures.addCallback(registration, new FutureCallback<Registration>() {
-                    @Override
-                    public void onSuccess(Registration registration) {
-                        registration.unregister();
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                    }
-                });
-
+                // Cancel session MBean registration
+                registrationTask.cancel();
+                scheduledTask.cancel(false);
                 super.logout();
             }
         };
@@ -340,8 +325,8 @@ public class RepositoryImpl implements JackrabbitRepository {
 
     //------------------------------------------------------------< private >---
 
-    private static ListeningScheduledExecutorService createListeningScheduledExecutorService() {
-        return MoreExecutors.listeningDecorator(new ScheduledThreadPoolExecutor(1) {
+    private static ScheduledExecutorService createListeningScheduledExecutorService() {
+        return new ScheduledThreadPoolExecutor(1) {
             // purge the list of schedule tasks before scheduling a new task in order
             // to reduce memory consumption in the face of many cancelled tasks. See OAK-1890.
 
@@ -370,7 +355,7 @@ public class RepositoryImpl implements JackrabbitRepository {
                 purge();
                 return super.scheduleWithFixedDelay(command, initialDelay, delay, unit);
             }
-        });
+        };
     }
 
     private static Long getRefreshInterval(Credentials credentials) {
@@ -462,19 +447,31 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
     }
 
-    private static class RegistrationCallable implements Callable<Registration> {
+    static class RegistrationTask implements Runnable {
         private final SessionStats sessionStats;
         private final Whiteboard whiteboard;
+        private boolean cancelled;
+        private Registration completed;
 
-        public RegistrationCallable(SessionStats sessionStats, Whiteboard whiteboard) {
+        public RegistrationTask(SessionStats sessionStats, Whiteboard whiteboard) {
             this.sessionStats = sessionStats;
             this.whiteboard = whiteboard;
         }
 
         @Override
-        public Registration call() throws Exception {
-            return WhiteboardUtils.registerMBean(whiteboard, SessionMBean.class,
-                    sessionStats, SessionMBean.TYPE, sessionStats.toString());
+        public synchronized void run() {
+            if (!cancelled) {
+                completed = registerMBean(whiteboard, SessionMBean.class, sessionStats,
+                        SessionMBean.TYPE, sessionStats.toString());
+            }
+        }
+        
+        public synchronized void cancel() {
+            cancelled = true;
+            if (completed != null) {
+                completed.unregister();
+                completed = null;
+            }
         }
     }
 }
