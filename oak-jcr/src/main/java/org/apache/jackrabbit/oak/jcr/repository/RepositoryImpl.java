@@ -23,8 +23,10 @@ import static java.util.Collections.singletonMap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -111,7 +113,8 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final ThreadLocal<Long> threadSaveCount = new ThreadLocal<Long>();
 
     private final ListeningScheduledExecutorService scheduledExecutor =
-            MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
+            createListeningScheduledExecutorService();
+
     private final StatisticManager statisticManager;
 
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
@@ -335,7 +338,40 @@ public class RepositoryImpl implements JackrabbitRepository {
         return descriptors;
     }
 
-//------------------------------------------------------------< private >---
+    //------------------------------------------------------------< private >---
+
+    private static ListeningScheduledExecutorService createListeningScheduledExecutorService() {
+        return MoreExecutors.listeningDecorator(new ScheduledThreadPoolExecutor(1) {
+            // purge the list of schedule tasks before scheduling a new task in order
+            // to reduce memory consumption in the face of many cancelled tasks. See OAK-1890.
+
+            @Override
+            public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+                purge();
+                return super.schedule(callable, delay, unit);
+            }
+
+            @Override
+            public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+                purge();
+                return super.schedule(command, delay, unit);
+            }
+
+            @Override
+            public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
+                    long period, TimeUnit unit) {
+                purge();
+                return super.scheduleAtFixedRate(command, initialDelay, period, unit);
+            }
+
+            @Override
+            public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
+                    long delay, TimeUnit unit) {
+                purge();
+                return super.scheduleWithFixedDelay(command, initialDelay, delay, unit);
+            }
+        });
+    }
 
     private static Long getRefreshInterval(Credentials credentials) {
         if (credentials instanceof SimpleCredentials) {
