@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +86,7 @@ public abstract class DocumentStoreFixture {
         DataSource dataSource;
         DocumentStore store1, store2;
         String name;
+        RDBOptions options = new RDBOptions().tablePrefix("dstest").dropTablesOnClose(true);
 
         public RDBFixture(String name, String url, String username, String passwd) {
             this.name = name;
@@ -103,10 +105,10 @@ public abstract class DocumentStoreFixture {
         @Override
         public DocumentStore createDocumentStore(int clusterId) {
             if (clusterId == 1) {
-                store1 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(1));
+                store1 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(1), options);
                 return store1;
             } else if (clusterId == 2) {
-                store2 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(2));
+                store2 = new RDBDocumentStore(dataSource, new DocumentMK.Builder().setClusterId(2), options);
                 return store2;
             } else {
                 throw new RuntimeException("expect clusterId == 1 or == 2");
