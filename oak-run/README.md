@@ -126,9 +126,10 @@ See the relevant documentation for more details.
 Oak server mode
 ---------------
 
-The Oak server mode starts a full Oak instance with the standard JCR plugins
-and makes it available over a simple HTTP mapping defined in the `oak-http`
-component. To start this mode, use:
+The Oak server mode starts a MicroKernel or full Oak instance with the 
+standard JCR plugins and makes it available over a simple HTTP mapping 
+defined in the `oak-http` and `oak-mk-remote` components. To start this 
+mode, use:
 
     $ java -jar oak-run-*.jar server [uri] [fixture] [options]
 
@@ -162,15 +163,17 @@ Depending on the fixture the following options are available:
     --clusterIds           - Cluster Ids for the Mongo setup: a comma separated list of integers
     --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
+    --mk                   - Start in MicroKernel mode exposing the MicroKernel API 
 
 Examples:
 
     $ java -jar oak-run-*.jar server
+    $ java -jar oak-run-*.jar server -mk
     $ java -jar oak-run-*.jar server http://localhost:4503 Oak-Tar --base myOak
     $ java -jar oak-run-*.jar server http://localhost:4502 Oak-Mongo --db myOak --clusterIds c1,c2,c3
 
-See the documentation in the `oak-http` component for details about the
-available functionality.
+See the documentation in the `oak-http` and `oak-mk-remote` components for details 
+about the available functionality.
 
 
 Benchmark mode

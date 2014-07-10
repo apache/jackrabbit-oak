@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import java.io.File;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -26,9 +27,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.blob.cloud.CloudBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
@@ -70,6 +73,7 @@ public abstract class OakFixture {
         return String.format("%s-%d", name, System.currentTimeMillis());
     }
 
+    public abstract MicroKernel getMicroKernel() throws Exception;
     public abstract Oak getOak(int clusterId) throws Exception;
     public abstract Oak[] setUpCluster(int n) throws Exception;
     public abstract void tearDownCluster();
@@ -89,6 +93,11 @@ public abstract class OakFixture {
 
     public static OakFixture getMemory(String name, final long cacheSize) {
         return new OakFixture(name) {
+            @Override
+            public MicroKernel getMicroKernel() {
+                return new NodeStoreKernel(new MemoryNodeStore());
+            }
+
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 Oak oak;
@@ -195,6 +204,20 @@ public abstract class OakFixture {
             }
 
             @Override
+            public MicroKernel getMicroKernel() throws UnknownHostException {
+                MongoConnection mongo = new MongoConnection(uri);
+                BlobStore blobStore = getBlobStore();
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().
+                        setMongoDB(mongo.getDB()).
+                        memoryCacheSize(cacheSize).
+                        setLogging(false);
+                if (blobStore != null) {
+                    mkBuilder.setBlobStore(blobStore);
+                }
+                return mkBuilder.open();
+            }
+
+            @Override
             public Oak getOak(int clusterId) throws Exception {
                 MongoConnection mongo = new MongoConnection(uri);
                 BlobStore blobStore = getBlobStore();
@@ -286,6 +309,18 @@ public abstract class OakFixture {
             }
 
             @Override
+            public MicroKernel getMicroKernel() {
+                DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                        .setLogging(false);
+                BlobStore blobStore = getBlobStore();
+                if (blobStore != null) {
+                    mkBuilder.setBlobStore(blobStore);
+                }
+                return mkBuilder.open();
+            }
+
+            @Override
             public Oak getOak(int clusterId) throws Exception {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
                 DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
@@ -347,6 +382,12 @@ public abstract class OakFixture {
             private SegmentStore[] stores;
             private BlobStore[] blobStores = new BlobStore[0];
             private String blobStoreDir = "datastore"+unique;
+
+            @Override
+            public MicroKernel getMicroKernel() throws Exception {
+                FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
+                return new NodeStoreKernel(new SegmentNodeStore(fs));
+            }
 
             @Override
             public Oak getOak(int clusterId) throws Exception {
