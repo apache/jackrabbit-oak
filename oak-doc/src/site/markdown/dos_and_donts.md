@@ -46,6 +46,13 @@ multiple threads. When doing so Oak will protect its internal data structures
 from becoming corrupted but will not make any guarantees beyond that. In
 particular violating clients might suffer from lock contentions or deadlocks.
 
+If Oak detects concurrent write access to a session it will log a warning. 
+For concurrent read access the warning will only be logged if `DEBUG` level 
+is enabled for `org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate`.
+In this case the stack trace of the other session involved will also be 
+logged. For efficiency reasons the stack trace will not be logged if 
+`DEBUG` level is not enabled.
+
 ### Large number of direct child node
 
 Oak scales to large number of direct child nodes of a node as long as those

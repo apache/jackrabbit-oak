@@ -735,7 +735,7 @@ public class SessionDelegate {
                 lock.lock();
                 if (holderThread != null) {
                     if (this.isUpdate) {
-                        log.warn("Attempted to perform " + opName + " while thread " + holderThread +
+                        warn(log, "Attempted to perform " + opName + " while thread " + holderThread +
                                 " was concurrently writing to this session. Blocked until the " +
                                 "other thread finished using this session. Please review your code " +
                                 "to avoid concurrent use of a session.", holderTrace);
@@ -748,8 +748,18 @@ public class SessionDelegate {
                 }
             }
             this.isUpdate = isUpdate;
-            holderTrace = new Exception("Stack trace of concurrent access to session");
+            if (log.isDebugEnabled()) {
+                holderTrace = new Exception("Stack trace of concurrent access to session");
+            }
             holderThread = Thread.currentThread().getName();
+        }
+
+        private static void warn(Logger logger, String message, Exception stackTrace) {
+            if (stackTrace != null) {
+                logger.warn(message, stackTrace);
+            } else {
+                logger. warn(message);
+            }
         }
 
         public void lock(SessionOperation<?> sessionOperation) {
