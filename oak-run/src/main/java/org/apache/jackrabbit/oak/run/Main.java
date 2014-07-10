@@ -23,6 +23,8 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +47,6 @@ import com.google.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
-
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -505,6 +506,7 @@ public class Main {
     private static void server(String defaultUri, String[] args) throws Exception {
         OptionParser parser = new OptionParser();
 
+        OptionSpec<Void> mkServer = parser.accepts("mk", "MicroKernel server");
         OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)").withRequiredArg().ofType(Integer.class).defaultsTo(100);
 
         // tar/h2 specific option
@@ -570,6 +572,17 @@ public class Main {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }
 
+        if (options.has(mkServer)) {
+            if (!cIds.isEmpty()) {
+                System.out.println("WARNING: clusterIds option is ignored when mk option is specified");
+            }
+            startMkServer(oakFixture, uri);
+        } else {
+            startOakServer(oakFixture, uri, cIds);
+        }
+    }
+
+    private static void startOakServer(OakFixture oakFixture, String uri, List<Integer> cIds) throws Exception {
         Map<Oak, String> m;
         if (cIds.isEmpty()) {
             System.out.println("Starting " + oakFixture.toString() + " repository -> " + uri);
@@ -583,6 +596,20 @@ public class Main {
             }
         }
         new HttpServer(uri, m);
+    }
+
+    private static void startMkServer(OakFixture oakFixture, String uri) throws Exception {
+        org.apache.jackrabbit.mk.server.Server server =
+            new org.apache.jackrabbit.mk.server.Server(oakFixture.getMicroKernel());
+
+        URL url = new URL(uri);
+        server.setBindAddress(InetAddress.getByName(url.getHost()));
+        if (url.getPort() > 0) {
+            server.setPort(url.getPort());
+        } else {
+            server.setPort(28080);
+        }
+        server.start();
     }
 
     public static class HttpServer {
