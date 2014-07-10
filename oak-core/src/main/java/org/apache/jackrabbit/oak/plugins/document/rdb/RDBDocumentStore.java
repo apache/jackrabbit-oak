@@ -68,8 +68,6 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.rmi.runtime.Log;
-
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
@@ -185,11 +183,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
      * {@link DataSource}, {@link DocumentMK.Builder}, and default {@link RDBOptions}.
      */
     public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder) {
-        try {
-            initialize(ds, builder, null);
-        } catch (Exception ex) {
-            throw new DocumentStoreException("initializing RDB document store", ex);
-        }
+        this(ds, builder, new RDBOptions());
     }
 
     @Override
@@ -290,7 +284,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                             con.close();
                         }
                     } catch (SQLException ex) {
-                        LOG.debug("on clos ", ex);
+                        LOG.debug("on close ", ex);
                     }
                 }
             }
@@ -328,7 +322,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // from options
     private String tablePrefix = "";
-    private boolean dropTablesOnClose = false;
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
     // capacity of DATA column
@@ -344,12 +337,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
-        if (options != null) {
-            this.tablePrefix = options.getTablePrefix();
-            if (tablePrefix.length() > 0 && !tablePrefix.endsWith("_")) {
-                tablePrefix += "_";
-            }
-            this.dropTablesOnClose = options.isDropTablesOnClose(); // only do this for autocreated tables!!!
+        this.tablePrefix = options.getTablePrefix();
+        if (tablePrefix.length() > 0 && !tablePrefix.endsWith("_")) {
+            tablePrefix += "_";
         }
 
         this.ds = ds;
@@ -373,15 +363,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             con.setAutoCommit(false);
 
-            createTableFor(con, dbtype, Collection.CLUSTER_NODES);
-            createTableFor(con, dbtype, Collection.NODES);
-            createTableFor(con, dbtype, Collection.SETTINGS);
+            createTableFor(con, dbtype, Collection.CLUSTER_NODES, options.isDropTablesOnClose());
+            createTableFor(con, dbtype, Collection.NODES, options.isDropTablesOnClose());
+            createTableFor(con, dbtype, Collection.SETTINGS, options.isDropTablesOnClose());
         } finally {
             con.close();
         }
     }
 
-    private void createTableFor(Connection con, String dbtype, Collection<? extends Document> col) throws SQLException {
+    private void createTableFor(Connection con, String dbtype, Collection<? extends Document> col, boolean dropTablesOnClose)
+            throws SQLException {
         String tableName = getTable(col);
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
@@ -432,7 +423,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
             con.commit();
 
-            if (this.dropTablesOnClose) {
+            if (dropTablesOnClose) {
                 tablesToBeDropped.add(tableName);
             }
         }
