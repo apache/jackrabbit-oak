@@ -68,6 +68,8 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.rmi.runtime.Log;
+
 import com.google.common.base.Objects;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Lists;
@@ -168,11 +170,23 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using the provided
-     * {@link DataSource}.
+     * {@link DataSource}, {@link DocumentMK.Builder}, and {@link RDBOptions}.
+     */
+    public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder, RDBOptions options) {
+        try {
+            initialize(ds, builder, options);
+        } catch (Exception ex) {
+            throw new DocumentStoreException("initializing RDB document store", ex);
+        }
+    }
+
+    /**
+     * Creates a {@linkplain RDBDocumentStore} instance using the provided
+     * {@link DataSource}, {@link DocumentMK.Builder}, and default {@link RDBOptions}.
      */
     public RDBDocumentStore(DataSource ds, DocumentMK.Builder builder) {
         try {
-            initialize(ds, builder);
+            initialize(ds, builder, null);
         } catch (Exception ex) {
             throw new DocumentStoreException("initializing RDB document store", ex);
         }
@@ -254,6 +268,33 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public void dispose() {
+        if (!this.tablesToBeDropped.isEmpty()) {
+            LOG.debug("attempting to drop: " + this.tablesToBeDropped);
+            for (String tname : this.tablesToBeDropped) {
+                Connection con = null;
+                try {
+                    con = getConnection();
+                    try {
+                        Statement stmt = con.createStatement();
+                        stmt.execute("drop table " + tname);
+                        stmt.close();
+                        con.commit();
+                    } catch (SQLException ex) {
+                        LOG.debug("attempting to drop: " + tname);
+                    }
+                } catch (SQLException ex) {
+                    LOG.debug("attempting to drop: " + tname);
+                } finally {
+                    try {
+                        if (con != null) {
+                            con.close();
+                        }
+                    } catch (SQLException ex) {
+                        LOG.debug("on clos ", ex);
+                    }
+                }
+            }
+        }
         this.ds = null;
     }
 
@@ -285,6 +326,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private DataSource ds;
 
+    // from options
+    private String tablePrefix = "";
+    private boolean dropTablesOnClose = false;
+    private Set<String> tablesToBeDropped = new HashSet<String>();
+
     // capacity of DATA column
     // we assume six octets per Java character as worst case for now
     private int datalimit = 16384 / 6;
@@ -296,7 +342,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
 
-    private void initialize(DataSource ds, DocumentMK.Builder builder) throws Exception {
+    private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
+
+        if (options != null) {
+            this.tablePrefix = options.getTablePrefix();
+            if (tablePrefix.length() > 0 && !tablePrefix.endsWith("_")) {
+                tablePrefix += "_";
+            }
+            this.dropTablesOnClose = options.isDropTablesOnClose(); // only do this for autocreated tables!!!
+        }
 
         this.ds = ds;
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
@@ -319,57 +373,68 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             con.setAutoCommit(false);
 
-            for (String tableName : new String[] { "CLUSTERNODES", "NODES", "SETTINGS" }) {
-                try {
-                    PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
-                    stmt.setString(1, "0:/");
-                    ResultSet rs = stmt.executeQuery();
-
-                    if ("NODES".equals(tableName)) {
-                        // try to discover size of DATA column
-                        ResultSetMetaData met = rs.getMetaData();
-                        datalimit = met.getPrecision(1) / 6;
-                    }
-                } catch (SQLException ex) {
-                    // table does not appear to exist
-                    con.rollback();
-
-                    LOG.info("Attempting to create table " + tableName + " in " + dbtype);
-
-                    Statement stmt = con.createStatement();
-
-                    // the code below likely will need to be extended for new
-                    // database types
-                    if ("PostgreSQL".equals(dbtype)) {
-                        stmt.execute("create table "
-                                + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
-                    } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                        stmt.execute("create table "
-                                + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
-                    } else if ("MySQL".equals(dbtype)) {
-                        // see http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html#sysvar_innodb_large_prefix
-                        stmt.execute("create table "
-                                + tableName
-                                + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
-                    } else if ("Oracle".equals(dbtype)) {
-                        // see https://issues.apache.org/jira/browse/OAK-1914
-                        stmt.execute("create table "
-                                + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
-                    } else {
-                        stmt.execute("create table "
-                                + tableName
-                                + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
-                    }
-                    stmt.close();
-
-                    con.commit();
-                }
-            }
+            createTableFor(con, dbtype, Collection.CLUSTER_NODES);
+            createTableFor(con, dbtype, Collection.NODES);
+            createTableFor(con, dbtype, Collection.SETTINGS);
         } finally {
             con.close();
+        }
+    }
+
+    private void createTableFor(Connection con, String dbtype, Collection<? extends Document> col) throws SQLException {
+        String tableName = getTable(col);
+        try {
+            PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+            stmt.setString(1, "0:/");
+            ResultSet rs = stmt.executeQuery();
+
+            if (col.equals(Collection.NODES)) {
+                // try to discover size of DATA column
+                ResultSetMetaData met = rs.getMetaData();
+                this.datalimit = met.getPrecision(1) / 6;
+            }
+        } catch (SQLException ex) {
+            // table does not appear to exist
+            con.rollback();
+
+            LOG.info("Attempting to create table " + tableName + " in " + dbtype);
+
+            Statement stmt = con.createStatement();
+
+            // the code below likely will need to be extended for new
+            // database types
+            if ("PostgreSQL".equals(dbtype)) {
+                stmt.execute("create table "
+                        + tableName
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
+            } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
+                stmt.execute("create table "
+                        + tableName
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
+            } else if ("MySQL".equals(dbtype)) {
+                // see
+                // http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html#sysvar_innodb_large_prefix
+                stmt.execute("create table "
+                        + tableName
+                        + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
+            } else if ("Oracle".equals(dbtype)) {
+                // see https://issues.apache.org/jira/browse/OAK-1914
+                this.datalimit = 4000 / 6;
+                stmt.execute("create table "
+                        + tableName
+                        + " (ID varchar(1000) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+            } else {
+                stmt.execute("create table "
+                        + tableName
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
+            }
+            stmt.close();
+
+            con.commit();
+
+            if (this.dropTablesOnClose) {
+                tablesToBeDropped.add(tableName);
+            }
         }
     }
 
@@ -607,13 +672,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return result;
     }
 
-    private static <T extends Document> String getTable(Collection<T> collection) {
+    private <T extends Document> String getTable(Collection<T> collection) {
         if (collection == Collection.CLUSTER_NODES) {
-            return "CLUSTERNODES";
+            return this.tablePrefix + "CLUSTERNODES";
         } else if (collection == Collection.NODES) {
-            return "NODES";
+            return this.tablePrefix + "NODES";
         } else if (collection == Collection.SETTINGS) {
-            return "SETTINGS";
+            return this.tablePrefix + "SETTINGS";
         } else {
             throw new IllegalArgumentException("Unknown collection: " + collection.toString());
         }
