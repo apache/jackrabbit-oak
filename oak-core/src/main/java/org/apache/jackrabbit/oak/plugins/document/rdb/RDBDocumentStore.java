@@ -147,6 +147,10 @@ import com.google.common.util.concurrent.Striped;
  * </tbody>
  * </table>
  * <p>
+ * The names of database tables can be prefixed; the purpose is mainly for testing, as
+ * tables can also be dropped automatically when the store is disposed (this only happens
+ * for those tables that have been created on demand)
+ * <p>
  * <em>Note that the database needs to be created/configured to support all Unicode
  * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation",
  * in Postgres: "C").
