@@ -28,15 +28,15 @@ commit / + "test": { "a": { "name": "Hello" }, "b": { "name" : "World" }}
 
 select [jcr:path] from [nt:base]
   where native('solr', 'name:(Hello OR World)')
-java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([nt:base], [solr], cast('name:(Hello OR World)' as string))
+java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([nt:base], [solr], 'name:(Hello OR World)')
 
 select [jcr:path] from [nt:base] as a
   where native(a, 'solr', 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
-java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([a], [solr], cast('path_child:\/test _val_:"recip(rord(name),1,2,3)"' as string))
+java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([a], [solr], 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
 
 select [jcr:path] from [nt:base]
   where native('solr', 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
-java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([nt:base], [solr], cast('path_child:\/test _val_:"recip(rord(name),1,2,3)"' as string))
+java.lang.IllegalArgumentException: No full-text index was found that can process the condition native([nt:base], [solr], 'path_child:\/test _val_:"recip(rord(name),1,2,3)"')
 
 xpath2sql //*[rep:native('solr', 'xyz')]
 select [jcr:path], [jcr:score], *

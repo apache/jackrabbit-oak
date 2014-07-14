@@ -125,8 +125,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
         assertEquals("[nt:base] as [a] /* property notNull " + 
-                "where (([a].[notNull] is not null) " + 
-                "and ([a].[equals] = cast('1' as long))) " + 
+                "where (([a].[notNull] is not null) " +
+                "and ([a].[equals] = 1)) " +
                 "and (isdescendantnode([a], [/])) */", 
                 plan);
     }           

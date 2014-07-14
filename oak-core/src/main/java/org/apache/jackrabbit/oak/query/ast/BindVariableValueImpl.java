@@ -41,11 +41,6 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     }
 
     @Override
-    public String toString() {
-        return '$' + bindVariableName;
-    }
-
-    @Override
     PropertyValue currentValue() {
         return query.getBindVariableValue(bindVariableName);
     }
@@ -54,6 +49,30 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     int getPropertyType() {
         PropertyValue v = currentValue();
         return v.getType().tag();
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        return '$' + bindVariableName;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof BindVariableValueImpl) {
+            return bindVariableName.equals(
+                    ((BindVariableValueImpl) that).bindVariableName);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return bindVariableName.hashCode();
     }
 
 }
