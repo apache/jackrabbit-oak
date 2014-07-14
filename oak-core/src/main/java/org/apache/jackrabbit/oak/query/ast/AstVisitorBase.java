@@ -49,7 +49,7 @@ public abstract class AstVisitorBase implements AstVisitor {
     @Override
     public boolean visit(InImpl node) {
         node.getOperand1().accept(this);
-        for (StaticOperandImpl s : node.getOperand2List()) {
+        for (StaticOperandImpl s : node.getOperand2()) {
             s.accept(this);
         }
         return true;

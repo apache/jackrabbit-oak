@@ -51,8 +51,8 @@ public class ComparisonImpl extends ConstraintImpl {
         return operand1;
     }
 
-    public String getOperator() {
-        return operator.toString();
+    public Operator getOperator() {
+        return operator;
     }
 
     public StaticOperandImpl getOperand2() {
