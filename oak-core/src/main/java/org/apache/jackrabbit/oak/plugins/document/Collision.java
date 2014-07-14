@@ -126,6 +126,11 @@ class Collision {
         if (commitRoot.isCommitted(revision)) {
             return false;
         }
+        // check if there is already a collision marker
+        if (commitRoot.getLocalMap(NodeDocument.COLLISIONS).containsKey(revision)) {
+            // already marked
+            return true;
+        }
         NodeDocument.addCollision(op, revision);
         commitRoot = store.createOrUpdate(Collection.NODES, op);
         // check again on old document right before our update was applied
