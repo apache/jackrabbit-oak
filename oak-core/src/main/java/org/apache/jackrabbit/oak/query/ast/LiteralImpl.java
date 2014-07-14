@@ -46,12 +46,6 @@ public class LiteralImpl extends StaticOperandImpl {
         return v.visit(this);
     }
 
-    @Override
-    public String toString() {
-        String type = PropertyType.nameFromValue(value.getType().tag());
-        return "cast(" + escape() + " as " + type.toLowerCase(Locale.ENGLISH) + ')';
-    }
-
     private String escape() {
         return SQL2Parser.escapeStringLiteral(value.getValue(Type.STRING));
     }
@@ -66,6 +60,36 @@ public class LiteralImpl extends StaticOperandImpl {
     int getPropertyType() {
         PropertyValue v = currentValue();
         return v == null ? PropertyType.UNDEFINED : v.getType().tag();
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        if (value.getType() == Type.STRING) {
+            return escape();
+        } else if (value.getType() == Type.LONG) {
+            return Long.toString(value.getValue(Type.LONG));
+        } else {
+            String type = PropertyType.nameFromValue(value.getType().tag());
+            return "cast(" + escape() + " as " + type.toLowerCase(Locale.ENGLISH) + ')';
+        }
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof LiteralImpl) {
+            return value.equals(((LiteralImpl) that).value);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 
 }

@@ -115,7 +115,7 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
 
         assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " + 
-                "where contains([nt:base].[text], cast('hello OR hallo' as string)) */", 
+                "where contains([nt:base].[text], 'hello OR hallo') */",
                 getResult(q.execute(), "plan"));
         
         // verify the result

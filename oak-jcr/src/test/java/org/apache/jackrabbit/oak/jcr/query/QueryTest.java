@@ -116,19 +116,19 @@ public class QueryTest extends AbstractRepositoryTest {
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[nt:base] as [a] /* ordered order by lastMod ancestor 1 " + 
-                "where ([a].[jcr:primaryType] = cast('oak:Unstructured' as string)) " + 
+        assertEquals("[nt:base] as [a] /* ordered order by lastMod ancestor 1 " +
+                "where ([a].[jcr:primaryType] = 'oak:Unstructured') " +
                 "and (isdescendantnode([a], [/test])) */", rit.nextRow().getValue("plan").getString());
 
-        query = "/jcr:root/test//*[@jcr:primaryType='oak:Unstructured' " + 
+        query = "/jcr:root/test//*[@jcr:primaryType='oak:Unstructured' " +
                 "and  content/@lastMod > '2001-02-01']";
         r = session.getWorkspace().getQueryManager()
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
-        assertEquals("[nt:base] as [a] /* ordered lastMod > 2001-02-01 " + 
-                "where (([a].[jcr:primaryType] = cast('oak:Unstructured' as string)) " + 
-                "and ([a].[content/lastMod] > cast('2001-02-01' as string))) " + 
-                "and (isdescendantnode([a], [/test])) */", 
+        assertEquals("[nt:base] as [a] /* ordered lastMod > 2001-02-01 " +
+                "where (([a].[jcr:primaryType] = 'oak:Unstructured') " +
+                "and ([a].[content/lastMod] > '2001-02-01')) " +
+                "and (isdescendantnode([a], [/test])) */",
                 rit.nextRow().getValue("plan").getString());
         
     }
