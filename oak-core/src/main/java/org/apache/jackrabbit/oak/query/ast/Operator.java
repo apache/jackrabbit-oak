@@ -16,24 +16,70 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.query.fulltext.LikePattern;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+
 /**
  * The enumeration of all operators.
  */
 public enum Operator {
 
-    EQUAL("="),
+    EQUAL("=") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return PropertyValues.match(p1, p2);
+        }
+    },
 
-    NOT_EQUAL("<>"),
+    NOT_EQUAL("<>") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return PropertyValues.notMatch(p1, p2);
+        }
+    },
 
-    GREATER_THAN(">"),
+    GREATER_THAN(">") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return p1.compareTo(p2) > 0;
+        }
+    },
 
-    GREATER_OR_EQUAL(">="),
+    GREATER_OR_EQUAL(">=") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return p1.compareTo(p2) >= 0;
+        }
+    },
 
-    LESS_THAN("<"),
+    LESS_THAN("<") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return p1.compareTo(p2) < 0;
+        }
+    },
 
-    LESS_OR_EQUAL("<="),
+    LESS_OR_EQUAL("<=") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            return p1.compareTo(p2) <= 0;
+        }
+    },
 
-    LIKE("like");
+    LIKE("like") {
+        @Override
+        public boolean evaluate(PropertyValue p1, PropertyValue p2) {
+            LikePattern like = new LikePattern(p2.getValue(Type.STRING));
+            for (String s : p1.getValue(Type.STRINGS)) {
+                if (like.matches(s)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
 
     /**
      * The name of this operator.
@@ -43,6 +89,13 @@ public enum Operator {
     Operator(String name) {
         this.name = name;
     }
+
+    /**
+     * "operand2 always evaluates to a scalar value"
+     *
+     * for multi-valued properties: if any of the value matches, then return true
+     */
+    public abstract boolean evaluate(PropertyValue p1, PropertyValue p2);
 
     /**
      * Returns the name of this query operator.
