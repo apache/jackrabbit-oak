@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.fulltext;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -26,9 +27,9 @@ import java.util.Set;
  */
 public class FullTextAnd extends FullTextExpression {
     
-    public final ArrayList<FullTextExpression> list;
+    public final List<FullTextExpression> list;
     
-    public FullTextAnd(ArrayList<FullTextExpression> list) {
+    public FullTextAnd(List<FullTextExpression> list) {
         this.list = list;
     }
 

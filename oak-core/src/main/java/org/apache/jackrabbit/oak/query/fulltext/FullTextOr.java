@@ -29,9 +29,9 @@ import java.util.TreeSet;
  */
 public class FullTextOr extends FullTextExpression {
     
-    public final ArrayList<FullTextExpression> list;
+    public final List<FullTextExpression> list;
     
-    public FullTextOr(ArrayList<FullTextExpression> list) {
+    public FullTextOr(List<FullTextExpression> list) {
         this.list = list;
     }
 

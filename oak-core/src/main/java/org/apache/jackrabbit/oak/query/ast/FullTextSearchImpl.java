@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -149,11 +148,6 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public Set<SelectorImpl> getSelectors() {
         return Collections.singleton(selector);
     }
-    
-    @Override 
-    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
-        return Collections.emptyMap();
-    }    
 
     @Override
     public boolean evaluate() {

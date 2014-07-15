@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -90,11 +89,6 @@ public class SimilarImpl extends ConstraintImpl {
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         return Collections.emptySet();
-    }
-
-    @Override
-    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
-        return Collections.emptyMap();
     }
 
     @Override

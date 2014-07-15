@@ -18,8 +18,18 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.util.ArrayList;
-import java.util.Map;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -27,116 +37,151 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 /**
  * An "or" condition.
  */
 public class OrImpl extends ConstraintImpl {
 
-    private ConstraintImpl constraint1, constraint2;
+    private final List<ConstraintImpl> constraints;
+
+    OrImpl(List<ConstraintImpl> constraints) {
+        checkArgument(constraints.size() > 1);
+        this.constraints = constraints;
+    }
 
     public OrImpl(ConstraintImpl constraint1, ConstraintImpl constraint2) {
-        this.constraint1 = constraint1;
-        this.constraint2 = constraint2;
+        this(Arrays.asList(constraint1, constraint2));
     }
 
-    public ConstraintImpl getConstraint1() {
-        return constraint1;
+    public List<ConstraintImpl> getConstraints() {
+        return constraints;
     }
 
-    public ConstraintImpl getConstraint2() {
-        return constraint2;
-    }
-    
     @Override
     public ConstraintImpl simplify() {
-        constraint1 = constraint1.simplify();
-        constraint2 = constraint2.simplify();
-        if (constraint1.equals(constraint2)) {
-            return constraint1;
+        // Use LinkedHashSet to eliminate duplicate constraints while keeping
+        // the ordering for test cases (and clients?) that depend on it
+        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        boolean changed = false; // keep track of changes in simplification
+
+        for (ConstraintImpl constraint : constraints) {
+            ConstraintImpl simple = constraint.simplify();
+            if (simple instanceof OrImpl) {
+                // unwind nested OR constraints
+                simplified.addAll(((OrImpl) simple).constraints);
+                changed = true;
+            } else if (simplified.add(simple)) {
+                // check if this constraint got simplified
+                changed = changed || simple != constraint;
+            } else {
+                // this constraint was a duplicate of a previous one
+                changed = true;
+            }
         }
-        return this;
+
+        LinkedHashMap<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> in =
+                newLinkedHashMap();
+        Iterator<ConstraintImpl> iterator = simplified.iterator();
+        while (iterator.hasNext()) {
+            ConstraintImpl simple = iterator.next();
+            if (simple instanceof ComparisonImpl
+                    && ((ComparisonImpl) simple).getOperator() == EQUAL) {
+                DynamicOperandImpl o = ((ComparisonImpl) simple).getOperand1();
+                LinkedHashSet<StaticOperandImpl> values = in.get(o);
+                if (values == null) {
+                    values = newLinkedHashSet();
+                    in.put(o, values);
+                }
+                values.add(((ComparisonImpl) simple).getOperand2());
+                iterator.remove();
+                changed = true;
+            } else if (simple instanceof InImpl) {
+                DynamicOperandImpl o = ((InImpl) simple).getOperand1();
+                LinkedHashSet<StaticOperandImpl> values = in.get(o);
+                if (values == null) {
+                    values = newLinkedHashSet();
+                    in.put(o, values);
+                }
+                values.addAll(((InImpl) simple).getOperand2());
+                iterator.remove();
+                changed = true;
+            }
+        }
+        for (Entry<DynamicOperandImpl, LinkedHashSet<StaticOperandImpl>> entry
+                : in.entrySet()) {
+            LinkedHashSet<StaticOperandImpl> values = entry.getValue();
+            if (values.size() == 1) {
+                simplified.add(new ComparisonImpl(
+                        entry.getKey(), EQUAL, values.iterator().next()));
+            } else {
+                simplified.add(new InImpl(
+                        entry.getKey(), newArrayList(values)));
+            }
+        }
+
+        if (simplified.size() == 1) {
+            return simplified.iterator().next();
+        } else if (changed) {
+            return new OrImpl(newArrayList(simplified));
+        } else {
+            return this;
+        }
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         // for the condition "x=1 or x=2", the existence condition
         // "x is not null" be be derived
-        Set<PropertyExistenceImpl> s1 = constraint1.getPropertyExistenceConditions();
-        if (s1.isEmpty()) {
-            return s1;
+        Set<PropertyExistenceImpl> result = null;
+        for (ConstraintImpl constraint : constraints) {
+            if (result == null) {
+                result = newHashSet(constraint.getPropertyExistenceConditions());
+            } else {
+                result.retainAll(constraint.getPropertyExistenceConditions());
+            }
         }
-        Set<PropertyExistenceImpl> s2 = constraint2.getPropertyExistenceConditions();
-        if (s2.isEmpty()) {
-            return s2;
-        }
-        return Sets.intersection(s1, s2);
+        return result;
     }
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        FullTextExpression f1 = constraint1.getFullTextConstraint(s);
-        FullTextExpression f2 = constraint2.getFullTextConstraint(s);
-        if (f1 == null || f2 == null) {
-            // the full-text index can not be used for conditions of the form
-            // "contains(a, 'x') or b=123"
-            return null;
+        List<FullTextExpression> list = newArrayList();
+        for (ConstraintImpl constraint : constraints) {
+            FullTextExpression expression = constraint.getFullTextConstraint(s);
+            if (expression != null) {
+                list.add(expression);
+            } else {
+                // the full-text index can not be used for conditions
+                // of the form "contains(a, 'x') or b=123"
+                return null;
+            }
         }
-        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
-        list.add(f1);
-        list.add(f2);
         return new FullTextOr(list);
     }
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> s1 = constraint1.getSelectors();
-        Set<SelectorImpl> s2 = constraint2.getSelectors();
-        if (s1.isEmpty()) {
-            return s2;
-        } else if (s2.isEmpty()) {
-            return s1;
-        }
-        return Sets.union(s1, s2);
-    }
-    
-    @Override 
-    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m1 = constraint1.getInMap();
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m2 = constraint2.getInMap();
-        if (m1.isEmpty()) {
-            return m1;
-        } else if (m2.isEmpty()) {
-            return m2;
-        }
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> result = Maps.newHashMap();
-        for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e2 : m2.entrySet()) {
-            Set<StaticOperandImpl> l2 = e2.getValue();
-            Set<StaticOperandImpl> l1 = m1.get(e2.getKey());
-            if (l1 != null && !l1.isEmpty() && !l2.isEmpty()) {
-                Set<StaticOperandImpl> list = Sets.union(l1, l2);
-                result.put(e2.getKey(), list);
-            }
+        Set<SelectorImpl> result = newHashSet();
+        for (ConstraintImpl constraint : constraints) {
+            result.addAll(constraint.getSelectors());
         }
         return result;
-    }    
+    }
 
     @Override
     public boolean evaluate() {
-        return constraint1.evaluate() || constraint2.evaluate();
+        for (ConstraintImpl constraint : constraints) {
+            if (constraint.evaluate()) {
+                return true;
+            }
+        }
+        return false;
     }
+
 
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
-    }
-
-    @Override
-    public String toString() {
-        return protect(constraint1) + " or " + protect(constraint2);
     }
 
     @Override
@@ -153,26 +198,6 @@ public class OrImpl extends ConstraintImpl {
     public void restrictPushDown(SelectorImpl s) {
         restrictPushDownNotExists(s);
         restrictPushDownInList(s);
-    }
-    
-    /**
-     * Push down the "property in(1, 2, 3)" conditions to the selector, if there
-     * are any that can be derived.
-     * 
-     * @param s the selector
-     */
-    private void restrictPushDownInList(SelectorImpl s) {
-        if (isOnlySelector(s)) {
-            Map<DynamicOperandImpl, Set<StaticOperandImpl>> m = getInMap();
-            for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e : m.entrySet()) {
-                Set<StaticOperandImpl> set = e.getValue();
-                if (set.size() > 1) {
-                    InImpl in = new InImpl(e.getKey(), Lists.newArrayList(set));
-                    in.setQuery(query);
-                    in.restrictPushDown(s);
-                }
-            }
-        }
     }
 
     /**
@@ -191,31 +216,108 @@ public class OrImpl extends ConstraintImpl {
     }
 
     /**
-     * Check whether there are no other selectors in this "or" condition.
+     * Push down the "property in(1, 2, 3)" conditions to the selector, if there
+     * are any that can be derived.
      * 
      * @param s the selector
-     * @return true if there are no other selectors
      */
-    private boolean isOnlySelector(SelectorImpl s) {
-        Set<SelectorImpl> set = getSelectors();
-        if (set.size() == 0) {
-            // conditions without selectors, for example "1=0":
-            // the condition can be pushed down; 
-            // (currently there are no such conditions,
-            // but in the future we might add them)
-            return true;
-        } else if (set.size() > 1) {
-            // "x.a=1 or y.a=2" can't be pushed down to either "x" or "y"
-            return false;
-        } else {
-            // exactly one selector: check if it's the right one
-            SelectorImpl s2 = set.iterator().next();
-            if (!s2.equals(s)) {
-                // a different selector
-                return false;
+    private void restrictPushDownInList(SelectorImpl s) {
+        DynamicOperandImpl operand = null;
+        LinkedHashSet<StaticOperandImpl> values = newLinkedHashSet();
+ 
+        List<AndImpl> ands = newArrayList();
+        for (ConstraintImpl constraint : constraints) {
+            Set<SelectorImpl> selectors = constraint.getSelectors();
+            if (selectors.size() != 1 || !selectors.contains(s)) {
+                return;
+            } else if (constraint instanceof AndImpl) {
+                ands.add((AndImpl) constraint);
+            } else if (constraint instanceof InImpl) {
+                InImpl in = (InImpl) constraint;
+                DynamicOperandImpl o = in.getOperand1();
+                if (operand == null || operand.equals(o)) {
+                    operand = o;
+                    values.addAll(in.getOperand2());
+                } else {
+                    return;
+                }
+            } else if (constraint instanceof ComparisonImpl
+                    && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
+                ComparisonImpl comparison = (ComparisonImpl) constraint;
+                DynamicOperandImpl o = comparison.getOperand1();
+                if (operand == null || operand.equals(o)) {
+                    operand = o;
+                    values.add(comparison.getOperand2());
+                } else {
+                    return;
+                }
+            } else {
+                return;
             }
         }
-        return true;
+
+        if (operand == null) {
+            return;
+        }
+
+        for (AndImpl and : ands) {
+            boolean found = false;
+            for (ConstraintImpl constraint : and.getConstraints()) {
+                if (constraint instanceof InImpl) {
+                    InImpl in = (InImpl) constraint;
+                    if (operand.equals(in.getOperand1())) {
+                        values.addAll(in.getOperand2());
+                        found = true;
+                        break;
+                    }
+                } else if (constraint instanceof ComparisonImpl
+                        && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
+                    ComparisonImpl comparison = (ComparisonImpl) constraint;
+                    if (operand.equals(comparison.getOperand1())) {
+                        values.add(comparison.getOperand2());
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                return;
+            }
+        }
+
+        InImpl in = new InImpl(operand, newArrayList(values));
+        in.setQuery(query);
+        in.restrictPushDown(s);
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        for (ConstraintImpl constraint : constraints) {
+            if (builder.length() > 0) {
+                builder.append(" or ");
+            }
+            builder.append(protect(constraint));
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof OrImpl) {
+            return constraints.equals(((OrImpl) that).constraints);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return constraints.hashCode();
     }
 
 }

@@ -115,14 +115,14 @@ public class SimpleExcerptProvider {
             }
         }
         if (c instanceof AndImpl) {
-            AndImpl a = (AndImpl) c;
-            tokens.addAll(extractFulltext(a.getConstraint1()));
-            tokens.addAll(extractFulltext(a.getConstraint2()));
+            for (ConstraintImpl constraint : ((AndImpl) c).getConstraints()) {
+                tokens.addAll(extractFulltext(constraint));
+            }
         }
         if (c instanceof OrImpl) {
-            OrImpl o = (OrImpl) c;
-            tokens.addAll(extractFulltext(o.getConstraint1()));
-            tokens.addAll(extractFulltext(o.getConstraint2()));
+            for (ConstraintImpl constraint : ((OrImpl) c).getConstraints()) {
+                tokens.addAll(extractFulltext(constraint));
+            }
         }
         return tokens;
     }
