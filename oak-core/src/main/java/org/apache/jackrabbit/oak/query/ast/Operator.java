@@ -33,9 +33,7 @@ public enum Operator {
 
     LESS_OR_EQUAL("<="),
 
-    LIKE("like"),
-    
-    IN("in");
+    LIKE("like");
 
     /**
      * The name of this operator.
