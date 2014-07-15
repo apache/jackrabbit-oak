@@ -24,7 +24,6 @@ import static com.google.common.collect.Sets.newHashSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -85,12 +84,6 @@ public class InImpl extends ConstraintImpl {
     public Set<SelectorImpl> getSelectors() {
         return operand1.getSelectors();
     }
-    
-    @Override 
-    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
-        Set<StaticOperandImpl> operand2set = newHashSet(operand2);
-        return Collections.singletonMap(operand1, operand2set);
-    }  
 
     @Override
     public boolean evaluate() {

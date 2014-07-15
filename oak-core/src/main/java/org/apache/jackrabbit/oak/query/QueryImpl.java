@@ -154,6 +154,13 @@ public class QueryImpl implements Query {
 
         final QueryImpl query = this;
 
+        if (constraint != null) {
+            // need to do this *before* the visitation below, as the
+            // simplify() method does not always keep the query reference
+            // passed in setQuery(). TODO: avoid that mutability concern
+            constraint = constraint.simplify();
+        }
+
         new AstVisitorBase() {
 
             @Override
@@ -347,9 +354,7 @@ public class QueryImpl implements Query {
             }
 
         }.visit(this);
-        if (constraint != null) {
-            constraint = constraint.simplify();
-        }
+
         source.setQueryConstraint(constraint);
         for (ColumnImpl column : columns) {
             column.bindSelector(source);

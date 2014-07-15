@@ -18,115 +18,116 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Map.Entry;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 /**
  * An AND condition.
  */
 public class AndImpl extends ConstraintImpl {
 
-    private ConstraintImpl constraint1, constraint2;
+    private final List<ConstraintImpl> constraints;
+
+    AndImpl(List<ConstraintImpl> constraints) {
+        checkArgument(constraints.size() > 1);
+        this.constraints = constraints;
+    }
 
     public AndImpl(ConstraintImpl constraint1, ConstraintImpl constraint2) {
-        this.constraint1 = constraint1;
-        this.constraint2 = constraint2;
+        this(Arrays.asList(constraint1, constraint2));
     }
 
-    public ConstraintImpl getConstraint1() {
-        return constraint1;
-    }
-
-    public ConstraintImpl getConstraint2() {
-        return constraint2;
+    public List<ConstraintImpl> getConstraints() {
+        return constraints;
     }
 
     @Override
     public ConstraintImpl simplify() {
-        constraint1 = constraint1.simplify();
-        constraint2 = constraint2.simplify();
-        if (constraint1.equals(constraint2)) {
-            return constraint1;
+        // Use LinkedHashSet to eliminate duplicate constraints while keeping
+        // the ordering for test cases (and clients?) that depend on it
+        LinkedHashSet<ConstraintImpl> simplified = newLinkedHashSet();
+        boolean changed = false; // keep track of changes in simplification
+
+        for (ConstraintImpl constraint : constraints) {
+            ConstraintImpl simple = constraint.simplify();
+            if (simple instanceof AndImpl) {
+                // unwind nested AND constraints
+                simplified.addAll(((AndImpl) simple).constraints);
+                changed = true;
+            } else if (simplified.add(simple)) {
+                // check if this constraint got simplified
+                changed = changed || simple != constraint;
+            } else {
+                // this constraint was a duplicate of a previous one
+                changed = true;
+            }
         }
-        return this;
+
+        if (simplified.size() == 1) {
+            return simplified.iterator().next();
+        } else if (changed) {
+            return new AndImpl(newArrayList(simplified));
+        } else {
+            return this;
+        }
     }
-    
+
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
-        Set<PropertyExistenceImpl> s1 = constraint1.getPropertyExistenceConditions();
-        Set<PropertyExistenceImpl> s2 = constraint2.getPropertyExistenceConditions();
-        Set<PropertyExistenceImpl> result = Sets.newHashSet(s1);
-        result.addAll(s2);
+        Set<PropertyExistenceImpl> result = newHashSet();
+        for (ConstraintImpl constraint : constraints) {
+            result.addAll(constraint.getPropertyExistenceConditions());
+        }
         return result;
     }
     
     @Override
     public FullTextExpression getFullTextConstraint(SelectorImpl s) {
-        FullTextExpression f1 = constraint1.getFullTextConstraint(s);
-        FullTextExpression f2 = constraint2.getFullTextConstraint(s);
-        if (f1 == null) {
-            return f2;
-        } else if (f2 == null) {
-            return f1;
+        List<FullTextExpression> list = newArrayList();
+        for (ConstraintImpl constraint : constraints) {
+            FullTextExpression expression = constraint.getFullTextConstraint(s);
+            if (expression != null) {
+                list.add(expression);
+            }
         }
-        ArrayList<FullTextExpression> list = new ArrayList<FullTextExpression>();
-        list.add(f1);
-        list.add(f2);
-        return new FullTextAnd(list);
+        switch (list.size()) {
+        case 0:
+            return null;
+        case 1:
+            return list.iterator().next();
+        default:
+            return new FullTextAnd(list);
+        }
     }
     
     @Override
     public Set<SelectorImpl> getSelectors() {
-        Set<SelectorImpl> s1 = constraint1.getSelectors();
-        Set<SelectorImpl> s2 = constraint1.getSelectors();
-        if (s1.isEmpty()) {
-            return s2;
-        } else if (s2.isEmpty()) {
-            return s1;
-        }
-        return Sets.union(s1, s2);
-    }
-    
-    @Override 
-    public Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap() {
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m1 = constraint1.getInMap();
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> m2 = constraint2.getInMap();
-        if (m1.isEmpty()) {
-            return m2;
-        } else if (m2.isEmpty()) {
-            return m1;
-        }
-        Map<DynamicOperandImpl, Set<StaticOperandImpl>> result = Maps.newHashMap();
-        result.putAll(m1);
-        for (Entry<DynamicOperandImpl, Set<StaticOperandImpl>> e2 : m2.entrySet()) {
-            Set<StaticOperandImpl> s = result.get(e2.getKey());
-            if (s != null) {
-                // OAK-1933
-                // a property can have multiple values at the same time,
-                // so that "where a=1 and a=2" needs to be kept and can not
-                // be reduced to "where false" - in fact, we could 
-                // extend it to "where a in (1, 2)" so that an index can be used,
-                // but we might as well keep it at "where a = 1" as that would
-                // also use an index
-            } else {
-                result.put(e2.getKey(), e2.getValue());
-            }
+        Set<SelectorImpl> result = newHashSet();
+        for (ConstraintImpl constraint : constraints) {
+            result.addAll(constraint.getSelectors());
         }
         return result;
     }
 
     @Override
     public boolean evaluate() {
-        return constraint1.evaluate() && constraint2.evaluate();
+        for (ConstraintImpl constraint : constraints) {
+            if (!constraint.evaluate()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -135,21 +136,47 @@ public class AndImpl extends ConstraintImpl {
     }
 
     @Override
-    public String toString() {
-        return protect(constraint1) + " and " + protect(constraint2);
-    }
-
-    @Override
     public void restrict(FilterImpl f) {
-        constraint1.restrict(f);
-        constraint2.restrict(f);
+        for (ConstraintImpl constraint : constraints) {
+            constraint.restrict(f);
+        }
     }
 
     @Override
     public void restrictPushDown(SelectorImpl s) {
-        constraint1.restrictPushDown(s);
-        constraint2.restrictPushDown(s);
+        for (ConstraintImpl constraint : constraints) {
+            constraint.restrictPushDown(s);
+        }
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        for (ConstraintImpl constraint : constraints) {
+            if (builder.length() > 0) {
+                builder.append(" and ");
+            }
+            builder.append(protect(constraint));
+        }
+        return builder.toString();
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that) {
+            return true;
+        } else if (that instanceof AndImpl) {
+            return constraints.equals(((AndImpl) that).constraints);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return constraints.hashCode();
     }
 
 }
-

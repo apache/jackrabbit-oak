@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
@@ -76,13 +75,6 @@ public abstract class ConstraintImpl extends AstElement {
      * @return the set of selectors (possibly empty)
      */
     public abstract Set<SelectorImpl> getSelectors();
-    
-    /**
-     * Get the map of "in(..)" conditions.
-     * 
-     * @return the map
-     */
-    public abstract Map<DynamicOperandImpl, Set<StaticOperandImpl>> getInMap();
 
     /**
      * Apply the condition to the filter, further restricting the filter if
