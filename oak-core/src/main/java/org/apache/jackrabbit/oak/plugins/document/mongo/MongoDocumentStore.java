@@ -139,6 +139,13 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     private final long maxReplicationLagMillis;
 
+    /**
+     * Duration in seconds under which queries would use index on _modified field
+     * If set to -1 then modifiedTime index would not be used
+     */
+    private final long maxDeltaForModTimeIdxSecs =
+            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",120);
+
     private String lastReadWriteMode;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
@@ -193,6 +200,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),
                 builder.getDocumentCacheSize());
+        LOG.info("Configuration maxReplicationLagMillis {}, " +
+                "maxDeltaForModTimeIdxSecs {}",maxReplicationLagMillis, maxDeltaForModTimeIdxSecs);
     }
 
     private static void checkVersion(DB db) {
@@ -408,16 +417,24 @@ public class MongoDocumentStore implements CachingDocumentStore {
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
         queryBuilder.greaterThan(fromKey);
         queryBuilder.lessThan(toKey);
+
+        DBObject hint = new BasicDBObject(NodeDocument.ID, 1);
+
         if (indexedProperty != null) {
             queryBuilder.and(indexedProperty);
             queryBuilder.greaterThanEquals(startValue);
+
+            if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
+                    && canUseModifiedTimeIdx(startValue)) {
+                hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+            }
         }
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
         long start = start();
         try {
-            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC);
+            DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC).hint(hint);
             ReadPreference readPreference =
                     getMongoReadPreference(collection, parentId, getDefaultReadPreference(collection));
 
@@ -465,6 +482,13 @@ public class MongoDocumentStore implements CachingDocumentStore {
             lock.unlock();
             end("query", start);
         }
+    }
+
+    boolean canUseModifiedTimeIdx(long modifiedTimeInSecs) {
+        if (maxDeltaForModTimeIdxSecs < 0) {
+            return false;
+        }
+        return (NodeDocument.getModifiedInSecs(getTime()) - modifiedTimeInSecs) <= maxDeltaForModTimeIdxSecs;
     }
 
     @Override
@@ -833,6 +857,10 @@ public class MongoDocumentStore implements CachingDocumentStore {
     @Override
     public CacheStats getCacheStats() {
         return cacheStats;
+    }
+
+    long getMaxDeltaForModTimeIdxSecs() {
+        return maxDeltaForModTimeIdxSecs;
     }
 
     Iterable<? extends Map.Entry<CacheValue, ? extends CachedNodeDocument>> getCacheEntries() {
