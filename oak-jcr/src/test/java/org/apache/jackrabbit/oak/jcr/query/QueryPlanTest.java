@@ -124,10 +124,10 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property notNull " + 
-                "where (([a].[notNull] is not null) " +
-                "and ([a].[equals] = 1)) " +
-                "and (isdescendantnode([a], [/])) */", 
+        assertEquals("[nt:base] as [a] /* property notNull " +
+                "where ([a].[notNull] is not null) " +
+                "and ([a].[equals] = 1) " +
+                "and (isdescendantnode([a], [/])) */",
                 plan);
     }           
 
@@ -165,11 +165,11 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property tenPercent " + 
-                "where ((([a].[tenPercent] is not null) " + 
-                "and ([a].[fiftyPercent] is not null)) " + 
-                "and ([a].[hundredPercent] is not null)) " + 
-                "and (isdescendantnode([a], [/])) */", 
+        assertEquals("[nt:base] as [a] /* property tenPercent " +
+                "where ([a].[tenPercent] is not null) " +
+                "and ([a].[fiftyPercent] is not null) " +
+                "and ([a].[hundredPercent] is not null) " +
+                "and (isdescendantnode([a], [/])) */",
                 plan);
     }           
 

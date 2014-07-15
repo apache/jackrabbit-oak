@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -33,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_P
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -141,14 +143,14 @@ public class SelectorImpl extends SourceImpl {
             new ArrayList<JoinConditionImpl>();
 
     /**
-     * The selector condition can be evaluated when the given selector is
+     * The selector constraints can be evaluated when the given selector is
      * evaluated. For example, for the query
      * "select * from nt:base a inner join nt:base b where a.x = 1 and b.y = 2",
      * the condition "a.x = 1" can be evaluated when evaluating selector a. The
      * other part of the condition can't be evaluated until b is available.
-     * This field is set during the prepare phase.
+     * These constraints are collected during the prepare phase.
      */
-    private ConstraintImpl selectorCondition;
+    private final List<ConstraintImpl> selectorConstraints = newArrayList();
 
     private Cursor cursor;
     private IndexRow currentRow;
@@ -239,7 +241,7 @@ public class SelectorImpl extends SourceImpl {
     @Override
     public void unprepare() {
         plan = null;
-        selectorCondition = null;
+        selectorConstraints.clear();
         isParent = false;
         joinCondition = null;
         allJoinConditions.clear();
@@ -339,8 +341,8 @@ public class SelectorImpl extends SourceImpl {
         } else {
             buff.append("no-index");
         }
-        if (selectorCondition != null) {
-            buff.append(" where ").append(selectorCondition);
+        if (!selectorConstraints.isEmpty()) {
+            buff.append(" where ").append(new AndImpl(selectorConstraints).toString());
         }
         buff.append(" */");
         return buff.toString();
@@ -384,8 +386,8 @@ public class SelectorImpl extends SourceImpl {
             FullTextExpression ft = queryConstraint.getFullTextConstraint(this);
             f.setFullTextConstraint(ft);
         }
-        if (selectorCondition != null) {
-            selectorCondition.restrict(f);
+        for (ConstraintImpl constraint : selectorConstraints) {
+            constraint.restrict(f);
         }
 
         return f;
@@ -421,20 +423,28 @@ public class SelectorImpl extends SourceImpl {
                     continue;
                 }
             }
-            if (!matchesAllTypes && !evaluateTypeMatch()) {
-                continue;
+            if (evaluateCurrentRow()) {
+                return true;
             }
-            if (selectorCondition != null && !selectorCondition.evaluate()) {
-                continue;
-            }
-            if (joinCondition != null && !joinCondition.evaluate()) {
-                continue;
-            }
-            return true;
         }
         cursor = null;
         currentRow = null;
         return false;
+    }
+
+    private boolean evaluateCurrentRow() {
+        if (!matchesAllTypes && !evaluateTypeMatch()) {
+            return false;
+        }
+        for (ConstraintImpl constraint : selectorConstraints) {
+            if (!constraint.evaluate()) {
+                return false;
+            }
+        }
+        if (joinCondition != null && !joinCondition.evaluate()) {
+            return false;
+        }
+        return true;
     }
 
     private boolean evaluateTypeMatch() {
@@ -674,13 +684,13 @@ public class SelectorImpl extends SourceImpl {
     }
 
     public void restrictSelector(ConstraintImpl constraint) {
-        if (selectorCondition == null) {
-            selectorCondition = constraint;
-        } else {
-            selectorCondition = new AndImpl(selectorCondition, constraint);
-        }
+        selectorConstraints.add(constraint);
     }
-    
+
+    public List<ConstraintImpl> getSelectorConstraints() {
+        return selectorConstraints;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {
