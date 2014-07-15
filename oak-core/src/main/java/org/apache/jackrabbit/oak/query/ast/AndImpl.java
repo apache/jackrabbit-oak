@@ -40,7 +40,7 @@ public class AndImpl extends ConstraintImpl {
     private final List<ConstraintImpl> constraints;
 
     AndImpl(List<ConstraintImpl> constraints) {
-        checkArgument(constraints.size() > 1);
+        checkArgument(!constraints.isEmpty());
         this.constraints = constraints;
     }
 
@@ -153,14 +153,18 @@ public class AndImpl extends ConstraintImpl {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
-        for (ConstraintImpl constraint : constraints) {
-            if (builder.length() > 0) {
-                builder.append(" and ");
+        if (constraints.size() == 1) {
+            return constraints.iterator().next().toString();
+        } else {
+            StringBuilder builder = new StringBuilder();
+            for (ConstraintImpl constraint : constraints) {
+                if (builder.length() > 0) {
+                    builder.append(" and ");
+                }
+                builder.append(protect(constraint));
             }
-            builder.append(protect(constraint));
+            return builder.toString();
         }
-        return builder.toString();
     }
 
     @Override

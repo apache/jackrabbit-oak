@@ -45,7 +45,7 @@ public class OrImpl extends ConstraintImpl {
     private final List<ConstraintImpl> constraints;
 
     OrImpl(List<ConstraintImpl> constraints) {
-        checkArgument(constraints.size() > 1);
+        checkArgument(!constraints.isEmpty());
         this.constraints = constraints;
     }
 

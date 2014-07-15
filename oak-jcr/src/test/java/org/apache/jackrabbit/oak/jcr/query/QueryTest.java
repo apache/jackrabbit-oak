@@ -126,8 +126,8 @@ public class QueryTest extends AbstractRepositoryTest {
                 .createQuery("explain " + query, "xpath").execute();
         rit = r.getRows();
         assertEquals("[nt:base] as [a] /* ordered lastMod > 2001-02-01 " +
-                "where (([a].[jcr:primaryType] = 'oak:Unstructured') " +
-                "and ([a].[content/lastMod] > '2001-02-01')) " +
+                "where ([a].[jcr:primaryType] = 'oak:Unstructured') " +
+                "and ([a].[content/lastMod] > '2001-02-01') " +
                 "and (isdescendantnode([a], [/test])) */",
                 rit.nextRow().getValue("plan").getString());
         
