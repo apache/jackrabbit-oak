@@ -102,53 +102,14 @@ public class ComparisonImpl extends ConstraintImpl {
             for (int i = 0; i < p1.count(); i++) {
                 PropertyState value = PropertyStates.createProperty(
                         "value", p1.getValue(base, i), base);
-                if (evaluate(PropertyValues.create(value), p2)) {
+                if (operator.evaluate(PropertyValues.create(value), p2)) {
                     return true;
                 }
             }
             return false;
         } else {
-            return evaluate(p1, p2);
+            return operator.evaluate(p1, p2);
         }
-    }
-
-    /**
-     * "operand2 always evaluates to a scalar value"
-     * 
-     * for multi-valued properties: if any of the value matches, then return true
-     * 
-     * @param p1
-     * @param p2
-     * @return
-     */
-    private boolean evaluate(PropertyValue p1, PropertyValue p2) {
-        switch (operator) {
-        case EQUAL:
-            return PropertyValues.match(p1, p2);
-        case NOT_EQUAL:
-            return PropertyValues.notMatch(p1, p2);
-        case GREATER_OR_EQUAL:
-            return p1.compareTo(p2) >= 0;
-        case GREATER_THAN:
-            return p1.compareTo(p2) > 0;
-        case LESS_OR_EQUAL:
-            return p1.compareTo(p2) <= 0;
-        case LESS_THAN:
-            return p1.compareTo(p2) < 0;
-        case LIKE:
-            return evaluateLike(p1, p2);
-        }
-        throw new IllegalArgumentException("Unknown operator: " + operator);
-    }
-
-    private static boolean evaluateLike(PropertyValue v1, PropertyValue v2) {
-        LikePattern like = new LikePattern(v2.getValue(Type.STRING));
-        for (String s : v1.getValue(Type.STRINGS)) {
-            if (like.matches(s)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
