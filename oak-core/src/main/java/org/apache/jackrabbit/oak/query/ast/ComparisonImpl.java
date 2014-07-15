@@ -137,7 +137,6 @@ public class ComparisonImpl extends ConstraintImpl {
             return p1.compareTo(p2) < 0;
         case LIKE:
             return evaluateLike(p1, p2);
-        // case IN is not needed here, as this is handled in the class InImpl.
         }
         throw new IllegalArgumentException("Unknown operator: " + operator);
     }
