@@ -738,6 +738,31 @@ public class ObservationTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void noDuplicates() throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAdditionalPaths(TEST_PATH + "/a", TEST_PATH + "/a")
+                .setEventTypes(NODE_ADDED);
+        oManager.addEventListener(listener, filter);
+
+        Node testNode = getNode(TEST_PATH);
+        Node b = testNode.addNode("a").addNode("b");
+        b.addNode("c");
+        Node y = testNode.addNode("x").addNode("y");
+        y.addNode("z");
+
+        listener.expect(b.getPath(), NODE_ADDED);
+        testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
     public void filterPropertyOfParent()
             throws RepositoryException, ExecutionException, InterruptedException {
         assumeTrue(observationManager instanceof ObservationManagerImpl);
@@ -896,6 +921,10 @@ public class ObservationTest extends AbstractRepositoryTest {
             future.set(event);
         }
 
+        public boolean isComplete() {
+            return future.isDone();
+        }
+
         public void fail(Exception e) {
             future.setException(e);
         }
@@ -1012,7 +1041,7 @@ public class ObservationTest extends AbstractRepositoryTest {
                     Event event = events.nextEvent();
                     boolean found = false;
                     for (Expectation exp : expected) {
-                        if (exp.isEnabled() && exp.onEvent(event)) {
+                        if (exp.isEnabled() && !exp.isComplete() && exp.onEvent(event)) {
                             found = true;
                             exp.complete(event);
                         }
