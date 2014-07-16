@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
@@ -39,6 +40,7 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
@@ -208,7 +210,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         boolean noLocal = filter.getNoLocal();
         boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
         boolean noInternal = false; // FIXME OAK-1618 filter.getNoInternal(); once JCR-3759 is resolved
-        List<String> absPaths = Lists.newArrayList(filter.getAdditionalPaths());
+        Set<String> absPaths = Sets.newHashSet(filter.getAdditionalPaths());
         String absPath = filter.getAbsPath();
         if (absPath != null) {
             absPaths.add(absPath);
