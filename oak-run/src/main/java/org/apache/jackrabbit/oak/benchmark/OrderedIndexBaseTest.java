@@ -30,49 +30,57 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvi
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 
 /**
- *
+ * Base class used for benchmarking insert of nodes
  */
+@SuppressWarnings("rawtypes")
 public abstract class OrderedIndexBaseTest extends AbstractTest {
     /**
      * the number of nodes created per iteration
      */
-    static final int NODES_PER_ITERATION = Integer.parseInt(System.getProperty("nodesPerIteration", "100"));
-    
+    static final int NODES_PER_ITERATION = Integer.parseInt(System.getProperty("nodesPerIteration",
+        "100"));
+
     /**
      * number of nodes that has to be added before performing the actual test
      */
     static final int PRE_ADDED_NODES = Integer.parseInt(System.getProperty("preAddedNodes", "0"));
 
     /**
-    * type of the created node
-    */
-   static final String NODE_TYPE = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
-      
-   /**
-    * property that will be indexed
-    */
-   static final String INDEXED_PROPERTY = "indexedProperty";
-   
+     * type of the created node
+     */
+    static final String NODE_TYPE = NodeTypeConstants.NT_OAK_UNSTRUCTURED;
+
+    /**
+     * property that will be indexed
+     */
+    static final String INDEXED_PROPERTY = "indexedProperty";
+
     /**
      * size of the batch for saving
      */
-    static final int BATCH_SAVING_SIZE = 1024;
-   
-   /**
-    * node name below which creating the test data
-    */
-   final String DUMP_NODE = this.getClass().getSimpleName() + TEST_ID;
+    static final int BATCH_SAVING_SIZE = Integer
+        .parseInt(System.getProperty("batchSaving", "1024"));
+    
+    /**
+     * flags whether batch saving or not. Provide {@code -DbatchSaving=XYZ} where {@code XYZ} is
+     * greater than 0 to enable batch saving otherwise it will save every added nodes.
+     */
+    static final boolean BATCH_SAVING = BATCH_SAVING_SIZE > 0;
 
-   /**
-    * session used for operations throughout the test
-    */
-   Session session;
-   
-   /**
-    * node under which all the test data will be filled in
-    */
-   Node dump;
-      
+    /**
+     * node name below which creating the test data
+     */
+    final String DUMP_NODE = this.getClass().getSimpleName() + TEST_ID;
+
+    /**
+     * session used for operations throughout the test
+     */
+    Session session;
+
+    /**
+     * node under which all the test data will be filled in
+     */
+    Node dump;
 
     /**
      * insert a {@code numberOfNode} random nodes in the repository
@@ -101,46 +109,47 @@ public abstract class OrderedIndexBaseTest extends AbstractTest {
         }
     }
 
-   /**
-    * override when needed to define an index
-    */
-   void defineIndex() throws Exception {
-   }
-   
-   Node defineStandardPropertyIndex(Session session) throws Exception {
-       Node index = new OakIndexUtils.PropertyIndex().property(INDEXED_PROPERTY).create(session);
-       if(index == null) {
-           throw new RuntimeException("Error while creating the index definition. index node is null.");
-       }
-       if(!PropertyIndexEditorProvider.TYPE.equals(index.getProperty(IndexConstants.TYPE_PROPERTY_NAME).getString())) {
-           throw new RuntimeException("The type of the index does not match the expected");
-       }
-       session.save();
-       return index;
-   }
-   
-   Node defineOrderedPropertyIndex(Session session) throws Exception {
-        Node index = new OakIndexUtils.PropertyIndex().property(
-                INDEXED_PROPERTY).create(session, OrderedIndex.TYPE);
+    /**
+     * override when needed to define an index
+     */
+    void defineIndex() throws Exception {
+    }
+
+    Node defineStandardPropertyIndex(Session session) throws Exception {
+        Node index = new OakIndexUtils.PropertyIndex().property(INDEXED_PROPERTY).create(session);
         if (index == null) {
             throw new RuntimeException(
-                    "Error while creating the index definition. index node is null.");
+                "Error while creating the index definition. index node is null.");
         }
-        if (!OrderedIndex.TYPE.equals(index.getProperty(
-                IndexConstants.TYPE_PROPERTY_NAME).getString())) {
-            throw new RuntimeException(
-                    "The index type does not match the expected");
+        if (!PropertyIndexEditorProvider.TYPE.equals(index.getProperty(
+            IndexConstants.TYPE_PROPERTY_NAME).getString())) {
+            throw new RuntimeException("The type of the index does not match the expected");
         }
         session.save();
         return index;
-   }
-   
+    }
+
+    Node defineOrderedPropertyIndex(Session session) throws Exception {
+        Node index = new OakIndexUtils.PropertyIndex().property(INDEXED_PROPERTY).create(session,
+            OrderedIndex.TYPE);
+        if (index == null) {
+            throw new RuntimeException(
+                "Error while creating the index definition. index node is null.");
+        }
+        if (!OrderedIndex.TYPE.equals(index.getProperty(IndexConstants.TYPE_PROPERTY_NAME)
+            .getString())) {
+            throw new RuntimeException("The index type does not match the expected");
+        }
+        session.save();
+        return index;
+    }
+
     /**
      * 
      * @return true if you want batch saving during {@code insertRandomNodes} by
      *         {@code BATCH_SAVE_SIZE}
      */
     boolean isBatchSaving() {
-        return false;
+        return BATCH_SAVING;
     }
 }
