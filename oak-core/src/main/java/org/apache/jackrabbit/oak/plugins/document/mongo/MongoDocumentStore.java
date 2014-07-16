@@ -144,7 +144,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
      * If set to -1 then modifiedTime index would not be used
      */
     private final long maxDeltaForModTimeIdxSecs =
-            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",120);
+            Long.getLong("oak.mongo.maxDeltaForModTimeIdxSecs",-1);
 
     private String lastReadWriteMode;
 
