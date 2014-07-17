@@ -286,8 +286,9 @@ class ChangeProcessor implements Observer {
                 Iterator<Event> events = concat(eventQueues.iterator());
                 if (events.hasNext() && runningMonitor.enterIf(running)) {
                     try {
-                        eventListener.onEvent(
-                                new EventIteratorAdapter(statisticProvider(events)));
+                        CountingIterator<Event> countingEvents = new CountingIterator<Event>(events);
+                        eventListener.onEvent(new EventIteratorAdapter(countingEvents));
+                        countingEvents.updateCounters(eventCount, eventDuration);
                     } finally {
                         runningMonitor.leave();
                     }
@@ -299,24 +300,54 @@ class ChangeProcessor implements Observer {
         previousRoot = root;
     }
 
-    private <T> Iterator<T> statisticProvider(final Iterator<T> events) {
-        return new ForwardingIterator<T>() {
-            @Override
-            protected Iterator<T> delegate() {
-                return events;
+    private static class CountingIterator<T> extends ForwardingIterator<T> {
+        private final long t0 = System.nanoTime();
+        private final Iterator<T> events;
+        private long eventCount;
+        private long sysTime;
+
+        public CountingIterator(Iterator<T> events) {
+            this.events = events;
+        }
+
+        public void updateCounters(AtomicLong eventCount, AtomicLong eventDuration) {
+            checkState(this.eventCount >= 0);
+            eventCount.addAndGet(this.eventCount);
+            eventDuration.addAndGet(System.nanoTime() - t0 - sysTime);
+            this.eventCount = -1;
+        }
+
+        @Override
+        protected Iterator<T> delegate() {
+            return events;
+        }
+
+        @Override
+        public T next() {
+            if (eventCount == -1) {
+                LOG.warn("Access to EventIterator outside the onEvent callback detected. This will " +
+                    "cause observation related values in RepositoryStatistics to become unreliable.");
+                eventCount = -2;
             }
 
-            @Override
-            public T next() {
-                long t0 = System.nanoTime();
-                try {
-                    return super.next();
-                } finally {
-                    eventCount.incrementAndGet();
-                    eventDuration.addAndGet(System.nanoTime() - t0);
-                }
+            long t0 = System.nanoTime();
+            try {
+                return super.next();
+            } finally {
+                eventCount++;
+                sysTime += System.nanoTime() - t0;
             }
-        };
+        }
+
+        @Override
+        public boolean hasNext() {
+            long t0 = System.nanoTime();
+            try {
+                return super.hasNext();
+            } finally {
+                sysTime += System.nanoTime() - t0;
+            }
+        }
     }
 
     private static class RunningGuard extends Guard {
