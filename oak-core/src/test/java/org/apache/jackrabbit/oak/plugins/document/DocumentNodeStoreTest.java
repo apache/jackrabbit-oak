@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -510,7 +509,6 @@ public class DocumentNodeStoreTest {
     }
 
     // OAK-1972
-    @Ignore
     @Test
     public void readFromPreviousDoc() throws CommitFailedException {
         DocumentStore docStore = new MemoryDocumentStore();
