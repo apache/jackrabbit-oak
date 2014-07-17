@@ -60,6 +60,9 @@ public class QueryHintTest {
     public void prepareStores() throws Exception {
         clock = new Clock.Virtual();
         MongoConnection mc = MongoUtils.getConnection();
+        //TODO Temp mode to change the default setting so as to test it
+        //If we retain this feature then need to have better config support for it
+        System.setProperty("oak.mongo.maxDeltaForModTimeIdxSecs", "120");
         mongoDS = new MongoDocumentStore(mc.getDB(), new DocumentMK.Builder());
         mongoDS.setClock(clock);
         TRACE_LOGGER.addHandler(testHandler);
