@@ -88,9 +88,9 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should use the index on "jcr:uuid"
-        assertEquals("[oak:Unstructured] as [a] " + 
-                "/* property jcr:uuid where ([a].[jcr:uuid] is not null) " + 
-                "and (ischildnode([a], [/a/b/c/d/e/f/g/h/i/j/k])) */", 
+        assertEquals("[oak:Unstructured] as [a] " +
+                "/* property uuid IS NOT NULL where ([a].[jcr:uuid] is not null) " +
+                "and (ischildnode([a], [/a/b/c/d/e/f/g/h/i/j/k])) */",
                 plan);
     }     
     
@@ -124,7 +124,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property notNull " +
+        assertEquals("[nt:base] as [a] /* property notNull IS NOT NULL " +
                 "where ([a].[notNull] is not null) " +
                 "and ([a].[equals] = 1) " +
                 "and (isdescendantnode([a], [/])) */",
@@ -165,7 +165,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property tenPercent " +
+        assertEquals("[nt:base] as [a] /* property tenPercent IS NOT NULL " +
                 "where ([a].[tenPercent] is not null) " +
                 "and ([a].[fiftyPercent] is not null) " +
                 "and ([a].[hundredPercent] is not null) " +
@@ -200,7 +200,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         String plan = it.nextRow().getValue("plan").getString();
         // System.out.println("plan: " + plan);
         // should not use the index on "jcr:uuid"
-        assertEquals("[nt:base] as [a] /* property jcr:uuid " + 
+        assertEquals("[nt:base] as [a] /* property uuid IS NOT NULL " +
                 "where ([a].[jcr:uuid] is not null) and " + 
                 "(isdescendantnode([a], [/testroot/n/n/n/n/n/n/n])) */", 
                 plan);
@@ -287,7 +287,7 @@ public class QueryPlanTest extends AbstractRepositoryTest {
         it = result.getRows();
         assertTrue(it.hasNext());
         plan = it.nextRow().getValue("plan").getString();
-        assertEquals("[nt:base] as [a] /* property jcr:uuid " + 
+        assertEquals("[nt:base] as [a] /* property uuid IS NOT NULL " +
                 "where ([a].[jcr:uuid] is not null) " + 
                 "and (ischildnode([a], [/testroot])) */", plan);
         
