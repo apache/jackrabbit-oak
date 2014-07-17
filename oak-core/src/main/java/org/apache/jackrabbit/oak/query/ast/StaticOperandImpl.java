@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
  */
 public abstract class StaticOperandImpl extends AstElement {
 
-    abstract PropertyValue currentValue();
+    public abstract PropertyValue currentValue();
 
     abstract int getPropertyType();
 

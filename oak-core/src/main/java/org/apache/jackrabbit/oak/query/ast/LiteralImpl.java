@@ -51,7 +51,7 @@ public class LiteralImpl extends StaticOperandImpl {
     }
 
     @Override
-    PropertyValue currentValue() {
+    public PropertyValue currentValue() {
         // TODO namespace remapping?
         return value;
     }

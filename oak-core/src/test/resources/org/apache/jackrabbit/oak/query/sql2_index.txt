@@ -109,7 +109,8 @@ explain select excerpt(.)
 explain select *
   from [nt:base]
   where [jcr:uuid]=1 or [b]=2
-[nt:base] as [nt:base] /* traverse "*" */
+[nt:base] as [nt:base] /* traverse "*"
+  where ([nt:base].[jcr:uuid] = 1) or ([nt:base].[b] = 2) */
 
 explain select b.[jcr:uuid]
   from [nt:base] as a
@@ -135,7 +136,8 @@ explain select *
   from [nt:base]
   where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
 [nt:base] as [nt:base] /* property uuid IS NOT NULL
-  where [nt:base].[jcr:uuid] is not null */
+  where ([nt:base].[jcr:uuid] is not null)
+  and ((length([nt:base].[jcr:uuid]) = 1) or (upper([nt:base].[jcr:uuid]) = '1') or (lower([nt:base].[jcr:uuid]) = '3')) */
 
 explain select *
   from [nt:base]

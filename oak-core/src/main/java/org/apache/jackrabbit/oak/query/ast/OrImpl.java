@@ -225,6 +225,7 @@ public class OrImpl extends ConstraintImpl {
         DynamicOperandImpl operand = null;
         LinkedHashSet<StaticOperandImpl> values = newLinkedHashSet();
  
+        boolean multiPropertyOr = false;
         List<AndImpl> ands = newArrayList();
         for (ConstraintImpl constraint : constraints) {
             Set<SelectorImpl> selectors = constraint.getSelectors();
@@ -239,7 +240,7 @@ public class OrImpl extends ConstraintImpl {
                     operand = o;
                     values.addAll(in.getOperand2());
                 } else {
-                    return;
+                    multiPropertyOr = true;
                 }
             } else if (constraint instanceof ComparisonImpl
                     && ((ComparisonImpl) constraint).getOperator() == EQUAL) {
@@ -249,14 +250,17 @@ public class OrImpl extends ConstraintImpl {
                     operand = o;
                     values.add(comparison.getOperand2());
                 } else {
-                    return;
+                    multiPropertyOr = true;
                 }
             } else {
                 return;
             }
         }
 
-        if (operand == null) {
+        if (multiPropertyOr && ands.isEmpty()) {
+            s.restrictSelector(this);
+            return;
+        } else if (operand == null) {
             return;
         }
 
