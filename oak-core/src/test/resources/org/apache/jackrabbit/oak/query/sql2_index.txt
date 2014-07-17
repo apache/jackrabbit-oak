@@ -27,7 +27,7 @@
 explain select *
   from [nt:base]
   where [jcr:uuid] like '%'
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
   where [nt:base].[jcr:uuid] like '%' */
 
 explain select e.[jcr:path]
@@ -42,7 +42,7 @@ explain select e.[jcr:path]
   and name(c) = 'd'
   and name(d) = 'e'
   and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
-[nt:base] as [e] /* property jcr:uuid
+[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
   where [e].[jcr:uuid] in('1', '2', '3', '4') */
   inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
   where name([d]) = 'e' */
@@ -70,7 +70,7 @@ explain select e.[jcr:path]
   and name(c) = 'd'
   and name(d) = 'e'
   and (e.[jcr:uuid] = '1' or e.[jcr:uuid] = '2' or e.[jcr:uuid] = '3' or e.[jcr:uuid] = '4')
-[nt:base] as [e] /* property jcr:uuid
+[nt:base] as [e] /* property uuid IN (1, 2, 3, 4)
   where [e].[jcr:uuid] in('1', '2', '3', '4') */
   inner join [nt:base] as [d] /* traverse "* && //parent/of/join"
   where name([d]) = 'e' */
@@ -115,7 +115,7 @@ explain select b.[jcr:uuid]
   from [nt:base] as a
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
-[nt:base] as [a] /* property jcr:uuid
+[nt:base] as [a] /* property uuid IN (1, 2)
   where [a].[jcr:uuid] in('1', '2') */
   inner join [nt:base] as [b] /* traverse "* && //path/from/join//*" */
   on isdescendantnode([b], [a])
@@ -125,48 +125,48 @@ explain select b.[jcr:uuid]
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid] = '1' or a.[jcr:uuid] = '2')
   and b.[jcr:uuid] is not null
-[nt:base] as [a] /* property jcr:uuid
+[nt:base] as [a] /* property uuid IN (1, 2)
   where [a].[jcr:uuid] in('1', '2') */
-  inner join [nt:base] as [b] /* property jcr:uuid
+  inner join [nt:base] as [b] /* property uuid IS NOT NULL
   where [b].[jcr:uuid] is not null */
   on isdescendantnode([b], [a])
 
 explain select *
   from [nt:base]
   where length([jcr:uuid])=1 or upper([jcr:uuid])='1' or lower([jcr:uuid])='3'
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
   where [nt:base].[jcr:uuid] is not null */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '1' or ([jcr:uuid] = '2'
   and [b] = '3')
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
   where ([nt:base].[jcr:uuid] is not null)
   and ([nt:base].[jcr:uuid] in('1', '2')) */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] in('1', '2')
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
   where [nt:base].[jcr:uuid] in('1', '2') */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '1' or [jcr:uuid] = '2'
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IN (1, 2)
   where [nt:base].[jcr:uuid] in('1', '2') */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] = '123'
-[nt:base] as [nt:base] /* property jcr:uuid=123
+[nt:base] as [nt:base] /* property uuid = 123
   where [nt:base].[jcr:uuid] = '123' */
 
 explain select *
   from [nt:base]
   where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
   where [nt:base].[jcr:uuid] is not null */
 
 explain select *
@@ -174,9 +174,9 @@ explain select *
   inner join [nt:base] as b on isdescendantnode(b, a)
   where a.[jcr:uuid] is not null
   and b.[jcr:uuid] is not null
-[nt:base] as [a] /* property jcr:uuid
+[nt:base] as [a] /* property uuid IS NOT NULL
   where [a].[jcr:uuid] is not null */
-  inner join [nt:base] as [b] /* property jcr:uuid
+  inner join [nt:base] as [b] /* property uuid IS NOT NULL
   where [b].[jcr:uuid] is not null */
   on isdescendantnode([b], [a])
 
@@ -185,9 +185,9 @@ explain select *
   inner join [nt:base] as b on isdescendantnode(b, a)
   where (a.[jcr:uuid]=1 or a.[jcr:uuid]=2)
   and (b.[jcr:uuid]=3 or b.[jcr:uuid]=4)
-[nt:base] as [a] /* property jcr:uuid
+[nt:base] as [a] /* property uuid IN (1, 2)
   where [a].[jcr:uuid] in(1, 2) */
-  inner join [nt:base] as [b] /* property jcr:uuid
+  inner join [nt:base] as [b] /* property uuid IN (3, 4)
   where [b].[jcr:uuid] in(3, 4) */
   on isdescendantnode([b], [a])
 
@@ -196,7 +196,7 @@ explain select *
   inner join [nt:base] as b on isdescendantnode(b, a)
   where a.[jcr:uuid] is not null
   and b.[x] is not null
-[nt:base] as [a] /* property jcr:uuid
+[nt:base] as [a] /* property uuid IS NOT NULL
   where [a].[jcr:uuid] is not null */
   inner join [nt:base] as [b] /* traverse "* && //path/from/join//*"
   where [b].[x] is not null */
@@ -205,7 +205,7 @@ explain select *
 explain select [rep:excerpt]
   from [nt:base]
   where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* property jcr:uuid
+[nt:base] as [nt:base] /* property uuid IS NOT NULL
   where [nt:base].[jcr:uuid] is not null */
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
