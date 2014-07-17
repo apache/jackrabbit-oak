@@ -45,7 +45,7 @@ public class DocumentStoreException extends RuntimeException {
         if (t instanceof DocumentStoreException) {
             return (DocumentStoreException) t;
         } else {
-            return new DocumentStoreException(msg, t.getCause());
+            return new DocumentStoreException(msg, t);
         }
     }
 }
