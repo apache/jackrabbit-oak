@@ -35,7 +35,7 @@ public class VisibleEditor implements Editor {
 
     @CheckForNull
     public static Editor wrap(@CheckForNull Editor editor) {
-        if (editor != null) {
+        if (editor != null && !(editor instanceof VisibleEditor)) {
             return new VisibleEditor(editor);
         } else {
             return null;

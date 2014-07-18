@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -53,7 +54,7 @@ public class IndexUpdateProvider implements EditorProvider {
     public Editor getRootEditor(
             NodeState before, NodeState after,
             NodeBuilder builder, CommitInfo info) {
-        return new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK);
+        return VisibleEditor.wrap(new IndexUpdate(provider, async, after, builder, NOOP_CALLBACK));
     }
 
 }
