@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -281,7 +282,7 @@ public class AsyncIndexUpdate implements Runnable {
             IndexUpdate indexUpdate =
                     new IndexUpdate(provider, name, after, builder, callback);
             CommitFailedException exception =
-                    EditorDiff.process(indexUpdate, before, after);
+                    EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
             if (exception != null) {
                 throw exception;
             }
