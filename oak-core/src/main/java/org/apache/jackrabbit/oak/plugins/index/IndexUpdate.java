@@ -28,7 +28,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASY
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
 import java.util.HashMap;
 import java.util.List;
@@ -159,10 +158,10 @@ public class IndexUpdate implements Editor {
                         for (String rm : definition.getChildNodeNames()) {
                             definition.getChildNode(rm).remove();
                         }
-                        reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), wrap(editor));
+                        reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
                 } else {
-                    editors.add(wrap(editor));
+                    editors.add(editor);
                 }
             }
         }
