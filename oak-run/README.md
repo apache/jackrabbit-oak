@@ -1,7 +1,8 @@
 Oak Runnable Jar
 ================
 
-This jar contains everything you need for a simple Oak installation.
+This jar contains everything you need for a simple Oak installation. 
+
 The following runmodes are currently available:
 
     * backup      : Backup an existing Oak repository.
@@ -9,12 +10,14 @@ The following runmodes are currently available:
     * benchmark   : Run benchmark tests against different Oak repository fixtures.
     * debug       : Print status information about an Oak repository.
     * compact     : Segment compaction on a TarMK repository.
-    * upgrade     : Upgrade from Jackrabbit 2.x repository to Oak.
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
     * scalability : Run scalability tests against different Oak repository fixtures.
     * help        : Print a list of available runmodes
+
+Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
+the [Oak Runnable JR2](#jr2) section for more details.
 
 See the subsections below for more details on how to use these modes.
 
@@ -143,7 +146,7 @@ to be used. The following fixtures are currently supported:
 
 | Fixture       | Description                                           |
 |---------------|-------------------------------------------------------|
-| Jackrabbit    | Jackrabbit with the default embedded Derby  bundle PM |
+| Jackrabbit(*) | Jackrabbit with the default embedded Derby  bundle PM |
 | Oak-Memory    | Oak with default in-memory storage                    |
 | Oak-MemoryNS  | Oak with default in-memory NodeStore                  |
 | Oak-Mongo     | Oak with the default Mongo backend                    |
@@ -153,6 +156,7 @@ to be used. The following fixtures are currently supported:
 | Oak-Tar       | Oak with the Tar backend (aka Segment NodeStore)      |
 | Oak-Tar-FDS   | Oak with the Tar backend and FileDataStore            |
 
+Jackrabbit fixture requires [Oak Runnable JR2 jar](#jr2)
 
 Depending on the fixture the following options are available:
 
@@ -551,3 +555,14 @@ suites extending from it :
     -Dprofile=true                    - to collect and print profiling data
     -Ddebug=true                      - to output any intermediate results during the suite 
                                         run
+<a name="jr2"></a>
+Oak Runnable Jar - JR 2
+===============================
+
+This jar provides Jackrabbit 2.x related features
+
+The following runmodes are currently available:
+
+    * upgrade     : Upgrade from Jackrabbit 2.x repository to Oak.
+    * benchmark   : Run benchmark tests against Jackrabbit 2.x repository fixture.
+    * server      : Run the JR2 Server.
