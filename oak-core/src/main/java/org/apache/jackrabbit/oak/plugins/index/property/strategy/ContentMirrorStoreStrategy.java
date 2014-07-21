@@ -69,6 +69,7 @@ import com.google.common.collect.Sets;
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     static final Logger LOG = LoggerFactory.getLogger(ContentMirrorStoreStrategy.class);
+    protected static boolean isFilterAware = false;
 
     @Override
     public void update(
@@ -128,6 +129,15 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 } else {
                     for (String p : values) {
                         NodeState property = index.getChildNode(p);
+                        if(isFilterAware) {
+                            //Descend directly to path restriction inside index tree
+                            String rootPath = filter.getPath();
+                            for (String pathFragment : PathUtils.elements(rootPath)) {
+                                property = property.getChildNode(pathFragment);
+                                if (!property.exists())
+                                    break;
+                            }
+                        }
                         if (property.exists()) {
                             // we have an entry for this value, so use it
                             it.enqueue(Iterators.singletonIterator(
@@ -157,7 +167,17 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return count(indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
+    @Override
+    public long count(final Filter filter, NodeState indexMeta, Set<String> values, int max) {
+        return count(filter, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+    }
+
     public long count(NodeState indexMeta, final String indexStorageNodeName,
+            Set<String> values, int max) {
+        return count(null, indexMeta, indexStorageNodeName, values, max);
+    }
+
+    public long count(Filter filter, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         int count = 0;
@@ -194,6 +214,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             max = Math.max(10, max / size);
             int i = 0;
+            String filterRootPath = (filter==null)?null:filter.getPath();
             for (String p : values) {
                 if (count > max && i > 3) {
                     // the total count is extrapolated from the the number 
@@ -202,6 +223,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     break;
                 }
                 NodeState s = index.getChildNode(p);
+                if (filterRootPath != null && s.exists() && !filterRootPath.equals("/")) {
+                    //Descend directly to path restriction inside index tree
+                    isFilterAware = true;
+                    for(String pathFragment:PathUtils.elements(filterRootPath)) {
+                        s = s.getChildNode(pathFragment);
+                        if (!s.exists())break;
+                    }
+                }
                 if (s.exists()) {
                     CountingNodeVisitor v = new CountingNodeVisitor(max);
                     v.visit(s);
@@ -238,7 +267,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         PathIterator(Filter filter, String indexName) {
             this.filter = filter;
             this.indexName = indexName;
-            parentPath = "";
+            parentPath = isFilterAware?PathUtils.relativize("/", filter.getPath()):"";
             currentPath = "/";
             this.maxMemoryEntries = filter.getQueryEngineSettings().getLimitInMemory();
         }
