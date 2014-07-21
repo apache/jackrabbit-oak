@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -107,7 +108,7 @@ import static javax.jcr.Repository.WRITE_SUPPORTED;
  * {@code MicroKernel}-based implementation of
  * the {@link ContentRepository} interface.
  */
-public class ContentRepositoryImpl implements ContentRepository {
+public class ContentRepositoryImpl implements ContentRepository, Closeable {
 
     private final NodeStore nodeStore;
     private final CommitHook commitHook;
@@ -174,6 +175,11 @@ public class ContentRepositoryImpl implements ContentRepository {
             descriptors = createDescriptors();
         }
         return descriptors;
+    }
+
+    @Override
+    public void close() throws IOException {
+
     }
     
     @SuppressWarnings("deprecation")

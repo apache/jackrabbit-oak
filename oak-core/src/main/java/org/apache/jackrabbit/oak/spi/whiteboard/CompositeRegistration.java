@@ -19,14 +19,21 @@
 
 package org.apache.jackrabbit.oak.spi.whiteboard;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * A composite of registrations that unregisters all its constituents
  * upon {@link #unregister()}.
  */
 public class CompositeRegistration implements Registration {
-    private final Registration[] registrations;
+    private final List<Registration> registrations;
 
     public CompositeRegistration(Registration... registrations) {
+        this(Arrays.asList(registrations));
+    }
+
+    public CompositeRegistration(List<Registration> registrations) {
         this.registrations = registrations;
     }
 
