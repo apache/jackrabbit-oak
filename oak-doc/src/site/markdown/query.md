@@ -316,7 +316,7 @@ To set up the Solr index to be asynchronous that has to be defined inside the in
 TODO Node aggregation.
 
 ##### Index definition for Solr index
-
+<a name="solr-index-definition"></a>
 The index definition node for a Solr-based index:
 
  * must be of type `oak:QueryIndexDefinition`
@@ -350,14 +350,41 @@ Apache Solr supports multiple deployment architectures:
  * SolrCloud cluster, with Zookeeper instance(s) to control a dynamic, resilient set of Solr servers for high 
  availability and fault tolerance
 
-The Oak Solr index can be configured to use an 'embedded Solr server' or either a 'remote Solr server' (being able to 
+The Oak Solr index can be configured to either use an 'embedded Solr server' or a 'remote Solr server' (being able to 
 connect to a single remote instance or to a SolrCloud cluster via Zookeeper).
 
 ##### OSGi environment
-see the 'Solr Server Configuration' section on the [OSGi configuration](osgi_config.html) page
+All the Solr configuration parameters are described in the 'Solr Server Configuration' section on the 
+[OSGi configuration](osgi_config.html) page.
+
+Create an index definition for the Solr index, as described [above](#solr-index-definition).
+Once the query index definition node has been created, access OSGi ConfigurationAdmin via e.g. Apache Felix WebConsole:
+
+ 1. find the 'Oak Solr indexing / search configuration' item and eventually change configuration properties as needed
+ 2. find either the 'Oak Solr embedded server configuration' or 'Oak Solr remote server configuration' items depending 
+ on the chosen Solr architecture and eventually change configuration properties as needed
+ 3. find the 'Oak Solr server provider' item and select the chosen provider ('remote' or 'embedded') 
 
 ##### non OSGi environment
 TODO
+
+##### Recommended Solr server configurations
+Depending on the use case, different Solr server configurations are recommended.
+
+###### Embedded Solr server
+The embedded Solr server is recommended for developing and testing a Solr indexer for an Oak repository. With that an 
+in-memory Solr instance is started in the same JVM of the Oak repository, without HTTP bindings (for security purposes 
+as it'd allow HTTP access to repository data independently of ACLs). 
+Configuring an embedded Solr server mainly consists of providing the path to a standard [Solr home dir](https://wiki.apache.org/solr/SolrTerminology) 
+(solr.home.path Oak property) to be used to start Solr; this path can be either relative or absolute, if such a path 
+would not exist then the default configuration provided with _oak-solr-core_ artifact would be put in the given path.
+To start an embedded Solr server with a custom configuration (e.g. different schema.xml / solrconfig.xml than the default
+ ones) the (modified) Solr home files would have to be put in a dedicated directory, according to Solr home structure, so 
+ that the solr.home.path property can be pointed to that directory.
+
+###### Remote Solr server
+
+###### SolrCloud cluster
 
 #### Differences with the Lucene index
 As of Oak version 1.0.0:
