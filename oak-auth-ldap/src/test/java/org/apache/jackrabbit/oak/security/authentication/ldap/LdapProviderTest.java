@@ -173,6 +173,14 @@ public class LdapProviderTest {
     }
 
     @Test
+    public void testAuthenticateCaseInsensitive() throws Exception {
+        SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID.toUpperCase(), "pass".toCharArray());
+        ExternalUser user = idp.authenticate(creds);
+        assertNotNull("User 1 must authenticate", user);
+        assertEquals("User Ref", TEST_USER1_DN, user.getExternalId().getId());
+    }
+
+    @Test
     public void testAuthenticateFail() throws Exception {
         SimpleCredentials creds = new SimpleCredentials(TEST_USER1_UID, "foobar".toCharArray());
         try {
