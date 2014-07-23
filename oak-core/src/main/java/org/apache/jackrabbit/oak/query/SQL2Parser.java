@@ -104,6 +104,8 @@ public class SQL2Parser {
     private NamePathMapper namePathMapper;
     
     private final QueryEngineSettings settings;
+    
+    private boolean literalUsageLogged;
 
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
@@ -1236,8 +1238,9 @@ public class SQL2Parser {
     }
 
     private void checkLiterals(boolean text) throws ParseException {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Literal used in query: " + statement);
+        if (LOG.isDebugEnabled() && !literalUsageLogged) {
+            literalUsageLogged = true;
+            LOG.debug("Literal used");
         }
         if (text && !allowTextLiterals || !text && !allowNumberLiterals) {
             throw getSyntaxError("bind variable (literals of this type not allowed)");
