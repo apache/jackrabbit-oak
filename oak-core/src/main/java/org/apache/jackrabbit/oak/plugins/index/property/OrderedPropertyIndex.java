@@ -87,6 +87,14 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
             LOG.debug("getPlans() - rootState: {} - ", root);
         }
         List<IndexPlan> plans = new ArrayList<IndexPlan>();
+        if (filter.getFullTextConstraint() != null) {
+            // not an appropriate index for full-text search
+            return plans;
+        }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return plans;
+        }
 
         OrderedPropertyIndexLookup lookup = getLookup(root);
         Collection<PropertyRestriction> restrictions = filter.getPropertyRestrictions();
