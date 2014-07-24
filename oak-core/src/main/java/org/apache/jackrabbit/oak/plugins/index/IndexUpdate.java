@@ -46,8 +46,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexUpdate implements Editor {
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final IndexEditorProvider provider;
 
@@ -110,6 +113,10 @@ public class IndexUpdate implements Editor {
             throws CommitFailedException {
         collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME), before);
 
+        if(!reindex.isEmpty()){
+            log.info("Reindexing would be performed for following indexes {}", reindex.keySet());
+        }
+
         // no-op when reindex is empty
         CommitFailedException exception = EditorDiff.process(
                 CompositeEditor.compose(reindex.values()), MISSING_NODE, after);
@@ -130,7 +137,11 @@ public class IndexUpdate implements Editor {
         }
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import)
-        return !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+        boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
+        if(result){
+            log.info("Found a new index node [{}]. Reindexing would be requested", name);
+        }
+        return result;
     }
 
     private void collectIndexEditors(NodeBuilder definitions,
