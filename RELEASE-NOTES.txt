@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.2
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.3
 
 Introduction
 ------------
@@ -7,48 +7,39 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.2 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.3 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.2
+Changes in Oak 1.0.3
 --------------------
 
 Improvements
 
-  [OAK-1645] Route find queries to Mongo secondary in MongoDocumentStore
-  [OAK-1861] Limit memory usage of DocumentNodeStore.readChildren()
-  [OAK-1934] Optimize MutableTree.orderBefore for the common case
-  [OAK-1937] Add progress logs to MarkSweepGarbageCollector
+  [OAK-1966] - Add Hint for selecting more performant index in ...
+  [OAK-1967] - Avoid collision marker update when already present
+  [OAK-1983] - Query: reduce debug log output
+  [OAK-1986] - Log index names for which AsyncIndexUpdate would trigger a ...
+  [OAK-1987] - LuceneIndex should access Lucene Directory if query ...
 
 Bug fixes
 
-  [OAK-1462] - Aggregate Index isn't usable in an osgi environment
-  [OAK-1703] - Improve warning logged on concurrent Session access
-  [OAK-1807] - ConstraintViolationException seen with multiple Oak/Mongo ...
-  [OAK-1890] - Concurrent System Login: slowdown for high concurrency levels
-  [OAK-1894] - PropertyIndex only considers the cost of a single indexed ...
-  [OAK-1895] - ClassCastException can occur if the TraversalIndex is ...
-  [OAK-1897] - Stale documents in MongoDocumentStore cache
-  [OAK-1898] - Query: Incorrect cost calculation for traversal
-  [OAK-1899] - Ordered index fails with old index content
-  [OAK-1902] - NodeTypeIndex is not conversative enough about its cost
-  [OAK-1903] - PropertyIndex applies 10x penalty to is not null queries ...
-  [OAK-1916] - NodeStoreKernel doesn't handle array properties correctly
-  [OAK-1917] - FileNotFoundException during TarMK GC
-  [OAK-1921] - Backup: "Attempt to read external blob" error
-  [OAK-1927] - TarMK compaction delays journal updates
-  [OAK-1931] - MicroKernel.read() returns negative value
-  [OAK-1932] - TarMK compaction can create mixed segments
-  [OAK-1936] - TarMK compaction map check should switch comparison sides
-  [OAK-1958] - Session.logout performance poor
-  [OAK-1959] - AsyncIndexUpdate unable to cope with missing checkpoint ref
+  [OAK-1816] - Oak#createContentRepository never unregisters some of its ...
+  [OAK-1964] - Performance degradation due to SessionDelegate.WarningLock
+  [OAK-1968] - Wrong time unit for async index lease time
+  [OAK-1969] - Duplicate observation events when using JackrabbitEventFilter
+  [OAK-1972] - Async property index update may fail on DocumentMK with more ...
+  [OAK-1973] - IndexUpdate traverses the data nodes under index nodes
+  [OAK-1975] - Wrong values reported for OBSERVATION_EVENT_DURATION
+  [OAK-1982] - Ordered index must ignore full-text queries
+  [OAK-1991] - Optimize access to OrderedPropertyIndex
+
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 1.0.0 release.
+all the changes included up to the Apache Jackrabbit Oak 1.0.2 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
