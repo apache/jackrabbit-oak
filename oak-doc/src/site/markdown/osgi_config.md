@@ -291,8 +291,8 @@ The following configuration items can be defined (e.g. through Apache Felix WebC
         #Solr replication factor, no. of replicas to be created for each shard (for each collection) with SolrCloud 
         solr.replication.factor = 2
         
-        #number of documents per 'page' to be fetched for each query 
-        solr.conf.dir = directory eventually containing the configuration files to be uploaded for creating the SolrCloud collection 
+        #directory eventually containing the configuration files to be uploaded for creating the SolrCloud collection 
+        solr.conf.dir =  
         
 3. Oak Solr embedded server configuration: Configuration for _EmbeddedSolrServerProvider_ service with the following parameters:
 
