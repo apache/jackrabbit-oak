@@ -65,7 +65,7 @@ public class RelativePathTest extends AbstractQueryTest {
         t.addChild("c").addChild("x").setProperty("myProp", "foo");
         t.setProperty("myProp", "foo");
         root.commit();
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [n/myProp] is not null",
                 ImmutableList.of("/a", "/b"));
 
@@ -79,6 +79,6 @@ public class RelativePathTest extends AbstractQueryTest {
         assertQuery(
                 "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",
                 ImmutableList.of("/a"));
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
     }
 }

@@ -65,7 +65,7 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         t.addChild("b").setProperty("y", "bar");
         t.addChild("c").setProperty("z", "foo");
         root.commit();
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         assertQuery("select [jcr:path] from [nt:base] where [x] is not null",
                 ImmutableList.of("/a"));
 
@@ -99,6 +99,6 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
                 ImmutableList.of("/a", "/b"));
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
     }
 }
