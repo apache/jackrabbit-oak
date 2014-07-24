@@ -1684,9 +1684,8 @@ public final class DocumentNodeStore
     }
 
     private void checkRevisionAge(Revision r, String path) {
-        // TODO only log if there are new revisions available for the given node
         if (LOG.isDebugEnabled()) {
-            if (headRevision.getTimestamp() - r.getTimestamp() > WARN_REVISION_AGE) {
+            if ("/".equals(path) && headRevision.getTimestamp() - r.getTimestamp() > WARN_REVISION_AGE) {
                 LOG.debug("Requesting an old revision for path " + path + ", " +
                         ((headRevision.getTimestamp() - r.getTimestamp()) / 1000) + " seconds old");
             }
