@@ -88,6 +88,14 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
             LOG.debug("getPlans() - rootState: {} - ", root);
         }
         List<IndexPlan> plans = new ArrayList<IndexPlan>();
+        if (filter.getFullTextConstraint() != null) {
+            // not an appropriate index for full-text search
+            return plans;
+        }
+        if (filter.containsNativeConstraint()) {
+            // not an appropriate index for native search
+            return plans;
+        }
 
         PropertyIndexLookup pil = getLookup(root);
         if (pil instanceof OrderedPropertyIndexLookup) {
