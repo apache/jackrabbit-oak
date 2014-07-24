@@ -1044,7 +1044,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                         for (int i = vv.size(); i <= OrderedIndex.LANES; i++) {
                             vv.add("");
                         }
-                        values = vv.toArray(new String[0]);
+                        values = vv.toArray(new String[vv.size()]);
                     }
                 } else {
                     values = Iterables.toArray(EMPTY_NEXT, String.class);
