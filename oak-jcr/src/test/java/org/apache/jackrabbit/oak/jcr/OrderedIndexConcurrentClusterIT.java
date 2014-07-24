@@ -44,7 +44,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +53,6 @@ public class OrderedIndexConcurrentClusterIT {
     
     private static final long CACHE_SIZE = 32 * 1024 * 1024;
     private static final int NUM_CLUSTER_NODES = 5;
-    private static final int LOOP = 2800;
     private static final int COUNT = 5;
     private static final Credentials ADMIN = new SimpleCredentials("admin", "admin".toCharArray());
     private static final String INDEX_NODE_NAME = "lastModified";
@@ -69,7 +67,11 @@ public class OrderedIndexConcurrentClusterIT {
     
     @BeforeClass
     public static void mongoDBAvailable() {
-        Assume.assumeTrue(OakMongoMKRepositoryStub.isMongoDBAvailable());
+        final boolean mongoAvailable = OakMongoMKRepositoryStub.isMongoDBAvailable();
+        if (!mongoAvailable) {
+            LOG.warn("Mongo DB is not available. Skipping the test");
+        }
+        Assume.assumeTrue(mongoAvailable);
     }
     
     private static MongoConnection createConnection() throws Exception {
@@ -212,10 +214,9 @@ public class OrderedIndexConcurrentClusterIT {
         }
     }
 
-    @Ignore("OAK-1892")
     @Test
     public void deleteConcurrently() throws Exception {
-        final int loop = LOOP;
+        final int loop = 1400;
         final int count = COUNT;
         final int clusters = NUM_CLUSTER_NODES;
 
