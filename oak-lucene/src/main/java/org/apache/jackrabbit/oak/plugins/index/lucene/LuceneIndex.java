@@ -177,17 +177,18 @@ public class LuceneIndex implements FulltextQueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
+        FullTextExpression ft = filter.getFullTextConstraint();
+        if (ft == null) {
+            // no full-text condition: don't use this index,
+            // as there might be a better one
+            return Double.POSITIVE_INFINITY;
+        }
+
         IndexNode index = tracker.acquireIndexNode("/");
         if (index == null) { // unusable index
             return Double.POSITIVE_INFINITY;
         }
         try {
-            FullTextExpression ft = filter.getFullTextConstraint();
-            if (ft == null) {
-                // no full-text condition: don't use this index,
-                // as there might be a better one
-                return Double.POSITIVE_INFINITY;
-            }
             Set<String> relPaths = getRelativePaths(ft);
             if (relPaths.size() > 1) {
                 LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
