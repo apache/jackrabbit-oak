@@ -119,7 +119,8 @@ class GroovyConsole {
                 new LsCommand(shell),
                 new PnCommand(shell),
                 new RefreshCommand(shell),
-                new RetrieveCommand(shell)
+                new RetrieveCommand(shell),
+                new LuceneCommand(shell)
         ])
 
         if(session.store instanceof DocumentNodeStore){

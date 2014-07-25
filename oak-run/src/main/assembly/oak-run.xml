@@ -43,6 +43,7 @@
           <exclude>META-INF/*.SF</exclude>
           <exclude>META-INF/*.DSA</exclude>
           <exclude>META-INF/*.RSA</exclude>
+          <exclude>rebel.xml</exclude>
           <!-- Some bundle like oak-core currently embeds bundle for OSGi support.
               They would not be usable anyway in jar run so exclude them
           -->
