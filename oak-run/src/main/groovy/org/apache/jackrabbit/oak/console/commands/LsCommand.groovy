@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
+import com.google.common.collect.Iterables
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.codehaus.groovy.tools.shell.CommandSupport
@@ -33,9 +34,15 @@ class LsCommand extends CommandSupport{
 
     @Override
     Object execute(List<String> args) {
-        assertNoArguments(args)
-        session.workingNode.childNodeNames.each {
+        int limit = args ? args[0] as int : 50
+        def count = 0
+        Iterables.limit(session.workingNode.childNodeNames, limit).each {
+            count++
             io.out.println(it)
+        }
+
+        if(count == limit){
+            io.out.println("More than $limit children found...")
         }
         return null
     }

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.console.commands
 
+import com.google.common.collect.Iterables
 import com.google.common.collect.Lists
 import jline.console.completer.Completer
 import org.apache.jackrabbit.oak.commons.PathUtils
@@ -40,7 +41,7 @@ class CdCommand extends CommandSupport{
                     @Override
                     SortedSet getCandidates() {
                         SortedSet<String> names = new TreeSet<String>()
-                        getSession().getWorkingNode().childNodeNames.each {
+                        Iterables.limit(getSession().getWorkingNode().childNodeNames, 100).each {
                             names << it
                         }
                         return names
@@ -63,7 +64,7 @@ class CdCommand extends CommandSupport{
         }
         String path;
         if (PathUtils.isAbsolute(arg)) {
-            path = args;
+            path = arg;
         } else {
             path = PathUtils.concat(session.getWorkingPath(), arg);
         }
