@@ -24,7 +24,7 @@ var oak = (function(global){
     var api;
 
     api = function(){
-
+        print("Oak Mongo Helpers");
     };
 
     api.indexStats = function () {
@@ -40,7 +40,7 @@ var oak = (function(global){
             totalSize += stats.size;
         });
 
-        result.push({id: "summary", count: totalCount, size: totalSize, "simple": this.humanFileSize(totalSize)});
+        result.push({id: "summary", count: totalCount, size: totalSize, "simple": humanFileSize(totalSize)});
         return result;
     };
 
@@ -58,10 +58,10 @@ var oak = (function(global){
      * @returns {number}
      */
     api.countChildren = function(path){
-        var depth = this.pathDepth(path);
+        var depth = pathDepth(path);
         var totalCount = 0;
         while (true) {
-            var count = db.nodes.count({_id: this.pathFilter(depth++, path)});
+            var count = db.nodes.count({_id: pathFilter(depth++, path)});
             if( count === 0){
                 break;
             }
@@ -84,7 +84,7 @@ var oak = (function(global){
             count++;
             size +=  Object.bsonsize(doc);
         });
-        return {"count" : count, "size" : size, "simple" : this.humanFileSize(size)};
+        return {"count" : count, "size" : size, "simple" : humanFileSize(size)};
     };
 
     /**
@@ -95,9 +95,9 @@ var oak = (function(global){
      * @param callable
      */
     api.forEachChild = function(path, callable) {
-        var depth = this.pathDepth(path);
+        var depth = pathDepth(path);
         while (true) {
-            var cur = db.nodes.find({_id: this.pathFilter(depth++, path)});
+            var cur = db.nodes.find({_id: pathFilter(depth++, path)});
             if(!cur.hasNext()){
                 break;
             }
@@ -105,11 +105,14 @@ var oak = (function(global){
         }
     };
 
-    api.pathFilter = function (depth, prefix){
-        return new RegExp("^"+ depth + ":" + prefix);
+    api.pathFromId = function(id) {
+        var index = id.indexOf(':');
+        return id.substring(index + 1);
     };
 
-    api.pathDepth = function(path){
+    //~--------------------------------------------------< internal >
+
+    var pathDepth = function(path){
         if(path === '/'){
             return 0;
         }
@@ -122,13 +125,12 @@ var oak = (function(global){
         return depth;
     };
 
-    api.pathFromId = function(id) {
-        var index = id.indexOf(':');
-        return id.substring(index + 1);
+    var pathFilter = function (depth, prefix){
+        return new RegExp("^"+ depth + ":" + prefix);
     };
 
     //http://stackoverflow.com/a/20732091/1035417
-    api.humanFileSize = function (size) {
+    var humanFileSize = function (size) {
         var i = Math.floor( Math.log(size) / Math.log(1024) );
         return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
     };
