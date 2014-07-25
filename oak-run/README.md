@@ -566,3 +566,22 @@ The following runmodes are currently available:
     * upgrade     : Upgrade from Jackrabbit 2.x repository to Oak.
     * benchmark   : Run benchmark tests against Jackrabbit 2.x repository fixture.
     * server      : Run the JR2 Server.
+
+Oak Mongo Shell Helpers
+=======================
+
+To simplify making sense of data created by Oak in Mongo a javascript file oak-mongo.js
+is provided. It includes some useful function to navigate the data in Mongo
+
+    $ wget https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-run/src/main/js/oak-mongo.js
+    $ mongo localhost/oak --shell oak-mongo.js
+    MongoDB shell version: 2.6.3
+    connecting to: localhost/oak
+    type "help" for help
+    > oak.countChildren('/oak:index/')
+    356787
+    > oak.getChildStats('/oak:index')
+    { "count" : 356788, "size" : 127743372, "simple" : "121.83 MB" }
+    > oak.getChildStats('/')
+    { "count" : 593191, "size" : 302005011, "simple" : "288.01 MB" }
+    >
