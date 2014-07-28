@@ -207,9 +207,11 @@ class TokenProviderImpl implements TokenProvider {
     @Override
     public TokenInfo createToken(String userId, Map<String, ?> attributes) {
         String error = "Failed to create login token. ";
-        NodeUtil tokenParent = getTokenParent(userId);
+        User user = getUser(userId);
+        NodeUtil tokenParent = getTokenParent(user);
         if (tokenParent != null) {
             try {
+                String id = user.getID();
                 long creationTime = new Date().getTime();
                 NodeUtil tokenNode = createTokenNode(tokenParent, creationTime);
                 tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
@@ -218,7 +220,7 @@ class TokenProviderImpl implements TokenProvider {
                 String nodeId = getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
-                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, userId), options);
+                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, id), options);
                 tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
 
                 long exp;
@@ -237,7 +239,7 @@ class TokenProviderImpl implements TokenProvider {
                     }
                 }
                 root.commit();
-                return new TokenInfoImpl(tokenNode, token, userId);
+                return new TokenInfoImpl(tokenNode, token, id);
             } catch (NoSuchAlgorithmException e) {
                 // error while generating login token
                 log.error(error, e.getMessage());
@@ -247,7 +249,7 @@ class TokenProviderImpl implements TokenProvider {
             } catch (CommitFailedException e) {
                 // conflict while committing changes
                 log.warn(error, e.getMessage());
-            } catch (AccessDeniedException e) {
+            } catch (RepositoryException e) {
                 log.warn(error, e.getMessage());
             }
         } else {
@@ -320,7 +322,7 @@ class TokenProviderImpl implements TokenProvider {
     }
 
     @Nonnull
-    private static String getKeyValue(String key, String userId) {
+    private static String getKeyValue(@Nonnull String key, @Nonnull String userId) {
         return key + userId;
     }
 
@@ -359,26 +361,40 @@ class TokenProviderImpl implements TokenProvider {
     }
 
     @CheckForNull
-    private NodeUtil getTokenParent(String userId) {
-        NodeUtil tokenParent = null;
-        String parentPath = null;
+    private User getUser(String userId) {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
-                String userPath = user.getPath();
-                NodeUtil userNode = new NodeUtil(root.getTree(userPath));
-                tokenParent = userNode.getChild(TOKENS_NODE_NAME);
-                if (tokenParent == null) {
-                    tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
-                    parentPath = userPath + '/' + TOKENS_NODE_NAME;
-                    root.commit();
-                }
+                return (User) user;
             } else {
                 log.debug("Cannot create login token: No corresponding node for User " + userId + '.');
             }
         } catch (RepositoryException e) {
             // error while accessing user.
             log.debug("Error while accessing user " + userId + '.', e);
+        }
+        return null;
+    }
+
+    @CheckForNull
+    private NodeUtil getTokenParent(@CheckForNull User user) {
+        if (user == null) {
+            return null;
+        }
+        NodeUtil tokenParent = null;
+        String parentPath = null;
+        try {
+            String userPath = user.getPath();
+            NodeUtil userNode = new NodeUtil(root.getTree(userPath));
+            tokenParent = userNode.getChild(TOKENS_NODE_NAME);
+            if (tokenParent == null) {
+                tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
+                parentPath = userPath + '/' + TOKENS_NODE_NAME;
+                root.commit();
+            }
+        } catch (RepositoryException e) {
+            // error while creating token node.
+            log.debug("Error while creating token node ", e.getMessage());
         } catch (CommitFailedException e) {
             // conflict while creating token store for this user -> refresh and
             // try to get the tree from the updated root.

@@ -360,6 +360,27 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         }
     }
 
+    /**
+     * @see OAK-1985
+     */
+    @Test
+    public void testTokenValidationIsCaseInsensitive() throws Exception {
+        Root root = adminSession.getLatestRoot();
+        TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
+        TokenProvider tp = tokenConfig.getTokenProvider(root);
+
+        String userId = ((SimpleCredentials) getAdminCredentials()).getUserID();
+        TokenInfo info = tp.createToken(userId.toUpperCase(), Collections.<String, Object>emptyMap());
+
+        assertTrue(info.matches(new TokenCredentials(info.getToken())));
+        assertEquals(userId, info.getUserId());
+
+        info = tp.getTokenInfo(info.getToken());
+
+        assertTrue(info.matches(new TokenCredentials(info.getToken())));
+        assertEquals(userId, info.getUserId());
+    }
+
     //--------------------------------------------------------------------------
     private static void assertTokenInfo(TokenInfo info, String userId) {
         assertNotNull(info);
