@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -144,24 +143,6 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
 
-        ContentSession cs = login(new TokenCredentials(info.getToken()));
-        try {
-            assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
-        } finally {
-            cs.close();
-        }
-    }
-
-    @Ignore("OAK-1985")
-    @Test
-    public void testValidTokenCredentialsCaseInsensitive() throws Exception {
-        Root root = adminSession.getLatestRoot();
-        TokenConfiguration tokenConfig = getSecurityProvider().getConfiguration(TokenConfiguration.class);
-        TokenProvider tp = tokenConfig.getTokenProvider(root);
-
-        SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
-        sc = new SimpleCredentials(sc.getUserID().toUpperCase(), sc.getPassword());
-        TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
         ContentSession cs = login(new TokenCredentials(info.getToken()));
         try {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());

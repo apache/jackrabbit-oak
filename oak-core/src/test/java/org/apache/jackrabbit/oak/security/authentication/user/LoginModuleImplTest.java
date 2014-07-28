@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -162,15 +161,14 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         }
     }
 
-    @Ignore("OAK-1984")
     @Test
-    public void testCaseInsensitiveUserIdOnAuthInfo() throws Exception {
+    public void testUserLoginIsCaseInsensitive2() throws Exception {
         ContentSession cs = null;
         try {
             createTestUser();
             cs = login(new SimpleCredentials(USER_ID_CASED, USER_PW.toCharArray()));
             AuthInfo authInfo = cs.getAuthInfo();
-            assertEquals(USER_ID, authInfo.getUserID());
+            assertEquals(USER_ID_CASED, authInfo.getUserID());
         } finally {
             if (cs != null) {
                 cs.close();
