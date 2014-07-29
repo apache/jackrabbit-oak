@@ -629,12 +629,6 @@ public class FileStore implements SegmentStore {
         compactionThread.trigger();
     }
 
-    public void accept(TarEntryVisitor visitor) throws IOException {
-        for (TarReader reader : readers) {
-            reader.accept(visitor);
-        }
-    }
-
     public Map<String, Set<UUID>> getTarReaderIndex() {
         Map<String, Set<UUID>> index = new HashMap<String, Set<UUID>>();
         for (TarReader reader : readers) {
