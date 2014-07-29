@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -117,8 +119,11 @@ public class OrImpl extends ConstraintImpl {
             Set<StaticOperandImpl> l2 = e2.getValue();
             Set<StaticOperandImpl> l1 = m1.get(e2.getKey());
             if (l1 != null && !l1.isEmpty() && !l2.isEmpty()) {
-                Set<StaticOperandImpl> list = Sets.union(l1, l2);
-                result.put(e2.getKey(), list);
+                // ensure the same order is used
+                LinkedHashSet<StaticOperandImpl> set = new LinkedHashSet<StaticOperandImpl>();
+                set.addAll(l1);
+                set.addAll(l2);
+                result.put(e2.getKey(), set);
             }
         }
         return result;
@@ -132,6 +137,18 @@ public class OrImpl extends ConstraintImpl {
     @Override
     boolean accept(AstVisitor v) {
         return v.visit(this);
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        } else if (!(other instanceof OrImpl)) {
+            return false;
+        }
+        OrImpl o = (OrImpl) other;
+        return constraint1.equals(o.constraint1) &&
+                constraint2.equals(o.constraint2);
     }
 
     @Override

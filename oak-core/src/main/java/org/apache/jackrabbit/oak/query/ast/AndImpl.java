@@ -127,6 +127,18 @@ public class AndImpl extends ConstraintImpl {
     boolean accept(AstVisitor v) {
         return v.visit(this);
     }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        } else if (!(other instanceof AndImpl)) {
+            return false;
+        }
+        AndImpl o = (AndImpl) other;
+        return constraint1.equals(o.constraint1) &&
+                constraint2.equals(o.constraint2);
+    }
 
     @Override
     public String toString() {
