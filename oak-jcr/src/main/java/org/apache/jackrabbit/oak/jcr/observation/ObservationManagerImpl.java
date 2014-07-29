@@ -24,12 +24,14 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -53,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.observation.ExcludeExternal;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder.Condition;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
+import org.apache.jackrabbit.oak.plugins.observation.filter.PermissionProviderFactory;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -85,6 +88,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     private final StatisticManager statisticManager;
     private final int queueLength;
     private final CommitRateLimiter commitRateLimiter;
+    private final PermissionProviderFactory permissionProviderFactory;
 
     /**
      * Create a new instance based on a {@link ContentSession} that needs to implement
@@ -108,6 +112,15 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         this.statisticManager = sessionContext.getStatisticManager();
         this.queueLength = queueLength;
         this.commitRateLimiter = commitRateLimiter;
+        this.permissionProviderFactory = new PermissionProviderFactory() {
+            Set<Principal> principals = sessionDelegate.getAuthInfo().getPrincipals();
+            @Nonnull
+            @Override
+            public PermissionProvider create() {
+                return authorizationConfig.getPermissionProvider(
+                        sessionDelegate.getRoot(), sessionDelegate.getWorkspaceName(), principals);
+            }
+        };
     }
 
     public void dispose() {
@@ -130,8 +143,11 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         if (processor == null) {
             LOG.debug(OBSERVATION,
                     "Registering event listener {} with filter {}", listener, filterProvider);
+            // TODO sharing the namePathMapper across different thread might lead to lock contention.
+            // If this turns out to be problematic we might create a dedicated snapshot for each
+            // session. See OAK-1368.
             processor = new ChangeProcessor(sessionDelegate.getContentSession(), namePathMapper,
-                    createPermissionProvider(), tracker, filterProvider, statisticManager, queueLength,
+                    tracker, filterProvider, statisticManager, queueLength,
                     commitRateLimiter);
             processors.put(listener, processor);
             processor.start(whiteboard);
@@ -223,7 +239,8 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
                     filterBuilder.uuid(Selectors.PARENT, uuids),
-                    filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName))));
+                    filterBuilder.nodeType(Selectors.PARENT, validateNodeTypeNames(nodeTypeName)),
+                    filterBuilder.accessControl(permissionProviderFactory)));
 
         // FIXME support multiple path in ListenerTracker
         ListenerTracker tracker = new WarningListenerTracker(
@@ -265,15 +282,6 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
     }
 
     //------------------------------------------------------------< private >---
-    /**
-     * Create a new permission provider instance for the current revision of the
-     * {@code Root} associated with the {@code sessionDelegate}.
-     *
-     * @return a new permission provider.
-     */
-    private PermissionProvider createPermissionProvider() {
-        return authorizationConfig.getPermissionProvider(sessionDelegate.getRoot(), sessionDelegate.getWorkspaceName(), sessionDelegate.getAuthInfo().getPrincipals());
-    }
 
     /**
      * Validates the given node type names.

@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -173,13 +172,13 @@ public final class FilterBuilder {
      * A condition that hold for accessible items as determined by the passed permission
      * provider.
      *
-     * @param permissionProvider  permission provider for checking whether an item is accessible.
+     * @param permissionProviderFactory  permission provider for checking whether an item is accessible.
      * @return  access control condition
      * @see  ACFilter
      */
     @Nonnull
-    public Condition accessControl(@Nonnull PermissionProvider permissionProvider) {
-        return new ACCondition(checkNotNull(permissionProvider));
+    public Condition accessControl(@Nonnull PermissionProviderFactory permissionProviderFactory) {
+        return new ACCondition(checkNotNull(permissionProviderFactory));
     }
 
     /**
@@ -400,15 +399,15 @@ public final class FilterBuilder {
     }
 
     private static class ACCondition implements Condition {
-        private final PermissionProvider permissionProvider;
+        private final PermissionProviderFactory permissionProviderFactory;
 
-        public ACCondition(PermissionProvider permissionProvider) {
-            this.permissionProvider = permissionProvider;
+        public ACCondition(PermissionProviderFactory permissionProviderFactory) {
+            this.permissionProviderFactory = permissionProviderFactory;
         }
 
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
-            return new ACFilter(before, after, permissionProvider);
+            return new ACFilter(before, after, permissionProviderFactory.create());
         }
     }
 
