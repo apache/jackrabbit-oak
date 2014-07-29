@@ -40,6 +40,60 @@ public final class Filters {
     }
 
     /**
+     * A filter that matches if and only if any the filter passed to this
+     * method does not match.
+     * @param filter  filter which must not match
+     * @return {@code true} if {@code filter} does not match.
+     */
+    @Nonnull
+    public static EventFilter not(@Nonnull final EventFilter filter) {
+        return new EventFilter() {
+            @Override
+            public boolean includeAdd(PropertyState after) {
+                return !filter.includeAdd(after);
+            }
+
+            @Override
+            public boolean includeChange(PropertyState before, PropertyState after) {
+                return !filter.includeChange(before, after);
+            }
+
+            @Override
+            public boolean includeDelete(PropertyState before) {
+                return !filter.includeDelete(before);
+            }
+
+            @Override
+            public boolean includeAdd(String name, NodeState after) {
+                return !filter.includeAdd(name, after);
+            }
+
+            @Override
+            public boolean includeDelete(String name, NodeState before) {
+                return !filter.includeDelete(name, before);
+            }
+
+            @Override
+            public boolean includeMove(String sourcePath, String name, NodeState moved) {
+                return !filter.includeMove(sourcePath, name, moved);
+            }
+
+            @Override
+            public boolean includeReorder(String destName, String name, NodeState reordered) {
+                return !filter.includeReorder(destName, name, reordered);
+            }
+
+            @Override
+            public EventFilter create(String name, NodeState before, NodeState after) {
+                EventFilter childFilter = filter.create(name, before, after);
+                return childFilter == null
+                    ? INCLUDE_ALL
+                    : not(childFilter);
+            }
+        };
+    }
+
+    /**
      * A filter that matches if and only if any of the filters passed to this
      * method matches.
      * @param filters  filters of which any must match

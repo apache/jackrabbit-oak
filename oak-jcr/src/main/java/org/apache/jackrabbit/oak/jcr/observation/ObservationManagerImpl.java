@@ -19,8 +19,11 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Collections.emptySet;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR;
 import static org.apache.jackrabbit.oak.plugins.observation.filter.GlobbingPathFilter.STAR_STAR;
 
@@ -40,7 +43,6 @@ import javax.jcr.observation.EventJournal;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
@@ -214,27 +216,37 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         boolean noLocal = filter.getNoLocal();
         boolean noExternal = filter.getNoExternal() || listener instanceof ExcludeExternal;
         boolean noInternal = filter.getNoInternal();
-        Set<String> absPaths = Sets.newHashSet(filter.getAdditionalPaths());
+        Set<String> includePaths = getOakPaths(namePathMapper, filter.getAdditionalPaths());
         String absPath = filter.getAbsPath();
         if (absPath != null) {
-            absPaths.add(absPath);
+            includePaths.add(namePathMapper.getOakPath(absPath));
+        }
+// FIXME Use filter.getExcludedPaths()) as soon as we have the changes from  JCR-3797. See OAK-1978
+//        Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
+        Set<String> excludedPaths = emptySet();
+        optimise(includePaths, excludedPaths);
+        if (includePaths.isEmpty()) {
+            LOG.warn("The passed filter excludes all events. No event listener registered");
+            return;
         }
 
         FilterBuilder filterBuilder = new FilterBuilder();
         String depthPattern = isDeep ? STAR + '/' + STAR_STAR : STAR;
-        List<Condition> pathConditions = newArrayList();
-        for (String path : absPaths) {
-            String oakPath = namePathMapper.getOakPath(path);
-            pathConditions.add(filterBuilder.path(concat(oakPath, depthPattern)));
-            filterBuilder.addSubTree(oakPath);
+        List<Condition> includeConditions = newArrayList();
+        for (String path : includePaths) {
+            includeConditions.add(filterBuilder.path(concat(path, depthPattern)));
+            filterBuilder.addSubTree(path);
         }
+
+        List<Condition> excludeConditions = createExclusions(filterBuilder, excludedPaths);
 
         filterBuilder
             .includeSessionLocal(!noLocal)
             .includeClusterExternal(!noExternal)
             .includeClusterLocal(!noInternal)
             .condition(filterBuilder.all(
-                    filterBuilder.any(pathConditions),
+                    filterBuilder.all(excludeConditions),
+                    filterBuilder.any(includeConditions),
                     filterBuilder.deleteSubtree(),
                     filterBuilder.moveSubtree(),
                     filterBuilder.eventType(eventTypes),
@@ -247,6 +259,42 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
                 !noExternal, listener, eventTypes, absPath, isDeep, uuids, nodeTypeName, noLocal);
 
         addEventListener(listener, tracker, filterBuilder.build());
+    }
+
+    /**
+     * Removes paths from {@code includePaths} that are completely excluded
+     * and only retains paths in {@code excludedPaths} that are included.
+     * @param includePaths
+     * @param excludedPaths
+     */
+    private static void optimise(Set<String> includePaths, Set<String> excludedPaths) {
+        Set<String> retain = newHashSet();
+        for (String include : includePaths) {
+            for (String exclude : excludedPaths) {
+                if (exclude.equals(include) || isAncestor(exclude, include)) {
+                    includePaths.remove(include);
+                } else if (isAncestor(include, exclude)) {
+                    retain.add(exclude);
+                }
+            }
+        }
+        excludedPaths.retainAll(retain);
+    }
+
+    private static List<Condition> createExclusions(FilterBuilder filterBuilder, Iterable<String> excludedPaths) {
+        List<Condition> conditions = newArrayList();
+        for (String path : excludedPaths) {
+            conditions.add(filterBuilder.not(filterBuilder.path(path + '/' + STAR_STAR)));
+        }
+        return conditions;
+    }
+
+    private static Set<String> getOakPaths(NamePathMapper mapper, String[] paths) {
+        Set<String> oakPaths = newHashSet();
+        for (String path : paths) {
+            oakPaths.add(mapper.getOakPath(path));
+        }
+        return oakPaths;
     }
 
     @Override

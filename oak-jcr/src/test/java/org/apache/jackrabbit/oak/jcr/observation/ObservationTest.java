@@ -76,6 +76,7 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -755,6 +756,62 @@ public class ObservationTest extends AbstractRepositoryTest {
 
         listener.expect(b.getPath(), NODE_ADDED);
         testNode.getSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Ignore("OAK-1978")  // FIXME OAK-1978
+    @Test
+    public void pathExclude() throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(TEST_PATH)
+                .setIsDeep(true)
+// FIXME set exclude paths as soon as we have the changes from  JCR-3797. See OAK-1978
+//               .setExcludedPaths(TEST_PATH + "/c", TEST_PATH + "/d",  "/x/y")
+                .setEventTypes(ALL_EVENTS);
+        oManager.addEventListener(listener, filter);
+
+        Node n = getNode(TEST_PATH);
+        listener.expectAdd(listener.expectAdd(
+                listener.expectAdd(n.addNode("a")).addNode("a1")).setProperty("p", "q"));
+        listener.expectAdd(
+                listener.expectAdd(n.addNode("b")).setProperty("p", "q"));
+        n.addNode("c").addNode("c1").setProperty("p", "q");
+        n.addNode("d").setProperty("p", "q");
+        getAdminSession().save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Ignore("OAK-1978")  // FIXME OAK-1978
+    @Test
+    public void parentPathExclude() throws ExecutionException, InterruptedException, RepositoryException {
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
+
+        Node n = getNode(TEST_PATH).addNode("n");
+        getAdminSession().save();
+
+        JackrabbitObservationManager oManager = (JackrabbitObservationManager) observationManager;
+        ExpectationListener listener = new ExpectationListener();
+        JackrabbitEventFilter filter = new JackrabbitEventFilter()
+                .setAbsPath(n.getPath())
+                .setIsDeep(true)
+// FIXME set exclude paths as soon as we have the changes from  JCR-3797. See OAK-1978
+//              .setExcludedPaths(n.getParent().getPath())
+                .setEventTypes(ALL_EVENTS);
+        oManager.addEventListener(listener, filter);
+
+        n.addNode("n1");
+        getAdminSession().save();
 
         List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
         assertTrue("Missing events: " + missing, missing.isEmpty());

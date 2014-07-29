@@ -305,7 +305,7 @@ public final class FilterBuilder {
      */
     @Nonnull
     public Condition any(@Nonnull Condition... conditions) {
-        return new AnyCondition(checkNotNull(conditions));
+        return new AnyCondition(newArrayList(checkNotNull(conditions)));
     }
 
     /**
@@ -315,7 +315,27 @@ public final class FilterBuilder {
      */
     @Nonnull
     public Condition all(@Nonnull Condition... conditions) {
+        return new AllCondition(newArrayList(checkNotNull(conditions)));
+    }
+
+    /**
+     * A compound condition that holds when all of its constituents hold.
+     * @param conditions conditions of which all must hold in order for this condition to hold
+     * @return  any condition
+     */
+    @Nonnull
+    public Condition all(@Nonnull List<Condition> conditions) {
         return new AllCondition(checkNotNull(conditions));
+    }
+
+    /**
+     * A compound condition that holds when its constituent does not hold.
+     * @param condition condition which must not hold in order for this condition to hold
+     * @return  not condition
+     */
+    @Nonnull
+    public Condition not(@Nonnull Condition condition) {
+        return new NotCondition(checkNotNull(condition));
     }
 
     /**
@@ -545,6 +565,26 @@ public final class FilterBuilder {
             return filters.isEmpty()
                 ? ConstantFilter.INCLUDE_ALL
                 : Filters.all(filters);
+        }
+    }
+
+    private static class NotCondition implements Condition {
+        private final Condition condition;
+
+        public NotCondition(Condition condition) {
+            this.condition = condition;
+        }
+
+        @Nonnull
+        @Override
+        public EventFilter createFilter(NodeState before, NodeState after) {
+            if (condition == ConstantCondition.EXCLUDE_ALL) {
+                return ConstantFilter.INCLUDE_ALL;
+            } else if (condition == ConstantCondition.INCLUDE_ALL) {
+                return ConstantFilter.EXCLUDE_ALL;
+            } else {
+                return Filters.not(condition.createFilter(before, after));
+            }
         }
     }
 
