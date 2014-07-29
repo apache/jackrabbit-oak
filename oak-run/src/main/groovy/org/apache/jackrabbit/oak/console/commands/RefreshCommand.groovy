@@ -41,7 +41,7 @@ class RefreshCommand extends ComplexCommandSupport{
         io.out.println("Disabled auto refresh")
     }
 
-    def do_refresh = {
+    def do_now = {
         getSession().refresh()
         io.out.println("Session refreshed")
     }

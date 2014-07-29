@@ -42,17 +42,23 @@ class LuceneCommand extends ComplexCommandSupport {
 
     def do_info = { args ->
         String idxPath = args ? args[0] : '/oak:index/lucene'
-        DirectoryReader reader = DirectoryReader.open(getDirectory(idxPath))
-        if (!reader) {
+        Directory dir = getDirectory(idxPath)
+
+        if (!dir) {
             io.out.println("No Lucene directory found at path [$idxPath]")
             return
         }
         try {
-            io.out.println("Number of documents : ${reader.numDocs()}")
-            io.out.println("Number of deleted documents : ${reader.numDeletedDocs()}")
-            io.out.println("Index size : ${humanReadableByteCount(dirSize(reader.directory()))}")
+            io.out.println("Index size : ${humanReadableByteCount(dirSize(dir))}")
+            DirectoryReader reader = DirectoryReader.open(dir)
+            try {
+                io.out.println("Number of documents : ${reader.numDocs()}")
+                io.out.println("Number of deleted documents : ${reader.numDeletedDocs()}")
+            }finally{
+                reader.close()
+            }
         } finally {
-            reader.close()
+            dir.close()
         }
     }
 
@@ -100,6 +106,9 @@ class LuceneCommand extends ComplexCommandSupport {
     }
 
     private static def humanReadableByteCount(long bytes) {
+        if(bytes == 0){
+            return ""
+        }
         int exp = (int) (Math.log(bytes) / Math.log(1024));
         String pre = "KMGTPE".charAt(exp - 1);
         return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
