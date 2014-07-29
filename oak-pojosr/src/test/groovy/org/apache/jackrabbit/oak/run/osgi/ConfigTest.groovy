@@ -42,6 +42,7 @@ class ConfigTest {
     @Before
     void setUp(){
         workDir = new File("target", "ConfigTest");
+        workDir.mkdirs()
         config  = [
                 (REPOSITORY_HOME) : workDir.absolutePath,
                 'magic.spell' : 'Alohomora'
