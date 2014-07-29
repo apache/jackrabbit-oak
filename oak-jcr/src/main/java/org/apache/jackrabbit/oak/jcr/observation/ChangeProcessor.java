@@ -42,14 +42,12 @@ import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -84,7 +82,6 @@ class ChangeProcessor implements Observer {
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
-    private final PermissionProvider permissionProvider;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
     private final AtomicReference<FilterProvider> filterProvider;
@@ -100,7 +97,6 @@ class ChangeProcessor implements Observer {
     public ChangeProcessor(
             ContentSession contentSession,
             NamePathMapper namePathMapper,
-            PermissionProvider permissionProvider,
             ListenerTracker tracker,
             FilterProvider filters,
             StatisticManager statisticManager,
@@ -108,7 +104,6 @@ class ChangeProcessor implements Observer {
             CommitRateLimiter commitRateLimiter) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
-        this.permissionProvider = permissionProvider;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
         filterProvider = new AtomicReference<FilterProvider>(filters);
@@ -269,9 +264,8 @@ class ChangeProcessor implements Observer {
                 if (provider.includeCommit(contentSession.toString(), info)) {
                     for (String path : provider.getSubTrees()) {
                         EventFilter userFilter = provider.getFilter(previousRoot, root);
-                        EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider);
-                        EventIterator events = new EventQueue(
-                                namePathMapper, info, previousRoot, root, path, Filters.all(userFilter, acFilter, VISIBLE_FILTER));
+                        EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
+                                path, Filters.all(userFilter, VISIBLE_FILTER));
 
                         if (events.hasNext() && runningMonitor.enterIf(running)) {
                             try {
