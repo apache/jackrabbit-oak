@@ -277,9 +277,10 @@ class PropertyIndexEditor implements IndexEditor {
                 IndexStoreStrategy s = getStrategy(true);
                 for (String key : keysToCheckForUniqueness) {
                     if (s.count(indexMeta, singleton(key), 2) > 1) {
+                        String msg = String.format("Uniqueness constraint violated at path [%s] for one of the " +
+                                        "property in %s having value %s", getPath(), propertyNames, key);
                         throw new CommitFailedException(
-                                CONSTRAINT, 30,
-                                "Uniqueness constraint violated for key " + key);
+                                CONSTRAINT, 30, msg);
                     }
                 }
             }
