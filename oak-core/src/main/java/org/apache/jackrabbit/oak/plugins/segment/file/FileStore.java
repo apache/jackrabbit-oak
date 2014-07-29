@@ -354,15 +354,15 @@ public class FileStore implements SegmentStore {
                         cleanup();
                     }
                 }
-
-                // remove all obsolete tar generations
-                Iterator<File> iterator = toBeRemoved.iterator();
-                while (iterator.hasNext()) {
-                    File file = iterator.next();
-                    if (!file.exists() || file.delete()) {
-                        log.debug("TarMK GC: Removed old file {}", file);
-                        iterator.remove();
-                    }
+            }
+            // remove all obsolete tar generations
+            Iterator<File> iterator = toBeRemoved.iterator();
+            while (iterator.hasNext()) {
+                File file = iterator.next();
+                log.debug("TarMK GC: Attempting to remove old file {}", file);
+                if (!file.exists() || file.delete()) {
+                    log.debug("TarMK GC: Removed old file {}", file);
+                    iterator.remove();
                 }
             }
         }
