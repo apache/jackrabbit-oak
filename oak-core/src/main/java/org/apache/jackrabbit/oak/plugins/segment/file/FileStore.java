@@ -191,19 +191,19 @@ public class FileStore implements SegmentStore {
                 String.format(FILE_NAME_FORMAT, writeNumber, "a"));
         this.writer = new TarWriter(writeFile);
 
-        LinkedList<RecordId> heads = newLinkedList();
+        LinkedList<String> heads = newLinkedList();
         String line = journalFile.readLine();
         while (line != null) {
             int space = line.indexOf(' ');
             if (space != -1) {
-                heads.add(RecordId.fromString(tracker, line.substring(0, space)));
+                heads.add(line.substring(0, space));
             }
             line = journalFile.readLine();
         }
 
         RecordId id = null;
         while (id == null && !heads.isEmpty()) {
-            RecordId last = heads.removeLast();
+            RecordId last = RecordId.fromString(tracker, heads.removeLast());
             SegmentId segmentId = last.getSegmentId();
             if (containsSegment(
                     segmentId.getMostSignificantBits(),
