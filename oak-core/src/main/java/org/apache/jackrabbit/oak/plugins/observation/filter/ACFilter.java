@@ -24,7 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
@@ -47,23 +46,11 @@ public class ACFilter implements EventFilter {
      * @param before  before state
      * @param after  after state
      * @param permissionProvider  permission provider for access control evaluation
-     * @param basePath  base path from the root the the passed node states
      */
     public ACFilter(@Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull PermissionProvider permissionProvider, @Nonnull String basePath) {
-        this(getTreePermission(permissionProvider, after.exists() ? after : before, basePath));
-    }
-
-    private static TreePermission getTreePermission(PermissionProvider permissionProvider,
-            NodeState root, String basePath) {
-        TreePermission treePermission = permissionProvider.getTreePermission(
-                new ImmutableTree(root), TreePermission.EMPTY);
-
-        for (String name : PathUtils.elements(basePath)) {
-            root = root.getChildNode(name);
-            treePermission = treePermission.getChildPermission(name, root);
-        }
-        return treePermission;
+            @Nonnull PermissionProvider permissionProvider) {
+        this(permissionProvider.getTreePermission(
+                new ImmutableTree(after.exists() ? after : before), TreePermission.EMPTY));
     }
 
     @Override

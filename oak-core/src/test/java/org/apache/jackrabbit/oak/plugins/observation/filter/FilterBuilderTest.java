@@ -34,14 +34,14 @@ public class FilterBuilderTest {
                 builder.path("path"),
                 builder.excludeAll(),
                 builder.path("path"));
-        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
+        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 
     @Test
     public void emptyAllShortcuts() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.all();
-        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
+        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 
     @Test
@@ -51,14 +51,14 @@ public class FilterBuilderTest {
                 builder.path("path"),
                 builder.includeAll(),
                 builder.path("path"));
-        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
+        assertEquals(ConstantFilter.INCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 
     @Test
     public void emptyAnyShortcuts() {
         FilterBuilder builder = new FilterBuilder();
         Condition condition = builder.any();
-        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE, "/"));
+        assertEquals(ConstantFilter.EXCLUDE_ALL, condition.createFilter(EMPTY_NODE, EMPTY_NODE));
     }
 
 }

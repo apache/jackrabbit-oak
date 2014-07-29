@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static javax.jcr.observation.Event.NODE_ADDED;
 import static javax.jcr.observation.Event.NODE_MOVED;
 import static javax.jcr.observation.Event.NODE_REMOVED;
@@ -28,6 +29,7 @@ import static javax.jcr.observation.Event.PERSIST;
 import static javax.jcr.observation.Event.PROPERTY_ADDED;
 import static javax.jcr.observation.Event.PROPERTY_CHANGED;
 import static javax.jcr.observation.Event.PROPERTY_REMOVED;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
 
 import java.util.List;
 
@@ -36,9 +38,8 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -55,12 +56,47 @@ public final class FilterBuilder {
     private boolean includeSessionLocal;
     private boolean includeClusterExternal;
     private boolean includeClusterLocal = true;
-    private String basePath = "/";
+    private final List<String> subTrees = newArrayList();
     private Condition condition = includeAll();
 
     public interface Condition {
         @Nonnull
-        EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after, String basePath);
+        EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after);
+    }
+
+    /**
+     * Adds a path to the set of paths whose subtrees include all events of
+     * this filter. Does nothing if the paths is already covered by an
+     * path added earlier.
+     * <p>
+     * This is used for optimisation in order to restrict traversal to
+     * these sub trees.
+     *
+     * @param absPath  absolute path
+     * @return  this instance
+     */
+    @Nonnull
+    public FilterBuilder addSubTree(@Nonnull String absPath) {
+        if (absPath.endsWith("/")) {
+            absPath = absPath.substring(0, absPath.length() - 1);
+        }
+        for (String path : subTrees) {
+            if (path.equals(absPath) || isAncestor(path, absPath)) {
+                return this;
+            }
+        }
+        subTrees.add(checkNotNull(absPath));
+        return this;
+    }
+
+    /**
+     * A set of paths whose subtrees include all events of this filter.
+     * @return  list of paths
+     * @see #addSubTree(String)
+     */
+    @Nonnull
+    private Iterable<String> getSubTrees() {
+        return subTrees.isEmpty() ? ImmutableList.of("/") : subTrees;
     }
 
     /**
@@ -96,24 +132,6 @@ public final class FilterBuilder {
     @Nonnull
     public FilterBuilder includeClusterLocal(boolean include) {
         this.includeClusterLocal = include;
-        return this;
-    }
-
-    /**
-     * The base determines a subtree which contains all filter results.
-     * In the most simple case where a filter should include all events
-     * at a given path that path is at time same time the base path.
-     * <p>
-     * The base path is used for optimising the filter implementation by
-     * upfront exclusion of all parts of the content tree that are out
-     * side of the sub tree designated by the base path.
-     *
-     * @param absPath  absolute path
-     * @return  this instance
-     */
-    @Nonnull
-    public FilterBuilder basePath(@Nonnull String absPath) {
-        this.basePath = checkNotNull(absPath);
         return this;
     }
 
@@ -302,6 +320,26 @@ public final class FilterBuilder {
     }
 
     /**
+     * A compound condition that holds when any of its constituents hold.
+     * @param conditions conditions of which any must hold in order for this condition to hold
+     * @return  any condition
+     */
+    @Nonnull
+    public Condition any(@Nonnull Iterable<Condition> conditions) {
+        return new AnyCondition(checkNotNull(conditions));
+    }
+
+    /**
+     * A compound condition that holds when all of its constituents hold.
+     * @param conditions conditions of which all must hold in order for this condition to hold
+     * @return  any condition
+     */
+    @Nonnull
+    public Condition all(@Nonnull Iterable<Condition> conditions) {
+        return new AllCondition(checkNotNull(conditions));
+    }
+
+    /**
      * Create a {@code FilterProvider} reflecting the current state of this builder.
      * @return  filter provider of the current state of this builder
      */
@@ -311,7 +349,7 @@ public final class FilterBuilder {
             final boolean includeSessionLocal = FilterBuilder.this.includeSessionLocal;
             final boolean includeClusterExternal = FilterBuilder.this.includeClusterExternal;
             final boolean includeClusterLocal = FilterBuilder.this.includeClusterLocal;
-            final String basePath = FilterBuilder.this.basePath;
+            final Iterable<String> subTrees = FilterBuilder.this.getSubTrees();
             final Condition condition = FilterBuilder.this.condition;
 
             @Override
@@ -324,13 +362,13 @@ public final class FilterBuilder {
             @Nonnull
             @Override
             public EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
-                return condition.createFilter(checkNotNull(before), checkNotNull(after), basePath);
+                return condition.createFilter(checkNotNull(before), checkNotNull(after));
             }
 
             @Nonnull
             @Override
-            public String getPath() {
-                return basePath;
+            public Iterable<String> getSubTrees() {
+                return subTrees;
             }
 
             private boolean isLocal(String sessionId, CommitInfo info) {
@@ -345,13 +383,6 @@ public final class FilterBuilder {
 
     //------------------------------------------------------------< Conditions >---
 
-    private static NodeState getChildNode(NodeState node, String path) {
-        for (String name : PathUtils.elements(path)) {
-            node = node.getChildNode(name);
-        }
-        return node;
-    }
-
     private static class ConstantCondition implements Condition {
         public static final ConstantCondition INCLUDE_ALL = new ConstantCondition(true);
         public static final ConstantCondition EXCLUDE_ALL = new ConstantCondition(false);
@@ -363,7 +394,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after) {
             return value ? Filters.includeAll() : Filters.excludeAll();
         }
     }
@@ -376,8 +407,8 @@ public final class FilterBuilder {
         }
 
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
-            return new ACFilter(before, after, permissionProvider, basePath);
+        public EventFilter createFilter(NodeState before, NodeState after) {
+            return new ACFilter(before, after, permissionProvider);
         }
     }
 
@@ -389,7 +420,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after) {
             return new GlobbingPathFilter(pathGlob);
         }
     }
@@ -402,7 +433,7 @@ public final class FilterBuilder {
         }
 
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after) {
             return new EventTypeFilter(eventTypes);
         }
     }
@@ -417,13 +448,10 @@ public final class FilterBuilder {
         }
 
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
+        public EventFilter createFilter(NodeState before, NodeState after) {
             TypePredicate predicate = new TypePredicate(
                     after.exists() ? after : before, ntNames);
-            return new UniversalFilter(
-                    getChildNode(before, basePath),
-                    getChildNode(after, basePath),
-                    selector, predicate);
+            return new UniversalFilter(before, after, selector, predicate);
         }
     }
 
@@ -438,19 +466,15 @@ public final class FilterBuilder {
 
         @Nonnull
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
-            return new UniversalFilter(
-                    getChildNode(before, basePath),
-                    getChildNode(after, basePath),
-                    selector, predicate);
+        public EventFilter createFilter(NodeState before, NodeState after) {
+            return new UniversalFilter(before, after, selector, predicate);
         }
     }
 
     protected static class AddSubtreeTreeCondition implements Condition {
         @Nonnull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
-                String basePath) {
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
             return AddSubtreeFilter.getInstance();
         }
     }
@@ -458,8 +482,7 @@ public final class FilterBuilder {
     protected static class DeleteSubtreeTreeCondition implements Condition {
         @Nonnull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
-                String basePath) {
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
             return DeleteSubtreeFilter.getInstance();
         }
     }
@@ -467,27 +490,30 @@ public final class FilterBuilder {
     protected static class MoveCondition implements Condition {
         @Nonnull
         @Override
-        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after,
-                String basePath) {
+        public EventFilter createFilter(@Nonnull NodeState before, @Nonnull NodeState after) {
             return new MoveFilter();
         }
     }
 
     private static class AnyCondition implements Condition {
-        private final Condition[] conditions;
+        private final Iterable<Condition> conditions;
 
-        public AnyCondition(Condition... conditions) {
+        public AnyCondition(Iterable<Condition> conditions) {
             this.conditions = conditions;
         }
 
+        public AnyCondition(Condition... conditions) {
+            this(newArrayList(conditions));
+        }
+
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
-            List<EventFilter> filters = Lists.newArrayList();
+        public EventFilter createFilter(NodeState before, NodeState after) {
+            List<EventFilter> filters = newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.INCLUDE_ALL) {
                     return ConstantFilter.INCLUDE_ALL;
                 } else if (condition != ConstantCondition.EXCLUDE_ALL) {
-                    filters.add(condition.createFilter(before, after, basePath));
+                    filters.add(condition.createFilter(before, after));
                 }
             }
             return filters.isEmpty()
@@ -497,20 +523,24 @@ public final class FilterBuilder {
     }
 
     private static class AllCondition implements Condition {
-        private final Condition[] conditions;
+        private final Iterable<Condition> conditions;
 
-        public AllCondition(Condition... conditions) {
+        public AllCondition(Iterable<Condition> conditions) {
             this.conditions = conditions;
         }
 
+        public AllCondition(Condition... conditions) {
+            this(newArrayList(conditions));
+        }
+
         @Override
-        public EventFilter createFilter(NodeState before, NodeState after, String basePath) {
-            List<EventFilter> filters = Lists.newArrayList();
+        public EventFilter createFilter(NodeState before, NodeState after) {
+            List<EventFilter> filters = newArrayList();
             for (Condition condition : conditions) {
                 if (condition == ConstantCondition.EXCLUDE_ALL) {
                     return ConstantFilter.EXCLUDE_ALL;
                 } else if (condition != ConstantCondition.INCLUDE_ALL) {
-                    filters.add(condition.createFilter(before, after, basePath));
+                    filters.add(condition.createFilter(before, after));
                 }
             }
             return filters.isEmpty()

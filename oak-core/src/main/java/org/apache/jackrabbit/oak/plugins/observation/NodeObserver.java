@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.observation;
 
 import static java.util.Collections.addAll;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,6 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -135,7 +135,7 @@ public abstract class NodeObserver implements Observer {
             NodeState before = previousRoot;
             NodeState after = root;
             EventHandler handler = new FilteredHandler(
-                    new VisibleFilter(),
+                    VISIBLE_FILTER,
                     new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
 
             String oakPath = namePathMapper.getOakPath(path);
