@@ -120,14 +120,16 @@ public class Compactor {
                 }
             }
 
-            NodeBuilder child = builder.setChildNode(name);
-            boolean success = EmptyNodeState.compareAgainstEmptyState(
-                    after, new CompactDiff(child));
+            NodeBuilder child = EmptyNodeState.EMPTY_NODE.builder();
+            boolean success = EmptyNodeState.compareAgainstEmptyState(after,
+                    new CompactDiff(child));
 
-            if (success && id != null && child.getChildNodeCount(2) > 1) {
-                RecordId compactedId =
-                        writer.writeNode(child.getNodeState()).getRecordId();
-                map.put(id, compactedId);
+            if (success) {
+                SegmentNodeState state = writer.writeNode(child.getNodeState());
+                builder.setChildNode(name, state);
+                if (id != null && state.getChildNodeCount(2) > 1) {
+                    map.put(id, state.getRecordId());
+                }
             }
 
             return success;
@@ -207,7 +209,8 @@ public class Compactor {
                 List<RecordId> ids = binaries.get(key);
                 if (ids != null) {
                     for (RecordId duplicateId : ids) {
-                        if (new SegmentBlob(duplicateId).equals(blob)) {
+                        if (new SegmentBlob(duplicateId).equals(sb)) {
+                            map.put(id, duplicateId);
                             return new SegmentBlob(duplicateId);
                         }
                     }
@@ -224,7 +227,7 @@ public class Compactor {
 
                 return sb;
             } catch (IOException e) {
-                log.warn("Failed to compcat a blob", e);
+                log.warn("Failed to compact a blob", e);
                 // fall through
             }
         }
