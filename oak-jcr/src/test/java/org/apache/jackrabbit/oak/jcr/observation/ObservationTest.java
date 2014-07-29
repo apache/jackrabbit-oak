@@ -686,7 +686,7 @@ public class ObservationTest extends AbstractRepositoryTest {
     @Test
     public void filterDisjunctPaths()
             throws ExecutionException, InterruptedException, RepositoryException {
-        assumeTrue(observationManager instanceof ObservationManagerImpl);
+        assumeTrue(observationManager instanceof JackrabbitObservationManager);
         ObservationManagerImpl oManager = (ObservationManagerImpl) observationManager;
         ExpectationListener listener = new ExpectationListener();
         FilterBuilder builder = new FilterBuilder();

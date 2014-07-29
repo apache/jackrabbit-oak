@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.plugins.observation.EventGenerator;
 import org.apache.jackrabbit.oak.plugins.observation.EventHandler;
 import org.apache.jackrabbit.oak.plugins.observation.FilteredHandler;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
-import org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -54,16 +52,14 @@ class EventQueue implements EventIterator {
             @Nonnull NodeState before, @Nonnull NodeState after,
             @Nonnull String basePath, @Nonnull EventFilter filter) {
         EventFactory factory = new EventFactory(mapper, info);
-        EventHandler handler =
-                new QueueingHandler(this, factory, before, after);
+        EventHandler handler = new FilteredHandler(
+                filter, new QueueingHandler(this, factory, before, after));
+
         for (String name : PathUtils.elements(basePath)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);
             handler = handler.getChildHandler(name, before, after);
         }
-        handler = new FilteredHandler(
-                Filters.all(new VisibleFilter(), filter),
-                handler);
 
         this.generator = new EventGenerator(before, after, handler);
     }
