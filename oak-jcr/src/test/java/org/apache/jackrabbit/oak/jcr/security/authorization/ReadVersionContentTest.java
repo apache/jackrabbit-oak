@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -31,11 +32,12 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
+import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ReadVersionContent extends AbstractEvaluationTest {
+public class ReadVersionContentTest extends AbstractEvaluationTest {
 
     private Version v;
     private Version v2;
@@ -179,15 +181,54 @@ public class ReadVersionContent extends AbstractEvaluationTest {
      * @since oak
      */
     @Test
-    public void testVersionHistoryIsSame() throws Exception {
+    public void testVersionHistoryParent() throws Exception {
         // accessing the version history must be allowed if the versionable node
         // is readable to the editing test session.
         Node testNode = testSession.getNode(versionablePath);
 
         VersionHistory testVh = testNode.getVersionHistory();
-        Node vh2 = testNode.getSession().getNode(testVh.getPath());
+        try {
+            testVh.getParent();
+            fail("version storage intermediate node must not be accessible");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
 
-        assertTrue(testVh.isSame(vh2));
+    /**
+     * @since oak
+     */
+    @Test
+    public void testGetVersionHistoryParentNode() throws Exception {
+        String vhParentPath = Text.getRelativeParent(vh.getPath(), 1);
+
+        assertFalse(testSession.nodeExists(vhParentPath));
+        try {
+            testSession.getNode(vhParentPath);
+            fail("version storage intermediate node must not be accessible");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    /**
+     * @since oak
+     */
+    @Test
+    public void testGetVersion() throws Exception {
+        // accessing the version history must be allowed if the versionable node
+        // is readable to the editing test session.
+        Node testNode = testSession.getNode(versionablePath);
+
+        VersionHistory vh = testNode.getVersionHistory();
+
+        Version version = vh.getVersion(v.getName());
+        assertTrue(v.isSame(version));
+        assertTrue(vh.isSame(version.getContainingHistory()));
+
+        version = vh.getVersion(v2.getName());
+        assertTrue(v2.isSame(version));
+        assertTrue(vh.isSame(version.getContainingHistory()));
     }
 
     /**
@@ -201,7 +242,6 @@ public class ReadVersionContent extends AbstractEvaluationTest {
 
         VersionHistory vh = testNode.getVersionHistory();
         VersionIterator versionIterator = vh.getAllVersions();
-        // TODO
     }
 
     /**
@@ -215,8 +255,8 @@ public class ReadVersionContent extends AbstractEvaluationTest {
 
         VersionHistory vh = testNode.getVersionHistory();
         VersionIterator versionIterator = vh.getAllLinearVersions();
-        // TODO
     }
+
 
 
     /**
