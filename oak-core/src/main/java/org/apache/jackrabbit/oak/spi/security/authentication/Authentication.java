@@ -24,11 +24,11 @@ import javax.security.auth.login.LoginException;
  * {@link javax.jcr.Credentials Credentials} during the
  * {@link javax.security.auth.spi.LoginModule#login() login step} of the
  * authentication process. The validation depends on the authentication
- * mechanism in place.<p/>
+ * mechanism in place.<p>
  *
  * A given implementation may only handle certain types of {@code Credentials}
  * as the authentication process is tightly coupled to the semantics of the
- * {@code Credentials}.<p/>
+ * {@code Credentials}.<p>
  *
  * For example a implementation may only be able to validate UserID/password
  * pairs such as passed with {@link javax.jcr.SimpleCredentials}, while another

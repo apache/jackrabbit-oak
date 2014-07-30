@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
  *
  * <h3>Commit</h3>
  * If login was successfully handled by this module the {@link #commit()} will
- * just populate the subject.<p/>
+ * just populate the subject.<p>
  *
  * If the login was successfully handled by another module in the chain, the
  * {@code TokenLoginModule} will test if the login was associated with a

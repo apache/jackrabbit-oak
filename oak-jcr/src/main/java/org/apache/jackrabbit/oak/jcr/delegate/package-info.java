@@ -25,7 +25,7 @@
  * to internals by simply casting to an implementation class. Further it
  * makes internal round-tripping through the JCR API unnecessary since
  * all functionality is provided by the internal interface (i.e. delegates),
- * which simplifies maintaining and checking state invariants.<p/>
+ * which simplifies maintaining and checking state invariants.<p>
  *
  * <b>Responsibilities of JCR API implementation classes:</b>
  * <ul>

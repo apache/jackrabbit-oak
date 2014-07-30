@@ -71,7 +71,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 /**
  * {@code UserImporter} implements both {@code ode>ProtectedPropertyImporter}
  * and {@code ProtectedNodeImporter} and provides import facilities for protected
- * user and group content defined and used by this user management implementation.<p/>
+ * user and group content defined and used by this user management implementation.<p>
  * <p>
  * The importer is intended to be used by applications that import user content
  * extracted from another repository instance and immediately persist the

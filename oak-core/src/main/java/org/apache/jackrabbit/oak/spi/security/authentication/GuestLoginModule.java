@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * in jackrabbit-core. While the specification claims that {@link javax.jcr.Repository#login}
  * with {@code null} Credentials implies that the authentication process is
  * handled externally, the default implementation jackrabbit-core treated it
- * as 'anonymous' login such as covered by using {@link GuestCredentials}.<p/>
+ * as 'anonymous' login such as covered by using {@link GuestCredentials}.<p>
  *
  * This {@code LoginModule} implementation performs the following tasks upon
  * {@link #login()}.
@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * in phase 1 it will add those credentials and the {@link EveryonePrincipal}
  * to the subject in phase 2 of the login process. Subsequent login modules
  * my choose to provide additional principals/credentials associated with
- * a guest login.<p/>
+ * a guest login.<p>
  *
  * The authentication configuration using this {@code LoginModule} could for
  * example look as follows:

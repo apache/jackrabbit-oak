@@ -28,7 +28,7 @@ import java.util.Arrays;
  * of an identifier instance. therefore it doesn't cache e.g. the hashCode
  * or the string representation.
  * <p>
- * <b>Important Note:</b><p/>
+ * <b>Important Note:</b><p>
  * An {@link Id} is considered immutable. The {@code byte[]}
  * passed to {@link Id#Id(byte[])} must not be reused or modified, the same
  * applies for the {@code byte[]} returned by {@link Id#getBytes()}.

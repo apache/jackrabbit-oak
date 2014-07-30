@@ -92,7 +92,7 @@ import org.slf4j.LoggerFactory;
  * Impersonation will succeed if the {@link ImpersonationCredentials#getBaseCredentials() base credentials}
  * refer to a valid user that has not been disabled. If the authenticating
  * subject is not allowed to impersonate the specified user, the login attempt
- * will fail with {@code LoginException}.<p/>
+ * will fail with {@code LoginException}.<p>
  * Please note, that a user will always be allowed to impersonate him/herself
  * irrespective of the impersonation definitions exposed by
  * {@link org.apache.jackrabbit.api.security.user.User#getImpersonation()}
