@@ -181,7 +181,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * "c-" + base revision of the successfully merged branch commit,
      * "b" + base revision of an un-merged branch commit
      */
-    private static final String REVISIONS = "_revisions";
+    static final String REVISIONS = "_revisions";
 
     /**
      * The last revision.
