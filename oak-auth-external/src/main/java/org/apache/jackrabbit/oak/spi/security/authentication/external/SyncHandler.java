@@ -20,13 +20,10 @@ import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
-
-import com.google.common.base.Predicate;
 
 /**
  * SyncHandler is used to sync users and groups from an {@link ExternalIdentityProvider}.
