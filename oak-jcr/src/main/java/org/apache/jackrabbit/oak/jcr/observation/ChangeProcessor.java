@@ -262,19 +262,17 @@ class ChangeProcessor implements Observer {
                 FilterProvider provider = filterProvider.get();
                 // FIXME don't rely on toString for session id
                 if (provider.includeCommit(contentSession.toString(), info)) {
-                    for (String path : provider.getSubTrees()) {
-                        EventFilter userFilter = provider.getFilter(previousRoot, root);
-                        EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
-                                path, Filters.all(userFilter, VISIBLE_FILTER));
+                    EventFilter filter = provider.getFilter(previousRoot, root);
+                    EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
+                            provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER));
 
-                        if (events.hasNext() && runningMonitor.enterIf(running)) {
-                            try {
-                                CountingIterator countingEvents = new CountingIterator(events);
-                                eventListener.onEvent(countingEvents);
-                                countingEvents.updateCounters(eventCount, eventDuration);
-                            } finally {
-                                runningMonitor.leave();
-                            }
+                    if (events.hasNext() && runningMonitor.enterIf(running)) {
+                        try {
+                            CountingIterator countingEvents = new CountingIterator(events);
+                            eventListener.onEvent(countingEvents);
+                            countingEvents.updateCounters(eventCount, eventDuration);
+                        } finally {
+                            runningMonitor.leave();
                         }
                     }
                 }
