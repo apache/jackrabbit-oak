@@ -16,18 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import com.google.common.base.Charsets;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,13 +35,13 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
-import com.google.common.base.Charsets;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code BuiltInNodeTypes} is a utility class that registers the built-in
  * node types required for a JCR repository running on Oak.
  */
-class BuiltInNodeTypes {
+public final class NodeTypeRegistry {
 
     private final NodeTypeManager ntMgr;
 
@@ -51,7 +49,7 @@ class BuiltInNodeTypes {
 
     private final ValueFactory vf;
 
-    private BuiltInNodeTypes(final Root root) {
+    private NodeTypeRegistry(final Root root) {
         this.ntMgr =  new ReadWriteNodeTypeManager() {
             @Override
             protected Tree getTypes() {
@@ -81,30 +79,42 @@ class BuiltInNodeTypes {
      *
      * @param root the {@link Root} instance.
      */
-    public static void register(final Root root) {
-        new BuiltInNodeTypes(root).registerBuiltinNodeTypes();
-    }
-
-    private void registerBuiltinNodeTypes() {
-        // FIXME: migrate custom node types as well.
+    static void registerBuiltIn(final Root root) {
         try {
-            InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
+            InputStream stream = NodeTypeRegistry.class.getResourceAsStream("builtin_nodetypes.cnd");
             try {
-                CndImporter.registerNodeTypes(
-                        new InputStreamReader(stream, Charsets.UTF_8),
-                        "built-in node types", ntMgr, nsReg, vf, false);
+                register(root, stream, "built-in node types");
             } finally {
                 stream.close();
             }
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Unable to read built-in node types", e);
+            throw new IllegalStateException("Unable to read built-in node types", e);
+        }
+    }
+
+    /**
+     * Register the node type definitions contained in the specified {@code input}
+     * using the given {@link Root}.
+     *
+     * @param root The {@code Root} to register the node types.
+     * @param input The input stream containing the node type defintions to be registered.
+     * @param systemId An informative id of the given input.
+     */
+    public static void register(Root root, InputStream input, String systemId) {
+        new NodeTypeRegistry(root).registerNodeTypes(input, systemId);
+    }
+
+    private void registerNodeTypes(InputStream stream, String systemId) {
+        try {
+            CndImporter.registerNodeTypes(
+                    new InputStreamReader(stream, Charsets.UTF_8),
+                    systemId, ntMgr, nsReg, vf, false);
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to read " + systemId, e);
         } catch (ParseException e) {
-            throw new IllegalStateException(
-                    "Unable to parse built-in node types", e);
+            throw new IllegalStateException("Unable to parse " + systemId, e);
         } catch (RepositoryException e) {
-            throw new IllegalStateException(
-                    "Unable to register built-in node types", e);
+            throw new IllegalStateException("Unable to register " + systemId, e);
         }
     }
 
