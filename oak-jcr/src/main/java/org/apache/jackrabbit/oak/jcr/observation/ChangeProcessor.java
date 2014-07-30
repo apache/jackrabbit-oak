@@ -98,7 +98,7 @@ class ChangeProcessor implements Observer {
             ContentSession contentSession,
             NamePathMapper namePathMapper,
             ListenerTracker tracker,
-            FilterProvider filters,
+            FilterProvider filter,
             StatisticManager statisticManager,
             int queueLength,
             CommitRateLimiter commitRateLimiter) {
@@ -106,7 +106,7 @@ class ChangeProcessor implements Observer {
         this.namePathMapper = namePathMapper;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
-        filterProvider = new AtomicReference<FilterProvider>(filters);
+        filterProvider = new AtomicReference<FilterProvider>(filter);
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
         this.maxQueueLength = statisticManager.maxQueLengthRecorder();
