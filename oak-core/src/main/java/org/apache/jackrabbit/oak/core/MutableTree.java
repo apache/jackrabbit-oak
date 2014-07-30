@@ -143,7 +143,7 @@ class MutableTree extends AbstractTree {
     @Override
     public Tree getChild(String name) {
         beforeRead();
-        if (super.hasChild(name)) {
+        if (!isHidden(name)) {
             return createChild(name);
         } else {
             return new HiddenTree(this, name);
