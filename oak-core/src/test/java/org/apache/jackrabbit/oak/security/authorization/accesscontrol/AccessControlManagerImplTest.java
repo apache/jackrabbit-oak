@@ -47,7 +47,6 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -108,7 +107,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     private Privilege[] testPrivileges;
     private Root testRoot;
 
-    private NameMapper nameMapper;
     private NamePathMapper npMapper;
 
     private AccessControlManagerImpl acMgr;
@@ -120,7 +118,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         super.before();
 
         registerNamespace(TEST_PREFIX, TEST_URI);
-        nameMapper = new GlobalNameMapper(root);
+        NameMapper nameMapper = new GlobalNameMapper(root);
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
