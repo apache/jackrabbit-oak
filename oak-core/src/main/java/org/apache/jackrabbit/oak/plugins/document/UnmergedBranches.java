@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,12 +30,16 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
  * instance.
  */
 class UnmergedBranches {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * Map of branches with the head of the branch as key.
@@ -72,17 +75,9 @@ class UnmergedBranches {
         if (doc == null) {
             return;
         }
-        SortedMap<Revision, Revision> revisions = doc.getUncommittedRevisions(context);
-        while (!revisions.isEmpty()) {
-            SortedSet<Revision> commits = new TreeSet<Revision>(comparator);
-            Revision head = revisions.lastKey();
-            commits.add(head);
-            Revision base = revisions.remove(head).asTrunkRevision();
-            while (revisions.containsKey(base)) {
-                commits.add(base);
-                base = revisions.remove(base).asTrunkRevision();
-            }
-            branches.add(new Branch(commits, base));
+        int purgeCount = doc.purgeUncommittedRevisions(context);
+        if (purgeCount > 0) {
+            log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
     }
 
