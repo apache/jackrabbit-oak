@@ -37,7 +37,6 @@ import org.apache.jackrabbit.mk.test.util.TestInputStream;
 import org.apache.jackrabbit.oak.commons.mk.MicroKernelInputStream;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

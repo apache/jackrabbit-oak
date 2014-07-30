@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-import com.google.common.base.Objects;
-
 class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
         implements NodeDefinitionTemplate {
 
