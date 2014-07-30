@@ -336,7 +336,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     private void checkValidID(String id) throws RepositoryException {
-        if (id == null || id.length() == 0) {
+        if (id == null || id.isEmpty()) {
             throw new IllegalArgumentException("Invalid ID " + id);
         } else if (getAuthorizable(id) != null) {
             throw new AuthorizableExistsException("Authorizable with ID " + id + " already exists");
