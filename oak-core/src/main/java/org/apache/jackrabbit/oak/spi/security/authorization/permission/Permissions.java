@@ -26,13 +26,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Session;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -131,6 +133,29 @@ public final class Permissions {
             | USER_MANAGEMENT
             | INDEX_DEFINITION_MANAGEMENT
     );
+
+    private static final Set<Long> NON_AGGREGATES = ImmutableSet.of(
+            READ_NODE,
+            READ_PROPERTY,
+            ADD_PROPERTY,
+            MODIFY_PROPERTY,
+            REMOVE_PROPERTY,
+            ADD_NODE,
+            REMOVE_NODE,
+            MODIFY_CHILD_NODE_COLLECTION,
+            READ_ACCESS_CONTROL,
+            MODIFY_ACCESS_CONTROL,
+            NODE_TYPE_MANAGEMENT,
+            VERSION_MANAGEMENT,
+            LOCK_MANAGEMENT,
+            LIFECYCLE_MANAGEMENT,
+            RETENTION_MANAGEMENT,
+            NODE_TYPE_DEFINITION_MANAGEMENT,
+            NAMESPACE_MANAGEMENT,
+            WORKSPACE_MANAGEMENT,
+            PRIVILEGE_MANAGEMENT,
+            USER_MANAGEMENT,
+            INDEX_DEFINITION_MANAGEMENT);
 
     public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<Long, String>();
     static {
@@ -244,6 +269,23 @@ public final class Permissions {
                 permission == NODE_TYPE_DEFINITION_MANAGEMENT ||
                 permission == PRIVILEGE_MANAGEMENT ||
                 permission == WORKSPACE_MANAGEMENT;
+    }
+
+    public static boolean isAggregate(long permission) {
+        return !NON_AGGREGATES.contains(permission);
+    }
+
+    public static Iterable<Long> aggregates(final long permissions) {
+        if (ALL == permissions) {
+            return NON_AGGREGATES;
+        } else {
+            return Iterables.filter(NON_AGGREGATES, new Predicate<Long>() {
+                @Override
+                public boolean apply(@Nullable Long permission) {
+                    return permission != null && includes(permissions, permission);
+                }
+            });
+        }
     }
 
     public static boolean includes(long permissions, long permissionsToTest) {

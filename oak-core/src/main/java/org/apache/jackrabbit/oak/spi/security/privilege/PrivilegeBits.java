@@ -425,6 +425,24 @@ public final class PrivilegeBits implements PrivilegeConstants {
         }
     }
 
+    /**
+     * Retains the elements in this {@code PrivilegeBits} that are contained in
+     * the specified other {@code PrivilegeBits}.
+     *
+     * @param other Other privilege bits.
+     * @return This modifiable instance of privilege bits modified such it contains
+     * only privileges that were also contained in the {@code other} instance.
+     */
+    @Nonnull
+    public PrivilegeBits retain(@Nonnull PrivilegeBits other) {
+        if (d instanceof ModifiableData) {
+            ((ModifiableData) d).retain(other.d);
+            return this;
+        }  else {
+            throw new UnsupportedOperationException("immutable privilege bits");
+        }
+    }
+
     @Nonnull
     public PropertyState asPropertyState(String name) {
         return PropertyStates.createProperty(name, Longs.asList(d.longValues()), Type.LONGS);
@@ -750,6 +768,33 @@ public final class PrivilegeBits implements PrivilegeConstants {
             }
             for (int i = 0; i < b.length; i++) {
                 bits[i] |= b[i];
+            }
+        }
+
+        private void retain(Data other) {
+            if (isSimple()) {
+                bits[0] &= other.longValue();
+            } else {
+                long[] lvs = longValues();
+                long[] bLvs = other.longValues();
+
+                long[] res = (lvs.length <= bLvs.length) ? new long[lvs.length] : new long[bLvs.length];
+                int compactSize = -1;
+                for (int i = 0; i < res.length; i++) {
+                    res[i] = (lvs[i] & bLvs[i]);
+                    if (res[i] == 0) {
+                        if (compactSize == -1) {
+                            compactSize = i+1;
+                        }
+                    } else {
+                        compactSize = -1;
+                    }
+                }
+                if (compactSize != -1 && res.length > compactSize) {
+                    bits = Arrays.copyOfRange(res, 0, compactSize);
+                } else {
+                    bits = res;
+                }
             }
         }
 
