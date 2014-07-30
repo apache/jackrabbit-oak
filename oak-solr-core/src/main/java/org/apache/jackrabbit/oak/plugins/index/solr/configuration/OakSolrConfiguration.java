@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Collection;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -100,4 +102,11 @@ public interface OakSolrConfiguration {
      * for filtering by {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction}s
      */
     boolean useForPathRestrictions();
+
+    /**
+     * Provide the collection of properties that should be neither indexed nor searched by the Solr index
+     *
+     * @return a <code>Collection</code> of <code>String</code>s representing the names of the ignored properties
+     */
+    Collection<String> getIgnoredProperties();
 }

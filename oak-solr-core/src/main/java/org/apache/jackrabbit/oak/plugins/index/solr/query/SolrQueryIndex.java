@@ -120,11 +120,20 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         // property restriction OR native language property restriction defined AND property restriction handled
         if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
                 && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions())) {
+                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions())) {
             match++;
         }
 
         return match;
+    }
+
+    private boolean hasIgnoredProperties(Collection<Filter.PropertyRestriction> propertyRestrictions) {
+        for (Filter.PropertyRestriction pr : propertyRestrictions) {
+            if (configuration.getIgnoredProperties().contains(pr.propertyName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -195,8 +204,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         queryBuilder.append(nativeQueryString);
                     }
                 } else {
-                    if (!configuration.useForPropertyRestrictions() || pr.propertyName.contains("/") ||
-                            "rep:excerpt".equals(pr.propertyName)) {
+                    if (!configuration.useForPropertyRestrictions() // Solr index not used for properties
+                            || pr.propertyName.contains("/") // no child-level property restrictions
+                            || "rep:excerpt".equals(pr.propertyName) // rep:excerpt is handled by the query engine
+                            || configuration.getIgnoredProperties().contains(pr.propertyName) // property is explicitly ignored
+                            ) {
                         continue;
                     }
 

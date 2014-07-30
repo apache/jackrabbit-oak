@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
@@ -27,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * For each of the supported properties a default is provided if either the
  * property doesn't exist in the node or if the value is <code>null</code> or
  * empty <code>String</code>.
- * <p>
+ * <p/>
  * Subclasses of this should at least provide the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which holds
  * the configuration.
  */
@@ -119,6 +123,18 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return getBooleanValueFor(Properties.PATH_RESTRICTIONS, SolrServerConfigurationDefaults.PATH_RESTRICTIONS);
     }
 
+    @Override
+    public Collection<String> getIgnoredProperties() {
+        Collection<String> ignoredProperties;
+        String ignoredPropertiesString = getStringValueFor(Properties.IGNORED_PROPERTIES, SolrServerConfigurationDefaults.IGNORED_PROPERTIES);
+        if (ignoredPropertiesString != null) {
+            ignoredProperties = Arrays.asList(ignoredPropertiesString.split(","));
+        } else {
+            ignoredProperties = Collections.emptyList();
+        }
+        return ignoredProperties;
+    }
+
     private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
         boolean value = defaultValue;
         NodeState configurationNodeState = getConfigurationNodeState();
@@ -143,7 +159,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return (int) value;
     }
 
-    protected String getStringValueFor(String propertyName, String defaultValue) {
+    private String getStringValueFor(String propertyName, String defaultValue) {
         String value = defaultValue;
         NodeState configurationNodeState = getConfigurationNodeState();
         if (configurationNodeState.exists()) {
@@ -187,5 +203,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String PROPERTY_RESTRICIONS = "propertyRestrictions";
         public static final String PRIMARY_TYPES = "primaryTypes";
         public static final String PATH_RESTRICTIONS = "pathRestrictions";
+        public static final String IGNORED_PROPERTIES = "ignoredProperties";
     }
 }
