@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -421,6 +424,100 @@ public class PrivilegeBitsTest extends AbstractSecurityTest implements Privilege
             assertEquivalent(mod, tmp);  // tmp not modified by addDifference call.
             assertTrue(tmp.includes(READ_NODES_PRIVILEGE_BITS));
 
+            pb = nxt;
+        }
+    }
+
+    @Test
+    public void testRetainUnmodifiable() {
+        PrivilegeBits unmodifiable = READ_NODES_PRIVILEGE_BITS;
+        try {
+            unmodifiable.retain(PrivilegeBits.getInstance());
+            fail();
+        } catch (UnsupportedOperationException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRetainSimple() {
+        PrivilegeBits pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+        assertEquals(pb, pb.retain(pb));
+        assertEquals(pb, pb.retain(READ_NODES_PRIVILEGE_BITS));
+
+        pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+        pb.retain(PrivilegeBits.getInstance());
+        assertTrue(pb.isEmpty());
+
+        pb = PrivilegeBits.getInstance(READ_NODES_PRIVILEGE_BITS);
+        pb.retain(PrivilegeBits.EMPTY);
+        assertTrue(pb.isEmpty());
+
+        PrivilegeBits write = PrivilegeBits.BUILT_IN.get(PrivilegeBits.REP_WRITE);
+        pb = PrivilegeBits.getInstance().add(write);
+        assertEquals(pb, pb.retain(pb));
+        assertEquals(pb, pb.retain(write));
+
+        pb.retain(READ_NODES_PRIVILEGE_BITS);
+        assertTrue(pb.isEmpty());
+
+        pb.add(READ_NODES_PRIVILEGE_BITS).add(write);
+        pb.retain(write);
+        assertEquivalent(write, pb);
+        assertFalse(pb.includes(READ_NODES_PRIVILEGE_BITS));
+
+        PrivilegeBits lock = PrivilegeBits.BUILT_IN.get(PrivilegeBits.JCR_LOCK_MANAGEMENT);
+        PrivilegeBits lw = PrivilegeBits.getInstance(write, lock);
+
+        pb.add(READ_NODES_PRIVILEGE_BITS).add(write).add(lock);
+        pb.retain(lw);
+        assertEquivalent(lw, pb);
+        assertFalse(pb.includes(READ_NODES_PRIVILEGE_BITS));
+    }
+
+    @Test
+    public void testRetain() {
+        PrivilegeBits pb = READ_NODES_PRIVILEGE_BITS;
+        List<PrivilegeBits> pbs = new ArrayList<PrivilegeBits>();
+        pbs.add(pb);
+        Random random = new Random();
+
+        for (int i = 0; i < 100; i++) {
+            PrivilegeBits nxt = pb.nextBits();
+
+            PrivilegeBits mod = PrivilegeBits.getInstance(nxt, pb);
+            mod.retain(nxt);
+            assertEquivalent(nxt, mod);
+
+            mod = PrivilegeBits.getInstance(nxt);
+            mod.retain(pb);
+            assertTrue(nxt.toString(), mod.isEmpty());
+
+            mod = PrivilegeBits.getInstance(nxt);
+            mod.retain(READ_NODES_PRIVILEGE_BITS);
+            assertTrue(nxt.toString(), mod.isEmpty());
+
+            mod = PrivilegeBits.getInstance(nxt, READ_NODES_PRIVILEGE_BITS);
+            mod.retain(nxt);
+            assertEquivalent(nxt, mod);
+
+            mod = PrivilegeBits.getInstance(nxt, pb, READ_NODES_PRIVILEGE_BITS);
+            mod.retain(READ_NODES_PRIVILEGE_BITS);
+            assertEquivalent(READ_NODES_PRIVILEGE_BITS, mod);
+
+            mod = PrivilegeBits.getInstance(nxt);
+            PrivilegeBits other = PrivilegeBits.getInstance();
+            for (int j = 0; j < pbs.size()/2; j++) {
+                other.add(pbs.get(random.nextInt(pbs.size()-1)));
+            }
+            mod.add(other);
+            mod.retain(other);
+            assertEquivalent(other, mod);
+
+            other.retain(nxt);
+            assertTrue(other.isEmpty());
+
+            pbs.add(nxt);
             pb = nxt;
         }
     }

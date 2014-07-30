@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.security.CompositeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -55,6 +56,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -95,7 +98,19 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
         @Property(name = PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS,
                 label = "Administrative Principals",
                 description = "Allows to specify principals that should be granted full permissions on the complete repository content.",
-                cardinality = 10)
+                cardinality = 10),
+        @Property(name = CompositeConfiguration.PARAM_RANKING,
+                label = "Ranking",
+                description = "Ranking of this configuration in a setup with multiple authorization configurations.",
+                intValue = 100),
+        @Property(name = AggregatedPermissionProvider.PARAM_CONTROL_FLAG,
+                label = "Control Flag",
+                description = "Control flag defining if the permission provider is SUFFICIENT or REQUIRED.",
+                options = {
+                        @PropertyOption(name = ControlFlag.SUFFICIENT_NAME, value = ControlFlag.SUFFICIENT_NAME),
+                        @PropertyOption(name = ControlFlag.REQUISITE_NAME, value = ControlFlag.REQUISITE_NAME)
+                },
+                value = ControlFlag.REQUISITE_NAME)
 })
 public class AuthorizationConfigurationImpl extends ConfigurationBase implements AuthorizationConfiguration {
     public AuthorizationConfigurationImpl() {

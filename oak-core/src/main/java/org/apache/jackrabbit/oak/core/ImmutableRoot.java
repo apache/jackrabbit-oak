@@ -67,6 +67,14 @@ public final class ImmutableRoot implements Root {
         this.rootTree = rootTree;
     }
 
+    public static ImmutableRoot getInstance(@Nonnull Root root) {
+        if (root instanceof ImmutableRoot) {
+            return (ImmutableRoot) root;
+        } else {
+            return new ImmutableRoot(root);
+        }
+    }
+
     //---------------------------------------------------------------< Root >---
 
     @Nonnull

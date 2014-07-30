@@ -48,6 +48,19 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
  */
 public abstract class CompositeConfiguration<T extends SecurityConfiguration> implements SecurityConfiguration {
 
+    /**
+     * Parameter used to define the ranking of a given configuration compared to
+     * other registered configuration in this aggregate. If the ranking parameter
+     * is missing a new configuration will be added at the end of the list.
+     */
+    public static final String PARAM_RANKING = "configurationRanking";
+
+    /**
+     * Default ranking value used to insert a new configuration at the end of
+     * the list.
+     */
+    private static final int NO_RANKING = Integer.MIN_VALUE;
+
     private final List<T> configurations = new CopyOnWriteArrayList<T>();
 
     private final String name;
@@ -65,7 +78,21 @@ public abstract class CompositeConfiguration<T extends SecurityConfiguration> im
     }
 
     public void addConfiguration(@Nonnull T configuration) {
-        configurations.add(configuration);
+        int ranking = configuration.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
+        if (ranking == NO_RANKING || configurations.isEmpty()) {
+            configurations.add(configuration);
+        } else {
+            int i = 0;
+            for (T c : configurations) {
+                int r = c.getParameters().getConfigValue(PARAM_RANKING, NO_RANKING);
+                if (ranking > r) {
+                    break;
+                } else {
+                    i++;
+                }
+            }
+            configurations.add(i, configuration);
+        }
     }
 
     public void removeConfiguration(@Nonnull T configuration) {

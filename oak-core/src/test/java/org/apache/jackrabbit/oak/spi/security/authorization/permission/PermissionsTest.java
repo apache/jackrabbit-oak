@@ -73,4 +73,9 @@ public class PermissionsTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    public void testAggregates() {
+        // TODO
+    }
+
 }
