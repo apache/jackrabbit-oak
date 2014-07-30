@@ -14,26 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.cug;
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.security.Principal;
-import java.util.Set;
-import javax.annotation.Nonnull;
+public class CugImporterTest {
 
-/**
- * CugExclude... TODO
- */
-public interface CugExclude {
-
-    boolean isExcluded(@Nonnull Set<Principal> principals);
-
-    CugExclude DEFAULT = new Default();
-
-    class Default implements CugExclude {
-
-        @Override
-        public boolean isExcluded(@Nonnull Set<Principal> principals) {
-            return principals.isEmpty();
-        }
-    }
+    // TODO
 }

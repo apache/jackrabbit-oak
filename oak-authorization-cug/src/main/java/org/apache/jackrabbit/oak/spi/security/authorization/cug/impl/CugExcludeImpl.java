@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.cug.impl;
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Map;
@@ -33,7 +33,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.security.authorization.cug.CugExclude;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**

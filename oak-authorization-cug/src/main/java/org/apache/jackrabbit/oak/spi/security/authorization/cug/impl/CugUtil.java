@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.cug.impl;
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

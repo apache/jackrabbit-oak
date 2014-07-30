@@ -14,28 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.cug.impl;
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-/**
- * CugConstants... TODO
- */
-interface CugConstants {
+public class CugAccessControlManagerTest {
 
-    String MIX_REP_CUG_MIXIN = "rep:CugMixin";
-
-    String NT_REP_CUG_POLICY = "rep:CugPolicy";
-
-    String REP_CUG_POLICY = "rep:cugPolicy";
-
-    String REP_PRINCIPAL_NAMES = "rep:principalNames";
-
-    String PARAM_CUG_SUPPORTED_PATHS = "cugSupportedPaths";
-
-    String PARAM_CUG_ENABLED = "cugEnabled";
-
-    /**
-     *
-     */
-    String PARAM_CUG_EXCLUDE = "cugExclude";
-
+    // TODO
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.cug.impl;
+package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.authorization.cug.CugPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.xml.ImportBehavior;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
