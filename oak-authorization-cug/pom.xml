@@ -25,7 +25,7 @@
         <configuration>
           <instructions>
             <Export-Package>
-              org.apache.jackrabbit.oak.security.authorization.cug
+              org.apache.jackrabbit.oak.spi.security.authorization.cug
             </Export-Package>
           </instructions>
         </configuration>

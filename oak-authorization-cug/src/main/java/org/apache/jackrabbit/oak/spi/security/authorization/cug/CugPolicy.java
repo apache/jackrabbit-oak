@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.oak.security.authorization.cug; /*************************************************************************
+package org.apache.jackrabbit.oak.spi.security.authorization.cug; /*************************************************************************
  *
  * ADOBE CONFIDENTIAL
  * ___________________
