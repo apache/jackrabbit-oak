@@ -50,18 +50,27 @@ class EventQueue implements EventIterator {
     public EventQueue(
             @Nonnull NamePathMapper mapper, CommitInfo info,
             @Nonnull NodeState before, @Nonnull NodeState after,
-            @Nonnull String basePath, @Nonnull EventFilter filter) {
+            @Nonnull Iterable<String> basePaths, @Nonnull EventFilter filter) {
+        this.generator = new EventGenerator();
         EventFactory factory = new EventFactory(mapper, info);
         EventHandler handler = new FilteredHandler(
                 filter, new QueueingHandler(this, factory, before, after));
+        for (String path : basePaths) {
+            addHandler(before, after, path, handler, generator);
+        }
+    }
 
-        for (String name : PathUtils.elements(basePath)) {
+    private static void addHandler(NodeState before, NodeState after, String path,
+            EventHandler handler, EventGenerator generator) {
+        for (String name : PathUtils.elements(path)) {
             before = before.getChildNode(name);
             after = after.getChildNode(name);
             handler = handler.getChildHandler(name, before, after);
+            if (handler == null) {
+                return;
+            }
         }
-
-        this.generator = new EventGenerator(before, after, handler);
+        generator.addHandler(before, after, handler);
     }
 
     /**
