@@ -55,6 +55,7 @@
     <module>oak-it</module>
     <module>oak-pojosr</module>
     <module>oak-tarmk-failover</module>
+    <module>oak-authorization-cug</module>
   </modules>
 
   <scm>
