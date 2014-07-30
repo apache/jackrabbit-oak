@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -46,7 +47,7 @@ public class SolrIndexEditorTest {
     public void testIndexedProperties() throws Exception {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrServer solrServer = TestUtils.createSolrServer();
-        OakSolrConfiguration configuration = new DefaultSolrConfiguration();
+        OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
         SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
         NodeState before = mock(NodeState.class);
@@ -54,12 +55,12 @@ public class SolrIndexEditorTest {
         Iterable properties = new Iterable<PropertyState>() {
             @Override
             public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo", "bar")).iterator();
+                return Arrays.asList(PropertyStates.createProperty("foo1", "bar")).iterator();
             }
         };
         when(after.getProperties()).thenReturn(properties);
         solrIndexEditor.leave(before, after);
-        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo:*"));
+        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo1:*"));
         assertEquals(1, queryResponse.getResults().getNumFound());
     }
 
@@ -70,7 +71,11 @@ public class SolrIndexEditorTest {
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
             @Override
             public Collection<String> getIgnoredProperties() {
-                return Arrays.asList("foo");
+                return Arrays.asList("foo2");
+            }
+            @Override
+            public CommitPolicy getCommitPolicy() {
+                return CommitPolicy.HARD;
             }
         };
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
@@ -80,12 +85,12 @@ public class SolrIndexEditorTest {
         Iterable properties = new Iterable<PropertyState>() {
             @Override
             public Iterator<PropertyState> iterator() {
-                return Arrays.asList(PropertyStates.createProperty("foo", "bar")).iterator();
+                return Arrays.asList(PropertyStates.createProperty("foo2", "bar")).iterator();
             }
         };
         when(after.getProperties()).thenReturn(properties);
         solrIndexEditor.leave(before, after);
-        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo:*"));
+        QueryResponse queryResponse = solrServer.query(new SolrQuery("foo2:*"));
         assertEquals(0, queryResponse.getResults().getNumFound());
     }
 }
