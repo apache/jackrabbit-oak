@@ -180,7 +180,7 @@ public class DocumentNodeStoreService {
     /**
      * Blob modified before this time duration would be considered for Blob GC
      */
-    private static final long DEFAULT_BLOB_GC_MAX_AGE = TimeUnit.HOURS.toMillis(24);
+    private static final long DEFAULT_BLOB_GC_MAX_AGE = TimeUnit.HOURS.toSeconds(24);
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
     private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
 
