@@ -215,6 +215,41 @@ public class AsyncIndexUpdateTest {
                 find(lookupChild, "foo", "abc"));
     }
 
+    @Test
+    public void testAsyncPause() throws Exception {
+        NodeStore store = new MemoryNodeStore();
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+
+        NodeBuilder builder = store.getRoot().builder();
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(ASYNC_PROPERTY_NAME, "async");
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate("async", store, provider);
+        async.getIndexStats().pause();
+        async.run();
+        assertFalse(store.getRoot().getChildNode(INDEX_DEFINITIONS_NAME)
+                .getChildNode("rootIndex")
+                .hasChildNode(INDEX_CONTENT_NODE_NAME));
+
+        async.getIndexStats().resume();
+        async.run();
+        NodeState root = store.getRoot();
+
+        // first check that the index content nodes exist
+        checkPathExists(root, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        assertFalse(root.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(
+                ":conflict"));
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+    }
+
     // OAK-1749
     @Test
     public void branchBaseOnCheckpoint() throws Exception {
