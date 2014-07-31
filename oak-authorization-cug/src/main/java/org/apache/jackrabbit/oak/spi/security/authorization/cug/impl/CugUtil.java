@@ -30,7 +30,7 @@ import org.apache.jackrabbit.util.Text;
 /**
  * CugUtil... TODO
  */
-public final class CugUtil {
+final class CugUtil {
 
     private CugUtil(){}
 
