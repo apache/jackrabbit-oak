@@ -501,6 +501,17 @@ class TarReader {
         return findEntry(msb, lsb) != -1;
     }
 
+    /**
+     * If the given segment is in this file, get the byte buffer that allows
+     * reading it.
+     * <p>
+     * Whether or not this will read from the file depends on whether memory
+     * mapped files are used or not.
+     * 
+     * @param msb the most significant bits of the segment id
+     * @param lsb the least significant bits of the segment id
+     * @return the byte buffer, or null if not in this file
+     */
     ByteBuffer readEntry(long msb, long lsb) throws IOException {
         int position = findEntry(msb, lsb);
         if (position != -1) {
@@ -512,6 +523,14 @@ class TarReader {
         }
     }
 
+    /**
+     * Find the position of the given segment in the tar file.
+     * It uses the tar index if available.
+     * 
+     * @param msb the most significant bits of the segment id
+     * @param lsb the least significant bits of the segment id
+     * @return the position in the file, or -1 if not found
+     */
     private int findEntry(long msb, long lsb) {
         // The segment identifiers are randomly generated with uniform
         // distribution, so we can use interpolation search to find the
@@ -556,6 +575,18 @@ class TarReader {
         return -1;
     }
 
+    /**
+     * Garbage collects segments in this file. First it collects the set of
+     * segments that are referenced / reachable, then (if more than 25% is
+     * garbage) creates a new generation of the file.
+     * <p>
+     * The old generation files are not removed (they can't easily be removed,
+     * for memory mapped files).
+     * 
+     * @param referencedIds the referenced segment ids (input and output).
+     * @return this (if the file is kept as is), or the new generation file, or
+     *         null if the file is fully garbage
+     */
     synchronized TarReader cleanup(Set<UUID> referencedIds) throws IOException {
         Map<UUID, List<UUID>> graph = null;
         if (this.graph != null) {
@@ -716,7 +747,7 @@ class TarReader {
         return number;
     }
 
-    File getFile(){
+    File getFile() {
         return file;
     }
 

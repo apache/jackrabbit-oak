@@ -49,8 +49,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
 
 /**
- * A node, which can read a node record from a segment.
- * It currently doesn't cache data.
+ * A record of type "NODE". This class can read a node record from a segment. It
+ * currently doesn't cache data (but the template is fully loaded).
  */
 public class SegmentNodeState extends Record implements NodeState {
 

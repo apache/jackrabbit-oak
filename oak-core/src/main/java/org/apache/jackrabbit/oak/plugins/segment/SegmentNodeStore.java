@@ -54,6 +54,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * The top level class for the segment store.
+ * <p>
+ * The root node of the JCR content tree is actually stored in the node "/root",
+ * and checkpoints are stored under "/checkpoints".
  */
 public class SegmentNodeStore implements NodeStore, Observable {
 

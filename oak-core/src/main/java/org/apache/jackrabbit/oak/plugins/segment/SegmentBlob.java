@@ -32,6 +32,9 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
+/**
+ * A BLOB (stream of bytes). This is a record of type "VALUE".
+ */
 public class SegmentBlob extends Record implements Blob {
 
     SegmentBlob(RecordId id) {
@@ -114,7 +117,7 @@ public class SegmentBlob extends Record implements Blob {
                     getStore().getBlobStore();
             if (blobStore != null) {
                 return blobStore.getReference(blobId);
-            }else{
+            } else {
                 throw new IllegalStateException("Attempt to read external blob with blobId [" + blobId + "] " +
                         "without specifying BlobStore");
             }

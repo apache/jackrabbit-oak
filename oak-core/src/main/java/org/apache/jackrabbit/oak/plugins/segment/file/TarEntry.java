@@ -18,6 +18,10 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 
 import java.util.Comparator;
 
+/**
+ * A file entry location in a tar file. This is used for the index with a tar
+ * file.
+ */
 class TarEntry {
 
     static final Comparator<TarEntry> OFFSET_ORDER = new Comparator<TarEntry>() {

@@ -23,6 +23,10 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import com.google.common.collect.ComparisonChain;
 
+/**
+ * A property definition within a template (the property name, the type, and the
+ * index within the list of properties for the given node).
+ */
 class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     /**

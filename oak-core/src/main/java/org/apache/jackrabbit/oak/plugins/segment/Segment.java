@@ -46,6 +46,8 @@ import com.google.common.base.Charsets;
  * <p>
  * Record data is not kept in memory, but some entries are cached (templates,
  * all strings in the segment).
+ * <p>
+ * This class includes method to read records from the raw bytes.
  */
 public class Segment {
 

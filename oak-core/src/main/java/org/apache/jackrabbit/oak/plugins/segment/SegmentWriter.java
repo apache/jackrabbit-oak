@@ -73,7 +73,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Converts records to byte arrays, in order to create segments.
+ * Converts nodes, properties, and values to records, which are written to a
+ * byte array, in order to create segments.
+ * <p>
+ * The same writer is used to create multiple segments (data is automatically
+ * split: new segments are automatically created if and when needed).
  */
 public class SegmentWriter {
 
@@ -775,7 +779,7 @@ public class SegmentWriter {
         return new SegmentBlob(id);
     }
 
-    public synchronized void dropCache(){
+    public synchronized void dropCache() {
         records.clear();
     }
 
