@@ -20,7 +20,8 @@ SegmentMK design overview
 
 The SegmentMK is an Oak storage backend that stores content as various
 types of *records* within larger *segments*. One or more *journals* are
-used to track the latest state of the repository.
+used to track the latest state of the repository. In the TarMK implementation
+only one "root" journal is used.
 
 The SegmentMK was designed from the ground up based on the following
 key principles:
@@ -110,7 +111,7 @@ The segment header consists of the following fields:
     | External blob record references  (blobrefcount x 2 bytes)             |
     |                                                                       |
     |          ......                            +--------+--------+--------+
-    |                                            | padding (set o 0)        |
+    |                                            | padding (set to 0)       |
     +--------+--------+--------+--------+--------+--------+--------+--------+
 
 The first four bytes of a segment always contain the ASCII string "0aK\n",
@@ -162,7 +163,7 @@ Journals are special, atomically updated documents that record the
 state of the repository as a sequence of references to successive
 root node records.
 
-A small system could consist of just a single journal and would
+A small system (like TarMK) could use just a single journal and would
 serialize all repository updates through atomic updates of that journal.
 A larger system that needs more write throughput can have more journals,
 linked to each other in a tree hierarchy. Commits to journals in lower
@@ -259,6 +260,8 @@ The result is a hierarchically stored immutable map where each element
 can be accessed in O(log N) time and the size overhead of updating or
 inserting list elements is also O(log N).
 
+TODO: Links to HAMT documentation
+
 Value records
 -------------
 
@@ -338,3 +341,18 @@ and child nodes. This way a node can become arbitrarily large and still
 remain reasonably efficient to access and modify. The main downside of
 this alternative storage layout is that the ordering of child nodes is
 lost.
+
+TarMK
+=====
+
+TODO:
+
+- tar entry checksums
+- graph and index entries
+- recovery mechanism
+- tar generations / cleanup
+- journal.log
+- compaction
+- cleanup
+- backup
+- slow startup / journal.log
