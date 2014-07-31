@@ -47,4 +47,41 @@ public interface IndexStatsMBean {
      */
     String getStatus();
 
+    /**
+     * Pauses the background indexing process. Future changes are not indexed
+     * until the {@link #resume()} method is called.
+     * 
+     * The pause call will take effect on the next run cycle and will affect all
+     * indexes marked as 'async'.
+     * 
+     * Note: this is experimental and should only be used for
+     * debugging/diagnosis purposes!
+     * 
+     */
+    void pause();
+
+    /**
+     * Resumes the indexing process. All changes from the previous indexed state
+     * will be indexed.
+     * 
+     * @see #pause()
+     */
+    void resume();
+
+    /**
+     * Returns the value of the 'paused' flag
+     * 
+     * @return true if the indexing job is paused
+     */
+    boolean isPaused();
+
+    /**
+     * Returns the number of updates from the current run cycle. This value is
+     * kept until the next cycle begins.
+     * 
+     * @return the number of updates from the current run cycle. This value is
+     *         kept until the next cycle begins.
+     */
+    long getUpdates();
+
 }

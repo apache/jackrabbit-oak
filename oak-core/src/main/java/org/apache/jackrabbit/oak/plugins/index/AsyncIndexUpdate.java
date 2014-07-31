@@ -157,6 +157,9 @@ public class AsyncIndexUpdate implements Runnable {
             NodeBuilder builder = root.builder();
             builder.child(ASYNC).setProperty(leaseName, lease);
             mergeWithConcurrencyCheck(builder, checkpoint, beforeLease);
+
+            //reset updates counter
+            indexStats.setUpdates(this.updates);
         }
 
         boolean isDirty() {
@@ -174,6 +177,7 @@ public class AsyncIndexUpdate implements Runnable {
         public void indexUpdate() throws CommitFailedException {
             updates++;
             if (updates % 100 == 0) {
+                indexStats.setUpdates(this.updates);
                 long now = System.currentTimeMillis();
                 if (now + ASYNC_TIMEOUT > lease) {
                     long newLease = now + 2 * ASYNC_TIMEOUT;
@@ -189,6 +193,9 @@ public class AsyncIndexUpdate implements Runnable {
 
     @Override
     public synchronized void run() {
+        if (indexStats.isPaused()) {
+            return;
+        }
         log.debug("Running background index task {}", name);
 
         NodeState root = store.getRoot();
@@ -365,11 +372,14 @@ public class AsyncIndexUpdate implements Runnable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    private static final class AsyncIndexStats implements IndexStatsMBean {
+    static final class AsyncIndexStats implements IndexStatsMBean {
 
         private String start = "";
         private String done = "";
         private String status = STATUS_INIT;
+
+        private volatile boolean isPaused;
+        private volatile long updates;
 
         public void start(String now) {
             status = STATUS_RUNNING;
@@ -398,10 +408,36 @@ public class AsyncIndexUpdate implements Runnable {
             return status;
         }
 
+        public void pause() {
+            log.debug("Pausing the async indexer");
+            this.isPaused = true;
+        }
+
+        @Override
+        public void resume() {
+            log.debug("Resuming the async indexer");
+            this.isPaused = false;
+        }
+
+        @Override
+        public boolean isPaused() {
+            return this.isPaused;
+        }
+
+        void setUpdates(long updates) {
+            this.updates = updates;
+        }
+
+        @Override
+        public long getUpdates() {
+            return updates;
+        }
+
         @Override
         public String toString() {
             return "AsyncIndexStats [start=" + start + ", done=" + done
-                    + ", status=" + status + "]";
+                    + ", status=" + status + ", paused=" + isPaused
+                    + ", updates=" + updates + "]";
         }
     }
 
