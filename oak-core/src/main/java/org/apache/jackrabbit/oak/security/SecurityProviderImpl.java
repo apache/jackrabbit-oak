@@ -28,6 +28,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
@@ -80,6 +81,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             name = "principalConfiguration",
             bind = "bindPrincipalConfiguration",
             unbind = "unbindPrincipalConfiguration",
+            policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositePrincipalConfiguration principalConfiguration = new CompositePrincipalConfiguration(this);
 
@@ -87,6 +89,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             name = "tokenConfiguration",
             bind = "bindTokenConfiguration",
             unbind = "unbindTokenConfiguration",
+            policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
