@@ -22,6 +22,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
+/**
+ * The backend storage interface used by the segment node store.
+ */
 public interface SegmentStore {
 
     SegmentTracker getTracker();

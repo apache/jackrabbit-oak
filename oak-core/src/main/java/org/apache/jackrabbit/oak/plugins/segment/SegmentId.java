@@ -44,6 +44,11 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long lsb;
 
+    /**
+     * A reference to the segment object, if it is available in memory. It is
+     * used for fast lookup. The segment tracker will set or reset this field.
+     */
+    // TODO: possibly we could remove the volatile
     private volatile Segment segment;
 
     public SegmentId(SegmentTracker tracker, long msb, long lsb, Segment segment) {

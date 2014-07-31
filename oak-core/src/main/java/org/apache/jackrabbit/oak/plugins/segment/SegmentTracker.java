@@ -36,6 +36,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracker of references to segment identifiers and segment instances
  * that are currently kept in memory.
+ * <p>
+ * It is also responsible to cache segment objects in memory.
  */
 public class SegmentTracker {
 
@@ -133,6 +135,7 @@ public class SegmentTracker {
             log.debug("Added segment {} to tracker cache ({} bytes)",
                     id, size);
 
+            // TODO possibly this cache could be improved
             while (currentSize > cacheSize && segments.size() > 1) {
                 Segment last = segments.removeLast();
                 SegmentId lastId = last.getSegmentId();

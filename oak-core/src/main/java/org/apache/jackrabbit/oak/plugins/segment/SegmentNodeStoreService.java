@@ -57,6 +57,9 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * An OSGi wrapper for the segment node store.
+ */
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class SegmentNodeStoreService extends ProxyNodeStore
         implements Observable {

@@ -63,12 +63,14 @@ class MapRecord extends Record {
 
     /**
      * Number of bits needed to indicate the current trie level.
+     * Currently 4.
      */
     protected static final int LEVEL_BITS = // 4, using nextPowerOfTwo():
             numberOfTrailingZeros(highestOneBit(MAX_NUMBER_OF_LEVELS) << 1);
 
     /**
      * Number of bits used to indicate the size of a map.
+     * Currently 28.
      */
     protected static final int SIZE_BITS = 32 - LEVEL_BITS;
 
