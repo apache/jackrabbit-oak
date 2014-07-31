@@ -16,6 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! //
+//                                                                         //
+// This class has complex internals that have evolved in over a hundred    //
+// commits. It is a central component in how Oak handles modifications to  //
+// content trees. Please use 'svn blame', 'svn log' and the referenced     //
+// Jira issues to understand the reason for some of the more complex parts //
+// of this class. See also the MemoryNodeBuilderTest for existing tests.   //
+//                                                                         //
+// WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! //
+
 import java.io.IOException;
 import java.io.InputStream;
 
