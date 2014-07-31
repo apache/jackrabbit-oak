@@ -25,6 +25,9 @@ import static java.util.Collections.singletonList;
 
 import java.util.List;
 
+/**
+ * A record of type "LIST".
+ */
 class ListRecord extends Record {
 
     static final int LEVEL_SIZE = Segment.SEGMENT_REFERENCE_LIMIT;

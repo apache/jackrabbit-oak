@@ -74,11 +74,13 @@ enum RecordType {
     LIST,
 
     /**
-     * A short value (for example a string, or a long). The format is: length
-     * (variable length encoding, one byte if shorter than 128, else more
+     * A value (for example a string, or a long, or a blob). The format is:
+     * length (variable length encoding, one byte if shorter than 128, else more
      * bytes), then the data as a byte array, or, for large values, a record id
      * of the top level bucket that contains the list of block record ids of the
      * actual binary data.
+     * <p>
+     * Therefore, a value can reference other records.
      */
     VALUE,
 

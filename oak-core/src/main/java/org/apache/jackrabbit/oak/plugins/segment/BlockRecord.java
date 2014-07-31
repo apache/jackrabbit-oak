@@ -20,6 +20,9 @@ import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 
+/**
+ * A record of type "BLOCK".
+ */
 class BlockRecord extends Record {
 
     private final int size;

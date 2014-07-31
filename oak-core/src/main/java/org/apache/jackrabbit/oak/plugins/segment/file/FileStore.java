@@ -63,6 +63,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The storage implementation for tar files.
+ */
 public class FileStore implements SegmentStore {
 
     /** Logger instance */
@@ -131,7 +134,9 @@ public class FileStore implements SegmentStore {
     private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
 
     /**
-     * List of old tar file generations that are waiting to be removed.
+     * List of old tar file generations that are waiting to be removed. They can
+     * not be removed immediately, because they first need to be closed, and the
+     * JVM needs to release the memory mapped file references.
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
 
@@ -372,6 +377,14 @@ public class FileStore implements SegmentStore {
         }
     }
 
+    /**
+     * Runs garbage collection on the segment level, which could write new
+     * generations of tar files. It checks which segments are still reachable,
+     * and throws away those that are not.
+     * <p>
+     * A new generation of a tar file is created (and segments are only
+     * discarded) if doing so releases more than 25% of the space in a tar file.
+     */
     public synchronized void cleanup() throws IOException {
         long start = System.nanoTime();
         log.info("TarMK revision cleanup started");
@@ -409,6 +422,11 @@ public class FileStore implements SegmentStore {
                 MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
     }
 
+    /**
+     * Copy every referenced record in data (non-bulk) segments. Bulk segments
+     * are fully kept (they are only removed in cleanup, if there is no
+     * reference to them).
+     */
     public void compact() {
         long start = System.nanoTime();
         log.info("TarMK compaction started");

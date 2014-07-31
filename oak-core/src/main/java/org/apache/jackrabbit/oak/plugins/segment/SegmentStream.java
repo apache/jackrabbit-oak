@@ -32,7 +32,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
 
 /**
- * For reading any value records as binary streams.
+ * For reading any record of type "VALUE" as binary streams.
  */
 public class SegmentStream extends InputStream {
 

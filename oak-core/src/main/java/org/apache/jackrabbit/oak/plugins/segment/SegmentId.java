@@ -22,7 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Segment identifier.
+ * Segment identifier. There are two types of segments: data segments, and bulk
+ * segments. Data segments have a header and may reference other segments; bulk
+ * segments do not.
  */
 public class SegmentId implements Comparable<SegmentId> {
 

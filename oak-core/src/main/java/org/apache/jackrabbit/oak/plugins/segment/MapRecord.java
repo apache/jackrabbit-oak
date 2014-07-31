@@ -35,6 +35,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 
+/**
+ * A map. The top level record is either a record of type "BRANCH" or "LEAF"
+ * (depending on the data).
+ */
 class MapRecord extends Record {
 
     /**

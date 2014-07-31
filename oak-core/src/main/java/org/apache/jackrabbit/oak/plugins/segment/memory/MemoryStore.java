@@ -36,6 +36,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 
+/**
+ * A store used for in-memory operations.
+ */
 public class MemoryStore implements SegmentStore {
 
     private final SegmentTracker tracker = new SegmentTracker(this);

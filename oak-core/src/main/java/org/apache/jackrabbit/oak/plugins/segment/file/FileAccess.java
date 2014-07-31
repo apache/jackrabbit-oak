@@ -23,15 +23,16 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.util.zip.CRC32;
 
+/**
+ * A wrapper around either memory mapped files or random access files, to allow
+ * reading from a file.
+ */
 abstract class FileAccess {
 
     abstract boolean isMemoryMapped();
 
     abstract int length() throws IOException;
-
-    abstract long crc32(int position, int size) throws IOException;
 
     abstract ByteBuffer read(int position, int length) throws IOException;
 
@@ -39,6 +40,9 @@ abstract class FileAccess {
 
     //-----------------------------------------------------------< private >--
 
+    /**
+     * The implementation that uses memory mapped files.
+     */
     static class Mapped extends FileAccess {
 
         private final MappedByteBuffer buffer;
@@ -58,19 +62,6 @@ abstract class FileAccess {
         }
 
         @Override
-        public long crc32(int position, int length) {
-            ByteBuffer entry = buffer.asReadOnlyBuffer();
-            entry.position(entry.position() + position);
-
-            byte[] data = new byte[length];
-            entry.get(data);
-
-            CRC32 checksum = new CRC32();
-            checksum.update(data);
-            return checksum.getValue();
-        }
-
-        @Override
         public ByteBuffer read(int position, int length) {
             ByteBuffer entry = buffer.asReadOnlyBuffer();
             entry.position(entry.position() + position);
@@ -83,7 +74,10 @@ abstract class FileAccess {
         }
 
     }
-
+    
+    /**
+     * The implementation that uses random access file (reads are synchronized).
+     */    
     static class Random extends FileAccess {
 
         private final RandomAccessFile file;
@@ -102,13 +96,6 @@ abstract class FileAccess {
             long length = file.length();
             checkState(length < Integer.MAX_VALUE);
             return (int) length;
-        }
-
-        @Override
-        public long crc32(int position, int length) throws IOException {
-            CRC32 checksum = new CRC32();
-            checksum.update(read(position, length).array());
-            return checksum.getValue();
         }
 
         @Override
