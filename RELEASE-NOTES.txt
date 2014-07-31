@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.4
 
 Introduction
 ------------
@@ -14,32 +14,26 @@ stable and targeted for production use.
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.3
+Changes in Oak 1.0.4
 --------------------
 
 Improvements
 
-  [OAK-1966] - Add Hint for selecting more performant index in ...
-  [OAK-1967] - Avoid collision marker update when already present
-  [OAK-1983] - Query: reduce debug log output
-  [OAK-1986] - Log index names for which AsyncIndexUpdate would trigger a ...
-  [OAK-1987] - LuceneIndex should access Lucene Directory if query ...
+  [OAK-1999] - Query engine is slow when using many "or" constraints
+  [OAK-1997] - Improve the message in UniquenessConstraintViolation 
 
 Bug fixes
 
-  [OAK-1816] - Oak#createContentRepository never unregisters some of its ...
-  [OAK-1964] - Performance degradation due to SessionDelegate.WarningLock
-  [OAK-1968] - Wrong time unit for async index lease time
-  [OAK-1969] - Duplicate observation events when using JackrabbitEventFilter
-  [OAK-1972] - Async property index update may fail on DocumentMK with more ...
-  [OAK-1973] - IndexUpdate traverses the data nodes under index nodes
-  [OAK-1975] - Wrong values reported for OBSERVATION_EVENT_DURATION
-  [OAK-1982] - Ordered index must ignore full-text queries
-  [OAK-1991] - Optimize access to OrderedPropertyIndex
+  [OAK-1976] - SecurityProvider is not able to add Custom ...
+  [OAK-1926] - UnmergedBranch state growing with empty BranchCommit ...
+  [OAK-2001] - TarMk compaction can still cause repository growth
+  [OAK-2010] - BlobGcMaxAgeInSecs is set to high for MongoBlobStore
+  [OAK-1998] - Accessible tree below a non-accessible parent ...
+  [OAK-2002] - TarMK: FileStore constructor loads all entries in ...
 
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 1.0.2 release.
+all the changes included up to the Apache Jackrabbit Oak 1.0.3 release.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
