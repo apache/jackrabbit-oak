@@ -41,6 +41,12 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 import com.google.common.base.Charsets;
 
+/**
+ * A list of records.
+ * <p>
+ * Record data is not kept in memory, but some entries are cached (templates,
+ * all strings in the segment).
+ */
 public class Segment {
 
     /**

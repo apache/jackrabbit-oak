@@ -52,6 +52,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+/**
+ * The top level class for the segment store.
+ */
 public class SegmentNodeStore implements NodeStore, Observable {
 
     static final String ROOT = "root";

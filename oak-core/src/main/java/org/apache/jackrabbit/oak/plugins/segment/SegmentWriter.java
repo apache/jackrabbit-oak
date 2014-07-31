@@ -72,6 +72,9 @@ import com.google.common.io.Closeables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Converts records to byte arrays, in order to create segments.
+ */
 public class SegmentWriter {
 
     /** Logger instance */
@@ -163,6 +166,11 @@ public class SegmentWriter {
         }
     }
 
+    /**
+     * Adds a segment header to the buffer and writes a segment to the segment
+     * store. This is done automatically (called from prepare) when there is not
+     * enough space for a record. It can also be called explicitly.
+     */
     public synchronized void flush() {
         if (length > 0) {
             int refcount = segment.getRefCount();
@@ -237,6 +245,23 @@ public class SegmentWriter {
         return prepare(type, size, Collections.<RecordId>emptyList());
     }
 
+    /**
+     * Before writing a record (which are written backwards, from the end of the
+     * file to the beginning), this method is called, to ensure there is enough
+     * space. A new segment is also created if there is not enough space in the
+     * segment lookup table or elsewhere.
+     * <p>
+     * This method does not actually write into the segment, just allocates the
+     * space (flushing the segment if needed and starting a new one), and sets
+     * the write position (records are written from the end to the beginning,
+     * but within a record from left to right).
+     * 
+     * @param type the record type (only used for root records)
+     * @param size the size of the record, excluding the size used for the
+     *            record ids
+     * @param ids the record ids
+     * @return a new record id
+     */
     private RecordId prepare(
             RecordType type, int size, Collection<RecordId> ids) {
         checkArgument(size >= 0);
@@ -312,6 +337,12 @@ public class SegmentWriter {
         return refcount;
     }
 
+    /**
+     * Write a record id, and marks the record id as referenced (removes it from
+     * the unreferenced set).
+     * 
+     * @param recordId the record id
+     */
     private synchronized void writeRecordId(RecordId recordId) {
         checkNotNull(recordId);
         roots.remove(recordId);
@@ -905,6 +936,8 @@ public class SegmentWriter {
         RecordId[] propertyNames = new RecordId[properties.length];
         byte[] propertyTypes = new byte[properties.length];
         for (int i = 0; i < properties.length; i++) {
+            // Note: if the property names are stored in more than 255 separate
+            // segments, this will not work.
             propertyNames[i] = writeString(properties[i].getName());
             Type<?> type = properties[i].getType();
             if (type.isArray()) {
@@ -940,6 +973,14 @@ public class SegmentWriter {
         return id;
     }
 
+    /**
+     * If the given node was compacted, return the compacted node, otherwise
+     * return the passed node. This is to avoid pointing to old nodes, if they
+     * have been compacted.
+     * 
+     * @param state the node
+     * @return the compacted node (if it was compacted)
+     */
     private SegmentNodeState uncompact(SegmentNodeState state) {
         RecordId id = tracker.getCompactionMap().get(state.getRecordId());
         if (id != null) {

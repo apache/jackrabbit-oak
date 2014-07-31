@@ -25,6 +25,10 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The record id. This includes the segment id and the offset within the
+ * segment.
+ */
 public final class RecordId implements Comparable<RecordId> {
 
     private static final Pattern PATTERN = Pattern.compile(

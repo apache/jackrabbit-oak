@@ -19,6 +19,12 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * A node builder that keeps track of the number of updates
+ * (set property calls and so on). If there are too many updates,
+ * getNodeState() is called, which will write the records to the segment,
+ * and that might persist the changes (if the segment is flushed).
+ */
 public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     /**

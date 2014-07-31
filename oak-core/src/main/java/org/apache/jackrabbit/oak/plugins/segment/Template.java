@@ -39,6 +39,12 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * The in-memory representation of a "hidden class" of a node; inspired by the
+ * Chrome V8 Javascript engine).
+ * <p>
+ * Templates are always read fully in-memory.
+ */
 public class Template {
 
     static final String ZERO_CHILD_NODES = null;
