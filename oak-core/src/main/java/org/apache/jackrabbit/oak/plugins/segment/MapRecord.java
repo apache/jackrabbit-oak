@@ -37,10 +37,18 @@ import com.google.common.collect.ComparisonChain;
 
 class MapRecord extends Record {
 
+    /**
+     * Magic constant from a random number generator, used to generate
+     * good hash values.
+     */
     private static final int M = 0xDEECE66D;
     private static final int A = 0xB;
     static final long HASH_MASK = 0xFFFFFFFFL;
 
+    /**
+     * Generates a hash code for the value, using a random number generator
+     * to improve the distribution of the hash values.
+     */
     static int getHash(String name) {
         return (name.hashCode() ^ M) * M + A;
     }
