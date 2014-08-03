@@ -69,7 +69,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
  */
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
-    static final Logger operationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations");
+    static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
+    static final Logger writeOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.writes");
 
     private final ContentSession contentSession;
     private final SecurityProvider securityProvider;
@@ -643,10 +644,11 @@ public class SessionDelegate {
     //------------------------------------------------------------< internal >---
 
     private static <T> void logOperationDetails(ContentSession session, SessionOperation<T> ops) {
-        if (operationLogger.isDebugEnabled()){
+        if (readOperationLogger.isTraceEnabled()
+                || writeOperationLogger.isTraceEnabled()) {
             Marker sessionMarker = MarkerFactory.getMarker(session.toString());
-            String sessionId = session.toString();
-            operationLogger.debug(sessionMarker, String.format("[%s] %s", sessionId, ops));
+            Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
+            log.trace(sessionMarker, "[{}] {}", session, ops);
         }
     }
 
