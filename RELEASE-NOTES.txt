@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.3 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.4 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
@@ -33,7 +33,7 @@ Bug fixes
 
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 1.0.3 release.
+all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
@@ -50,7 +50,7 @@ See the README.md file for instructions on how to build this release.
 The source archive is accompanied by SHA1 and MD5 checksums and a PGP
 signature that you can use to verify the authenticity of your download.
 The public key used for the PGP signature can be found at
-https://svn.apache.org/repos/asf/jackrabbit/dist/KEYS.
+http://www.apache.org/dist/jackrabbit/KEYS.
 
 About Apache Jackrabbit Oak
 ---------------------------
