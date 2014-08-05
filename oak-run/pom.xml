@@ -160,9 +160,9 @@
                 as to ensure default artifact oak-run is the one which has all jars
                 embedded
                 -->
-                <delete file="${project.build.directory}/${project.build.finalName}.jar" />
                 <copy file="${project.build.directory}/${project.build.finalName}-oak.jar"
                       tofile="${project.build.directory}/${project.build.finalName}.jar" />
+                <delete file="${project.build.directory}/${project.build.finalName}-oak.jar" />
               </target>
             </configuration>
             <goals>
