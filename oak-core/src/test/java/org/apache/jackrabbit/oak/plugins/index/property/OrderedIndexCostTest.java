@@ -44,29 +44,6 @@ import com.google.common.collect.ImmutableMap;
  * tests the Cost-related part of the provider/strategy
  */
 public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
-    /**
-     * convenience class that return an always indexed strategy
-     */
-    private static class AlwaysIndexedOrderedPropertyIndex extends OrderedPropertyIndex {
-        @Override
-        AlwaysIndexedLookup getLookup(NodeState root) {
-            return new AlwaysIndexedLookup(root);
-        }
-
-        /**
-         * convenience class that always return true at the isIndexed test
-         */
-        private static class AlwaysIndexedLookup extends OrderedPropertyIndexLookup {
-            public AlwaysIndexedLookup(NodeState root) {
-                super(root);
-            }
-
-            @Override
-            public boolean isIndexed(String propertyName, String path, Filter filter) {
-                return true;
-            }
-        }
-      }
 
     @Override
     protected void createTestIndexNode() throws Exception {
@@ -147,7 +124,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
      */
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterThanAscendingDirection() throws Exception {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineAscendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -171,7 +148,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
      */
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterThanEqualAscendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineAscendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -196,7 +173,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
      */
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costLessThanAscendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineAscendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -215,7 +192,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costLessThanEqualsAscendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineAscendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -235,7 +212,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterThanDescendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineDescendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -255,7 +232,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costGreaterEqualThanDescendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineDescendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -276,7 +253,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costLessThanDescendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineDescendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -296,7 +273,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costLessThanEqualDescendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineDescendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -317,7 +294,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costBetweenDescendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineDescendingIndex(builder);
         NodeState root = builder.getNodeState();
@@ -340,7 +317,7 @@ public class OrderedIndexCostTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test @Ignore("As of OAK-622 this should no longer be used. Removing later.")
     public void costBetweenAscendingDirection() throws IllegalArgumentException, RepositoryException {
-        OrderedPropertyIndex index = new AlwaysIndexedOrderedPropertyIndex();
+        OrderedPropertyIndex index = new OrderedPropertyIndex();
         NodeBuilder builder = InitialContent.INITIAL_CONTENT.builder();
         defineAscendingIndex(builder);
         NodeState root = builder.getNodeState();

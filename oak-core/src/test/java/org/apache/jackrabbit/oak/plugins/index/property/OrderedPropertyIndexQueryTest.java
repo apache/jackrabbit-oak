@@ -22,6 +22,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertNotNull;
 
@@ -47,7 +48,6 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
@@ -78,9 +78,13 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTree("/");
-        IndexUtils.createIndexDefinition(new NodeUtil(index.getChild(IndexConstants.INDEX_DEFINITIONS_NAME)),
-            TEST_INDEX_NAME, false, new String[] { ORDERED_PROPERTY }, null, OrderedIndex.TYPE);
+        createTestIndexNode("/");
+    }
+
+    protected void createTestIndexNode(String path) throws Exception {
+        Tree index = root.getTree(path);
+        IndexUtils.createIndexDefinition(new NodeUtil(index.getChild(INDEX_DEFINITIONS_NAME)),
+                TEST_INDEX_NAME, false, new String[] { ORDERED_PROPERTY }, null, OrderedIndex.TYPE);
         root.commit();
     }
 
@@ -446,7 +450,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
         NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
 
-        IndexUtils.createIndexDefinition(root.child(IndexConstants.INDEX_DEFINITIONS_NAME),
+        IndexUtils.createIndexDefinition(root.child(INDEX_DEFINITIONS_NAME),
             TEST_INDEX_NAME, false, ImmutableList.of(ORDERED_PROPERTY), null, OrderedIndex.TYPE,
             ImmutableMap.<String, String> of());
 
@@ -523,7 +527,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
                                                RepositoryException, CommitFailedException {
         NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
 
-        IndexUtils.createIndexDefinition(root.child(IndexConstants.INDEX_DEFINITIONS_NAME),
+        IndexUtils.createIndexDefinition(root.child(INDEX_DEFINITIONS_NAME),
             TEST_INDEX_NAME, false, ImmutableList.of(ORDERED_PROPERTY), null, OrderedIndex.TYPE,
             ImmutableMap.<String, String> of());
 
@@ -564,7 +568,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
     public void planOrderAndWhereMixed() throws IllegalArgumentException, RepositoryException, CommitFailedException {
         NodeBuilder root = EmptyNodeState.EMPTY_NODE.builder();
 
-        IndexUtils.createIndexDefinition(root.child(IndexConstants.INDEX_DEFINITIONS_NAME),
+        IndexUtils.createIndexDefinition(root.child(INDEX_DEFINITIONS_NAME),
             TEST_INDEX_NAME, false, ImmutableList.of(ORDERED_PROPERTY), null, OrderedIndex.TYPE,
             ImmutableMap.<String, String> of());
 
@@ -867,9 +871,57 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .iterator();
         
         assertRightOrder(Lists.newArrayList(filtered), results);
-        assertFalse("We should have looped throuhg all the results", results.hasNext());
+        assertFalse("We should have looped through all the results", results.hasNext());
 
         setTraversalEnabled(true);
 
+    }
+
+    @Test
+    public void indexDefinitionBelowRoot() throws Exception {
+        setTraversalEnabled(false);
+
+        // remove the default test index definition
+        root.getTree("/" + INDEX_DEFINITIONS_NAME + "/" + TEST_INDEX_NAME).remove();
+        root.getTree("/").addChild("test").addChild(INDEX_DEFINITIONS_NAME);
+        root.commit();
+        createTestIndexNode("/test");
+
+        Tree test = root.getTree("/test");
+        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(NUMBER_OF_NODES), test,
+                OrderDirection.ASC, Type.STRING);
+        root.commit();
+
+        // querying
+        Iterator<? extends ResultRow> results;
+        results = executeQuery(String.format("SELECT * FROM [%s] as s WHERE s.foo IS NOT NULL and ISDESCENDANTNODE(s, '/test')", NT_UNSTRUCTURED), SQL2, null)
+                .getRows().iterator();
+        assertRightOrder(nodes, results);
+
+        setTraversalEnabled(true);
+    }
+
+    @Test
+    public void indexDefinitionBelowRootOrderBy() throws Exception {
+        setTraversalEnabled(false);
+
+        // remove the default test index definition
+        root.getTree("/" + INDEX_DEFINITIONS_NAME + "/" + TEST_INDEX_NAME).remove();
+        root.getTree("/").addChild("test").addChild(INDEX_DEFINITIONS_NAME);
+        root.commit();
+        createTestIndexNode("/test");
+
+        Tree test = root.getTree("/test");
+        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(NUMBER_OF_NODES), test,
+                OrderDirection.ASC, Type.STRING);
+        root.commit();
+
+        // querying
+        Iterator<? extends ResultRow> results;
+        results = executeQuery(String.format("SELECT * FROM [%s] as s WHERE ISDESCENDANTNODE(s, '/test') ORDER BY s.foo", NT_UNSTRUCTURED), SQL2, null)
+                .getRows().iterator();
+        assertRightOrder(nodes, results);
+
+        setTraversalEnabled(true);
     }
 }

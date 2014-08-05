@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
@@ -70,6 +71,23 @@ public class Cursors {
      */
     public static Cursor newPathCursor(Iterable<String> paths, QueryEngineSettings settings) {
         return new PathCursor(paths.iterator(), true, settings);
+    }
+
+    /**
+     * Creates a cursor which wraps another cursor and adds a path prefix to
+     * each of row of the wrapped cursor. This method will return the passed
+     * cursor as is if {@code path} is the empty string or the root path ("/").
+     *
+     * @param c    the cursor to wrap.
+     * @param path the path prefix.
+     * @return the cursor.
+     */
+    public static Cursor newPrefixCursor(Cursor c, String path) {
+        if (path.isEmpty() || PathUtils.denotesRoot(path)) {
+            // no need to wrap
+            return c;
+        }
+        return new PrefixCursor(c, path);
     }
     
     /**
@@ -199,6 +217,48 @@ public class Cursors {
             return iterator.hasNext();
         }
         
+    }
+
+    /**
+     * A cursor which wraps another cursor and adds a path prefix to each of
+     * row of the wrapped cursor.
+     */
+    private static final class PrefixCursor extends AbstractCursor {
+
+        private final Cursor c;
+        private final String path;
+
+        PrefixCursor(Cursor c, String prefix) {
+            this.c = c;
+            this.path = prefix;
+        }
+
+        @Override
+        public IndexRow next() {
+            final IndexRow r = c.next();
+            return new IndexRow() {
+
+                @Override
+                public String getPath() {
+                    String sub = r.getPath();
+                    if (PathUtils.isAbsolute(sub)) {
+                        return path + sub;
+                    } else {
+                        return PathUtils.concat(path, r.getPath());
+                    }
+                }
+
+                @Override
+                public PropertyValue getValue(String columnName) {
+                    return r.getValue(columnName);
+                }
+            };
+        }
+
+        @Override
+        public boolean hasNext() {
+            return c.hasNext();
+        }
     }
 
     /**

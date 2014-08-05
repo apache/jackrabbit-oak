@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+
 /**
  * Represents an index. The index should use the data in the filter if possible
  * to speed up reading.
@@ -153,7 +155,7 @@ public interface QueryIndex {
          * Get the query plan description (for logging purposes).
          * 
          * @param plan the index plan
-         * @param rootState root state of the current repository snapshot
+         * @param root root state of the current repository snapshot
          * @return the query plan description
          */
         String getPlanDescription(IndexPlan plan, NodeState root);
@@ -243,6 +245,29 @@ public interface QueryIndex {
          * @return the sort order
          */
         List<OrderEntry> getSortOrder();
+
+        /**
+         * The node state with the index definition.
+         *
+         * @return the node state with the index definition.
+         */
+        NodeState getDefinition();
+
+        /**
+         * The path prefix for this index plan.
+         * @return
+         */
+        String getPathPrefix();
+
+        /**
+         * The property restriction for this index plan or <code>null</code> if
+         * this index plan isn't base on a property restriction. E.g. a plan
+         * based on an order by clause in the query.
+         *
+         * @return the restriction this plan is based on or <code>null</code>.
+         */
+        @CheckForNull
+        PropertyRestriction getPropertyRestriction();
         
         /**
          * A builder for index plans.
@@ -257,6 +282,9 @@ public interface QueryIndex {
             protected boolean isFulltextIndex;
             protected boolean includesNodeData;
             protected List<OrderEntry> sortOrder;
+            protected NodeState definition;
+            protected PropertyRestriction propRestriction;
+            protected String pathPrefix = "/";
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -297,7 +325,22 @@ public interface QueryIndex {
                 this.sortOrder = sortOrder;
                 return this;
             }
-            
+
+            public Builder setDefinition(NodeState definition) {
+                this.definition = definition;
+                return this;
+            }
+
+            public Builder setPropertyRestriction(PropertyRestriction restriction) {
+                this.propRestriction = restriction;
+                return this;
+            }
+
+            public Builder setPathPrefix(String pathPrefix) {
+                this.pathPrefix = pathPrefix;
+                return this;
+            }
+
             public IndexPlan build() {
                 
                 return new IndexPlan() {
@@ -319,7 +362,14 @@ public interface QueryIndex {
                     private final List<OrderEntry> sortOrder = 
                             Builder.this.sortOrder == null ?
                             null : new ArrayList<OrderEntry>(
-                                    Builder.this.sortOrder);                  
+                                    Builder.this.sortOrder);
+                    private final NodeState definition =
+                            Builder.this.definition;
+                    private final PropertyRestriction propRestriction =
+                            Builder.this.propRestriction;
+                    private final String pathPrefix =
+                            Builder.this.pathPrefix;
+
                     @Override
                     public String toString() {
                         return String.format(
@@ -330,7 +380,10 @@ public interface QueryIndex {
                             + " isDelayed : %s,"
                             + " isFulltextIndex : %s,"
                             + " includesNodeData : %s,"
-                            + " sortOrder : %s }",
+                            + " sortOrder : %s,"
+                            + " definition : %s,"
+                            + " propertyRestriction : %s,"
+                            + " pathPrefix : %s }",
                             costPerExecution,
                             costPerEntry,
                             estimatedEntryCount,
@@ -338,7 +391,10 @@ public interface QueryIndex {
                             isDelayed,
                             isFulltextIndex,
                             includesNodeData,
-                            sortOrder
+                            sortOrder,
+                            definition,
+                            propRestriction,
+                            pathPrefix
                             );
                     }
 
@@ -386,10 +442,24 @@ public interface QueryIndex {
                     public List<OrderEntry> getSortOrder() {
                         return sortOrder;
                     }
-                    
+
+                    @Override
+                    public NodeState getDefinition() {
+                        return definition;
+                    }
+
+                    @Override
+                    public PropertyRestriction getPropertyRestriction() {
+                        return propRestriction;
+                    }
+
+                    @Override
+                    public String getPathPrefix() {
+                        return pathPrefix;
+                    }
                 };
             }
-                
+
         }
 
     }
