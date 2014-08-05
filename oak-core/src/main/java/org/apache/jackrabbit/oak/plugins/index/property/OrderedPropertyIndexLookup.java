@@ -24,7 +24,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -34,27 +36,33 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
-import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  *
  */
 public class OrderedPropertyIndexLookup {
 
+    private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndexLookup.class);
+
     /**
      * the standard Ascending ordered index
      */
-    private static final IndexStoreStrategy STORE = new OrderedContentMirrorStoreStrategy();
+    private static final OrderedContentMirrorStoreStrategy STORE = new OrderedContentMirrorStoreStrategy();
 
     /**
      * the descending ordered index
      */
-    private static final IndexStoreStrategy REVERSED_STORE = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
+    private static final OrderedContentMirrorStoreStrategy REVERSED_STORE = new OrderedContentMirrorStoreStrategy(OrderDirection.DESC);
     
     /**
      * we're slightly more expensive than the standard PropertyIndex.
@@ -68,8 +76,19 @@ public class OrderedPropertyIndexLookup {
 
     private NodeState root;
 
+    private String name;
+
+    private OrderedPropertyIndexLookup parent;
+
     public OrderedPropertyIndexLookup(NodeState root) {
+        this(root, "", null);
+    }
+
+    public OrderedPropertyIndexLookup(NodeState root, String name,
+                                      OrderedPropertyIndexLookup parent) {
         this.root = root;
+        this.name = name;
+        this.parent = parent;
     }
 
     /**
@@ -129,7 +148,7 @@ public class OrderedPropertyIndexLookup {
         return null;
     }
 
-    IndexStoreStrategy getStrategy(NodeState indexMeta) {
+    static OrderedContentMirrorStoreStrategy getStrategy(NodeState indexMeta) {
         if (OrderDirection.isAscending(indexMeta)) {
             return STORE;
         } else {
@@ -141,31 +160,6 @@ public class OrderedPropertyIndexLookup {
             Filter filter) {
         NodeState indexMeta = getIndexNode(root, propertyName, filter);
         return OrderDirection.isAscending(indexMeta);
-    }
-
-    /**
-     * Checks whether the named property is indexed somewhere along the given
-     * path. Lookup starts at the current path (at the root of this object) and
-     * traverses down the path.
-     *
-     * @param propertyName property name
-     * @param path lookup path
-     * @param filter for the node type restriction (null if no node type restriction)
-     * @return true if the property is indexed
-     */
-    public boolean isIndexed(String propertyName, String path, Filter filter) {
-        if (PathUtils.denotesRoot(path)) {
-            return getIndexNode(root, propertyName, filter) != null;
-        }
-
-        NodeState node = root;
-        for (String s : PathUtils.elements(path)) {
-            if (getIndexNode(node, propertyName, filter) != null) {
-                return true;
-            }
-            node = node.getChildNode(s);
-        }
-        return false;
     }
 
     /**
@@ -209,23 +203,131 @@ public class OrderedPropertyIndexLookup {
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        return ((OrderedContentMirrorStoreStrategy) getStrategy(indexMeta)).query(filter,
-            propertyName, indexMeta, pr);
+        return getStrategy(indexMeta).query(filter, propertyName, indexMeta, pr);
     }
 
     /**
-     * return an estimated count to be used in IndexPlans.
+     * Collect plans for ordered indexes along the given path and order entry.
      *
-     * @param propertyName
-     * @param value
-     * @param filter
-     * @param pr
-     * @return the estimated count
+     * @param filter a filter description.
+     * @param path a relative path from this lookup to the filter path.
+     * @param oe an order entry.
+     * @param plans collected plans are added to this list.
      */
-    public long getEstimatedEntryCount(String propertyName, PropertyValue value, Filter filter,
-                                       PropertyRestriction pr) {
-        NodeState indexMeta = getIndexNode(root, propertyName, filter);
-        OrderedContentMirrorStoreStrategy strategy = (OrderedContentMirrorStoreStrategy) getStrategy(indexMeta);
-        return strategy.count(indexMeta, pr, MAX_COST);
+    void collectPlans(Filter filter,
+                      String path,
+                      QueryIndex.OrderEntry oe,
+                      List<QueryIndex.IndexPlan> plans) {
+        String propertyName = PathUtils.getName(oe.getPropertyName());
+        NodeState definition = getIndexNode(root, propertyName, filter);
+        if (definition != null) {
+            Order order = OrderDirection.isAscending(definition)
+                    ? Order.ASCENDING : Order.DESCENDING;
+            long entryCount = getStrategy(definition).count(definition, (PropertyRestriction) null, MAX_COST);
+            QueryIndex.IndexPlan.Builder b = OrderedPropertyIndex.getIndexPlanBuilder(filter);
+            b.setSortOrder(ImmutableList.of(new QueryIndex.OrderEntry(oe.getPropertyName(), Type.UNDEFINED, order)));
+            b.setEstimatedEntryCount(entryCount);
+            b.setDefinition(definition);
+            b.setPathPrefix(getPath());
+            QueryIndex.IndexPlan plan = b.build();
+            LOG.debug("plan: {}", plan);
+            plans.add(plan);
+        }
+        // walk down path
+        String remainder = "";
+        OrderedPropertyIndexLookup lookup = null;
+        for (String element : PathUtils.elements(path)) {
+            if (lookup == null) {
+                lookup = new OrderedPropertyIndexLookup(
+                        root.getChildNode(element), element, this);
+            } else {
+                remainder = PathUtils.concat(remainder, element);
+            }
+        }
+        if (lookup != null) {
+            lookup.collectPlans(filter, remainder, oe, plans);
+        }
+    }
+
+    /**
+     * Collect plans for ordered indexes along the given path and property
+     * restriction.
+     *
+     * @param filter a filter description.
+     * @param path a relative path from this lookup to the filter path.
+     * @param pr a property restriction.
+     * @param plans collected plans are added to this list.
+     */
+    void collectPlans(Filter filter,
+                      String path,
+                      PropertyRestriction pr,
+                      List<QueryIndex.IndexPlan> plans) {
+        String propertyName = PathUtils.getName(pr.propertyName);
+        NodeState definition = getIndexNode(root, propertyName, filter);
+        if (definition != null) {
+            PropertyValue value = null;
+            boolean createPlan = false;
+            if (pr.first == null && pr.last == null) {
+                // open query: [property] is not null
+                value = null;
+                createPlan = true;
+            } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
+                    && pr.lastIncluding) {
+                // [property]=[value]
+                value = pr.first;
+                createPlan = true;
+            } else if (pr.first != null && !pr.first.equals(pr.last)) {
+                // '>' & '>=' use cases
+                value = pr.first;
+                createPlan = true;
+            } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                // '<' & '<='
+                value = pr.last;
+                createPlan = true;
+            }
+            if (createPlan) {
+                // we always return a sorted set
+                Order order = OrderDirection.isAscending(definition)
+                        ? Order.ASCENDING : Order.DESCENDING;
+                QueryIndex.IndexPlan.Builder b = OrderedPropertyIndex.getIndexPlanBuilder(filter);
+                b.setDefinition(definition);
+                b.setSortOrder(ImmutableList.of(new QueryIndex.OrderEntry(
+                        propertyName, Type.UNDEFINED, order)));
+                long count = getStrategy(definition).count(definition, pr, MAX_COST);
+                b.setEstimatedEntryCount(count);
+                b.setPropertyRestriction(pr);
+                b.setPathPrefix(getPath());
+
+                QueryIndex.IndexPlan plan = b.build();
+                LOG.debug("plan: {}", plan);
+                plans.add(plan);
+            }
+        }
+        // walk down path
+        String remainder = "";
+        OrderedPropertyIndexLookup lookup = null;
+        for (String element : PathUtils.elements(path)) {
+            if (lookup == null) {
+                lookup = new OrderedPropertyIndexLookup(
+                        root.getChildNode(element), element, this);
+            } else {
+                remainder = PathUtils.concat(remainder, element);
+            }
+        }
+        if (lookup != null) {
+            lookup.collectPlans(filter, remainder, pr, plans);
+        }
+    }
+
+    private String getPath() {
+        return buildPath(new StringBuilder()).toString();
+    }
+
+    private StringBuilder buildPath(StringBuilder sb) {
+        if (parent != null) {
+            parent.buildPath(sb);
+            sb.append("/").append(name);
+        }
+        return sb;
     }
 }
