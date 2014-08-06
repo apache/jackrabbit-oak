@@ -440,6 +440,7 @@ public class QueryImpl implements Query {
         RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy;
         boolean sortUsingIndex = false;
+        // TODO add issue about order by optimization for multiple selectors
         if (orderings != null && selectors.size() == 1) {
             IndexPlan plan = selectors.get(0).getExecutionPlan().getIndexPlan();
             if (plan != null) {
@@ -811,6 +812,7 @@ public class QueryImpl implements Query {
                         filter, sortOrder, rootState);
                 cost = Double.POSITIVE_INFINITY;
                 for (IndexPlan p : ipList) {
+                    // TODO limit is after all conditions
                     long entryCount = Math.min(maxEntryCount, p.getEstimatedEntryCount());
                     double c = p.getCostPerExecution() + entryCount * p.getCostPerEntry();
                     if (c < cost) {
