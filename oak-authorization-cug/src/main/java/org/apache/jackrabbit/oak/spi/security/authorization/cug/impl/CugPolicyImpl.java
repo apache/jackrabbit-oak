@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.lang.IllegalArgumentException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,7 +76,7 @@ class CugPolicyImpl implements CugPolicy {
                     throw new AccessControlException("Invalid principal " + name);
                 }
 
-                Principal p = principal;
+                Principal p =  principal;
                 switch (importBehavior) {
                     case ImportBehavior.ABORT:
                         if (!principalManager.hasPrincipal(name)) {
@@ -88,6 +89,11 @@ class CugPolicyImpl implements CugPolicy {
                             p = null;
                         }
                         break;
+                    case ImportBehavior.BESTEFFORT:
+                        log.debug("Best effort: don't verify existence of principals.");
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unsupported import behavior " + importBehavior);
                 }
 
                 if (p != null) {

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
+import java.lang.IllegalArgumentException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.HashSet;
@@ -106,6 +107,9 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
                             throw new AccessControlException("Unknown principal " + principalName);
                         case ImportBehavior.BESTEFFORT:
                             principalNames.add(principalName);
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Invalid import behavior " + importBehavior);
                     }
                 } else {
                     principalNames.add(principalName);

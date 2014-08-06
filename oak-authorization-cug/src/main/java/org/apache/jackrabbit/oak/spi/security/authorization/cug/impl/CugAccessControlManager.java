@@ -31,6 +31,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -102,7 +103,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
         Root r = getRoot().getContentSession().getLatestRoot();
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
-        while (!oakPath.isEmpty()) {
+        while (!Strings.isNullOrEmpty(oakPath)) {
             if (isSupportedPath(oakPath)) {
                 CugPolicy cug = getCugPolicy(oakPath, r.getTree(oakPath));
                 if (cug != null) {

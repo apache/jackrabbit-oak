@@ -75,7 +75,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-import org.osgi.service.component.ComponentContext;
 
 @Component()
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
@@ -184,7 +183,7 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     //----------------------------------------------------< SCR Integration >---
 
     @Activate
-    private void activate(ComponentContext context) throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
+    protected void activate() throws IOException, CommitFailedException, PrivilegedActionException, RepositoryException {
         ContentSession systemSession = null;
         try {
             systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
