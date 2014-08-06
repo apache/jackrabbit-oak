@@ -71,7 +71,6 @@ public class CompositePermissionProvider implements PermissionProvider {
         }
     }
 
-    @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
         return pbp.getPrivilegeNames(getPrivilegeBits(tree));
@@ -252,7 +251,7 @@ public class CompositePermissionProvider implements PermissionProvider {
 
     //--------------------------------------------------------------------------
 
-    private class CompositeTreePermission implements TreePermission {
+    private final class CompositeTreePermission implements TreePermission {
 
         private final ImmutableTree tree;
         private final CompositeTreePermission parentPermission;
