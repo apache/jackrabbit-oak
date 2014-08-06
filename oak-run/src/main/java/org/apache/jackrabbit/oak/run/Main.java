@@ -41,6 +41,7 @@ import java.util.regex.Pattern;
 import javax.jcr.Repository;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.io.Closer;
@@ -75,6 +76,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -142,6 +144,9 @@ public class Main {
             case EXPLORE:
                 Explorer.main(args);
                 break;
+        case CHECKPOINTS:
+            checkpoints(args);
+            break;
             case HELP:
             default:
                 System.err.print("Available run modes: ");
@@ -315,6 +320,84 @@ public class Main {
 
             System.out.println("    after  " + Arrays.toString(directory.list()));
         }
+    }
+
+    private static void checkpoints(String[] args) throws IOException {
+        if (args.length == 0) {
+            System.err
+                    .println("usage: checkpoints <path> [list|rm-all|rm <checkpoint>]");
+            System.exit(1);
+        }
+
+        String path = args[0];
+        String op = "list";
+        if (args.length >= 2) {
+            op = args[1];
+            if (!"list".equals(op) && !"rm-all".equals(op) && !"rm".equals(op)) {
+                System.err.println("Unknown comand.");
+                System.exit(1);
+            }
+        }
+        System.out.println("Checkpoints " + path);
+        FileStore store = new FileStore(new File(path), 256, false);
+        try {
+            if ("list".equals(op)) {
+                NodeState ns = store.getHead().getChildNode("checkpoints");
+                System.out.println(Iterables.toString(ns.getChildNodeNames()));
+                System.out.println("Found "
+                        + ns.getChildNodeCount(Integer.MAX_VALUE)
+                        + " checkpoints");
+            }
+            if ("rm-all".equals(op)) {
+                long time = System.currentTimeMillis();
+                SegmentNodeState head = store.getHead();
+                NodeBuilder builder = head.builder();
+
+                NodeBuilder cps = builder.getChildNode("checkpoints");
+                long cnt = cps.getChildNodeCount(Integer.MAX_VALUE);
+                builder.setChildNode("checkpoints");
+                boolean ok = store.setHead(head,
+                        (SegmentNodeState) builder.getNodeState());
+                time = System.currentTimeMillis() - time;
+                if (ok) {
+                    System.err.println("Removed " + cnt + " checkpoints in "
+                            + time + "ms.");
+                } else {
+                    System.err.println("Failed to remove all checkpoints.");
+                }
+            }
+            if ("rm".equals(op)) {
+                if (args.length != 3) {
+                    System.err.println("Missing checkpoint id");
+                    System.exit(1);
+                }
+                long time = System.currentTimeMillis();
+                String cp = args[2];
+                SegmentNodeState head = store.getHead();
+                NodeBuilder builder = head.builder();
+
+                NodeBuilder cpn = builder.getChildNode("checkpoints")
+                        .getChildNode(cp);
+                if (cpn.exists()) {
+                    cpn.remove();
+                    boolean ok = store.setHead(head,
+                            (SegmentNodeState) builder.getNodeState());
+                    time = System.currentTimeMillis() - time;
+                    if (ok) {
+                        System.err.println("Removed checkpoint " + cp + " in "
+                                + time + "ms.");
+                    } else {
+                        System.err.println("Failed to remove checkpoint " + cp);
+                    }
+                } else {
+                    System.err.println("Checkpoint '" + cp + "' not found.");
+                    System.exit(1);
+                }
+            }
+        } finally {
+            store.close();
+        }
+
     }
 
     private static void debug(String[] args) throws IOException {
@@ -695,7 +778,8 @@ public class Main {
         UPGRADE("upgrade"),
         SCALABILITY("scalability"),
         EXPLORE("explore"),
-        HELP("help");
+        HELP("help"),
+        CHECKPOINTS("checkpoints");
 
         private final String name;
 
