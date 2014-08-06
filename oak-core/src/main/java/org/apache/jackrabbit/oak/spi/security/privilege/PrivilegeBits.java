@@ -382,7 +382,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
             ((ModifiableData) d).add(other.d);
             return this;
         } else {
-            throw new UnsupportedOperationException("immutable privilege bits");
+            throw unsupported();
         }
     }
 
@@ -402,7 +402,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
             ((ModifiableData) d).diff(other.d);
             return this;
         } else {
-            throw new UnsupportedOperationException("immutable privilege bits");
+            throw unsupported();
         }
     }
 
@@ -421,7 +421,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
             ((ModifiableData) d).addDifference(a.d, b.d);
             return this;
         } else {
-            throw new UnsupportedOperationException("immutable privilege bits");
+            throw unsupported();
         }
     }
 
@@ -439,7 +439,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
             ((ModifiableData) d).retain(other.d);
             return this;
         }  else {
-            throw new UnsupportedOperationException("immutable privilege bits");
+            throw unsupported();
         }
     }
 
@@ -471,6 +471,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
     public void writeTo(@Nonnull Tree tree) {
         String name = (REP_PRIVILEGES.equals(tree.getName())) ? REP_NEXT : REP_BITS;
         tree.setProperty(asPropertyState(name));
+    }
+
+    private static UnsupportedOperationException unsupported() {
+        return new UnsupportedOperationException("immutable privilege bits");
     }
 
     //-------------------------------------------------------------< Object >---
