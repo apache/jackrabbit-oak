@@ -153,6 +153,9 @@ public interface QueryIndex {
 
         /**
          * Get the query plan description (for logging purposes).
+         * <p>
+         * The index plan is one of the plans that the index returned in the
+         * getPlans call.
          * 
          * @param plan the index plan
          * @param root root state of the current repository snapshot
@@ -163,6 +166,9 @@ public interface QueryIndex {
         /**
          * Start a query. The filter and sort order of the index plan is to be
          * used.
+         * <p>
+         * The index plan is one of the plans that the index returned in the
+         * getPlans call.
          * 
          * @param plan the index plan to use
          * @param rootState root state of the current repository snapshot
