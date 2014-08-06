@@ -76,6 +76,7 @@ public interface PermissionProvider {
      * @return The {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission}
      * for the set of {@code Principal}s this provider instance has been created for.
      */
+    @Nonnull
     RepositoryPermission getRepositoryPermission();
 
     /**
@@ -87,6 +88,7 @@ public interface PermissionProvider {
      * obtained before for the parent tree.
      * @return The {@code TreePermission} object for the specified {@code tree}.
      */
+    @Nonnull
     TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission);
 
     /**
