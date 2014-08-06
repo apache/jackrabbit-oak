@@ -68,14 +68,17 @@ public abstract class OakFixture {
         this.name = name;
         this.unique = getUniqueDatabaseName(name);
     }
-    
+
     private static String getUniqueDatabaseName(String name) {
         return String.format("%s-%d", name, System.currentTimeMillis());
     }
 
     public abstract MicroKernel getMicroKernel() throws Exception;
+
     public abstract Oak getOak(int clusterId) throws Exception;
+
     public abstract Oak[] setUpCluster(int n) throws Exception;
+
     public abstract void tearDownCluster();
 
     @Override
@@ -126,7 +129,7 @@ public abstract class OakFixture {
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
         return getMongo(OAK_MONGO, false, host, port, database,
-                dropDBAfterTest, cacheSize, false, null,0);
+                dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static OakFixture getMongoMK(String host, int port, String database,
@@ -165,17 +168,17 @@ public abstract class OakFixture {
             private File blobStoreDir;
 
             private BlobStore getBlobStore() {
-                if(useFileDataStore){
+                if (useFileDataStore) {
                     FileDataStore fds = new FileDataStore();
                     fds.setMinRecordLength(4092);
-                    blobStoreDir = new File(base, "datastore"+unique);
+                    blobStoreDir = new File(base, "datastore" + unique);
                     fds.init(blobStoreDir.getAbsolutePath());
                     return new DataStoreBlobStore(fds, true, fdsCacheInMB);
                 }
 
                 try {
                     String className = System.getProperty("dataStore");
-                    if(className != null){
+                    if (className != null) {
                         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
                         PropertiesUtil.populate(ds, getConfig(), false);
                         ds.init(null);
@@ -191,11 +194,11 @@ public abstract class OakFixture {
             /**
              * Taken from org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils
              */
-            private Map<String,?> getConfig(){
-                Map<String,Object> result = Maps.newHashMap();
-                for(Map.Entry<String,?> e : Maps.fromProperties(System.getProperties()).entrySet()){
+            private Map<String, ?> getConfig() {
+                Map<String, Object> result = Maps.newHashMap();
+                for (Map.Entry<String, ?> e : Maps.fromProperties(System.getProperties()).entrySet()) {
                     String key = e.getKey();
-                    if(key.startsWith("ds.") || key.startsWith("bs.")){
+                    if (key.startsWith("ds.") || key.startsWith("bs.")) {
                         key = key.substring(3); //length of bs.
                         result.put(key, e.getValue());
                     }
@@ -292,7 +295,7 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-            final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
+                                    final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStore blobStore;
@@ -381,7 +384,7 @@ public abstract class OakFixture {
         return new OakFixture(name) {
             private SegmentStore[] stores;
             private BlobStore[] blobStores = new BlobStore[0];
-            private String blobStoreDir = "datastore"+unique;
+            private String blobStoreDir = "datastore" + unique;
 
             @Override
             public MicroKernel getMicroKernel() throws Exception {
@@ -418,13 +421,14 @@ public abstract class OakFixture {
                 }
                 return cluster;
             }
+
             @Override
             public void tearDownCluster() {
                 for (SegmentStore store : stores) {
                     store.close();
                 }
-                for(BlobStore blobStore : blobStores){
-                    if(blobStore instanceof DataStore){
+                for (BlobStore blobStore : blobStores) {
+                    if (blobStore instanceof DataStore) {
                         try {
                             ((DataStore) blobStore).close();
                         } catch (DataStoreException e) {
@@ -436,7 +440,7 @@ public abstract class OakFixture {
                 FileUtils.deleteQuietly(new File(base, blobStoreDir));
             }
 
-            private BlobStore createBlobStore(){
+            private BlobStore createBlobStore() {
                 FileDataStore fds = new FileDataStore();
                 fds.setMinRecordLength(4092);
                 fds.init(new File(base, blobStoreDir).getAbsolutePath());
