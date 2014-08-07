@@ -168,6 +168,9 @@ public class Main {
         if (args.length != 1) {
             System.err.println("usage: compact <path>");
             System.exit(1);
+        } else if (!isValidFileStore(args[0])) {
+            System.err.println("Invalid FileStore directory " + args[0]);
+            System.exit(1);
         } else {
             File directory = new File(args[0]);
             System.out.println("Compacting " + directory);
@@ -197,6 +200,10 @@ public class Main {
         if (args.length == 0) {
             System.err
                     .println("usage: checkpoints <path> [list|rm-all|rm <checkpoint>]");
+            System.exit(1);
+        }
+        if (!isValidFileStore(args[0])) {
+            System.err.println("Invalid FileStore directory " + args[0]);
             System.exit(1);
         }
 
@@ -274,6 +281,9 @@ public class Main {
     private static void debug(String[] args) throws IOException {
         if (args.length == 0) {
             System.err.println("usage: debug <path> [id...]");
+            System.exit(1);
+        } else if (!isValidFileStore(args[0])) {
+            System.err.println("Invalid FileStore directory " + args[0]);
             System.exit(1);
         } else {
             // TODO: enable debug information for other node store implementations
@@ -374,6 +384,25 @@ public class Main {
                 store.close();
             }
         }
+    }
+
+    /**
+     * Checks if the provided directory is a valid FileStore
+     * 
+     * @return true if the provided directory is a valid FileStore
+     */
+    private static boolean isValidFileStore(String path) {
+        File store = new File(path);
+        if (store == null || !store.isDirectory()) {
+            return false;
+        }
+        // for now the only check is the existence of the journal file
+        for (String f : store.list()) {
+            if ("journal.log".equals(f)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void upgrade(String[] args) throws Exception {
