@@ -20,11 +20,16 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Filtering iterators that are useful for queries with limit, offset, order by,
  * or distinct.
  */
 public class FilterIterators {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(FilterIterators.class);    
 
     /**
      * Verify the number of in-memory nodes is below the limit.
@@ -35,10 +40,13 @@ public class FilterIterators {
      */
     public static void checkMemoryLimit(long count, long maxMemoryEntries) {
         if (count > maxMemoryEntries) {
-            throw new UnsupportedOperationException(
-                    "The query read more than " + 
-                            maxMemoryEntries + " nodes in memory. " + 
-                            "To avoid running out of memory, processing was stopped.");
+            String message = "The query read more than " + 
+                    maxMemoryEntries + " nodes in memory.";
+            UnsupportedOperationException e = new UnsupportedOperationException(
+                    message + 
+                    " To avoid running out of memory, processing was stopped.");
+            LOG.warn(message, e);
+            throw e;
         }
     }
     
@@ -50,10 +58,13 @@ public class FilterIterators {
      */
     public static void checkReadLimit(long count, long maxReadEntries) {
         if (count > maxReadEntries) {
-            throw new UnsupportedOperationException(
-                    "The query read or traversed more than " + 
-                            maxReadEntries + " nodes. " + 
-                            "To avoid affecting other tasks, processing was stopped.");
+            String message = "The query read or traversed more than " + 
+                    maxReadEntries + " nodes.";
+            UnsupportedOperationException e = new UnsupportedOperationException(
+                    message + 
+                    " To avoid affecting other tasks, processing was stopped.");
+            LOG.warn(message, e);
+            throw e;
         }
     }
 
