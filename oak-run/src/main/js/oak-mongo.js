@@ -27,6 +27,20 @@ var oak = (function(global){
         print("Oak Mongo Helpers");
     };
 
+    /**
+     * Collects various stats related to Oak usage of Mongo
+     */
+    api.systemStats = function () {
+        var result = {};
+        result.nodeStats = db.nodes.stats(1024 * 1024);
+        result.blobStats = db.blobs.stats(1024 * 1024);
+        result.clusterStats = db.clusterNodes.find().toArray();
+        result.oakIndexes = db.nodes.find({'_id': /^2\:\/oak\:index\//}).toArray();
+        result.hostInfo = db.hostInfo();
+        result.rootDoc = db.nodes.findOne({'_id' : '0:/'});
+        return result;
+    };
+
     api.indexStats = function () {
         var result = [];
         var totalCount = 0;
