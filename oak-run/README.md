@@ -597,3 +597,8 @@ is provided. It includes some useful function to navigate the data in Mongo
     > oak.getChildStats('/')
     { "count" : 593191, "size" : 302005011, "simple" : "288.01 MB" }
     >
+    
+For reporting any issue related to Oak the script provides a function to collect important stats and 
+can be dumped to a file
+
+    $ mongo localhost/oak --eval "load('/path/to/oak-mongo.js');printjson(oak.systemStats());" --quiet > oak-stats.json
