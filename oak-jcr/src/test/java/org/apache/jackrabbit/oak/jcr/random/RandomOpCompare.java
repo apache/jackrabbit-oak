@@ -142,7 +142,7 @@ public class RandomOpCompare {
                 DB mongoDB = connection.getDB();                
                 return new DocumentMK.Builder().
                             memoryCacheSize(0).
-                            setMongoDB(mongoDB, 1).
+                            setMongoDB(mongoDB, 1, 16).
                             getNodeStore();
             }
     

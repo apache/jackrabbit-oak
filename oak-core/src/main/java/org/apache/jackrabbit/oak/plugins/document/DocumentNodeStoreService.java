@@ -82,6 +82,7 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_CACHE = 256;
     private static final int DEFAULT_OFF_HEAP_CACHE = 0;
     private static final int DEFAULT_CHANGES_SIZE = 256;
+    private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
     private static final String PREFIX = "oak.documentstore.";
 
@@ -115,6 +116,9 @@ public class DocumentNodeStoreService {
 
     @Property(intValue =  DEFAULT_CHANGES_SIZE)
     private static final String PROP_CHANGES_SIZE = "changesSize";
+
+    @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE)
+    private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
 
     /**
      * Boolean value indicating a blobStore is to be used
@@ -234,6 +238,7 @@ public class DocumentNodeStoreService {
         int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
+        int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
@@ -303,8 +308,8 @@ public class DocumentNodeStoreService {
                 // might contain passwords
                 String type = useMK ? "MK" : "NodeStore";
                 log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
-                                "'changes' collection size (MB)={}, maxReplicationLagInSecs={}",
-                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, maxReplicationLagInSecs);
+                                "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -312,7 +317,7 @@ public class DocumentNodeStoreService {
             DB mongoDB = client.getDB(db);
 
             mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-            mkBuilder.setMongoDB(mongoDB, changesSize);
+            mkBuilder.setMongoDB(mongoDB, changesSize, blobCacheSize);
 
             log.info("Connected to database {}", mongoDB);
         }
