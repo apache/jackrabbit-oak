@@ -22,11 +22,9 @@ import javax.annotation.Nullable;
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.util.Text;
 
@@ -57,14 +55,9 @@ final class PermissionEntry implements Comparable<PermissionEntry>, PermissionCo
      */
     final RestrictionPattern restriction;
 
-    PermissionEntry(@Nonnull String path, @Nonnull Tree entryTree, @Nonnull RestrictionProvider restrictionsProvider) {
-        this(path, entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN),
-                Integer.parseInt(entryTree.getName()),
-                PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGE_BITS)),
-                restrictionsProvider.getPattern(path, entryTree));
-    }
-
-    PermissionEntry(@Nonnull String path, boolean isAllow, int index, @Nonnull PrivilegeBits privilegeBits, @Nonnull RestrictionPattern restriction) {
+    PermissionEntry(@Nonnull String path, boolean isAllow, int index,
+                    @Nonnull PrivilegeBits privilegeBits,
+                    @Nonnull RestrictionPattern restriction) {
         this.path = path;
         this.isAllow = isAllow;
         this.index = index;
