@@ -507,14 +507,14 @@ public class DocumentMK implements MicroKernel {
          *                      the MongoDiffCache.
          * @return this
          */
-        public Builder setMongoDB(DB db, int changesSizeMB) {
+        public Builder setMongoDB(DB db, int changesSizeMB, int blobCacheSizeMB) {
             if (db != null) {
                 if (this.documentStore == null) {
                     this.documentStore = new MongoDocumentStore(db, this);
                 }
 
                 if (this.blobStore == null) {
-                    this.blobStore = new MongoBlobStore(db);
+                    this.blobStore = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024);
                 }
 
                 if (this.diffCache == null) {
@@ -531,7 +531,7 @@ public class DocumentMK implements MicroKernel {
          * @return this
          */
         public Builder setMongoDB(DB db) {
-            return setMongoDB(db, 8);
+            return setMongoDB(db, 8, 16);
         }
 
         /**

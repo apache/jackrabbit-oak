@@ -60,6 +60,11 @@ public class MongoBlobStore extends CachingBlobStore {
      * @param db The DB.
      */
     public MongoBlobStore(DB db) {
+        this(db, DEFAULT_CACHE_SIZE);
+    }
+
+    public MongoBlobStore(DB db, long cacheSize){
+        super(cacheSize);
         this.db = db;
         initBlobCollection();
     }

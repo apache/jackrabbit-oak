@@ -25,10 +25,17 @@ import com.google.common.cache.Weigher;
  * A blob store with a cache.
  */
 public abstract class CachingBlobStore extends AbstractBlobStore {
-    
-    protected final CacheLIRS<String, byte[]> cache = 
-            CacheLIRS.newBuilder().
-                maximumWeight(16 * 1024 * 1024).
+
+    protected static final long DEFAULT_CACHE_SIZE = 16*1024*1024;
+
+    protected final CacheLIRS<String, byte[]> cache;
+
+    protected final long blobCacheSize;
+
+    public CachingBlobStore(long cacheSize) {
+        this.blobCacheSize = cacheSize;
+        cache = CacheLIRS.newBuilder().
+                maximumWeight(cacheSize).
                 averageWeight(getBlockSize() / 2).
                 weigher(new Weigher<String, byte[]>() {
                     @Override
@@ -37,9 +44,19 @@ public abstract class CachingBlobStore extends AbstractBlobStore {
                     }
                 }).build();
 
+    }
+
+    public CachingBlobStore() {
+        this(DEFAULT_CACHE_SIZE);
+    }
+
     @Override
     public void clearCache() {
         cache.invalidateAll();
     }
-    
+
+    public long getBlobCacheSize() {
+        //Required for testcase to validate the configured cache size
+        return blobCacheSize;
+    }
 }
