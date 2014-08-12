@@ -29,6 +29,8 @@ import javax.annotation.Nullable;
  */
 public interface PermissionStore {
 
+    long DYNAMIC_ALL_BITS = -1;
+
     /**
      * Loads the permission entries for the given principal and path. if the given {@code entries} is {@code null}, it
      * will be created automatically if needed. If a {@code entries} is given, it will reuse it and the same object is
