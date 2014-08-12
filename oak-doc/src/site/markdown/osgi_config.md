@@ -94,6 +94,12 @@ versionGcMaxAgeInSecs
   content would only be marked deleted at revision for T1 but its content would not be removed. Only when a Revision
   GC is run then its content would removed and that too only after (currentTime -T1 > versionGcMaxAgeInSecs)
 
+blobCacheSize
+: Default 16 (MB)
+: DocumentNodeStore when running with Mongo would use `MongoBlobStore` by default unless a custom `BlobStore` is 
+  configured. In such scenario the size of in memory cache for the frequently used blobs can be configured via 
+  `blobCacheSize`. 
+
 Example config file
 
     mongouri=mongodb://localhost:27017
