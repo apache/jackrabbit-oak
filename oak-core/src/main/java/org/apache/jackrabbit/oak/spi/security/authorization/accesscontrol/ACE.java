@@ -135,9 +135,6 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
 
     //-------------------------------------------------------------< Object >---
 
-    /**
-     * @see Object#hashCode()
-     */
     @Override
     public int hashCode() {
         if (hashCode == 0) {
@@ -159,14 +156,6 @@ public abstract class ACE implements JackrabbitAccessControlEntry {
                     && restrictions.equals(other.restrictions);
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(principal.getName()).append('-').append(isAllow).append('-');
-        sb.append(privilegeBits.toString()).append('-').append(restrictions.toString());
-        return sb.toString();
     }
 
     //------------------------------------------------------------< private >---
