@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.run.osgi
 
 import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection
 import org.apache.jackrabbit.oak.spi.blob.BlobStore
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore
@@ -154,7 +155,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
         createConfig([
                 'org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService': [
                         mongouri: MongoUtils.mongoURI,
-                        db      : MongoUtils.mongoDB
+                        db      : MongoUtils.mongoDB,
+                        blobCacheSize      : 1024,
                 ]
         ])
 
@@ -162,6 +164,8 @@ class DocumentNodeStoreConfigTest extends AbstractRepositoryFactoryTest {
 
         Collection<String> colNames = getCollectionNames()
         assert colNames.containsAll(['NODES', "BLOBS"])
+
+        assert 1024*1024*1024 == ((MongoBlobStore)ns.blobStore).blobCacheSize
     }
 
     @Override
