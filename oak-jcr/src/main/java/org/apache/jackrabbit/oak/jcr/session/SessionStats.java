@@ -222,7 +222,7 @@ public class SessionStats implements SessionMBean {
         String[] atts = new String[attributes.size()];
         int k = 0;
         for (Entry<String, Object> attribute : attributes.entrySet()) {
-            atts[k] = attribute.getKey() + '=' + attribute.getValue();
+            atts[k++] = attribute.getKey() + '=' + attribute.getValue();
         }
         return atts;
     }
