@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.File;
 import java.util.List;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterators.transform;
@@ -27,6 +31,9 @@ import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
@@ -34,12 +41,16 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.Observable;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -47,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.junit.Test;
 
@@ -220,6 +232,59 @@ public class LuceneIndexTest {
                 LuceneIndex.tokenize("*llo-world", analyzer));
         assertEquals(ImmutableList.of("*llo", "wor*"),
                 LuceneIndex.tokenize("*llo-wor*", analyzer));
+    }
+
+    @Test
+    public void luceneWithFSDirectory() throws Exception{
+        //Issue is not reproducible with MemoryNodeBuilder and
+        //MemoryNodeState as they cannot determine change in childNode without
+        //entering
+        NodeStore nodeStore = new SegmentNodeStore();
+        final IndexTracker tracker = new IndexTracker();
+        ((Observable)nodeStore).addObserver(new Observer() {
+            @Override
+            public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
+                tracker.update(root);
+            }
+        });
+        builder = nodeStore.getRoot().builder();
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder idxb = newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(TYPENAME_STRING));
+        idxb.setProperty(PERSISTENCE_NAME, PERSISTENCE_FILE);
+        idxb.setProperty(PERSISTENCE_PATH, getIndexDir());
+
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        builder = nodeStore.getRoot().builder();
+        builder.setProperty("foo", "bar");
+
+        NodeState indexed = nodeStore.merge(builder, HOOK, CommitInfo.EMPTY);
+
+        assertQuery(tracker, indexed, "foo", "bar");
+
+        builder = nodeStore.getRoot().builder();
+        builder.setProperty("foo2", "bar2");
+        indexed = nodeStore.merge(builder, HOOK, CommitInfo.EMPTY);
+
+        assertQuery(tracker, indexed, "foo2", "bar2");
+    }
+
+    private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
+        QueryIndex queryIndex = new LuceneIndex(tracker, analyzer, null);
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter.restrictProperty(key, Operator.EQUAL,
+                PropertyValues.newString(value));
+        Cursor cursor = queryIndex.query(filter, indexed);
+        assertTrue(cursor.hasNext());
+        assertEquals("/", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+    }
+
+    private String getIndexDir(){
+        File dir = new File("target", "indexdir"+System.nanoTime());
+        return dir.getAbsolutePath();
     }
 
 }

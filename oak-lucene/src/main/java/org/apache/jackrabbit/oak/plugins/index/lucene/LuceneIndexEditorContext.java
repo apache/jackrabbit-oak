@@ -26,6 +26,7 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -35,6 +36,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -165,6 +167,13 @@ public class LuceneIndexEditorContext {
     void closeWriter() throws IOException {
         if (writer != null) {
             writer.close();
+
+            //OAK-2029 Record the last updated status so
+            //as to make IndexTracker detect changes when index
+            //is stored in file system
+            NodeBuilder status = definition.child(":status");
+            status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+            status.setProperty("indexedNodes",indexedNodes);
         }
     }
 
