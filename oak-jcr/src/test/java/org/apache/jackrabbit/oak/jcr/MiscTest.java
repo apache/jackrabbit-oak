@@ -30,14 +30,19 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class MiscTest extends AbstractJCRTest {
+public class MiscTest extends AbstractRepositoryTest {
+
+    public MiscTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Ignore("OAK-2024")
     @Test
     public void testTraverseIndex() throws Exception {
-        AccessControlUtils.denyAllToEveryone(superuser, "/oak:index");
-        superuser.save();
-        Node index = superuser.getNode("/oak:index");
+        Session session = getAdminSession();
+        AccessControlUtils.denyAllToEveryone(session, "/oak:index");
+        session.save();
+        Node index = session.getNode("/oak:index");
         traverse(index);
     }
 
