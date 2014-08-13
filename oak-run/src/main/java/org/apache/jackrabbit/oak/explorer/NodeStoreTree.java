@@ -384,7 +384,6 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener {
         StringBuilder sb = new StringBuilder();
 
         long s = System.currentTimeMillis();
-        store.gc();
         store.compact();
         try {
             store.flush();
