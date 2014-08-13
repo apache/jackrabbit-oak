@@ -20,7 +20,6 @@ import java.util.ArrayList;
 
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.xpath.Expression.AndCondition;
-import org.apache.jackrabbit.oak.query.xpath.Expression.Contains;
 import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 
@@ -29,8 +28,6 @@ import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
  */
 public class Statement {
 
-    private String xpathQuery;
-    
     private boolean explain;
     private boolean measure;
     
@@ -49,15 +46,18 @@ public class Statement {
     
     private Expression where;
 
-    private ArrayList<Order> orderList = new ArrayList<Order>();
+    ArrayList<Order> orderList = new ArrayList<Order>();
+    
+    String xpathQuery;
     
     public Statement optimize() {
-        if (explain || measure || orderList.size() > 0) {
+        if (explain || measure) {
             return this;
         }
         if (where == null) {
             return this;
         }
+        where = where.optimize();
         ArrayList<Expression> unionList = new ArrayList<Expression>();
         addToUnionList(where, unionList);
         if (unionList.size() == 1) {
@@ -71,37 +71,29 @@ public class Statement {
             s.selectors = selectors;
             s.columnList = columnList;
             s.where = e;
-            if (i == unionList.size() - 1) {
-                s.xpathQuery = xpathQuery;
-            }
             if (union == null) {
                 union = s;
             } else {
                 union = new UnionStatement(union.optimize(), s.optimize());
             }
         }
+        union.orderList = orderList;
+        union.xpathQuery = xpathQuery;
         return union;
     }
     
     private static void addToUnionList(Expression condition,  ArrayList<Expression> unionList) {
-        if (condition instanceof OrCondition) {
+        if (condition.containsFullTextCondition()) {
+            // do not use union
+        } else if (condition instanceof OrCondition) {
             OrCondition or = (OrCondition) condition;
-            if (or.getCommonLeftPart() != null) {
-                // @x = 1 or @x = 2 
-                // is automatically converted to 
-                // @x in (1, 2)
-                // within the query engine
-            } else if (or.left instanceof Contains && or.right instanceof Contains) {
-                // do not optimize "contains"
-            } else {
-                // conditions of type                
-                // @x = 1 or @y = 2
-                // or similar are converted to
-                // (@x = 1) union (@y = 2)
-                addToUnionList(or.left, unionList);
-                addToUnionList(or.right, unionList);
-                return;
-            }
+            // conditions of type                
+            // @x = 1 or @y = 2
+            // or similar are converted to
+            // (@x = 1) union (@y = 2)
+            addToUnionList(or.left, unionList);
+            addToUnionList(or.right, unionList);
+            return;
         } else if (condition instanceof AndCondition) {
             // conditions of type
             // @a = 1 and (@x = 1 or @y = 2)
@@ -111,19 +103,10 @@ public class Statement {
             and = and.pullOrRight();
             if (and.right instanceof OrCondition) {
                 OrCondition or = (OrCondition) and.right;
-                if (or.getCommonLeftPart() != null) {
-                    // @x = 1 or @x = 2 
-                    // is automatically converted to 
-                    // @x in (1, 2)
-                    // within the query engine                
-                } else if (or.left instanceof Contains && or.right instanceof Contains) {
-                    // do not optimize "contains"
-                } else {
-                    // same as above, but with the added "and"
-                    addToUnionList(new AndCondition(and.left, or.left), unionList);
-                    addToUnionList(new AndCondition(and.left, or.right), unionList);
-                    return;
-                }
+                // same as above, but with the added "and"
+                addToUnionList(new AndCondition(and.left, or.left), unionList);
+                addToUnionList(new AndCondition(and.left, or.right), unionList);
+                return;
             }
         }
         unionList.add(condition);
@@ -255,7 +238,25 @@ public class Statement {
         
         @Override
         public String toString() {
-            return s1 + " union " + s2;
+            StringBuilder buff = new StringBuilder();
+            buff.append(s1).append(" union ").append(s2);
+            // order by ...
+            if (orderList != null && !orderList.isEmpty()) {
+                buff.append(" order by ");
+                for (int i = 0; i < orderList.size(); i++) {
+                    if (i > 0) {
+                        buff.append(", ");
+                    }
+                    buff.append(orderList.get(i));
+                }
+            }
+            // leave original xpath string as a comment
+            if (xpathQuery != null) {
+                buff.append(" /* xpath: ");
+                buff.append(xpathQuery);
+                buff.append(" */");
+            }
+            return buff.toString();
         }
         
     }
