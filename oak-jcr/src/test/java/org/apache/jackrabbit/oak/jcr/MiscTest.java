@@ -46,7 +46,6 @@ public class MiscTest extends AbstractRepositoryTest {
         traverse(index);
     }
 
-    @Ignore("OAK-2032")
     @Test
     public void testMVNameProperty() throws Exception {
         Session session = getAdminSession();
