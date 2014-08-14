@@ -20,12 +20,11 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
  * TODO document
@@ -72,9 +71,15 @@ class NameValidator extends DefaultValidator {
 
     protected void checkValidValue(PropertyState property)
             throws CommitFailedException {
-        if (NAME.equals(property.getType()) || NAMES.equals(property.getType())) {
-            for (String value : property.getValue(NAMES)) {
+        if (Type.NAME.equals(property.getType()) || Type.NAMES.equals(property.getType())) {
+            for (String value : property.getValue(Type.NAMES)) {
                 checkValidValue(value);
+            }
+        } else if (Type.PATH.equals(property.getType()) || Type.PATHS.equals(property.getType())) {
+            for (String value : property.getValue(Type.PATHS)) {
+                for (String name: PathUtils.elements(value)) {
+                    checkValidValue(name);
+                };
             }
         }
     }
