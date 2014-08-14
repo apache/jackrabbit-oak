@@ -72,7 +72,7 @@ class NameValidator extends DefaultValidator {
 
     protected void checkValidValue(PropertyState property)
             throws CommitFailedException {
-        if (NAME.equals(property.getType())) {
+        if (NAME.equals(property.getType()) || NAMES.equals(property.getType())) {
             for (String value : property.getValue(NAMES)) {
                 checkValidValue(value);
             }
