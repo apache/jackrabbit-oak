@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -105,18 +102,4 @@ public class NameAndPathPropertyTest extends AbstractRepositoryTest {
         }
     }
 
-
-    private void traverse(Node node) throws RepositoryException {
-        System.out.println(node.getPath());
-        PropertyIterator iter = node.getProperties();
-        while (iter.hasNext()) {
-            Property p = iter.nextProperty();
-            System.out.println(p.getPath());
-            p.getDefinition();
-        }
-        NodeIterator niter = node.getNodes();
-        while (niter.hasNext()) {
-            traverse(niter.nextNode());
-        }
-    }
 }
