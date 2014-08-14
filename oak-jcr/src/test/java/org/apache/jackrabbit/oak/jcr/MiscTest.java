@@ -20,12 +20,15 @@ import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.junit.Assert.fail;
 
 public class MiscTest extends AbstractRepositoryTest {
 
@@ -41,6 +44,20 @@ public class MiscTest extends AbstractRepositoryTest {
         session.save();
         Node index = session.getNode("/oak:index");
         traverse(index);
+    }
+
+    @Ignore("OAK-2032")
+    @Test
+    public void testMVNameProperty() throws Exception {
+        Session session = getAdminSession();
+        Node testRootNode = session.getRootNode().addNode("testRoot");
+        try {
+            testRootNode.setProperty("testNameProperty", new String[]{"foobar:test"}, PropertyType.NAME);
+            session.save();
+            fail("adding a MV name property without registered namespace must fail.");
+        } catch (RepositoryException e) {
+            // ok.
+        }
     }
 
 
