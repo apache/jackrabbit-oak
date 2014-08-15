@@ -16,41 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.Credentials;
-import javax.jcr.NoSuchWorkspaceException;
-import javax.jcr.PropertyType;
-import javax.jcr.Repository;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.security.auth.login.LoginException;
-
-import org.apache.jackrabbit.api.JackrabbitRepository;
-import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.util.GenericDescriptors;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Repository.IDENTIFIER_STABILITY;
 import static javax.jcr.Repository.LEVEL_1_SUPPORTED;
@@ -103,6 +68,42 @@ import static javax.jcr.Repository.REP_VERSION_DESC;
 import static javax.jcr.Repository.SPEC_NAME_DESC;
 import static javax.jcr.Repository.SPEC_VERSION_DESC;
 import static javax.jcr.Repository.WRITE_SUPPORTED;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.Credentials;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.PropertyType;
+import javax.jcr.Repository;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
+import javax.security.auth.login.LoginException;
+
+import org.apache.jackrabbit.api.JackrabbitRepository;
+import org.apache.jackrabbit.commons.SimpleValueFactory;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Descriptors;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.util.GenericDescriptors;
 
 /**
  * {@code MicroKernel}-based implementation of
@@ -162,10 +163,6 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
 
         return new ContentSessionImpl(loginContext, securityProvider, workspaceName, nodeStore,
                 commitHook, queryEngineSettings, indexProvider);
-    }
-
-    public NodeStore getNodeStore() {
-        return nodeStore;
     }
 
     @Nonnull
