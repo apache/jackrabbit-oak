@@ -72,6 +72,16 @@ final class UserDelegator extends AuthorizableDelegator implements User {
     }
 
     @Override
+    public boolean isSystemUser() {
+        return sessionDelegate.safePerform(new SessionOperation<Boolean>("isSystemUser") {
+            @Override
+            public Boolean perform() {
+                return getDelegate().isSystemUser();
+            }
+        });
+    }
+
+    @Override
     public Credentials getCredentials() {
         return sessionDelegate.safePerform(new SessionOperation<Credentials>("getCredentials") {
             @Override

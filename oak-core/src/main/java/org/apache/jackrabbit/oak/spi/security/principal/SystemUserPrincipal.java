@@ -14,34 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.user;
+package org.apache.jackrabbit.oak.spi.security.principal;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.Credentials;
+import java.security.Principal;
 
 /**
- * Credentials implementation to cover
- * {@link org.apache.jackrabbit.api.security.user.User#getCredentials()}
+ * Principal used to mark a system user.
  */
-public class CredentialsImpl implements Credentials {
-
-    private final String userId;
-    private final String pwHash;
-
-    CredentialsImpl(@Nonnull String userId, @Nullable String pwHash) {
-        this.userId = userId;
-        this.pwHash = pwHash;
-    }
-
-    @Nonnull
-    public String getUserId() {
-        return userId;
-    }
-
-    @CheckForNull
-    public String getPasswordHash() {
-        return pwHash;
-    }
+public interface SystemUserPrincipal extends Principal {
 }

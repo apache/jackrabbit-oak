@@ -31,6 +31,7 @@ public interface UserConstants {
     String NT_REP_AUTHORIZABLE_FOLDER = "rep:AuthorizableFolder";
     String NT_REP_USER = "rep:User";
     String NT_REP_GROUP = "rep:Group";
+    String NT_REP_SYSTEM_USER = "rep:SystemUser";
     String NT_REP_PASSWORD = "rep:Password";
     @Deprecated
     String NT_REP_MEMBERS = "rep:Members";
@@ -126,6 +127,17 @@ public interface UserConstants {
      * Default value for {@link #PARAM_GROUP_PATH}
      */
     String DEFAULT_GROUP_PATH = "/rep:security/rep:authorizables/rep:groups";
+
+    /**
+     * Configuration option to define the path relative to the user root node
+     * underneath which system user nodes are being created.
+     */
+    String PARAM_SYSTEM_RELATIVE_PATH = "systemRelativePath";
+
+    /**
+     * Default intermediate path for system users.
+     */
+    String DEFAULT_SYSTEM_RELATIVE_PATH = "system";
 
     /**
      * Parameter used to change the number of levels that are used by default to

@@ -135,13 +135,27 @@ class UserValidator extends DefaultValidator implements UserConstants {
         Tree tree = checkNotNull(parentAfter.getChild(name));
 
         AuthorizableType type = UserUtil.getType(tree);
+        boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
         String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
+        if (isSystemUser) {
+            String sysRelPath = provider.getConfig().getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
+            authRoot = authRoot + '/' + sysRelPath;
+        }
         if (authRoot != null) {
             assertHierarchy(tree, authRoot);
             // assert rep:principalName is present (that should actually by covered
             // by node type validator)
             if (TreeUtil.getString(tree, REP_PRINCIPAL_NAME) == null) {
                 throw constraintViolation(26, "Mandatory property rep:principalName missing.");
+            }
+
+            if (isSystemUser) {
+                if (TreeUtil.getString(tree, REP_PASSWORD) != null) {
+                    throw constraintViolation(27, "Attempt to set password with system user.");
+                }
+                if (tree.hasChild(REP_PWD)) {
+                    throw constraintViolation(28, "Attempt to add rep:pwd node to a system user.");
+                }
             }
         }
         return new VisibleValidator(new UserValidator(null, tree, provider), true, true);

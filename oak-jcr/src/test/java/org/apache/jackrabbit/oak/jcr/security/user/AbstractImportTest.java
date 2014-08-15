@@ -62,8 +62,8 @@ import static org.junit.Assert.assertFalse;
 public abstract class AbstractImportTest {
 
     private static final String ADMINISTRATORS = "administrators";
-    protected static final String USERPATH = "/rep:security/rep:authorizables/rep:users";
-    protected static final String GROUPPATH = "/rep:security/rep:authorizables/rep:groups";
+    protected static final String USERPATH = UserConstants.DEFAULT_USER_PATH;
+    protected static final String GROUPPATH = UserConstants.DEFAULT_GROUP_PATH;
 
     private Repository repo;
 
