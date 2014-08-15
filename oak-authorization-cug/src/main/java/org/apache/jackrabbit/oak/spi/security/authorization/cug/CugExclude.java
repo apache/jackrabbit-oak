@@ -20,6 +20,10 @@ import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
+
 /**
  * CugExclude... TODO
  */
@@ -33,7 +37,18 @@ public interface CugExclude {
 
         @Override
         public boolean isExcluded(@Nonnull Set<Principal> principals) {
-            return principals.isEmpty();
+            if (principals.isEmpty()) {
+                return true;
+            }
+            if (principals.contains(SystemPrincipal.INSTANCE)) {
+                return true;
+            }
+            for (Principal p : principals) {
+                if (p instanceof AdminPrincipal || p instanceof SystemUserPrincipal) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
