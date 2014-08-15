@@ -221,9 +221,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
         if (absPath != null) {
             includePaths.add(namePathMapper.getOakPath(absPath));
         }
-// FIXME Use filter.getExcludedPaths()) as soon as we have the changes from  JCR-3797. See OAK-1978
-//        Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
-        Set<String> excludedPaths = emptySet();
+        Set<String> excludedPaths = getOakPaths(namePathMapper, filter.getExcludedPaths());
         optimise(includePaths, excludedPaths);
         if (includePaths.isEmpty()) {
             LOG.warn("The passed filter excludes all events. No event listener registered");
