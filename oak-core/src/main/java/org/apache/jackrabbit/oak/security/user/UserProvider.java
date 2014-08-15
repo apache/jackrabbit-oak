@@ -23,6 +23,7 @@ import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -168,7 +169,7 @@ class UserProvider extends AuthorizableBaseProvider {
     private final String groupPath;
     private final String userPath;
 
-    UserProvider(Root root, ConfigurationParameters config) {
+    UserProvider(@Nonnull Root root, @Nonnull ConfigurationParameters config) {
         super(root, config);
 
         defaultDepth = config.getConfigValue(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
@@ -177,27 +178,43 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     @Nonnull
-    Tree createUser(String userID, String intermediateJcrPath) throws RepositoryException {
-        return createAuthorizableNode(userID, false, intermediateJcrPath);
+    Tree createUser(@Nonnull String userID, @Nullable String intermediateJcrPath) throws RepositoryException {
+        return createAuthorizableNode(userID, NT_REP_USER, intermediateJcrPath);
     }
 
     @Nonnull
-    Tree createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
-        return createAuthorizableNode(groupID, true, intermediateJcrPath);
+    Tree createGroup(@Nonnull String groupID, @Nullable String intermediateJcrPath) throws RepositoryException {
+        return createAuthorizableNode(groupID, NT_REP_GROUP, intermediateJcrPath);
+    }
+
+    @Nonnull
+    Tree createSystemUser(@Nonnull String userID, @Nullable String intermediateJcrPath) throws RepositoryException {
+        String relSysPath = config.getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
+        String relPath;
+        if (intermediateJcrPath == null) {
+            relPath = relSysPath;
+        } else {
+            if (!(intermediateJcrPath.startsWith(relSysPath) ||
+                intermediateJcrPath.startsWith(userPath + '/' + relSysPath))) {
+                throw new ConstraintViolationException("System users must be located in the 'system' subtree of the user root.");
+            }
+            relPath = intermediateJcrPath;
+        }
+        return createAuthorizableNode(userID, NT_REP_SYSTEM_USER, relPath);
     }
 
     @CheckForNull
-    Tree getAuthorizable(String authorizableId) {
+    Tree getAuthorizable(@Nonnull String authorizableId) {
         return getByID(authorizableId, AuthorizableType.AUTHORIZABLE);
     }
 
     @CheckForNull
-    Tree getAuthorizableByPath(String authorizableOakPath) {
+    Tree getAuthorizableByPath(@Nonnull String authorizableOakPath) {
         return getByPath(authorizableOakPath);
     }
 
     @CheckForNull
-    Tree getAuthorizableByPrincipal(Principal principal) {
+    Tree getAuthorizableByPrincipal(@Nonnull Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
             return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
         }
@@ -229,11 +246,12 @@ class UserProvider extends AuthorizableBaseProvider {
 
     //------------------------------------------------------------< private >---
 
-    private Tree createAuthorizableNode(String authorizableId, boolean isGroup, String intermediatePath) throws RepositoryException {
+    private Tree createAuthorizableNode(@Nonnull String authorizableId,
+                                        @Nonnull String ntName,
+                                        @Nullable String intermediatePath) throws RepositoryException {
         String nodeName = getNodeName(authorizableId);
-        NodeUtil folder = createFolderNodes(authorizableId, nodeName, isGroup, intermediatePath);
+        NodeUtil folder = createFolderNodes(authorizableId, nodeName, NT_REP_GROUP.equals(ntName), intermediatePath);
 
-        String ntName = (isGroup) ? NT_REP_GROUP : NT_REP_USER;
         NodeUtil authorizableNode = folder.addChild(nodeName, ntName);
 
         String nodeID = getContentID(authorizableId);
@@ -256,8 +274,10 @@ class UserProvider extends AuthorizableBaseProvider {
      * @return The folder node.
      * @throws RepositoryException If an error occurs
      */
-    private NodeUtil createFolderNodes(String authorizableId, String nodeName,
-                                       boolean isGroup, String intermediatePath) throws RepositoryException {
+    private NodeUtil createFolderNodes(@Nonnull String authorizableId,
+                                       @Nonnull String nodeName,
+                                       boolean isGroup,
+                                       @Nullable String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         String folderPath = new StringBuilder()
                 .append(authRoot)
@@ -295,7 +315,9 @@ class UserProvider extends AuthorizableBaseProvider {
         return folder;
     }
 
-    private String getFolderPath(String authorizableId, String intermediatePath, String authRoot) throws ConstraintViolationException {
+    private String getFolderPath(@Nonnull String authorizableId,
+                                 @Nullable String intermediatePath,
+                                 @Nonnull String authRoot) throws ConstraintViolationException {
         if (intermediatePath != null && intermediatePath.charAt(0) == '/') {
             if (!intermediatePath.startsWith(authRoot)) {
                 throw new ConstraintViolationException("Attempt to create authorizable outside of configured tree");
@@ -323,7 +345,7 @@ class UserProvider extends AuthorizableBaseProvider {
         return sb.toString();
     }
 
-    private String getNodeName(String authorizableId) {
+    private String getNodeName(@Nonnull String authorizableId) {
         AuthorizableNodeName generator = checkNotNull(config.getConfigValue(PARAM_AUTHORIZABLE_NODE_NAME, AuthorizableNodeName.DEFAULT, AuthorizableNodeName.class));
         return generator.generateNodeName(authorizableId);
     }

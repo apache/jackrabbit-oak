@@ -41,6 +41,11 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
+    public boolean isSystemUser() {
+        return getDelegate().isSystemUser();
+    }
+
+    @Override
     public Credentials getCredentials() throws RepositoryException {
         return getDelegate().getCredentials();
     }

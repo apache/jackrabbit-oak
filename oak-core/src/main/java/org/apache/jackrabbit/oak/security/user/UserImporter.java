@@ -285,6 +285,10 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 log.warn("Unexpected authorizable or definition for property rep:password");
                 return false;
             }
+            if (((User) a).isSystemUser()) {
+                log.warn("System users may not have a password set.");
+                return false;
+            }
 
             String pw = propInfo.getTextValue().getString();
             userManager.setPassword(parent, a.getID(), pw, false);

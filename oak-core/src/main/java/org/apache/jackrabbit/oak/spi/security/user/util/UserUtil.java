@@ -39,7 +39,6 @@ public final class UserUtil implements UserConstants {
     private UserUtil() {
     }
 
-    @Nonnull
     public static boolean isAdmin(@Nonnull ConfigurationParameters parameters, @Nonnull String userId) {
         return getAdminId(parameters).equals(userId);
     }
@@ -61,9 +60,9 @@ public final class UserUtil implements UserConstants {
                 case GROUP:
                     return NT_REP_GROUP.equals(ntName);
                 case USER:
-                    return NT_REP_USER.equals(ntName);
+                    return NT_REP_USER.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName);
                 default:
-                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName);
+                    return NT_REP_USER.equals(ntName) || NT_REP_GROUP.equals(ntName) || NT_REP_SYSTEM_USER.equals(ntName);
             }
         }
         return false;
@@ -73,13 +72,19 @@ public final class UserUtil implements UserConstants {
     public static AuthorizableType getType(@Nonnull Tree authorizableNode) {
         String ntName = TreeUtil.getPrimaryTypeName(authorizableNode);
         if (ntName != null) {
-            if (UserConstants.NT_REP_GROUP.equals(ntName)) {
+            if (NT_REP_GROUP.equals(ntName)) {
                 return AuthorizableType.GROUP;
-            } else if (UserConstants.NT_REP_USER.equals(ntName)) {
+            } else if (NT_REP_USER.equals(ntName)) {
+                return AuthorizableType.USER;
+            } else if (NT_REP_SYSTEM_USER.equals(ntName)) {
                 return AuthorizableType.USER;
             }
         }
         return null;
+    }
+
+    public static boolean isSystemUser(@Nullable Tree authorizableTree) {
+        return authorizableTree != null && NT_REP_SYSTEM_USER.equals(TreeUtil.getPrimaryTypeName(authorizableTree));
     }
 
     @CheckForNull

@@ -45,7 +45,7 @@ public class CreateUserTest extends AbstractUserTest {
     @Override
     protected void tearDown() throws Exception {
         superuser.refresh(false);
-        // remove all created groups again
+        // remove all created users again
         for (Object createdUser : createdUsers) {
             Authorizable auth = (Authorizable) createdUser;
             try {
@@ -100,7 +100,7 @@ public class CreateUserTest extends AbstractUserTest {
     }
 
     @Test
-    public void testCreateGroupWithAbsolutePath2() throws RepositoryException, NotExecutableException {
+    public void testCreateUserWithAbsolutePath2() throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
 
@@ -272,8 +272,20 @@ public class CreateUserTest extends AbstractUserTest {
 
         User user = createUser(uid, "pw");
         createdUsers.add(user);
+        assertFalse(user.isSystemUser());
+        assertFalse(user.isGroup());
+        assertFalse(user.isAdmin());
 
-        assertNotNull(userMgr.getAuthorizable(user.getID()));
-        assertNotNull(userMgr.getAuthorizable(p));
+        Authorizable authorizable = userMgr.getAuthorizable(user.getID());
+        assertNotNull(authorizable);
+        assertFalse(authorizable.isGroup());
+        assertFalse(((User) authorizable).isAdmin());
+        assertFalse(((User) authorizable).isSystemUser());
+
+        authorizable = userMgr.getAuthorizable(p);
+        assertNotNull(authorizable);
+        assertFalse(authorizable.isGroup());
+        assertFalse(((User) authorizable).isAdmin());
+        assertFalse(((User) authorizable).isSystemUser());
     }
 }

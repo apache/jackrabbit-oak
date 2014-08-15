@@ -170,6 +170,18 @@ public class UserManagerDelegator implements UserManager {
     }
 
     @Override
+    public User createSystemUser(final String userID, final String intermediatePath) throws AuthorizableExistsException, RepositoryException {
+        return sessionDelegate.perform(
+                new UserManagerOperation<User>(sessionDelegate, "createUser") {
+                    @Override
+                    public User perform() throws RepositoryException {
+                        User user = userManagerDelegate.createSystemUser(userID, intermediatePath);
+                        return UserDelegator.wrap(sessionDelegate, user);
+                    }
+                });
+    }
+
+    @Override
     public Group createGroup(final String groupID) throws AuthorizableExistsException, RepositoryException {
         return sessionDelegate.perform(
                 new UserManagerOperation<Group>(sessionDelegate, "createGroup") {

@@ -80,6 +80,11 @@ class UserImpl extends AuthorizableImpl implements User {
     }
 
     @Override
+    public boolean isSystemUser() {
+        return false;
+    }
+
+    @Override
     public Credentials getCredentials() {
         return new CredentialsImpl(getID(), getPasswordHash());
     }
