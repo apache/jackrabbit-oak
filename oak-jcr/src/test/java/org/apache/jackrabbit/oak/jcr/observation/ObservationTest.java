@@ -763,7 +763,6 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
-    @Ignore("OAK-1978")  // FIXME OAK-1978
     @Test
     public void pathExclude() throws ExecutionException, InterruptedException, RepositoryException {
         assumeTrue(observationManager instanceof JackrabbitObservationManager);
@@ -772,8 +771,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         JackrabbitEventFilter filter = new JackrabbitEventFilter()
                 .setAbsPath(TEST_PATH)
                 .setIsDeep(true)
-// FIXME set exclude paths as soon as we have the changes from  JCR-3797. See OAK-1978
-//               .setExcludedPaths(TEST_PATH + "/c", TEST_PATH + "/d",  "/x/y")
+                .setExcludedPaths(TEST_PATH + "/c", TEST_PATH + "/d",  "/x/y")
                 .setEventTypes(ALL_EVENTS);
         oManager.addEventListener(listener, filter);
 
@@ -792,7 +790,6 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
-    @Ignore("OAK-1978")  // FIXME OAK-1978
     @Test
     public void parentPathExclude() throws ExecutionException, InterruptedException, RepositoryException {
         assumeTrue(observationManager instanceof JackrabbitObservationManager);
@@ -805,8 +802,7 @@ public class ObservationTest extends AbstractRepositoryTest {
         JackrabbitEventFilter filter = new JackrabbitEventFilter()
                 .setAbsPath(n.getPath())
                 .setIsDeep(true)
-// FIXME set exclude paths as soon as we have the changes from  JCR-3797. See OAK-1978
-//              .setExcludedPaths(n.getParent().getPath())
+                .setExcludedPaths(n.getParent().getPath())
                 .setEventTypes(ALL_EVENTS);
         oManager.addEventListener(listener, filter);
 
