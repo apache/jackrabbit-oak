@@ -115,7 +115,7 @@ public class PropInfo {
     public int getTargetType(PropertyDefinition def) {
         int target = def.getRequiredType();
         if (target != PropertyType.UNDEFINED) {
-            return type;
+            return target;
         } else if (type != PropertyType.UNDEFINED) {
             return type;
         } else {
