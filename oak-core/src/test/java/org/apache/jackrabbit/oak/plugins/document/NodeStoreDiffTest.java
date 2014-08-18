@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -58,7 +57,6 @@ public class NodeStoreDiffTest {
                 .getNodeStore();
     }
 
-    @Ignore("OAK-2020")
     @Test
     public void diffWithConflict() throws Exception{
         //Last rev on /var would be 1-0-1
@@ -95,7 +93,6 @@ public class NodeStoreDiffTest {
      * which are not affected by the commit
      * @throws Exception
      */
-    @Ignore("OAK-2020")
     @Test
     public void testDiff() throws Exception{
         createNodes("/oak:index/prop-a", "/oak:index/prop-b", "/etc/workflow");
