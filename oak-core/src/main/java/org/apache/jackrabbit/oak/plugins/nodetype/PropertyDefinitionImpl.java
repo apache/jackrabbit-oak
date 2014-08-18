@@ -90,7 +90,12 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
     @Override
     public String[] getValueConstraints() {
         // TODO: namespace mapping?
-        return getStrings(JcrConstants.JCR_VALUECONSTRAINTS);
+        String[] valConstraints = getStrings(JcrConstants.JCR_VALUECONSTRAINTS);
+        if (valConstraints != null) {
+            return valConstraints;
+        } else {
+            return new String[0];
+        }
     }
 
     @Override
