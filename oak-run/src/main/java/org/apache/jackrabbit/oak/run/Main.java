@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -350,7 +352,9 @@ public class Main {
         try {
             if ("list".equals(op)) {
                 NodeState ns = store.getHead().getChildNode("checkpoints");
-                System.out.println(Iterables.toString(ns.getChildNodeNames()));
+                for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
+                    System.out.printf("- %s - %s%n", cne.getName(), new Timestamp(cne.getNodeState().getLong("timestamp")));
+                }
                 System.out.println("Found "
                         + ns.getChildNodeCount(Integer.MAX_VALUE)
                         + " checkpoints");
