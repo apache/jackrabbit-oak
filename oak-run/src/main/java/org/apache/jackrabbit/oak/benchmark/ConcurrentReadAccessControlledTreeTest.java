@@ -23,8 +23,8 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.util.Text;
 
 /**
