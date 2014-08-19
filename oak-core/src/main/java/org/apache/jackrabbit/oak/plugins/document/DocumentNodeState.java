@@ -106,7 +106,9 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
         } else if (that instanceof DocumentNodeState) {
             DocumentNodeState other = (DocumentNodeState) that;
             if (getPath().equals(other.getPath())) {
-                return lastRevision.equals(other.lastRevision);
+                if (revisionEquals(other)) {
+                    return true;
+                }
             }
         } else if (that instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) that;
@@ -244,7 +246,7 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
             DocumentNodeState mBase = (DocumentNodeState) base;
             if (store == mBase.store) {
                 if (getPath().equals(mBase.getPath())) {
-                    if (lastRevision.equals(mBase.lastRevision)) {
+                    if (revisionEquals(mBase)) {
                         // no differences
                         return true;
                     } else {
@@ -371,6 +373,19 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
     }
 
     //------------------------------< internal >--------------------------------
+
+    /**
+     * Returns {@code true} if this state has the same revision as the
+     * {@code other} state. This method first compares the read {@link #rev}
+     * and then the {@link #lastRevision}.
+     *
+     * @param other the other state to compare with.
+     * @return {@code true} if the revisions are equal, {@code false} otherwise.
+     */
+    private boolean revisionEquals(DocumentNodeState other) {
+        return this.rev.equals(other.rev)
+                || this.lastRevision.equals(other.lastRevision);
+    }
 
     private boolean dispatch(@Nonnull String jsonDiff,
                              @Nonnull DocumentNodeState base,
