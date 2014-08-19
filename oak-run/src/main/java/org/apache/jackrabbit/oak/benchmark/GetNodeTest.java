@@ -24,7 +24,7 @@ import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessContr
 import javax.jcr.Node;
 import javax.jcr.Session;
 
-import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 /**
  * {@code GetNodeTest} implements a performance test, which reads

@@ -23,7 +23,7 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.core.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 
 import static javax.jcr.security.Privilege.JCR_READ;
 import static org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils.addAccessControlEntry;
