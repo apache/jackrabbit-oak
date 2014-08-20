@@ -333,7 +333,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 if (p != null && p.indexOf('/') >= 0) {
                     p = getName(p);
                 }
-                if (p == null) {
+                if (p == null || "*".equals(p)) {
                     p = configuration.getCatchAllField();
                 }
                 fullTextString.append(partialEscape(p));
