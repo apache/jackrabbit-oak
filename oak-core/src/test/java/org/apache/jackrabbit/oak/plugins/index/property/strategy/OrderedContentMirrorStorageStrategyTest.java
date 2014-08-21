@@ -3253,7 +3253,6 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         // testing the exception in case of wrong parameters
         String searchFor = "wedontcareaswetesttheexception";
-        NodeState node = index.getChildNode(searchFor);
         String entry = searchFor;
         String[] wl = new String[0];
         String item = null;
@@ -3390,6 +3389,12 @@ public class OrderedContentMirrorStorageStrategyTest {
         predicate = new PredicateLessThan(searchfor, true);
         entry = null;
         assertFalse(predicate.apply(entry));
+        
+        // equality matching
+        searchfor = "2012-11-25T21:00:45.967-07:00";
+        entry = "2012-11-25T21%3A00%3A45.967-07%3A00";
+        predicate = new PredicateLessThan(searchfor, true);
+        assertTrue("this should have matched the equality flag", predicate.apply(entry));
     }
 
     /**
