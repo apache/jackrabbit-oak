@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.collect.Sets.newIdentityHashSet;
+import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
@@ -24,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -36,6 +39,14 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
 public class SegmentBlob extends Record implements Blob {
+
+    public static Iterable<SegmentId> getBulkSegmentIds(Blob blob) {
+        if (blob instanceof SegmentBlob) {
+            return ((SegmentBlob) blob).getBulkSegmentIds();
+        } else {
+            return emptySet();
+        }
+    }
 
     SegmentBlob(RecordId id) {
         super(id);
@@ -205,6 +216,26 @@ public class SegmentBlob extends Record implements Blob {
         byte[] bytes = new byte[length];
         segment.readBytes(offset + 2, bytes, 0, length);
         return new String(bytes, UTF_8);
+    }
+
+    private Iterable<SegmentId> getBulkSegmentIds() {
+        Segment segment = getSegment();
+        int offset = getOffset();
+        byte head = segment.readByte(offset);
+        if ((head & 0xe0) == 0xc0) {
+            // 110x xxxx: long value
+            long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
+            int listSize = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list = new ListRecord(
+                    segment.readRecordId(offset + 8), listSize);
+            Set<SegmentId> ids = newIdentityHashSet();
+            for (RecordId id : list.getEntries()) {
+                ids.add(id.getSegmentId());
+            }
+            return ids;
+        } else {
+            return emptySet();
+        }
     }
 
 }

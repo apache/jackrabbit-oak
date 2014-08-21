@@ -67,7 +67,7 @@ class TarReader {
     /** The tar file block size. */
     private static final int BLOCK_SIZE = TarWriter.BLOCK_SIZE;
 
-    private static final int getEntrySize(int size) {
+    static int getEntrySize(int size) {
         return BLOCK_SIZE + size + TarWriter.getPaddingSize(size);
     }
 
@@ -483,6 +483,34 @@ class TarReader {
 
     long size() {
         return file.length();
+    }
+
+    /**
+     * Returns the number of segments in this tar file.
+     *
+     * @return number of segments
+     */
+    int count() {
+        return index.capacity() / 24;
+    }
+
+    /**
+     * Iterates over all entries in this tar file and calls
+     * {@link TarEntryVisitor#visit(long, long, File, int, int)} on them.
+     *
+     * @param visitor entry visitor
+     */
+    void accept(TarEntryVisitor visitor) {
+        int position = index.position();
+        while (position < index.limit()) {
+            visitor.visit(
+                    index.getLong(position),
+                    index.getLong(position + 8),
+                    file,
+                    index.getInt(position + 16),
+                    index.getInt(position + 20));
+            position += 24;
+        }
     }
 
     Set<UUID> getUUIDs() {
