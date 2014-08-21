@@ -52,6 +52,11 @@ public class Compactor {
     private static final Logger log = LoggerFactory.getLogger(Compactor.class);
 
     /**
+     * over 64K in size, not will be included in the compaction map
+     */
+    private static final long threshold = 65536;
+
+    /**
      * Locks down the RecordId persistence structure
      */
     static long[] recordAsKey(RecordId r) {
@@ -123,12 +128,28 @@ public class Compactor {
             if (success) {
                 SegmentNodeState state = writer.writeNode(child.getNodeState());
                 builder.setChildNode(name, state);
-                if (id != null && state.getChildNodeCount(2) > 1) {
+                if (id != null && includeInMap(state)) {
                     map.put(id, state.getRecordId());
                 }
             }
 
             return success;
+        }
+
+        private boolean includeInMap(SegmentNodeState state) {
+            if (state.getChildNodeCount(2) > 1) {
+                return true;
+            }
+            int count = 0;
+            for (PropertyState ps : state.getProperties()) {
+                for (int i = 0; i < ps.count(); i++) {
+                    count += ps.size(i);
+                    if (count >= threshold) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         @Override
