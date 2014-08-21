@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -52,6 +53,7 @@ public class CompactionAndCleanupTest {
     }
 
     @Test
+    @Ignore("OAK-2045")
     public void compactionAndWeakReferenceMagic() throws Exception{
         final int MB = 1024 * 1024;
         final int blobSize = 5 * MB;
