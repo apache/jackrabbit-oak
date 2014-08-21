@@ -143,6 +143,15 @@ class TarWriter {
         this.file = file;
     }
 
+    /**
+     * Returns the number of segments written so far to this tar file.
+     *
+     * @return number of segments written so far
+     */
+    synchronized int count() {
+        return index.size();
+    }
+
     synchronized Set<UUID> getUUIDs() {
         return newHashSet(index.keySet());
     }
