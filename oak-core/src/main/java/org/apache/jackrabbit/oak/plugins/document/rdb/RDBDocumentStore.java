@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,6 +36,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
@@ -58,6 +61,8 @@ import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -401,27 +406,27 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if ("PostgreSQL".equals(dbtype)) {
                 stmt.execute("create table "
                         + tableName
-                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
             } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
                 stmt.execute("create table "
                         + tableName
-                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
             } else if ("MySQL".equals(dbtype)) {
                 // see
                 // http://dev.mysql.com/doc/refman/5.5/en/innodb-parameters.html#sysvar_innodb_large_prefix
                 stmt.execute("create table "
                         + tableName
-                        + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
+                        + " (ID varchar(767) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
             } else if ("Oracle".equals(dbtype)) {
                 // see https://issues.apache.org/jira/browse/OAK-1914
                 this.datalimit = 4000 / 6;
                 stmt.execute("create table "
                         + tableName
-                        + " (ID varchar(1000) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+                        + " (ID varchar(1000) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
             } else {
                 stmt.execute("create table "
                         + tableName
-                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
+                        + " (ID varchar(1000) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
             }
             stmt.close();
 
@@ -500,6 +505,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 for (UpdateOp update : chunks) {
                     T doc = collection.newDocument(this);
                     update.increment(MODCOUNT, 1);
+                    if (hasChangesToCollisions(update)) {
+                        update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
+                    }
                     UpdateUtils.applyChanges(doc, update, comparator);
                     if (!update.getId().equals(doc.getId())) {
                         throw new DocumentStoreException("ID mismatch - UpdateOp: " + update.getId() + ", ID property: "
@@ -534,6 +542,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 return null;
             }
             update.increment(MODCOUNT, 1);
+            if (hasChangesToCollisions(update)) {
+                update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
+            }
             UpdateUtils.applyChanges(doc, update, comparator);
             try {
                 insertDocuments(collection, Collections.singletonList(doc));
@@ -622,6 +633,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         oldDoc.deepCopy(doc);
         if (checkConditions && !UpdateUtils.checkConditions(doc, update)) {
             return null;
+        }
+        if (hasChangesToCollisions(update)) {
+            update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
         }
         update.increment(MODCOUNT, 1);
         UpdateUtils.applyChanges(doc, update, comparator);
@@ -774,7 +788,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
             Long modcount = (Long) document.get(MODCOUNT);
-            boolean success = dbUpdate(connection, tableName, document.getId(), modified, hasBinary, modcount, oldmodcount, data);
+            Long cmodcount = (Long) document.get(NodeDocument.COLLISIONSMODCOUNT);
+            boolean success = dbUpdate(connection, tableName, document.getId(), modified, hasBinary, modcount, cmodcount, oldmodcount, data);
             connection.commit();
             return success;
         } catch (SQLException ex) {
@@ -803,7 +818,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
                 Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
                 Long modcount = (Long) document.get(MODCOUNT);
-                dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, data);
+                Long cmodcount = (Long) document.get(NodeDocument.COLLISIONSMODCOUNT);
+                dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, cmodcount, data);
             }
             connection.commit();
         } catch (SQLException ex) {
@@ -949,9 +965,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return result;
     }
 
-    private boolean dbUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount, Long oldmodcount,
+    private boolean dbUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount, Long cmodcount, Long oldmodcount,
             String data) throws SQLException {
-        String t = "update " + tableName + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?";
+        String t = "update " + tableName + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?";
         if (oldmodcount != null) {
             t += " and MODCOUNT = ?";
         }
@@ -961,6 +977,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
+            stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
             if (data.length() < datalimit) {
@@ -987,15 +1004,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     private boolean dbInsert(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount,
-            String data) throws SQLException {
+            Long cmodcount, String data) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("insert into " + tableName
-                + "(ID, MODIFIED, HASBINARY, MODCOUNT, DSIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?)");
+                + "(ID, MODIFIED, HASBINARY, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?, ?)");
         try {
             int si = 1;
             stmt.setString(si++, id);
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
+            stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
             if (data.length() < datalimit) {
                 stmt.setString(si++, data);
@@ -1157,17 +1175,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> void applyToCache(Collection<T> collection, T oldDoc, T newDoc) {
-        if (collection == Collection.NODES) {
-            Lock lock = getAndLock(newDoc.getId());
-            try {
-                applyToCache((NodeDocument) oldDoc, (NodeDocument) newDoc);
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
     private <T extends Document> void addToCacheIfNotNewer(Collection<T> collection, T doc) {
         if (collection == Collection.NODES) {
             String id = doc.getId();
@@ -1210,5 +1217,18 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // log me
             }
         }
+    }
+
+    private boolean hasChangesToCollisions(UpdateOp update) {
+        for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
+            Key k = e.getKey();
+            Operation op = e.getValue();
+            if (op.type == Operation.Type.SET_MAP_ENTRY) {
+                if (NodeDocument.COLLISIONS.equals(k.getName())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
