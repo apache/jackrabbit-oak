@@ -75,6 +75,9 @@ class CompactionGainEstimate implements TarEntryVisitor {
      * @return percentage of disk space that could be freed with compaction
      */
     public long estimateCompactionGain() {
+        if (totalSize == 0) {
+            return 0;
+        }
         return 100 * (totalSize - reachableSize) / totalSize;
     }
 

@@ -39,6 +39,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CompactionAndCleanupTest {
 
@@ -138,4 +139,45 @@ public class CompactionAndCleanupTest {
     private static long mb(long size){
         return size / (1024 * 1024);
     }
+
+    @Test
+    public void testGainEstimator() throws Exception {
+        final int MB = 1024 * 1024;
+        final int blobSize = 2 * MB;
+
+        FileStore fileStore = new FileStore(directory, 2, false);
+        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+
+        // 1. Create some blob properties
+        NodeBuilder builder = nodeStore.getRoot().builder();
+
+        NodeBuilder c1 = builder.child("c1");
+        c1.setProperty("a", createBlob(nodeStore, blobSize));
+        c1.setProperty("b", "foo");
+
+        NodeBuilder c2 = builder.child("c2");
+        c2.setProperty("a", createBlob(nodeStore, blobSize));
+        c2.setProperty("b", "foo");
+
+        NodeBuilder c3 = builder.child("c3");
+        c3.setProperty("a", createBlob(nodeStore, blobSize));
+        c3.setProperty("b", "foo");
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // 2. Now remove the property
+        builder = nodeStore.getRoot().builder();
+        builder.child("c1").remove();
+        builder.child("c2").remove();
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        fileStore.flush();
+        try {
+            // should be at 66%
+            assertTrue(fileStore.estimateCompactionGain()
+                    .estimateCompactionGain() > 60);
+        } finally {
+            fileStore.close();
+        }
+    }
+
 }
