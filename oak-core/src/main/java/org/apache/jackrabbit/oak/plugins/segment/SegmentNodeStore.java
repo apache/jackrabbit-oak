@@ -51,8 +51,13 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentNodeStore implements NodeStore, Observable {
+
+    private static final Logger log = LoggerFactory
+            .getLogger(SegmentNodeStore.class);
 
     static final String ROOT = "root";
 
@@ -229,6 +234,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     if (store.setHead(state, newState)) {
                         refreshHead();
                         return name;
+                    } else {
+                        log.warn(
+                                "Unable to update the head state for checkpoint {} ({}/5)",
+                                new Object[] { name, i + 1 });
                     }
 
                 } finally {
@@ -237,6 +246,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             }
         }
 
+        log.warn("Failed to create checkpoint {}", name);
         return name;
     }
 
