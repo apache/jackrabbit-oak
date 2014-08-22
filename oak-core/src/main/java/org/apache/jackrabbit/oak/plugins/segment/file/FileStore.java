@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -416,6 +417,14 @@ public class FileStore implements SegmentStore {
         Compactor compactor = new Compactor(writer);
 
         SegmentNodeState before = getHead();
+        long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
+                .getChildNodeCount(Long.MAX_VALUE);
+        if (existing > 1) {
+            log.warn(
+                    "TarMK compaction found {} checkpoints, you might need to run checkpoint cleanup",
+                    existing);
+        }
+
         SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
         writer.flush();
         while (!setHead(before, after)) {
