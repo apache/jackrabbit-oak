@@ -709,8 +709,8 @@ public class FileStore implements SegmentStore {
         return index;
     }
 
-    public void setPauseCompaction(boolean pauseCompaction) {
+    public FileStore setPauseCompaction(boolean pauseCompaction) {
         this.pauseCompaction = pauseCompaction;
+        return this;
     }
-
 }
