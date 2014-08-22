@@ -61,6 +61,8 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     static final String ROOT = "root";
 
+    public static final String CHECKPOINTS = "checkpoints";
+
     private final SegmentStore store;
 
     private final ChangeDispatcher changeDispatcher;
