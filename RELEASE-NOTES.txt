@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.4
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.5
 
 Introduction
 ------------
@@ -7,30 +7,39 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.4 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.5 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.4
+Changes in Oak 1.0.5
 --------------------
-
-Improvements
-
-  [OAK-1999] - Query engine is slow when using many "or" constraints
-  [OAK-1997] - Improve the message in UniquenessConstraintViolation 
 
 Bug fixes
 
-  [OAK-1976] - SecurityProvider is not able to add Custom ...
-  [OAK-1926] - UnmergedBranch state growing with empty BranchCommit ...
-  [OAK-2001] - TarMk compaction can still cause repository growth
-  [OAK-2010] - BlobGcMaxAgeInSecs is set to high for MongoBlobStore
-  [OAK-1998] - Accessible tree below a non-accessible parent ...
-  [OAK-2002] - TarMK: FileStore constructor loads all entries in ...
+  [OAK-2020] - NodeState view at given version is not stable with DocumentNodeStore
+  [OAK-2021] - XPath queries with certain combinations of "or" conditions ...
+  [OAK-2022] - XPath queries with "order by" are never converted to "union"
+  [OAK-2026] - Incompatibility with PropertyDefinitionImpl#getValueConstraints ...
+  [OAK-2027] - SessionMBean fails to render due to NPE in getSessionAttributes
+  [OAK-2029] - Oak Lucene index doesn't get notified about updates when index is ...
+  [OAK-2035] - OrderedIndex fails to keep a correct skipList on TarMK
+  [OAK-2038] - Invalid type error while importing DocView xml data
+  [OAK-2039] - SegmentNodeStore might not create a checkpoint
+  [OAK-2042] - TarMK CompactionMap should include more nodes
+  [OAK-2048] - oak-solr-osgi uses wrong version of spatial4j
 
+Improvements
+
+  [OAK-1821] - Full text expression with * as 'field' should expand to ...
+  [OAK-2011] - Log read and write operations to different loggers
+  [OAK-2017] - Add checkpoint management to oak-run
+  [OAK-2018] - Query: before throwing "traversed more than x nodes" exception, log it
+  [OAK-2019] - Compact only if needed
+  [OAK-2025] - Make the cache size in MongoBlobStore configurable
+  [OAK-2040] - Tar compaction: log a warning if there is more than one checkpoint
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
