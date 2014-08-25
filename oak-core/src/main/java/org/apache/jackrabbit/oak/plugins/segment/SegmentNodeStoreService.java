@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
@@ -75,6 +76,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     @Property(description="Cache size (MB)", intValue=256)
     public static final String CACHE = "cache";
+
+    @Property(description = "TarMK compaction paused flag", boolValue = true)
+    public static final String PAUSE_COMPACTION = "pauseCompaction";
 
     /**
      * Boolean value indicating a blobStore is to be used
@@ -148,10 +152,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             size = System.getProperty(SIZE, "256");
         }
 
+        boolean pauseCompaction = toBoolean(lookup(context, PAUSE_COMPACTION), true);
         store = new FileStore(
                 blobStore,
                 new File(directory),
-                Integer.parseInt(size), "64".equals(mode));
+                Integer.parseInt(size), "64".equals(mode))
+                .setPauseCompaction(pauseCompaction);
 
         delegate = new SegmentNodeStore(store);
         observerTracker = new ObserverTracker(delegate);

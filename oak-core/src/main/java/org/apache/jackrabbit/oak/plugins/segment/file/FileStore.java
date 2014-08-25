@@ -131,7 +131,14 @@ public class FileStore implements SegmentStore {
     private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
 
     /**
-     * List of old tar file generations that are waiting to be removed.
+     * Flag to set the compaction on pause.
+     */
+    private volatile boolean pauseCompaction = true;
+
+    /**
+     * List of old tar file generations that are waiting to be removed. They can
+     * not be removed immediately, because they first need to be closed, and the
+     * JVM needs to release the memory mapped file references.
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
 
@@ -244,7 +251,30 @@ public class FileStore implements SegmentStore {
                 new Runnable() {
                     @Override
                     public void run() {
-                        compact();
+                        log.info("TarMK compaction started");
+                        long time = System.currentTimeMillis();
+                        CompactionGainEstimate estimate = estimateCompactionGain();
+                        long gain = estimate.estimateCompactionGain();
+                        time = System.currentTimeMillis() - time;
+                        if (gain >= 10) {
+                            log.info(
+                                    "Estimated compaction in {}ms, gain is {}% ({}/{}), so running compaction",
+                                    new Object[] { time, gain,
+                                            estimate.getReachableSize(),
+                                            estimate.getTotalSize() });
+                            if (!pauseCompaction) {
+                                compact();
+                            } else {
+                                log.info("TarMK compaction paused");
+                            }
+                        } else {
+                            log.info(
+                                    "Estimated compaction in {}ms, gain is {}% ({}/{}), so skipping compaction for now",
+                                    new Object[] { time, gain,
+                                            estimate.getReachableSize(),
+                                            estimate.getTotalSize() });
+                        }
+                        cleanupNeeded.set(true);
                     }
                 });
 
@@ -331,6 +361,30 @@ public class FileStore implements SegmentStore {
         return size;
     }
 
+    /**
+     * Returns the number of segments in this TarMK instance.
+     *
+     * @return number of segments
+     */
+    private synchronized int count() {
+        int count = writer.count();
+        for (TarReader reader : readers) {
+            count += reader.count();
+        }
+        return count;
+    }
+
+    CompactionGainEstimate estimateCompactionGain() {
+        CompactionGainEstimate estimate = new CompactionGainEstimate(getHead(),
+                count());
+        synchronized (this) {
+            for (TarReader reader : readers) {
+                reader.accept(estimate);
+            }
+        }
+        return estimate;
+    }
+
     public void flush() throws IOException {
         synchronized (persistedHead) {
             RecordId before = persistedHead.get();
@@ -411,7 +465,7 @@ public class FileStore implements SegmentStore {
 
     public void compact() {
         long start = System.nanoTime();
-        log.info("TarMK compaction started");
+        log.info("TarMK compaction running");
 
         SegmentWriter writer = new SegmentWriter(this, tracker);
         Compactor compactor = new Compactor(writer);
@@ -446,7 +500,6 @@ public class FileStore implements SegmentStore {
 
         log.info("TarMK compaction completed in {}ms", MILLISECONDS
                 .convert(System.nanoTime() - start, NANOSECONDS));
-        cleanupNeeded.set(true);
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
@@ -640,4 +693,8 @@ public class FileStore implements SegmentStore {
         compactionThread.trigger();
     }
 
+    public FileStore setPauseCompaction(boolean pauseCompaction) {
+        this.pauseCompaction = pauseCompaction;
+        return this;
+    }
 }
