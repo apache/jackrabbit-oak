@@ -26,14 +26,37 @@ public class Messages {
     public static final byte HEADER_SEGMENT = 0x01;
 
     public static final String GET_HEAD = "h";
-
     public static final String GET_SEGMENT = "s.";
 
-    public static String newGetHeadReq() {
-        return GET_HEAD + "\r\n";
+    private static final String MAGIC = "FailOver-CMD@";
+    private static final String SEPARATOR = ":";
+
+    private static String newRequest(String clientID, String body) {
+        return MAGIC + (clientID == null ? "" : clientID.replace(SEPARATOR, "#")) + SEPARATOR + body + "\r\n";
     }
 
-    public static String newGetSegmentReq(SegmentId sid) {
-        return GET_SEGMENT + sid.toString() + "\r\n";
+    public static String newGetHeadReq(String clientID) {
+        return newRequest(clientID, GET_HEAD);
+    }
+
+    public static String newGetSegmentReq(String clientID, SegmentId sid) {
+        return newRequest(clientID, GET_SEGMENT + sid.toString());
+    }
+
+    public static String extractMessageFrom(String payload) {
+        if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
+            int i = payload.indexOf(SEPARATOR);
+            return payload.substring(i + 1);
+        }
+        return null;
+    }
+
+    public static String extractClientFrom(String payload) {
+        if (payload.startsWith(MAGIC) && payload.length() > MAGIC.length()) {
+            payload = payload.substring(MAGIC.length());
+            int i = payload.indexOf(SEPARATOR);
+            return payload.substring(0, i);
+        }
+        return null;
     }
 }

@@ -28,9 +28,11 @@ import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 
 import java.io.Closeable;
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.failover.CommunicationObserver;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStore;
@@ -45,6 +47,7 @@ public class FailoverClientHandler extends
 
     private final FailoverStore store;
     private final EventExecutorGroup executor;
+    private final CommunicationObserver observer;
     private EventExecutorGroup preloaderExecutor;
     private EventExecutorGroup loaderExecutor;
 
@@ -53,9 +56,10 @@ public class FailoverClientHandler extends
     private Promise<RecordId> headPromise;
 
     public FailoverClientHandler(final FailoverStore store,
-            EventExecutorGroup executor) {
+            EventExecutorGroup executor, CommunicationObserver observer) {
         this.store = store;
         this.executor = executor;
+        this.observer = observer;
     }
 
     @Override
@@ -91,7 +95,7 @@ public class FailoverClientHandler extends
                 }
             }
         });
-        ctx.writeAndFlush(newGetHeadReq()).addListener(
+        ctx.writeAndFlush(newGetHeadReq(this.observer.getID())).addListener(
                 new FailedRequestListener(headPromise));
     }
 
@@ -114,7 +118,7 @@ public class FailoverClientHandler extends
 
         loaderExecutor = new DefaultEventExecutorGroup(4);
         SegmentLoaderHandler h2 = new SegmentLoaderHandler(store, head,
-                preloaderExecutor, loaderExecutor);
+                preloaderExecutor, loaderExecutor, this.observer.getID());
         ctx.pipeline().addLast(loaderExecutor, h2);
 
         h1.channelActive(ctx);

@@ -48,6 +48,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
             .getLogger(SegmentLoaderHandler.class);
 
     private final FailoverStore store;
+    private final String clientID;
     private final RecordId head;
     private final EventExecutorGroup preloaderExecutor;
     private final EventExecutorGroup loaderExecutor;
@@ -60,11 +61,13 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     public SegmentLoaderHandler(final FailoverStore store, RecordId head,
             EventExecutorGroup preloaderExecutor,
-            EventExecutorGroup loaderExecutor) {
+            EventExecutorGroup loaderExecutor,
+            String clientID) {
         this.store = store;
         this.head = head;
         this.preloaderExecutor = preloaderExecutor;
         this.loaderExecutor = loaderExecutor;
+        this.clientID = clientID;
     }
 
     @Override
@@ -103,7 +106,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     @Override
     public Segment readSegment(final SegmentId id) {
-        ctx.writeAndFlush(newGetSegmentReq(id)).addListener(reqListener);
+        ctx.writeAndFlush(newGetSegmentReq(this.clientID, id)).addListener(reqListener);
         return getSegment();
     }
 
