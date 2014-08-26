@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.failover.store;
 
-import static java.lang.Integer.parseInt;
 import static java.lang.String.valueOf;
 import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
@@ -32,6 +31,7 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
@@ -42,36 +42,44 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class FailoverStoreService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private static final String MODE_MASTER = "master";
+    private static final String MODE_SLAVE = "slave";
+
+    public static final String MODE_DEFAULT = MODE_MASTER;
     @Property(label = "Mode", description = "TarMK Failover mode (master or slave)", options = {
             @PropertyOption(name = "master", value = "master"),
-            @PropertyOption(name = "slave", value = "slave") }, value = "master")
+            @PropertyOption(name = "slave", value = "slave") }, value = MODE_DEFAULT)
     public static final String MODE = "mode";
 
-    @Property(label = "Port", description = "TarMK Failover port", intValue = 8023)
+    public static final int PORT_DEFAULT = 8023;
+    @Property(label = "Port", description = "TarMK Failover port", intValue = PORT_DEFAULT)
     public static final String PORT = "port";
 
-    @Property(label = "Master Host", description = "TarMK Failover master host (enabled for slave mode only)", value = "127.0.0.1")
+    public static final String MASTER_HOST_DEFAULT = "127.0.0.1";
+    @Property(label = "Master Host", description = "TarMK Failover master host (enabled for slave mode only)", value = MASTER_HOST_DEFAULT)
     public static final String MASTER_HOST = "master.host";
 
-    @Property(label = "Sync interval (seconds)", description = "TarMK Failover sync interval (seconds)", intValue = 5)
+    public static final int INTERVAL_DEFAULT = 5;
+    @Property(label = "Sync interval (seconds)", description = "TarMK Failover sync interval (seconds)", intValue = INTERVAL_DEFAULT)
     public static final String INTERVAL = "interval";
 
-    private static String MODE_MASTER = "master";
-
-    private static String MODE_SLAVE = "slave";
+    public static final String ALLOWED_CLIENT_IP_RANGES_DEFAULT = null;
+    @Property(label = "Client allowed IP-Ranges", description = "accept incoming requests for these IP-ranges only")
+    public static final String ALLOWED_CLIENT_IP_RANGES = "master.allowed-client-ip-ranges";
 
     @Reference(policy = STATIC, policyOption = GREEDY)
     private NodeStore store = null;
-
     private SegmentStore segmentStore;
 
     private FailoverServer master = null;
     private FailoverClient sync = null;
+
     private ServiceRegistration syncReg = null;
 
     @Activate
@@ -110,17 +118,19 @@ public class FailoverStoreService {
 
     private void bootstrapMaster(ComponentContext context) {
         Dictionary<?, ?> props = context.getProperties();
-        int port = parseInt(valueOf(props.get(PORT)));
-        master = new FailoverServer(port, segmentStore);
+        int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
+        String ipRanges = PropertiesUtil.toString(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
+        String[] ranges = ipRanges == null ? null : ipRanges.split(",");
+        master = new FailoverServer(port, segmentStore, ranges);
         master.start();
-        log.info("started failover master on port {}.", port);
+        log.info("started failover master on port {} with allowed ip ranges {}.", port, ipRanges);
     }
 
     private void bootstrapSlave(ComponentContext context) {
         Dictionary<?, ?> props = context.getProperties();
-        int port = parseInt(valueOf(props.get(PORT)));
-        long interval = parseInt(valueOf(props.get(INTERVAL)));
-        String host = valueOf(context.getProperties().get(MASTER_HOST));
+        int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
+        long interval = PropertiesUtil.toInteger(props.get(INTERVAL), INTERVAL_DEFAULT);
+        String host = PropertiesUtil.toString(props.get(MASTER_HOST), MASTER_HOST_DEFAULT);
 
         sync = new FailoverClient(host, port, segmentStore);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();

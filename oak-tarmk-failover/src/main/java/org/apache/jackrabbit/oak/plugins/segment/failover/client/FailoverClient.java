@@ -27,6 +27,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.compression.SnappyFramedDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.CharsetUtil;
@@ -34,15 +35,24 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.io.Closeable;
+import java.lang.management.ManagementFactory;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.failover.CommunicationObserver;
+import org.apache.jackrabbit.oak.plugins.segment.failover.jmx.FailoverStatusMBean;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class FailoverClient implements Runnable, Closeable {
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+
+public final class FailoverClient implements FailoverStatusMBean, Runnable, Closeable {
+    public static final String CLIENT_ID_PROPERTY_NAME = "failOverID";
 
     private static final Logger log = LoggerFactory
             .getLogger(FailoverClient.class);
@@ -52,20 +62,60 @@ public final class FailoverClient implements Runnable, Closeable {
     private int readTimeoutMs = 10000;
 
     private final FailoverStore store;
+    private final CommunicationObserver observer;
     private FailoverClientHandler handler;
     private EventLoopGroup group;
     private EventExecutorGroup executor;
+    private boolean running;
+    private String state;
 
     public FailoverClient(String host, int port, SegmentStore store) {
+        this.state = STATUS_INITIALIZING;
         this.host = host;
         this.port = port;
         this.store = new FailoverStore(store);
+        String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
+        this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
+
+        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            jmxServer.registerMBean(new StandardMBean(this, FailoverStatusMBean.class), new ObjectName(this.getMBeanName()));
+        }
+        catch (Exception e) {
+            log.error("can register failover status mbean", e);
+        }
+    }
+
+    public String getMBeanName() {
+        return FailoverStatusMBean.JMX_NAME + ",id=\"" + this.observer.getID() + "\"";
+    }
+
+    public void close() {
+        stop();
+        state = STATUS_CLOSING;
+        final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            jmxServer.unregisterMBean(new ObjectName(this.getMBeanName()));
+        }
+        catch (Exception e) {
+            log.error("can unregister failover status mbean", e);
+        }
+        observer.unregister();
+        if (group != null && !group.isShuttingDown()) {
+            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+                    .syncUninterruptibly();
+        }
+        if (executor != null && !executor.isShuttingDown()) {
+            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+                    .syncUninterruptibly();
+        }
+        state = STATUS_CLOSED;
     }
 
     public void run() {
-
+        state = STATUS_STARTING;
         this.executor = new DefaultEventExecutorGroup(4);
-        this.handler = new FailoverClientHandler(this.store, executor);
+        this.handler = new FailoverClientHandler(this.store, executor, this.observer);
 
         group = new NioEventLoopGroup();
         Bootstrap b = new Bootstrap();
@@ -83,33 +133,49 @@ public final class FailoverClient implements Runnable, Closeable {
                 // WriteTimeoutHandler & ReadTimeoutHandler
                 p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
                         readTimeoutMs, TimeUnit.MILLISECONDS));
-
                 p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                p.addLast(new SnappyFramedDecoder(true));
                 p.addLast(new RecordIdDecoder(store));
                 p.addLast(executor, handler);
             }
         });
         try {
             // Start the client.
+            running = true;
+            state = STATUS_RUNNING;
             ChannelFuture f = b.connect(host, port).sync();
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
         } catch (Exception e) {
             log.error("Failed synchronizing state.", e);
-        } finally {
-            close();
+            stop();
         }
     }
 
     @Override
-    public void close() {
-        if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
+    public String getMode() {
+        return "client: " + this.observer.getID();
+    }
+
+    @Override
+    public boolean isRunning() { return running;}
+
+    @Override
+    public void start() {
+        if (!running) run();
+    }
+
+    @Override
+    public void stop() {
+        //TODO running flag doesn't make sense this way, since run() is usually scheduled to be called repeatedly.
+        if (running) {
+            running = false;
+            state = STATUS_STOPPED;
         }
-        if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
+    }
+
+    @Override
+    public String getStatus() {
+        return this.state;
     }
 }

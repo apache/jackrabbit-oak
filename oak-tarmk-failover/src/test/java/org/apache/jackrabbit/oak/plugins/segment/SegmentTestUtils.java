@@ -18,9 +18,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static java.io.File.createTempFile;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
+import static org.junit.Assert.assertEquals;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Random;
 
 public class SegmentTestUtils {
@@ -38,4 +49,30 @@ public class SegmentTestUtils {
         RecordId r = new RecordId(id, newValidOffset(random));
         return r;
     }
+
+    public static void assertEqualStores(File d1, File d2) throws IOException {
+        FileStore f1 = new FileStore(d1, 1, false);
+        FileStore f2 = new FileStore(d2, 1, false);
+        try {
+            assertEquals(f1.getHead(), f2.getHead());
+        } finally {
+            f1.close();
+            f2.close();
+        }
+    }
+
+    public static void addTestContent(NodeStore store, String child)
+            throws CommitFailedException {
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(child).setProperty("ts", System.currentTimeMillis());
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    public static File createTmpTargetDir(String name) throws IOException {
+        File f = createTempFile(name, "dir", new File("target"));
+        f.delete();
+        f.mkdir();
+        return f;
+    }
+
 }
