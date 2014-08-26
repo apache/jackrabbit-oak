@@ -31,6 +31,8 @@ public interface AuthenticationConfiguration extends SecurityConfiguration {
     String PARAM_APP_NAME = "org.apache.jackrabbit.oak.authentication.appName";
     String DEFAULT_APP_NAME = "jackrabbit.oak";
 
+    String PARAM_CONFIG_SPI_NAME = "org.apache.jackrabbit.oak.authentication.configSpiName";
+
     @Nonnull
     LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
 }
