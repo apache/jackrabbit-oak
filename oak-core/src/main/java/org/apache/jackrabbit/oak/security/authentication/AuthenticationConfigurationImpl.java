@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Properties;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
@@ -47,8 +49,19 @@ import org.slf4j.LoggerFactory;
  * </ul>
  *
  */
-@Component
+@Component(metatype = true, label = "Apache Jackrabbit Oak AuthenticationConfiguration")
 @Service({AuthenticationConfiguration.class, SecurityConfiguration.class})
+@Properties({
+        @Property(name = AuthenticationConfiguration.PARAM_APP_NAME,
+                label = "Application Name",
+                value = AuthenticationConfiguration.DEFAULT_APP_NAME,
+                description = "Application named used for JAAS authentication"),
+        @Property(name = AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME,
+                label = "JAAS Config SPI Name",
+                description = "Name of JAAS Configuration Spi. This needs to be set to JAAS config provider " +
+                        "name if JAAS authentication " +
+                        "is managed by Felix JAAS Support with its Global Configuration Policy set to 'default'.")
+})
 public class AuthenticationConfigurationImpl extends ConfigurationBase implements AuthenticationConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);

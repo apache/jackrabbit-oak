@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.security.authentication;
 
 import java.security.AccessController;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -36,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration.PARAM_CONFIG_SPI_NAME;
 
 /**
  * {@code LoginContextProvider}
@@ -101,15 +106,40 @@ class LoginContextProviderImpl implements LoginContextProvider {
     private Configuration getConfiguration() {
         if (configuration == null) {
             Configuration loginConfig = null;
-            try {
-                loginConfig = Configuration.getConfiguration();
-                // NOTE: workaround for Java7 behavior (see OAK-497)
-                if (loginConfig.getAppConfigurationEntry(appName) == null) {
-                    loginConfig = null;
+
+            //Default value cannot be set to null so using a sentinel to determine
+            //case when its not set
+            String configSpiName = params.getConfigValue(PARAM_CONFIG_SPI_NAME, "NA");
+            if(!"NA".equals(configSpiName)){
+                try {
+                    loginConfig = Configuration.getInstance(
+                            "JavaLoginConfig",      //Algorithm name
+                            null,                   //Extra params to be passed. For this impl its null
+                            configSpiName     //Name of the config provider
+                    );
+                    if (loginConfig.getAppConfigurationEntry(appName) == null) {
+                        log.warn("No configuration found for application {} though fetching JAAS " +
+                                "configuration from SPI {} is enabled.", appName, configSpiName);
+                    }
+                } catch (NoSuchAlgorithmException e) {
+                    log.warn("Error fetching JAAS config from SPI {}", configSpiName, e);
+                } catch (NoSuchProviderException e) {
+                    log.warn("Error fetching JAAS config from SPI {}", configSpiName, e);
                 }
-            } catch (SecurityException e) {
-                log.info("Failed to retrieve login configuration: using default. " + e);
             }
+
+            if(loginConfig == null) {
+                try {
+                    loginConfig = Configuration.getConfiguration();
+                    // NOTE: workaround for Java7 behavior (see OAK-497)
+                    if (loginConfig.getAppConfigurationEntry(appName) == null) {
+                        loginConfig = null;
+                    }
+                } catch (SecurityException e) {
+                    log.info("Failed to retrieve login configuration: using default. " + e);
+                }
+            }
+
             if (loginConfig == null) {
                 log.debug("No login configuration available for {}; using default", appName);
                 loginConfig = ConfigurationUtil.getDefaultConfiguration(params);
