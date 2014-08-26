@@ -53,6 +53,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -405,7 +406,7 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
             }
             switch (r) {
                 case '+': {
-                    String name = t.readString();
+                    String name = unshareString(t.readString());
                     t.read(':');
                     t.read('{');
                     while (t.read() != '}') {
@@ -415,12 +416,12 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
                     break;
                 }
                 case '-': {
-                    String name = t.readString();
+                    String name = unshareString(t.readString());
                     continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
                     break;
                 }
                 case '^': {
-                    String name = t.readString();
+                    String name = unshareString(t.readString());
                     t.read(':');
                     if (t.matches('{')) {
                         t.read('}');
