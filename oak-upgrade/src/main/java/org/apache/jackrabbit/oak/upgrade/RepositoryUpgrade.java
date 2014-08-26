@@ -257,6 +257,9 @@ public class RepositoryUpgrade {
                 initializer.initialize(builder);
             }
             for (SecurityConfiguration sc : security.getConfigurations()) {
+                sc.getRepositoryInitializer().initialize(builder);
+            }
+            for (SecurityConfiguration sc : security.getConfigurations()) {
                 sc.getWorkspaceInitializer().initialize(builder, workspaceName);
             }
 
