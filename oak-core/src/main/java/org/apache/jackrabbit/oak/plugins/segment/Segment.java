@@ -188,6 +188,14 @@ public class Segment {
     }
 
     SegmentId getRefId(int index) {
+        if (refids == null || index >= refids.length) {
+            String type = "data";
+            if (!id.isDataSegmentId()) {
+                type = "bulk";
+            }
+            throw new IllegalStateException("RefId '" + index
+                    + "' doesn't exist in " + type + " segment " + id);
+        }
         SegmentId refid = refids[index];
         if (refid == null) {
             synchronized (this) {
