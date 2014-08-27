@@ -87,7 +87,7 @@ public class SegmentWriter {
 
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
-    private static byte[] createNewBuffer() {
+    static byte[] createNewBuffer() {
         byte[] buffer = new byte[Segment.MAX_SEGMENT_SIZE];
         buffer[0] = '0';
         buffer[1] = 'a';
