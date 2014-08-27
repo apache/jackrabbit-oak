@@ -41,9 +41,7 @@ steps by using either of the last two statements below:
 
 By default no pluggable components are associated with the created
 repository, so all login attempts will work and result in full write
-access. There's also no need to close the sessions or otherwise
-release acquired resources, as normal garbage collection will take
-care of everything.
+access. 
 
 To add extra functionality like type validation or indexing support,
 use the `with()` method. The method takes all kinds of Oak plugins and
