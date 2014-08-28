@@ -124,7 +124,98 @@ var oak = (function(global){
         return id.substring(index + 1);
     };
 
+    /**
+     * Checks the _lastRev for a given clusterId. The checks starts with the
+     * given path and walks up to the root node.
+     *
+     * @param path the path of a node to check
+     * @param clusterId the id of an oak cluster node.
+     */
+    api.checkLastRevs = function(path, clusterId) {
+        return checkOrFixLastRevs(path, clusterId, true);
+    }
+
+    /**
+     * Fixes the _lastRev for a given clusterId. The fix starts with the
+     * given path and walks up to the root node.
+     *
+     * @param path the path of a node to fix
+     * @param clusterId the id of an oak cluster node.
+     */
+    api.fixLastRevs = function(path, clusterId) {
+        return checkOrFixLastRevs(path, clusterId, false);
+    }
+
     //~--------------------------------------------------< internal >
+
+    var checkOrFixLastRevs = function(path, clusterId, dryRun) {
+         if (path === undefined) {
+            print("Need at least a path from where to start check/fix.");
+            return;
+         }
+         var result = [];
+         var lastRev;
+         if (path.length == 0 || path.charAt(0) != '/') {
+            return "Not a valid absolute path";
+         }
+         if (clusterId === undefined) {
+            clusterId = 1;
+         }
+         while (true) {
+            var doc = db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+            if (doc) {
+                var revStr = doc._lastRev["r0-0-" + clusterId];
+                if (revStr) {
+                    var rev = new Revision(revStr);
+                    if (lastRev && lastRev.isNewerThan(rev)) {
+                        if (dryRun) {
+                            result.push({_id: doc._id, _lastRev: rev.toString(), needsFix: lastRev.toString()});
+                        } else {
+                            var update = {$set:{}};
+                            update.$set["_lastRev.r0-0-" + clusterId] = lastRev.toString();
+                            db.nodes.update({_id: doc._id}, update);
+                            result.push({_id: doc._id, _lastRev: rev.toString(), fixed: lastRev.toString()});
+                        }
+                    } else {
+                        result.push({_id: doc._id, _lastRev: rev.toString()});
+                        lastRev = rev;
+                    }
+                }
+            }
+            if (path == "/") {
+                break;
+            }
+            var idx = path.lastIndexOf("/");
+            if (idx == 0) {
+                path = "/";
+            } else {
+                path = path.substring(0, idx);
+            }
+         }
+         return result;
+    }
+
+    var Revision = function(rev) {
+        var dashIdx = rev.indexOf("-");
+        this.rev = rev;
+        this.timestamp = parseInt(rev.substring(1, dashIdx), 16);
+        this.counter = parseInt(rev.substring(dashIdx + 1, rev.indexOf("-", dashIdx + 1)), 16);
+        this.clusterId = parseInt(rev.substring(rev.lastIndexOf("-") + 1), 16);
+    }
+
+    Revision.prototype.toString = function () {
+        return this.rev;
+    }
+
+    Revision.prototype.isNewerThan = function(other) {
+        if (this.timestamp > other.timestamp) {
+            return true;
+        } else if (this.timestamp < other.timestamp) {
+            return false;
+        } else {
+            return this.counter > other.counter;
+        }
+    }
 
     var pathDepth = function(path){
         if(path === '/'){
