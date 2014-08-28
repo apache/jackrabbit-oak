@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -338,7 +337,6 @@ public class MemoryNodeBuilderTest {
         assertTrue(c.hasProperty("c2"));
     }
 
-    @Ignore("OAK-2031")  // FIXME OAK-2031
     @Test
     public void setTest() {
         Assume.assumeTrue(EMPTY_NODE.builder() instanceof MemoryNodeBuilder);
