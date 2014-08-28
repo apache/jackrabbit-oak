@@ -166,7 +166,7 @@ public class CacheStats implements CacheStatsMBean {
         return cache.stats().minus(lastSnapshot);
     }
 
-    private static String timeInWords(long nanos) {
+    static String timeInWords(long nanos) {
         long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
         return String.format("%d min, %d sec",
                 TimeUnit.MILLISECONDS.toMinutes(millis),
@@ -178,7 +178,7 @@ public class CacheStats implements CacheStatsMBean {
     /**
      * Based on http://stackoverflow.com/a/3758880/1035417
      */
-    private static String humanReadableByteCount(long bytes, boolean si) {
+    static String humanReadableByteCount(long bytes, boolean si) {
         if (bytes < 0) {
             return "0";
         }
