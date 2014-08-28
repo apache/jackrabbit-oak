@@ -976,7 +976,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         addProperty(parentNode, "bigBinary", getAdminSession().getValueFactory().createValue(bin));
     }
 
-    @Ignore("OAK-2052")  // FIXME OAK-2052
     @Test
     public void addAlienBinaryProperty() throws RepositoryException, IOException {
         Session session = getAdminSession();
@@ -984,6 +983,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Value value = new QValueValue(qValue, new DefaultNamePathResolver(session));
         getNode(TEST_PATH).setProperty("binary", value);
         session.save();
+
+        Value valueAgain = getNode(TEST_PATH).getProperty("binary").getValue();
+        assertEqualStream(value.getBinary().getStream(), valueAgain.getBinary().getStream());
     }
 
     @Test
