@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -334,6 +336,22 @@ public class MemoryNodeBuilderTest {
         c = rootBuilder.getNodeState().getChildNode("a").getChildNode("c");
         assertTrue(c.hasProperty("c"));
         assertTrue(c.hasProperty("c2"));
+    }
+
+    @Ignore("OAK-2031")  // FIXME OAK-2031
+    @Test
+    public void setTest() {
+        Assume.assumeTrue(EMPTY_NODE.builder() instanceof MemoryNodeBuilder);
+        MemoryNodeBuilder rootBuilder = (MemoryNodeBuilder) EMPTY_NODE.builder();
+        assertFalse(base.equals(rootBuilder.getNodeState()));
+        rootBuilder.set(base);
+        assertTrue(base.equals(rootBuilder.getNodeState()));
+
+        MemoryNodeBuilder xBuilder = (MemoryNodeBuilder) rootBuilder.getChildNode("x");
+        NodeState yState = base.getChildNode("y");
+        assertFalse(yState.equals(xBuilder.getNodeState()));
+        xBuilder.set(yState);
+        assertTrue(yState.equals(xBuilder.getNodeState()));
     }
 
     @Test
