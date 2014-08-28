@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.util.List;
 import java.util.Map;
 
+import javax.management.NotCompliantMBeanException;
+
 import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -30,15 +32,19 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.lucene.analysis.Analyzer;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @SuppressWarnings("UnusedDeclaration")
 @Component(immediate = true)
@@ -64,8 +70,11 @@ public class LuceneIndexProviderService {
     )
     protected Analyzer analyzer;
 
+    private Registration mbeanReg;
+
     @Activate
-    private void activate(BundleContext bundleContext, Map<String, ?> config) {
+    private void activate(BundleContext bundleContext, Map<String, ?> config)
+            throws NotCompliantMBeanException {
         indexProvider = new LuceneIndexProvider();
         initialize();
 
@@ -73,12 +82,22 @@ public class LuceneIndexProviderService {
 
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), aggregate, null));
         regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
+
+        mbeanReg = registerMBean(new OsgiWhiteboard(bundleContext),
+                LuceneIndexMBean.class,
+                new LuceneIndexMBeanImpl(indexProvider.getTracker()),
+                LuceneIndexMBean.TYPE,
+                "Lucene Index statistics");
     }
 
     @Deactivate
     private void deactivate() {
         for (ServiceRegistration reg : regs) {
             reg.unregister();
+        }
+
+        if(mbeanReg != null){
+            mbeanReg.unregister();
         }
 
         if (indexProvider != null) {
