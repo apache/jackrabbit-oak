@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -203,6 +204,38 @@ public class IndexUpdateTest {
         // next, lookup
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+    }
+
+    @Test
+    public void testReindexHidden() throws Exception {
+        NodeState before = EmptyNodeState.EMPTY_NODE;
+        NodeBuilder builder = before.builder();
+        builder.child(":testRoot").setProperty("foo", "abc");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+        NodeState index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN));
+        assertFalse(index.getChildNodeCount(1) > 0);
+
+        before = indexed;
+        builder = before.builder();
+        builder.child(INDEX_DEFINITIONS_NAME).child("rootIndex")
+                .setProperty("reindex", true);
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        index = checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+        ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN));
+        assertFalse(index.getChildNodeCount(1) > 0);
     }
 
     @Test
