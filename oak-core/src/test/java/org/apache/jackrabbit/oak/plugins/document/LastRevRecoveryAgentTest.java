@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -60,9 +62,14 @@ public class LastRevRecoveryAgentTest {
         List<Object[]> fixtures = Lists.newArrayList();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
+        DocumentStoreFixture rdb = new RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
+        }
+
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-            fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[] { mongo });
         }
         return fixtures;
     }
