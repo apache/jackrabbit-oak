@@ -76,6 +76,10 @@ import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.spi.QValue;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
+import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -970,6 +974,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         InputStream is = new NumberStream(123456);
         Binary bin = getAdminSession().getValueFactory().createBinary(is);
         addProperty(parentNode, "bigBinary", getAdminSession().getValueFactory().createValue(bin));
+    }
+
+    @Ignore("OAK-2052")  // FIXME OAK-2052
+    @Test
+    public void addAlienBinaryProperty() throws RepositoryException, IOException {
+        Session session = getAdminSession();
+        QValue qValue = QValueFactoryImpl.getInstance().create("binaryValue".getBytes());
+        Value value = new QValueValue(qValue, new DefaultNamePathResolver(session));
+        getNode(TEST_PATH).setProperty("binary", value);
+        session.save();
     }
 
     @Test
