@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -78,7 +79,7 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @return  The new property state of type {@link Type#BINARY}
      */
     public static PropertyState binaryProperty(
-            @Nonnull String name, @Nonnull Value value) {
+            @Nonnull String name, @Nonnull Value value) throws RepositoryException {
         return new BinaryPropertyState(name, ValueImpl.getBlob(value));
     }
 
