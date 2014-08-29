@@ -26,9 +26,11 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,6 +38,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,6 +65,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.console.Console;
 import org.apache.jackrabbit.oak.explorer.Explorer;
+import org.apache.jackrabbit.oak.explorer.NodeStoreTree;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -254,7 +258,7 @@ public class Main {
         final OptionSpec<String> host = parser.accepts("host", "master host").withRequiredArg().ofType(String.class).defaultsTo(defaultHost);
         final OptionSpec<Integer> port = parser.accepts("port", "master port").withRequiredArg().ofType(Integer.class).defaultsTo(defaultPort);
         final OptionSpec<Integer> interval = parser.accepts("interval", "interval between successive executions").withRequiredArg().ofType(Integer.class);
-        final OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCSLAVE + " <path to repository>");
 
         final OptionSet options = parser.parse(args);
@@ -503,119 +507,170 @@ public class Main {
             FileStore store = new FileStore(file, 256, false);
             try {
                 if (args.length == 1) {
-                    Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
-
-                    int dataCount = 0;
-                    long dataSize = 0;
-                    int bulkCount = 0;
-                    long bulkSize = 0;
-                    for (SegmentId id : store.getSegmentIds()) {
-                        if (id.isDataSegmentId()) {
-                            Segment segment = id.getSegment();
-                            dataCount++;
-                            dataSize += segment.size();
-                            idmap.put(id, segment.getReferencedIds());
-                        } else if (id.isBulkSegmentId()) {
-                            bulkCount++;
-                            bulkSize += id.getSegment().size();
-                            idmap.put(id, Collections.<SegmentId>emptyList());
-                        }
-                    }
-                    System.out.println("Total size:");
-                    System.out.format(
-                            "%6dMB in %6d data segments%n",
-                            dataSize / (1024 * 1024), dataCount);
-                    System.out.format(
-                            "%6dMB in %6d bulk segments%n",
-                            bulkSize / (1024 * 1024), bulkCount);
-
-                    Set<SegmentId> garbage = newHashSet(idmap.keySet());
-                    Queue<SegmentId> queue = Queues.newArrayDeque();
-                    queue.add(store.getHead().getRecordId().getSegmentId());
-                    while (!queue.isEmpty()) {
-                        SegmentId id = queue.remove();
-                        if (garbage.remove(id)) {
-                            queue.addAll(idmap.get(id));
-                        }
-                    }
-                    dataCount = 0;
-                    dataSize = 0;
-                    bulkCount = 0;
-                    bulkSize = 0;
-                    for (SegmentId id : garbage) {
-                        if (id.isDataSegmentId()) {
-                            dataCount++;
-                            dataSize += id.getSegment().size();
-                        } else if (id.isBulkSegmentId()) {
-                            bulkCount++;
-                            bulkSize += id.getSegment().size();
-                        }
-                    }
-                    System.out.println("Available for garbage collection:");
-                    System.out.format(
-                            "%6dMB in %6d data segments%n",
-                            dataSize / (1024 * 1024), dataCount);
-                    System.out.format(
-                            "%6dMB in %6d bulk segments%n",
-                            bulkSize / (1024 * 1024), bulkCount);
+                    debugFileStore(store);
                 } else {
-                    Pattern pattern = Pattern.compile(
-                            "([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
-                    for (int i = 1; i < args.length; i++) {
-                        Matcher matcher = pattern.matcher(args[i]);
-                        if (!matcher.matches()) {
-                            System.err.println("Unknown argument: " + args[i]);
-                        } else if (matcher.group(1) != null) {
-                            UUID uuid = UUID.fromString(matcher.group(1));
-                            SegmentId id = store.getTracker().getSegmentId(
-                                    uuid.getMostSignificantBits(),
-                                    uuid.getLeastSignificantBits());
-                            System.out.println(id.getSegment());
-                        } else {
-                            RecordId id1 = store.getHead().getRecordId();
-                            RecordId id2 = null;
-                            if (matcher.group(2) != null) {
-                                id1 = RecordId.fromString(
-                                        store.getTracker(), matcher.group(3));
-                                if (matcher.group(4) != null) {
-                                    id2 = RecordId.fromString(
-                                            store.getTracker(), matcher.group(5));
-                                }
-                            }
-                            String path = "/";
-                            if (matcher.group(6) != null) {
-                                path = matcher.group(6);
-                            }
-
-                            if (id2 == null) {
-                                NodeState node = new SegmentNodeState(id1);
-                                System.out.println("/ (" + id1 + ") -> " + node);
-                                for (String name : PathUtils.elements(path)) {
-                                    node = node.getChildNode(name);
-                                    RecordId nid = null;
-                                    if (node instanceof SegmentNodeState) {
-                                        nid = ((SegmentNodeState) node).getRecordId();
-                                    }
-                                    System.out.println(
-                                            "  " + name  + " (" + nid + ") -> " + node);
-                                }
-                            } else {
-                                NodeState node1 = new SegmentNodeState(id1);
-                                NodeState node2 = new SegmentNodeState(id2);
-                                for (String name : PathUtils.elements(path)) {
-                                    node1 = node1.getChildNode(name);
-                                    node2 = node2.getChildNode(name);
-                                }
-                                System.out.println(JsopBuilder.prettyPrint(
-                                        JsopDiff.diffToJsop(node1, node2)));
-                            }
-                        }
+                    if (args[1].endsWith(".tar")) {
+                        debugTarFile(store, args);
+                    } else {
+                        debugSegment(store, args);
                     }
                 }
             } finally {
                 store.close();
             }
         }
+    }
+
+    private static void debugTarFile(FileStore store, String[] args) {
+        File root = new File(args[0]);
+        for (int i = 1; i < args.length; i++) {
+            String f = args[i];
+            if (!f.endsWith(".tar")) {
+                System.out.println("skipping " + f);
+                continue;
+            }
+            File tar = new File(root, f);
+            if (!tar.exists()) {
+                System.out.println("file doesn't exist, skipping " + f);
+                continue;
+            }
+            System.out.println("Debug file " + tar + "(" + tar.length() + ")");
+            Set<UUID> uuids = new HashSet<UUID>();
+            boolean hasrefs = false;
+            for (Entry<String, Set<UUID>> e : store.getTarReaderIndex()
+                    .entrySet()) {
+                if (e.getKey().endsWith(f)) {
+                    hasrefs = true;
+                    uuids = e.getValue();
+                }
+            }
+            if (hasrefs) {
+                System.out.println("SegmentNodeState references to " + f);
+                List<String> paths = new ArrayList<String>();
+                NodeStoreTree.filterNodeStates(uuids, paths, store.getHead(),
+                        "/");
+                for (String p : paths) {
+                    System.out.println("  " + p);
+                }
+            } else {
+                System.out.println("No references to " + f);
+            }
+        }
+    }
+
+    private static void debugSegment(FileStore store, String[] args) {
+        Pattern pattern = Pattern
+                .compile("([0-9a-f-]+)|(([0-9a-f-]+:[0-9a-f]+)(-([0-9a-f-]+:[0-9a-f]+))?)?(/.*)?");
+        for (int i = 1; i < args.length; i++) {
+            Matcher matcher = pattern.matcher(args[i]);
+            if (!matcher.matches()) {
+                System.err.println("Unknown argument: " + args[i]);
+            } else if (matcher.group(1) != null) {
+                UUID uuid = UUID.fromString(matcher.group(1));
+                SegmentId id = store.getTracker().getSegmentId(
+                        uuid.getMostSignificantBits(),
+                        uuid.getLeastSignificantBits());
+                System.out.println(id.getSegment());
+            } else {
+                RecordId id1 = store.getHead().getRecordId();
+                RecordId id2 = null;
+                if (matcher.group(2) != null) {
+                    id1 = RecordId.fromString(store.getTracker(),
+                            matcher.group(3));
+                    if (matcher.group(4) != null) {
+                        id2 = RecordId.fromString(store.getTracker(),
+                                matcher.group(5));
+                    }
+                }
+                String path = "/";
+                if (matcher.group(6) != null) {
+                    path = matcher.group(6);
+                }
+
+                if (id2 == null) {
+                    NodeState node = new SegmentNodeState(id1);
+                    System.out.println("/ (" + id1 + ") -> " + node);
+                    for (String name : PathUtils.elements(path)) {
+                        node = node.getChildNode(name);
+                        RecordId nid = null;
+                        if (node instanceof SegmentNodeState) {
+                            nid = ((SegmentNodeState) node).getRecordId();
+                        }
+                        System.out.println("  " + name + " (" + nid + ") -> "
+                                + node);
+                    }
+                } else {
+                    NodeState node1 = new SegmentNodeState(id1);
+                    NodeState node2 = new SegmentNodeState(id2);
+                    for (String name : PathUtils.elements(path)) {
+                        node1 = node1.getChildNode(name);
+                        node2 = node2.getChildNode(name);
+                    }
+                    System.out.println(JsopBuilder.prettyPrint(JsopDiff
+                            .diffToJsop(node1, node2)));
+                }
+            }
+        }
+    }
+
+    private static void debugFileStore(FileStore store){
+
+        Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
+
+        int dataCount = 0;
+        long dataSize = 0;
+        int bulkCount = 0;
+        long bulkSize = 0;
+        for (SegmentId id : store.getSegmentIds()) {
+            if (id.isDataSegmentId()) {
+                Segment segment = id.getSegment();
+                dataCount++;
+                dataSize += segment.size();
+                idmap.put(id, segment.getReferencedIds());
+            } else if (id.isBulkSegmentId()) {
+                bulkCount++;
+                bulkSize += id.getSegment().size();
+                idmap.put(id, Collections.<SegmentId>emptyList());
+            }
+        }
+        System.out.println("Total size:");
+        System.out.format(
+                "%6dMB in %6d data segments%n",
+                dataSize / (1024 * 1024), dataCount);
+        System.out.format(
+                "%6dMB in %6d bulk segments%n",
+                bulkSize / (1024 * 1024), bulkCount);
+
+        Set<SegmentId> garbage = newHashSet(idmap.keySet());
+        Queue<SegmentId> queue = Queues.newArrayDeque();
+        queue.add(store.getHead().getRecordId().getSegmentId());
+        while (!queue.isEmpty()) {
+            SegmentId id = queue.remove();
+            if (garbage.remove(id)) {
+                queue.addAll(idmap.get(id));
+            }
+        }
+        dataCount = 0;
+        dataSize = 0;
+        bulkCount = 0;
+        bulkSize = 0;
+        for (SegmentId id : garbage) {
+            if (id.isDataSegmentId()) {
+                dataCount++;
+                dataSize += id.getSegment().size();
+            } else if (id.isBulkSegmentId()) {
+                bulkCount++;
+                bulkSize += id.getSegment().size();
+            }
+        }
+        System.out.println("Available for garbage collection:");
+        System.out.format(
+                "%6dMB in %6d data segments%n",
+                dataSize / (1024 * 1024), dataCount);
+        System.out.format(
+                "%6dMB in %6d bulk segments%n",
+                bulkSize / (1024 * 1024), bulkCount);
+    
     }
 
     /**
@@ -713,7 +768,7 @@ public class Main {
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
         OptionSpec<String> nonOption = parser.nonOptions();
-        OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSet options = parser.parse(args);
 
         if (options.has(help)) {
@@ -853,6 +908,7 @@ public class Main {
 
             // 2 - Webdav Server on JCR repository
             final Repository jcrRepository = jcr.createRepository();
+            @SuppressWarnings("serial")
             ServletHolder webdav = new ServletHolder(new SimpleWebdavServlet() {
                 @Override
                 public Repository getRepository() {
@@ -864,6 +920,7 @@ public class Main {
             context.addServlet(webdav, path + "/webdav/*");
 
             // 3 - JCR Remoting Server
+            @SuppressWarnings("serial")
             ServletHolder jcrremote = new ServletHolder(new JcrRemotingServlet() {
                 @Override
                 protected Repository getRepository() {
