@@ -28,6 +28,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASY
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.spi.commit.CompositeEditor.compose;
+import static org.apache.jackrabbit.oak.spi.commit.EditorDiff.process;
+import static org.apache.jackrabbit.oak.spi.commit.VisibleEditor.wrap;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,15 +42,13 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Objects;
 
 public class IndexUpdate implements Editor {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -118,8 +119,8 @@ public class IndexUpdate implements Editor {
         }
 
         // no-op when reindex is empty
-        CommitFailedException exception = EditorDiff.process(
-                CompositeEditor.compose(reindex.values()), MISSING_NODE, after);
+        CommitFailedException exception = process(
+                wrap(compose(reindex.values())), MISSING_NODE, after);
         if (exception != null) {
             throw exception;
         }
@@ -231,7 +232,7 @@ public class IndexUpdate implements Editor {
                 children.add(child);
             }
         }
-        return CompositeEditor.compose(children);
+        return compose(children);
     }
 
     @Override @Nonnull
@@ -246,7 +247,7 @@ public class IndexUpdate implements Editor {
                 children.add(child);
             }
         }
-        return CompositeEditor.compose(children);
+        return compose(children);
     }
 
     @Override @CheckForNull
@@ -259,7 +260,7 @@ public class IndexUpdate implements Editor {
                 children.add(child);
             }
         }
-        return CompositeEditor.compose(children);
+        return compose(children);
     }
 
     protected Set<String> getReindexedDefinitions() {
