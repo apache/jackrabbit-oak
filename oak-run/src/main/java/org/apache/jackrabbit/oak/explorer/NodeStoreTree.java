@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.jcr.PropertyType;
@@ -60,7 +61,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.collect.Lists;
 import com.google.common.escape.Escapers;
 
-class NodeStoreTree extends JPanel implements TreeSelectionListener {
+public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
     private final FileStore store;
 
@@ -300,17 +301,19 @@ class NodeStoreTree extends JPanel implements TreeSelectionListener {
         log.setText(sb.toString());
     }
 
-    private static void filterNodeStates(Set<UUID> uuids, List<String> paths,
+    public static void filterNodeStates(Set<UUID> uuids, List<String> paths,
             SegmentNodeState state, String path) {
+        Set<String> localPaths = new TreeSet<String>();
         for (PropertyState ps : state.getProperties()) {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
                 SegmentId id = sps.getRecordId().getSegmentId();
                 if (contains(id, uuids)) {
-                    paths.add(path + "@" + ps);
+                    localPaths.add(path + "@" + ps);
                 }
             }
         }
+        paths.addAll(localPaths);
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
             NodeState c = ce.getNodeState();
             if (c instanceof SegmentNodeState) {
