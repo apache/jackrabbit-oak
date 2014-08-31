@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.api.jmx;
 public interface CacheStatsMBean {
     String TYPE = "CacheStats";
 
+    String getName();
+
     /**
      * Returns the number of times {@link com.google.common.cache.Cache} lookup methods have returned either a cached or
      * uncached value. This is defined as {@code getHitCount + getMissCount}.
