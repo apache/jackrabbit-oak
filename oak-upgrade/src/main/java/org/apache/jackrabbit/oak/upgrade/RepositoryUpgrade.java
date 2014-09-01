@@ -65,6 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.JCR_ALL;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGE;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.NT_REP_PRIVILEGES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
@@ -267,7 +268,7 @@ public class RepositoryUpgrade {
             Map<Integer, String> idxToPrefix = newHashMap();
             copyNamespaces(builder, uriToPrefix, idxToPrefix);
             copyNodeTypes(builder, uriToPrefix.inverse());
-            copyPrivileges(builder);
+            copyCustomPrivileges(builder);
 
             // Triggers compilation of type information, which we need for
             // the type predicates used by the bulk  copy operations below.
@@ -466,7 +467,7 @@ public class RepositoryUpgrade {
     }
 
     @SuppressWarnings("deprecation")
-    private void copyPrivileges(NodeBuilder root) throws RepositoryException {
+    private void copyCustomPrivileges(NodeBuilder root) {
         PrivilegeRegistry registry = source.getPrivilegeRegistry();
         NodeBuilder privileges = root.child(JCR_SYSTEM).child(REP_PRIVILEGES);
         privileges.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, NAME);
@@ -476,6 +477,12 @@ public class RepositoryUpgrade {
         logger.info("Copying registered privileges");
         for (Privilege privilege : registry.getRegisteredPrivileges()) {
             String name = privilege.getName();
+            if (PrivilegeBits.BUILT_IN.containsKey(name) || JCR_ALL.equals(name)) {
+                // Ignore built in privileges as those have been installed by
+                // the PrivilegesInitializer already
+                continue;
+            }
+
             NodeBuilder def = privileges.child(name);
             def.setProperty(JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, NAME);
 
@@ -510,7 +517,7 @@ public class RepositoryUpgrade {
         }
     }
 
-    private PrivilegeBits resolvePrivilegeBits(
+    private static PrivilegeBits resolvePrivilegeBits(
             NodeBuilder privileges, String name) {
         NodeBuilder def = privileges.getChildNode(name);
 
