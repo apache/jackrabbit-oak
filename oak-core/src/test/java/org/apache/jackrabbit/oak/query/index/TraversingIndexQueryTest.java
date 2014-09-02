@@ -13,12 +13,22 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -237,7 +247,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         assertQuery("//*[(*/@prop > 1000)]", "xpath", new ArrayList<String>());
     }
 
-    @Test
+    @Test // OAK-2062
     public void testRelativeProperties2() throws Exception {
         Tree t = root.getTree("/").addChild("content").addChild("nodes");
         Tree a = t.addChild("a");
@@ -259,47 +269,190 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 9)]", "xpath",
-                ImmutableList.of("/content/nodes/a", "/content/nodes/a/b",
-                        "/content/nodes/a/b/c"));
+                ImmutableList.of("/content/nodes/a"));
 
         assertQuery(
                 "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 9)]",
-                "xpath", ImmutableList.of("/content/nodes/a",
-                        "/content/nodes/a/b", "/content/nodes/a/b/c"));
+                "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 10)]", "xpath",
-                ImmutableList.of("/content/nodes/a", "/content/nodes/a/b",
-                        "/content/nodes/a/b/c"));
+                ImmutableList.of("/content/nodes/a"));
         assertQuery(
                 "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 10)]",
-                "xpath", ImmutableList.of("/content/nodes/a",
-                        "/content/nodes/a/b", "/content/nodes/a/b/c"));
+                "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 15)]", "xpath",
-                ImmutableList.of("/content/nodes/a", "/content/nodes/a/b",
-                        "/content/nodes/a/b/c"));
+                ImmutableList.of("/content/nodes/a"));
         assertQuery(
                 "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 15)]",
-                "xpath", ImmutableList.of("/content/nodes/a",
-                        "/content/nodes/a/b", "/content/nodes/a/b/c"));
+                "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 20)]", "xpath",
-                ImmutableList.of("/content/nodes/a", "/content/nodes/a/b",
-                        "/content/nodes/a/b/c"));
+                ImmutableList.of("/content/nodes/a"));
         assertQuery(
                 "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 20)]",
-                "xpath", ImmutableList.of("/content/nodes/a",
-                        "/content/nodes/a/b", "/content/nodes/a/b/c"));
+                "xpath", ImmutableList.of("/content/nodes/a"));
 
         assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 30)]", "xpath",
-                ImmutableList.of("/content/nodes/a", "/content/nodes/a/b",
-                        "/content/nodes/a/b/c"));
+                ImmutableList.of("/content/nodes/a"));
         assertQuery(
                 "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 30)]",
-                "xpath", ImmutableList.of("/content/nodes/a",
-                        "/content/nodes/a/b", "/content/nodes/a/b/c"));
+                "xpath", ImmutableList.of("/content/nodes/a"));
+    }
+    
+    /**
+     * tests range queries, long comparisons and relative properties 
+     * @throws CommitFailedException 
+     */
+    @Test // OAK-2062
+    public void testRangeRelativeProperties() throws CommitFailedException {
+        final List<String> emptyList = new ArrayList<String>();
+        final String property = "prop";
+        Tree contentNodes, t;
+        
+        contentNodes = root.getTree("/").addChild("content").addChild("nodes");
+        
+        /* creating content structure
+         * content : {
+         *   nodes : {
+         *     a9 {
+         *       b : {
+         *         c : {
+         *           d9 : {
+         *             prop : 9
+         *           }
+         *         }
+         *       }
+         *     },
+         *     a10 {
+         *       b : {
+         *         c : {
+         *           d10 : {
+         *             prop : 10
+         *           }
+         *         }
+         *       }
+         *     },
+         *     a20 {
+         *       b : {
+         *         c : {
+         *           d20 : {
+         *             prop : 20
+         *           }
+         *         }
+         *       }
+         *     },
+         *     a30 {
+         *       b : {
+         *         c : {
+         *           d30 : {
+         *             prop : 30
+         *           }
+         *         }
+         *       }
+         *     },
+         *   }
+         * }
+         * 
+         */
+        t = addNtUnstructuredChild(contentNodes, "a9", null, null);
+        t = addNtUnstructuredChild(t, "b", null, null);
+        t = addNtUnstructuredChild(t, "c", null, null);
+        t = addNtUnstructuredChild(t, "d9", property, 9L);
+        t = addNtUnstructuredChild(contentNodes, "a10", null, null);
+        t = addNtUnstructuredChild(t, "b", null, null);
+        t = addNtUnstructuredChild(t, "c", null, null);
+        t = addNtUnstructuredChild(t, "d10", property, 10L);
+        t = addNtUnstructuredChild(contentNodes, "a20", null, null);
+        t = addNtUnstructuredChild(t, "b", null, null);
+        t = addNtUnstructuredChild(t, "c", null, null);
+        t = addNtUnstructuredChild(t, "d20", property, 20L);
+        t = addNtUnstructuredChild(contentNodes, "a30", null, null);
+        t = addNtUnstructuredChild(t, "b", null, null);
+        t = addNtUnstructuredChild(t, "c", null, null);
+        t = addNtUnstructuredChild(t, "d30", property, 30L);
+
+        root.commit();
+        
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 9)]", "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
+                "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 10)]", "xpath",
+            of("/content/nodes/a10", "/content/nodes/a20", "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 20)]", "xpath",
+            of("/content/nodes/a20", "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 30)]", "xpath",
+            of("/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop >= 40)]", "xpath", emptyList);
+
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 8)]", "xpath", emptyList);
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 9)]", "xpath",
+            of("/content/nodes/a9"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 10)]", "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 20)]", "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20"));
+        assertQuery("/jcr:root/content/nodes//*[(*/*/*/@prop <= 30)]", "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
+                "/content/nodes/a30"));
+        
+        assertQuery(
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 9)]",
+            "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
+                "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 10)]",
+            "xpath", of("/content/nodes/a10", "/content/nodes/a20", "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 20)]",
+            "xpath", of("/content/nodes/a20", "/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 30)]",
+            "xpath", of("/content/nodes/a30"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop >= 40)]",
+            "xpath", emptyList);
+
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop <= 8)]",
+            "xpath", emptyList);
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop <= 9)]",
+            "xpath", of("/content/nodes/a9"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop <= 10)]",
+            "xpath", of("/content/nodes/a9", "/content/nodes/a10"));
+        assertQuery("/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop <= 20)]",
+            "xpath", of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20"));
+        assertQuery(
+            "/jcr:root/content/nodes//element(*, nt:unstructured)[(*/*/*/@prop <= 30)]",
+            "xpath",
+            of("/content/nodes/a9", "/content/nodes/a10", "/content/nodes/a20",
+                "/content/nodes/a30"));
     }
 
+    /**
+     * adds a child of type {@link JcrConstants#NT_UNSTRUCTURED} under the provided {@code parent}
+     * with the provided {@code name} and an optional {@code propertyName} and {@code value}. If
+     * either {@code propertyName} or {@code value} are null the property won't be set.
+     * 
+     * @param parent
+     * @param name
+     * @param propertyName
+     * @param value
+     * @return
+     */
+    private static Tree addNtUnstructuredChild(@Nonnull final Tree parent, 
+                                               @Nonnull final String name, 
+                                               @Nullable final String propertyName, 
+                                               @Nullable final Long value) {
+        checkNotNull(parent);
+        checkNotNull(name);
+        
+        Tree ret = parent.addChild(name);
+        ret.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+        
+        if (propertyName != null && value != null) {
+            ret.setProperty(propertyName, value, LONG);
+        }
+        
+        return ret;
+    }
+    
     @Test
     public void testMultipleRelativeProperties() throws Exception {
         Tree content = root.getTree("/").addChild("content");
