@@ -25,7 +25,7 @@ import javax.jcr.Session;
  * {@value #CHILD_COUNT} child nodes.
  */
 public class CreateManyChildNodesTest extends AbstractTest {
-    
+
     protected static final String ROOT_NODE_NAME = "test" + TEST_ID;
 
     protected static final int CHILD_COUNT = 10 * 1000;
@@ -43,7 +43,8 @@ public class CreateManyChildNodesTest extends AbstractTest {
 
     @Override
     public void runTest() throws Exception {
-        Node node = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:folder");
+        Node container = session.getRootNode().addNode(ROOT_NODE_NAME, "nt:folder");
+        Node node = container.addNode(nextNodeName(), "nt:folder");
         for (int i = 0; i < CHILD_COUNT; i++) {
             node.addNode("node" + i, "nt:folder");
         }
@@ -55,5 +56,4 @@ public class CreateManyChildNodesTest extends AbstractTest {
         session.getRootNode().getNode(ROOT_NODE_NAME).remove();
         session.save();
     }
-
 }
