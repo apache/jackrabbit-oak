@@ -49,7 +49,7 @@ import static org.junit.Assume.assumeTrue;
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
  */
-public class SolrIndexQueryTest extends AbstractQueryTest {
+public class SolrIndexQueryTestIT extends AbstractQueryTest {
 
     private SolrServer solrServer;
 

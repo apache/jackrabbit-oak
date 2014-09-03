@@ -22,7 +22,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
+import org.apache.jackrabbit.oak.jcr.FixturesHelper;
+import org.apache.jackrabbit.oak.jcr.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.jcr.OakDocumentRDBRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakMongoNSRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
@@ -40,6 +43,8 @@ import junit.framework.TestSuite;
  */
 public abstract class TCKBase extends TestSuite {
 
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
+    
     static {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
@@ -47,12 +52,18 @@ public abstract class TCKBase extends TestSuite {
 
     public TCKBase(String name) {
         super(name);
-        Setup.wrap(this, OakTarMKRepositoryStub.class.getName());
-        if (OakMongoNSRepositoryStub.isMongoDBAvailable()) {
-            Setup.wrap(this, OakMongoNSRepositoryStub.class.getName());
+        if (FIXTURES.contains(Fixture.SEGMENT_MK)) {
+            Setup.wrap(this, OakTarMKRepositoryStub.class.getName());
         }
-        if (OakDocumentRDBRepositoryStub.isAvailable()) {
-            Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
+        if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
+            if (OakMongoNSRepositoryStub.isMongoDBAvailable()) {
+                Setup.wrap(this, OakMongoNSRepositoryStub.class.getName());
+            }            
+        }
+        if (FIXTURES.contains(Fixture.DOCUMENT_JDBC)) {
+            if (OakDocumentRDBRepositoryStub.isAvailable()) {
+                Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
+            }            
         }
     }
 

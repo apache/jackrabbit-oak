@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.jcr.Credentials;
 import javax.jcr.Node;
@@ -36,6 +37,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
+import org.apache.jackrabbit.oak.jcr.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -57,6 +59,7 @@ public class OrderedIndexConcurrentClusterIT {
     private static final Credentials ADMIN = new SimpleCredentials("admin", "admin".toCharArray());
     private static final String INDEX_NODE_NAME = "lastModified";
     private static final String INDEX_PROPERTY = "lastModified";
+    private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
     
     private List<Repository> repos = new ArrayList<Repository>();
     private List<DocumentMK> mks = new ArrayList<DocumentMK>();
@@ -64,6 +67,12 @@ public class OrderedIndexConcurrentClusterIT {
 
     // ----- SHARED WITH ConcurrentAddNodesClusterIT (later refactoring) -----
     // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+    
+    @BeforeClass
+    public static void fixturesCheck() {
+        // running only on DocumentNS case
+        Assume.assumeTrue(FIXTURES.contains(Fixture.DOCUMENT_NS));
+    }
     
     @BeforeClass
     public static void mongoDBAvailable() {
