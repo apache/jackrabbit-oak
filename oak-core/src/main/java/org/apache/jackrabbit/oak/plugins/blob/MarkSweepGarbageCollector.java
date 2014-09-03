@@ -256,6 +256,8 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         int count = 0;
         state = State.SWEEPING;
         LOG.debug("Starting sweep phase of the garbage collector");
+        LOG.debug("Sweeping blobs with modified time > than the configured max deleted time ({}). " +
+                timestampToString(getLastMaxModifiedTime()));
 
         ConcurrentLinkedQueue<String> exceptionQueue = new ConcurrentLinkedQueue<String>();
 
@@ -289,8 +291,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             IOUtils.closeQuietly(writer);
         }
         if(!exceptionQueue.isEmpty()) {
-            LOG.warn("Unable to delete some blob entries from the blob store. Details around such blob entries " +
-                    "can be found in [{}]", fs.getGarbage().getAbsolutePath());
+            LOG.warn("Unable to delete some blobs entries from the blob store. " +
+                    "This may happen if blob modified time is > than the max deleted time ({}). " +
+                    "Details around such blob entries can be found in [{}]",
+                    timestampToString(getLastMaxModifiedTime()), fs.getGarbage().getAbsolutePath());
         }
         LOG.debug("Ending sweep phase of the garbage collector");
         return count;
@@ -336,9 +340,11 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         public void run() {
             try {
                 LOG.debug("Blob ids to be deleted {}", ids);
-                boolean deleted = blobStore.deleteChunks(ids,getLastMaxModifiedTime());
+                boolean deleted = blobStore.deleteChunks(ids, getLastMaxModifiedTime());
                 if (!deleted) {
-                    exceptionQueue.addAll(ids);
+                    // Only log and do not add to exception queue since some blobs may not match the
+                    // lastMaxModifiedTime criteria.
+                    LOG.debug("Some blobs were not deleted from the batch : [{}]", ids);
                 }
             } catch (Exception e) {
                 LOG.warn("Error occurred while deleting blob with ids [{}]", ids, e);
@@ -415,7 +421,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             try {
                 bufferWriter = new BufferedWriter(
                         new FileWriter(fs.getAvailableRefs()));
-                Iterator<String> idsIter = blobStore.getAllChunkIds(getLastMaxModifiedTime());
+                Iterator<String> idsIter = blobStore.getAllChunkIds(0);
                 List<String> ids = Lists.newArrayList();
 
                 while (idsIter.hasNext()) {
@@ -434,8 +440,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
                 // sort the file
                 fs.sort(fs.getAvailableRefs());
-                LOG.debug("Number of blobs present in BlobStore : [{}] which have " +
-                        "been last modified before [{}]", blobsCount, timestampToString(getLastMaxModifiedTime()));
+                LOG.debug("Number of blobs present in BlobStore : [{}] ", blobsCount);
             } finally {
                 IOUtils.closeQuietly(bufferWriter);
             }
