@@ -381,10 +381,9 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                 DataRecord dataRecord = delegate.getRecord(identifier);
                 boolean success = (maxLastModifiedTime <= 0)
                         || dataRecord.getLastModified() <= maxLastModifiedTime;
-                if (!success) {
-                    return false;
+                if (success) {
+                    ((MultiDataStoreAware) delegate).deleteRecord(identifier);
                 }
-                ((MultiDataStoreAware) delegate).deleteRecord(identifier);
             }
         }
         return true;
