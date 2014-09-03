@@ -186,7 +186,7 @@ public class LastRevRecoveryAgent {
         unsaved.persist(nodeStore, new ReentrantLock());
 
         log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
-                "cluster node [{}]: ", size, clusterId, updates);
+                "cluster node [{}]: {}", size, clusterId, updates);
 
         return size;
     }
