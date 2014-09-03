@@ -81,6 +81,7 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -303,7 +304,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                                        boolean preferCached,
                                        final int maxCacheAge) {
         if (collection != Collection.NODES) {
-            return findUncached(collection, key, DocumentReadPreference.PRIMARY);
+            return findUncachedWithRetry(collection, key,
+                    DocumentReadPreference.PRIMARY, 2);
         }
         CacheValue cacheKey = new StringValue(key);
         NodeDocument doc;
@@ -331,7 +333,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
                         @Override
                         public NodeDocument call() throws Exception {
-                            NodeDocument doc = (NodeDocument) findUncached(collection, key, getReadPreference(maxCacheAge));
+                            NodeDocument doc = (NodeDocument) findUncachedWithRetry(
+                                    collection, key,
+                                    getReadPreference(maxCacheAge), 2);
                             if (doc == null) {
                                 doc = NodeDocument.NULL;
                             }
@@ -363,8 +367,45 @@ public class MongoDocumentStore implements CachingDocumentStore {
         throw new DocumentStoreException("Failed to load document with " + key, t);
     }
 
+    /**
+     * Finds a document and performs a number of retries if the read fails with
+     * an exception.
+     *
+     * @param collection the collection to read from.
+     * @param key the key of the document to find.
+     * @param docReadPref the read preference.
+     * @param retries the number of retries. Must not be negative.
+     * @param <T> the document type of the given collection.
+     * @return the document or {@code null} if the document doesn't exist.
+     */
     @CheckForNull
-    private <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
+    private <T extends Document> T findUncachedWithRetry(
+            Collection<T> collection, String key,
+            DocumentReadPreference docReadPref,
+            int retries) {
+        checkArgument(retries >= 0, "retries must not be negative");
+        int numAttempts = retries + 1;
+        MongoException ex = null;
+        for (int i = 0; i < numAttempts; i++) {
+            if (i > 0) {
+                LOG.warn("Retrying read of " + key);
+            }
+            try {
+                return findUncached(collection, key, docReadPref);
+            } catch (MongoException e) {
+                ex = e;
+            }
+        }
+        if (ex != null) {
+            throw ex;
+        } else {
+            // impossible to get here
+            throw new IllegalStateException();
+        }
+    }
+
+    @CheckForNull
+    protected <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
@@ -763,13 +804,16 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     return ReadPreference.primary();
                 }
 
-                //Default to primary preferred such that in case primary is being elected
-                //we can still read from secondary
-                //TODO REVIEW Would that be safe
-                ReadPreference readPreference = ReadPreference.primaryPreferred();
+                // read from primary unless parent has not been modified
+                // within replication lag period
+                ReadPreference readPreference = ReadPreference.primary();
                 if (parentId != null) {
                     long replicationSafeLimit = getTime() - maxReplicationLagMillis;
                     NodeDocument cachedDoc = (NodeDocument) getIfCached(collection, parentId);
+                    // FIXME: this is not quite accurate, because ancestors
+                    // are updated in a background thread (_lastRev). We
+                    // will need to revise this for low maxReplicationLagMillis
+                    // values
                     if (cachedDoc != null && !cachedDoc.hasBeenModifiedSince(replicationSafeLimit)) {
 
                         //If parent has been modified loooong time back then there children

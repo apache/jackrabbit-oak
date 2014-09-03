@@ -115,8 +115,8 @@ public class ReadPreferenceIT {
         assertEquals(ReadPreference.secondary(),
                 mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY));
 
-        //for case where parent age cannot be determined the preference should be primaryPreferred
-        assertEquals(ReadPreference.primaryPreferred(),
+        //for case where parent age cannot be determined the preference should be primary
+        assertEquals(ReadPreference.primary(),
                 mongoDS.getMongoReadPreference(NODES,"foo", DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //For collection other than NODES always primary
@@ -139,8 +139,8 @@ public class ReadPreferenceIT {
         String parentId = Utils.getParentId(id);
         mongoDS.invalidateCache(NODES,id);
 
-        //For modifiedTime < replicationLag primary should be preferred
-        assertEquals(ReadPreference.primaryPreferred(),
+        //For modifiedTime < replicationLag primary must be used
+        assertEquals(ReadPreference.primary(),
                 mongoDS.getMongoReadPreference(NODES,parentId, DocumentReadPreference.PREFER_SECONDARY_IF_OLD_ENOUGH));
 
         //Going into future to make parent /x old enough
