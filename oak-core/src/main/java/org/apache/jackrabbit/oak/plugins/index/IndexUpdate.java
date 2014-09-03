@@ -114,8 +114,9 @@ public class IndexUpdate implements Editor {
             throws CommitFailedException {
         collectIndexEditors(builder.getChildNode(INDEX_DEFINITIONS_NAME), before);
 
-        if(!reindex.isEmpty()){
-            log.info("Reindexing would be performed for following indexes {}", reindex.keySet());
+        if (!reindex.isEmpty()) {
+            log.info("Reindexing will be performed for following indexes: {}",
+                    reindex.keySet());
         }
 
         // no-op when reindex is empty
@@ -139,8 +140,9 @@ public class IndexUpdate implements Editor {
         // reindex in the case this is a new node, even though the reindex flag
         // might be set to 'false' (possible via content import)
         boolean result = !before.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name);
-        if(result){
-            log.info("Found a new index node [{}]. Reindexing would be requested", name);
+        if (result) {
+            log.info("Found a new index node [{}]. Reindexing is requested",
+                    name);
         }
         return result;
     }
