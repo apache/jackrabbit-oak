@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.xml;
 
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ImportUUIDBehavior;
@@ -64,8 +67,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 public class ImporterImpl implements Importer {
     private static final Logger log = LoggerFactory.getLogger(ImporterImpl.class);
@@ -131,12 +132,12 @@ public class ImporterImpl implements Importer {
                         Root root,
                         int uuidBehavior,
                         boolean isWorkspaceImport) throws RepositoryException {
-        if (!PathUtils.isAbsolute(absPath)) {
-            throw new RepositoryException("Not an absolute path: " + absPath);
-        }
         String oakPath = sessionContext.getOakPathKeepIndex(absPath);
         if (oakPath == null) {
             throw new RepositoryException("Invalid name or path: " + absPath);
+        }
+        if (!PathUtils.isAbsolute(oakPath)) {
+            throw new RepositoryException("Not an absolute path: " + absPath);
         }
 
         SessionDelegate sd = sessionContext.getSessionDelegate();
@@ -147,7 +148,7 @@ public class ImporterImpl implements Importer {
         this.uuidBehavior = uuidBehavior;
         userID = sd.getAuthInfo().getUserID();
 
-        importTargetTree = root.getTree(absPath);
+        importTargetTree = root.getTree(oakPath);
         if (!importTargetTree.exists()) {
             throw new PathNotFoundException(absPath);
         }
