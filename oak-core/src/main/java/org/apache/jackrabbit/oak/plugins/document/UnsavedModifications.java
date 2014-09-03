@@ -211,4 +211,9 @@ class UnsavedModifications {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return map.toString();
+    }
 }

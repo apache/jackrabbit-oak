@@ -178,11 +178,7 @@ public class LastRevRecoveryAgent {
         //Note the size before persist as persist operation
         //would empty the internal state
         int size = unsaved.getPaths().size();
-
-        if (log.isDebugEnabled()) {
-            log.debug("Last revision for following documents would be updated {}", unsaved
-                    .getPaths());
-        }
+        String updates = unsaved.toString();
 
         //UnsavedModifications is designed to be used in concurrent
         //access mode. For recovery case there is no concurrent access
@@ -190,7 +186,7 @@ public class LastRevRecoveryAgent {
         unsaved.persist(nodeStore, new ReentrantLock());
 
         log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
-                "cluster node [{}]", size, clusterId);
+                "cluster node [{}]: ", size, clusterId, updates);
 
         return size;
     }
