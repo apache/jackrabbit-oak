@@ -140,11 +140,12 @@ public class Compactor {
             if (state.getChildNodeCount(2) > 1) {
                 return true;
             }
-            int count = 0;
+            long count = 0;
             for (PropertyState ps : state.getProperties()) {
                 for (int i = 0; i < ps.count(); i++) {
-                    count += ps.size(i);
-                    if (count >= threshold) {
+                    long size = ps.size(i);
+                    count += size;
+                    if (size >= threshold || count >= threshold) {
                         return true;
                     }
                 }
