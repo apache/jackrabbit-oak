@@ -14,7 +14,12 @@
 # limitations under the License.
 
 install:  true
-script:   mvn verify -Ppedantic,integrationTesting
+env:
+  - PROFILE=pedantic
+  - PROFILE=unittesting
+  - PROFILE=integrationTesting FIXTURES="-Dns-fixtures=SEGMENT_MK" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
+  - PROFILE=integrationTesting FIXTURES="-Dns-fixtures=DOCUMENT_MK,DOCUMENT_NS,DOCUMENT_JDBC" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
+script:   "mvn verify -P${PROFILE} ${FIXTURES} ${SUREFIRE_SKIP}"
 language: java
 jdk:
   - oraclejdk7
