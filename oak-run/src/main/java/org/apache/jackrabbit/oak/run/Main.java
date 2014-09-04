@@ -20,9 +20,12 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 
 import java.io.Closeable;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -39,7 +42,9 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -74,6 +79,13 @@ import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -95,6 +107,9 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.Serializer;
 
 public class Main {
 
@@ -155,9 +170,12 @@ public class Main {
             case SYNCSLAVE:
                 syncslave(args);
                 break;
-        case CHECKPOINTS:
-            checkpoints(args);
-            break;
+            case CHECKPOINTS:
+                checkpoints(args);
+                break;
+            case RECOVERY:
+                recovery(args);
+                break;
             case HELP:
             default:
                 System.err.print("Available run modes: ");
@@ -491,6 +509,36 @@ public class Main {
             store.close();
         }
 
+    }
+
+    private static void recovery(String[] args) throws IOException {
+        MapFactory.setInstance(new MapDBMapFactory());
+        Closer closer = Closer.create();
+        String h = "recovery mongodb://host:port/database { dryRun }";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            if (!(store instanceof DocumentNodeStore)) {
+                System.err.println("Recovery only available for DocumentNodeStore");
+                System.exit(1);
+            }
+            DocumentNodeStore dns = (DocumentNodeStore) store;
+            if (!(dns.getDocumentStore() instanceof MongoDocumentStore)) {
+                System.err.println("Recovery only available for MongoDocumentStore");
+                System.exit(1);
+            }
+            MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
+            LastRevRecoveryAgent agent = new LastRevRecoveryAgent(dns);
+            MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(docStore);
+            CloseableIterable<NodeDocument> docs = seeker.getCandidates(
+                    0, System.currentTimeMillis());
+            closer.register(docs);
+            boolean dryRun = Arrays.asList(args).contains("dryRun");
+            agent.recover(docs.iterator(), dns.getClusterId(), dryRun);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
     }
 
     private static void debug(String[] args) throws IOException {
@@ -948,7 +996,8 @@ public class Main {
         EXPLORE("explore"),
         SYNCSLAVE("syncslave"),
         HELP("help"),
-        CHECKPOINTS("checkpoints");
+        CHECKPOINTS("checkpoints"),
+        RECOVERY("recovery");
 
         private final String name;
 
@@ -959,6 +1008,50 @@ public class Main {
         @Override
         public String toString() {
             return name;
+        }
+    }
+
+    private static class MapDBMapFactory extends MapFactory {
+        private final AtomicInteger counter = new AtomicInteger();
+        private final DB db;
+
+        public MapDBMapFactory() {
+            this.db = DBMaker.newTempFileDB()
+                    .deleteFilesAfterClose()
+                    .closeOnJvmShutdown()
+                    .transactionDisable()
+                    .make();
+        }
+
+        @Override
+        public synchronized ConcurrentMap<String, Revision> create() {
+            return db.createHashMap(String.valueOf(counter.incrementAndGet()))
+                    .valueSerializer(new RevisionSerializer())
+                    .make();
+        }
+
+        private static class RevisionSerializer implements Serializer<Revision>,
+                Serializable {
+            private int size = 8 + 4 + 4 + 1;
+            public void serialize(DataOutput o, Revision r) throws IOException {
+                o.writeLong(r.getTimestamp());
+                o.writeInt(r.getCounter());
+                o.writeInt(r.getClusterId());
+                o.writeBoolean(r.isBranch());
+
+            }
+
+            public Revision deserialize(DataInput i, int available) throws IOException {
+                return new Revision(
+                        i.readLong(), //timestamp
+                        i.readInt(),  //counter
+                        i.readInt(),  //clusterId
+                        i.readBoolean()); //branch
+            }
+
+            public int fixedSize() {
+                return size;
+            }
         }
     }
 }

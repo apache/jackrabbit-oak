@@ -30,6 +30,9 @@
   <!-- Display info messages from the benchmark suite -->
   <logger name="org.apache.jackrabbit.oak.benchmark" level="INFO"/>
 
+  <!-- Display info messages from the LastRevRecoveryAgent-->
+  <logger name="org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent" level="INFO"/>
+
   <root level="warn">
     <appender-ref ref="STDERR" />
   </root>
