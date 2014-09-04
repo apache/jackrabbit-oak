@@ -71,17 +71,20 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
     private Map<String, Set<UUID>> index;
     private Map<RecordIdKey, Long[]> sizeCache;
+    private final boolean skipSizeCheck;
 
-    public NodeStoreTree(FileStore store, JTextArea log) {
+    public NodeStoreTree(FileStore store, JTextArea log, boolean skipSizeCheck) {
         super(new GridLayout(1, 0));
         this.store = store;
         this.log = log;
 
-        index = store.getTarReaderIndex();
-        sizeCache = new HashMap<RecordIdKey, Long[]>();
+        this.index = store.getTarReaderIndex();
+        this.sizeCache = new HashMap<RecordIdKey, Long[]>();
+        this.skipSizeCheck = skipSizeCheck;
 
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
-                new NamePathModel("/", "/", store.getHead(), sizeCache), true);
+                new NamePathModel("/", "/", store.getHead(), sizeCache,
+                        skipSizeCheck), true);
         treeModel = new DefaultTreeModel(rootNode);
         addChildren(rootNode);
 
@@ -100,7 +103,8 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         index = store.getTarReaderIndex();
         sizeCache = new HashMap<RecordIdKey, Long[]>();
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(
-                new NamePathModel("/", "/", store.getHead(), sizeCache), true);
+                new NamePathModel("/", "/", store.getHead(), sizeCache,
+                        skipSizeCheck), true);
         treeModel = new DefaultTreeModel(rootNode);
         addChildren(rootNode);
     }
@@ -113,8 +117,25 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             return;
         }
         // load child nodes:
-        addChildren(node);
-        updateStats(node);
+        try {
+            addChildren(node);
+            updateStats(node);
+        } catch (IllegalStateException ex) {
+            ex.printStackTrace();
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(ex.getMessage());
+            sb.append(newline);
+
+            NamePathModel model = (NamePathModel) node.getUserObject();
+            if (model.getState() instanceof SegmentNodeState) {
+                SegmentNodeState sns = (SegmentNodeState)model.getState();
+                sb.append("Record ");
+                sb.append(sns.getRecordId().toString());
+                sb.append(newline);
+            }
+            log.setText(sb.toString());
+        }
     }
 
     private void addChildren(DefaultMutableTreeNode parent) {
@@ -127,7 +148,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         for (ChildNodeEntry ce : model.getState().getChildNodeEntries()) {
             NamePathModel c = new NamePathModel(ce.getName(), PathUtils.concat(
                     model.getPath(), ce.getName()), ce.getNodeState(),
-                    sizeCache);
+                    sizeCache, skipSizeCheck);
             kids.add(c);
         }
         Collections.sort(kids);
@@ -433,17 +454,19 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         private final String name;
         private final String path;
         private final NodeState state;
+        private final boolean skipSizeCheck;
 
         private boolean loaded = false;
 
         private Long[] size = { -1l, -1l };
 
         public NamePathModel(String name, String path, NodeState state,
-                Map<RecordIdKey, Long[]> sizeCache) {
+                Map<RecordIdKey, Long[]> sizeCache, boolean skipSizeCheck) {
             this.name = name;
             this.path = path;
             this.state = state;
-            if (state instanceof SegmentNodeState) {
+            this.skipSizeCheck = skipSizeCheck;
+            if (!skipSizeCheck && state instanceof SegmentNodeState) {
                 this.size = exploreSize((SegmentNodeState) state, sizeCache);
             }
         }
@@ -458,6 +481,9 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
         @Override
         public String toString() {
+            if (skipSizeCheck) {
+                return name;
+            }
             if (size[1] > 0) {
                 return name + " (" + FileUtils.byteCountToDisplaySize(size[0])
                         + ";" + FileUtils.byteCountToDisplaySize(size[1]) + ")";

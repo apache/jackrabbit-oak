@@ -81,7 +81,7 @@ Explore
 The 'explore' mode starts a desktop browser GUI based on java swing which allows for read-only
 browsing of an existing oak repository.
 
-    $ java -jar oak-run-*.jar explore /path/to/oak/repository
+    $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
 
 Compact
 -------
