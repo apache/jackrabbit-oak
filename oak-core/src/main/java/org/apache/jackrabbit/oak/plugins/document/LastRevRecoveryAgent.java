@@ -32,11 +32,11 @@ import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ public class LastRevRecoveryAgent {
 
     private final MissingLastRevSeeker missingLastRevUtil;
 
-    LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
+    public LastRevRecoveryAgent(DocumentNodeStore nodeStore) {
         this.nodeStore = nodeStore;
 
         if (nodeStore.getDocumentStore() instanceof MongoDocumentStore) {
@@ -114,20 +114,41 @@ public class LastRevRecoveryAgent {
 
     /**
      * Recover the correct _lastRev updates for the given candidate nodes.
+     *
+     * @param suspects the potential suspects
+     * @param clusterId the cluster id for which _lastRev recovery needed
+     * @return the number of documents that required recovery.
+     */
+    public int recover(Iterator<NodeDocument> suspects, int clusterId) {
+        return recover(suspects, clusterId, false);
+    }
+
+    /**
+     * Recover the correct _lastRev updates for the given candidate nodes.
      * 
      * @param suspects the potential suspects
      * @param clusterId the cluster id for which _lastRev recovery needed
-     * @return the int
+     * @param dryRun if {@code true}, this method will only perform a check
+     *               but not apply the changes to the _lastRev fields.
+     * @return the number of documents that required recovery. This method
+     *          returns the number of the affected documents even if
+     *          {@code dryRun} is set true and no document was changed.
      */
-    public int recover(Iterator<NodeDocument> suspects, int clusterId) {
+    public int recover(Iterator<NodeDocument> suspects,
+                       int clusterId, boolean dryRun) {
         UnsavedModifications unsaved = new UnsavedModifications();
         UnsavedModifications unsavedParents = new UnsavedModifications();
 
         //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevs = Maps.newHashMap();
+        Map<String, Revision> knownLastRevs = MapFactory.getInstance().create();
 
+        long count = 0;
         while (suspects.hasNext()) {
             NodeDocument doc = suspects.next();
+            count++;
+            if (count % 100000 == 0) {
+                log.info("Scanned {} suspects so far...", count);
+            }
 
             Revision currentLastRev = doc.getLastRev().get(clusterId);
             if (currentLastRev != null) {
@@ -180,13 +201,18 @@ public class LastRevRecoveryAgent {
         int size = unsaved.getPaths().size();
         String updates = unsaved.toString();
 
-        //UnsavedModifications is designed to be used in concurrent
-        //access mode. For recovery case there is no concurrent access
-        //involve so just pass a new lock instance
-        unsaved.persist(nodeStore, new ReentrantLock());
+        if (dryRun) {
+            log.info("Dry run of lastRev recovery identified [{}] documents for " +
+                    "cluster node [{}]: {}", size, clusterId, updates);
+        } else {
+            //UnsavedModifications is designed to be used in concurrent
+            //access mode. For recovery case there is no concurrent access
+            //involve so just pass a new lock instance
+            unsaved.persist(nodeStore, new ReentrantLock());
 
-        log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
-                "cluster node [{}]: {}", size, clusterId, updates);
+            log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
+                    "cluster node [{}]: {}", size, clusterId, updates);
+        }
 
         return size;
     }

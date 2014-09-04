@@ -14,6 +14,7 @@ The following runmodes are currently available:
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
     * scalability : Run scalability tests against different Oak repository fixtures.
+    * recovery    : Run a _lastRev recovery on a MongoMK repository
     * help        : Print a list of available runmodes
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
@@ -567,6 +568,23 @@ suites extending from it :
     -Dprofile=true                    - to collect and print profiling data
     -Ddebug=true                      - to output any intermediate results during the suite 
                                         run
+
+Recovery Mode
+=============
+
+The recovery mode can be used to check the consistency of `_lastRev` fields
+of a MongoMK repository. It can be invoked like this:
+
+    $ java -jar oak-run-*.jar recovery [options] mongodb://host:port/database [dryRun]
+
+The following recovery options (with default values) are currently supported:
+
+    --clusterId         - MongoMK clusterId (default: 0 -> automatic)
+
+The recovery tool will only perform the check and fix for the given clusterId.
+It is therefore recommended to explicitly specify a clusterId. The tool will
+fix the documents it identified, unless the `dryRun` keyword is specified.
+
 <a name="jr2"></a>
 Oak Runnable Jar - JR 2
 ===============================
