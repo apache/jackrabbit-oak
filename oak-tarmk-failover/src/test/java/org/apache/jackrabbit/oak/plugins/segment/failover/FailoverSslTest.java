@@ -18,12 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.failover;
 
-
-import org.apache.jackrabbit.oak.plugins.segment.DebugSegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
 import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
-
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import org.junit.After;
@@ -34,7 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.addTest
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public class RecoverTest extends TestBase {
+public class FailoverSslTest extends TestBase {
 
     @Before
     public void setUp() throws Exception {
@@ -47,51 +44,62 @@ public class RecoverTest extends TestBase {
     }
 
     @Test
-    public void testBrokenConnection() throws Exception {
+    public void testFailoverSecure() throws Exception {
 
         NodeStore store = new SegmentNodeStore(storeS);
-        DebugSegmentStore s = new DebugSegmentStore(storeS);
-        final FailoverServer server = new FailoverServer(port, s);
-        s.createReadErrors = true;
+        final FailoverServer server = new FailoverServer(port, storeS, true);
         server.start();
         addTestContent(store, "server");
+        storeS.flush();  // this speeds up the test a little bit...
+
+        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC, true);
+        cl.run();
+
+        try {
+            assertEquals(storeS.getHead(), storeC.getHead());
+        } finally {
+            server.close();
+            cl.close();
+        }
+    }
+
+    @Test
+    public void testFailoverSecureServerPlainClient() throws Exception {
+
+        NodeStore store = new SegmentNodeStore(storeS);
+        final FailoverServer server = new FailoverServer(port, storeS, true);
+        server.start();
+        addTestContent(store, "server");
+        storeS.flush();  // this speeds up the test a little bit...
 
         FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC);
         cl.run();
 
         try {
-            assertFalse("store are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
-            s.createReadErrors = false;
-            cl.run();
-            assertEquals(storeS.getHead(), storeC.getHead());
+            assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
         } finally {
             server.close();
             cl.close();
         }
-
     }
 
     @Test
-    public void testLocalChanges() throws Exception {
+    public void testFailoverPlainServerSecureClient() throws Exception {
 
-        NodeStore store = new SegmentNodeStore(storeC);
-        addTestContent(store, "client");
-
+        NodeStore store = new SegmentNodeStore(storeS);
         final FailoverServer server = new FailoverServer(port, storeS);
         server.start();
-        store = new SegmentNodeStore(storeS);
         addTestContent(store, "server");
-        storeS.flush();
+        storeS.flush();  // this speeds up the test a little bit...
 
-        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC);
+        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC, true);
+        cl.run();
+
         try {
-            assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
-            cl.run();
-            assertEquals(storeS.getHead(), storeC.getHead());
+            assertFalse("stores are equal but shouldn't!", storeS.getHead().equals(storeC.getHead()));
         } finally {
             server.close();
             cl.close();
         }
-
     }
 }

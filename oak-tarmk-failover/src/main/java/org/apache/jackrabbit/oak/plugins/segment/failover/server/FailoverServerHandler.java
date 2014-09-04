@@ -101,25 +101,25 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     public void channelRegistered(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
-        state = "Channel registered";
+        state = "channel registered";
         super.channelRegistered(ctx);
     }
 
     @Override
     public void channelActive(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
-        state = "Channel active";
+        state = "channel active";
         super.channelActive(ctx);
     }
 
     @Override
     public void channelInactive(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
-        state = "Channel inactive";
+        state = "channel inactive";
         super.channelInactive(ctx);
     }
 
     @Override
     public void channelUnregistered(io.netty.channel.ChannelHandlerContext ctx) throws java.lang.Exception {
-        state = "Channel unregistered";
+        state = "channel unregistered";
         super.channelUnregistered(ctx);
     }
 
@@ -130,15 +130,18 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
 
         String request = Messages.extractMessageFrom(payload);
         InetSocketAddress client = (InetSocketAddress)ctx.channel().remoteAddress();
+
         if (!clientAllowed(client)) {
             log.warn("Got request from client " + client + " which is not in the allowed ip ranges! Request will be ignored.");
         }
         else {
-            observer.gotMessageFrom(Messages.extractClientFrom(payload), request, client);
+            String clientID = Messages.extractClientFrom(payload);
+            observer.gotMessageFrom(clientID, request, client);
             if (Messages.GET_HEAD.equalsIgnoreCase(request)) {
                 RecordId r = headId();
                 if (r != null) {
                     ctx.writeAndFlush(r);
+                    log.debug("returning from head request");
                     return;
                 }
             } else if (request.startsWith(Messages.GET_SEGMENT)) {
@@ -148,24 +151,24 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
 
                 Segment s = null;
 
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < 10; i++) {
                     try {
                         s = store.readSegment(new SegmentId(store.getTracker(),
                                 uuid.getMostSignificantBits(), uuid
                                 .getLeastSignificantBits()));
                     } catch (IllegalStateException e) {
                         // segment not found
-                        log.warn(e.getMessage());
+                        log.info("waiting for segment. Got exception: " + e.getMessage());
+                        TimeUnit.MILLISECONDS.sleep(1000);
                     }
-                    if (s != null) {
-                        break;
-                    } else {
-                        TimeUnit.MILLISECONDS.sleep(500);
-                    }
+                    if (s != null) break;
                 }
 
                 if (s != null) {
+                    log.info("sending segment" + sid + " to " + client);
                     ctx.writeAndFlush(s);
+                    observer.didSendSegmentBytes(clientID, s.size());
+                    log.debug("master returns from segment request");
                     return;
                 }
             } else {
@@ -184,6 +187,6 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         state = "exception occurred: " + cause.getMessage();
         log.error(cause.getMessage(), cause);
-        ctx.close();
+        ctx.fireExceptionCaught(cause);
     }
 }

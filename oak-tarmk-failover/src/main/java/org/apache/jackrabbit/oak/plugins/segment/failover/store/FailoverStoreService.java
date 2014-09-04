@@ -21,8 +21,11 @@ import static org.apache.felix.scr.annotations.ReferencePolicy.STATIC;
 import static org.apache.felix.scr.annotations.ReferencePolicyOption.GREEDY;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.Dictionary;
 import java.util.Hashtable;
+
+import javax.net.ssl.SSLException;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -32,7 +35,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
 import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
@@ -73,8 +76,13 @@ public class FailoverStoreService {
     @Property(label = "Client allowed IP-Ranges", description = "accept incoming requests for these IP-ranges only")
     public static final String ALLOWED_CLIENT_IP_RANGES = "master.allowed-client-ip-ranges";
 
+    public static final boolean SECURE_DEFAULT = false;
+    @Property(label = "Secure", description = "Use secure connections", boolValue = SECURE_DEFAULT)
+    public static final String SECURE = "secure";
+
     @Reference(policy = STATIC, policyOption = GREEDY)
-    private NodeStore store = null;
+    private SegmentStoreProvider storeProvider = null;
+
     private SegmentStore segmentStore;
 
     private FailoverServer master = null;
@@ -83,13 +91,12 @@ public class FailoverStoreService {
     private ServiceRegistration syncReg = null;
 
     @Activate
-    private void activate(ComponentContext context) throws IOException {
-        if (store instanceof SegmentNodeStoreService) {
-            segmentStore = ((SegmentNodeStoreService) store).getSegmentStore();
+    private void activate(ComponentContext context) throws IOException, CertificateException {
+        if (storeProvider != null) {
+            segmentStore = storeProvider.getSegmentStore();
         } else {
             throw new IllegalArgumentException(
-                    "Unexpected NodeStore impl, expecting SegmentNodeStoreService, got "
-                            + store.getClass());
+                    "Missing SegmentStoreProvider service");
         }
         String mode = valueOf(context.getProperties().get(MODE));
         if (MODE_MASTER.equals(mode)) {
@@ -116,23 +123,25 @@ public class FailoverStoreService {
         }
     }
 
-    private void bootstrapMaster(ComponentContext context) {
+    private void bootstrapMaster(ComponentContext context) throws CertificateException, SSLException {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         String ipRanges = PropertiesUtil.toString(props.get(ALLOWED_CLIENT_IP_RANGES), ALLOWED_CLIENT_IP_RANGES_DEFAULT);
         String[] ranges = ipRanges == null ? null : ipRanges.split(",");
-        master = new FailoverServer(port, segmentStore, ranges);
+        boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
+        master = new FailoverServer(port, segmentStore, ranges, secure);
         master.start();
         log.info("started failover master on port {} with allowed ip ranges {}.", port, ipRanges);
     }
 
-    private void bootstrapSlave(ComponentContext context) {
+    private void bootstrapSlave(ComponentContext context) throws SSLException {
         Dictionary<?, ?> props = context.getProperties();
         int port = PropertiesUtil.toInteger(props.get(PORT), PORT_DEFAULT);
         long interval = PropertiesUtil.toInteger(props.get(INTERVAL), INTERVAL_DEFAULT);
         String host = PropertiesUtil.toString(props.get(MASTER_HOST), MASTER_HOST_DEFAULT);
+        boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
 
-        sync = new FailoverClient(host, port, segmentStore);
+        sync = new FailoverClient(host, port, segmentStore, secure);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);

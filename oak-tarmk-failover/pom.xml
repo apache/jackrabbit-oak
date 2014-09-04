@@ -28,6 +28,7 @@
   <description>Oak TarMK failover module</description>
 
   <properties>
+      <netty-version>4.0.23.Final</netty-version>
   </properties>
 
   <build>
@@ -137,31 +138,31 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-common</artifactId>
-      <version>4.0.20.Final</version>
+      <version>${netty-version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-buffer</artifactId>
-      <version>4.0.20.Final</version>
+      <version>${netty-version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-transport</artifactId>
-      <version>4.0.20.Final</version>
+      <version>${netty-version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-codec</artifactId>
-      <version>4.0.20.Final</version>
+      <version>${netty-version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-handler</artifactId>
-      <version>4.0.20.Final</version>
+      <version>${netty-version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -181,6 +182,12 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

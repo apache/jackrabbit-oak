@@ -31,9 +31,7 @@ import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.util.Set;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
+import static junit.framework.Assert.*;
 
 public class MBeanTest extends TestBase {
 
@@ -63,7 +61,7 @@ public class MBeanTest extends TestBase {
 
             assertEquals("master", jmxServer.getAttribute(status, "Mode"));
             String m = jmxServer.getAttribute(status, "Status").toString();
-            if (!m.equals(FailoverStatusMBean.STATUS_STARTING) && !m.equals("Channel unregistered"))
+            if (!m.equals(FailoverStatusMBean.STATUS_STARTING) && !m.equals("channel unregistered"))
                 fail("unexpected Status" + m);
 
             assertEquals(FailoverStatusMBean.STATUS_STARTING, jmxServer.getAttribute(status, "Status"));
@@ -150,8 +148,15 @@ public class MBeanTest extends TestBase {
             Set<ObjectName> instances = jmxServer.queryNames(status, null);
             assertEquals(3, instances.size());
 
+            ObjectName connectionStatus = null;
+            for (ObjectName s : instances) {
+                if (!s.equals(clientStatus) && !s.equals(serverStatus)) connectionStatus = s;
+            }
+            assertNotNull(connectionStatus);
+
             assertTrue(jmxServer.isRegistered(clientStatus));
             assertTrue(jmxServer.isRegistered(serverStatus));
+            assertTrue(jmxServer.isRegistered(connectionStatus));
 
             String m = jmxServer.getAttribute(clientStatus, "Mode").toString();
             if (!m.startsWith("client: ")) fail("unexpected mode " + m);
@@ -161,11 +166,14 @@ public class MBeanTest extends TestBase {
             assertEquals(true, jmxServer.getAttribute(serverStatus, "Running"));
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
 
+            assertEquals(new Long(2), jmxServer.getAttribute(connectionStatus, "TransferredSegments"));
+            assertEquals(new Long(128), jmxServer.getAttribute(connectionStatus, "TransferredSegmentBytes"));
+
             // stop the master
             jmxServer.invoke(serverStatus, "stop", null, null);
             assertEquals(false, jmxServer.getAttribute(serverStatus, "Running"));
             m = jmxServer.getAttribute(serverStatus, "Status").toString();
-            if (!m.equals(FailoverStatusMBean.STATUS_STOPPED) && !m.equals("Channel unregistered"))
+            if (!m.equals(FailoverStatusMBean.STATUS_STOPPED) && !m.equals("channel unregistered"))
                 fail("unexpected Status" + m);
 
             // restart the master
@@ -173,7 +181,7 @@ public class MBeanTest extends TestBase {
             assertEquals(true, jmxServer.getAttribute(serverStatus, "Running"));
             assertEquals(true, jmxServer.getAttribute(clientStatus, "Running"));
             m = jmxServer.getAttribute(serverStatus, "Status").toString();
-            if (!m.equals(FailoverStatusMBean.STATUS_STARTING) && !m.equals("Channel unregistered"))
+            if (!m.equals(FailoverStatusMBean.STATUS_STARTING) && !m.equals("channel unregistered"))
                 fail("unexpected Status" + m);
 
             // stop the slave

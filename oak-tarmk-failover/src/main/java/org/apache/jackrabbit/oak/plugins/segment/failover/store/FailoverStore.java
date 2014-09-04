@@ -29,9 +29,13 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FailoverStore implements SegmentStore {
+    private static final Logger log = LoggerFactory.getLogger(FailoverStore.class);
 
     private final SegmentTracker tracker = new SegmentTracker(this);
 
@@ -65,7 +69,7 @@ public class FailoverStore implements SegmentStore {
 
     @Override
     public Segment readSegment(SegmentId sid) {
-
+        log.info("shall read segment " + sid);
         Deque<SegmentId> ids = new ArrayDeque<SegmentId>();
         ids.offer(sid);
         int err = 0;
@@ -74,8 +78,10 @@ public class FailoverStore implements SegmentStore {
         while (!ids.isEmpty()) {
             SegmentId id = ids.remove();
             if (!seen.contains(id) && !delegate.containsSegment(id)) {
+                log.debug("trying to read segment " + id);
                 Segment s = loader.readSegment(id);
                 if (s != null) {
+                    log.info("got segment " + id + " with size " + s.size());
                     ByteArrayOutputStream bout = new ByteArrayOutputStream(
                             s.size());
                     if (id.isDataSegmentId()) {
@@ -92,6 +98,7 @@ public class FailoverStore implements SegmentStore {
                     ids.removeAll(seen);
                     err = 0;
                 } else {
+                    log.error("could NOT read segment " + id);
                     if (loader.isClosed() || err == 4) {
                         loader.close();
                         throw new IllegalStateException(
@@ -105,6 +112,7 @@ public class FailoverStore implements SegmentStore {
             }
         }
 
+        log.info("calling delegate to return segment " + sid);
         return delegate.readSegment(sid);
     }
 

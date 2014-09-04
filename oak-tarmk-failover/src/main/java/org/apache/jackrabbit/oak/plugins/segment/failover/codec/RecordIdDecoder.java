@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.failover.codec;
 
+import java.io.IOException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -46,7 +48,7 @@ public class RecordIdDecoder extends LengthFieldBasedFrameDecoder {
             throws Exception {
         ByteBuf frame = (ByteBuf) super.decode(ctx, in);
         if (frame == null) {
-            return null;
+            throw new IOException("Received unexpected empty frame. Maybe you have enabled secure transmission on only one endpoint of the connection.");
         }
         byte type = frame.readByte();
         frame.discardReadBytes();
