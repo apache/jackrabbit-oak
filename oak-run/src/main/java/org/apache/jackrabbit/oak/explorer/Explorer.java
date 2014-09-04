@@ -51,23 +51,27 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
  */
 public class Explorer {
 
+    private static String skip = "skip-size-check";
+
     public static void main(String[] args) throws IOException {
         new Explorer(args);
     }
 
     public Explorer(String[] args) throws IOException {
         if (args.length == 0) {
-            System.err.println("usage: explore <path>");
+            System.err.println("usage: explore <path> [skip-size-check]");
             System.exit(1);
         }
 
         final String path = args[0];
         final FileStore store = new FileStore(new File(path), 256);
+        final boolean skipSizeCheck = args.length == 2
+                && skip.equalsIgnoreCase(args[1]);
 
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 initLF();
-                createAndShowGUI(path, store);
+                createAndShowGUI(path, store, skipSizeCheck);
             }
         });
     }
@@ -86,7 +90,7 @@ public class Explorer {
         }
     }
 
-    private void createAndShowGUI(final String path, final FileStore store) {
+    private void createAndShowGUI(final String path, final FileStore store, boolean skipSizeCheck) {
         final JFrame frame = new JFrame("Explore " + path);
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
@@ -103,7 +107,7 @@ public class Explorer {
         log.setLineWrap(true);
         log.setEditable(false);
 
-        final NodeStoreTree treePanel = new NodeStoreTree(store, log);
+        final NodeStoreTree treePanel = new NodeStoreTree(store, log, skipSizeCheck);
 
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.BOTH;
