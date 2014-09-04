@@ -19,16 +19,13 @@
 package org.apache.jackrabbit.oak.plugins.segment.failover.client;
 
 import static org.apache.jackrabbit.oak.plugins.segment.failover.codec.Messages.newGetHeadReq;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-import io.netty.util.concurrent.Promise;
 
 import java.io.Closeable;
-import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -53,8 +50,6 @@ public class FailoverClientHandler extends
 
     private ChannelHandlerContext ctx;
 
-    private Promise<RecordId> headPromise;
-
     public FailoverClientHandler(final FailoverStore store,
             EventExecutorGroup executor, CommunicationObserver observer) {
         this.store = store;
@@ -63,15 +58,17 @@ public class FailoverClientHandler extends
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        sendHeadRequest();
+        log.debug("sending head request");
+        ctx.writeAndFlush(newGetHeadReq(this.observer.getID()));
+        log.debug("did send head request");
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RecordId msg)
             throws Exception {
-        headPromise.setSuccess(msg);
+        setHead(msg);
     };
 
     @Override
@@ -79,28 +76,7 @@ public class FailoverClientHandler extends
         ctx.flush();
     }
 
-    private synchronized void sendHeadRequest() {
-        headPromise = ctx.executor().newPromise();
-        headPromise.addListener(new GenericFutureListener<Future<RecordId>>() {
-            @Override
-            public void operationComplete(Future<RecordId> future) {
-                if (future.isSuccess()) {
-                    try {
-                        setHead(future.get());
-                    } catch (Exception e) {
-                        exceptionCaught(ctx, e);
-                    }
-                } else {
-                    exceptionCaught(ctx, future.cause());
-                }
-            }
-        });
-        ctx.writeAndFlush(newGetHeadReq(this.observer.getID())).addListener(
-                new FailedRequestListener(headPromise));
-    }
-
     synchronized void setHead(RecordId head) {
-        headPromise = null;
 
         if (store.getHead().getRecordId().equals(head)) {
             // all sync'ed up
@@ -108,6 +84,8 @@ public class FailoverClientHandler extends
             ctx.close();
             return;
         }
+
+        log.debug("updating current head to " + head);
         ctx.pipeline().remove(RecordIdDecoder.class);
         ctx.pipeline().remove(this);
         ctx.pipeline().addLast(new SegmentDecoder(store));
@@ -123,12 +101,7 @@ public class FailoverClientHandler extends
 
         h1.channelActive(ctx);
         h2.channelActive(ctx);
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error("Failed synchronizing state.", cause);
-        close();
+        log.debug("updating current head finished");
     }
 
     @Override

@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class SegmentNodeStoreService extends ProxyNodeStore
-        implements Observable {
+        implements Observable, SegmentStoreProvider {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
@@ -83,6 +83,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     @Property(description = "TarMK compaction paused flag", boolValue = true)
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
+    @Property(description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider", boolValue = false)
+    public static final String STANDBY = "standby";
     /**
      * Boolean value indicating a blobStore is to be used
      */
@@ -104,7 +106,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             policy = ReferencePolicy.DYNAMIC)
     private volatile BlobStore blobStore;
 
-    private ServiceRegistration registration;
+    private ServiceRegistration storeRegistration;
+    private ServiceRegistration providerRegistration;
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private WhiteboardExecutor executor;
@@ -174,7 +177,12 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         Dictionary<String, String> props = new Hashtable<String, String>();
         props.put(Constants.SERVICE_PID, SegmentNodeStore.class.getName());
-        registration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
+
+        boolean standby = toBoolean(lookup(context, STANDBY), false);
+        providerRegistration = context.getBundleContext().registerService(SegmentStoreProvider.class.getName(), this, props);
+        if (!standby) {
+            storeRegistration = context.getBundleContext().registerService(NodeStore.class.getName(), this, props);
+        }
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
@@ -240,9 +248,13 @@ public class SegmentNodeStoreService extends ProxyNodeStore
     }
 
     private void unregisterNodeStore() {
-        if(registration != null){
-            registration.unregister();
-            registration = null;
+        if(providerRegistration != null){
+            providerRegistration.unregister();
+            providerRegistration = null;
+        }
+        if(storeRegistration != null){
+            storeRegistration.unregister();
+            storeRegistration = null;
         }
         if (revisionGCRegistration != null) {
             revisionGCRegistration.unregister();

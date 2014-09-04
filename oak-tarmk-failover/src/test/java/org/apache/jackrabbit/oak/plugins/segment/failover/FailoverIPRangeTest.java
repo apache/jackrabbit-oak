@@ -48,15 +48,29 @@ public class FailoverIPRangeTest extends TestBase {
     public void testFailoverAllClients() throws Exception {
         createTestWithConfig(null, true);
     }
-    @Test
 
+    @Test
     public void testFailoverLocalClient() throws Exception {
         createTestWithConfig(new String[]{"127.0.0.1"}, true);
     }
 
     @Test
+    public void testFailoverLocalClientUseIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig("::1", new String[]{"::1"}, true);
+        }
+    }
+
+    @Test
     public void testFailoverWrongClient() throws Exception {
         createTestWithConfig(new String[]{"127.0.0.2"}, false);
+    }
+
+    @Test
+    public void testFailoverWrongClientIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig(new String[]{"::2"}, false);
+        }
     }
 
     @Test
@@ -95,17 +109,50 @@ public class FailoverIPRangeTest extends TestBase {
     }
 
     @Test
+    public void testFailoverCorrectListIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig(new String[]{"foobar", "122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+        }
+    }
+
+    @Test
     public void testFailoverWrongList() throws Exception {
-        createTestWithConfig(new String[]{"foobar","126.0.0.1", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+        createTestWithConfig(new String[]{"foobar", "126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+    }
+
+    @Test
+    public void testFailoverCorrectListUseIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig("::1", new String[]{"foobar","127-128", "0:0:0:0:0:0:0:1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+        }
+    }
+
+    @Test
+    public void testFailoverCorrectListIPv6UseIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig("::1", new String[]{"foobar", "122-126", "::1", "126.0.0.1", "127.0.0.0-127.255.255.255"}, true);
+        }
+    }
+
+    @Test
+    public void testFailoverWrongListUseIPv6() throws Exception {
+        if (!noDualStackSupport) {
+            createTestWithConfig("::1", new String[]{"foobar", "126.0.0.1", "::2", "128.0.0.1-255.255.255.255", "128.0.0.0-127.255.255.255"}, false);
+        }
     }
 
     private void createTestWithConfig(String[] ipRanges, boolean expectedToWork) throws Exception {
+        createTestWithConfig("127.0.0.1", ipRanges, expectedToWork);
+    }
+
+    private void createTestWithConfig(String host, String[] ipRanges, boolean expectedToWork) throws Exception {
         NodeStore store = new SegmentNodeStore(storeS);
         final FailoverServer server = new FailoverServer(port, storeS, ipRanges);
         server.start();
         addTestContent(store, "server");
+        storeS.flush();  // this speeds up the test a little bit...
 
-        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC);
+        FailoverClient cl = new FailoverClient(host, port, storeC);
         cl.run();
 
         try {

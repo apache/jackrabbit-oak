@@ -80,12 +80,13 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt)
             throws Exception {
         if (evt instanceof SegmentReply) {
+            //log.debug("offering segment " + ((SegmentReply) evt).getSegment());
             segment.offer(((SegmentReply) evt).getSegment());
         }
     }
 
     private void initSync() {
-        log.debug("new head id " + head);
+        log.info("new head id " + head);
         long t = System.currentTimeMillis();
 
         try {
@@ -102,30 +103,33 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         } finally {
             close();
         }
+        log.info("returning initSync");
     }
 
     @Override
     public Segment readSegment(final SegmentId id) {
-        ctx.writeAndFlush(newGetSegmentReq(this.clientID, id)).addListener(reqListener);
+        ctx.writeAndFlush(newGetSegmentReq(this.clientID, id));
         return getSegment();
     }
 
-    private final ChannelFutureListener reqListener = new ChannelFutureListener() {
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
+            throws Exception {
+        log.warn("Closing channel. Got exception: " + cause);
+        ctx.close();
+    }
 
-        @Override
-        public void operationComplete(ChannelFuture future) {
-            if (!future.isSuccess()) {
-                exceptionCaught(ctx, future.cause());
-            }
-        }
-    };
+    // implementation of RemoteSegmentLoader
 
     public Segment getSegment() {
         boolean interrupted = false;
         try {
             for (;;) {
                 try {
-                    return segment.poll(timeoutMs, TimeUnit.MILLISECONDS);
+                    log.debug("polling segment");
+                    Segment s = segment.poll(timeoutMs, TimeUnit.MILLISECONDS);
+                    log.debug("returning segment " + s);
+                    return s;
                 } catch (InterruptedException ignore) {
                     interrupted = true;
                 }
@@ -135,15 +139,9 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                 Thread.currentThread().interrupt();
             }
         }
+
     }
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error("Failed synchronizing state.", cause);
-        close();
-    }
-
-    @Override
     public void close() {
         ctx.close();
         if (preloaderExecutor != null && !preloaderExecutor.isShuttingDown()) {
@@ -156,7 +154,6 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         }
     }
 
-    @Override
     public boolean isClosed() {
         return (loaderExecutor != null && (loaderExecutor.isShuttingDown() || loaderExecutor
                 .isShutdown()));

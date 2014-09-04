@@ -30,10 +30,13 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.compression.SnappyFramedEncoder;
 import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
 
 import java.io.Closeable;
 import java.lang.management.ManagementFactory;
+import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.util.concurrent.Future;
@@ -48,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
+import javax.net.ssl.SSLException;
 
 public class FailoverServer implements FailoverStatusMBean, Closeable {
 
@@ -61,15 +65,43 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
     private final ServerBootstrap b;
     private final CommunicationObserver observer;
     private final FailoverServerHandler handler;
+    private SslContext sslContext;
     private ChannelFuture channelFuture;
     private boolean running;
 
-    public FailoverServer(int port, final SegmentStore store) {
-        this(port, store, null);
+    public FailoverServer(int port, final SegmentStore store)
+            throws CertificateException, SSLException {
+        this(port, store, null, false, true);
     }
 
-    public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges) {
+    public FailoverServer(int port, final SegmentStore store, boolean secure)
+            throws CertificateException, SSLException {
+        this(port, store, null, secure, true);
+    }
+
+    public FailoverServer(int port, final SegmentStore store, boolean secure, boolean useChecksums)
+            throws CertificateException, SSLException {
+        this(port, store, null, secure, useChecksums);
+    }
+
+    public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges)
+            throws CertificateException, SSLException {
+        this(port, store, allowedClientIPRanges, false, true);
+    }
+
+    public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges, boolean secure)
+            throws CertificateException, SSLException {
+        this(port, store, allowedClientIPRanges, secure, true);
+    }
+
+    public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges, boolean secure, final boolean checksums)
+            throws CertificateException, SSLException {
         this.port = port;
+
+        if (secure) {
+            SelfSignedCertificate ssc = new SelfSignedCertificate();
+            sslContext = SslContext.newServerContext(ssc.certificate(), ssc.privateKey());
+        }
 
         observer = new CommunicationObserver("master");
         handler = new FailoverServerHandler(store, observer, allowedClientIPRanges);
@@ -81,7 +113,7 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
             jmxServer.registerMBean(new StandardMBean(this, FailoverStatusMBean.class), new ObjectName(this.getMBeanName()));
         }
         catch (Exception e) {
-            log.error("can register failover status mbean", e);
+            log.error("can't register failover status mbean", e);
         }
 
         b = new ServerBootstrap();
@@ -98,9 +130,14 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline p = ch.pipeline();
+                if (sslContext != null) {
+                    p.addLast(sslContext.newHandler(ch.alloc()));
+                }
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
-                p.addLast(new SnappyFramedEncoder());
+                if (checksums) {
+                    p.addLast(new SnappyFramedEncoder());
+                }
                 p.addLast(new RecordIdEncoder());
                 p.addLast(new SegmentEncoder());
                 p.addLast(handler);

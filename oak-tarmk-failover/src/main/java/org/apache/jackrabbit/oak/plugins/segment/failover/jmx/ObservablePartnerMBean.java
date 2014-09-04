@@ -39,4 +39,10 @@ public interface ObservablePartnerMBean {
     @CheckForNull
     @Description("Time the remote instance was last contacted")
     String getLastSeenTimestamp();
+
+    @Description("Number of transferred segments")
+    long getTransferredSegments();
+
+    @Description("Number of bytes stored in transferred segments")
+    long getTransferredSegmentBytes();
 }

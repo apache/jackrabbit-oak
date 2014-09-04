@@ -276,6 +276,7 @@ public class Main {
         final OptionSpec<String> host = parser.accepts("host", "master host").withRequiredArg().ofType(String.class).defaultsTo(defaultHost);
         final OptionSpec<Integer> port = parser.accepts("port", "master port").withRequiredArg().ofType(Integer.class).defaultsTo(defaultPort);
         final OptionSpec<Integer> interval = parser.accepts("interval", "interval between successive executions").withRequiredArg().ofType(Integer.class);
+        final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
         final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCSLAVE + " <path to repository>");
 
@@ -300,7 +301,8 @@ public class Main {
             failoverClient = new FailoverClient(
                     options.has(host)? options.valueOf(host) : defaultHost,
                     options.has(port)? options.valueOf(port) : defaultPort,
-                    store);
+                    store,
+                    options.has(secure) && options.valueOf(secure));
             if (!options.has(interval)) {
                 failoverClient.run();
             } else {

@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.segment.failover;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 
 import java.io.File;
@@ -28,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createT
 
 public class TestBase {
     int port = Integer.valueOf(System.getProperty("failover.server.port", "52808"));
+    final static String LOCALHOST = "127.0.0.1";
 
     File directoryS;
     FileStore storeS;
@@ -37,6 +39,12 @@ public class TestBase {
 
     File directoryC2;
     FileStore storeC2;
+
+    /*
+     Java 6 on Windows doesn't support dual IP stacks, so we will skip our IPv6
+     tests.
+    */
+    protected final boolean noDualStackSupport = SystemUtils.IS_OS_WINDOWS && SystemUtils.IS_JAVA_1_6;
 
     public void setUpServerAndClient() throws IOException {
         // server

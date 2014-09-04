@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,6 +49,7 @@ public class FailoverMultipleClientsTest extends TestBase {
         final FailoverServer server = new FailoverServer(port, storeS);
         server.start();
         SegmentTestUtils.addTestContent(store, "server");
+        storeS.flush();  // this speeds up the test a little bit...
 
         FailoverClient cl1 = new FailoverClient("127.0.0.1", port, storeC);
         FailoverClient cl2 = new FailoverClient("127.0.0.1", port, storeC2);
@@ -70,7 +70,7 @@ public class FailoverMultipleClientsTest extends TestBase {
             cl2.run();
 
             assertEquals(storeS.getHead(), storeC2.getHead());
-            Assert.assertFalse("first client updated in stopped state!", storeS.getHead().equals(storeC.getHead()));
+            assertFalse("first client updated in stopped state!", storeS.getHead().equals(storeC.getHead()));
 
             cl1.start();
             assertEquals(storeS.getHead(), storeC.getHead());

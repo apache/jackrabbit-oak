@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class CommunicationObserver {
+    private static final int MAX_CLIENT_STATISTICS = 10;
 
     private class CommunicationPartnerMBean implements ObservablePartnerMBean {
         private final ObjectName mbeanName;
@@ -45,6 +46,8 @@ public class CommunicationObserver {
         public Date lastSeen;
         public String remoteAddress;
         public int remotePort;
+        public long segmentsSent;
+        public long segmentBytesSent;
 
         public CommunicationPartnerMBean(String clientName) throws MalformedObjectNameException {
             this.clientName = clientName;
@@ -79,6 +82,16 @@ public class CommunicationObserver {
         public String getLastSeenTimestamp() {
             return this.lastSeen == null ? null : this.lastSeen.toString();
         }
+
+        @Override
+        public long getTransferredSegments() {
+            return this.segmentsSent;
+        }
+
+        @Override
+        public long getTransferredSegmentBytes() {
+            return this.segmentBytesSent;
+        }
     }
 
     private static final Logger log = LoggerFactory
@@ -92,22 +105,28 @@ public class CommunicationObserver {
         this.partnerDetails = new HashMap<String, CommunicationPartnerMBean>();
     }
 
-    public void unregister() {
+    private void unregister(CommunicationPartnerMBean m) {
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
+        try {
+            jmxServer.unregisterMBean(m.getMBeanName());
+        }
+        catch (Exception e) {
+            log.error("error unregistering mbean for client '" + m.getName() + "'", e);
+        }
+    }
+
+    public void unregister() {
         for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
-            try {
-                jmxServer.unregisterMBean(m.getMBeanName());
-            }
-            catch (Exception e) {
-                log.error("error unregistering mbean for client '" + m.getName() + "'", e);
-            }
+            unregister(m);
         }
     }
 
     public void gotMessageFrom(String client, String request, InetSocketAddress remote) throws MalformedObjectNameException {
+        log.debug("got message '" + request + "' from client " + client);
         CommunicationPartnerMBean m = this.partnerDetails.get(client);
         boolean register = false;
         if (m == null) {
+            cleanUp();
             m = new CommunicationPartnerMBean(client);
             m.remoteAddress = remote.getAddress().getHostAddress();
             m.remotePort = remote.getPort();
@@ -127,7 +146,35 @@ public class CommunicationObserver {
         }
     }
 
+    public void didSendSegmentBytes(String client, int size) {
+        log.debug("did send segment with " + size + " bytes to client " + client);
+        CommunicationPartnerMBean m = this.partnerDetails.get(client);
+        m.segmentsSent++;
+        m.segmentBytesSent += size;
+        this.partnerDetails.put(client, m);
+    }
+
     public String getID() {
         return this.identifier;
+    }
+
+    // helper
+
+    private void cleanUp() {
+        while (this.partnerDetails.size() >= MAX_CLIENT_STATISTICS) {
+            CommunicationPartnerMBean oldestEntry = oldestEntry();
+            if (oldestEntry == null) return;
+            log.info("housekeeping: removing statistics for " + oldestEntry.getName());
+            unregister(oldestEntry);
+            this.partnerDetails.remove(oldestEntry.getName());
+        }
+    }
+
+    private CommunicationPartnerMBean oldestEntry() {
+        CommunicationPartnerMBean ret = null;
+        for (CommunicationPartnerMBean m : this.partnerDetails.values()) {
+            if (ret == null || ret.lastSeen.after(m.lastSeen)) ret = m;
+        }
+        return ret;
     }
 }
