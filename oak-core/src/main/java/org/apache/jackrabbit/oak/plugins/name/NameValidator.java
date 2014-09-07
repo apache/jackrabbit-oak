@@ -79,7 +79,7 @@ class NameValidator extends DefaultValidator {
             for (String value : property.getValue(Type.PATHS)) {
                 for (String name: PathUtils.elements(value)) {
                     checkValidValue(name);
-                };
+                }
             }
         }
     }
