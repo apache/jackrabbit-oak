@@ -76,15 +76,6 @@ class NameValidator extends DefaultValidator {
             for (String value : property.getValue(NAMES)) {
                 checkValidValue(value);
             }
-<<<<<<< HEAD
-=======
-        } else if (Type.PATH.equals(property.getType()) || Type.PATHS.equals(property.getType())) {
-            for (String value : property.getValue(Type.PATHS)) {
-                for (String name: PathUtils.elements(value)) {
-                    checkValidValue(name);
-                }
-            }
->>>>>>> 399b34e... OAK-2078 Prevent null/empty passwords in ldap provider
         }
     }
 
