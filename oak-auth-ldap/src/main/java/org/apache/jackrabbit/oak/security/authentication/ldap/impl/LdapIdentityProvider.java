@@ -539,6 +539,12 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
         final SimpleCredentials creds = (SimpleCredentials) credentials;
         final ExternalUser user = getUser(creds.getUserID());
         if (user != null) {
+            // OAK-2078: check for non-empty passwords to avoid anonymous bind on weakly configured servers
+            // see http://tools.ietf.org/html/rfc4513#section-5.1.1 for details.
+            if (creds.getPassword().length == 0) {
+                throw new LoginException("Refusing to authenticate against LDAP server: Empty passwords allowed.");
+            }
+
             // authenticate
             LdapConnection connection = null;
             try {
