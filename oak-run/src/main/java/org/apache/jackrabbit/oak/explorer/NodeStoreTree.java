@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -191,35 +192,42 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
             sb.append("Properties (count: " + s.getPropertyCount() + ")");
             sb.append(newline);
+            Map<String, String> propLines=new TreeMap<String, String>();
             for (PropertyState ps : s.getProperties()) {
-                sb.append("  - " + ps.getName() + " = ");
+                StringBuilder l = new StringBuilder();
+                l.append("  - " + ps.getName() + " = ");
                 if (ps.getType().isArray()) {
-                    sb.append("[");
+                    l.append("[");
                     int count = ps.count();
                     for (int i = 0; i < Math.min(count, 10); i++) {
                         if (i > 0) {
-                            sb.append(",");
+                            l.append(",");
                         }
-                        sb.append(" " + ps.getValue(Type.STRING, i));
+                        l.append(" " + ps.getValue(Type.STRING, i));
                     }
                     if (count > 10) {
-                        sb.append(", ... (" + count + " values)");
+                        l.append(", ... (" + count + " values)");
                     }
-                    sb.append(" ]");
+                    l.append(" ]");
                 } else {
-                    sb.append(toString(ps, 0));
+                    l.append(toString(ps, 0));
                 }
                 if (ps instanceof SegmentPropertyState) {
                     RecordId rid = ((SegmentPropertyState) ps).getRecordId();
-                    sb.append(" (" + rid);
+                    l.append(" (" + rid);
                     String f = getFile(rid);
                     if (!f.equals(file)) {
-                        sb.append(" in " + f);
+                        l.append(" in " + f);
                     }
-                    sb.append(")");
+                    l.append(")");
                 } else {
-                    sb.append(" (" + ps.getClass().getSimpleName() + ")");
+                    l.append(" (" + ps.getClass().getSimpleName() + ")");
                 }
+                propLines.put(ps.getName(), l.toString());
+            }
+
+            for (String l : propLines.values()) {
+                sb.append(l);
                 sb.append(newline);
             }
 
