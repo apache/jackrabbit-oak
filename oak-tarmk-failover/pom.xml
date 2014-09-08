@@ -86,6 +86,12 @@
             combine.children="append">
             <failover.server.port>${failover.server.port}</failover.server.port>
           </systemPropertyVariables>
+          <excludes>
+            <!-- excluding long running tests -->
+            <exclude>**/BrokenNetworkTest.java</exclude>
+            <exclude>**/FailoverIPRangeTest.java</exclude>
+            <exclude>**/BulkTest.java</exclude>
+          </excludes>
         </configuration>
       </plugin>
     </plugins>
