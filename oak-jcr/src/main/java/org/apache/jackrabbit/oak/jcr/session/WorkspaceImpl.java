@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr.session;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.jcr.session.SessionImpl.checkIndexOnName;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 import java.io.IOException;
@@ -149,7 +150,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
                 sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
                 sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
-                SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
+                checkIndexOnName(destAbsPath);
 
                 workspaceDelegate.copy(srcOakPath, destOakPath);
                 return null;
@@ -189,7 +190,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         sessionDelegate.checkProtectedNode(getParentPath(srcOakPath));
         sessionDelegate.checkProtectedNode(getParentPath(destOakPath));
 
-        SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
+        checkIndexOnName(destAbsPath);
         sessionDelegate.move(srcOakPath, destOakPath, false);
     }
 

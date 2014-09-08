@@ -16,10 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -28,15 +34,10 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Test for {@code ImmutableACL}
@@ -58,7 +59,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     @Override
     protected ImmutableACL createACL(String jcrPath, List<ACE> entries,
                                      NamePathMapper namePathMapper, RestrictionProvider restrictionProvider) {
-        String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
+        String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
     }
 

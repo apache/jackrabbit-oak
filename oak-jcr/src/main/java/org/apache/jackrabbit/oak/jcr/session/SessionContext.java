@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newTreeSet;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -65,10 +70,6 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.apache.jackrabbit.oak.stats.StatisticManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newTreeSet;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -306,12 +307,6 @@ public class SessionContext implements NamePathMapper {
     }
 
     @Override
-    @CheckForNull
-    public String getOakPathKeepIndex(String jcrPath) {
-        return namePathMapper.getOakPathKeepIndex(jcrPath);
-    }
-
-    @Override
     @Nonnull
     public String getJcrPath(String oakPath) {
         return namePathMapper.getJcrPath(oakPath);
@@ -331,13 +326,7 @@ public class SessionContext implements NamePathMapper {
         if (oakPath != null) {
             return oakPath;
         } else {
-            // check if the path is an SNS path with an index > 1 and throw a PathNotFoundException instead (see OAK-1216)
-            if (getOakPathKeepIndex(jcrPath) != null) {
-                throw new PathNotFoundException(jcrPath);
-            } else {
-                throw new RepositoryException("Invalid name or path: " + jcrPath);
-            }
-
+            throw new RepositoryException("Invalid name or path: " + jcrPath);
         }
     }
 

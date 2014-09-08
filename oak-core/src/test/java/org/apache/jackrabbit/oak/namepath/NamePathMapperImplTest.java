@@ -16,20 +16,21 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
 
@@ -97,30 +98,7 @@ public class NamePathMapperImplTest {
         assertEquals("foobar/oak-jcr:content", npMapper.getOakPath("foobar/./{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("oak-jcr:content", npMapper.getOakPath("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
         assertEquals("/a/b/c", npMapper.getOakPath("/a/b[1]/c[01]"));
-    }
-
-    @Test
-    public void testJcrToOakKeepIndex() {
-        assertEquals("/", npMapper.getOakPathKeepIndex("/"));
-        assertEquals("foo", npMapper.getOakPathKeepIndex("{}foo"));
-        assertEquals("/oak-foo:bar", npMapper.getOakPathKeepIndex("/foo:bar"));
-        assertEquals("/oak-foo:bar/oak-quu:qux", npMapper.getOakPathKeepIndex("/foo:bar/quu:qux"));
-        assertEquals("oak-foo:bar", npMapper.getOakPathKeepIndex("foo:bar"));
-        assertEquals("oak-nt:unstructured", npMapper.getOakPathKeepIndex("{http://www.jcp.org/jcr/nt/1.0}unstructured"));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("foobar", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/.."));
-        assertEquals("", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../.."));
-        assertEquals("..", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../../.."));
-        assertEquals("../..", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/../../../.."));
-        assertEquals("oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("../oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/../../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("..", npMapper.getOakPathKeepIndex(".."));
-        assertEquals("", npMapper.getOakPathKeepIndex("."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/{http://www.jcp.org/jcr/1.0}content/./."));
-        assertEquals("foobar/oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/./{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("oak-jcr:content", npMapper.getOakPathKeepIndex("foobar/./../{http://www.jcp.org/jcr/1.0}content"));
-        assertEquals("/a/b[1]/c[1]", npMapper.getOakPathKeepIndex("/a/b[1]/c[01]"));
+        assertEquals("/a/b[2]/c[3]", npMapper.getOakPath("/a[1]/b[2]/c[03]"));
     }
 
     @Test
@@ -128,10 +106,10 @@ public class NamePathMapperImplTest {
         NameMapper mapper = new GlobalNameMapper(GLOBAL);
         NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
-        assertEquals("/", npMapper.getOakPathKeepIndex("/"));
-        assertEquals("/foo:bar", npMapper.getOakPathKeepIndex("/foo:bar"));
-        assertEquals("/foo:bar/quu:qux", npMapper.getOakPathKeepIndex("/foo:bar/quu:qux"));
-        assertEquals("foo:bar", npMapper.getOakPathKeepIndex("foo:bar"));
+        assertEquals("/", npMapper.getOakPath("/"));
+        assertEquals("/foo:bar", npMapper.getOakPath("/foo:bar"));
+        assertEquals("/foo:bar/quu:qux", npMapper.getOakPath("/foo:bar/quu:qux"));
+        assertEquals("foo:bar", npMapper.getOakPath("foo:bar"));
     }
 
     @Test

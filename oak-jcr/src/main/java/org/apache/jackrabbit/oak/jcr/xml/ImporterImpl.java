@@ -132,7 +132,7 @@ public class ImporterImpl implements Importer {
                         Root root,
                         int uuidBehavior,
                         boolean isWorkspaceImport) throws RepositoryException {
-        String oakPath = sessionContext.getOakPathKeepIndex(absPath);
+        String oakPath = sessionContext.getOakPath(absPath);
         if (oakPath == null) {
             throw new RepositoryException("Invalid name or path: " + absPath);
         }

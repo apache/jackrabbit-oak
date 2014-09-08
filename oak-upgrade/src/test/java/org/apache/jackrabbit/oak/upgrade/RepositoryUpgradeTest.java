@@ -68,6 +68,7 @@ import java.util.Set;
 import javax.jcr.Binary;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.PropertyType;
@@ -86,6 +87,7 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -156,6 +158,11 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             Node child = versionable.addNode("child", "test:referenceable");
             child.addNode("child2", NT_UNSTRUCTURED);
             session.save();
+
+            Node sns = root.addNode("sns");
+            sns.addNode("sibling");
+            sns.addNode("sibling");
+            sns.addNode("sibling");
 
             session.getWorkspace().getVersionManager().checkin("/versionable");
 
@@ -541,6 +548,25 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertTrue(history.isNodeType("rep:VersionablePaths"));
             Property versionablePath = history.getProperty("default");
             assertEquals("/versionable", versionablePath.getString());
+        } finally {
+            session.logout();
+        }
+    }
+
+    @Test
+    public void verifySNS() throws RepositoryException {
+        Set<String> nodeNames = Sets.newHashSet("sibling", "sibling[2]", "sibling[3]");
+        Session session = createAdminSession();
+        try {
+            Node sns = session.getNode("/sns");
+            NodeIterator ns = sns.getNodes();
+            int c = 0;
+            while (ns.hasNext()) {
+                Node node = ns.nextNode();
+                String name = node.getName();
+                assertTrue("Unexpected node: " + name, nodeNames.remove(name));
+            }
+            assertTrue("Missing nodes: " + nodeNames, nodeNames.isEmpty());
         } finally {
             session.logout();
         }

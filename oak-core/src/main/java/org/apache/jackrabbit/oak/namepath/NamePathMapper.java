@@ -62,11 +62,6 @@ public interface NamePathMapper extends NameMapper, PathMapper {
             return jcrPath;
         }
 
-        @Override
-        public String getOakPathKeepIndex(String jcrPath) {
-            return jcrPath;
-        }
-
         @Nonnull
         @Override
         public String getJcrPath(String oakPath) {

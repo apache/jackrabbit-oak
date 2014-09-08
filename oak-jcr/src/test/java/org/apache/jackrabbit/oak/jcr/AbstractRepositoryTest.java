@@ -102,14 +102,18 @@ public abstract class AbstractRepositoryTest {
         }
     }
 
-    protected Repository getRepository() {
+    protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            nodeStore = fixture.createNodeStore();
+            nodeStore = createNodeStore(fixture);
             repository  = new Jcr(nodeStore)
                     .withObservationQueueLength(observationQueueLength)
                     .createRepository();
         }
         return repository;
+    }
+
+    protected NodeStore createNodeStore(NodeStoreFixture fixture) throws RepositoryException {
+        return fixture.createNodeStore();
     }
 
     protected Session getAdminSession() throws RepositoryException {

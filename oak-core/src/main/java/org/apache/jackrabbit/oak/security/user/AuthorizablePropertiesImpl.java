@@ -302,7 +302,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         if (relPath == null || relPath.isEmpty() || relPath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relPath);
         }
-        String oakPath = namePathMapper.getOakPathKeepIndex(relPath);
+        String oakPath = namePathMapper.getOakPath(relPath);
         if (oakPath == null) {
             throw new RepositoryException("Failed to resolve relative path: " + relPath);
         }

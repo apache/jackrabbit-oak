@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.jcr.session.SessionImpl.checkIndexOnName;
 import static org.apache.jackrabbit.oak.util.TreeUtil.getNames;
 
 import java.io.InputStream;
@@ -249,7 +250,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             oakTypeName = null;
         }
 
-        SessionImpl.checkIndexOnName(sessionContext, relPath);
+        checkIndexOnName(relPath);
         return perform(new ItemWriteOperation<Node>("addNode") {
             @Override
             public Node perform() throws RepositoryException {
