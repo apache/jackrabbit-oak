@@ -91,11 +91,23 @@ public class SessionImpl implements JackrabbitSession {
         sessionContext.getCounter(Type.SESSION_LOGIN_COUNTER).incrementAndGet();
     }
 
-    static void checkIndexOnName(SessionContext sessionContext, String path) throws RepositoryException {
-        String oakPath = sessionContext.getOakPathKeepIndex(path);
-        if (oakPath != null) {
-            if (PathUtils.getName(oakPath).contains("[")) {
+    static void checkIndexOnName(String jcrPath) throws RepositoryException {
+        int pos = jcrPath.length() - 1;
+        if (pos < 2 || jcrPath.charAt(pos) != ']') {
+            return;
+        }
+
+        if ("0123456789".indexOf(jcrPath.charAt(--pos)) == -1) {
+            return;
+        }
+
+        while (--pos >= 0) {
+            char ch = jcrPath.charAt(pos);
+            if (ch == '[') {
                 throw new RepositoryException("Cannot create a new node using a name including an index");
+            }
+            if ("0123456789".indexOf(ch) == -1) {
+                return;
             }
         }
     }
@@ -368,7 +380,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void move(String srcAbsPath, final String destAbsPath) throws RepositoryException {
-        checkIndexOnName(sessionContext, destAbsPath);
+        checkIndexOnName(destAbsPath);
         final String srcOakPath = getOakPathOrThrowNotFound(srcAbsPath);
         final String destOakPath = getOakPathOrThrowNotFound(destAbsPath);
         sd.perform(new WriteOperation<Void>("move") {

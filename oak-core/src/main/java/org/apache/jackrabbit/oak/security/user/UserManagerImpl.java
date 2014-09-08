@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -56,8 +59,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * UserManagerImpl...
@@ -117,7 +118,7 @@ public class UserManagerImpl implements UserManager {
 
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
-        String oakPath = namePathMapper.getOakPathKeepIndex(path);
+        String oakPath = namePathMapper.getOakPath(path);
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
         }
@@ -152,7 +153,7 @@ public class UserManagerImpl implements UserManager {
         checkValidPrincipal(principal, false);
 
         if (intermediatePath != null) {
-            intermediatePath = namePathMapper.getOakPathKeepIndex(intermediatePath);
+            intermediatePath = namePathMapper.getOakPath(intermediatePath);
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
@@ -204,7 +205,7 @@ public class UserManagerImpl implements UserManager {
         checkValidPrincipal(principal, true);
 
         if (intermediatePath != null) {
-            intermediatePath = namePathMapper.getOakPathKeepIndex(intermediatePath);
+            intermediatePath = namePathMapper.getOakPath(intermediatePath);
         }
         Tree groupTree = userProvider.createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);

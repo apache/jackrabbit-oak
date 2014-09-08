@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.ArrayList;
@@ -25,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
@@ -62,13 +70,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 /**
  * Test abstract {@code ACL} implementation.
  */
@@ -99,7 +100,7 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
                                                   @Nonnull List<ACE> entries,
                                                   @Nonnull NamePathMapper namePathMapper,
                                                   final @Nonnull RestrictionProvider restrictionProvider) {
-        String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
+        String path = (jcrPath == null) ? null : namePathMapper.getOakPath(jcrPath);
         return new ACL(path, entries, namePathMapper) {
             @Override
             public RestrictionProvider getRestrictionProvider() {

@@ -148,7 +148,7 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
         if (jcrPath == null) {
             return null;
         } else {
-            String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
+            String oakPath = namePathMapper.getOakPath(jcrPath);
             if (oakPath == null || !PathUtils.isAbsolute(oakPath)) {
                 throw new RepositoryException("Failed to resolve JCR path " + jcrPath);
             }

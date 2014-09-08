@@ -41,15 +41,6 @@ public interface PathMapper {
     String getOakPath(String jcrPath);
 
     /**
-     * As {@link #getOakPath(String)}, but preserving the index information
-     *
-     * @param jcrPath JCR path
-     * @return mapped path, or {@code null}
-     */
-    @CheckForNull
-    String getOakPathKeepIndex(String jcrPath);
-
-    /**
      * Returns the JCR path for the given Oak path. The given path is
      * expected to have come from a valid Oak repository that contains
      * only valid paths whose name elements only use proper namespace
