@@ -329,6 +329,34 @@ public class LargeOperationIT {
         assertOnLgn("large move", scales, executionTimes, knownIssue);
     }
 
+    @Test
+    public void largeRemove() throws RepositoryException, InterruptedException {
+        final Node n = session.getRootNode().addNode("large-remove", "oak:Unstructured");
+        final ContentGenerator contentGenerator = new ContentGenerator(1000);
+
+        ArrayList<Double> executionTimes = Lists.newArrayList();
+        for (int scale : scales) {
+            ScalabilityTest test = new ScalabilityTest(scale) {
+                @Override
+                void before(int scale) throws RepositoryException {
+                    Node s = n.addNode("s" + scale);
+                    contentGenerator.addNodes(s, scale);
+                }
+
+                @Override
+                void run(int scale) throws RepositoryException {
+                    session.getNode("/large-remove/s" + scale).remove();
+                    session.save();
+                }
+            };
+            double t = test.run();
+            executionTimes.add(t);
+            LOG.info("Removing {} node took {} ns/node", scale, t);
+        }
+        boolean knownIssue = fixture.getClass() == DocumentFixture.class;  // FIXME OAK-1698
+        assertOnLgn("large remove", scales, executionTimes, knownIssue);
+    }
+
     /**
      * Assert adding siblings scales linearly with the number of already existing siblings.
      * @throws RepositoryException
