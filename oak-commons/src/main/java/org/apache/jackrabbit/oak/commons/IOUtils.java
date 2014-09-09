@@ -346,4 +346,21 @@ public final class IOUtils {
         }
         return count;
     }
+
+    /**
+     * Returns a human-readable version of the file size, where the input represents
+     * a specific number of bytes. Based on http://stackoverflow.com/a/3758880/1035417
+     */
+    public static String humanReadableByteCount(long bytes) {
+        if (bytes < 0) {
+            return "0";
+        }
+        int unit = 1000;
+        if (bytes < unit) {
+            return bytes + " B";
+        }
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        char pre = "kMGTPE".charAt(exp - 1);
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
 }
