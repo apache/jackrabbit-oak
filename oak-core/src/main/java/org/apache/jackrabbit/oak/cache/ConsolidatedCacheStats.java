@@ -43,8 +43,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.osgi.framework.BundleContext;
 
-import static org.apache.jackrabbit.oak.cache.CacheStats.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.cache.CacheStats.timeInWords;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @Component
@@ -168,8 +168,8 @@ public class ConsolidatedCacheStats implements ConsolidatedCacheStatsMBean {
                     TimeUnit.NANOSECONDS.toMillis((long) stats.getAverageLoadPenalty()) + "ms",
                     stats.getEvictionCount(),
                     stats.getElementCount(),
-                    humanReadableByteCount(stats.estimateCurrentWeight(), true),
-                    humanReadableByteCount(stats.getMaxTotalWeight(), true),
+                    humanReadableByteCount(stats.estimateCurrentWeight()),
+                    humanReadableByteCount(stats.getMaxTotalWeight()),
             };
             try {
                 return new CompositeDataSupport(TYPE, FIELD_NAMES, values);

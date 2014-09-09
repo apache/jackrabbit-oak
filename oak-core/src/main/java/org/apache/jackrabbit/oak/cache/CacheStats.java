@@ -26,6 +26,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.Weigher;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 /**
  * Cache statistics.
  */
@@ -153,8 +155,8 @@ public class CacheStats implements CacheStatsMBean {
                 .add("averageLoadPenalty (nanos)", String.format("%1.2f", getAverageLoadPenalty()))
                 .add("evictionCount", getEvictionCount())
                 .add("elementCount", getElementCount())
-                .add("totalWeight", humanReadableByteCount(estimateCurrentWeight(), true))
-                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight(), true))
+                .add("totalWeight", humanReadableByteCount(estimateCurrentWeight()))
+                .add("maxWeight", humanReadableByteCount(getMaxTotalWeight()))
                 .toString();
     }
 
@@ -173,21 +175,5 @@ public class CacheStats implements CacheStatsMBean {
                 TimeUnit.MILLISECONDS.toSeconds(millis) -
                         TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))
         );
-    }
-
-    /**
-     * Based on http://stackoverflow.com/a/3758880/1035417
-     */
-    static String humanReadableByteCount(long bytes, boolean si) {
-        if (bytes < 0) {
-            return "0";
-        }
-        int unit = si ? 1000 : 1024;
-        if (bytes < unit) {
-            return bytes + " B";
-        }
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }
