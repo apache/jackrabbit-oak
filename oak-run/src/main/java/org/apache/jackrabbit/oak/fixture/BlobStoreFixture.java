@@ -72,12 +72,15 @@ public abstract class BlobStoreFixture implements Closeable{
         if (className != null) {
             return getDataStore();
         }
+
+        if(basedir == null){
+            basedir = FileUtils.getTempDirectory();
+        }
+
         String blobStore = System.getProperty("blobStoreType");
-        if ("FDS".equals(blobStore) || fallbackToFDS) {
-            checkNotNull(basedir, "Base directory must be specified for File based BlobStores");
+        if ("FDS".equals(blobStore) || (blobStore == null && fallbackToFDS)) {
             return getFileDataStore(basedir, DataStoreBlobStore.DEFAULT_CACHE_SIZE);
         } else if ("FBS".equals(blobStore)) {
-            checkNotNull(basedir, "Base directory must be specified for File based BlobStores");
             return getFileBlobStore(basedir);
         } else if ("MEM".equals(blobStore)) {
             return getMemoryBlobStore();
