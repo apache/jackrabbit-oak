@@ -70,6 +70,10 @@ public class BenchmarkRunner {
         OptionSpec<File> wikipedia = parser
                 .accepts("wikipedia", "Wikipedia dump").withRequiredArg()
                 .ofType(File.class);
+        OptionSpec<Boolean> luceneIndexOnFS = parser
+                .accepts("luceneIndexOnFS", "Store Lucene index on file system")
+                .withOptionalArg()
+                .ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Boolean> withStorage = parser
                 .accepts("storage", "Index storage enabled").withOptionalArg()
                 .ofType(Boolean.class);
@@ -184,6 +188,9 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options)),
+            new RepositoryGrowthTest(wikipedia.value(options),
+                    base.value(options),
+                    luceneIndexOnFS.value(options)),
             new CreateNodesBenchmark(),
             new ManyNodes(),
             new ObservationTest(),

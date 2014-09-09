@@ -126,4 +126,8 @@ public class OakRepositoryFixture implements RepositoryFixture {
     public String toString() {
         return oakFixture.toString();
     }
+
+    public OakFixture getOakFixture() {
+        return oakFixture;
+    }
 }

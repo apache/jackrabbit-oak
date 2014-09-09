@@ -333,57 +333,82 @@ public abstract class OakFixture {
     public static OakFixture getTar(
             final String name, final File base, final int maxFileSizeMB, final int cacheSizeMB,
             final boolean memoryMapping, final boolean useBlobStore) {
-        return new OakFixture(name) {
-            private SegmentStore[] stores;
-            private BlobStoreFixture[] blobStoreFixtures = new BlobStoreFixture[0];
+        return new SegmentFixture(name, base, maxFileSizeMB, cacheSizeMB, memoryMapping, useBlobStore);
+    }
 
-            @Override
-            public MicroKernel getMicroKernel() throws Exception {
-                FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
-                return new NodeStoreKernel(new SegmentNodeStore(fs));
+    public static class SegmentFixture extends OakFixture {
+        private FileStore[] stores;
+        private BlobStoreFixture[] blobStoreFixtures = new BlobStoreFixture[0];
+        private final File base;
+        private final int maxFileSizeMB;
+        private final int cacheSizeMB;
+        private final boolean memoryMapping;
+        private final boolean useBlobStore;
+
+        public SegmentFixture(String name, File base, int maxFileSizeMB, int cacheSizeMB,
+                              boolean memoryMapping, boolean useBlobStore) {
+            super(name);
+            this.base = base;
+            this.maxFileSizeMB = maxFileSizeMB;
+            this.cacheSizeMB = cacheSizeMB;
+            this.memoryMapping = memoryMapping;
+            this.useBlobStore = useBlobStore;
+        }
+
+        @Override
+        public MicroKernel getMicroKernel() throws Exception {
+            FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
+            return new NodeStoreKernel(new SegmentNodeStore(fs));
+        }
+
+        @Override
+        public Oak getOak(int clusterId) throws Exception {
+            FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
+            return new Oak(new SegmentNodeStore(fs));
+        }
+
+        @Override
+        public Oak[] setUpCluster(int n) throws Exception {
+            Oak[] cluster = new Oak[n];
+            stores = new FileStore[cluster.length];
+            if (useBlobStore) {
+                blobStoreFixtures = new BlobStoreFixture[cluster.length];
             }
 
-            @Override
-            public Oak getOak(int clusterId) throws Exception {
-                FileStore fs = new FileStore(base, maxFileSizeMB, cacheSizeMB, memoryMapping);
-                return new Oak(new SegmentNodeStore(fs));
-            }
-
-            @Override
-            public Oak[] setUpCluster(int n) throws Exception {
-                Oak[] cluster = new Oak[n];
-                stores = new FileStore[cluster.length];
+            for (int i = 0; i < cluster.length; i++) {
+                BlobStore blobStore = null;
                 if (useBlobStore) {
-                    blobStoreFixtures = new BlobStoreFixture[cluster.length];
+                    blobStoreFixtures[i] = BlobStoreFixture.create(base, true);
+                    blobStore = blobStoreFixtures[i].setUp();
                 }
 
-                for (int i = 0; i < cluster.length; i++) {
-                    BlobStore blobStore = null;
-                    if (useBlobStore) {
-                        blobStoreFixtures[i] = BlobStoreFixture.create(base, true);
-                        blobStore = blobStoreFixtures[i].setUp();
-                    }
-
-                    stores[i] = new FileStore(blobStore,
-                            new File(base, unique),
-                            EmptyNodeState.EMPTY_NODE,
-                            maxFileSizeMB, cacheSizeMB, memoryMapping);
-                    cluster[i] = new Oak(new SegmentNodeStore(stores[i]));
-                }
-                return cluster;
+                stores[i] = new FileStore(blobStore,
+                        new File(base, unique),
+                        EmptyNodeState.EMPTY_NODE,
+                        maxFileSizeMB, cacheSizeMB, memoryMapping);
+                cluster[i] = new Oak(new SegmentNodeStore(stores[i]));
             }
+            return cluster;
+        }
 
-            @Override
-            public void tearDownCluster() {
-                for (SegmentStore store : stores) {
-                    store.close();
-                }
-                for (BlobStoreFixture blobStore : blobStoreFixtures) {
-                    blobStore.tearDown();
-                }
-                FileUtils.deleteQuietly(new File(base, unique));
+        @Override
+        public void tearDownCluster() {
+            for (SegmentStore store : stores) {
+                store.close();
             }
-        };
+            for (BlobStoreFixture blobStore : blobStoreFixtures) {
+                blobStore.tearDown();
+            }
+            FileUtils.deleteQuietly(new File(base, unique));
+        }
+
+        public BlobStoreFixture[] getBlobStoreFixtures() {
+            return blobStoreFixtures;
+        }
+
+        public FileStore[] getStores() {
+            return stores;
+        }
     }
 
 }
