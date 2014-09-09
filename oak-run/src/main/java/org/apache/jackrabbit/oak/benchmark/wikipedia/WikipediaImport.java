@@ -22,6 +22,7 @@ import static java.lang.Math.min;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -62,11 +63,11 @@ public class WikipediaImport extends Benchmark {
                     System.out.format(
                             "%s: Wikipedia import benchmark%n", fixture);
                     try {
-                        Repository[] cluster = fixture.setUpCluster(1);
+                        Repository[] cluster = setupCluster(fixture);
                         try {
                             run(cluster[0]);
                         } finally {
-                            fixture.tearDownCluster();
+                            tearDown(fixture);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -80,6 +81,14 @@ public class WikipediaImport extends Benchmark {
                     "Missing Wikipedia dump %s, skipping import benchmark.%n",
                     dump.getPath());
         }
+    }
+
+    protected void tearDown(RepositoryFixture fixture) throws IOException{
+        fixture.tearDownCluster();
+    }
+
+    protected Repository[] setupCluster(RepositoryFixture fixture) throws Exception {
+        return fixture.setUpCluster(1);
     }
 
     private void run(Repository repository) throws Exception {
@@ -158,15 +167,7 @@ public class WikipediaImport extends Benchmark {
                     code += text.hashCode();
                     count++;
                     if (count % 1000 == 0) {
-                        if (!flat) {
-                            session.save();
-                        }
-                        if (doReport) {
-                            long millis = System.currentTimeMillis() - start;
-                            System.out.format(
-                                    "Added %d pages in %d seconds (%.2fms/page)%n",
-                                    count, millis / 1000, (double) millis / count);
-                        }
+                        batchDone(session, start, count);
                     }
 
                     pageAdded(title, text);
@@ -185,6 +186,18 @@ public class WikipediaImport extends Benchmark {
         }
 
         return code;
+    }
+
+    protected void batchDone(Session session, long start, int count) throws RepositoryException {
+        if (!flat) {
+            session.save();
+        }
+        if (doReport) {
+            long millis = System.currentTimeMillis() - start;
+            System.out.format(
+                    "Added %d pages in %d seconds (%.2fms/page)%n",
+                    count, millis / 1000, (double) millis / count);
+        }
     }
 
     protected void pageAdded(String title, String text) {
