@@ -157,17 +157,12 @@ public abstract class OakFixture {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStoreFixture blobStoreFixture;
-            private BlobStore blobStore;
 
             {
                 if (useFileDataStore) {
                     blobStoreFixture = BlobStoreFixture.getFileDataStore(base, fdsCacheInMB);
                 } else {
                     blobStoreFixture = BlobStoreFixture.create(base, false);
-                }
-
-                if (blobStoreFixture != null) {
-                    blobStore = blobStoreFixture.setUp();
                 }
             }
 
@@ -178,9 +173,7 @@ public abstract class OakFixture {
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
                         setLogging(false);
-                if (blobStore != null) {
-                    mkBuilder.setBlobStore(blobStore);
-                }
+                setupBlobStore(mkBuilder);
                 return mkBuilder.open();
             }
 
@@ -191,9 +184,7 @@ public abstract class OakFixture {
                         setMongoDB(mongo.getDB()).
                         memoryCacheSize(cacheSize).
                         setClusterId(clusterId).setLogging(false);
-                if (blobStore != null) {
-                    mkBuilder.setBlobStore(blobStore);
-                }
+                setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
                 Oak oak;
                 if (useMk) {
@@ -214,9 +205,7 @@ public abstract class OakFixture {
                             setMongoDB(mongo.getDB()).
                             memoryCacheSize(cacheSize).
                             setClusterId(i).setLogging(false);
-                    if (blobStore != null) {
-                        mkBuilder.setBlobStore(blobStore);
-                    }
+                    setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
                     Oak oak;
                     if (useMk) {
@@ -246,6 +235,12 @@ public abstract class OakFixture {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
+                }
+            }
+
+            private void setupBlobStore(DocumentMK.Builder mkBuilder) {
+                if (blobStoreFixture != null) {
+                    mkBuilder.setBlobStore(blobStoreFixture.setUp());
                 }
             }
         };
