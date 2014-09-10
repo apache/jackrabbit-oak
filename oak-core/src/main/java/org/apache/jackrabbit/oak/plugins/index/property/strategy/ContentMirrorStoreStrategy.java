@@ -121,7 +121,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                PathIterator it = new PathIterator(filter, indexName);
+                PathIterator it = new PathIterator(filter, indexName, "");
                 if (values == null) {
                     it.setPathContainsValue(true);
                     it.enqueue(getChildNodeEntries(index).iterator());
@@ -157,7 +157,17 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         return count(indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
+    @Override
+    public long count(final Filter filter, NodeState indexMeta, Set<String> values, int max) {
+        return count(filter, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+    }
+
     public long count(NodeState indexMeta, final String indexStorageNodeName,
+            Set<String> values, int max) {
+        return count(null, indexMeta, indexStorageNodeName, values, max);
+    }
+
+    public long count(Filter filter, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         int count = 0;
@@ -196,6 +206,11 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             max = Math.max(10, max / size);
             int i = 0;
+            String filterRootPath = null;
+            if (filter != null &&
+                    filter.getPathRestriction().equals(Filter.PathRestriction.ALL_CHILDREN)) {
+                filterRootPath = filter.getPath();
+            }
             for (String p : values) {
                 if (count > max && i > 3) {
                     // the total count is extrapolated from the the number 
@@ -204,6 +219,16 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     break;
                 }
                 NodeState s = index.getChildNode(p);
+                if (filterRootPath != null && s.exists()) {
+                    // Descend directly to path restriction inside index tree
+                    for (String pathFragment : PathUtils
+                            .elements(filterRootPath)) {
+                        s = s.getChildNode(pathFragment);
+                        if (!s.exists()) {
+                            break;
+                        }
+                    }
+                }
                 if (s.exists()) {
                     CountingNodeVisitor v = new CountingNodeVisitor(max);
                     v.visit(s);
@@ -227,6 +252,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private int readCount;
         private boolean init;
         private boolean closed;
+        private String filterPath;
+        private String pathPrefix;
         private String parentPath;
         private String currentPath;
         private boolean pathContainsValue;
@@ -237,9 +264,19 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private final Set<String> knownPaths = Sets.newHashSet();
         private final long maxMemoryEntries;
 
-        PathIterator(Filter filter, String indexName) {
+        PathIterator(Filter filter, String indexName, String pathPrefix) {
             this.filter = filter;
+            this.pathPrefix = pathPrefix;
             this.indexName = indexName;
+            boolean shouldDescendDirectly = filter.getPathRestriction().equals(Filter.PathRestriction.ALL_CHILDREN);
+            if (shouldDescendDirectly) {            
+                filterPath = filter.getPath();
+                if (PathUtils.denotesRoot(filterPath)) {
+                    filterPath = "";
+                }
+            } else {
+                filterPath = "";
+            }            
             parentPath = "";
             currentPath = "/";
             this.maxMemoryEntries = filter.getQueryEngineSettings().getLimitInMemory();
@@ -305,6 +342,25 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     }
                     currentPath = PathUtils.concat(parentPath, name);
 
+                    if (!"".equals(filterPath)) {
+                        String p = currentPath;
+                        if (pathContainsValue) {
+                            String value = PathUtils.elements(p).iterator().next();
+                            p = PathUtils.relativize(value, p);                        
+                        }
+                        if ("".equals(pathPrefix)) {
+                            p = PathUtils.concat("/", p);
+                        } else {
+                            p = PathUtils.concat(pathPrefix, p);
+                        }
+                        if (!"".equals(p) && 
+                                !p.equals(filterPath) && 
+                                !PathUtils.isAncestor(p, filterPath) && 
+                                !PathUtils.isAncestor(filterPath, p)) {
+                            continue;
+                        }
+                    }
+
                     nodeIterators.addLast(node.getChildNodeEntries().iterator());
                     parentPath = currentPath;
 
@@ -330,7 +386,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 fetchNext();
                 init = true;
             }
-            String result = currentPath;
+            String result = PathUtils.concat(pathPrefix, currentPath);
             fetchNext();
             return result;
         }

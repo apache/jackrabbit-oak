@@ -135,7 +135,7 @@ public class PropertyIndexPlan {
 
                 if (restriction != null) {
                     Set<String> values = getValues(restriction);
-                    double cost = strategy.count(definition, values, MAX_COST);
+                    double cost = strategy.count(filter, definition, values, MAX_COST);
                     if (cost < bestCost) {
                         bestDepth = depth;
                         bestValues = values;
@@ -152,7 +152,7 @@ public class PropertyIndexPlan {
                 if (constraint instanceof OrImpl) {
                     Set<String> values = findMultiProperty((OrImpl) constraint);
                     if (values != null) {
-                        double cost = strategy.count(definition, values, MAX_COST);
+                        double cost = strategy.count(filter, definition, values, MAX_COST);
                         if (cost < bestCost) {
                             bestDepth = 1;
                             bestValues = values;
@@ -208,7 +208,7 @@ public class PropertyIndexPlan {
         }
     }
 
-    private Set<String> getValues(PropertyRestriction restriction) {
+    private static Set<String> getValues(PropertyRestriction restriction) {
         if (restriction.firstIncluding
                 && restriction.lastIncluding
                 && restriction.first != null
@@ -249,6 +249,7 @@ public class PropertyIndexPlan {
 
     //------------------------------------------------------------< Object >--
 
+    @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder("property ");
         buffer.append(name);
