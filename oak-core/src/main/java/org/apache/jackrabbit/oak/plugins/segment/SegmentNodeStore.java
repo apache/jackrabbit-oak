@@ -236,6 +236,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
                     NodeBuilder cp = checkpoints.child(name);
                     cp.setProperty("timestamp",  now + lifetime);
+                    cp.setProperty("created", now);
                     cp.setChildNode(ROOT, state.getChildNode(ROOT));
 
                     SegmentNodeState newState = builder.getNodeState();
