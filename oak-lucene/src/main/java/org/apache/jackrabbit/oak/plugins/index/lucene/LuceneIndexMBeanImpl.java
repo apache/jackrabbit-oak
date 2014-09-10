@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements LuceneIndexMBean {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -162,7 +163,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             maxDoc = indexReader.maxDoc();
             numDeletedDocs = indexReader.numDeletedDocs();
             indexSize = dirSize(getDirectory(indexReader));
-            indexSizeStr = humanReadableByteCount(indexSize, true);
+            indexSizeStr = humanReadableByteCount(indexSize);
         }
 
         CompositeDataSupport toCompositeData() {
@@ -201,21 +202,5 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             totalFileSize += directory.fileLength(file);
         }
         return totalFileSize;
-    }
-
-    /**
-     * Based on http://stackoverflow.com/a/3758880/1035417
-     */
-    private static String humanReadableByteCount(long bytes, boolean si) {
-        if (bytes < 0) {
-            return "0";
-        }
-        int unit = si ? 1000 : 1024;
-        if (bytes < unit) {
-            return bytes + " B";
-        }
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }
