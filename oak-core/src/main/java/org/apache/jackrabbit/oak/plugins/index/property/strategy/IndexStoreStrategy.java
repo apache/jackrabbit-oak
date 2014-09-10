@@ -43,7 +43,7 @@ public interface IndexStoreStrategy {
     /**
      * Search for a given set of values.
      * 
-     * @param filter the filter (used for logging)
+     * @param filter the filter (can optionally be used for optimized query execution)
      * @param indexName the name of the index (for logging)
      * @param indexMeta the index metadata node (may not be null)
      * @param values values to look for (null to check for property existence)
@@ -61,5 +61,17 @@ public interface IndexStoreStrategy {
      * @return the aggregated count of occurrences for each provided value
      */
     long count(NodeState indexMeta, Set<String> values, int max);
+
+    /**
+     * Count the occurrence of a given set of values. Used in calculating the
+     * cost of an index.
+     *
+     * @param filter the filter which can be used to estimate better cost
+     * @param indexMeta the index metadata node (may not be null)
+     * @param values values to look for (null to check for property existence)
+     * @param max the maximum value to return
+     * @return the aggregated count of occurrences for each provided value
+     */
+    long count(Filter filter, NodeState indexMeta, Set<String> values, int max);
 
 }

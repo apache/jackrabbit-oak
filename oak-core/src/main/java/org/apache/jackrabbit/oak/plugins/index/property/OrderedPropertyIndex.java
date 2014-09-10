@@ -44,6 +44,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderedPropertyIndex.class);
 
+    @Override
     public String getIndexName() {
         return TYPE;
     }
@@ -57,6 +58,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
      * 
      * !!! for now we want to skip the use-case of NON range-queries !!!
      */
+    @Override
     public double getCost(Filter filter, NodeState root) {
         throw new UnsupportedOperationException("Not supported as implementing AdvancedQueryIndex");
     }
@@ -181,6 +183,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
 
         Filter filter = plan.getFilter();
         List<OrderEntry> sortOrder = plan.getSortOrder();
+        String pathPrefix = plan.getPathPrefix();
         Iterable<String> paths = null;
         OrderedContentMirrorStoreStrategy strategy
                 = OrderedPropertyIndexLookup.getStrategy(plan.getDefinition());
@@ -190,7 +193,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
             String propertyName = PathUtils.getName(pr.propertyName);
             depth = PathUtils.getDepth(propertyName);
             paths = strategy.query(plan.getFilter(), propertyName,
-                    plan.getDefinition(), pr);
+                    plan.getDefinition(), pr, pathPrefix);
         }
         if (paths == null && sortOrder != null && !sortOrder.isEmpty()) {
             // we could be here if we have a query where the ORDER BY makes us play it.
@@ -198,7 +201,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
                 String propertyName = PathUtils.getName(oe.getPropertyName());
                 depth = PathUtils.getDepth(oe.getPropertyName());
                 paths = strategy.query(plan.getFilter(), propertyName,
-                        plan.getDefinition(), new PropertyRestriction());
+                        plan.getDefinition(), new PropertyRestriction(), pathPrefix);
             }
         }
 
@@ -209,7 +212,6 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
                             + filter);
         }
         Cursor cursor = Cursors.newPathCursor(paths, filter.getQueryEngineSettings());
-        cursor = Cursors.newPrefixCursor(cursor, plan.getPathPrefix());
         if (depth > 1) {
             cursor = Cursors.newAncestorCursor(cursor, depth - 1, filter.getQueryEngineSettings());
         }

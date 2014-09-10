@@ -203,7 +203,8 @@ public class OrderedPropertyIndexLookup {
         if (indexMeta == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
-        return getStrategy(indexMeta).query(filter, propertyName, indexMeta, pr);
+        return getStrategy(indexMeta).query(
+                filter, propertyName, indexMeta, pr, "");
     }
 
     /**
