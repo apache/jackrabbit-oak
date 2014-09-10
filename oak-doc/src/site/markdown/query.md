@@ -70,6 +70,35 @@ with an UnsupportedOperationException saying that
 "The query read or traversed more than 10000 nodes. To avoid affecting other tasks, processing was stopped.".
 As a workaround, this limit can be changed using the system property "oak.queryLimitReads".
 
+### Full-Text Queries
+
+The full-text syntax supported by Jackrabbit Oak is a superset of the JCR specification.
+The following syntax is supported within `contains` queries:
+
+    FullTextSearch ::= Or
+    Or ::= And { ' OR ' And }* 
+    And ::= Term { ' ' Term }*
+    Term ::= ['-'] { SimpleTerm | PhraseTerm } [ '^' Boost ]
+    SimpleTerm ::= Word
+    PhraseTerm ::= '"' Word { ' ' Word }* '"'
+    Boost ::= <number>
+    
+Please note that `OR` needs to be written in uppercase.
+Characters within words can be escaped using a backslash.
+
+Examples:
+
+    jcr:contains(., 'jelly sandwich^4')
+    jcr:contains(@jcr:title, 'find this')
+    
+In the first example, the word "sandwich" has weight four times more than the word "jelly."
+For details of boosting, see the Apache Lucene documentation about Score Boosting.
+
+For compatibility with Jackrabbit 2.x, single quoted phrase queries are currently supported.
+That means the query `contains(., "word ''hello world'' word")` is supported.
+New applications should not rely on this feature.
+
+
 ### Native Queries
 
 To take advantage of features that are available in full-text index implementations
