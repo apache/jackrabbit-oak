@@ -41,6 +41,7 @@ import com.mongodb.WriteConcern;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.junit.Assert.assertNotNull;
 
 
@@ -186,22 +187,9 @@ public class BlobThroughPutTest {
                     totalWrites,
                     execTime,
                     readThroughPut(),
-                    humanReadableByteCount((long) writeThroughPut(), true),
+                    humanReadableByteCount((long) writeThroughPut()),
                     getWriteConcern());
         }
-    }
-
-    private static String humanReadableByteCount(long bytes, boolean si) {
-        if (bytes < 0) {
-            return "0";
-        }
-        int unit = si ? 1000 : 1024;
-        if (bytes < unit) {
-            return bytes + " B";
-        }
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
     private static class Benchmark {
