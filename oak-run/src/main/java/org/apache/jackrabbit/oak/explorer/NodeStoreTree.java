@@ -171,85 +171,91 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         sb.append(newline);
 
         NodeState state = model.getState();
+        String tarFile = "";
 
         if (state instanceof SegmentNodeState) {
             SegmentNodeState s = (SegmentNodeState) state;
-
             RecordId recordId = s.getRecordId();
             sb.append("Record " + recordId);
-            String file = getFile(recordId);
-            if (file.length() > 0) {
-                sb.append(" in " + file);
+            tarFile = getFile(recordId);
+            if (tarFile.length() > 0) {
+                sb.append(" in " + tarFile);
             }
             sb.append(newline);
+        }
 
-            sb.append("Size: ");
-            sb.append("  direct: ");
-            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[0]));
-            sb.append(";  linked: ");
-            sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[1]));
-            sb.append(newline);
+        sb.append("Size: ");
+        sb.append("  direct: ");
+        sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[0]));
+        sb.append(";  linked: ");
+        sb.append(FileUtils.byteCountToDisplaySize(model.getSize()[1]));
+        sb.append(newline);
 
-            sb.append("Properties (count: " + s.getPropertyCount() + ")");
-            sb.append(newline);
-            Map<String, String> propLines=new TreeMap<String, String>();
-            for (PropertyState ps : s.getProperties()) {
-                StringBuilder l = new StringBuilder();
-                l.append("  - " + ps.getName() + " = ");
-                if (ps.getType().isArray()) {
-                    l.append("[");
-                    int count = ps.count();
-                    for (int i = 0; i < Math.min(count, 10); i++) {
-                        if (i > 0) {
-                            l.append(",");
-                        }
-                        l.append(" " + ps.getValue(Type.STRING, i));
+        sb.append("Properties (count: " + state.getPropertyCount() + ")");
+        sb.append(newline);
+        Map<String, String> propLines = new TreeMap<String, String>();
+        for (PropertyState ps : state.getProperties()) {
+            StringBuilder l = new StringBuilder();
+            l.append("  - " + ps.getName() + " = {" + ps.getType() + "} ");
+            if (ps.getType().isArray()) {
+                l.append("[");
+                int count = ps.count();
+                for (int i = 0; i < Math.min(count, 10); i++) {
+                    if (i > 0) {
+                        l.append(",");
                     }
-                    if (count > 10) {
-                        l.append(", ... (" + count + " values)");
-                    }
-                    l.append(" ]");
-                } else {
-                    l.append(toString(ps, 0));
+                    l.append(" " + ps.getValue(Type.STRING, i));
                 }
-                if (ps instanceof SegmentPropertyState) {
-                    RecordId rid = ((SegmentPropertyState) ps).getRecordId();
-                    l.append(" (" + rid);
-                    String f = getFile(rid);
-                    if (!f.equals(file)) {
-                        l.append(" in " + f);
-                    }
-                    l.append(")");
-                } else {
-                    l.append(" (" + ps.getClass().getSimpleName() + ")");
+                if (count > 10) {
+                    l.append(", ... (" + count + " values)");
                 }
-                propLines.put(ps.getName(), l.toString());
+                l.append(" ]");
+            } else {
+                l.append(toString(ps, 0));
             }
-
-            for (String l : propLines.values()) {
-                sb.append(l);
-                sb.append(newline);
+            if (ps instanceof SegmentPropertyState) {
+                RecordId rid = ((SegmentPropertyState) ps).getRecordId();
+                l.append(" (" + rid);
+                String f = getFile(rid);
+                if (!f.equals(tarFile)) {
+                    l.append(" in " + f);
+                }
+                l.append(")");
+            } else {
+                l.append(" (" + ps.getClass().getSimpleName() + ")");
             }
+            propLines.put(ps.getName(), l.toString());
+        }
 
-            sb.append("Child nodes (count: "
-                    + s.getChildNodeCount(Long.MAX_VALUE) + ")");
+        for (String l : propLines.values()) {
+            sb.append(l);
             sb.append(newline);
-            for (ChildNodeEntry ce : s.getChildNodeEntries()) {
-                sb.append("  + " + ce.getName());
-                NodeState c = ce.getNodeState();
-                if (c instanceof SegmentNodeState) {
-                    RecordId rid = ((SegmentNodeState) c).getRecordId();
-                    sb.append(" (" + rid);
-                    String f = getFile(rid);
-                    if (!f.equals(file)) {
-                        sb.append(" in " + f);
-                    }
-                    sb.append(")");
-                } else {
-                    sb.append(" (" + c.getClass().getSimpleName() + ")");
+        }
+
+        sb.append("Child nodes (count: " + state.getChildNodeCount(Long.MAX_VALUE)
+                + ")");
+        sb.append(newline);
+        Map<String, String> childLines = new TreeMap<String, String>();
+        for (ChildNodeEntry ce : state.getChildNodeEntries()) {
+            StringBuilder l = new StringBuilder();
+            l.append("  + " + ce.getName());
+            NodeState c = ce.getNodeState();
+            if (c instanceof SegmentNodeState) {
+                RecordId rid = ((SegmentNodeState) c).getRecordId();
+                l.append(" (" + rid);
+                String f = getFile(rid);
+                if (!f.equals(tarFile)) {
+                    l.append(" in " + f);
                 }
-                sb.append(newline);
+                l.append(")");
+            } else {
+                l.append(" (" + c.getClass().getSimpleName() + ")");
             }
+            childLines.put(ce.getName(), l.toString());
+        }
+        for (String l : childLines.values()) {
+            sb.append(l);
+            sb.append(newline);
         }
 
         if ("/".equals(model.getPath())) {
