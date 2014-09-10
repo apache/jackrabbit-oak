@@ -76,6 +76,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,6 +139,8 @@ public class QueryImpl implements Query {
     private double estimatedCost;
 
     private final QueryEngineSettings settings;
+
+    private boolean warnedHidden;
 
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
             ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
@@ -860,6 +863,13 @@ public class QueryImpl implements Query {
 
     @Override
     public Tree getTree(String path) {
+        if (NodeStateUtils.isHiddenPath(path)) {
+            if (!warnedHidden) {
+                warnedHidden = true;
+                LOG.warn("Hidden tree traversed: {}", path);
+            }
+            return null;
+        }
         return context.getRoot().getTree(path);
     }
 

@@ -45,6 +45,21 @@ public final class NodeStateUtils {
         return !name.isEmpty() && name.charAt(0) == ':';
     }
 
+    /**
+     * Check whether the given path contains a hidden node.
+     * 
+     * @param path the path
+     * @return true if one of the nodes is hidden
+     */
+    public static boolean isHiddenPath(@Nonnull String path) {
+        for (String n : PathUtils.elements(path)) {
+            if (isHidden(n)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @CheckForNull
     public static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
