@@ -406,6 +406,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     protected <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
+        log("findUncached", key, docReadPref);
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
@@ -458,7 +459,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                                               String indexedProperty,
                                               long startValue,
                                               int limit) {
-        log("query", fromKey, toKey, limit);
+        log("query", fromKey, toKey, indexedProperty, startValue, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(Document.ID);
         queryBuilder.greaterThan(fromKey);
@@ -555,6 +556,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> keys) {
+        log("remove", keys);
         DBCollection dbCollection = getDBCollection(collection);
         for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
             DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
@@ -731,6 +733,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
     public <T extends Document> void update(Collection<T> collection,
                                             List<String> keys,
                                             UpdateOp updateOp) {
+        log("update", keys, updateOp);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = QueryBuilder.start(Document.ID).in(keys);
         // make sure we don't modify the original updateOp
