@@ -85,6 +85,7 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jcr</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
