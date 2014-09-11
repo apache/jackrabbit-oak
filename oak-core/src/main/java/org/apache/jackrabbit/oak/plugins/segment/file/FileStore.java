@@ -27,6 +27,7 @@ import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.File;
@@ -46,6 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
@@ -252,16 +254,17 @@ public class FileStore implements SegmentStore {
                     @Override
                     public void run() {
                         log.info("TarMK compaction started");
-                        long time = System.currentTimeMillis();
+                        Stopwatch watch = Stopwatch.createStarted();
                         CompactionGainEstimate estimate = estimateCompactionGain();
                         long gain = estimate.estimateCompactionGain();
-                        time = System.currentTimeMillis() - time;
                         if (gain >= 10) {
                             log.info(
-                                    "Estimated compaction in {}ms, gain is {}% ({}/{}), so running compaction",
-                                    new Object[] { time, gain,
-                                            estimate.getReachableSize(),
-                                            estimate.getTotalSize() });
+                                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
+                                    watch, gain,
+                                    estimate.getReachableSize(),
+                                    estimate.getTotalSize(),
+                                    humanReadableByteCount(estimate.getReachableSize()),
+                                    humanReadableByteCount(estimate.getTotalSize()));
                             if (!pauseCompaction) {
                                 compact();
                             } else {
@@ -269,10 +272,12 @@ public class FileStore implements SegmentStore {
                             }
                         } else {
                             log.info(
-                                    "Estimated compaction in {}ms, gain is {}% ({}/{}), so skipping compaction for now",
-                                    new Object[] { time, gain,
-                                            estimate.getReachableSize(),
-                                            estimate.getTotalSize() });
+                                    "Estimated compaction in {}ms, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
+                                    watch, gain,
+                                    estimate.getReachableSize(),
+                                    estimate.getTotalSize(),
+                                    humanReadableByteCount(estimate.getReachableSize()),
+                                    humanReadableByteCount(estimate.getTotalSize()));
                         }
                         cleanupNeeded.set(true);
                     }
@@ -427,8 +432,10 @@ public class FileStore implements SegmentStore {
     }
 
     public synchronized void cleanup() throws IOException {
-        long start = System.nanoTime();
-        log.info("TarMK revision cleanup started");
+        Stopwatch watch = Stopwatch.createStarted();
+        long initialSize = size();
+        log.info("TarMK revision cleanup started. Current repository size {}",
+                humanReadableByteCount(initialSize));
 
         // Suggest to the JVM that now would be a good time
         // to clear stale weak references in the SegmentTracker
@@ -458,9 +465,11 @@ public class FileStore implements SegmentStore {
             }
         }
         readers = list;
-
-        log.info("TarMK revision cleanup completed in {}ms",
-                MILLISECONDS.convert(System.nanoTime() - start, NANOSECONDS));
+        long finalSize = size();
+        log.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
+                "and space reclaimed {}", watch,
+                humanReadableByteCount(finalSize),
+                humanReadableByteCount(initialSize - finalSize));
     }
 
     public void compact() {
