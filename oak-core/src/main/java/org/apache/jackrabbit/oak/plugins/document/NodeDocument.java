@@ -432,8 +432,9 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      *
      * @return type of Split Document
      */
-    public SplitDocType getSplitDocType(){
-        return SplitDocType.valueOf((Integer) get(SD_TYPE));
+    public SplitDocType getSplitDocType() {
+        Object t = get(SD_TYPE);
+        return t == null ? SplitDocType.valueOf((Integer) null) : SplitDocType.valueOf(((Number) t).intValue());
     }
 
     /**
