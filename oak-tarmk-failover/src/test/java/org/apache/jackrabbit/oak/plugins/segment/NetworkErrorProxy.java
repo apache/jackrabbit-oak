@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import io.netty.bootstrap.Bootstrap;
@@ -38,10 +54,6 @@ public class NetworkErrorProxy {
     public void skipBytes(int pos, int n) {
         this.fh.skipPosition = pos;
         this.fh.skipBytes = n;
-    }
-
-    public void flipByte(int pos) {
-        this.fh.flipPosition = pos;
     }
 
     public void run() throws Exception {
@@ -85,13 +97,11 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
     public long transferredBytes;
     public int skipPosition;
     public int skipBytes;
-    public int flipPosition;
     private ChannelFuture remote;
 
     public ForwardHandler(String host, int port) {
         this.targetHost = host;
         this.targetPort = port;
-        this.flipPosition = -1;
     }
 
     @Override
@@ -105,14 +115,7 @@ class ForwardHandler extends ChannelInboundHandlerAdapter {
         cb.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
-                SendBackHandler sbh = new SendBackHandler(c);
-                if (ForwardHandler.this.flipPosition >= 0) {
-                    sbh = new BitFlipHandler(c, ForwardHandler.this.flipPosition);
-                }
-                else if (ForwardHandler.this.skipBytes > 0) {
-                    sbh = new SwallowingHandler(c, ForwardHandler.this.skipPosition, ForwardHandler.this.skipBytes);
-                }
-                ch.pipeline().addFirst(sbh);
+                ch.pipeline().addFirst(new SwallowingHandler(c, ForwardHandler.this.skipPosition, ForwardHandler.this.skipBytes));
             }
         });
         remote = cb.connect(this.targetHost, this.targetPort).sync();
@@ -242,32 +245,3 @@ class SwallowingHandler extends SendBackHandler {
 
 }
 
-class BitFlipHandler extends SendBackHandler {
-    private static final Logger log = LoggerFactory
-            .getLogger(BitFlipHandler.class);
-
-    private int startingPos;
-
-    public BitFlipHandler(ChannelHandlerContext ctx, int pos) {
-        super(ctx);
-        this.startingPos = pos;
-    }
-
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof ByteBuf) {
-            ByteBuf bb = (ByteBuf)msg;
-            log.debug("FlipHandler. Got Buffer size: " + bb.readableBytes());
-            if (this.startingPos >= 0) {
-                if (this.transferredBytes + bb.readableBytes() >= this.startingPos) {
-                    int i = this.startingPos - (int)this.transferredBytes;
-                    log.info("FlipHandler flips byte at offset " + (this.transferredBytes + i));
-                    byte b = (byte) (bb.getByte(i) ^ 0x01);
-                    bb.setByte(i, b);
-                    this.startingPos = -1;
-                }
-            }
-        }
-        super.channelRead(ctx, msg);
-    }
-
-}

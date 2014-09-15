@@ -75,36 +75,6 @@ public class BrokenNetworkTest extends TestBase {
         useProxy(true, 400, 10, true);
     }
 
-    @Test
-    public void testProxyFlippedStartByte() throws Exception {
-        useProxy(false, 0, 0, 0, false);
-    }
-
-    @Test
-    public void testProxyFlippedStartByteSSL() throws Exception {
-        useProxy(true, 0, 0, 0, false);
-    }
-
-    @Test
-    public void testProxyFlippedIntermediateByte() throws Exception {
-        useProxy(false, 0, 0, 150, false);
-    }
-
-    @Test
-    public void testProxyFlippedIntermediateByteSSL() throws Exception {
-        useProxy(true, 0, 0, 560, false);
-    }
-
-    @Test
-    public void testProxyFlippedEndByte() throws Exception {
-        useProxy(false, 0, 0, 220, false);
-    }
-
-    @Test
-    public void testProxyFlippedEndByteSSL() throws Exception {
-        useProxy(true, 0, 0, 575, false);
-    }
-
     // private helper
 
     private void useProxy(boolean ssl) throws Exception {
@@ -112,13 +82,8 @@ public class BrokenNetworkTest extends TestBase {
     }
 
     private void useProxy(boolean ssl, int skipPosition, int skipBytes, boolean intermediateChange) throws Exception {
-        useProxy(ssl, skipPosition, skipBytes, -1, intermediateChange);
-    }
-
-    private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
         NetworkErrorProxy p = new NetworkErrorProxy(PROXY_PORT, LOCALHOST, port);
         p.skipBytes(skipPosition, skipBytes);
-        p.flipByte(flipPosition);
         p.run();
 
         NodeStore store = new SegmentNodeStore(storeS);
@@ -131,7 +96,7 @@ public class BrokenNetworkTest extends TestBase {
         cl.run();
 
         try {
-            if (skipBytes > 0 || flipPosition >= 0) {
+            if (skipBytes > 0) {
                 assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
                 assertEquals(storeC2.getHead(), storeC.getHead());
 
