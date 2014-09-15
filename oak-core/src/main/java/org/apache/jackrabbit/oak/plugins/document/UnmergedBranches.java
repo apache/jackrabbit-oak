@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 
 import java.util.Comparator;
 import java.util.List;
@@ -114,6 +115,24 @@ class UnmergedBranches {
         for (Branch b : branches) {
             if (b.containsCommit(r)) {
                 return b;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the branch commit with the given revision or {@code null} if
+     * it doesn't exists.
+     *
+     * @param r a revision.
+     * @return the branch commit or {@code null} if it doesn't exist.
+     */
+    @CheckForNull
+    BranchCommit getBranchCommit(@Nonnull Revision r) {
+        for (Branch b : branches) {
+            BranchCommit c = b.getCommit(r);
+            if (c != null) {
+                return c;
             }
         }
         return null;

@@ -18,12 +18,20 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.transform;
 
+import java.util.NavigableMap;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Contains commit information about a branch and its base revision.
@@ -54,7 +62,8 @@ class Branch {
         this.base = base;
         this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
-            this.commits.put(r.asBranchRevision(), new BranchCommit(base));
+            this.commits.put(r.asBranchRevision(),
+                    new BranchCommitImpl(base, r.asBranchRevision()));
         }
     }
 
@@ -97,12 +106,7 @@ class Branch {
         checkArgument(!checkNotNull(base).isBranch(), "Not a trunk revision: %s", base);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(head, last) > 0);
-        BranchCommit bc = new BranchCommit(base);
-        // set all previously touched paths as modified
-        for (BranchCommit c : commits.values()) {
-            c.getModifications().applyTo(bc.getModifications(), head);
-        }
-        commits.put(head, bc);
+        commits.put(head, new RebaseCommit(base, head, commits));
     }
 
     /**
@@ -115,7 +119,7 @@ class Branch {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         Revision last = commits.lastKey();
         checkArgument(commits.comparator().compare(r, last) > 0);
-        commits.put(r, new BranchCommit(commits.get(last).getBase()));
+        commits.put(r, new BranchCommitImpl(commits.get(last).getBase(), r));
     }
 
     /**
@@ -145,6 +149,18 @@ class Branch {
     }
 
     /**
+     * Returns the branch commit with the given or {@code null} if it does not
+     * exist.
+     *
+     * @param r the revision of a commit.
+     * @return the branch commit or {@code null} if it doesn't exist.
+     */
+    @CheckForNull
+    BranchCommit getCommit(@Nonnull Revision r) {
+        return commits.get(checkNotNull(r).asBranchRevision());
+    }
+
+    /**
      * Removes the commit with the given revision <code>r</code>. Does nothing
      * if there is no such commit.
      *
@@ -154,25 +170,6 @@ class Branch {
     public void removeCommit(@Nonnull Revision r) {
         checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
         commits.remove(r);
-    }
-
-    /**
-     * Gets the unsaved modifications for the given branch commit revision.
-     *
-     * @param r a branch commit revision.
-     * @return the unsaved modification for the given branch commit.
-     * @throws IllegalArgumentException r is not a branch revision or if there
-     *                                  is no commit with the given revision.
-     */
-    @Nonnull
-    public UnsavedModifications getModifications(@Nonnull Revision r) {
-        checkArgument(checkNotNull(r).isBranch(), "Not a branch revision: %s", r);
-        BranchCommit c = commits.get(r);
-        if (c == null) {
-            throw new IllegalArgumentException(
-                    "Revision " + r + " is not a commit in this branch");
-        }
-        return c.getModifications();
     }
 
     /**
@@ -186,7 +183,7 @@ class Branch {
                         @Nonnull Revision mergeCommit) {
         checkNotNull(trunk);
         for (BranchCommit c : commits.values()) {
-            c.getModifications().applyTo(trunk, mergeCommit);
+            c.applyTo(trunk, mergeCommit);
         }
     }
 
@@ -208,9 +205,8 @@ class Branch {
                 continue;
             }
             BranchCommit c = commits.get(r);
-            Revision modRevision = c.getModifications().get(path);
-            if (modRevision != null) {
-                return modRevision;
+            if (c.isModified(path)) {
+                return r;
             }
         }
         return null;
@@ -230,21 +226,107 @@ class Branch {
     /**
      * Information about a commit within a branch.
      */
-    private static final class BranchCommit {
+    abstract static class BranchCommit implements LastRevTracker {
 
-        private final UnsavedModifications modifications = new UnsavedModifications();
-        private final Revision base;
+        protected final Revision base;
+        protected final Revision commit;
 
-        BranchCommit(Revision base) {
+        BranchCommit(Revision base, Revision commit) {
             this.base = base;
+            this.commit = commit;
         }
 
         Revision getBase() {
             return base;
         }
 
-        UnsavedModifications getModifications() {
+        abstract void applyTo(UnsavedModifications trunk, Revision commit);
+
+        abstract boolean isModified(String path);
+
+        abstract Iterable<String> getModifiedPaths();
+    }
+
+    /**
+     * Implements a regular branch commit.
+     */
+    private static class BranchCommitImpl extends BranchCommit {
+
+        private final Set<String> modifications = Sets.newHashSet();
+
+        BranchCommitImpl(Revision base, Revision commit) {
+            super(base, commit);
+        }
+
+        @Override
+        void applyTo(UnsavedModifications trunk, Revision commit) {
+            for (String p : modifications) {
+                trunk.put(p, commit);
+            }
+        }
+
+        @Override
+        boolean isModified(String path) { // TODO: rather pass NodeDocument?
+            return modifications.contains(path);
+        }
+
+        @Override
+        Iterable<String> getModifiedPaths() {
             return modifications;
+        }
+
+        //------------------< LastRevTracker >----------------------------------
+
+        @Override
+        public void track(String path) {
+            modifications.add(path);
+        }
+    }
+
+    static class RebaseCommit extends BranchCommit {
+
+        private final NavigableMap<Revision, BranchCommit> previous;
+
+        RebaseCommit(Revision base, Revision commit,
+                     NavigableMap<Revision, BranchCommit> previous) {
+            super(base, commit);
+            this.previous = Maps.newTreeMap(previous);
+        }
+
+        @Override
+        void applyTo(UnsavedModifications trunk, Revision commit) {
+            for (BranchCommit c : previous.values()) {
+                c.applyTo(trunk, commit);
+            }
+        }
+
+        @Override
+        boolean isModified(String path) {
+            for (BranchCommit c : previous.values()) {
+                if (c.isModified(path)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        Iterable<String> getModifiedPaths() {
+            Iterable<Iterable<String>> paths = transform(previous.values(),
+                    new Function<BranchCommit, Iterable<String>>() {
+                @Override
+                public Iterable<String> apply(BranchCommit branchCommit) {
+                    return branchCommit.getModifiedPaths();
+                }
+            });
+            return Iterables.concat(paths);
+        }
+
+        //------------------< LastRevTracker >----------------------------------
+
+        @Override
+        public void track(String path) {
+            throw new UnsupportedOperationException("RebaseCommit is read-only");
         }
     }
 }

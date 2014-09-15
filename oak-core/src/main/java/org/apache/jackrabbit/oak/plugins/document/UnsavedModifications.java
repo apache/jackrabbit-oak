@@ -95,21 +95,6 @@ class UnsavedModifications {
     }
 
     /**
-     * Applies all modifications from this instance to the <code>other</code>.
-     * A modification is only applied if there is no modification in other
-     * for a given path or if the other modification is earlier than the
-     * {@code commit} revision.
-     *
-     * @param other the other <code>UnsavedModifications</code>.
-     * @param commit the commit revision.
-     */
-    public void applyTo(UnsavedModifications other, Revision commit) {
-        for (Map.Entry<String, Revision> entry : map.entrySet()) {
-            other.put(entry.getKey(), commit);
-        }
-    }
-
-    /**
      * Returns all paths of nodes with modifications at the start revision
      * (inclusive) or later.
      *
