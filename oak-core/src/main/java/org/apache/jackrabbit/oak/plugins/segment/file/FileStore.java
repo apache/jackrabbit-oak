@@ -669,7 +669,7 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        throw new IllegalStateException("Segment " + id + " not found");
+        throw new FileStoreCorruptException(id);
     }
 
     @Override
@@ -730,5 +730,14 @@ public class FileStore implements SegmentStore {
     public FileStore setPauseCompaction(boolean pauseCompaction) {
         this.pauseCompaction = pauseCompaction;
         return this;
+    }
+
+    public class FileStoreCorruptException extends IllegalStateException {
+        public final SegmentId id;
+
+        public FileStoreCorruptException(SegmentId id) {
+            super("Segment " + id + " not found");
+            this.id = id;
+        }
     }
 }

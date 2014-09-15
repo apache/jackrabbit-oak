@@ -77,6 +77,7 @@
               org.apache.jackrabbit.oak.plugins.observation.filter,
               org.apache.jackrabbit.oak.plugins.segment,
               org.apache.jackrabbit.oak.plugins.segment.http,
+              org.apache.jackrabbit.oak.plugins.segment.file,
               org.apache.jackrabbit.oak.plugins.value,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.spi.commit,
