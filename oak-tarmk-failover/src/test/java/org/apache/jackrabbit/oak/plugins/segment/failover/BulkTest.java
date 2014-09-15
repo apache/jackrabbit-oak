@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.failover;
 
+import junit.framework.Assert;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
 import org.apache.jackrabbit.oak.plugins.segment.failover.jmx.FailoverStatusMBean;

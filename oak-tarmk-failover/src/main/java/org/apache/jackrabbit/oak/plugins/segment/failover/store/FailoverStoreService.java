@@ -39,13 +39,13 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentStoreProvider;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
 import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+@Property(name = "org.apache.sling.installer.configuration.persist", label="Distribute config", description = "Should be always disabled to avoid storing the configuration in the repository", boolValue = false)
 @Component(policy = ConfigurationPolicy.REQUIRE)
 public class FailoverStoreService {
 
@@ -55,29 +55,31 @@ public class FailoverStoreService {
     private static final String MODE_SLAVE = "slave";
 
     public static final String MODE_DEFAULT = MODE_MASTER;
-    @Property(label = "Mode", description = "TarMK Failover mode (master or slave)", options = {
-            @PropertyOption(name = "master", value = "master"),
-            @PropertyOption(name = "slave", value = "slave") }, value = MODE_DEFAULT)
+    @Property(name = "Mode", description = "TarMK Cold Standby mode (master or slave)",
+            options = {
+            @PropertyOption(name = MODE_MASTER, value = MODE_MASTER),
+            @PropertyOption(name = MODE_SLAVE, value = MODE_SLAVE) },
+            value = MODE_DEFAULT)
     public static final String MODE = "mode";
 
     public static final int PORT_DEFAULT = 8023;
-    @Property(label = "Port", description = "TarMK Failover port", intValue = PORT_DEFAULT)
+    @Property(name = "Port", description = "TCP/IP port to use", intValue = PORT_DEFAULT)
     public static final String PORT = "port";
 
     public static final String MASTER_HOST_DEFAULT = "127.0.0.1";
-    @Property(label = "Master Host", description = "TarMK Failover master host (enabled for slave mode only)", value = MASTER_HOST_DEFAULT)
+    @Property(name = "Master Host", description = "Master host (slave mode only)", value = MASTER_HOST_DEFAULT)
     public static final String MASTER_HOST = "master.host";
 
     public static final int INTERVAL_DEFAULT = 5;
-    @Property(label = "Sync interval (seconds)", description = "TarMK Failover sync interval (seconds)", intValue = INTERVAL_DEFAULT)
+    @Property(name = "Sync interval (seconds)", description = "Sync interval in seconds (slave mode only)", intValue = INTERVAL_DEFAULT)
     public static final String INTERVAL = "interval";
 
     public static final String ALLOWED_CLIENT_IP_RANGES_DEFAULT = null;
-    @Property(label = "Client allowed IP-Ranges", description = "accept incoming requests for these IP-ranges only")
+    @Property(name = "Allowed IP-Ranges", description = "Accept incoming requests for these host names and IP-ranges only (master mode only)")
     public static final String ALLOWED_CLIENT_IP_RANGES = "master.allowed-client-ip-ranges";
 
     public static final boolean SECURE_DEFAULT = false;
-    @Property(label = "Secure", description = "Use secure connections", boolValue = SECURE_DEFAULT)
+    @Property(name = "Secure", description = "Use secure connections", boolValue = SECURE_DEFAULT)
     public static final String SECURE = "secure";
 
     @Reference(policy = STATIC, policyOption = GREEDY)

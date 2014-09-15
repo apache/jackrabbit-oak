@@ -19,12 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.segment.failover.client;
 
 import static org.apache.jackrabbit.oak.plugins.segment.failover.codec.Messages.newGetSegmentReq;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.concurrent.EventExecutorGroup;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentReply;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.RemoteSegmentLoader;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,15 +96,39 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
             SegmentNodeBuilder builder = before.builder();
 
             SegmentNodeState current = new SegmentNodeState(head);
-            current.compareAgainstBaseState(before, new ApplyDiff(builder));
+            do {
+                try {
+                    current.compareAgainstBaseState(before, new ApplyDiff(builder));
+                    break;
+                }
+                catch (FileStore.FileStoreCorruptException e) {
+                    // the segment is locally damaged or not present anymore
+                    // lets try to read this from the master again
+                    Segment s = readSegment(e.id);
+                    if (s == null) {
+                        log.warn("can't read locally corrupt segment " + e.id + " from master");
+                        throw e;
+                    }
 
+                    log.info("did reread locally corrupt segment " + e.id + " with size " + s.size());
+                    ByteArrayOutputStream bout = new ByteArrayOutputStream(s.size());
+                    try {
+                        s.writeTo(bout);
+                    }
+                    catch (IOException f) {
+                        log.error("can't wrap segment to output stream", f);
+                        throw e;
+                    }
+                    store.writeSegment(e.id, bout.toByteArray(), 0, s.size());
+                }
+            } while(true);
             boolean ok = store.setHead(before, builder.getNodeState());
             log.info("#updated state (set head {}) in {}ms.", ok,
                     System.currentTimeMillis() - t);
         } finally {
             close();
         }
-        log.info("returning initSync");
+        log.debug("returning initSync");
     }
 
     @Override
