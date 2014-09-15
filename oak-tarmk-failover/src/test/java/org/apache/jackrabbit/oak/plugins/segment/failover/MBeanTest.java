@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.management.MBeanServer;
@@ -132,6 +133,7 @@ public class MBeanTest extends TestBase {
     }
 
     @Test
+    @Ignore("OAK-2086")
     public void testClientAndServerEmptyConfig() throws Exception {
         final FailoverServer server = new FailoverServer(this.port, this.storeS);
         server.start();
