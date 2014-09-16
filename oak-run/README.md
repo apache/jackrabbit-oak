@@ -97,10 +97,11 @@ Checkpoints
 The 'checkpoints' mode can be used to list or remove repository checkpoints
 To start this mode, use:
 
-    $ java -jar oak-run-*.jar checkpoints /path/to/oak/repository [list|rm-all|rm <checkpoint>]
+    $ java -jar oak-run-*.jar checkpoints /path/to/oak/repository [list|rm-all|rm-unreferenced|rm <checkpoint>]
 
 The 'list' option (treated as a default when nothing is specified) will list all existing checkpoints.
 The 'rm-all' option will wipe clean the 'checkpoints' node.
+The 'rm-unreferenced' option will remove all checkpoints except the one referenced from the async indexer (/:async@async).
 The 'rm <checkpoint>' option will remove a specific checkpoint from the repository.
 
 Upgrade
