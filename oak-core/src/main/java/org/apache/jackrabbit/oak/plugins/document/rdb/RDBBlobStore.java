@@ -362,7 +362,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         try {
             int count = 0;
             PreparedStatement prep = con.prepareStatement("select id from " + metaTable + " where lastMod < ?");
-           prep.setLong(1, minLastModified);
+            prep.setLong(1, minLastModified);
             ResultSet rs = prep.executeQuery();
             ArrayList<String> ids = new ArrayList<String>();
             while (rs.next()) {
@@ -416,11 +416,10 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 prepMeta.setLong(batch + 1, maxLastModifiedTime);
 
                 prepData = con.prepareStatement("delete from " + dataTable + " where id in (" + inClause.toString()
-                        + ") and lastMod <= ?");
+                        + ") and not exists(select * from " + metaTable + " m where id = m.id and m.lastMod <= ?)");
                 prepData.setLong(batch + 1, maxLastModifiedTime);
             } else {
                 prepMeta = con.prepareStatement("delete from " + metaTable + " where id in (" + inClause.toString() + ")");
-
                 prepData = con.prepareStatement("delete from " + dataTable + " where id in (" + inClause.toString() + ")");
             }
 
