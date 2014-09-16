@@ -66,6 +66,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.observation.JackrabbitEventFilter;
 import org.apache.jackrabbit.api.observation.JackrabbitObservationManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -76,7 +77,6 @@ import org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Selectors;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -580,6 +580,29 @@ public class ObservationTest extends AbstractRepositoryTest {
         String dst2 = nodeS.getPath() + "/bb";
         session.move(src2, dst2);
         listener.expectMove(src1 + "/aa", dst2);
+
+        session.save();
+
+        List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+        assertTrue("Missing events: " + missing, missing.isEmpty());
+        List<Event> unexpected = listener.getUnexpected();
+        assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+    }
+
+    @Test
+    public void testRename() throws RepositoryException, ExecutionException, InterruptedException {
+        Node testNode = getNode(TEST_PATH);
+        Session session = testNode.getSession();
+        Node nodeA = testNode.addNode("a");
+        String parentPath = testNode.getPath();
+        session.save();
+        assumeTrue(nodeA instanceof JackrabbitNode);
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, NODE_MOVED, "/", true, null, null, false);
+
+        ((JackrabbitNode) nodeA).rename("b");
+        listener.expectMove(parentPath + "/a", parentPath + "/b");
 
         session.save();
 
