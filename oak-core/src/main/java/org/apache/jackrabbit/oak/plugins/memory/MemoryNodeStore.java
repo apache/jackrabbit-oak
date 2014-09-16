@@ -201,8 +201,9 @@ public class MemoryNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public synchronized void release(String checkpoint) {
+    public synchronized boolean release(String checkpoint) {
         checkpoints.remove(checkpoint);
+        return true;
     }
 
     /** test purpose only! */

@@ -228,8 +228,9 @@ public class KernelNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public void release(String checkpoint) {
+    public boolean release(String checkpoint) {
         // TODO
+        return true;
     }
 
     public CacheStats getCacheStats() {
