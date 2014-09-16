@@ -46,6 +46,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,11 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.Closeables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -62,13 +68,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,6 +178,8 @@ public class SegmentWriter {
                     refcount * 16 + rootcount * 3 + blobrefcount * 2 + length,
                     16);
 
+            checkState(length <= buffer.length);
+
             int pos = refcount * 16;
             if (pos + length <= buffer.length) {
                 // the whole segment fits to the space *after* the referenced
@@ -246,14 +247,23 @@ public class SegmentWriter {
         int rootcount = roots.size() + 1;
         int refcount = segment.getRefCount();
         Set<SegmentId> segmentIds = newIdentityHashSet();
+
+        // The set of old record ids in this segment
+        // that were previously root record ids, but will no longer be,
+        // because the record to be written references them.
+        // This needs to be a set, because the list of ids can
+        // potentially reference the same record multiple times
+        Set<RecordId> notRoots = new HashSet<RecordId>();
         for (RecordId recordId : ids) {
             SegmentId segmentId = recordId.getSegmentId();
             if (segmentId != segment.getSegmentId()) {
                 segmentIds.add(segmentId);
             } else if (roots.containsKey(recordId)) {
-                rootcount--;
+                notRoots.add(recordId);
             }
         }
+        rootcount -= notRoots.size();
+
         if (!segmentIds.isEmpty()) {
             for (int refid = 1; refid < refcount; refid++) {
                 segmentIds.remove(segment.getRefId(refid));
