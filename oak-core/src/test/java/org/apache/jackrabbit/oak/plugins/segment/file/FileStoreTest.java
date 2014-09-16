@@ -43,7 +43,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class FileStoreTest {
@@ -222,32 +221,37 @@ public class FileStoreTest {
                 newArrayList(newTreeSet(files.keySet())));
     }
 
-    @Ignore("OAK-2049")
     @Test  // See OAK-2049
     public void segmentOverflow() throws IOException {
-        FileStore store = new FileStore(directory, 1, false);
-        SegmentWriter writer = store.getTracker().getWriter();
-        // writer.length == 32  (from the root node)
+        for (int n = 1; n < 255; n++) {  // 255 = ListRecord.LEVEL_SIZE
+            FileStore store = new FileStore(directory, 1, false);
+            SegmentWriter writer = store.getTracker().getWriter();
+            // writer.length == 32  (from the root node)
 
-        // adding 15 strings with 16516 bytes each
-        for (int k = 0; k < 15; k++) {
-            // 16516 = (Segment.MEDIUM_LIMIT - 1 + 2 + 3)
-            // 1 byte per char, 2 byte to store the length and 3 bytes for the
-            // alignment to the integer boundary
-            writer.writeString(Strings.repeat("abcdefghijklmno".substring(k, k + 1),
-                    Segment.MEDIUM_LIMIT - 1));
+            // adding 15 strings with 16516 bytes each
+            for (int k = 0; k < 15; k++) {
+                // 16516 = (Segment.MEDIUM_LIMIT - 1 + 2 + 3)
+                // 1 byte per char, 2 byte to store the length and 3 bytes for the
+                // alignment to the integer boundary
+                writer.writeString(Strings.repeat("abcdefghijklmno".substring(k, k + 1),
+                        Segment.MEDIUM_LIMIT - 1));
+            }
+
+            // adding 14280 bytes. 1 byte per char, and 2 bytes to store the length
+            RecordId x = writer.writeString(Strings.repeat("x", 14278));
+            // writer.length == 262052
+
+            // Adding 765 bytes (255 recordIds)
+            // This should cause the current segment to flush
+            List<RecordId> list = Collections.nCopies(n, x);
+            writer.writeList(list);
+
+            writer.flush();
+
+            // Don't close the store in a finally clause as if a failure happens
+            // this will also fail an cover up the earlier exception
+            store.close();
         }
-
-        // adding 14280 bytes. 1 byte per char, and 2 bytes to store the length
-        RecordId x = writer.writeString(Strings.repeat("x", 14278));
-        // writer.length == 262052
-
-        // Adding 765 bytes (255 recordIds)
-        // This should cause the current segment to flush
-        List<RecordId> list = Collections.nCopies(255, x);  // 255 = ListRecord.LEVEL_SIZE
-        writer.writeList(list);
-
-        writer.flush();
     }
 
 }
