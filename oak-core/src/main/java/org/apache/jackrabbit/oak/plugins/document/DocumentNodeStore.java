@@ -1344,8 +1344,9 @@ public final class DocumentNodeStore
     }
 
     @Override
-    public void release(@Nonnull String checkpoint) {
+    public boolean release(@Nonnull String checkpoint) {
         checkpoints.release(checkpoint);
+        return true;
     }
 
     //------------------------< RevisionContext >-------------------------------

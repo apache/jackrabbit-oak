@@ -134,6 +134,12 @@ public interface NodeStore {
     @CheckForNull
     NodeState retrieve(@Nonnull String checkpoint);
 
-    void release(@Nonnull String checkpoint);
+    /**
+     * Releases the provided checkpoint. If the provided checkpoint doesn't exist this method should return {@code true}.
+     *
+     * @param checkpoint string reference of a checkpoint
+     * @return {@code true} if the checkpoint was successfully removed, or if it doesn't exist
+     */
+    boolean release(@Nonnull String checkpoint);
 
 }

@@ -273,7 +273,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     }
 
     @Override
-    public void release(@Nonnull String checkpoint) {
+    public boolean release(@Nonnull String checkpoint) {
         checkNotNull(checkpoint);
 
         // try 5 times
@@ -289,18 +289,18 @@ public class SegmentNodeStore implements NodeStore, Observable {
                             checkpoint);
                     if (cp.exists()) {
                         cp.remove();
+                        SegmentNodeState newState = builder.getNodeState();
+                        if (store.setHead(state, newState)) {
+                            refreshHead();
+                            return true;
+                        }
                     }
-                    SegmentNodeState newState = builder.getNodeState();
-                    if (store.setHead(state, newState)) {
-                        refreshHead();
-                        return;
-                    }
-
                 } finally {
                     commitSemaphore.release();
                 }
             }
         }
+        return false;
     }
 
     private class Commit {
