@@ -46,6 +46,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -191,6 +192,8 @@ public class SegmentWriter {
                     refcount * 16 + rootcount * 3 + blobrefcount * 2 + length,
                     16);
 
+            checkState(length <= buffer.length);
+
             int pos = refcount * 16;
             if (pos + length <= buffer.length) {
                 // the whole segment fits to the space *after* the referenced
@@ -291,14 +294,23 @@ public class SegmentWriter {
             refcount -= idcount;
 
             Set<SegmentId> segmentIds = newIdentityHashSet();
+            
+            // The set of old record ids in this segment
+            // that were previously root record ids, but will no longer be,
+            // because the record to be written references them.
+            // This needs to be a set, because the list of ids can
+            // potentially reference the same record multiple times
+            Set<RecordId> notRoots = new HashSet<RecordId>();
             for (RecordId recordId : ids) {
                 SegmentId segmentId = recordId.getSegmentId();
                 if (segmentId != segment.getSegmentId()) {
                     segmentIds.add(segmentId);
                 } else if (roots.containsKey(recordId)) {
-                    rootcount--;
+                    notRoots.add(recordId);
                 }
             }
+            rootcount -= notRoots.size();
+
             if (!segmentIds.isEmpty()) {
                 for (int refid = 1; refid < refcount; refid++) {
                     segmentIds.remove(segment.getRefId(refid));
