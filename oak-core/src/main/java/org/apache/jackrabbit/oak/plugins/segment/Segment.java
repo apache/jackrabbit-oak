@@ -454,12 +454,12 @@ public class Segment {
                 writer.format("reference %02x: %s%n", refid, getRefId(refid));
             }
             int rootcount = data.getShort(ROOT_COUNT_OFFSET) & 0xffff;
-            int pos = refcount * 16;
+            int pos = data.position() + refcount * 16;
             for (int rootid = 0; rootid < rootcount; rootid++) {
                 writer.format(
-                        "root %d: %s at %04x%n", rootid,
+                            "root %d: %s at %04x%n", rootid,
                         RecordType.values()[data.get(pos + rootid * 3) & 0xff],
-                        data.getShort(pos + rootid * 3 + 1) & 0xffff);
+                            data.getShort(pos + rootid * 3 + 1) & 0xffff);
             }
             int blobrefcount = data.getShort(BLOBREF_COUNT_OFFSET) & 0xffff;
             pos += rootcount * 3;
