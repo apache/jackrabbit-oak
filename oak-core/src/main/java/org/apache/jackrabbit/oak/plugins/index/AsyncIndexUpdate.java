@@ -86,7 +86,6 @@ public class AsyncIndexUpdate implements Runnable {
             // use default
         }
         ASYNC_TIMEOUT = TimeUnit.MINUTES.toMillis(value);
-        log.info("===============Using VisibleEditor============");
     }
 
     private final String name;
