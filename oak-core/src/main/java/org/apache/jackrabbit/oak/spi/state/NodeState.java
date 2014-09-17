@@ -203,6 +203,7 @@ public interface NodeState {
      * @param name property name
      * @return string value of the named property, or {@code null}
      */
+    @CheckForNull
     String getString(String name);
 
     /**
