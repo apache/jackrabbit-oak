@@ -50,7 +50,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -253,42 +252,7 @@ public class DocumentNodeStoreService {
             mkBuilder.setBlobStore(blobStore);
         }
 
-        String jdbcuri = System.getProperty("oak.jdbc.connection.uri", "");
-
-        if (!jdbcuri.isEmpty()) {
-            // OAK-1708 - this is temporary until we figure out parameterization,
-            // and how to pass in DataSources directly
-            String dsusername = System.getProperty("oak.jdbc.username", "");
-            String dspasswd = System.getProperty("oak.jdbc.password", "");
-            String dsdriver = System.getProperty("oak.jdbc.driver.class", "");
-
-            String bsjdbcuri = System.getProperty("oakbs.jdbc.connection.uri", "");
-            String bsusername = System.getProperty("oakbs.jdbc.username", "");
-            String bspasswd = System.getProperty("oakbs.jdbc.password", "");
-            String bsdriver = System.getProperty("oakbs.jdbc.driver.class", "");
-
-            // document store
-            if (dsdriver.length() == 0) {
-                log.info("System property oak.jdbc.driver.class not set.");
-            }
-
-            if (log.isInfoEnabled()) {
-                String type = useMK ? "MK" : "NodeStore";
-                log.info(
-                        "Starting Document{} with uri(s)={}{}, cache size (MB)={}, Off Heap Cache size (MB)={}, 'changes' collection size (MB)={}",
-                        type, jdbcuri, bsjdbcuri, cacheSize, offHeapCache, changesSize);
-            }
-
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, dsusername, dspasswd, dsdriver);
-            if (bsjdbcuri.length() == 0) {
-                mkBuilder.setRDBConnection(ds);
-                log.info("Connected to datasource {}", ds);
-            } else {
-                DataSource dsbs = RDBDataSourceFactory.forJdbcUrl(bsjdbcuri, bsusername, bspasswd, bsdriver);
-                mkBuilder.setRDBConnection(ds, dsbs);
-                log.info("Connected to datasources {} {}", ds, dsbs);
-            }
-        } else if (documentStoreType == DocumentStoreType.RDB){
+        if (documentStoreType == DocumentStoreType.RDB){
             checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
             if(customBlobDataSource){
                 checkNotNull(blobDataSource, "DataStore type set [%s] and BlobStore is configured to use different " +
