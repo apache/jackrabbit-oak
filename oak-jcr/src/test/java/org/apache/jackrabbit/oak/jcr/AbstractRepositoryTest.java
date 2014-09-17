@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.jcr.GuestCredentials;
@@ -32,6 +30,7 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
@@ -105,8 +104,12 @@ public abstract class AbstractRepositoryTest {
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
             nodeStore = createNodeStore(fixture);
+            QueryEngineSettings qs = new QueryEngineSettings();
+            qs.setFullTextComparisonWithoutIndex(true);
             repository  = new Jcr(nodeStore)
                     .withObservationQueueLength(observationQueueLength)
+                    .withAsyncIndexing()
+                    .with(qs)
                     .createRepository();
         }
         return repository;

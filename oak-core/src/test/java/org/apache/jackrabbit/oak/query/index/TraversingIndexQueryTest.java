@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -64,6 +65,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-2050")
     public void testFullTextTerm() throws Exception {
         //OAK-1024 allow '/' in a full-text query 
         Tree node = root.getTree("/").addChild("content");
@@ -74,6 +76,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-2050")
     public void testFullTextTermName() throws Exception {
         Tree c = root.getTree("/").addChild("content");
         c.addChild("testFullTextTermNameSimple");

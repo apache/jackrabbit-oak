@@ -48,7 +48,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
      * instead, as in the spec, using double quotes.
      */
     public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
-
+    
     private final String selectorName;
     private final String relativePath;
     private final String propertyName;
@@ -167,7 +167,10 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
             return true;
         }
-
+        // OAK-2050
+        if (!query.getSettings().getFullTextComparisonWithoutIndex()) {
+            return false;
+        }
         StringBuilder buff = new StringBuilder();
         if (relativePath == null && propertyName != null) {
             PropertyValue p = selector.currentProperty(propertyName);
@@ -209,11 +212,21 @@ public class FullTextSearchImpl extends ConstraintImpl {
     
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
-            for (String v : p.getValue(STRINGS)) {
-                buff.append(v).append(' ');
+            if (p.getType() == Type.BINARIES) {
+                // OAK-2050: don't try to load binaries as this would 
+                // run out of memory
+            } else {
+                for (String v : p.getValue(STRINGS)) {
+                    buff.append(v).append(' ');
+                }
             }
         } else {
-            buff.append(p.getValue(STRING)).append(' ');
+            if (p.getType() == Type.BINARY) {
+                // OAK-2050: don't try to load binaries as this would 
+                // run out of memory
+            } else {
+                buff.append(p.getValue(STRING)).append(' ');
+            }
         }
     }
 

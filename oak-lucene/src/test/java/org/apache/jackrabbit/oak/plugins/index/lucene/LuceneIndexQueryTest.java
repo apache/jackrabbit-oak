@@ -69,6 +69,11 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     public void sql2() throws Exception {
         test("sql2.txt");
     }
+    
+    @Test
+    public void sql2FullText() throws Exception {
+        test("sql2-fulltext.txt");
+    }
 
     @Test
     public void descendantTest() throws Exception {

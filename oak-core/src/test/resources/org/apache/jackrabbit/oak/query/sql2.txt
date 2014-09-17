@@ -173,22 +173,6 @@ select [jcr:path]
 
 commit / - "test"
 
-# fulltext search
-
-commit / + "test": { "name": "hello world" }
-
-select [jcr:path]
-  from [nt:base]
-  where contains(name, 'hello')
-/test
-
-select [jcr:path]
-  from [nt:base]
-  where contains(*, 'hello')
-/test
-
-commit / - "test"
-
 # other tests
 
 select [jcr:path]
