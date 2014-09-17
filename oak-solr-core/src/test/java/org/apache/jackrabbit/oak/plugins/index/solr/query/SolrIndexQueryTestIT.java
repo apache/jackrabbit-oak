@@ -92,6 +92,11 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     public void sql2() throws Exception {
         test("sql2.txt");
     }
+    
+    @Test
+    public void sql2FullText() throws Exception {
+        test("sql2-fulltext.txt");
+    }
 
     @Test
     @Ignore("OAK-420")

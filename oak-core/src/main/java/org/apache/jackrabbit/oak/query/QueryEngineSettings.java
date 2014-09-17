@@ -31,9 +31,15 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     private static final int DEFAULT_QUERY_LIMIT_READS = 
             Integer.getInteger("oak.queryLimitReads", Integer.MAX_VALUE);    
     
+    private static final boolean DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX = 
+            Boolean.getBoolean("oak.queryFullTextComparisonWithoutIndex");
+    
     private long limitInMemory = DEFAULT_QUERY_LIMIT_IN_MEMORY;
     
     private long limitReads = DEFAULT_QUERY_LIMIT_READS;
+    
+    private boolean fullTextComparisonWithoutIndex = 
+            DEFAULT_FULL_TEXT_COMPARISON_WITHOUT_INDEX;
     
     /**
      * Get the limit on how many nodes a query may read at most into memory, for
@@ -77,6 +83,14 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean {
     @Override
     public void setLimitReads(long limitReads) {
         this.limitReads = limitReads;
+    }
+    
+    public void setFullTextComparisonWithoutIndex(boolean fullTextComparisonWithoutIndex) {
+        this.fullTextComparisonWithoutIndex = fullTextComparisonWithoutIndex;
+    }
+    
+    public boolean getFullTextComparisonWithoutIndex() {
+        return fullTextComparisonWithoutIndex;
     }
     
 }

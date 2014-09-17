@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -182,6 +183,12 @@ public class Jcr {
     public Jcr with(CommitRateLimiter commitRateLimiter) {
         oak.with(commitRateLimiter);
         this.commitRateLimiter = commitRateLimiter;
+        return this;
+    }
+    
+    @Nonnull
+    public Jcr with(QueryEngineSettings qs) {
+        oak.with(qs);
         return this;
     }
 
