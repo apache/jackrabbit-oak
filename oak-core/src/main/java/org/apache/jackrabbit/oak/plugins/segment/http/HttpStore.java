@@ -34,11 +34,13 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 public class HttpStore implements SegmentStore {
@@ -122,7 +124,7 @@ public class HttpStore implements SegmentStore {
                 stream.close();
             }
         } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
+            throw new SegmentNotFoundException(id, e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

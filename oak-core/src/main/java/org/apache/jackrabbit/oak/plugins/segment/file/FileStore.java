@@ -49,6 +49,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Stopwatch;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
@@ -56,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -669,7 +671,7 @@ public class FileStore implements SegmentStore {
             }
         }
 
-        throw new FileStoreCorruptException(id);
+        throw new SegmentNotFoundException(id);
     }
 
     @Override
@@ -730,14 +732,5 @@ public class FileStore implements SegmentStore {
     public FileStore setPauseCompaction(boolean pauseCompaction) {
         this.pauseCompaction = pauseCompaction;
         return this;
-    }
-
-    public class FileStoreCorruptException extends IllegalStateException {
-        public final SegmentId id;
-
-        public FileStoreCorruptException(SegmentId id) {
-            super("Segment " + id + " not found");
-            this.id = id;
-        }
     }
 }

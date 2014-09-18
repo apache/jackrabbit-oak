@@ -51,7 +51,7 @@ public interface SegmentStore {
      * Reads the identified segment from this store.
      *
      * @param segmentId segment identifier
-     * @return identified segment, or {@code null} if not found
+     * @return identified segment, or a {@link SegmentNotFoundException} thrown if not found
      */
     @CheckForNull
     Segment readSegment(SegmentId segmentId);

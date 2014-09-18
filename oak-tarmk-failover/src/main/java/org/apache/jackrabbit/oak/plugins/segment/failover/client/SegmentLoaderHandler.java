@@ -31,13 +31,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentReply;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.RemoteSegmentLoader;
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,16 +100,17 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                     current.compareAgainstBaseState(before, new ApplyDiff(builder));
                     break;
                 }
-                catch (FileStore.FileStoreCorruptException e) {
+                catch (SegmentNotFoundException e) {
                     // the segment is locally damaged or not present anymore
                     // lets try to read this from the master again
-                    Segment s = readSegment(e.id);
+                    String id = e.getSegmentId();
+                    Segment s = readSegment(e.getSegmentId());
                     if (s == null) {
-                        log.warn("can't read locally corrupt segment " + e.id + " from master");
+                        log.warn("can't read locally corrupt segment " + id + " from master");
                         throw e;
                     }
 
-                    log.info("did reread locally corrupt segment " + e.id + " with size " + s.size());
+                    log.info("did reread locally corrupt segment " + id + " with size " + s.size());
                     ByteArrayOutputStream bout = new ByteArrayOutputStream(s.size());
                     try {
                         s.writeTo(bout);
@@ -119,7 +119,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                         log.error("can't wrap segment to output stream", f);
                         throw e;
                     }
-                    store.writeSegment(e.id, bout.toByteArray(), 0, s.size());
+                    store.writeSegment(s.getSegmentId(), bout.toByteArray(), 0, s.size());
                 }
             } while(true);
             boolean ok = store.setHead(before, builder.getNodeState());
@@ -132,7 +132,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     }
 
     @Override
-    public Segment readSegment(final SegmentId id) {
+    public Segment readSegment(final String id) {
         ctx.writeAndFlush(newGetSegmentReq(this.clientID, id));
         return getSegment();
     }

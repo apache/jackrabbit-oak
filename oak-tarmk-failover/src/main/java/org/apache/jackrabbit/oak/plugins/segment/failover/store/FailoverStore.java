@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +78,7 @@ public class FailoverStore implements SegmentStore {
             SegmentId id = ids.remove();
             if (!seen.contains(id) && !delegate.containsSegment(id)) {
                 log.debug("trying to read segment " + id);
-                Segment s = loader.readSegment(id);
+                Segment s = loader.readSegment(id.toString());
                 if (s != null) {
                     log.info("got segment " + id + " with size " + s.size());
                     ByteArrayOutputStream bout = new ByteArrayOutputStream(

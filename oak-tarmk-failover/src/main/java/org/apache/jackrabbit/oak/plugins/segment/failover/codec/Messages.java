@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.failover.codec;
 
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-
 public class Messages {
 
     public static final byte HEADER_RECORD = 0x00;
@@ -39,8 +37,8 @@ public class Messages {
         return newRequest(clientID, GET_HEAD);
     }
 
-    public static String newGetSegmentReq(String clientID, SegmentId sid) {
-        return newRequest(clientID, GET_SEGMENT + sid.toString());
+    public static String newGetSegmentReq(String clientID, String sid) {
+        return newRequest(clientID, GET_SEGMENT + sid);
     }
 
     public static String extractMessageFrom(String payload) {
