@@ -73,7 +73,7 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
     }
 
     private boolean clientAllowed(InetSocketAddress client) {
-        if (this.allowedIPRanges != null) {
+        if (this.allowedIPRanges != null && this.allowedIPRanges.length > 0) {
             for (String s : this.allowedIPRanges) {
                 try {
                     if (ipToLong(InetAddress.getByName(s)) == ipToLong(client.getAddress())) {
