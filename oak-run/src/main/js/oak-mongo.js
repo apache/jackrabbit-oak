@@ -146,6 +146,24 @@ var oak = (function(global){
         return checkOrFixLastRevs(path, clusterId, false);
     }
 
+    /**
+     * Returns statistics about the blobs collection in the current database.
+     * The stats include the combined BSON size of all documents. The time to
+     * run this command therefore heavily depends on the size of the collection.
+     */
+    api.blobStats = function() {
+        var result = {};
+        var stats = db.blobs.stats(1024 * 1024);
+        var bsonSize = 0;
+        db.blobs.find().forEach(function(doc){bsonSize += Object.bsonsize(doc)});
+        result.count = stats.count;
+        result.size = stats.size;
+        result.storageSize = stats.storageSize;
+        result.bsonSize = Math.round(bsonSize / (1024 * 1024));
+        result.indexSize = stats.totalIndexSize;
+        return result;
+    }
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
