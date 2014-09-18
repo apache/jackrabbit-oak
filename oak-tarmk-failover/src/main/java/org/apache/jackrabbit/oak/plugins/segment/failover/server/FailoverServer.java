@@ -47,7 +47,6 @@ import org.apache.jackrabbit.oak.plugins.segment.failover.codec.RecordIdEncoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.misc.FieldUtil;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
