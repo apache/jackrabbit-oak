@@ -71,8 +71,10 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
     private EventLoopGroup group;
     private EventExecutorGroup executor;
     private SslContext sslContext;
+    private boolean active = false;
     private boolean running;
-    private String state;
+    private volatile String state;
+    private final Object sync = new Object();
 
     public FailoverClient(String host, int port, SegmentStore store) throws SSLException {
         this(host, port, store, false, true);
@@ -130,47 +132,60 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
     }
 
     public void run() {
-        state = STATUS_STARTING;
-        this.executor = new DefaultEventExecutorGroup(4);
-        this.handler = new FailoverClientHandler(this.store, executor, this.observer);
 
-        group = new NioEventLoopGroup();
-        Bootstrap b = new Bootstrap();
-        b.group(group);
-        b.channel(NioSocketChannel.class);
-        b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs);
-        b.option(ChannelOption.TCP_NODELAY, true);
-        b.option(ChannelOption.SO_REUSEADDR, true);
-        b.option(ChannelOption.SO_KEEPALIVE, true);
-
-        b.handler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            public void initChannel(SocketChannel ch) throws Exception {
-                ChannelPipeline p = ch.pipeline();
-                if (sslContext != null) {
-                    p.addLast(sslContext.newHandler(ch.alloc()));
-                }
-                // WriteTimeoutHandler & ReadTimeoutHandler
-                p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
-                        readTimeoutMs, TimeUnit.MILLISECONDS));
-                p.addLast(new StringEncoder(CharsetUtil.UTF_8));
-                if (FailoverClient.this.checkChecksums) {
-                    p.addLast(new SnappyFramedDecoder(true));
-                }
-                p.addLast(new RecordIdDecoder(store));
-                p.addLast(executor, handler);
+        Bootstrap b;
+        synchronized (this.sync) {
+            if (this.active) {
+                return;
             }
-        });
+            state = STATUS_STARTING;
+            executor = new DefaultEventExecutorGroup(4);
+            handler = new FailoverClientHandler(this.store, executor, this.observer);
+            group = new NioEventLoopGroup();
+
+            b = new Bootstrap();
+            b.group(group);
+            b.channel(NioSocketChannel.class);
+            b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, readTimeoutMs);
+            b.option(ChannelOption.TCP_NODELAY, true);
+            b.option(ChannelOption.SO_REUSEADDR, true);
+            b.option(ChannelOption.SO_KEEPALIVE, true);
+
+            b.handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline p = ch.pipeline();
+                    if (sslContext != null) {
+                        p.addLast(sslContext.newHandler(ch.alloc()));
+                    }
+                    // WriteTimeoutHandler & ReadTimeoutHandler
+                    p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
+                            readTimeoutMs, TimeUnit.MILLISECONDS));
+                    p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                    if (FailoverClient.this.checkChecksums) {
+                        p.addLast(new SnappyFramedDecoder(true));
+                    }
+                    p.addLast(new RecordIdDecoder(store));
+                    p.addLast(executor, handler);
+                }
+            });
+            state = STATUS_RUNNING;
+            this.running = true;
+            this.active = true;
+        }
+
         try {
             // Start the client.
-            running = true;
-            state = STATUS_RUNNING;
             ChannelFuture f = b.connect(host, port).sync();
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
         } catch (Exception e) {
             log.error("Failed synchronizing state.", e);
             stop();
+        } finally {
+            synchronized (this.sync) {
+                this.active = false;
+            }
         }
     }
 
