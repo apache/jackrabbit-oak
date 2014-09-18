@@ -107,7 +107,7 @@ public class RDBBlobStoreTest extends AbstractBlobStoreTest {
             }
         }
 
-        LOG.info("max id length for " + URL + " was " + test);
+        LOG.info("max blob length for " + URL + " was " + test);
 
         int expected = Math.max(blobStore.getBlockSize(), 2 * 1024 * 1024);
         assertTrue("expected supported block size is " + expected + ", but measured: " + test, test >= expected);
