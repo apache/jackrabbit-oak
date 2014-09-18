@@ -164,6 +164,14 @@ var oak = (function(global){
         return result;
     }
 
+    /**
+     * Converts the given Revision String into a more human readable version,
+     * which also prints the date.
+     */
+    api.formatRevision = function(rev) {
+        return new Revision(rev).toReadableString();
+    }
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
@@ -233,6 +241,10 @@ var oak = (function(global){
         } else {
             return this.counter > other.counter;
         }
+    }
+
+    Revision.prototype.toReadableString = function () {
+        return this.rev + " (" + new Date(this.timestamp).toString() + ")"
     }
 
     var pathDepth = function(path){
