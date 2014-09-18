@@ -146,29 +146,27 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     Statement stmt = con.createStatement();
 
                     if (baseName.equals("DATASTORE_META")) {
-                        if ("MySQL".equals(dbtype)) {
-                            stmt.execute("create table " + tableName
-                                    + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)");
-                        } else if ("Oracle".equals(dbtype)) {
-                            stmt.execute("create table " + tableName
-                                    + " (ID varchar(1000) not null primary key, LVL number, LASTMOD number)");
+                        String ct;
+                        if ("Oracle".equals(dbtype)) {
+                            ct = "create table " + tableName
+                                    + " (ID varchar(767) not null primary key, LVL number, LASTMOD number)";
                         } else {
-                            stmt.execute("create table " + tableName
-                                    + " (ID varchar(1000) not null primary key, LVL int, LASTMOD bigint)");
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)";
                         }
+                        stmt.execute(ct);
                     } else {
-                        // the code below likely will need to be extended for
-                        // new database types
+                        String ct;
                         if ("PostgreSQL".equals(dbtype)) {
-                            stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA bytea)");
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA bytea)";
                         } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                            stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob("
-                                    + MINBLOB + "))");
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob(" + MINBLOB
+                                    + "))";
                         } else if ("MySQL".equals(dbtype)) {
-                            stmt.execute("create table " + tableName + " (ID varchar(767) not null primary key, DATA mediumblob)");
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA mediumblob)";
                         } else {
-                            stmt.execute("create table " + tableName + " (ID varchar(1000) not null primary key, DATA blob)");
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob)";
                         }
+                        stmt.execute(ct);
                     }
 
                     stmt.close();
