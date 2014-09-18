@@ -17,11 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.segment.failover.store;
 
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
 public interface RemoteSegmentLoader {
 
-    Segment readSegment(SegmentId id);
+    Segment readSegment(String id);
 
     void close();
 
