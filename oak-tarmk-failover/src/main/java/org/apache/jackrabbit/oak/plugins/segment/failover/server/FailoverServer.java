@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.plugins.segment.failover.codec.RecordIdEncoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.misc.FieldUtil;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -71,30 +72,20 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
 
     public FailoverServer(int port, final SegmentStore store)
             throws CertificateException, SSLException {
-        this(port, store, null, false, true);
+        this(port, store, null, false);
     }
 
     public FailoverServer(int port, final SegmentStore store, boolean secure)
             throws CertificateException, SSLException {
-        this(port, store, null, secure, true);
-    }
-
-    public FailoverServer(int port, final SegmentStore store, boolean secure, boolean useChecksums)
-            throws CertificateException, SSLException {
-        this(port, store, null, secure, useChecksums);
+        this(port, store, null, secure);
     }
 
     public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges)
             throws CertificateException, SSLException {
-        this(port, store, allowedClientIPRanges, false, true);
+        this(port, store, allowedClientIPRanges, false);
     }
 
     public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges, boolean secure)
-            throws CertificateException, SSLException {
-        this(port, store, allowedClientIPRanges, secure, true);
-    }
-
-    public FailoverServer(int port, final SegmentStore store, String[] allowedClientIPRanges, boolean secure, final boolean checksums)
             throws CertificateException, SSLException {
         this.port = port;
 
@@ -135,9 +126,7 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
                 }
                 p.addLast(new LineBasedFrameDecoder(8192));
                 p.addLast(new StringDecoder(CharsetUtil.UTF_8));
-                if (checksums) {
-                    p.addLast(new SnappyFramedEncoder());
-                }
+                p.addLast(new SnappyFramedEncoder());
                 p.addLast(new RecordIdEncoder());
                 p.addLast(new SegmentEncoder());
                 p.addLast(handler);
@@ -169,13 +158,23 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
         handler.state = STATUS_CLOSED;
     }
 
-    @Override
-    public void start() {
+    private void start(boolean wait) {
         if (running) return;
 
         running = true;
         this.handler.state = STATUS_STARTING;
 
+        final Thread close = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    running = true;
+                    channelFuture.sync().channel().closeFuture().sync();
+                } catch (InterruptedException e) {
+                    FailoverServer.this.stop();
+                }
+            }
+        };
         Future<?> startup = bossGroup.submit(new Runnable() {
             @Override
             public void run() {
@@ -185,23 +184,26 @@ public class FailoverServer implements FailoverStatusMBean, Closeable {
                 //the channel registration synchronous.
                 //Note that now this method will return immediately.
                 channelFuture = b.bind(port);
-                new Thread() {
-                    @Override
-                    public void run() {
-                        try {
-                            running = true;
-                            channelFuture.sync().channel().closeFuture().sync();
-                        } catch (InterruptedException e) {
-                            FailoverServer.this.stop();
-                        }
-                    }
-                }.start();
+                close.start();
             }
         });
         if (!startup.awaitUninterruptibly(10000)) {
             log.error("FailoverServer failed to start within 10 seconds and will be canceled");
             startup.cancel(true);
+        } else if (wait) {
+            try {
+                close.join();
+            } catch (InterruptedException ignored) {}
         }
+    }
+
+    public void startAndWait() {
+        start(true);
+    }
+
+    @Override
+    public void start() {
+        start(false);
     }
 
     @Override

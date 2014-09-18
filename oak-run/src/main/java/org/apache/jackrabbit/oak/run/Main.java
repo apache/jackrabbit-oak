@@ -79,6 +79,7 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
@@ -95,6 +96,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
+import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -170,7 +172,10 @@ public class Main {
                 Explorer.main(args);
                 break;
             case SYNCSLAVE:
-                syncslave(args);
+                syncSlave(args);
+                break;
+            case SYNCMASTER:
+                syncMaster(args);
                 break;
             case CHECKPOINTS:
                 checkpoints(args);
@@ -269,7 +274,8 @@ public class Main {
         }
     }
 
-    private static void syncslave(String[] args) throws Exception {
+
+    private static void syncSlave(String[] args) throws Exception {
 
         final String defaultHost = "127.0.0.1";
         final int defaultPort = 8023;
@@ -297,7 +303,6 @@ public class Main {
 
         FileStore store = null;
         FailoverClient failoverClient = null;
-        ScheduledSyncService syncService = null;
         try {
             store = new FileStore(new File(nonOptions.get(0)), 256);
             failoverClient = new FailoverClient(
@@ -308,7 +313,7 @@ public class Main {
             if (!options.has(interval)) {
                 failoverClient.run();
             } else {
-                syncService = new ScheduledSyncService(failoverClient, options.valueOf(interval));
+                ScheduledSyncService syncService = new ScheduledSyncService(failoverClient, options.valueOf(interval));
                 syncService.startAsync();
                 syncService.awaitTerminated();
             }
@@ -318,6 +323,53 @@ public class Main {
             }
             if (failoverClient != null) {
                 failoverClient.close();
+            }
+        }
+    }
+
+    private static void syncMaster(String[] args) throws Exception {
+
+        final int defaultPort = 8023;
+
+        final OptionParser parser = new OptionParser();
+        final OptionSpec<Integer> port = parser.accepts("port", "port to listen").withRequiredArg().ofType(Integer.class).defaultsTo(defaultPort);
+        final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
+        final OptionSpec<String> admissible = parser.accepts("admissible", "list of admissible slave host names or ip ranges").withRequiredArg().ofType(String.class);
+        final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCMASTER + " <path to repository>");
+
+        final OptionSet options = parser.parse(args);
+        final List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        if (nonOptions.isEmpty()) {
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+
+        List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
+
+        FileStore store = null;
+        FailoverServer failoverServer = null;
+        try {
+            store = new FileStore(new File(nonOptions.get(0)), 256);
+            failoverServer = new FailoverServer(
+                    options.has(port)? options.valueOf(port) : defaultPort,
+                    store,
+                    admissibleSlaves.toArray(new String[0]),
+                    options.has(secure) && options.valueOf(secure));
+            failoverServer.startAndWait();
+        } finally {
+            if (store != null) {
+                store.close();
+            }
+            if (failoverServer != null) {
+                failoverServer.close();
             }
         }
     }
@@ -1039,7 +1091,8 @@ public class Main {
         UPGRADE("upgrade"),
         SCALABILITY("scalability"),
         EXPLORE("explore"),
-        SYNCSLAVE("syncslave"),
+        SYNCSLAVE("syncSlave"),
+        SYNCMASTER("syncmaster"),
         HELP("help"),
         CHECKPOINTS("checkpoints"),
         RECOVERY("recovery");

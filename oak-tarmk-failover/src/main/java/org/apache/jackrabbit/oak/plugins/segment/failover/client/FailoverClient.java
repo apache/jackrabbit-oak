@@ -62,7 +62,6 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
 
     private final String host;
     private final int port;
-    private final boolean checkChecksums;
     private int readTimeoutMs = 10000;
 
     private final FailoverStore store;
@@ -77,18 +76,13 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
     private final Object sync = new Object();
 
     public FailoverClient(String host, int port, SegmentStore store) throws SSLException {
-        this(host, port, store, false, true);
+        this(host, port, store, false);
     }
 
     public FailoverClient(String host, int port, SegmentStore store, boolean secure) throws SSLException {
-        this(host, port, store, secure, true);
-    }
-
-    public FailoverClient(String host, int port, SegmentStore store, boolean secure, boolean checksums) throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.host = host;
         this.port = port;
-        this.checkChecksums = checksums;
         if (secure) {
             this.sslContext = SslContext.newClientContext(InsecureTrustManagerFactory.INSTANCE);
         }
@@ -162,9 +156,7 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
                     p.addLast("readTimeoutHandler", new ReadTimeoutHandler(
                             readTimeoutMs, TimeUnit.MILLISECONDS));
                     p.addLast(new StringEncoder(CharsetUtil.UTF_8));
-                    if (FailoverClient.this.checkChecksums) {
-                        p.addLast(new SnappyFramedDecoder(true));
-                    }
+                    p.addLast(new SnappyFramedDecoder(true));
                     p.addLast(new RecordIdDecoder(store));
                     p.addLast(executor, handler);
                 }

@@ -79,19 +79,10 @@ public class BulkTest extends TestBase {
     }
 
     @Test
-    public void test1MillionNodesNoChecksum() throws Exception {
-        test(1000000, 87, 87, 22700000, 22800000, false, false);
-    }
-
-    @Test
     public void test1MillionNodesUsingSSL() throws Exception {
-        test(1000000, 87, 87, 22700000, 22800000, true, true);
+        test(1000000, 87, 87, 22700000, 22800000, true);
     }
 
-    @Test
-    public void test1MillionNodesUsingSSLNoChecksum() throws Exception {
-        test(1000000, 87, 87, 22700000, 22800000, true, false);
-    }
 /*
     @Test
     public void test10MillionNodes() throws Exception {
@@ -102,11 +93,11 @@ public class BulkTest extends TestBase {
     // private helper
 
     private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes) throws Exception {
-        test(number, minExpectedSegments, maxExpectedSegments, minExpectedBytes, maxExpectedBytes, false, true);
+        test(number, minExpectedSegments, maxExpectedSegments, minExpectedBytes, maxExpectedBytes, false);
     }
 
     private void test(int number, int minExpectedSegments, int maxExpectedSegments, long minExpectedBytes, long maxExpectedBytes,
-                      boolean useSSL, boolean useChecksum) throws Exception {
+                      boolean useSSL) throws Exception {
         NodeStore store = new SegmentNodeStore(storeS);
         NodeBuilder rootbuilder = store.getRoot().builder();
         NodeBuilder b = rootbuilder.child("store");
@@ -119,11 +110,11 @@ public class BulkTest extends TestBase {
         store.merge(rootbuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         storeS.flush();
 
-        final FailoverServer server = new FailoverServer(port, storeS, useSSL, useChecksum);
+        final FailoverServer server = new FailoverServer(port, storeS, useSSL);
         server.start();
 
         System.setProperty(FailoverClient.CLIENT_ID_PROPERTY_NAME, "Bar");
-        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC, useSSL, useChecksum);
+        FailoverClient cl = new FailoverClient("127.0.0.1", port, storeC, useSSL);
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         ObjectName status = new ObjectName(FailoverStatusMBean.JMX_NAME + ",id=*");
