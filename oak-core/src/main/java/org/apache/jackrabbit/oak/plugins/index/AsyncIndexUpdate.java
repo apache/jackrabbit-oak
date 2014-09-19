@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -96,6 +97,12 @@ public class AsyncIndexUpdate implements Runnable {
 
     private final IndexEditorProvider provider;
 
+    /**
+     * Property name which stores the timestamp upto which the repository is
+     * indexed
+     */
+    private final String lastIndexedTo;
+
     private final long lifetime = DEFAULT_LIFETIME; // TODO: make configurable
 
     /** Flag to avoid repeatedly logging failure warnings */
@@ -117,6 +124,7 @@ public class AsyncIndexUpdate implements Runnable {
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
         this.name = checkNotNull(name);
+        this.lastIndexedTo = name + "-LastIndexedTo";
         this.store = checkNotNull(store);
         this.provider = checkNotNull(provider);
         this.switchOnSync = switchOnSync;
@@ -271,6 +279,7 @@ public class AsyncIndexUpdate implements Runnable {
         }
 
         // there are some recent changes, so let's create a new checkpoint
+        String afterTime = now();
         String afterCheckpoint = store.checkpoint(lifetime);
         NodeState after = store.retrieve(afterCheckpoint);
         if (after == null) {
@@ -281,7 +290,7 @@ public class AsyncIndexUpdate implements Runnable {
 
         String checkpointToRelease = afterCheckpoint;
         try {
-            updateIndex(before, beforeCheckpoint, after, afterCheckpoint);
+            updateIndex(before, beforeCheckpoint, after, afterCheckpoint, afterTime);
 
             // the update succeeded, i.e. it no longer fails
             if (failing) {
@@ -319,7 +328,7 @@ public class AsyncIndexUpdate implements Runnable {
 
     private void updateIndex(
             NodeState before, String beforeCheckpoint,
-            NodeState after, String afterCheckpoint)
+            NodeState after, String afterCheckpoint, String afterTime)
             throws CommitFailedException {
         // start collecting runtime statistics
         preAsyncRunStatsStats(indexStats);
@@ -340,6 +349,7 @@ public class AsyncIndexUpdate implements Runnable {
             }
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
+            builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
                     reindexedDefinitions.addAll(
@@ -417,7 +427,7 @@ public class AsyncIndexUpdate implements Runnable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    static final class AsyncIndexStats implements IndexStatsMBean {
+    final class AsyncIndexStats implements IndexStatsMBean {
 
         private String start = "";
         private String done = "";
@@ -454,6 +464,12 @@ public class AsyncIndexUpdate implements Runnable {
         @Override
         public String getStatus() {
             return status;
+        }
+
+        @Override
+        public String getLastIndexedTime() {
+            PropertyState ps = store.getRoot().getChildNode(ASYNC).getProperty(lastIndexedTo);
+            return ps != null ? ps.getValue(Type.STRING) : null;
         }
 
         public void pause() {
