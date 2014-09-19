@@ -48,6 +48,11 @@ public interface IndexStatsMBean {
     String getStatus();
 
     /**
+     * @return the last upto which the repository was indexed
+     */
+    String getLastIndexedTime();
+
+    /**
      * Pauses the background indexing process. Future changes are not indexed
      * until the {@link #resume()} method is called.
      * 
