@@ -91,6 +91,7 @@
             <exclude>**/BrokenNetworkTest.java</exclude>
             <exclude>**/FailoverIPRangeTest.java</exclude>
             <exclude>**/BulkTest.java</exclude>
+            <exclude>**/MBeanTest.java</exclude>
           </excludes>
         </configuration>
       </plugin>
