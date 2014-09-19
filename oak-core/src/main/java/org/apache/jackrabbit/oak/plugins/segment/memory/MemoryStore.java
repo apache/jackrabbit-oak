@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -88,9 +89,8 @@ public class MemoryStore implements SegmentStore {
         Segment segment = segments.get(id);
         if (segment != null) {
             return segment;
-        } else {
-            throw new IllegalArgumentException("Segment not found: " + id);
         }
+        throw new SegmentNotFoundException(id);
     }
 
     @Override
