@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.6
 
 Introduction
 ------------
@@ -7,39 +7,55 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.5 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.6 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.5
+Changes in Oak 1.0.6
 --------------------
 
-Bug fixes
+Bug Fixes
 
-  [OAK-2020] - NodeState view at given version is not stable with DocumentNodeStore
-  [OAK-2021] - XPath queries with certain combinations of "or" conditions ...
-  [OAK-2022] - XPath queries with "order by" are never converted to "union"
-  [OAK-2026] - Incompatibility with PropertyDefinitionImpl#getValueConstraints ...
-  [OAK-2027] - SessionMBean fails to render due to NPE in getSessionAttributes
-  [OAK-2029] - Oak Lucene index doesn't get notified about updates when index is ...
-  [OAK-2035] - OrderedIndex fails to keep a correct skipList on TarMK
-  [OAK-2038] - Invalid type error while importing DocView xml data
-  [OAK-2039] - SegmentNodeStore might not create a checkpoint
-  [OAK-2042] - TarMK CompactionMap should include more nodes
-  [OAK-2048] - oak-solr-osgi uses wrong version of spatial4j
+   [OAK-2047] - Missing privileges after repository upgrade
+   [OAK-2049] - ArrayIndexOutOfBoundsException in Segment.getRefId()
+   [OAK-2053] - Excessive memory usage with Oracle Java 6
+   [OAK-2059] - Reindexing can include hidden nodes in the index
+   [OAK-2062] - Range queries and relative properties resultset should be consistent with JR2
+   [OAK-2068] - Lucene index: "reindex" property is automatically set to true
+   [OAK-2073] - Prevent against integer overflow in compaction check
+   [OAK-2078] - Prevent null/empty passwords in ldap provider
+   [OAK-2084] - The query engine should not return hidden nodes
+   [OAK-2088] - AsyncIndexUpdate can leave orphaned checkpoint in case of abrupt shutdown
+   [OAK-2099] - AIOOBE in Segment#toString
+   [OAK-2102] - Oak-run add option to remove all unreferenced checkpoints
+   [OAK-2111] - Rename FileStoreCorruptException to SegmentNotFoundException and update the NodeStore contract
 
 Improvements
 
-  [OAK-1821] - Full text expression with * as 'field' should expand to ...
-  [OAK-2011] - Log read and write operations to different loggers
-  [OAK-2017] - Add checkpoint management to oak-run
-  [OAK-2018] - Query: before throwing "traversed more than x nodes" exception, log it
-  [OAK-2019] - Compact only if needed
-  [OAK-2025] - Make the cache size in MongoBlobStore configurable
-  [OAK-2040] - Tar compaction: log a warning if there is more than one checkpoint
+   [OAK-1880] - Omit Configuration Retrieval for PreAuthContext
+   [OAK-2004] - Add a way to pause the background async indexer
+   [OAK-2007] - MongoBlobStore improvements
+   [OAK-2051] - Provide option to use  Configuration SPI in JAAS authentication when running within AppServer
+   [OAK-2060] - MBean to provide consolidated cache stats 
+   [OAK-2069] - Log details of _lastRev recovery
+   [OAK-2087] - Record time when checpoint is created in SegmentNodeStore
+   [OAK-2090] - Improve logging in compaction and cleanup operation in SegmentMK
+   [OAK-2091] - Improve logging in MongoDocumentStore
+   [OAK-2094] - Oak Upgrade should depend on oak-jcr with a 'test' scope
+   [OAK-2100] - Change NodeStore#release method to return a boolean
+   [OAK-2104] - IndexStatsMBean should expose the time upto which the repository state has been indexed
+
+New Features
+
+   [OAK-1893] - MBean to dump Lucene Index content and related stats
+   [OAK-1906] - Adding information to a  Standard MBean interface using annotations
+
+Task
+
+   [OAK-2085] - Move CacheStats humanReadableByteCount to Oak Commons IOUtils
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
