@@ -343,7 +343,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
                 SegmentId id = sps.getRecordId().getSegmentId();
-                if (contains(id, uuids)) {
+                if (uuids.contains(new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits()))) {
                     localPaths.add(path + "@" + ps);
                 }
             }
@@ -356,17 +356,6 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                         path + ce.getName() + "/");
             }
         }
-    }
-
-    private static boolean contains(SegmentId id, Set<UUID> uuids) {
-        for (UUID u : uuids) {
-            if (id.getMostSignificantBits() == u.getMostSignificantBits()
-                    && id.getLeastSignificantBits() == u
-                            .getLeastSignificantBits()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public void printDiff(String input) {
