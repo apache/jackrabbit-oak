@@ -186,9 +186,9 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
 
             RecordId templateId = SegmentNodeStateHelper.getTemplateId(s);
             String f = getFile(templateId);
+            sb.append("TemplateId ");
+            sb.append(templateId);
             if (!f.equals(tarFile)) {
-                sb.append("TemplateId ");
-                sb.append(templateId);
                 sb.append(" in " + f);
             }
             sb.append(newline);
