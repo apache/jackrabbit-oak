@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -180,6 +181,15 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             tarFile = getFile(recordId);
             if (tarFile.length() > 0) {
                 sb.append(" in " + tarFile);
+            }
+            sb.append(newline);
+
+            RecordId templateId = SegmentNodeStateHelper.getTemplateId(s);
+            String f = getFile(templateId);
+            if (!f.equals(tarFile)) {
+                sb.append("TemplateId ");
+                sb.append(templateId);
+                sb.append(" in " + f);
             }
             sb.append(newline);
         }
@@ -347,6 +357,17 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                     localPaths.add(path + "@" + ps);
                 }
             }
+        }
+        SegmentId record = state.getRecordId().getSegmentId();
+        if (uuids.contains(new UUID(record.getMostSignificantBits(), record
+                .getLeastSignificantBits()))) {
+            localPaths.add(path + "[RecordId]");
+        }
+        SegmentId template = SegmentNodeStateHelper.getTemplateId(state)
+                .getSegmentId();
+        if (uuids.contains(new UUID(template.getMostSignificantBits(), template
+                .getLeastSignificantBits()))) {
+            localPaths.add(path + "[TemplateId]");
         }
         paths.addAll(localPaths);
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
