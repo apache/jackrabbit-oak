@@ -352,22 +352,26 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         for (PropertyState ps : state.getProperties()) {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
-                SegmentId id = sps.getRecordId().getSegmentId();
+                RecordId recordId = sps.getRecordId();
+                SegmentId id = recordId.getSegmentId();
                 if (uuids.contains(new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits()))) {
-                    localPaths.add(path + "@" + ps);
+                    localPaths.add(path + "@" + ps + " [SegmentPropertyState@" + recordId + "]");
                 }
             }
         }
-        SegmentId record = state.getRecordId().getSegmentId();
-        if (uuids.contains(new UUID(record.getMostSignificantBits(), record
+
+        RecordId stateId = state.getRecordId();
+        SegmentId segmentId = stateId.getSegmentId();
+        if (uuids.contains(new UUID(segmentId.getMostSignificantBits(), segmentId
                 .getLeastSignificantBits()))) {
-            localPaths.add(path + "[RecordId]");
+            localPaths.add(path + " [SegmentNodeState@" + stateId + "]");
         }
-        SegmentId template = SegmentNodeStateHelper.getTemplateId(state)
-                .getSegmentId();
+
+        RecordId templateId = SegmentNodeStateHelper.getTemplateId(state);
+        SegmentId template = templateId.getSegmentId();
         if (uuids.contains(new UUID(template.getMostSignificantBits(), template
                 .getLeastSignificantBits()))) {
-            localPaths.add(path + "[TemplateId]");
+            localPaths.add(path + "[Template@" + templateId + "]");
         }
         paths.addAll(localPaths);
         for (ChildNodeEntry ce : state.getChildNodeEntries()) {
