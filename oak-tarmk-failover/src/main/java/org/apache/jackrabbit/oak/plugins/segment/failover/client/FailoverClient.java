@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.failover.CommunicationObserver;
+import org.apache.jackrabbit.oak.plugins.segment.failover.jmx.ClientFailoverStatusMBean;
 import org.apache.jackrabbit.oak.plugins.segment.failover.jmx.FailoverStatusMBean;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.RecordIdDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStore;
@@ -54,7 +55,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.net.ssl.SSLException;
 
-public final class FailoverClient implements FailoverStatusMBean, Runnable, Closeable {
+public final class FailoverClient implements ClientFailoverStatusMBean, Runnable, Closeable {
     public static final String CLIENT_ID_PROPERTY_NAME = "failOverID";
 
     private static final Logger log = LoggerFactory
@@ -72,6 +73,8 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
     private SslContext sslContext;
     private boolean active = false;
     private boolean running;
+    private int failedRequests;
+    private long lastSuccessfulRequest;
     private volatile String state;
     private final Object sync = new Object();
 
@@ -81,6 +84,8 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
 
     public FailoverClient(String host, int port, SegmentStore store, boolean secure) throws SSLException {
         this.state = STATUS_INITIALIZING;
+        this.lastSuccessfulRequest = -1;
+        this.failedRequests = 0;
         this.host = host;
         this.port = port;
         if (secure) {
@@ -92,7 +97,7 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
 
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
-            jmxServer.registerMBean(new StandardMBean(this, FailoverStatusMBean.class), new ObjectName(this.getMBeanName()));
+            jmxServer.registerMBean(new StandardMBean(this, ClientFailoverStatusMBean.class), new ObjectName(this.getMBeanName()));
         }
         catch (Exception e) {
             log.error("can register failover status mbean", e);
@@ -171,7 +176,10 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
             ChannelFuture f = b.connect(host, port).sync();
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
+            this.failedRequests = 0;
+            this.lastSuccessfulRequest = System.currentTimeMillis() / 1000;
         } catch (Exception e) {
+            this.failedRequests++;
             log.error("Failed synchronizing state.", e);
             stop();
         } finally {
@@ -206,5 +214,26 @@ public final class FailoverClient implements FailoverStatusMBean, Runnable, Clos
     @Override
     public String getStatus() {
         return this.state;
+    }
+
+    @Override
+    public int getFailedRequests() {
+        return this.failedRequests;
+    }
+
+    @Override
+    public int getSecondsSinceLastSuccess() {
+        if (this.lastSuccessfulRequest < 0) return -1;
+        return (int)(System.currentTimeMillis() / 1000 - this.lastSuccessfulRequest);
+    }
+
+    @Override
+    public int calcFailedRequests() {
+        return this.getFailedRequests();
+    }
+
+    @Override
+    public int calcSecondsSinceLastSuccess() {
+        return this.getSecondsSinceLastSuccess();
     }
 }
