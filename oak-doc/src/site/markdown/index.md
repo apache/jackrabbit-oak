@@ -52,5 +52,6 @@ somewhat spread over different places. If you don't find something here you coul
 * the [README files](https://github.com/apache/jackrabbit-oak/blob/trunk/README.md),
 * the [Oak presentation](http://goo.gl/zid8V3)
   from the .adaptTo conference 2012,
-* [Oak, the architecture of Apache Jackrabbit 3](http://www.slideshare.net/jukka/oak-the-architecture-of-apache-jackrabbit-3). 
+* [Oak, the architecture of Apache Jackrabbit 3](http://www.slideshare.net/jukka/oak-the-architecture-of-apache-jackrabbit-3).
+* [Oak, the architecture of the new Repository](http://www.slideshare.net/MichaelDrig/oak-39377061)
   
