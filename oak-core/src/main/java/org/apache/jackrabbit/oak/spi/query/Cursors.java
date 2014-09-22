@@ -452,7 +452,7 @@ public class Cursors {
                 init = true;
             }
             IndexRow result = current;
-            fetchNext();
+            init = false;
             return result;
         }
 
