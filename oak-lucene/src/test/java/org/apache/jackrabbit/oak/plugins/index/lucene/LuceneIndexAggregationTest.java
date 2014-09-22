@@ -394,6 +394,10 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
                 "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]", 
                 "xpath", ImmutableList.of("/myFolder/myFile"));
 
+        // double aggregation dupes
+        assertQuery(
+                    "//*[(jcr:contains(., 'dog') or jcr:contains(jcr:content, 'dog') )]",
+                    "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile", "/myFolder/myFile/jcr:content"));
     }
 
 }
