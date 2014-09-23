@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -94,7 +95,9 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
                 .memoryCacheSize(64 * 1024 * 1024)
                 .setMongoDB(connection.getDB())
                 .open();
-        return new Jcr(new KernelNodeStore(m)).createRepository();
+        QueryEngineSettings qs = new QueryEngineSettings();
+        qs.setFullTextComparisonWithoutIndex(true);
+        return new Jcr(new KernelNodeStore(m)).with(qs).createRepository();
     }
 
     /**
