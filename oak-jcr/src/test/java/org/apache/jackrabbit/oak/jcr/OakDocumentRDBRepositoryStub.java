@@ -33,6 +33,7 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -90,7 +91,9 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
                 .memoryCacheSize(64 * 1024 * 1024)
                 .setRDBConnection(RDBDataSourceFactory.forJdbcUrl(url, username, password))
                 .getNodeStore();
-        return new Jcr(m).createRepository();
+        QueryEngineSettings qs = new QueryEngineSettings();
+        qs.setFullTextComparisonWithoutIndex(true);
+        return new Jcr(m).with(qs).createRepository();
     }
 
     public static boolean isAvailable() {

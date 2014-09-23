@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 
 /**
  * A repository stub using the DocumentNodeStore.
@@ -40,6 +41,8 @@ public class OakMongoNSRepositoryStub extends OakMongoMKRepositoryStub {
         DocumentNodeStore store = new DocumentMK.Builder().setClusterId(1).
                 memoryCacheSize(64 * 1024 * 1024).
                 setMongoDB(connection.getDB()).getNodeStore();
-        return new Jcr(store).createRepository();
+        QueryEngineSettings qs = new QueryEngineSettings();
+        qs.setFullTextComparisonWithoutIndex(true);
+        return new Jcr(store).with(qs).createRepository();
     }
 }
