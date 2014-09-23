@@ -262,6 +262,33 @@ public class IndexUpdateTest {
                 "index2", INDEX_CONTENT_NODE_NAME);
     }
 
+    @Test
+    public void reindexAndIndexDefnChildRemoval_OAK_2117() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder nb = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+        nb.child("prop1").setProperty("foo", "bar");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+
+        //Check index defn child node exist
+        checkPathExists(ns, "prop1");
+        checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+
+        // next, lookup
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
+
+    }
+
     private Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
         NodeState system = root.getChildNode(JCR_SYSTEM);
