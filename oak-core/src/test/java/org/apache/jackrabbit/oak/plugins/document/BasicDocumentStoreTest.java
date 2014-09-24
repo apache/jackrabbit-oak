@@ -22,6 +22,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -120,13 +121,31 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         for (int test : lengths) {
             String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
+            String pval = generateString(test, true);
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("foo", pval);
+            super.ds.remove(Collection.NODES, id);
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("failed to insert a document with property of length " + test + "(ASCII) in " + super.dsname, success);
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        for (int test : lengths) {
+            String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
             String pval = generateString(test, false);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", pval);
             super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property of length " + test, success);
+            try {
+                assertTrue("failed to insert a document with property of length " + test
+                        + "(potentially non-ASCII, actual octet length in UTF-8: " + pval.getBytes("UTF-8").length + ") in "
+                        + super.dsname, success);
+            } catch (UnsupportedEncodingException e) {
+                // outch
+            }
             super.ds.remove(Collection.NODES, id);
         }
     }
