@@ -68,9 +68,9 @@ public class MissingLastRevSeeker {
      * @return the candidates
      */
     public Iterable<NodeDocument> getCandidates(final long startTime, final long endTime) {
-        // Fetch all documents.
+        // Fetch all documents where lastmod >= startTime
         List<NodeDocument> nodes = store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
-                NodeDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+                NodeDocument.MAX_ID_VALUE, NodeDocument.MODIFIED_IN_SECS,  NodeDocument.getModifiedInSecs(startTime), Integer.MAX_VALUE);
         return Iterables.filter(nodes, new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
