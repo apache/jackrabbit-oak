@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 
@@ -46,7 +47,8 @@ class DocumentNodeStoreBranch
                             DocumentNodeState base,
                             ReadWriteLock mergeLock) {
         super(store, new ChangeDispatcher(store.getRoot()), mergeLock.readLock(),
-                base, null, getMaxBackoffMillis(store));
+                base, null, getMaxBackoffMillis(store),
+                getMaxBackoffMillis(store) * 3);
         this.mergeLock = mergeLock;
     }
 
@@ -147,11 +149,20 @@ class DocumentNodeStoreBranch
         }
         // retry with exclusive lock, blocking other
         // concurrent writes
-        mergeLock.writeLock().lock();
+        // do not wait forever
+        boolean acquired = false;
+        try {
+            acquired = mergeLock.writeLock()
+                    .tryLock(maxLockTryTimeMS, MILLISECONDS);
+        } catch (InterruptedException e) {
+            // ignore and proceed with shared lock used in base class
+        }
         try {
             return super.merge(hook, info);
         } finally {
-            mergeLock.writeLock().unlock();
+            if (acquired) {
+                mergeLock.writeLock().unlock();
+            }
         }
     }
 

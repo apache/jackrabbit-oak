@@ -64,6 +64,11 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
     protected final long maximumBackoff;
 
+    /**
+     * The maximum time in milliseconds to wait for the merge lock.
+     */
+    protected final long maxLockTryTimeMS;
+
     /** Lock for coordinating concurrent merge operations */
     private final Lock mergeLock;
 
@@ -79,7 +84,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                                    Lock mergeLock,
                                    N base) {
         this(kernelNodeStore, dispatcher, mergeLock, base, null,
-                MILLISECONDS.convert(10, SECONDS));
+                MILLISECONDS.convert(10, SECONDS),
+                Integer.MAX_VALUE); // default: wait 'forever'
     }
 
     public AbstractNodeStoreBranch(S kernelNodeStore,
@@ -87,7 +93,8 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                                    Lock mergeLock,
                                    N base,
                                    N head,
-                                   long maximumBackoff) {
+                                   long maximumBackoff,
+                                   long maxLockTryTimeMS) {
         this.store = checkNotNull(kernelNodeStore);
         this.dispatcher = dispatcher;
         this.mergeLock = checkNotNull(mergeLock);
@@ -97,6 +104,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
             this.branchState = new Persisted(checkNotNull(base), head);
         }
         this.maximumBackoff = Math.max(maximumBackoff, MIN_BACKOFF);
+        this.maxLockTryTimeMS = maxLockTryTimeMS;
     }
 
     /**
@@ -305,19 +313,26 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
                             MERGE, 3, "Merge interrupted", e);
                 }
             }
-            mergeLock.lock();
             try {
-                return branchState.merge(checkNotNull(hook), checkNotNull(info));
-            } catch (CommitFailedException e) {
-                ex = e;
-                // only retry on merge failures. these may be caused by
-                // changes introduce by a commit hook and may be resolved
-                // by a rebase and running the hook again
-                if (!e.isOfType(MERGE)) {
-                    throw e;
+                boolean acquired = mergeLock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+                try {
+                    return branchState.merge(checkNotNull(hook), checkNotNull(info));
+                } catch (CommitFailedException e) {
+                    ex = e;
+                    // only retry on merge failures. these may be caused by
+                    // changes introduce by a commit hook and may be resolved
+                    // by a rebase and running the hook again
+                    if (!e.isOfType(MERGE)) {
+                        throw e;
+                    }
+                } finally {
+                    if (acquired) {
+                        mergeLock.unlock();
+                    }
                 }
-            } finally {
-                mergeLock.unlock();
+            } catch (InterruptedException e) {
+                throw new CommitFailedException(OAK, 1,
+                        "Unable to acquire merge lock", e);
             }
         }
         // if we get here retrying failed
