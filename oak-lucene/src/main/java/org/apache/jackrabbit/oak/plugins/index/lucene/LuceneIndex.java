@@ -302,6 +302,7 @@ public class LuceneIndex implements FulltextQueryIndex {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
             private final Set<String> seenPaths = Sets.newHashSet();
             private ScoreDoc lastDoc;
+            private int nextBatchSize = LUCENE_QUERY_BATCH_SIZE;
 
             @Override
             protected LuceneResultRow computeNext() {
@@ -355,11 +356,17 @@ public class LuceneIndex implements FulltextQueryIndex {
                     Query query = getQuery(filter, searcher.getIndexReader(),
                             nonFullTextConstraints, analyzer, indexNode.getDefinition());
                     TopDocs docs;
+                    long time = System.currentTimeMillis();
                     if (lastDoc != null) {
-                        docs = searcher.searchAfter(lastDoc, query, LUCENE_QUERY_BATCH_SIZE);
+                        LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
+                        docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
                     } else {
-                        docs = searcher.search(query, LUCENE_QUERY_BATCH_SIZE);
+                        LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
+                        docs = searcher.search(query, nextBatchSize);
                     }
+                    time = System.currentTimeMillis() - time;
+                    LOG.debug("... took {} ms", time);
+                    nextBatchSize = (int) Math.min(nextBatchSize * 2L, 100000);
 
                     for (ScoreDoc doc : docs.scoreDocs) {
                         LuceneResultRow row = convertToRow(doc, searcher);
