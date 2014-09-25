@@ -21,6 +21,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -41,6 +42,8 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.commons.SimpleValueFactory;
@@ -287,6 +290,9 @@ public class RepositoryImpl implements JackrabbitRepository {
     public void shutdown() {
         statisticManager.dispose();
         scheduledExecutor.shutdown();
+        if (contentRepository instanceof Closeable) {
+            IOUtils.closeQuietly((Closeable) contentRepository);
+        }
     }
 
     //------------------------------------------------------------< internal >---
