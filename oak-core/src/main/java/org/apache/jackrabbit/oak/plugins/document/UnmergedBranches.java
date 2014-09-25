@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.SortedSet;
@@ -29,9 +26,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
@@ -120,10 +121,29 @@ class UnmergedBranches {
     }
 
     /**
+     * Returns the branch commit with the given revision or {@code null} if
+     * it doesn't exists.
+     *
+     * @param r a revision.
+     * @return the branch commit or {@code null} if it doesn't exist.
+     */
+    @CheckForNull
+    BranchCommit getBranchCommit(@Nonnull Revision r) {
+        for (Branch b : branches) {
+            BranchCommit c = b.getCommit(r);
+            if (c != null) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Removes the given branch.
      * @param b the branch to remove.
      */
     void remove(Branch b) {
         branches.remove(b);
+        b.dispose();
     }
 }

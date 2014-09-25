@@ -23,16 +23,16 @@ import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.mergeSorted;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.CheckForNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.io.Closer;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -120,75 +120,87 @@ public class LastRevRecoveryAgent {
      * @return the int
      */
     public int recover(Iterator<NodeDocument> suspects, int clusterId) {
-        UnsavedModifications unsaved = new UnsavedModifications();
-        UnsavedModifications unsavedParents = new UnsavedModifications();
+        Closer closer = Closer.create();
+        try {
+            UnsavedModifications unsaved = new UnsavedModifications();
+            closer.register(unsaved);
+            UnsavedModifications unsavedParents = new UnsavedModifications();
+            closer.register(unsavedParents);
 
-        //Map of known last rev of checked paths
-        Map<String, Revision> knownLastRevs = Maps.newHashMap();
+            //Map of known last rev of checked paths
+            UnsavedModifications knownLastRevs = new UnsavedModifications();
+            closer.register(knownLastRevs);
 
-        while (suspects.hasNext()) {
-            NodeDocument doc = suspects.next();
+            while (suspects.hasNext()) {
+                NodeDocument doc = suspects.next();
 
-            Revision currentLastRev = doc.getLastRev().get(clusterId);
-            if (currentLastRev != null) {
-                knownLastRevs.put(doc.getPath(), currentLastRev);
-            }
-            Revision lostLastRev = determineMissedLastRev(doc, clusterId);
+                Revision currentLastRev = doc.getLastRev().get(clusterId);
+                if (currentLastRev != null) {
+                    knownLastRevs.put(doc.getPath(), currentLastRev);
+                }
+                Revision lostLastRev = determineMissedLastRev(doc, clusterId);
 
-            //1. Update lastRev for this doc
-            if (lostLastRev != null) {
-                unsaved.put(doc.getPath(), lostLastRev);
-            }
+                //1. Update lastRev for this doc
+                if (lostLastRev != null) {
+                    unsaved.put(doc.getPath(), lostLastRev);
+                }
 
-            Revision lastRevForParents = lostLastRev != null ? lostLastRev : currentLastRev;
+                Revision lastRevForParents = lostLastRev != null ? lostLastRev : currentLastRev;
 
-            //If both currentLastRev and lostLastRev are null it means
-            //that no change is done by suspect cluster on this document
-            //so nothing needs to be updated. Probably it was only changed by
-            //other cluster nodes. If this node is parent of any child node which
-            //has been modified by cluster then that node roll up would
-            //add this node path to unsaved
+                //If both currentLastRev and lostLastRev are null it means
+                //that no change is done by suspect cluster on this document
+                //so nothing needs to be updated. Probably it was only changed by
+                //other cluster nodes. If this node is parent of any child node which
+                //has been modified by cluster then that node roll up would
+                //add this node path to unsaved
 
-            //2. Update lastRev for parent paths aka rollup
-            if (lastRevForParents != null) {
-                String path = doc.getPath();
-                while (true) {
-                    if (PathUtils.denotesRoot(path)) {
-                        break;
+                //2. Update lastRev for parent paths aka rollup
+                if (lastRevForParents != null) {
+                    String path = doc.getPath();
+                    while (true) {
+                        if (PathUtils.denotesRoot(path)) {
+                            break;
+                        }
+                        path = PathUtils.getParentPath(path);
+                        unsavedParents.put(path, lastRevForParents);
                     }
-                    path = PathUtils.getParentPath(path);
-                    unsavedParents.put(path, lastRevForParents);
                 }
             }
-        }
 
-        for (String parentPath : unsavedParents.getPaths()) {
-            Revision calcLastRev = unsavedParents.get(parentPath);
-            Revision knownLastRev = knownLastRevs.get(parentPath);
+            for (String parentPath : unsavedParents.getPaths()) {
+                Revision calcLastRev = unsavedParents.get(parentPath);
+                Revision knownLastRev = knownLastRevs.get(parentPath);
 
-            //Copy the calcLastRev of parent only if they have changed
-            //In many case it might happen that parent have consistent lastRev
-            //This check ensures that unnecessary updates are not made
-            if (knownLastRev == null
-                    || calcLastRev.compareRevisionTime(knownLastRev) > 0) {
-                unsaved.put(parentPath, calcLastRev);
+                //Copy the calcLastRev of parent only if they have changed
+                //In many case it might happen that parent have consistent lastRev
+                //This check ensures that unnecessary updates are not made
+                if (knownLastRev == null
+                        || calcLastRev.compareRevisionTime(knownLastRev) > 0) {
+                    unsaved.put(parentPath, calcLastRev);
+                }
+            }
+
+            //Note the size before persist as persist operation
+            //would empty the internal state
+            int size = unsaved.getPaths().size();
+            String updates = unsaved.toString();
+
+            //UnsavedModifications is designed to be used in concurrent
+            //access mode. For recovery case there is no concurrent access
+            //involve so just pass a new lock instance
+            unsaved.persist(nodeStore, new ReentrantLock());
+
+            log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
+                    "cluster node [{}]: {}", size, clusterId, updates);
+
+            return size;
+        } finally {
+            try {
+                closer.close();
+            } catch (IOException e) {
+                log.warn("Error closing UnsavedModifications", e);
             }
         }
-
-        //Note the size before persist as persist operation
-        //would empty the internal state
-        int size = unsaved.getPaths().size();
-        String updates = unsaved.toString();
-
-        //UnsavedModifications is designed to be used in concurrent
-        //access mode. For recovery case there is no concurrent access
-        //involve so just pass a new lock instance
-        unsaved.persist(nodeStore, new ReentrantLock());
-
-        log.info("Updated lastRev of [{}] documents while performing lastRev recovery for " +
-                "cluster node [{}]: {}", size, clusterId, updates);
-
-        return size;
     }
 
     /**

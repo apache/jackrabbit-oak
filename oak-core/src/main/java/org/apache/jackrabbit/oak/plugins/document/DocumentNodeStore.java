@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
+import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
@@ -446,6 +447,8 @@ public final class DocumentNodeStore
                 clusterNodeInfo.dispose();
             }
             store.dispose();
+            unsavedLastRevisions.close();
+
             LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
 
             if (blobStore instanceof Closeable) {
@@ -900,19 +903,19 @@ public final class DocumentNodeStore
                              boolean isBranchCommit, List<String> added,
                              List<String> removed, List<String> changed,
                              DiffCache.Entry cacheEntry) {
-        UnsavedModifications unsaved = unsavedLastRevisions;
+        LastRevTracker tracker = createTracker(rev);
         if (disableBranches) {
             if (pendingLastRev) {
-                unsaved.put(path, rev);
+                tracker.track(path);
             }
         } else {
             if (isBranchCommit) {
                 Revision branchRev = rev.asBranchRevision();
-                unsaved = branches.getBranch(branchRev).getModifications(branchRev);
+                tracker = branches.getBranchCommit(branchRev);
             }
             if (isBranchCommit || pendingLastRev) {
                 // write back _lastRev with background thread
-                unsaved.put(path, rev);
+                tracker.track(path);
             }
         }
         if (isNew) {
@@ -1496,6 +1499,21 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
+    /**
+     * Creates a tracker for the given commit revision.
+     *
+     * @param r a commit revision.
+     * @return a _lastRev tracker for the given commit revision.
+     */
+    private LastRevTracker createTracker(final @Nonnull Revision r) {
+        return new LastRevTracker() {
+            @Override
+            public void track(String path) {
+                unsavedLastRevisions.put(path, r);
+            }
+        };
+    }
+
     private static void diffProperties(DocumentNodeState from,
                                        DocumentNodeState to,
                                        JsopWriter w) {
@@ -1560,12 +1578,12 @@ public final class DocumentNodeStore
         }
         // also consider nodes with not yet stored modifications (OAK-1107)
         Revision minRev = new Revision(minTimestamp, 0, getClusterId());
-        addPathsForDiff(path, paths, getPendingModifications(), minRev);
+        addPathsForDiff(path, paths, getPendingModifications().getPaths(minRev));
         for (Revision r : new Revision[]{fromRev, toRev}) {
             if (r.isBranch()) {
-                Branch b = getBranches().getBranch(r);
-                if (b != null) {
-                    addPathsForDiff(path, paths, b.getModifications(r), r);
+                BranchCommit c = getBranches().getBranchCommit(r);
+                if (c != null) {
+                    addPathsForDiff(path, paths, c.getModifiedPaths());
                 }
             }
         }
@@ -1600,9 +1618,8 @@ public final class DocumentNodeStore
 
     private static void addPathsForDiff(String path,
                                         Set<String> paths,
-                                        UnsavedModifications pending,
-                                        Revision minRev) {
-        for (String p : pending.getPaths(minRev)) {
+                                        Iterable<String> modified) {
+        for (String p : modified) {
             if (PathUtils.denotesRoot(p)) {
                 continue;
             }

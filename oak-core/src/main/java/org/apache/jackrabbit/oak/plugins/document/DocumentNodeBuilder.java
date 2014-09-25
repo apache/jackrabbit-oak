@@ -35,7 +35,7 @@ import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidNa
 /**
  * A node builder implementation for DocumentMK.
  */
-class DocumentNodeBuilder extends MemoryNodeBuilder {
+class DocumentNodeBuilder extends AbstractDocumentNodeBuilder {
 
     private final DocumentRootBuilder root;
 
@@ -114,10 +114,21 @@ class DocumentNodeBuilder extends MemoryNodeBuilder {
         return root.createBlob(stream);
     }
 
-    private static void removeRecursive(NodeBuilder builder) {
+    @Override
+    public boolean remove() {
+        return removeRecursive(this);
+    }
+
+    //---------------------< internal >-----------------------------------------
+
+    private boolean removeInternal() {
+        return super.remove();
+    }
+
+    private static boolean removeRecursive(DocumentNodeBuilder builder) {
         for (String name : builder.getChildNodeNames()) {
             removeRecursive(builder.getChildNode(name));
         }
-        builder.remove();
+        return builder.removeInternal();
     }
 }
