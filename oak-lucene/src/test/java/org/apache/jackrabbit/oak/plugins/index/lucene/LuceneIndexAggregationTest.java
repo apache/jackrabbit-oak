@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -400,4 +405,29 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
                     "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile", "/myFolder/myFile/jcr:content"));
     }
 
+    @Test
+        public void testUnique() throws CommitFailedException {
+        //        setTraversalEnabled(false);
+        final String statement = "//*[@list "
+                                 + "and (jcr:contains(., 'community') "
+                                 + "or jcr:contains(metadata, 'community')) "
+                                 + "and @resourceType = 'open/community' "
+                                 + "and @jcr:primaryType != 'nt:frozenNode'] "
+            + "order by @jcr:created descending";
+        
+        Tree t = root.getTree("/").addChild("content");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);
+        t = t.addChild("node");
+        t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, NAME);
+        t = t.addChild(JCR_CONTENT);
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+        t.setProperty("name", "Open Community", STRING);
+        t.setProperty("jcr:title", "Open Community", STRING);
+        t.setProperty("list", "opencommunity", STRING);
+        t.setProperty("resourceType", "open/community", STRING);
+        root.commit();
+
+        assertQuery(statement, "xpath", ImmutableList.of("/content/node/jcr:content"));
+        //setTraversalEnabled(true);
+    }
 }
