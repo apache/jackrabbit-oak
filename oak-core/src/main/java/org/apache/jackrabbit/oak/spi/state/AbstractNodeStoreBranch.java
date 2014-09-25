@@ -515,13 +515,11 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
     }
 
     /**
-     * Instances of this class represent a branch whose base and head differ.
-     * All changes are persisted to an underlying branch in the {@code MicroKernel}.
+     * Instances of this class represent a branch whose head is persisted to an
+     * underlying branch in the {@code MicroKernel}.
      * <p>
      * Transitions to:
      * <ul>
-     *     <li>{@link Unmodified} on {@link #setRoot(NodeState)} if the new root is the same
-     *         as the base of this branch.
      *     <li>{@link ResetFailed} on failed reset in {@link #merge(CommitHook, CommitInfo)}</li>
      *     <li>{@link Merged} on successful {@link #merge(CommitHook, CommitInfo)}</li>
      * </ul>
@@ -562,9 +560,7 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
 
         @Override
         void setRoot(NodeState root) {
-            if (base.equals(root)) {
-                branchState = new Unmodified(base);
-            } else if (!head.equals(root)) {
+            if (!head.equals(root)) {
                 persistTransientHead(root);
             }
         }
@@ -572,15 +568,9 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
         @Override
         void rebase() {
             N root = getRoot();
-            if (head.equals(root)) {
-                // Nothing was written to this branch: set new base revision
-                head = root;
-                base = root;
-            } else {
-                // perform rebase in store
-                head = AbstractNodeStoreBranch.this.rebase(head, root);
-                base = root;
-            }
+            // perform rebase in store
+            head = AbstractNodeStoreBranch.this.rebase(head, root);
+            base = root;
         }
 
         @Override
