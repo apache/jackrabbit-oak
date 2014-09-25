@@ -250,14 +250,20 @@ class UserProvider extends AuthorizableBaseProvider {
                                         @Nonnull String ntName,
                                         @Nullable String intermediatePath) throws RepositoryException {
         String nodeName = getNodeName(authorizableId);
-        NodeUtil folder = createFolderNodes(authorizableId, nodeName, NT_REP_GROUP.equals(ntName), intermediatePath);
+        NodeUtil folder = createFolderNodes(nodeName, NT_REP_GROUP.equals(ntName), intermediatePath);
 
+        if (folder.hasChild(nodeName)) {
+            // collision with another authorizable node or some other node type.
+            int i = 1;
+            String tmp = nodeName + i;
+            while (folder.hasChild(tmp)) {
+                tmp = nodeName + ++i;
+            }
+            nodeName = tmp;
+        }
         NodeUtil authorizableNode = folder.addChild(nodeName, ntName);
-
-        String nodeID = getContentID(authorizableId);
         authorizableNode.setString(REP_AUTHORIZABLE_ID, authorizableId);
-        authorizableNode.setString(JcrConstants.JCR_UUID, nodeID);
-
+        authorizableNode.setString(JcrConstants.JCR_UUID, getContentID(authorizableId));
         return authorizableNode.getTree();
     }
 
@@ -267,21 +273,19 @@ class UserProvider extends AuthorizableBaseProvider {
      * configured user or group path. Note that Authorizable nodes are never
      * nested.
      *
-     * @param authorizableId   The desired authorizable ID.
      * @param nodeName         The name of the authorizable node.
      * @param isGroup          Flag indicating whether the new authorizable is a group or a user.
      * @param intermediatePath An optional intermediate path.
      * @return The folder node.
      * @throws RepositoryException If an error occurs
      */
-    private NodeUtil createFolderNodes(@Nonnull String authorizableId,
-                                       @Nonnull String nodeName,
+    private NodeUtil createFolderNodes(@Nonnull String nodeName,
                                        boolean isGroup,
                                        @Nullable String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         String folderPath = new StringBuilder()
                 .append(authRoot)
-                .append(getFolderPath(authorizableId, intermediatePath, authRoot)).toString();
+                .append(getFolderPath(nodeName, intermediatePath, authRoot)).toString();
         NodeUtil folder;
         Tree tree = root.getTree(folderPath);
         while (!tree.isRoot() && !tree.exists()) {
@@ -305,17 +309,13 @@ class UserProvider extends AuthorizableBaseProvider {
                 log.debug("Existing folder node collides with user/group to be created. Expanding path by: " + colliding.getName());
                 folder = colliding;
             } else {
-                String msg = "Failed to create authorizable with id '" + authorizableId + "' : " +
-                        "Detected conflicting node of unexpected node type '" + primaryType + "'.";
-                log.error(msg);
-                throw new ConstraintViolationException(msg);
+                break;
             }
         }
-
         return folder;
     }
 
-    private String getFolderPath(@Nonnull String authorizableId,
+    private String getFolderPath(@Nonnull String nodeName,
                                  @Nullable String intermediatePath,
                                  @Nonnull String authRoot) throws ConstraintViolationException {
         if (intermediatePath != null && intermediatePath.charAt(0) == '/') {
@@ -330,14 +330,15 @@ class UserProvider extends AuthorizableBaseProvider {
         if (intermediatePath != null && !intermediatePath.isEmpty()) {
             sb.append(DELIMITER).append(intermediatePath);
         } else {
-            int idLength = authorizableId.length();
+            String hint = Text.unescapeIllegalJcrChars(nodeName);
+            int idLength = hint.length();
             StringBuilder segment = new StringBuilder();
             for (int i = 0; i < defaultDepth; i++) {
                 if (idLength > i) {
-                    segment.append(authorizableId.charAt(i));
+                    segment.append(hint.charAt(i));
                 } else {
                     // escapedID is too short -> append the last char again
-                    segment.append(authorizableId.charAt(idLength - 1));
+                    segment.append(hint.charAt(idLength - 1));
                 }
                 sb.append(DELIMITER).append(Text.escapeIllegalJcrChars(segment.toString()));
             }
