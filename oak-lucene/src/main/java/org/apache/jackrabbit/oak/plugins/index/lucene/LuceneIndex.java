@@ -155,6 +155,8 @@ public class LuceneIndex implements FulltextQueryIndex {
      * Batch size for fetching results from Lucene queries.
      */
     static final int LUCENE_QUERY_BATCH_SIZE = 50;
+    
+    static final boolean USE_PATH_RESTRICTION = Boolean.getBoolean("oak.luceneUsePath");
 
     private final IndexTracker tracker;
 
@@ -451,19 +453,23 @@ public class LuceneIndex implements FulltextQueryIndex {
         String path = filter.getPath();
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
-            if ("/".equals(path)) {
-                break;
+            if (USE_PATH_RESTRICTION) {
+                if ("/".equals(path)) {
+                    break;
+                }
+                if (!path.endsWith("/")) {
+                    path += "/";
+                }
+                qs.add(new PrefixQuery(newPathTerm(path)));
             }
-            if (!path.endsWith("/")) {
-                path += "/";
-            }
-            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case DIRECT_CHILDREN:
-            if (!path.endsWith("/")) {
-                path += "/";
+            if (USE_PATH_RESTRICTION) {
+                if (!path.endsWith("/")) {
+                    path += "/";
+                }
+                qs.add(new PrefixQuery(newPathTerm(path)));
             }
-            qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case EXACT:
             qs.add(new TermQuery(newPathTerm(path)));
