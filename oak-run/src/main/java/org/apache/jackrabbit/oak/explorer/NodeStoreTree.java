@@ -416,17 +416,34 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             if (ps instanceof SegmentPropertyState) {
                 SegmentPropertyState sps = (SegmentPropertyState) ps;
                 RecordId recordId = sps.getRecordId();
-                SegmentId id = recordId.getSegmentId();
-                if (uuids.contains(new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits()))) {
-                    localPaths.add(path + "@" + ps + " [SegmentPropertyState@" + recordId + "]");
+                SegmentId sid = recordId.getSegmentId();
+                UUID id = new UUID(sid.getMostSignificantBits(),
+                        sid.getLeastSignificantBits());
+                if (uuids.contains(id)) {
+                    localPaths.add(path + "@" + ps + " [SegmentPropertyState@"
+                            + recordId + "]");
+                }
+                if (ps.getType().tag() == PropertyType.BINARY) {
+                    for (int i = 0; i < ps.count(); i++) {
+                        Blob b = ps.getValue(Type.BINARY, i);
+                        for (SegmentId sbid : SegmentBlob.getBulkSegmentIds(b)) {
+                            UUID bid = new UUID(sbid.getMostSignificantBits(),
+                                    sbid.getLeastSignificantBits());
+                            if (!bid.equals(id) && uuids.contains(bid)) {
+                                localPaths.add(path + "@" + ps
+                                        + " [SegmentPropertyState@" + recordId
+                                        + "]");
+                            }
+                        }
+                    }
                 }
             }
         }
 
         RecordId stateId = state.getRecordId();
         SegmentId segmentId = stateId.getSegmentId();
-        if (uuids.contains(new UUID(segmentId.getMostSignificantBits(), segmentId
-                .getLeastSignificantBits()))) {
+        if (uuids.contains(new UUID(segmentId.getMostSignificantBits(),
+                segmentId.getLeastSignificantBits()))) {
             localPaths.add(path + " [SegmentNodeState@" + stateId + "]");
         }
 
