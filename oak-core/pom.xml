@@ -39,6 +39,8 @@
         <configuration>
           <instructions>
             <Embed-Dependency>
+              <!-- OAK-1768 TODO: embedded as short term workaround -->
+              mapdb,
               <!-- OAK-1708 TODO: temporary workaround for embedding code for DocumentNodeStoreService-->
               commons-dbcp,commons-pool,h2,json-simple,
               <!-- OAK-1708 TODO: note these below will only embedded when build with the respective profiles from oak-parent -->
@@ -256,6 +258,13 @@
       <artifactId>directmemory-cache</artifactId>
       <version>0.2</version>
       <optional>true</optional>
+    </dependency>
+
+    <!-- OAK-1768 added as short term workaround -->
+    <dependency>
+      <groupId>org.mapdb</groupId>
+      <artifactId>mapdb</artifactId>
+      <version>1.0.6</version>
     </dependency>
 
     <!-- JCR and Jackrabbit dependencies -->

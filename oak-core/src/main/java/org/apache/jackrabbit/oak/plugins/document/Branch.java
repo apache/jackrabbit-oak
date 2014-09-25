@@ -20,18 +20,19 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 
+import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Contains commit information about a branch and its base revision.
@@ -47,6 +48,8 @@ class Branch {
      * The initial base revision of this branch.
      */
     private final Revision base;
+
+    private MapFactory mapFactory;
 
     /**
      * Create a new branch instance with an initial set of commits and a given
@@ -224,9 +227,25 @@ class Branch {
     }
 
     /**
+     * Releases resources held by this branch.
+     */
+    public void dispose() {
+        if (mapFactory != null) {
+            mapFactory.dispose();
+        }
+    }
+
+    private MapFactory getMapFactory() {
+        if (mapFactory == null) {
+            mapFactory = MapFactory.createFactory();
+        }
+        return mapFactory;
+    }
+
+    /**
      * Information about a commit within a branch.
      */
-    abstract static class BranchCommit implements LastRevTracker {
+    abstract class BranchCommit implements LastRevTracker {
 
         protected final Revision base;
         protected final Revision commit;
@@ -250,40 +269,50 @@ class Branch {
     /**
      * Implements a regular branch commit.
      */
-    private static class BranchCommitImpl extends BranchCommit {
+    private class BranchCommitImpl extends BranchCommit {
 
-        private final Set<String> modifications = Sets.newHashSet();
+        private Map<String, Revision> modifications;
 
         BranchCommitImpl(Revision base, Revision commit) {
             super(base, commit);
+            if (mapFactory == null) {
+                modifications = Maps.newConcurrentMap();
+            } else {
+                modifications = mapFactory.create();
+            }
         }
 
         @Override
         void applyTo(UnsavedModifications trunk, Revision commit) {
-            for (String p : modifications) {
+            for (String p : modifications.keySet()) {
                 trunk.put(p, commit);
             }
         }
 
         @Override
         boolean isModified(String path) { // TODO: rather pass NodeDocument?
-            return modifications.contains(path);
+            return modifications.containsKey(path);
         }
 
         @Override
         Iterable<String> getModifiedPaths() {
-            return modifications;
+            return modifications.keySet();
         }
 
         //------------------< LastRevTracker >----------------------------------
 
         @Override
         public void track(String path) {
-            modifications.add(path);
+            if (mapFactory == null && modifications.size() >= 1000) {
+                Map<String, Revision> tmp = getMapFactory().create();
+                tmp.putAll(modifications);
+                modifications = tmp;
+            }
+            modifications.put(path, commit);
         }
     }
 
-    static class RebaseCommit extends BranchCommit {
+    class RebaseCommit extends BranchCommit {
 
         private final NavigableMap<Revision, BranchCommit> previous;
 

@@ -88,6 +88,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
+import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MapFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -1106,50 +1107,6 @@ public class Main {
         @Override
         public String toString() {
             return name;
-        }
-    }
-
-    private static class MapDBMapFactory extends MapFactory {
-        private final AtomicInteger counter = new AtomicInteger();
-        private final DB db;
-
-        public MapDBMapFactory() {
-            this.db = DBMaker.newTempFileDB()
-                    .deleteFilesAfterClose()
-                    .closeOnJvmShutdown()
-                    .transactionDisable()
-                    .make();
-        }
-
-        @Override
-        public synchronized ConcurrentMap<String, Revision> create() {
-            return db.createHashMap(String.valueOf(counter.incrementAndGet()))
-                    .valueSerializer(new RevisionSerializer())
-                    .make();
-        }
-
-        private static class RevisionSerializer implements Serializer<Revision>,
-                Serializable {
-            private int size = 8 + 4 + 4 + 1;
-            public void serialize(DataOutput o, Revision r) throws IOException {
-                o.writeLong(r.getTimestamp());
-                o.writeInt(r.getCounter());
-                o.writeInt(r.getClusterId());
-                o.writeBoolean(r.isBranch());
-
-            }
-
-            public Revision deserialize(DataInput i, int available) throws IOException {
-                return new Revision(
-                        i.readLong(), //timestamp
-                        i.readInt(),  //counter
-                        i.readInt(),  //clusterId
-                        i.readBoolean()); //branch
-            }
-
-            public int fixedSize() {
-                return size;
-            }
         }
     }
 }
