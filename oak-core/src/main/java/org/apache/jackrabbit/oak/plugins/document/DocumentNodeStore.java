@@ -1385,12 +1385,26 @@ public final class DocumentNodeStore
             return;
         }
         try {
+            long start = clock.getTime();
+            long time = start;
             // split documents (does not create new revisions)
             backgroundSplit();
+            long splitTime = clock.getTime() - time;
+            time = clock.getTime();
             // write back pending updates to _lastRev
             backgroundWrite();
+            long writeTime = clock.getTime() - time;
+            time = clock.getTime();
             // pull in changes from other cluster nodes
             backgroundRead(true);
+            long readTime = clock.getTime() - time;
+            String msg = "Background operations stats (split:{}, write:{}, read:{})";
+            if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
+                // log as info if it took more than 10 seconds
+                LOG.info(msg, splitTime, writeTime, readTime);
+            } else {
+                LOG.debug(msg, splitTime, writeTime, readTime);
+            }
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
                 return;
