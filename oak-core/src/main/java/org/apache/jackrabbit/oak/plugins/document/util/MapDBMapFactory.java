@@ -41,7 +41,6 @@ public class MapDBMapFactory extends MapFactory {
     public MapDBMapFactory() {
         this.db = DBMaker.newTempFileDB()
                 .deleteFilesAfterClose()
-                .closeOnJvmShutdown()
                 .transactionDisable()
                 .asyncWriteEnable()
                 .make();
