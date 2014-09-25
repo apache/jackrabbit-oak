@@ -46,12 +46,14 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeSelectionModel;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStateHelper;
@@ -61,6 +63,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.escape.Escapers;
 
 public class NodeStoreTree extends JPanel implements TreeSelectionListener {
@@ -208,20 +211,32 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
             StringBuilder l = new StringBuilder();
             l.append("  - " + ps.getName() + " = {" + ps.getType() + "} ");
             if (ps.getType().isArray()) {
-                l.append("[");
                 int count = ps.count();
-                for (int i = 0; i < Math.min(count, 10); i++) {
-                    if (i > 0) {
-                        l.append(",");
-                    }
-                    l.append(" " + ps.getValue(Type.STRING, i));
+                l.append("(count " + count + ") [");
+
+                String separator = ", ";
+                int max = 50;
+                if (ps.getType() == Type.BINARIES) {
+                    separator = newline + "      ";
+                    max = Integer.MAX_VALUE;
+                    l.append(separator);
                 }
-                if (count > 10) {
+                for (int i = 0; i < Math.min(count, max); i++) {
+                    if (i > 0) {
+                        l.append(separator);
+                    }
+                    l.append(toString(ps, i, tarFile));
+                }
+                if (count > max) {
                     l.append(", ... (" + count + " values)");
                 }
-                l.append(" ]");
+                if (ps.getType() == Type.BINARIES) {
+                    l.append(separator);
+                }
+                l.append("]");
+
             } else {
-                l.append(toString(ps, 0));
+                l.append(toString(ps, 0, tarFile));
             }
             if (ps instanceof SegmentPropertyState) {
                 RecordId rid = ((SegmentPropertyState) ps).getRecordId();
@@ -286,11 +301,23 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         log.setText(sb.toString());
     }
 
-    private String toString(PropertyState ps, int index) {
+    private String toString(PropertyState ps, int index, String tarFile) {
         if (ps.getType().tag() == PropertyType.BINARY) {
-            return "<"
-                    + FileUtils.byteCountToDisplaySize(ps.getValue(Type.BINARY,
-                            index).length()) + " >";
+            Blob b = ps.getValue(Type.BINARY, index);
+            String info = "<";
+            info += b.getClass().getSimpleName() + ";";
+            info += "ref:" + b.getReference() + ";";
+            info += "id:" + b.getContentIdentity() + ";";
+            info += FileUtils.byteCountToDisplaySize(b.length()) + ">";
+            for (SegmentId sid : SegmentBlob.getBulkSegmentIds(b)) {
+                info += newline + "        Bulk Segment Id " + sid;
+                String f = getFile(sid);
+                if (!f.equals(tarFile)) {
+                    info += " in " + f;
+                }
+            }
+
+            return info;
         } else if (ps.getType().tag() == PropertyType.STRING) {
             String value = ps.getValue(Type.STRING, index);
             if (value.length() > 60) {
@@ -307,7 +334,10 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
     }
 
     private String getFile(RecordId id) {
-        SegmentId segmentId = id.getSegmentId();
+        return getFile(id.getSegmentId());
+    }
+
+    private String getFile(SegmentId segmentId) {
         for (Entry<String, Set<UUID>> path2Uuid : index.entrySet()) {
             for (UUID uuid : path2Uuid.getValue()) {
                 if (uuid.getMostSignificantBits() == segmentId
@@ -333,16 +363,49 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                 sb.append("SegmentNodeState references to " + e.getKey());
                 sb.append(newline);
                 uuids = e.getValue();
+                break;
             }
         }
+
         List<String> paths = new ArrayList<String>();
         filterNodeStates(uuids, paths, store.getHead(), "/");
-        for (String p : paths) {
-            sb.append("    ");
-            sb.append(p);
+        if (!paths.isEmpty()) {
+            sb.append("Repository content references:");
             sb.append(newline);
+            for (String p : paths) {
+                sb.append(p);
+                sb.append(newline);
+            }
         }
 
+        log.setText(sb.toString());
+    }
+
+    public void printDependenciesToSegment(String sid) {
+        if (sid == null || sid.length() == 0) {
+            return;
+        }
+        UUID id = null;
+        try {
+            id = UUID.fromString(sid.trim());
+        } catch (IllegalArgumentException e) {
+            log.setText(e.getMessage());
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("SegmentNodeState references to " + id);
+        sb.append(newline);
+
+        List<String> paths = new ArrayList<String>();
+        filterNodeStates(Sets.newHashSet(id), paths, store.getHead(), "/");
+        if (!paths.isEmpty()) {
+            sb.append("Repository content references:");
+            sb.append(newline);
+            for (String p : paths) {
+                sb.append(p);
+                sb.append(newline);
+            }
+        }
         log.setText(sb.toString());
     }
 

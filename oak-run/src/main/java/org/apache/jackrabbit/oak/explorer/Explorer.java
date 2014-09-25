@@ -160,6 +160,21 @@ public class Explorer {
             }
         });
 
+        JMenuItem menuSCR = new JMenuItem("Segment Content Refs");
+        menuSCR.setMnemonic(KeyEvent.VK_S);
+        menuSCR.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ev) {
+                String s = (String) JOptionPane.showInputDialog(frame,
+                        "Segment Content Ref\nUsage: <segmentId>",
+                        "Segment Content Ref", JOptionPane.PLAIN_MESSAGE);
+                if (s != null) {
+                    treePanel.printDependenciesToSegment(s);
+                    return;
+                }
+            }
+        });
+
         JMenuItem menuDiff = new JMenuItem("SegmentNodeState diff");
         menuDiff.setMnemonic(KeyEvent.VK_D);
         menuDiff.addActionListener(new ActionListener() {
@@ -178,6 +193,8 @@ public class Explorer {
         menuBar.add(menuCompaction);
         menuBar.add(new JSeparator(JSeparator.VERTICAL));
         menuBar.add(menuRefs);
+        menuBar.add(new JSeparator(JSeparator.VERTICAL));
+        menuBar.add(menuSCR);
         menuBar.add(new JSeparator(JSeparator.VERTICAL));
         menuBar.add(menuDiff);
         menuBar.add(new JSeparator(JSeparator.VERTICAL));
