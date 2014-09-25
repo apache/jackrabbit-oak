@@ -42,6 +42,8 @@ public class StopwatchLogger implements Closeable {
     private Clock clock;
     private Logger customLog;
     
+    private long start;
+    
     /**
      * Create a class with the provided class.
      * 
@@ -88,6 +90,7 @@ public class StopwatchLogger implements Closeable {
      */
     public void start() {
         clock = new Clock.Fast(executor);
+        start = clock.getTimeMonotonic();
     }
     
     /**
@@ -96,7 +99,7 @@ public class StopwatchLogger implements Closeable {
      * @param message
      */
     public void split(@Nullable final String message) {
-        track(customLog, clock, clazz, message);
+        track(this, message);
     }
     
     /**
@@ -105,7 +108,7 @@ public class StopwatchLogger implements Closeable {
      * @param message
      */
     public void stop(@Nullable final String message) {
-        track(customLog, clock, clazz, message);
+        track(this, message);
         clock = null;
     }
 
@@ -117,20 +120,24 @@ public class StopwatchLogger implements Closeable {
      * @param clazz the class to be used during the tracking of times
      * @param message a custom message for the tracking.
      */
-    private static void track(@Nullable final Logger customLog,
-                              @Nullable final Clock clock,
-                              @Nonnull final String clazz,
+    private static void track(@Nonnull final StopwatchLogger swl,
                               @Nullable final String message) {
+
+        checkNotNull(swl);
         
-        Logger l = (customLog == null) ? LOG :  customLog;
-        
-        if (clock == null) {
-            l.debug("{} - clock has not been started yet.", clazz);
-        } else {
-            l.debug(
-                "{} - {} {}",
-                new Object[] { checkNotNull(clazz), message == null ? "" : message,
-                              clock.getTimeMonotonic() });
+        if (swl.isEnabled()) {
+            Logger l = swl.getLogger();
+            
+            if (swl.clock == null) {
+                l.debug("{} - clock has not been started yet.", swl.clazz);
+            } else {
+                Clock c = swl.clock;
+                
+                l.debug(
+                    "{} - {} {}ms",
+                    new Object[] { checkNotNull(swl.clazz), message == null ? "" : message,
+                                  c.getTimeMonotonic() - swl.start});
+            }
         }
     }
 
@@ -141,5 +148,24 @@ public class StopwatchLogger implements Closeable {
         } catch (Throwable t) {
             LOG.error("Error while shutting down the scheduler.", t);
         }
+    }
+    
+    /**
+     * @return true if the clock has been started. False otherwise.
+     */
+    public boolean isStarted() {
+        return clock != null;
+    }
+    
+    private Logger getLogger() {
+        return (customLog == null) ? LOG :  customLog;
+    }
+    
+    /**
+     * @return true whether the provided appender has DEBUG enabled and therefore asked to track
+     *         times.
+     */
+    public boolean isEnabled() {
+        return getLogger().isDebugEnabled();
     }
 }
