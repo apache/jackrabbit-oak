@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +34,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.collect.PeekingIterator;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -42,14 +45,25 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
  * Keeps track of when nodes where last modified. To be persisted later by
  * a background thread.
  */
-class UnsavedModifications {
+class UnsavedModifications implements Closeable {
+
+    /**
+     * Keep at most this number of entries in memory when modifications are
+     * persisted, otherwise use the MapFactory potentially backed by MapDB.
+     */
+    static final int IN_MEMORY_SIZE_LIMIT = 100000;
 
     /**
      * The maximum number of document to update at once in a multi update.
      */
     static final int BACKGROUND_MULTI_UPDATE_LIMIT = 10000;
 
-    private final ConcurrentMap<String, Revision> map = MapFactory.getInstance().create();
+    /**
+     * The map factory for this instance.
+     */
+    private final MapFactory mapFactory = MapFactory.createFactory();
+
+    private final ConcurrentMap<String, Revision> map = mapFactory.create();
 
     /**
      * Puts a revision for the given path. The revision for the given path is
@@ -95,21 +109,6 @@ class UnsavedModifications {
     }
 
     /**
-     * Applies all modifications from this instance to the <code>other</code>.
-     * A modification is only applied if there is no modification in other
-     * for a given path or if the other modification is earlier than the
-     * {@code commit} revision.
-     *
-     * @param other the other <code>UnsavedModifications</code>.
-     * @param commit the commit revision.
-     */
-    public void applyTo(UnsavedModifications other, Revision commit) {
-        for (Map.Entry<String, Revision> entry : map.entrySet()) {
-            other.put(entry.getKey(), commit);
-        }
-    }
-
-    /**
      * Returns all paths of nodes with modifications at the start revision
      * (inclusive) or later.
      *
@@ -147,7 +146,7 @@ class UnsavedModifications {
      */
     public void persist(@Nonnull DocumentNodeStore store,
                         @Nonnull Lock lock) {
-        if (map.isEmpty()) {
+        if (map.size() == 0) {
             return;
         }
         checkNotNull(store);
@@ -155,61 +154,77 @@ class UnsavedModifications {
 
         // get a copy of the map while holding the lock
         lock.lock();
+        MapFactory tmpFactory = null;
         Map<String, Revision> pending;
         try {
-            pending = Maps.newHashMap(map);
+            if (map.size() > IN_MEMORY_SIZE_LIMIT) {
+                tmpFactory = MapFactory.createFactory();
+                pending = tmpFactory.create(PathComparator.INSTANCE);
+            } else {
+                pending = Maps.newTreeMap(PathComparator.INSTANCE);
+            }
+            pending.putAll(map);
         } finally {
             lock.unlock();
         }
-        ArrayList<String> paths = new ArrayList<String>(pending.keySet());
-        // sort by depth (high depth first), then path
-        Collections.sort(paths, PathComparator.INSTANCE);
+        try {
+            UpdateOp updateOp = null;
+            Revision lastRev = null;
+            PeekingIterator<String> paths = Iterators.peekingIterator(
+                    pending.keySet().iterator());
+            int i = 0;
+            ArrayList<String> pathList = new ArrayList<String>();
+            while (paths.hasNext()) {
+                String p = paths.peek();
+                Revision r = pending.get(p);
 
-        UpdateOp updateOp = null;
-        Revision lastRev = null;
-        ArrayList<String> pathList = new ArrayList<String>();
-        for (int i = 0; i < paths.size();) {
-            String p = paths.get(i);
-            Revision r = pending.get(p);
-            if (r == null) {
-                i++;
-                continue;
-            }
-            int size = pathList.size();
-            if (updateOp == null) {
-                // create UpdateOp
-                Commit commit = new Commit(store, null, r);
-                updateOp = commit.getUpdateOperationForNode(p);
-                NodeDocument.setLastRev(updateOp, r);
-                lastRev = r;
-                pathList.add(p);
-                i++;
-            } else if (r.equals(lastRev)) {
-                // use multi update when possible
-                pathList.add(p);
-                i++;
-            }
-            // call update if any of the following is true:
-            // - this is the second-to-last or last path (update last path, the
-            //   root document, individually)
-            // - revision is not equal to last revision (size of ids didn't change)
-            // - the update limit is reached
-            if (i + 2 > paths.size()
-                    || size == pathList.size()
-                    || pathList.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
-                List<String> ids = new ArrayList<String>();
-                for (String path : pathList) {
-                    ids.add(Utils.getIdFromPath(path));
+                int size = pathList.size();
+                if (updateOp == null) {
+                    // create UpdateOp
+                    Commit commit = new Commit(store, null, r);
+                    updateOp = commit.getUpdateOperationForNode(p);
+                    NodeDocument.setLastRev(updateOp, r);
+                    lastRev = r;
+                    pathList.add(p);
+                    paths.next();
+                    i++;
+                } else if (r.equals(lastRev)) {
+                    // use multi update when possible
+                    pathList.add(p);
+                    paths.next();
+                    i++;
                 }
-                store.getDocumentStore().update(NODES, ids, updateOp);
-                for (String path : pathList) {
-                    map.remove(path, lastRev);
+                // call update if any of the following is true:
+                // - this is the second-to-last or last path (update last path, the
+                //   root document, individually)
+                // - revision is not equal to last revision (size of ids didn't change)
+                // - the update limit is reached
+                if (i + 2 > pending.size()
+                        || size == pathList.size()
+                        || pathList.size() >= BACKGROUND_MULTI_UPDATE_LIMIT) {
+                    List<String> ids = new ArrayList<String>();
+                    for (String path : pathList) {
+                        ids.add(Utils.getIdFromPath(path));
+                    }
+                    store.getDocumentStore().update(NODES, ids, updateOp);
+                    for (String path : pathList) {
+                        map.remove(path, lastRev);
+                    }
+                    pathList.clear();
+                    updateOp = null;
+                    lastRev = null;
                 }
-                pathList.clear();
-                updateOp = null;
-                lastRev = null;
+            }
+        } finally {
+            if (tmpFactory != null) {
+                tmpFactory.dispose();
             }
         }
+    }
+
+    @Override
+    public void close() {
+        mapFactory.dispose();
     }
 
     @Override

@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * This implementation tracks the number of pending changes and purges them to
  * a private branch of the underlying store if a certain threshold is met.
  */
-class DocumentRootBuilder extends MemoryNodeBuilder {
+class DocumentRootBuilder extends AbstractDocumentNodeBuilder {
 
     /**
      * Number of content updates that need to happen before the updates

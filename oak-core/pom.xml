@@ -38,6 +38,11 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Embed-Dependency>
+              <!-- OAK-1768 TODO: embedded as short term workaround -->
+              mapdb,
+            </Embed-Dependency>
+            <Embed-Transitive>true</Embed-Transitive>
             <Import-Package>
               *
             </Import-Package>
@@ -247,6 +252,13 @@
       <artifactId>directmemory-cache</artifactId>
       <version>0.2</version>
       <optional>true</optional>
+    </dependency>
+
+    <!-- OAK-1768 added as short term workaround -->
+    <dependency>
+      <groupId>org.mapdb</groupId>
+      <artifactId>mapdb</artifactId>
+      <version>1.0.6</version>
     </dependency>
 
     <!-- JCR and Jackrabbit dependencies -->

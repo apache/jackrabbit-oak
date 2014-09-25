@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.io.Serializable;
 import java.util.Comparator;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -26,9 +27,11 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
  * Implements a comparator, which sorts path string according to 1) their
  * depth (highest first) and 2) the path string itself.
  */
-class PathComparator implements Comparator<String> {
+public class PathComparator implements Comparator<String>, Serializable {
 
-    static final Comparator<String> INSTANCE = new PathComparator();
+    private static final long serialVersionUID = -1523171906146067782L;
+
+    public static final Comparator<String> INSTANCE = new PathComparator();
 
     private PathComparator() {
     }

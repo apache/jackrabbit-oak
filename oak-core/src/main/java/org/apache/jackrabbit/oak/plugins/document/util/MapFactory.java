@@ -19,24 +19,44 @@
 
 package org.apache.jackrabbit.oak.plugins.document.util;
 
+import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 
 /**
- * Experimental extension point for OAK-1772 to try out alternative approaches for persisting in memory state
- * Not part of API
+ * Experimental extension point for OAK-1772 to try out alternative approaches
+ * for persisting in memory state. Not part of API.
  */
 public abstract class MapFactory {
+
+    private static final boolean USE_MEMORY_MAP_FACTORY
+            = Boolean.getBoolean("oak.useMemoryMapFactory");
+
     private static MapFactory DEFAULT = new MapFactory() {
         @Override
         public ConcurrentMap<String, Revision> create() {
             return new ConcurrentHashMap<String, Revision>();
         }
+
+        @Override
+        public ConcurrentMap<String, Revision> create(Comparator<String> comparator) {
+            return new ConcurrentSkipListMap<String, Revision>(comparator);
+        }
+
+        @Override
+        public void dispose() {
+            // nothing to do
+        }
     };
 
     public abstract ConcurrentMap<String, Revision> create();
+
+    public abstract ConcurrentMap<String, Revision> create(Comparator<String> comparator);
+
+    public abstract void dispose();
 
     private static MapFactory instance = DEFAULT;
 
@@ -46,5 +66,13 @@ public abstract class MapFactory {
 
     public static void setInstance(MapFactory instance) {
         MapFactory.instance = instance;
+    }
+
+    public static MapFactory createFactory() {
+        if (USE_MEMORY_MAP_FACTORY) {
+            return MapFactory.getInstance();
+        } else {
+            return new MapDBMapFactory();
+        }
     }
 }
