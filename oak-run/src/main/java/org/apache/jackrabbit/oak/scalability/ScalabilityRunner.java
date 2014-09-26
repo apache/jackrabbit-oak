@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
  */
 public class ScalabilityRunner {
 
-    private static final int MB = 1024 * 1024;
+    private static final long MB = 1024 * 1024L;
 
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
@@ -77,9 +77,6 @@ public class ScalabilityRunner {
                 .ofType(Boolean.class);
         OptionSpec<File> csvFile =
                 parser.accepts("csvFile", "File to write a CSV version of the benchmark data.")
-                        .withOptionalArg().ofType(File.class);
-        OptionSpec<File> dumpFile =
-                parser.accepts("dumpFile", "File to write threa dumps.")
                         .withOptionalArg().ofType(File.class);
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
         OptionSpec<String> nonOption = parser.nonOptions();
@@ -142,6 +139,8 @@ public class ScalabilityRunner {
                                         new MultiFilterSplitOrderByOffsetPageSearcher(),
                                         new MultiFilterOrderByKeysetPageSearcher(),
                                         new MultiFilterSplitOrderByKeysetPageSearcher()),
+                        new ScalabilityNodeRelationshipSuite(withStorage.value(options))
+                                .addBenchmarks(new AggregateNodeSearcher())
                 };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
