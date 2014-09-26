@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -117,17 +118,31 @@ public class ScalabilityRunner {
                 OakRepositoryFixture.getTarWithBlobStore(
                         base.value(options), 256, cacheSize, mmap.value(options))
         };
-        ScalabilitySuite[] allSuites = new ScalabilitySuite[] {
-                new ScalabilityBlobSearchSuite(withStorage.value(options))
-                    .addBenchmarks(new FullTextSearcher(), 
-                                    new NodeTypeSearcher(),
-                                    new FormatSearcher(),
-                                    new LastModifiedSearcher(Date.LAST_2_HRS),
-                                    new LastModifiedSearcher(Date.LAST_24_HRS),
-                                    new LastModifiedSearcher(Date.LAST_7_DAYS),
-                                    new LastModifiedSearcher(Date.LAST_MONTH),
-                                    new LastModifiedSearcher(Date.LAST_YEAR))
-        };
+        ScalabilitySuite[] allSuites =
+                new ScalabilitySuite[] {
+                        new ScalabilityBlobSearchSuite(withStorage.value(options))
+                                .addBenchmarks(new FullTextSearcher(),
+                                        new NodeTypeSearcher(),
+                                        new FormatSearcher(),
+                                        new LastModifiedSearcher(Date.LAST_2_HRS),
+                                        new LastModifiedSearcher(Date.LAST_24_HRS),
+                                        new LastModifiedSearcher(Date.LAST_7_DAYS),
+                                        new LastModifiedSearcher(Date.LAST_MONTH),
+                                        new LastModifiedSearcher(Date.LAST_YEAR)),
+                        new ScalabilityNodeSuite(withStorage.value(options))
+                                .addBenchmarks(new OrderBySearcher(),
+                                        new SplitOrderBySearcher(),
+                                        new OrderByOffsetPageSearcher(),
+                                        new SplitOrderByOffsetPageSearcher(),
+                                        new OrderByKeysetPageSearcher(),
+                                        new SplitOrderByKeysetPageSearcher(),
+                                        new MultiFilterOrderBySearcher(),
+                                        new MultiFilterSplitOrderBySearcher(),
+                                        new MultiFilterOrderByOffsetPageSearcher(),
+                                        new MultiFilterSplitOrderByOffsetPageSearcher(),
+                                        new MultiFilterOrderByKeysetPageSearcher(),
+                                        new MultiFilterSplitOrderByKeysetPageSearcher()),
+                };
 
         Set<String> argset = Sets.newHashSet(nonOption.values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
@@ -171,7 +186,9 @@ public class ScalabilityRunner {
         if (argmap.isEmpty()) {
             PrintStream out = null;
             if (options.has(csvFile)) {
-                out = new PrintStream(FileUtils.openOutputStream(csvFile.value(options), true));
+                out =
+                    new PrintStream(FileUtils.openOutputStream(csvFile.value(options), true), false,
+                                            Charsets.UTF_8.name());
             }
             for (ScalabilitySuite suite : suites) {
                 if (suite instanceof CSVResultGenerator) {
