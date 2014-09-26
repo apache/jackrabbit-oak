@@ -210,7 +210,7 @@ public class OakIndexUtils {
      * @throws RepositoryException the repository exception
      */
     public static Node propertyIndexDefinition(Session session, String indexDefinitionName,
-            String[] propertyNames, boolean unique, 
+            String[] propertyNames, boolean unique,
             String[] enclosingNodeTypes) throws RepositoryException {
         
         Node root = session.getRootNode();
@@ -236,6 +236,7 @@ public class OakIndexUtils {
      *
      * @param session the session
      * @param indexDefinitionName the name of the node for the index definition
+     * @param async whether the indexing is async or not
      * @param propertyNames the list of properties to index
      * @param unique if unique or not
      * @param enclosingNodeTypes the enclosing node types
@@ -244,7 +245,7 @@ public class OakIndexUtils {
      * @throws RepositoryException the repository exception
      */
     public static Node orderedIndexDefinition(Session session, String indexDefinitionName,
-        String[] propertyNames, boolean unique,
+        String async, String[] propertyNames, boolean unique,
         String[] enclosingNodeTypes, String direction) throws RepositoryException {
 
         Node root = session.getRootNode();
@@ -253,15 +254,21 @@ public class OakIndexUtils {
         Node indexDef = JcrUtils.getOrAddNode(indexDefRoot, indexDefinitionName,
             IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
         indexDef.setProperty(IndexConstants.TYPE_PROPERTY_NAME, OrderedIndex.TYPE);
+        indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
+            PropertyType.NAME);
+        indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
+            PropertyType.NAME);
+
         if (direction != null) {
             indexDef.setProperty(OrderedIndex.DIRECTION, direction);
         }
-        indexDef.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
-        indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
-            PropertyType.NAME);
+
+        if (async != null) {
+            indexDef.setProperty(IndexConstants.ASYNC_PROPERTY_NAME, async);
+        }
         indexDef.setProperty(IndexConstants.UNIQUE_PROPERTY_NAME, unique);
-        indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
-            PropertyType.NAME);
+        indexDef.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+
         session.save();
 
         return indexDef;

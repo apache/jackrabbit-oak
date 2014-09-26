@@ -33,15 +33,15 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import jline.internal.Log;
-
 import com.google.common.base.Splitter;
 import com.google.common.base.Stopwatch;
 
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
-import org.apache.jackrabbit.oak.fixture.JcrCustomizer;
+import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -53,6 +53,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
+import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,6 +99,11 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     protected static final boolean INDEX = Boolean.getBoolean("index");
 
     /**
+     * Controls whether the indexing is async
+     */
+    protected static final String ASYNC_INDEX = System.getProperty("asyncIndex");
+
+    /**
      * Controls if a customType is to be created
      */
     protected static final boolean CUSTOM_TYPE = Boolean.getBoolean("customType");
@@ -132,10 +140,11 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     /** Type of index to be created */
-    public final Index INDEX_TYPE = Index.valueOf(System.getProperty("indexType",
-        Index.PROPERTY.toString()));
+    public final Index INDEX_TYPE = Index.valueOf(System.getProperty("indexType", Index.PROPERTY.toString()));
 
     protected final Boolean storageEnabled;
+
+    protected Whiteboard whiteboard;
 
     protected final List<String> nodeTypes;
 
@@ -189,14 +198,14 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         switch (INDEX_TYPE) {
             case ORDERED:
                 // define ordered indexes on properties
-                OakIndexUtils.orderedIndexDefinition(session, "customIndexParent",
-                    new String[] {DATE_PROP}, false,
-                    new String[] {CUSTOM_ROOT_NODE_TYPE},
-                    OrderedIndex.OrderDirection.DESC.getDirection());
-                OakIndexUtils.orderedIndexDefinition(session, "customIndexDescendant",
-                    new String[] {DATE_PROP}, false,
-                    new String[] {CUSTOM_DESC_NODE_TYPE},
-                    OrderedIndex.OrderDirection.DESC.getDirection());
+                OakIndexUtils.orderedIndexDefinition(session, "customIndexParent", ASYNC_INDEX,
+                        new String[]{DATE_PROP}, false,
+                        new String[]{CUSTOM_ROOT_NODE_TYPE},
+                        OrderedIndex.OrderDirection.DESC.getDirection());
+                OakIndexUtils.orderedIndexDefinition(session, "customIndexDescendant", ASYNC_INDEX,
+                        new String[]{DATE_PROP}, false,
+                        new String[]{CUSTOM_DESC_NODE_TYPE},
+                        OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             case LUCENE:
                 break;
@@ -226,14 +235,32 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         // create the blob load for this iteration
         createLoad(context);
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Started beforeIteration()");
-        }
+        long loadFinish = System.currentTimeMillis();
 
         context.getMap().put(CTX_ROOT_NODE_NAME_PROP, ROOT_NODE_NAME);
         context.getMap().put(CTX_SEARCH_PATHS_PROP, searchRootPaths);
         context.getMap().put(CTX_DESC_SEARCH_PATHS_PROP, searchDescPaths);
+
+        waitBeforeIterationFinish(loadFinish);
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Finished beforeIteration()");
+        }
+    }
+
+    protected void waitBeforeIterationFinish(long loadFinish) {
+        IndexStatsMBean indexStatsMBean = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
+
+        while (ISO8601.parse(indexStatsMBean.getLastIndexedTime()).getTimeInMillis() < loadFinish) {
+            try {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Waiting for async indexing to finish");
+                }
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                LOG.error("Error waiting for async index to finish", e);
+            }
+        }
     }
 
     /**
@@ -324,15 +351,16 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
         if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
-                public Jcr customize(Jcr jcr) {
+                public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
-                    jcr.with((QueryIndexProvider) provider)
+                    oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
                             .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
-                    return jcr;
+                    whiteboard = oak.getWhiteboard();
+                    return new Jcr(oak);
                 }
             });
         }
@@ -415,8 +443,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             LOG.info("Max Assets created by " + id + " - " + counter);
         }
 
-        private Node createParent(Node parent, boolean createChildren, String name)
-            throws Exception {
+        private Node createParent(Node parent, boolean createChildren, String name) throws Exception {
             start.add(Calendar.SECOND, 1);
             Node node = createNode(parent, 0, name);
 
@@ -467,7 +494,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             session.save();
             counter++;
             if (LOG.isDebugEnabled()) {
-                Log.debug(node.getPath());
+                LOG.debug(node.getPath());
             }
 
             // Record time taken for creation
