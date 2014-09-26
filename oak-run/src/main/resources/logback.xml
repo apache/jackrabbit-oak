@@ -33,6 +33,9 @@
   <!-- Display info messages from the LastRevRecoveryAgent-->
   <logger name="org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent" level="INFO"/>
 
+  <!-- Display info messages from the scalability suite -->
+  <logger name="org.apache.jackrabbit.oak.scalability" level="INFO"/>
+
   <root level="warn">
     <appender-ref ref="STDERR" />
   </root>
