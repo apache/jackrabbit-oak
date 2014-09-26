@@ -32,7 +32,8 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.fixture.JcrCustomizer;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -125,14 +126,14 @@ abstract class AbstractLoginTest extends AbstractTest {
         if (noIterations != -1) {
             if (fixture instanceof OakRepositoryFixture) {
                 final String configName = (runWithToken) ? TokenConfiguration.NAME : UserConfiguration.NAME;
-                return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
+                return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                     @Override
-                    public Jcr customize(Jcr jcr) {
+                    public Jcr customize(Oak oak) {
                         Map<String, Integer> map = Collections.singletonMap(UserConstants.PARAM_PASSWORD_HASH_ITERATIONS, noIterations);
                         ConfigurationParameters conf = ConfigurationParameters.of(map);
                         SecurityProvider sp = new SecurityProviderImpl(ConfigurationParameters.of(ImmutableMap.of(configName, conf)));
-                        jcr.with(sp);
-                        return jcr;
+                        oak.with(sp);
+                        return new Jcr(oak);
                     }
                 });
             } else {

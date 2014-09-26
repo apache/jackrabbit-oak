@@ -128,11 +128,11 @@ public class ScalabilityBlobSearchSuite extends ScalabilityNodeSuite {
         // defining indexes
         if (INDEX) {
             OakIndexUtils.propertyIndexDefinition(session, NodeTypeConstants.JCR_MIMETYPE,
-                    new String[] {NodeTypeConstants.JCR_MIMETYPE}, false, new String[] {Strings
+                    new String[]{NodeTypeConstants.JCR_MIMETYPE}, false, new String[]{Strings
                             .nullToEmpty(indexType)});
-            OakIndexUtils.orderedIndexDefinition(session, NodeTypeConstants.JCR_LASTMODIFIED,
-                    new String[] {NodeTypeConstants.JCR_LASTMODIFIED}, false,
-                    new String[] {Strings.nullToEmpty(indexType)},
+            OakIndexUtils.orderedIndexDefinition(session, NodeTypeConstants.JCR_LASTMODIFIED, ASYNC_INDEX,
+                    new String[]{NodeTypeConstants.JCR_LASTMODIFIED}, false,
+                    new String[]{Strings.nullToEmpty(indexType)},
                     null);
         }
     }
