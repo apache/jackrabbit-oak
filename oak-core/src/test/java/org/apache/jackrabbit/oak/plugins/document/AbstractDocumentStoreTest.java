@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.junit.After;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,6 +34,7 @@ public abstract class AbstractDocumentStoreTest {
     protected String dsname;
     protected DocumentStore ds;
     protected DocumentStoreFixture dsf;
+    protected DataSource rdbDataSource;
     protected List<String> removeMe = new ArrayList<String>();
 
     static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
@@ -40,6 +43,7 @@ public abstract class AbstractDocumentStoreTest {
         this.dsf = dsf;
         this.ds = dsf.createDocumentStore(1);
         this.dsname = dsf.getName();
+        this.rdbDataSource = dsf.getRDBDataSource();
     }
 
     @After
