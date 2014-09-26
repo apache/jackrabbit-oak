@@ -514,7 +514,7 @@ public class DocumentMK implements MicroKernel {
                 }
 
                 if (this.blobStore == null) {
-                    this.blobStore = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024);
+                    this.blobStore = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
                 }
 
                 if (this.diffCache == null) {
