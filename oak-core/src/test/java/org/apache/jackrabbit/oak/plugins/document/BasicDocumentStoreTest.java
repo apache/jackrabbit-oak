@@ -19,10 +19,14 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -360,7 +364,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", pval);
-            super.ds.createOrUpdate(Collection.NODES, up);
+            NodeDocument old = super.ds.createOrUpdate(Collection.NODES, up);
+            if (cnt == 0) {
+                assertNull("expect null on create", old);
+            }
+            else {
+                assertNotNull("fail on update " + cnt, old);
+            }
             cnt += 1;
         }
 
@@ -380,4 +390,76 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
         return new String(s);
    }
+
+    @Test
+    public void testPerfUpdateLimit() {
+        if (super.rdbDataSource != null) {
+            String key = "testUpdateLimit";
+            Connection connection = null;
+
+            // create test node
+            try {
+                connection = super.rdbDataSource.getConnection();
+                connection.setAutoCommit(false);
+                PreparedStatement stmt = connection.prepareStatement("insert into NODES (ID) values (?)");
+                try {
+                    stmt.setString(1, key);
+                    stmt.executeUpdate();
+                    connection.commit();
+                } finally {
+                    stmt.close();
+                }
+            }
+            catch (SQLException ex) {
+                // ignored
+            }
+            finally {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (SQLException e) {
+                        // ignored
+                    }
+                }
+            }
+
+            long duration = 1000;
+            long end = System.currentTimeMillis() + duration;
+            long cnt = 0;
+
+            while (System.currentTimeMillis() < end) {
+
+                try {
+                    connection = super.rdbDataSource.getConnection();
+                    connection.setAutoCommit(false);
+                    PreparedStatement stmt = connection.prepareStatement("update NODES set MODCOUNT = ? where ID = ?");
+                    try {
+                        stmt.setLong(1, cnt);
+                        stmt.setString(2, key);
+                        stmt.executeUpdate();
+                        connection.commit();
+                    } finally {
+                        stmt.close();
+                    }
+                }
+                catch (SQLException ex) {
+                    LOG.info(ex.getMessage());
+                }
+                finally {
+                    if (connection != null) {
+                        try {
+                            connection.close();
+                        } catch (SQLException e) {
+                            // ignored
+                        }
+                    }
+                }
+
+                cnt += 1;
+            }
+
+            LOG.info("raw row update for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
+                    + (cnt / (duration / 1000f)) + "/s)");
+        }
+    }
 }

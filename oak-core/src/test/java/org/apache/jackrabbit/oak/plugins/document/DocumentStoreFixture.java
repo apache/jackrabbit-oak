@@ -55,6 +55,11 @@ public abstract class DocumentStoreFixture {
         return true;
     }
 
+    // get underlying datasource if RDB persistence
+    public DataSource getRDBDataSource() {
+        return null;
+    }
+
     // return false if the multiple instances will not share the same persistence
     public boolean hasSinglePersistence() {
         return true;
@@ -118,6 +123,11 @@ public abstract class DocumentStoreFixture {
         @Override
         public boolean isAvailable() {
             return dataSource != null;
+        }
+
+        @Override
+        public DataSource getRDBDataSource() {
+            return dataSource;
         }
 
         @Override
