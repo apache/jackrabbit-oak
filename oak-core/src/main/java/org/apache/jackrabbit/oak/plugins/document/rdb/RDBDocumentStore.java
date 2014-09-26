@@ -333,9 +333,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private String tablePrefix = "";
     private Set<String> tablesToBeDropped = new HashSet<String>();
 
+    // ratio between Java characters and UTF-8 encoding
+    // a) single characters will fit into 3 bytes
+    // b) a surrogate pair (two Java characters) will fit into 4 bytes
+    // thus...
+    private static int CHAR2OCTETRATIO = 3;
+
     // capacity of DATA column
-    // we assume six octets per Java character as worst case for now
-    private int datalimit = 16384 / 6;
+    private int datalimit = 16384 / CHAR2OCTETRATIO;
 
     // number of retries for updates
     private static int RETRIES = 10;
@@ -391,7 +396,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
                 ResultSetMetaData met = rs.getMetaData();
-                this.datalimit = met.getPrecision(1) / 6;
+                this.datalimit = met.getPrecision(1) / CHAR2OCTETRATIO;
             }
         } catch (SQLException ex) {
             // table does not appear to exist
@@ -417,7 +422,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
             } else if ("Oracle".equals(dbtype)) {
                 // see https://issues.apache.org/jira/browse/OAK-1914
-                this.datalimit = 4000 / 6;
+                this.datalimit = 4000 / CHAR2OCTETRATIO;
                 stmt.execute("create table "
                         + tableName
                         + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
@@ -982,7 +987,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 32));
+                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 128));
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
@@ -1017,7 +1022,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 20));
+                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 128));
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
