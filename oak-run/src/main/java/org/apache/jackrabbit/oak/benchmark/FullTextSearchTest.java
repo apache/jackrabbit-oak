@@ -36,8 +36,9 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
-import org.apache.jackrabbit.oak.fixture.JcrCustomizer;
+import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -157,15 +158,15 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
     @Override
     protected Repository[] createRepository(RepositoryFixture fixture) throws Exception {
         if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
-                public Jcr customize(Jcr jcr) {
+                public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
-                    jcr.with((QueryIndexProvider) provider)
+                    oak.with((QueryIndexProvider) provider)
                        .with((Observer) provider)
                        .with(new LuceneIndexEditorProvider())
                        .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
-                    return jcr;
+                    return new Jcr(oak);
                 }
             });
         }

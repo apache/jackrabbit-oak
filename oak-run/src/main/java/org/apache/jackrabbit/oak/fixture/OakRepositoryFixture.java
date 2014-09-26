@@ -21,7 +21,6 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.jcr.Jcr;
 
 public class OakRepositoryFixture implements RepositoryFixture {
 
@@ -93,14 +92,14 @@ public class OakRepositoryFixture implements RepositoryFixture {
 
     @Override
     public final Repository[] setUpCluster(int n) throws Exception {
-        return setUpCluster(n,JcrCustomizer.DEFAULT);
+        return setUpCluster(n,JcrCreator.DEFAULT);
     }
 
-    public Repository[] setUpCluster(int n, JcrCustomizer customizer) throws Exception {
+    public Repository[] setUpCluster(int n, JcrCreator customizer) throws Exception {
         Oak[] oaks = oakFixture.setUpCluster(n);
         cluster = new Repository[oaks.length];
         for (int i = 0; i < oaks.length; i++) {
-            cluster[i] = customizer.customize(new Jcr(oaks[i])).createRepository();
+            cluster[i] = customizer.customize(oaks[i]).createRepository();
         }
         return cluster;
     }

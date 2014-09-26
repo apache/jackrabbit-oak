@@ -138,23 +138,23 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         switch (INDEX_TYPE) {
             case PROPERTY:
                 OakIndexUtils
-                    .propertyIndexDefinition(session, "customIndexActivity",
-                        new String[] {SOURCE_ID}, false, new String[] {CUSTOM_ACT_NODE_TYPE});
+                        .propertyIndexDefinition(session, "customIndexActivity",
+                                new String[]{SOURCE_ID}, false, new String[]{CUSTOM_ACT_NODE_TYPE});
                 OakIndexUtils
-                    .propertyIndexDefinition(session, "customIndexRelationship",
-                        new String[] {SOURCE_ID},
-                        false, new String[] {CUSTOM_REL_NODE_TYPE});
+                        .propertyIndexDefinition(session, "customIndexRelationship",
+                                new String[]{SOURCE_ID},
+                                false, new String[]{CUSTOM_REL_NODE_TYPE});
                 break;
             case ORDERED:
                 // define ordered indexes on properties
-                OakIndexUtils.orderedIndexDefinition(session, "customIndexActivity",
-                    new String[] {CREATED}, false,
-                    new String[] {CUSTOM_ACT_NODE_TYPE},
-                    OrderedIndex.OrderDirection.DESC.getDirection());
-                OakIndexUtils.orderedIndexDefinition(session, "customIndexRelationship",
-                    new String[] {CREATED}, false,
-                    new String[] {CUSTOM_REL_NODE_TYPE},
-                    OrderedIndex.OrderDirection.DESC.getDirection());
+                OakIndexUtils.orderedIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
+                        new String[]{CREATED}, false,
+                        new String[]{CUSTOM_ACT_NODE_TYPE},
+                        OrderedIndex.OrderDirection.DESC.getDirection());
+                OakIndexUtils.orderedIndexDefinition(session, "customIndexRelationship", ASYNC_INDEX,
+                        new String[]{CREATED}, false,
+                        new String[]{CUSTOM_REL_NODE_TYPE},
+                        OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             case LUCENE:
                 break;
@@ -205,14 +205,17 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         session.save();
         // create the load for this iteration
         createLoad(context);
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Started beforeIteration()");
-        }
+        long loadFinish = System.currentTimeMillis();
 
         context.getMap().put(CTX_ROOT_NODE_NAME_PROP, ROOT_NODE_NAME);
         context.getMap().put(CTX_USER, users);
         context.getMap().put(CTX_GROUP, groups);
+
+        waitBeforeIterationFinish(loadFinish);
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Finished beforeIteration()");
+        }
     }
 
     @Override

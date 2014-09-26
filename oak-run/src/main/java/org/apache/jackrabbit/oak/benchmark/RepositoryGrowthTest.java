@@ -29,9 +29,10 @@ import javax.jcr.Session;
 
 import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.fixture.JcrCustomizer;
+import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -60,9 +61,9 @@ public class RepositoryGrowthTest extends WikipediaImport {
     @Override
     protected Repository[] setupCluster(final RepositoryFixture fixture) throws Exception {
         if (fixture instanceof OakRepositoryFixture) {
-            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCustomizer() {
+            return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
-                public Jcr customize(Jcr jcr) {
+                public Jcr customize(Oak oak) {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
                     String path = null;
                     if(luceneIndexOnFS){
@@ -70,12 +71,12 @@ public class RepositoryGrowthTest extends WikipediaImport {
                         path = indexDir.getAbsolutePath();
                         indexDirs.put(fixture, indexDir);
                     }
-                    jcr.with((QueryIndexProvider) provider)
+                    oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider())
                             .with(new LuceneInitializerHelper("luceneGlobal", LuceneIndexHelper.JR_PROPERTY_INCLUDES,
                                     null, path, null));
-                    return jcr;
+                    return new Jcr(oak);
                 }
             });
         }
