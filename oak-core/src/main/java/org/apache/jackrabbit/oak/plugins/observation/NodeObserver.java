@@ -119,40 +119,44 @@ public abstract class NodeObserver implements Observer {
     @Override
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
-            NamePathMapper namePathMapper = new NamePathMapperImpl(
-                    new GlobalNameMapper(new ImmutableRoot(root)));
+            try {
+                NamePathMapper namePathMapper = new NamePathMapperImpl(
+                        new GlobalNameMapper(new ImmutableRoot(root)));
 
-            Set<String> oakPropertyNames = Sets.newHashSet();
-            for (String name : propertyNames) {
-                String oakName = namePathMapper.getOakNameOrNull(name);
-                if (oakName == null) {
-                    LOG.warn("Ignoring invalid property name: {}", name);
-                } else {
-                    oakPropertyNames.add(oakName);
+                Set<String> oakPropertyNames = Sets.newHashSet();
+                for (String name : propertyNames) {
+                    String oakName = namePathMapper.getOakNameOrNull(name);
+                    if (oakName == null) {
+                        LOG.warn("Ignoring invalid property name: {}", name);
+                    } else {
+                        oakPropertyNames.add(oakName);
+                    }
                 }
-            }
 
-            NodeState before = previousRoot;
-            NodeState after = root;
-            EventHandler handler = new FilteredHandler(
-                    new VisibleFilter(),
-                    new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
+                NodeState before = previousRoot;
+                NodeState after = root;
+                EventHandler handler = new FilteredHandler(
+                        new VisibleFilter(),
+                        new NodeEventHandler("/", info, namePathMapper, oakPropertyNames));
 
-            String oakPath = namePathMapper.getOakPath(path);
-            if (oakPath == null) {
-                LOG.warn("Cannot listen for changes on invalid path: {}", path);
-                return;
-            }
+                String oakPath = namePathMapper.getOakPath(path);
+                if (oakPath == null) {
+                    LOG.warn("Cannot listen for changes on invalid path: {}", path);
+                    return;
+                }
 
-            for (String oakName : PathUtils.elements(oakPath)) {
-                before = before.getChildNode(oakName);
-                after = after.getChildNode(oakName);
-                handler = handler.getChildHandler(oakName, before, after);
-            }
+                for (String oakName : PathUtils.elements(oakPath)) {
+                    before = before.getChildNode(oakName);
+                    after = after.getChildNode(oakName);
+                    handler = handler.getChildHandler(oakName, before, after);
+                }
 
-            EventGenerator generator = new EventGenerator(before, after, handler);
-            while (!generator.isDone()) {
-                generator.generate();
+                EventGenerator generator = new EventGenerator(before, after, handler);
+                while (!generator.isDone()) {
+                    generator.generate();
+                }
+            } catch (Exception e) {
+                LOG.warn("Error while dispatching observation events", e);
             }
         }
 
