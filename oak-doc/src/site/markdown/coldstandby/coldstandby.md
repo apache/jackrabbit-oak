@@ -66,22 +66,40 @@ The data flow is designed to detect and handle connection and network related pr
 The *Cold Standby* feature exposes informations using JMX/MBeans. Doing so you can inspect the current state of the client(s) and the master using standard tools like `jconsole` or `jmc` (if running JDK 1.7 or higher). The information can be found if you look for a `org.apache.jackrabbit.oak:type="FailOver"` MBean named `Status`.
 
 #####Client
-Observing a client you will notice exactly one node (the id is either a generic UUID or the name specified by the `failOverID` system property). This node has three readonly attributes:
+Observing a client you will notice exactly one node (the id is either a generic UUID or the name specified by the `failOverID` system property). This node has five readonly attributes:
 
 * `Running`: boolean indicating whether the sync process is running
 * `Mode`: always `Client: ` followed by the ID described above
 * `Status`: a textual representation of the current state (like `running`, `stopped` and others)
+* `FailedRequests`: the number of consecutive errors
+* `SecondsSinceLastSuccess`: the number of seconds since the last successful communication with the server or -1 if there is none
 
 There are also two invokable methods:
 
 * `start()`: start the sync process
 * `stop()`: stop the sync process
 
+######Examples
+
+A typical communication with the server can look like this (the server is contacted every five seconds and there is no error at all): 
+
+![Screenshot showing MBeans with working server](client_mbean_server_working.png)
+
+The server can not be contacted anyore:
+
+![Screenshot showing MBeans with server died](client_mbean_server_died.png)
+
+The server is live and reachable again and after some errors everythings is up and running again:
+
+![Screenshot showing MBeans with server working again](client_mbean_server_works_again.png)
+    
 #####Master
-Observing the master exposes some general (non client-specific) informations via a MBean whose id value is the port number the `Cold Standby` service is using (usually `8023`). There are the same attributes and methods as described above but the values differ:
+Observing the master exposes some general (non client-specific) informations via a MBean whose id value is the port number the `Cold Standby` service is using (usually `8023`). There are almost the same attributes and methods as described above but the values differ:
 
 * `Mode`: always the constant value `master`
 * `Status`: has more values like `got message`
+* `FailedRequests`: not available in master mode
+* `SecondsSinceLastSuccess`: not available in master mode
 
 Furthermore informations for each (up to 10) clients can be retrieved. The MBean id is the name of the client (see above). There are no invokable methods for these MBeans but some very useful readonly attributes:
 
@@ -94,6 +112,7 @@ Furthermore informations for each (up to 10) clients can be retrieved. The MBean
 * `TransferredSegmentBytes`: the total number of bytes transferred to this client
 
 A typical state might look like this:
+
 ![Screenshot showing MBeans](mbeans.png)
 
 ### Performance
