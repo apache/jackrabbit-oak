@@ -121,7 +121,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testInterestingPropLengths() {
-        int lengths[] = {1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 20000};
+        int lengths[] = { 1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000,
+                15000, 16000, 20000 };
 
         for (int test : lengths) {
             String id = this.getClass().getName() + ".testInterestingPropLengths-" + test;
@@ -255,7 +256,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String base = "2:/" + this.getClass().getName() + ".testQueryCollation";
         List<UpdateOp> creates = new ArrayList<UpdateOp>();
 
-        List<String>expected = new ArrayList<String>();
+        List<String> expected = new ArrayList<String>();
         // test US-ASCII except control characters
         for (char c : "!\"#$%&'()*+,-./0123456789:;<=>?@AZ[\\]^_`az{|}~".toCharArray()) {
             String id = base + c;
@@ -278,14 +279,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         List<String> diff = new ArrayList<String>();
         diff.addAll(result);
         diff.removeAll(expected);
-        if (! diff.isEmpty()) {
+        if (!diff.isEmpty()) {
             fail("unexpected query results (broken collation handling in persistence?): " + diff);
         }
 
         diff = new ArrayList<String>();
         diff.addAll(expected);
         diff.removeAll(result);
-        if (! diff.isEmpty()) {
+        if (!diff.isEmpty()) {
             fail("missing query results (broken collation handling in persistence?): " + diff);
         }
         assertEquals("incorrect result ordering in query result (broken collation handling in persistence?)", expected, result);
@@ -337,8 +338,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             cnt += 1;
         }
 
-        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
-                + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
@@ -367,34 +368,46 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             NodeDocument old = super.ds.createOrUpdate(Collection.NODES, up);
             if (cnt == 0) {
                 assertNull("expect null on create", old);
-            }
-            else {
+            } else {
                 assertNotNull("fail on update " + cnt, old);
             }
             cnt += 1;
         }
 
-        LOG.info("document updates with property of size " + size + " for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
-                + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document updates with property of size " + size + " for " + super.dsname + " was " + cnt + " in " + duration
+                + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     private static String generateString(int length, boolean ascii) {
         char[] s = new char[length];
         for (int i = 0; i < length; i++) {
             if (ascii) {
-                s[i] = (char)(32 + (int) (95 * Math.random()));
-            }
-            else {
-                s[i] = (char)(32 + (int) ((0xd7ff - 32) * Math.random()));
+                s[i] = (char) (32 + (int) (95 * Math.random()));
+            } else {
+                s[i] = (char) (32 + (int) ((0xd7ff - 32) * Math.random()));
             }
         }
         return new String(s);
-   }
+    }
 
     @Test
     public void testPerfUpdateLimit() {
+        internalTestPerfUpdateLimit("testPerfUpdateLimit", "raw row update (set long)", 0);
+    }
+
+    @Test
+    public void testPerfUpdateLimitString() {
+        internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)", 1);
+    }
+
+    @Test
+    public void testPerfUpdateLimitStringBlob() {
+        internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob", "raw row update (set long/string/blob)", 2);
+    }
+
+    private void internalTestPerfUpdateLimit(String name, String desc, int mode) {
         if (super.rdbDataSource != null) {
-            String key = "testUpdateLimit";
+            String key = name;
             Connection connection = null;
 
             // create test node
@@ -409,11 +422,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 } finally {
                     stmt.close();
                 }
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 // ignored
-            }
-            finally {
+            } finally {
                 if (connection != null) {
                     try {
                         connection.close();
@@ -423,29 +434,60 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 }
             }
 
+            removeMe.add(key);
+
             long duration = 1000;
             long end = System.currentTimeMillis() + duration;
             long cnt = 0;
+            byte bdata[] = new byte[16384];
 
             while (System.currentTimeMillis() < end) {
 
                 try {
                     connection = super.rdbDataSource.getConnection();
                     connection.setAutoCommit(false);
-                    PreparedStatement stmt = connection.prepareStatement("update NODES set MODCOUNT = ? where ID = ?");
-                    try {
-                        stmt.setLong(1, cnt);
-                        stmt.setString(2, key);
-                        stmt.executeUpdate();
-                        connection.commit();
-                    } finally {
-                        stmt.close();
+
+                    if (mode == 0) {
+                        PreparedStatement stmt = connection.prepareStatement("update NODES set MODCOUNT = ? where ID = ?");
+                        try {
+                            stmt.setLong(1, cnt);
+                            stmt.setString(2, key);
+                            assertEquals(1, stmt.executeUpdate());
+                            connection.commit();
+                        } finally {
+                            stmt.close();
+                        }
+                    } else if (mode == 1) {
+                        PreparedStatement stmt = connection
+                                .prepareStatement("update NODES set MODCOUNT = ?, DATA = ? where ID = ?");
+                        try {
+                            stmt.setLong(1, cnt);
+                            stmt.setString(2, "JSON data " + UUID.randomUUID());
+                            stmt.setString(3, key);
+                            assertEquals(1, stmt.executeUpdate());
+                            connection.commit();
+                        } finally {
+                            stmt.close();
+                        }
+                    } else {
+                        PreparedStatement stmt = connection
+                                .prepareStatement("update NODES set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
+                        try {
+                            stmt.setLong(1, cnt);
+                            stmt.setString(2, "JSON data " + UUID.randomUUID());
+                            bdata[(int) cnt % 256] = (byte) (cnt & 0xff);
+                            stmt.setString(2, "JSON data " + UUID.randomUUID());
+                            stmt.setBytes(3, bdata);
+                            stmt.setString(4, key);
+                            assertEquals(1, stmt.executeUpdate());
+                            connection.commit();
+                        } finally {
+                            stmt.close();
+                        }
                     }
-                }
-                catch (SQLException ex) {
+                } catch (SQLException ex) {
                     LOG.info(ex.getMessage());
-                }
-                finally {
+                } finally {
                     if (connection != null) {
                         try {
                             connection.close();
@@ -458,8 +500,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 cnt += 1;
             }
 
-            LOG.info("raw row update for " + super.dsname + " was " + cnt + " in " + duration + "ms ("
-                    + (cnt / (duration / 1000f)) + "/s)");
+            LOG.info(desc + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f))
+                    + "/s)");
         }
     }
 }
