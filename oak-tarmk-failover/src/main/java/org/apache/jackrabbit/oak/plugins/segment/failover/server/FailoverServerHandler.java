@@ -141,7 +141,6 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
                 RecordId r = headId();
                 if (r != null) {
                     ctx.writeAndFlush(r);
-                    log.debug("returning from head request");
                     return;
                 }
             } else if (request.startsWith(Messages.GET_SEGMENT)) {
@@ -158,17 +157,16 @@ public class FailoverServerHandler extends SimpleChannelInboundHandler<String> {
                                 .getLeastSignificantBits()));
                     } catch (IllegalStateException e) {
                         // segment not found
-                        log.info("waiting for segment. Got exception: " + e.getMessage());
+                        log.debug("waiting for segment. Got exception: " + e.getMessage());
                         TimeUnit.MILLISECONDS.sleep(1000);
                     }
                     if (s != null) break;
                 }
 
                 if (s != null) {
-                    log.info("sending segment" + sid + " to " + client);
+                    log.debug("sending segment " + sid + " to " + client);
                     ctx.writeAndFlush(s);
                     observer.didSendSegmentBytes(clientID, s.size());
-                    log.debug("master returns from segment request");
                     return;
                 }
             } else {

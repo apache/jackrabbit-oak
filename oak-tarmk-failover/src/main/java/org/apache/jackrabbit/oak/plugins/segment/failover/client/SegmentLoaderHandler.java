@@ -86,7 +86,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     }
 
     private void initSync() {
-        log.info("new head id " + head);
+        log.debug("new head id " + head);
         long t = System.currentTimeMillis();
 
         try {
@@ -110,7 +110,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                         throw e;
                     }
 
-                    log.info("did reread locally corrupt segment " + id + " with size " + s.size());
+                    log.debug("did reread locally corrupt segment " + id + " with size " + s.size());
                     ByteArrayOutputStream bout = new ByteArrayOutputStream(s.size());
                     try {
                         s.writeTo(bout);
@@ -123,12 +123,11 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
                 }
             } while(true);
             boolean ok = store.setHead(before, builder.getNodeState());
-            log.info("#updated state (set head {}) in {}ms.", ok,
+            log.debug("updated head state successfully: {} in {}ms.", ok,
                     System.currentTimeMillis() - t);
         } finally {
             close();
         }
-        log.debug("returning initSync");
     }
 
     @Override
@@ -151,9 +150,9 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         try {
             for (;;) {
                 try {
-                    log.debug("polling segment");
+                    // log.debug("polling segment");
                     Segment s = segment.poll(timeoutMs, TimeUnit.MILLISECONDS);
-                    log.debug("returning segment " + s);
+                    // log.debug("returning segment " + s.getSegmentId());
                     return s;
                 } catch (InterruptedException ignore) {
                     interrupted = true;
