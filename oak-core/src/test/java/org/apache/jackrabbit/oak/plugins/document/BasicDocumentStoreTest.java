@@ -344,27 +344,39 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testUpdatePerfSmall() {
-        updatePerf(16);
+        updatePerf(16, false);
+    }
+
+    @Test
+    public void testUpdatePerfSmallGrowing() {
+        updatePerf(16, true);
     }
 
     @Test
     public void testUpdatePerfBig() {
-        updatePerf(32 * 1024);
+        updatePerf(32 * 1024, false);
     }
 
-    private void updatePerf(int size) {
+    private void updatePerf(int size, boolean growing) {
         String pval = generateString(size, true);
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
         long cnt = 0;
 
-        String id = this.getClass().getName() + ".testUpdatePerf-" + size;
+        String id = this.getClass().getName() + ".testUpdatePerf" + (growing ? "Growing" : "") + "-" + size;
         removeMe.add(id);
 
         while (System.currentTimeMillis() < end) {
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
-            up.set("foo", pval);
+            if (growing) {
+                Revision r = new Revision(System.currentTimeMillis(), (int)cnt, 1);
+                up.setMapEntry("foo", r, pval);
+                up.setMapEntry("_commitRoot", r, "1");
+            }
+            else {
+                up.set("foo", pval);
+            }
             NodeDocument old = super.ds.createOrUpdate(Collection.NODES, up);
             if (cnt == 0) {
                 assertNull("expect null on create", old);
@@ -374,8 +386,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             cnt += 1;
         }
 
-        LOG.info("document updates with property of size " + size + " for " + super.dsname + " was " + cnt + " in " + duration
-                + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     private static String generateString(int length, boolean ascii) {
