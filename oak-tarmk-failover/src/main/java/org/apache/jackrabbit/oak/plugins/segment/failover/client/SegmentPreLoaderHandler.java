@@ -23,18 +23,13 @@ import io.netty.channel.SimpleChannelInboundHandler;
 
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.failover.codec.SegmentReply;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SegmentPreLoaderHandler extends
         SimpleChannelInboundHandler<Segment> {
-    private static final Logger log = LoggerFactory
-            .getLogger(SegmentPreLoaderHandler.class);
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Segment msg)
             throws Exception {
-        log.info("fire new segment reply for " + msg.getSegmentId());
         ctx.fireUserEventTriggered(new SegmentReply(msg));
     }
 
