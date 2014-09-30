@@ -421,12 +421,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         if (super.rdbDataSource != null) {
             String key = name;
             Connection connection = null;
+            String table = DocumentStoreFixture.TABLEPREFIX + "NODES";
 
             // create test node
             try {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
-                PreparedStatement stmt = connection.prepareStatement("insert into NODES (ID) values (?)");
+                PreparedStatement stmt = connection.prepareStatement("insert into " + table + " (ID) values (?)");
                 try {
                     stmt.setString(1, key);
                     stmt.executeUpdate();
@@ -460,7 +461,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     connection.setAutoCommit(false);
 
                     if (mode == 0) {
-                        PreparedStatement stmt = connection.prepareStatement("update NODES set MODCOUNT = ? where ID = ?");
+                        PreparedStatement stmt = connection.prepareStatement("update " + table + " set MODCOUNT = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, key);
@@ -470,8 +471,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             stmt.close();
                         }
                     } else if (mode == 1) {
-                        PreparedStatement stmt = connection
-                                .prepareStatement("update NODES set MODCOUNT = ?, DATA = ? where ID = ?");
+                        PreparedStatement stmt = connection.prepareStatement("update " + table
+                                + " set MODCOUNT = ?, DATA = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
@@ -482,8 +483,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             stmt.close();
                         }
                     } else {
-                        PreparedStatement stmt = connection
-                                .prepareStatement("update NODES set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
+                        PreparedStatement stmt = connection.prepareStatement("update " + table
+                                + " set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
