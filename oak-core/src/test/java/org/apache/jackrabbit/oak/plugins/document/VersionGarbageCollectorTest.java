@@ -221,14 +221,16 @@ public class VersionGarbageCollectorTest {
         long delta = TimeUnit.MINUTES.toMillis(10);
 
         NodeBuilder b1 = store.getRoot().builder();
-        // adding the foo node will cause the commit root to be placed
+        // adding the test node will cause the commit root to be placed
         // on the root document, because the children flag is set on the
         // root document
-        b1.child("foo");
-        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        // adding test afterwards will use the new test document as the
-        // commit root. this what we want for the test.
         b1.child("test");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        assertTrue(getDoc("/test").getLocalRevisions().isEmpty());
+        // setting the test property afterwards will use the new test document
+        // as the commit root. this what we want for the test.
+        b1 = store.getRoot().builder();
+        b1.child("test").setProperty("test", "value");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         assertTrue(!getDoc("/test").getLocalRevisions().isEmpty());
 
@@ -263,6 +265,7 @@ public class VersionGarbageCollectorTest {
         DocumentNodeState test = getDoc("/test").getNodeAtRevision(
                 store, store.getHeadRevision(), null);
         assertNotNull(test);
+        assertTrue(test.hasProperty("test"));
     }
 
     // OAK-1779
