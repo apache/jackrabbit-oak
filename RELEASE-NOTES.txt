@@ -3,128 +3,184 @@ Release Notes -- Apache Jackrabbit Oak -- Version 1.1.0
 Introduction
 ------------
 
-Jackrabbit Oak is an effort to implement a scalable and performant
-hierarchical content repository for use as the foundation of modern
-world-class web sites and  other demanding content applications.
+Jackrabbit Oak is a scalable, high-performance hierarchical content
+repository designed for use as the foundation of modern world-class
+web sites and other demanding content applications.
+
+Apache Jackrabbit Oak 1.1.0 is an unstable release cut directly from
+Jackrabbit Oak trunk, with a focus on new features and other improvements.
+For production use we recommend the latest stable 1.0.6 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 0.20.0
+Changes in Oak 1.1.0
 ---------------------
 
 New Features
 
-  [OAK-319] Similar (rep:similar) support
-  [OAK-382] JMX service to configure auto-cancel or long running queries
-  [OAK-593] Segment-based MK
-  [OAK-631] SegmentMK: Implement garbage collection
-  [OAK-904] Query: support "union" and "union all"
-  [OAK-1341] DocumentNodeStore: Implement revision garbage collection
-  [OAK-1543] Document the configuration steps for DataStore and BlobStores
-  [OAK-1574] AbstractRebaseDiff: Implement refined conflict resolution for addExistingNode conflicts
-  [OAK-1577] H2MK: Implement refined conflict resolution for addExistingNode conflicts
-  [OAK-1636] Solr index: support "jcr:score"
-
-
+  [OAK-1323] - CLONE - XPath queries currently require @ in front of property names
+  [OAK-1522] - Provide PojoSR based RepositoryFactory implementation
+  [OAK-1805] - Debugging console
+  [OAK-1922] - Introduce Password Expiry With Max Password Age and On First Login
+  [OAK-1978] - Add path exclusion to JackrabbitEventFilter
+  [OAK-1993] - Add command to dump Lucene index in Oak Console
+  [OAK-2074] - _lastRev recovery tool
+  
 Improvements
 
-  [OAK-262] Query: support pseudo properties like jcr:score() and rep:excerpt()
-  [OAK-1056] Transient changes contributed by commit hooks are kept in memory
-  [OAK-1295] Recovery for missing _lastRev updates
-  [OAK-1329] Relaxed JCR locking behavior
-  [OAK-1342] Cascading document history
-  [OAK-1456] Non-blocking reindexing
-  [OAK-1489] ValueImpl should implement JackrabbitValue
-  [OAK-1496] Benchmark for concurrent file writes.
-  [OAK-1559] Expose BlobGCMBean for supported NodeStores
-  [OAK-1560] Expose RevisionGCMBean for supported NodeStores
-  [OAK-1567] Return Iterator instead of returning List in DocumentStore.query
-  [OAK-1568] Provide flag to not cache documents from queries
-  [OAK-1573] Document External Login and LDAP specifically
-  [OAK-1578] Configurable size of capped collection used by MongoDiffCache
-  [OAK-1592] Performance of Session#hasPermission
-  [OAK-1593] Guard against NPE in ConfigurationParameters.of(ConfigurationParameters...)
-  [OAK-1601] Log warning on concurrent session access
-  [OAK-1603] Operations tasks api improvements
-  [OAK-1606] Omit warnings about accessing commit related info when external events are excluded
-  [OAK-1607] EmbeddedSolrServerConfigurationProvider should not expose HTTP configuration
-  [OAK-1608] Let oak-solr-osgi start also in containers different than Jetty
-  [OAK-1612] Limit number of wildcards in rep:glob
-  [OAK-1616] Password utility: prevent timing attacks
-  [OAK-1627] Use non-orderable child nodes in ObservationRefreshTest
-  [OAK-1637] SolrIndexInitializer should be more configurable
-  [OAK-1638] Add QueryJcrTest suite coverage to Solr indexer
-  [OAK-1640] When modifying node types, revalidate only affected content
-  [OAK-1643] Implement BlobReferenceIterator optimized for Mongo
-  [OAK-1646] MarkSweepGarbageCollector - Improvements in exception handling and initialization
-  [OAK-1647] AsyncIndexUpdateTask creating too many checkpoint
-  [OAK-1651] Fix oak-solr-core pom dependencies
-  [OAK-1656] Provide lazy iterator for FileDataStore.getAllIdentifiers
-  [OAK-1657] Don't expand FT conditions if FT constraints are available
-  [OAK-1659] Improve CommitRateLimiter to delay commits
-  [OAK-1660] SegmentMK: Optimize reading of large binaries
-  [OAK-1661] JCR Event Info should contain NodeType for Events Type Node-Deleted
-  [OAK-1671] Use request handlers instead of search components in Solr native support
+  [OAK-1478] - allow selecting a nodestore fixture for tests
+  [OAK-1561] - Implement optimised range queries
+  [OAK-1570] - Improve perfomances of the OrderedIndex while insert
+  [OAK-1609] - Configurable property exclusions for SolrIndexEditor and SolrQueryIndex
+  [OAK-1618] - Implement noInternal from JackrabbitEventFilter
+  [OAK-1669] - JCR Event Info should contain NodeType for all Events 
+  [OAK-1673] - FulltextQueryTest coverage for Solr indexer
+  [OAK-1681] - Clarify contract of NodeBuilder.isReplaced()
+  [OAK-1683] - Remove dependency of DocumentStore to MicroKernelException
+  [OAK-1685] - BlobStore: improve code readability
+  [OAK-1691] - Use in-memory DB for DOCUMENT_JDBC fixture
+  [OAK-1694] - Use known.issues instead of commented tests
+  [OAK-1706] - Add RestrictionProvider#getPattern(String,Set<Restriction>)
+  [OAK-1716] - Enable passing of a execution context to runTest in multi threaded runs
+  [OAK-1718] - Avoid expanding empty property restrictions if not needed
+  [OAK-1721] - register ContentRepository to whiteboard
+  [OAK-1725] - Improved SolrCursor support for paged results
+  [OAK-1733] - Consolidate Mongo client connection creation logic
+  [OAK-1754] - add docu how to connect to Mongo w/ credentials
+  [OAK-1790] - Import of compressed wikipedia dump
+  [OAK-1794] - Keep commit info for local changes in main document
+  [OAK-1796] - Update Mongo Java Driver version to 2.12
+  [OAK-1815] - Don't create default (Scheduled)Executor when respective instance is supplied
+  [OAK-1820] - Set _lastRev on insert when new node is also commit root
+  [OAK-1830] - DocumentNodeStore code robustness when persistence inconsistent
+  [OAK-1847] - Use SegmentMK for testing where possible
+  [OAK-1850] - Dump help details for various command supported by oak-run
+  [OAK-1857] - Support collection object conversion to String[] in ConfigurationParameters
+  [OAK-1858] - Segment Explorer
+  [OAK-1863] - Generic operation tasks should be able to return specific results
+  [OAK-1867] - Optimize SegmentWriter.prepare()
+  [OAK-1876] - oak-run option to do diffs between TarMK revisions
+  [OAK-1919] - Use 127.0.0.1 as default for MongoDB host
+  [OAK-1928] - Cleanup test and execution fixtures
+  [OAK-1929] - MicroKernelServer not usable with user specified MicroKernel implementation 
+  [OAK-1942] - UserAuthentication: enhance login states with relevant exceptions
+  [OAK-1945] - Unclear NodeStore.merge() contract
+  [OAK-1950] - Add GlobalNameMapper(NodeState) constructor
+  [OAK-1955] - oak-run main method should print available run modes
+  [OAK-1961] - Introduce DocumentStoreException
+  [OAK-1965] - Support for constraints like: foo = 'X' OR bar = 'Y'
+  [OAK-1994] - Limit no of children listed with ls command in Oak Console
+  [OAK-2003] - Avoid <p/> in javadoc
+  [OAK-2013] - Add utility class for tracking time spent in the code
+  [OAK-2030] - Remove ContentRepositoryImpl#getNodeStore
+  [OAK-2031] - MemoryNodeBuilder#set only works on root builders
+  [OAK-2041] - Checkpoint list command should also provide the checkpoint lifetime
+  [OAK-2057] - Add timing to OrderedIndex
+  [OAK-2061] - Oak run debug option to list content from a tar file
+  [OAK-2101] - Add test for observation events when renaming a node
+  [OAK-2116] - Explorer should display the template Id and use it in the reference tracking report
+  [OAK-2120] - Simplify BranchStates
+  [OAK-2133] - Lucene: improved batching and logging
+  [OAK-2134] - Lucene: not using the path restriction can speed up queries
 
 Bugs
+  [OAK-203] - Basic same name sibling support
+  [OAK-1267] - Failure in ObservationRefreshTest 
+  [OAK-1414] - Copying a large subtrees does not scale as expected in the number of copied nodes on document node stores
+  [OAK-1472] - ConcurrentAddReferenceTest#addReferences still fails
+  [OAK-1488] - ConcurrentAddRemoveIT, ConcurrentAddIT test failures
+  [OAK-1491] - ObservationTest failure on Windows
+  [OAK-1626] - RDBBlobStoreTest fails occasionally
+  [OAK-1674] - Node isNew() is false in case the node is removed and added in same commit
+  [OAK-1676] - NodeStoreServices nondeterministic with customBlobStore
+  [OAK-1677] - Add ConflictHandler/Validator to AbstractSecurityTest
+  [OAK-1688] - document atomicity of DS.update(collection, keys, update)
+  [OAK-1690] - OrderableNodesTest fails with Document_JDBC
+  [OAK-1693] - "like '%'" does not use an index
+  [OAK-1697] - Unresolved conflicts in TokenProviderImpl#createToken()
+  [OAK-1707] - RestrictionProviderImpl returns empty pattern if all supported restrictions are set
+  [OAK-1747] - SolrIndexInitializer async parameter should be boolean
+  [OAK-1759] - Sporadic IllegalStateException in AbstractServiceTracker.getServices
+  [OAK-1766] - Remote Solr server should explicitly handle failures in connecting to ZK
+  [OAK-1768] - DocumentNodeBuilder.setChildNode() runs OOM with large tree
+  [OAK-1777] - Stats for the async indexing don't report 'done' status when there are no changes
+  [OAK-1778] - Ordered index: explain plan not implemented
+  [OAK-1792] - Sample descendant field configuration not working for root
+  [OAK-1824] - DocumentNodeStore "lease update thread" is not a daemon thread
+  [OAK-1833] - Logging in and out many sessions leads to high memory consumption 
+  [OAK-1840] - Failure when setting up DocumentNS fixture
+  [OAK-1848] - Default sync handler property mapping does not allow constant properties
+  [OAK-1853] - Potential NPE in RDBDocumentStore
+  [OAK-1855] - Travis builds time out
+  [OAK-1885] - Add restore option for oak-run
+  [OAK-1892] - OrderedIndexConcurrentClusterIT takes too long
+  [OAK-1933] - Query: UnsupportedOperationException for some combinations of "or" and "and" conditions
+  [OAK-1935] - MAX_QUEUED_CONTINUATIONS feature not working in EventGenerator class
+  [OAK-1943] - UserImporter doesn't import protected rep:passwordLastModified
+  [OAK-1946] - Restore: "Attempt to read external blob" error
+  [OAK-1949] - UserContext needs to be adjusted to reflect changes made with OAK-1922
+  [OAK-1951] - UserContext doesn't reflect new group-member structure
+  [OAK-1953] - Oak console on MongoMK fails with NPE
+  [OAK-1960] - Console in Oak Run does not close the NodeStore upon exit
+  [OAK-1977] - ContentMirrorStoreStrategy should utilize path restriction when available
+  [OAK-1985] - TokenLoginModule can't handle case insensitive userids
+  [OAK-1988] - Confusing debug message about old revision access
+  [OAK-2000] - Observation events accessibility not checked correctly
+  [OAK-2012] - oak run benchmark has bad imports
+  [OAK-2014] - oak-run build fails on windows
+  [OAK-2015] - PermissionStore doesn't reflect dynamic nature of jcr:all
+  [OAK-2032] - Setting a MV Name property does not validate the namespaces
+  [OAK-2033] - Setting a path property with a value that contains a unregistered namespace does not fail
+  [OAK-2058] - Hard-coded write concern
+  [OAK-2070] - Segment corruption
+  [OAK-2071] - ImporterImpl does not convert JCR paths to Oak paths
+  [OAK-2080] - BlobSize in OakDirectory differs between trunk and 1.0 branch
+  [OAK-2095] - ClassCastException in NodeDocument
+  [OAK-2118] - Aggregation cursor introduces doubles in the result set
+  [OAK-2123] - Tests do not tear down repository completely
+  [OAK-2127] - Long running merge may block other commits
+  [OAK-2132] - BackgroundWriteTest uses relative paths
+  [OAK-2139] - SegmentExplorer better binary display
+  [OAK-2142] - Possibility of numeric overflow in blobCacheSize in DocumentMK
+  [OAK-2145] - TarMK cold standby: file handle leak
+  [OAK-2148] - SegmentExplorer display in memory references to tar files 
+  [OAK-2150] - TarMK cold standby: logs are too verbose
 
-  [OAK-204] short cutting the name mapping breaks path validation in value factory
-  [OAK-828] Full-text support for index aggregates
-  [OAK-1168] Invalid JCR paths not caught
-  [OAK-1174] Inconsistent handling of invalid names/paths
-  [OAK-1344] HierarchicalInvalidator hits query size limit
-  [OAK-1415] OOME when moving large subtree
-  [OAK-1465] performance degradation with growing index size on Oak-Mongo
-  [OAK-1541] Concurrent creation of users chokes on intermediate paths
-  [OAK-1554] Clarify behaviour for BlobStore api for invalid arguments
-  [OAK-1564] ClockTest on Windows fails
-  [OAK-1566] ArrayIndexOutOfBoundsException in Segment.getRefId()
-  [OAK-1569] ClusterPermissionsTest occasionally fails on Windows
-  [OAK-1579] ConcurrentAddNodesClusterIT.addNodes2() fails on travis
-  [OAK-1580] DBCursor close missing
-  [OAK-1581] NPE in OsgiWhiteboard#track()
-  [OAK-1582] ClassCastException in MarkSweepGarbageCollector#init()
-  [OAK-1583] Adjust release check script to remove all hidden files from the source comparison
-  [OAK-1584] Performance regression of adding and removing child nodes after OAK-850
-  [OAK-1585] rollback logic issues incorrect Updates
-  [OAK-1586] Implement checkpoint support in DocumentNodeStore
-  [OAK-1587] NoSuchElementException in SegmentTracker.getSegment()
-  [OAK-1594] Build fails on Java 8
-  [OAK-1595] Permissions#getPermissions(String, TreeLocation, boolean) does not work for permissions names
-  [OAK-1596] Provide mechanism for pre authenticated shared credentials
-  [OAK-1597] QueryStat MBean does not log any query
-  [OAK-1602] 512 byte shard key limit in MongoMK
-  [OAK-1604] Support for signed references in Blob
-  [OAK-1605] Running into endless loop due to tika 1.4
-  [OAK-1613] Node aggregation over multiple levels does't work
-  [OAK-1614] Oak Analyzer can't tokenize chinese phrases
-  [OAK-1615] Incomplete escaping in XPathConditionVisitor
-  [OAK-1620] Index cost calculation integer overflow
-  [OAK-1621] NPE on concurrent session usage
-  [OAK-1622] Duplicate configuration services (regression of OAK-1476)
-  [OAK-1623] TokenConfiguration expects nested configuration options
-  [OAK-1624] Item names with trailing spaces should not be allowed
-  [OAK-1625] SegmentTracker: Blob references not added
-  [OAK-1630] Solr parse exceptions for and/or full text expressions
-  [OAK-1632] Solr parse exception for primary type restriction
-  [OAK-1634] After crash, segment persistence is broken with failures in java.nio classes (with v0.19)
-  [OAK-1635] SolrIndexEditor should better escape path when deleting
-  [OAK-1644] Has Binary flag should also be copied to split documents
-  [OAK-1652] Incorrect name mapping in NodeObserver
-  [OAK-1654] Composite index aggregates
-  [OAK-1655] DataStoreBlobStore does not take into maxLastModifiedTime when fetching all chunks
-  [OAK-1662] Node not accessible after document split
-  [OAK-1663] Long running RevisionTest
-  [OAK-1664] org.apache.jackrabbit.oak.namepath package missing package-info file
-  [OAK-1668] Lucene should not serve queries for what it doesn't index
-  [OAK-1670] ConnectedHead.update() passes current state on to Unconnected instead of base state
-  [OAK-1672] TarFileTest#testWriteAndRead failure
-  [OAK-1675] The OrderedPropertyIndex track WARN and INFO too often
+Tasks
 
+  [OAK-1455] - document oak:unstructured performance advantages
+  [OAK-1533] - RdbDocumentStore should use a connection pool
+  [OAK-1536] - Add configuration for baselining-maven-plugin 
+  [OAK-1678] - document atomicity of DS.remove(collection, keys)
+  [OAK-1702] - Create a benchmark for Full text search
+  [OAK-1785] - Upgrade HttClient version in oak-solr-osgi
+  [OAK-1803] - Drop oak-mk-perf
+  [OAK-1896] - Move JR2 specific logic from oak-run to separate module
+  [OAK-2034] - Update parent pom.xml to latest 2.9 release
+  [OAK-2054] - MissingLastRevSeeker optimized only for MongoDS
+  [OAK-2079] - Refactor BlobStore creation logic in a BlobStoreFixture
+  [OAK-2082] - Analyze repository growth with Lucene index on SegmentMk
+
+Sub-tasks
+  [OAK-1544] - IBM DB2 support
+  [OAK-1746] - find portable variant of SQL "limit" clause
+  [OAK-1806] - Benchmark for blob upload and search longevity
+  [OAK-1811] - enable RDBBlobStore testing for non-H2 databases
+  [OAK-1812] - RDBBlobStore failures for large blobs
+  [OAK-1831] - catch ID mismatches in create operations
+  [OAK-1834] - DS.query: add tests for query collations, also catch fire when collation is incorrect
+  [OAK-1837] - improve error handling for closed RDBBlobStore
+  [OAK-1845] - Add command to execute script
+  [OAK-1851] - RDBBlobStore cache nonfunctional
+  [OAK-1856] - Enable specifying of OSGi config via JSON file and in memory map
+  [OAK-1938] - avoid use of system dependency for IBM DB2 JDBC JARs
+  [OAK-2129] - Benchmark for queries with multiple filters
+  [OAK-2130] - Benchmark for aggregated queries
+  [OAK-2141] - Log timing of background operation
 
 In addition to the above-mentioned changes, this release contains
-all the changes included up to the Apache Jackrabbit Oak 0.19 release.
+all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
@@ -141,7 +197,7 @@ See the README.md file for instructions on how to build this release.
 The source archive is accompanied by SHA1 and MD5 checksums and a PGP
 signature that you can use to verify the authenticity of your download.
 The public key used for the PGP signature can be found at
-https://svn.apache.org/repos/asf/jackrabbit/dist/KEYS.
+http://www.apache.org/dist/jackrabbit/KEYS.
 
 About Apache Jackrabbit Oak
 ---------------------------
@@ -159,10 +215,10 @@ About The Apache Software Foundation
 ------------------------------------
 
 Established in 1999, The Apache Software Foundation provides organizational,
-legal, and financial support for more than 100 freely-available,
+legal, and financial support for more than 140 freely-available,
 collaboratively-developed Open Source projects. The pragmatic Apache License
 enables individual and commercial users to easily deploy Apache software;
 the Foundation's intellectual property framework limits the legal exposure
-of its 2,500+ contributors.
+of its 3,800+ contributors.
 
 For more information, visit http://www.apache.org/
