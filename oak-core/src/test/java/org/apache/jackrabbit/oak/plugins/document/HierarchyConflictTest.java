@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -38,8 +40,7 @@ import com.google.common.collect.Lists;
 
 import static com.google.common.util.concurrent.Uninterruptibles.awaitUninterruptibly;
 import static com.google.common.util.concurrent.Uninterruptibles.joinUninterruptibly;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.OAK;
 import static org.junit.Assert.fail;
 
 /**
@@ -48,13 +49,26 @@ import static org.junit.Assert.fail;
 @Ignore
 public class HierarchyConflictTest {
 
-    @Test
-    public void addRemove() throws Throwable {
-        final List<Throwable> exceptions = Lists.newArrayList();
-        final CountDownLatch nodeRemoved = new CountDownLatch(1);
-        final CountDownLatch nodeAdded = new CountDownLatch(1);
+    private List<Throwable> exceptions;
+    private CountDownLatch nodeRemoved;
+    private CountDownLatch nodeAdded;
+    private DocumentNodeStore store;
 
-        final DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+    @Before
+    public void before() {
+        exceptions = Lists.newArrayList();
+        nodeRemoved = new CountDownLatch(1);
+        nodeAdded = new CountDownLatch(1);
+        store = new DocumentMK.Builder().getNodeStore();
+    }
+
+    @After
+    public void after() {
+        store.dispose();
+    }
+
+    @Test
+    public void conflict() throws Throwable {
         NodeBuilder root = store.getRoot().builder();
         root.child("foo").child("bar").child("baz");
         merge(store, root, null);
@@ -62,12 +76,12 @@ public class HierarchyConflictTest {
         NodeBuilder r1 = store.getRoot().builder();
         r1.child("addNode");
 
-        Thread t = new Thread(new Runnable() {
+        final NodeBuilder r2 = store.getRoot().builder();
+        r2.child("removeNode");
+
+        final Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                NodeBuilder r2 = store.getRoot().builder();
-                r2.child("removeNode");
-
                 try {
                     merge(store, r2, new EditorCallback() {
                         @Override
@@ -84,37 +98,23 @@ public class HierarchyConflictTest {
         });
         t.start();
 
+        // wait for r2 to enter merge phase
+        awaitUninterruptibly(nodeRemoved);
         try {
             // must fail because /foo/bar was removed
             merge(store, r1, new EditorCallback() {
                 @Override
                 public void edit(NodeBuilder builder) {
-                    awaitUninterruptibly(nodeRemoved);
                     builder.getChildNode("foo").getChildNode("bar").child("qux");
                     nodeAdded.countDown();
+                    // wait until r2 commits
+                    joinUninterruptibly(t);
                 }
             });
-            joinUninterruptibly(t);
 
-            // this is just for debug purpose and will only run when
-            // the expected exception does not occur
-            DocumentStore ds = store.getDocumentStore();
-            store.runBackgroundOperations();
-            Revision head = store.getHeadRevision();
-
-            NodeDocument foo = ds.find(NODES, getIdFromPath("/foo"));
-            NodeDocument bar = ds.find(NODES, getIdFromPath("/foo/bar"));
-            NodeDocument qux = ds.find(NODES, getIdFromPath("/foo/bar/qux"));
-
-            NodeState state = foo.getNodeAtRevision(store, head, null);
-            System.out.println("foo : " + state);
-            state = bar.getNodeAtRevision(store, head, null);
-            System.out.println("bar : " + state);
-            state = qux.getNodeAtRevision(store, head, null);
-            System.out.println("qux : " + state);
-
-            System.out.println(ds);
-
+            for (Throwable ex : exceptions) {
+                fail(ex.toString());
+            }
 
             fail("Must fail with CommitFailedException. Cannot add child node" +
                     " to a removed parent");
@@ -122,11 +122,64 @@ public class HierarchyConflictTest {
             // expected
             System.out.println("expected: " + e.toString());
         }
+    }
 
-        for (Throwable ex : exceptions) {
-            throw ex;
+
+    @Test
+    public void conflict2() throws Throwable {
+        NodeBuilder root = store.getRoot().builder();
+        root.child("foo").child("bar").child("baz");
+        merge(store, root, null);
+
+        final NodeBuilder r1 = store.getRoot().builder();
+        r1.child("addNode");
+
+        NodeBuilder r2 = store.getRoot().builder();
+        r2.child("removeNode");
+
+        final Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    merge(store, r1, new EditorCallback() {
+                        @Override
+                        public void edit(NodeBuilder builder) {
+                            builder.getChildNode("foo").getChildNode("bar").child("qux");
+                            nodeAdded.countDown();
+                            awaitUninterruptibly(nodeRemoved);
+                        }
+                    });
+                } catch (CommitFailedException e) {
+                    exceptions.add(e);
+                }
+            }
+        });
+        t.start();
+
+        // wait for r1 to enter merge phase
+        awaitUninterruptibly(nodeAdded);
+        try {
+            // must fail because /foo/bar/qux was added
+            merge(store, r2, new EditorCallback() {
+                @Override
+                public void edit(NodeBuilder builder) {
+                    builder.getChildNode("foo").getChildNode("bar").remove();
+                    nodeRemoved.countDown();
+                    // wait until r1 commits
+                    joinUninterruptibly(t);
+                }
+            });
+
+            for (Throwable ex : exceptions) {
+                fail(ex.toString());
+            }
+
+            fail("Must fail with CommitFailedException. Cannot remove tree" +
+                    " when child is added concurrently");
+        } catch (CommitFailedException e) {
+            // expected
+            System.out.println("expected: " + e.toString());
         }
-
     }
 
     private static void merge(NodeStore store,
@@ -135,6 +188,7 @@ public class HierarchyConflictTest {
             throws CommitFailedException {
         CompositeHook hooks = new CompositeHook(
                 new EditorHook(new EditorProvider() {
+                    private int numEdits = 0;
                     @Override
                     public Editor getRootEditor(NodeState before,
                                                 NodeState after,
@@ -142,6 +196,11 @@ public class HierarchyConflictTest {
                                                 CommitInfo info)
                             throws CommitFailedException {
                         if (callback != null) {
+                            if (++numEdits > 1) {
+                                // this is a retry, fail the commit
+                                throw new CommitFailedException(OAK, 0,
+                                        "do not retry merge in this test");
+                            }
                             callback.edit(builder);
                         }
                         return null;
@@ -154,7 +213,7 @@ public class HierarchyConflictTest {
 
     private interface EditorCallback {
 
-        public void edit(NodeBuilder builder);
+        public void edit(NodeBuilder builder) throws CommitFailedException;
 
     }
 }
