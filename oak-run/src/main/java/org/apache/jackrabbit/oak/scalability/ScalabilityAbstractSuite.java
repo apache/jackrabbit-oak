@@ -81,7 +81,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
 
     protected static final boolean PROFILE = Boolean.getBoolean("profile");
 
-    protected static final boolean NO_WARMUP = Boolean.getBoolean("nowarmup");
+    protected static final boolean WARMUP = !Boolean.getBoolean("noWarmup");
 
     /**
      * Controls the incremental load for each iteration
@@ -189,7 +189,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
         // create the load for this iteration
         beforeIteration(context);
 
-        if (!NO_WARMUP) {
+        if (WARMUP) {
             for (ScalabilityBenchmark benchmark : benchmarks.values()) {
                 executeBenchmark(benchmark, context);
             }
