@@ -202,7 +202,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         ds.invalidateCache();
         Document d = ds.find(Collection.NODES, id);
         assertNotNull(d);
-        assertEquals(d.get("foo").toString(), "bar");
+        assertEquals(id, d.getId());
+        assertEquals("bar", d.get("foo").toString());
     }
 
     @Test

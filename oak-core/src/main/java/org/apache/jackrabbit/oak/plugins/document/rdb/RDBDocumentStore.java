@@ -349,6 +349,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
 
+    // set of properties not serialized to JSON
+    private static Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { "_id", MODIFIED }));
+
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
         this.tablePrefix = options.getTablePrefix();
@@ -668,9 +671,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         try {
             connection = getConnection();
-            List<String> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
-            for (String data : dbresult) {
-                T doc = fromString(collection, data);
+            List<DBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
+            for (DBRow r : dbresult) {
+                T doc = fromDBRow(collection, r);
                 doc.seal();
                 result.add(doc);
                 addToCacheIfNotNewer(collection, doc);
@@ -699,15 +702,20 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static String asString(@Nonnull Document doc) {
         JSONObject obj = new JSONObject();
         for (String key : doc.keySet()) {
-            Object value = doc.get(key);
-            obj.put(key, value);
+            if (! COLUMNPROPERTIES.contains(key)) {
+                Object value = doc.get(key);
+                obj.put(key, value);
+            }
         }
         return obj.toJSONString();
     }
 
-    private <T extends Document> T fromString(Collection<T> collection, String data) throws ParseException {
+    private <T extends Document> T fromDBRow(Collection<T> collection, DBRow row) throws ParseException {
         T doc = collection.newDocument(this);
-        Map<String, Object> obj = (Map<String, Object>) new JSONParser().parse(data);
+        doc.put("_id", row.id);
+        doc.put("_modified", row.modified);
+
+        Map<String, Object> obj = (Map<String, Object>) new JSONParser().parse(row.data);
         for (Map.Entry<String, Object> entry : obj.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
@@ -742,8 +750,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         try {
             connection = getConnection();
-            String in = dbRead(connection, tableName, id);
-            return in != null ? fromString(collection, in) : null;
+            DBRow row = dbRead(connection, tableName, id);
+            return row != null ? fromDBRow(collection, row) : null;
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
@@ -901,13 +909,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private String dbRead(Connection connection, String tableName, String id) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("select DATA, BDATA from " + tableName + " where ID = ?");
+    private DBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
+        PreparedStatement stmt = connection.prepareStatement("select MODIFIED, DATA, BDATA from " + tableName + " where ID = ?");
         try {
             stmt.setString(1, id);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return getData(rs, 1, 2);
+                long modified = rs.getLong(1);
+                String data = getData(rs, 2, 3);
+                return new DBRow(id, modified, data);
             } else {
                 return null;
             }
@@ -926,9 +936,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private List<String> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
+    private List<DBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select ID, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
+        String t = "select ID, MODIFIED, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
                 t += " and MODIFIED >= ?";
@@ -942,7 +952,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         PreparedStatement stmt = connection.prepareStatement(t);
-        List<String> result = new ArrayList<String>();
+        List<DBRow> result = new ArrayList<DBRow>();
         try {
             int si = 1;
             stmt.setString(si++, minId);
@@ -959,8 +969,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 if (id.compareTo(minId) < 0 || id.compareTo(maxId) > 0) {
                     throw new DocumentStoreException("unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId + "' - broken DB collation?");
                 }
-                String data = getData(rs, 2, 3);
-                result.add(data);
+                long modified = rs.getLong(2);
+                String data = getData(rs, 3, 4);
+                result.add(new DBRow(id, modified, data));
             }
         } finally {
             stmt.close();
@@ -1233,5 +1244,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         }
         return false;
+    }
+
+    private static class DBRow {
+        public final String id, data;
+        public final long modified;
+
+        public DBRow(String id, long modified, String data) {
+            this.id = id;
+            this.modified = modified;
+            this.data = data;
+        }
     }
 }
