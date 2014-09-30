@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
@@ -102,6 +103,11 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
      * Controls whether the indexing is async
      */
     protected static final String ASYNC_INDEX = System.getProperty("asyncIndex");
+
+    /**
+     * Controls whether fulltext indexing is enabled or disabled. Enabled by default.
+     */
+    protected static final boolean FULL_TEXT = !Boolean.getBoolean("noFullIndex");
 
     /**
      * Controls if a customType is to be created
@@ -251,14 +257,19 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     protected void waitBeforeIterationFinish(long loadFinish) {
         IndexStatsMBean indexStatsMBean = WhiteboardUtils.getService(whiteboard, IndexStatsMBean.class);
 
-        while (ISO8601.parse(indexStatsMBean.getLastIndexedTime()).getTimeInMillis() < loadFinish) {
-            try {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Waiting for async indexing to finish");
+        if (indexStatsMBean != null) {
+            String lastIndexedTime = indexStatsMBean.getLastIndexedTime();
+            while (((lastIndexedTime == null)
+                || ISO8601.parse(lastIndexedTime).getTimeInMillis() < loadFinish)) {
+                try {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Waiting for async indexing to finish");
+                    }
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    LOG.error("Error waiting for async index to finish", e);
                 }
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                LOG.error("Error waiting for async index to finish", e);
+                lastIndexedTime = indexStatsMBean.getLastIndexedTime();
             }
         }
     }
@@ -357,8 +368,16 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                     LuceneIndexProvider provider = new LuceneIndexProvider();
                     oak.with((QueryIndexProvider) provider)
                             .with((Observer) provider)
-                            .with(new LuceneIndexEditorProvider())
-                            .with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
+                            .with(new LuceneIndexEditorProvider());
+
+                    if (ASYNC_INDEX.equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
+                        oak.withAsyncIndexing();
+                    }
+
+                    if (FULL_TEXT) {
+                        oak.with(new LuceneInitializerHelper("luceneGlobal", storageEnabled));
+                    }
+
                     whiteboard = oak.getWhiteboard();
                     return new Jcr(oak);
                 }
