@@ -43,6 +43,8 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", "jdbc:oracle:thin:@localhost:1521:orcl", "system", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
 
+    public static final String TABLEPREFIX = "dstest_";
+
     public abstract String getName();
 
     public abstract DocumentStore createDocumentStore(int clusterId);
@@ -91,7 +93,7 @@ public abstract class DocumentStoreFixture {
         DataSource dataSource;
         DocumentStore store1, store2;
         String name;
-        RDBOptions options = new RDBOptions().tablePrefix("dstest").dropTablesOnClose(true);
+        RDBOptions options = new RDBOptions().tablePrefix(TABLEPREFIX).dropTablesOnClose(true);
 
         public RDBFixture(String name, String url, String username, String passwd) {
             this.name = name;
