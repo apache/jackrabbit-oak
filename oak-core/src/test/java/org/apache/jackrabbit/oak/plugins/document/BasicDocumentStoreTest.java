@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -371,11 +372,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             if (growing) {
-                Revision r = new Revision(System.currentTimeMillis(), (int)cnt, 1);
+                Revision r = new Revision(System.currentTimeMillis(), (int) cnt, 1);
                 up.setMapEntry("foo", r, pval);
                 up.setMapEntry("_commitRoot", r, "1");
-            }
-            else {
+            } else {
                 up.set("foo", pval);
             }
             NodeDocument old = super.ds.createOrUpdate(Collection.NODES, up);
@@ -387,8 +387,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             cnt += 1;
         }
 
-        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname
+                + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     private static String generateString(int length, boolean ascii) {
@@ -404,21 +404,26 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testPerfUpdateLimit() {
+    public void testPerfUpdateLimit() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimit", "raw row update (set long)", 0);
     }
 
     @Test
-    public void testPerfUpdateLimitString() {
+    public void testPerfUpdateLimitString() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)", 1);
     }
 
     @Test
-    public void testPerfUpdateLimitStringBlob() {
+    public void testPerfUpdateLimitStringBlob() throws SQLException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob", "raw row update (set long/string/blob)", 2);
     }
 
-    private void internalTestPerfUpdateLimit(String name, String desc, int mode) {
+    @Test
+    public void testPerfUpdateAppendString() throws SQLException {
+        internalTestPerfUpdateLimit("testPerfUpdateAppendString", "raw row update (append string)", 3);
+    }
+
+    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException {
         if (super.rdbDataSource != null) {
             String key = name;
             Connection connection = null;
@@ -428,9 +433,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             try {
                 connection = super.rdbDataSource.getConnection();
                 connection.setAutoCommit(false);
-                PreparedStatement stmt = connection.prepareStatement("insert into " + table + " (ID) values (?)");
+                PreparedStatement stmt = connection.prepareStatement("insert into " + table
+                        + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
                     stmt.setString(1, key);
+                    stmt.setLong(2, 0);
+                    stmt.setString(3, "X");
                     stmt.executeUpdate();
                     connection.commit();
                 } finally {
@@ -449,6 +457,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
 
             removeMe.add(key);
+            StringBuffer expect = new StringBuffer("X");
+
+            String appendString = generateString(32, true);
 
             long duration = 1000;
             long end = System.currentTimeMillis() + duration;
@@ -483,7 +494,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         } finally {
                             stmt.close();
                         }
-                    } else {
+                    } else if (mode == 2) {
                         PreparedStatement stmt = connection.prepareStatement("update " + table
                                 + " set MODCOUNT = ?, DATA = ?, BDATA = ? where ID = ?");
                         try {
@@ -498,9 +509,36 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         } finally {
                             stmt.close();
                         }
+                    } else if (mode == 3) {
+                        PreparedStatement stmt = connection.prepareStatement("update " + table
+                                + " set DATA = DATA || ? where ID = ?");
+                        try {
+                            stmt.setString(1, appendString);
+                            stmt.setString(2, key);
+                            assertEquals(1, stmt.executeUpdate());
+                            connection.commit();
+                            expect.append(appendString);
+                        } catch (SQLException ex) {
+                            String state = ex.getSQLState();
+                            if ("22001".equals(state) /* everybody */ || ("72000".equals(state) && 1489 == ex.getErrorCode()) /* Oracle */) {
+                                // overflow
+                                connection.rollback();
+                                stmt = connection.prepareStatement("update " + table
+                                        + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
+                                stmt.setString(1, "X");
+                                stmt.setString(2, key);
+                                assertEquals(1, stmt.executeUpdate());
+                                connection.commit();
+                                expect = new StringBuffer("X");
+                            } else {
+                                throw (ex);
+                            }
+                        } finally {
+                            stmt.close();
+                        }
                     }
                 } catch (SQLException ex) {
-                    LOG.info(ex.getMessage());
+                    LOG.error(ex.getMessage() + " " + ex.getSQLState() + " " + ex.getErrorCode(), ex);
                 } finally {
                     if (connection != null) {
                         try {
@@ -512,6 +550,34 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 }
 
                 cnt += 1;
+            }
+
+            // check persisted values
+            if (mode == 3) {
+                try {
+                    connection = super.rdbDataSource.getConnection();
+                    connection.setAutoCommit(false);
+                    PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
+                    try {
+                        stmt.setString(1, key);
+                        ResultSet rs = stmt.executeQuery();
+                        assertTrue(rs.next());
+                        String got = rs.getString(1);
+                        long modc = rs.getLong(2);
+                        LOG.info("column reset " + modc + " times");
+                        assertEquals(expect.toString(), got);
+                    } finally {
+                        stmt.close();
+                    }
+                } finally {
+                    if (connection != null) {
+                        try {
+                            connection.close();
+                        } catch (SQLException e) {
+                            // ignored
+                        }
+                    }
+                }
             }
 
             LOG.info(desc + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f))
