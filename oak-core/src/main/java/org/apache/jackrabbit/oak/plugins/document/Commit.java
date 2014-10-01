@@ -380,7 +380,6 @@ public class Commit {
     }
 
     private void updateParentChildStatus() {
-        final DocumentStore store = nodeStore.getDocumentStore();
         final Set<String> processedParents = Sets.newHashSet();
         for (String path : addedNodes) {
             if (PathUtils.denotesRoot(path)) {
@@ -394,29 +393,8 @@ public class Commit {
             }
 
             processedParents.add(parentPath);
-            final UpdateOp op = operations.get(parentPath);
-            if (op != null) {
-                //Parent node all ready part of modification list
-                //Update it in place
-                if (op.isNew()) {
-                    NodeDocument.setChildrenFlag(op, true);
-                } else {
-                    NodeDocument nd = store.getIfCached(NODES, Utils.getIdFromPath(parentPath));
-                    if (nd != null && nd.hasChildren()) {
-                        continue;
-                    }
-                    NodeDocument.setChildrenFlag(op, true);
-                }
-            } else {
-                NodeDocument nd = store.getIfCached(NODES, Utils.getIdFromPath(parentPath));
-                if (nd != null && nd.hasChildren()) {
-                    //Flag already set to true. Nothing to do
-                    continue;
-                } else {
-                    UpdateOp updateParentOp = getUpdateOperationForNode(parentPath);
-                    NodeDocument.setChildrenFlag(updateParentOp, true);
-                }
-            }
+            UpdateOp op = getUpdateOperationForNode(parentPath);
+            NodeDocument.setChildrenFlag(op, true);
         }
     }
 
