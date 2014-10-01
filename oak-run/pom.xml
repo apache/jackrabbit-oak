@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1.0</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -160,8 +160,7 @@
                 as to ensure default artifact oak-run is the one which has all jars
                 embedded
                 -->
-                <copy file="${project.build.directory}/${project.build.finalName}-oak.jar"
-                      tofile="${project.build.directory}/${project.build.finalName}.jar" />
+                <copy file="${project.build.directory}/${project.build.finalName}-oak.jar" tofile="${project.build.directory}/${project.build.finalName}.jar" />
                 <delete file="${project.build.directory}/${project.build.finalName}-oak.jar" />
               </target>
             </configuration>
