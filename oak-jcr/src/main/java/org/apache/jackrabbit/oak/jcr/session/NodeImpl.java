@@ -688,14 +688,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 // TODO: avoid nested calls
                 String name = getPrimaryNodeType().getPrimaryItemName();
                 if (name == null) {
-                    throw new ItemNotFoundException("No primary item present on node " + this);
+                    throw new ItemNotFoundException(
+                            "No primary item present on node " + NodeImpl.this);
                 }
                 if (hasProperty(name)) {
                     return getProperty(name);
                 } else if (hasNode(name)) {
                     return getNode(name);
                 } else {
-                    throw new ItemNotFoundException("Primary item " + name + " does not exist on node " + this);
+                    throw new ItemNotFoundException(
+                            "Primary item " + name + 
+                            " does not exist on node " + NodeImpl.this);
                 }
             }
         });
