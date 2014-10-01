@@ -146,6 +146,8 @@ Bugs
   [OAK-2145] - TarMK cold standby: file handle leak
   [OAK-2148] - SegmentExplorer display in memory references to tar files 
   [OAK-2150] - TarMK cold standby: logs are too verbose
+  [OAK-2153] - Disable TokenAuthenticationTest#tokenCreationWithPreAuth
+  [OAK-2152] - Ignore maven-javadoc-plugin -Xdoclint:none option
 
 Tasks
 
