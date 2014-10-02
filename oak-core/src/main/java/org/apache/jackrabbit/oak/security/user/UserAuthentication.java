@@ -129,7 +129,7 @@ class UserAuthentication implements Authentication, UserConstants {
             } else if (credentials instanceof ImpersonationCredentials) {
                 ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
                 AuthInfo info = ipCreds.getImpersonatorInfo();
-                success = equalUserId(ipCreds) && impersonate(info, user);
+                success = equalUserId(ipCreds, userId) && impersonate(info, user);
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
@@ -146,6 +146,11 @@ class UserAuthentication implements Authentication, UserConstants {
         if (!success) {
             throw new FailedLoginException(msg);
         }
+    }
+
+    private static boolean equalUserId(@Nonnull ImpersonationCredentials creds, @Nonnull String userId) {
+        Credentials base = creds.getBaseCredentials();
+        return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
     }
 
     private boolean changePassword(User user, SimpleCredentials credentials) {
@@ -170,11 +175,6 @@ class UserAuthentication implements Authentication, UserConstants {
             log.error("Failed to change password for user " + userId, e.getMessage());
         }
         return false;
-    }
-
-    private boolean equalUserId(ImpersonationCredentials creds) {
-        Credentials base = creds.getBaseCredentials();
-        return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
     }
 
     private boolean impersonate(AuthInfo info, User user) {
