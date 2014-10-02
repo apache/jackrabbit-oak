@@ -380,7 +380,8 @@ public class Client implements MicroKernel {
             request.addParameter("blob_id", blobId);
             request.addParameter("pos", pos);
             request.addParameter("length", length);
-            return request.read(buff, off, length);
+            int read = request.read(buff, off, length);
+            return read < 0 ? 0 : read;
         } catch (IOException e) {
             throw toMicroKernelException(e);
         } finally {
