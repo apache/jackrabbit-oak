@@ -44,7 +44,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * @see OAK-1922
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-1922">OAK-1922</a>
  */
 public class PasswordExpiryTest extends AbstractSecurityTest {
 
