@@ -222,4 +222,10 @@ public interface UserConstants {
      * Default value for {@link #PARAM_PASSWORD_INITIAL_CHANGE}
      */
     boolean DEFAULT_PASSWORD_INITIAL_CHANGE = false;
+
+    /**
+     * Name of the {@link javax.jcr.SimpleCredentials} attribute containing the new password.
+     * This may be used change the password via the credentials object.
+     */
+    String CREDENTIALS_ATTRIBUTE_NEWPASSWORD = "user.newpassword";
 }
