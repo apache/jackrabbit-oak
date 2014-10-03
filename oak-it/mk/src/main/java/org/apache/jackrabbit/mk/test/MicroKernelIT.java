@@ -1024,6 +1024,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // make sure /branch doesn't exist in head
         assertFalse(mk.nodeExists("/branch", null));
 
+        long ts = System.currentTimeMillis();
+
         String oldHead = mk.getHeadRevision();
 
         // create a branch on head
@@ -1041,7 +1043,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         branchRev = mk.commit("", "+\"/branch/foo\":{}", branchRev, "");
 
         // make sure branchRev doesn't show up in revision history
-        String hist = mk.getRevisionHistory(0, -1, null);
+        // get history since initial timestamp
+        String hist = mk.getRevisionHistory(ts, -1, null);
         JSONArray array = parseJSONArray(hist);
         for (Object entry : array) {
             assertTrue(entry instanceof JSONObject);
