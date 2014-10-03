@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.mk.concurrent;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.Assert;
@@ -22,8 +24,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.commons.concurrent.Concurrent;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Test concurrent access to nodes, the journal, and revision.
@@ -91,7 +91,7 @@ public class ConcurrentTest {
 
             String journal = mk1.getJournal(rev, null, null);
             int c = count("-\\\"/a\\", journal);
-            assertEquals(1, c);
+            assertEquals("Inconsistent journal :" + journal, 1, c);
         }
     }
 
