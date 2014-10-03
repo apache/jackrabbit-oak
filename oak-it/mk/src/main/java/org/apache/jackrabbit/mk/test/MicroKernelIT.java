@@ -54,6 +54,16 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
     @Override
     protected void addInitialTestContent() {
+        JSONObject obj = parseJSONObject(mk.getNodes("/", null, 0, 0, -1, null));
+        Set<String> names = getNodeNames(obj);
+        StringBuilder sb = new StringBuilder();
+        for (String nm : names) {
+            sb.append("-\"");
+            sb.append(nm);
+            sb.append("\"\n");
+        }
+        mk.commit("/", sb.toString(), null, "clean test content");
+
         mk.commit("/", "+\"test\" : {" +
                 "\"stringProp\":\"stringVal\"," +
                 "\"intProp\":42," +
