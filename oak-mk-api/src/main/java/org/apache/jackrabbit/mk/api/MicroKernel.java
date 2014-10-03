@@ -99,7 +99,7 @@ public interface MicroKernel {
 
     /**
      * Returns a list of all currently available (historical) head revisions in
-     * chronological order since a specific point. <i>Private</i> branch
+     * chronological order since a specific point in time. <i>Private</i> branch
      * revisions won't be included in the result.
      * <p>
      * Format:
@@ -123,7 +123,7 @@ public interface MicroKernel {
      * {@code path} criteria exceeds {@code maxEntries}, only {@code maxEntries}
      * entries will be returned (in chronological order, starting with the oldest).
      *
-     * @param since      timestamp (ms) of earliest revision to be returned
+     * @param since      timestamp (number of milliseconds since midnight, January 1, 1970 UTC) of earliest revision to be returned
      * @param maxEntries maximum #entries to be returned;
      *                   if < 0, no limit will be applied.
      * @param path       optional path filter; if {@code null} or {@code ""} the
