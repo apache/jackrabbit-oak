@@ -85,6 +85,8 @@ public class Main {
 
     private static final int MB = 1024 * 1024;
 
+    public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
+
     private Main() {
     }
 
@@ -158,7 +160,7 @@ public class Main {
     private static void backup(String[] args) throws IOException {
         if (args.length == 2) {
             // TODO: enable backup for other node store implementations
-            FileStore store = new FileStore(new File(args[0]), 256, false);
+            FileStore store = new FileStore(new File(args[0]), 256, TAR_STORAGE_MEMORY_MAPPED);
             FileStoreBackup.backup(new SegmentNodeStore(store), new File(args[1]));
             store.close();
         } else {
@@ -180,7 +182,7 @@ public class Main {
             System.out.println("    before " + Arrays.toString(directory.list()));
 
             System.out.println("    -> compacting");
-            FileStore store = new FileStore(directory, 256, false);
+            FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 store.compact();
             } finally {
@@ -188,7 +190,7 @@ public class Main {
             }
 
             System.out.println("    -> cleaning up");
-            store = new FileStore(directory, 256, false);
+            store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 store.cleanup();
             } finally {
@@ -220,7 +222,7 @@ public class Main {
             }
         }
         System.out.println("Checkpoints " + path);
-        FileStore store = new FileStore(new File(path), 256, false);
+        FileStore store = new FileStore(new File(path), 256, TAR_STORAGE_MEMORY_MAPPED);
         try {
             if ("list".equals(op)) {
                 NodeState ns = store.getHead().getChildNode("checkpoints");
@@ -335,7 +337,7 @@ public class Main {
             // TODO: enable debug information for other node store implementations
             System.out.println("Debug " + args[0]);
             File file = new File(args[0]);
-            FileStore store = new FileStore(file, 256, false);
+            FileStore store = new FileStore(file, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 if (args.length == 1) {
                     Map<SegmentId, List<SegmentId>> idmap = Maps.newHashMap();
