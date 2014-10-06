@@ -73,7 +73,8 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     /**
      * convenience property for initialising an empty multi-value :next
      */
-    public static final Iterable<String> EMPTY_NEXT = ImmutableList.of("", "", "", "");
+    public static final Iterable<String> EMPTY_NEXT = 
+            Collections.nCopies(OrderedIndex.LANES, "");
     
     /**
      * convenience property that represent an empty :next as array
