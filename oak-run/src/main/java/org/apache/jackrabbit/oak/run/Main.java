@@ -20,12 +20,9 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 
 import java.io.Closeable;
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -37,14 +34,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,12 +74,10 @@ import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
@@ -112,9 +105,6 @@ import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.mapdb.DB;
-import org.mapdb.DBMaker;
-import org.mapdb.Serializer;
 
 public class Main {
 
@@ -122,6 +112,8 @@ public class Main {
     public static final String URI = "http://localhost:" + PORT + "/";
 
     private static final int MB = 1024 * 1024;
+
+    public static final boolean TAR_STORAGE_MEMORY_MAPPED = Boolean.getBoolean("tar.memoryMapped");
 
     private Main() {
     }
@@ -415,11 +407,10 @@ public class Main {
                     .setClusterId(clusterId.value(options)).getNodeStore();
             closer.register(asCloseable(store));
             return store;
-        } else {
-            FileStore fs = new FileStore(new File(src), 256, false);
-            closer.register(asCloseable(fs));
-            return new SegmentNodeStore(fs);
         }
+        FileStore fs = new FileStore(new File(src), 256, TAR_STORAGE_MEMORY_MAPPED);
+        closer.register(asCloseable(fs));
+        return new SegmentNodeStore(fs);
     }
 
     private static Closeable asCloseable(final FileStore fs) {
@@ -465,7 +456,7 @@ public class Main {
             System.out.println("    before " + Arrays.toString(directory.list()));
 
             System.out.println("    -> compacting");
-            FileStore store = new FileStore(directory, 256, false);
+            FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 store.compact();
             } finally {
@@ -473,7 +464,7 @@ public class Main {
             }
 
             System.out.println("    -> cleaning up");
-            store = new FileStore(directory, 256, false);
+            store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 store.cleanup();
             } finally {
@@ -505,7 +496,7 @@ public class Main {
             }
         }
         System.out.println("Checkpoints " + path);
-        FileStore store = new FileStore(new File(path), 256, false);
+        FileStore store = new FileStore(new File(path), 256, TAR_STORAGE_MEMORY_MAPPED);
         try {
             if ("list".equals(op)) {
                 NodeState ns = store.getHead().getChildNode("checkpoints");
@@ -650,7 +641,7 @@ public class Main {
             // TODO: enable debug information for other node store implementations
             System.out.println("Debug " + args[0]);
             File file = new File(args[0]);
-            FileStore store = new FileStore(file, 256, false);
+            FileStore store = new FileStore(file, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
                 if (args.length == 1) {
                     debugFileStore(store);
