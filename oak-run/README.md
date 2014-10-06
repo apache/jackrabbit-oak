@@ -17,7 +17,10 @@ The following runmodes are currently available:
     * syncslave   : Run a TarMK Cold Standby slave
     * scalability : Run scalability tests against different Oak repository fixtures.
     * recovery    : Run a _lastRev recovery on a MongoMK repository
+    * upgrade     : Upgrade from Jackrabbit 2
+    * checkpoints : Manage checkpoints
     * help        : Print a list of available runmodes
+    
 
 Some of the features related to Jackrabbit 2.x are provided by oak-run-jr2 jar. See
 the [Oak Runnable JR2](#jr2) section for more details.
