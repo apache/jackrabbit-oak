@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static java.util.Arrays.asList;
 import static javax.jcr.ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -39,6 +40,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
@@ -2117,7 +2119,22 @@ public class RepositoryTest extends AbstractRepositoryTest {
         session.save();
         assertEquals("fooValue", session.getProperty("/node/fooProp").getString());
     }
-    
+
+    @Ignore("OAK-2164") // FIXME OAK-2164
+    @Test
+    public void setUUID() throws RepositoryException {
+        String uuid = UUID.randomUUID().toString();
+
+        Session s = getAdminSession();
+        Node n1 = s.getRootNode().addNode("n1");
+        n1.setProperty(JCR_UUID, uuid);
+
+        // There should be no uniqueness constraint unless referenceable
+        Node n2 = s.getRootNode().addNode("n2");
+        n2.setProperty(JCR_UUID, uuid);
+        s.save();
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {
