@@ -699,17 +699,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private static String asString(@Nonnull Document doc) {
-        JSONObject obj = new JSONObject();
-        for (String key : doc.keySet()) {
-            if (! COLUMNPROPERTIES.contains(key)) {
-                Object value = doc.get(key);
-                obj.put(key, value);
-            }
-        }
-        return obj.toJSONString();
-    }
-
     private <T extends Document> T fromDBRow(Collection<T> collection, DBRow row) throws ParseException {
         T doc = collection.newDocument(this);
         doc.put("_id", row.id);
@@ -1256,4 +1245,103 @@ public class RDBDocumentStore implements CachingDocumentStore {
             this.data = data;
         }
     }
+
+    // custom serializer
+    private static String asString(@Nonnull Document doc) {
+        StringBuilder sb = new StringBuilder(32768);
+        sb.append("{");
+        boolean needComma = false;
+        for (String key : doc.keySet()) {
+            if (!COLUMNPROPERTIES.contains(key)) {
+                if (needComma) {
+                    sb.append(",");
+                }
+                Object value = doc.get(key);
+                sb.append("\"");
+                appendEscapedString(sb, key);
+                sb.append("\":");
+                if (value == null) {
+                    sb.append("null");
+                } else if (value instanceof Number) {
+                    sb.append(value.toString());
+                } else if (value instanceof Boolean) {
+                    sb.append(value.toString());
+                } else if (value instanceof String) {
+                    sb.append("\"");
+                    appendEscapedString(sb, (String) value);
+                    sb.append("\"");
+                } else if (value instanceof Map) {
+                    serializeMap(sb, (Map<Object, Object>) value);
+                } else {
+                    throw new RuntimeException("unexpected type: " + value.getClass());
+                }
+                needComma = true;
+            }
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+
+    private static void serializeMap(StringBuilder sb, Map<Object, Object> map) {
+        sb.append("{");
+        boolean needComma = false;
+        for (Map.Entry<Object, Object> e : map.entrySet()) {
+            if (needComma) {
+                sb.append(",");
+            }
+            Object value = e.getValue();
+            sb.append("\"");
+            appendEscapedString(sb, e.getKey().toString());
+            sb.append("\":");
+            if (value == null) {
+                sb.append("null");
+            } else if (value instanceof Number) {
+                sb.append(value.toString());
+            } else if (value instanceof String) {
+                sb.append("\"");
+                appendEscapedString(sb, (String) value);
+                sb.append("\"");
+            } else if (value instanceof Boolean) {
+                sb.append(value.toString());
+            } else if (value instanceof Map) {
+                serializeMap(sb, (Map) value);
+            } else {
+                throw new RuntimeException("unexpected type");
+            }
+            needComma = true;
+        }
+        sb.append("}");
+    }
+
+    private static String[] JSONCONTROLS = new String[] { "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005",
+            "\\u0006", "\\u0007", "\\b", "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011",
+            "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b",
+            "\\u001c", "\\u001d", "\\u001e", "\\u001f" };
+
+    private static void appendEscapedString(StringBuilder sb, String s) {
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\"') {
+                sb.append("\\\"");
+            } else if (c == '\\') {
+                sb.append("\\\\");
+            } else if (c >= 0 && c < 0x20) {
+                sb.append(JSONCONTROLS[c]);
+            } else {
+                sb.append(c);
+            }
+        }
+    }
+
+    // JSON simple serializer
+//    private static String asString(@Nonnull Document doc) {
+//        JSONObject obj = new JSONObject();
+//        for (String key : doc.keySet()) {
+//            if (! COLUMNPROPERTIES.contains(key)) {
+//                Object value = doc.get(key);
+//                obj.put(key, value);
+//            }
+//        }
+//        return obj.toJSONString();
+//    }
 }
