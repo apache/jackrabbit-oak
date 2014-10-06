@@ -416,7 +416,7 @@ public class ClusterTest {
         }
     }
 
-    private static class TrackingDiff extends DefaultNodeStateDiff {
+    static class TrackingDiff extends DefaultNodeStateDiff {
 
         final String path;
         final Set<String> added;
