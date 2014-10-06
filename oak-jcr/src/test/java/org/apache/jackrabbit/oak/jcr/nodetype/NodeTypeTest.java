@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.nodetype;
 import static junit.framework.Assert.fail;
 
 import java.util.List;
+import java.util.UUID;
 
 import javax.jcr.Node;
 import javax.jcr.Session;
@@ -31,6 +32,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Test;
@@ -149,4 +151,25 @@ public class NodeTypeTest extends AbstractRepositoryTest {
         }
     }
 
+    @Test
+    public void mixReferenceable() throws Exception {
+        Session session = getAdminSession();
+
+        Node a = session.getNode("/").addNode("a" + System.currentTimeMillis());
+        a.setProperty("jcr:uuid", UUID.randomUUID().toString());      // No problem here
+        session.save();
+
+        try {
+            Node b = session.getNode("/").addNode("b" + System.currentTimeMillis());
+            b.addMixin(JcrConstants.MIX_REFERENCEABLE);
+            b.setProperty("jcr:uuid", UUID.randomUUID().toString());  // fails as jcr:uuid is protected
+            session.save();
+            fail();
+        } catch (ConstraintViolationException expected) { }
+
+        Node c = session.getNode("/").addNode("c" + System.currentTimeMillis());
+        c.setProperty("jcr:uuid", UUID.randomUUID().toString());      // Doesn't fail as jcr:uuid is not protected yet
+        c.addMixin(JcrConstants.MIX_REFERENCEABLE);
+        session.save();
+    }
 }
