@@ -35,6 +35,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.junit.Assert.assertTrue;
+
 public class ClusterRevisionComparisonTest {
     private MemoryDocumentStore ds = new MemoryDocumentStore();
     private MemoryBlobStore bs = new MemoryBlobStore();
@@ -71,7 +73,7 @@ public class ClusterRevisionComparisonTest {
         runBgOps(c2);
 
         //6. Time T4. Read the changes /a/c2 by c2 created at T1.
-        // Would be considered seen ar T4 i.e. rT1-C2 -> rT4-C1
+        // Would be considered seen at T4 i.e. rT1-C2 -> rT4-C1
         // Now from C1 view rT1-C2 > rT2-C3 even though T1 < T2
         //so effectively changes done in future in C3 in absolute time terms
         //is considered to be seen in past by C1
@@ -87,9 +89,13 @@ public class ClusterRevisionComparisonTest {
         c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
         c1.invalidateNodeCache("/a/c3" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
 
-        //Revision compartor purge by moving in future
+        //Revision comparator purge by moving in future
         clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
+
+        NodeState a = c1ns1.getChildNode("a");
+        assertTrue("/a/c2 disappeared", a.hasChildNode("c2"));
+        assertTrue("/a/c3 disappeared", a.hasChildNode("c3"));
 
         DocumentNodeState c1ns2 = c1.getRoot();
 
