@@ -17,30 +17,20 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
-import java.security.Principal;
 import java.util.Properties;
-
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
-import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
 
 /**
  * A repository stub implementation for Oak on TarMK
  */
-public class OakTarMKRepositoryStub extends RepositoryStub {
+public class OakTarMKRepositoryStub extends OakRepositoryStub {
 
     private final FileStore store;
 
@@ -103,34 +93,4 @@ public class OakTarMKRepositoryStub extends RepositoryStub {
     public synchronized Repository getRepository() {
         return repository;
     }
-
-    @Override
-    public Credentials getReadOnlyCredentials() {
-        return new GuestCredentials();
-    }
-
-    @Override
-    public Principal getKnownPrincipal(Session session) throws RepositoryException {
-        if (session instanceof JackrabbitSession) {
-            PrincipalIterator principals = ((JackrabbitSession) session).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-            if (principals.hasNext()) {
-                return principals.nextPrincipal();
-            }
-        }
-
-        throw new UnsupportedRepositoryOperationException();
-    }
-
-    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
-        @Override
-        public String getName() {
-            return "an_unknown_user";
-        }
-    };
-
-    @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
-        return UNKNOWN_PRINCIPAL;
-    }
-
 }

@@ -21,26 +21,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
 
 /**
  * A repository stub implementation for the RDB document store.
  */
-public class OakDocumentRDBRepositoryStub extends RepositoryStub {
+public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
 
     protected static final String URL = System.getProperty("rdb.jdbc-url", ""); // such as: jdbc:h2:mem:oaknodes
 
@@ -116,23 +109,5 @@ public class OakDocumentRDBRepositoryStub extends RepositoryStub {
     @Override
     public synchronized Repository getRepository() {
         return repository;
-    }
-
-    @Override
-    public Credentials getReadOnlyCredentials() {
-        return new GuestCredentials();
-    }
-
-    @Override
-    public Principal getKnownPrincipal(Session session) throws RepositoryException {
-        if (session instanceof JackrabbitSession) {
-            return ((JackrabbitSession) session).getPrincipalManager().getPrincipal(session.getUserID());
-        }
-        throw new UnsupportedRepositoryOperationException();
-    }
-
-    @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
-        return UNKNOWN_PRINCIPAL;
     }
 }
