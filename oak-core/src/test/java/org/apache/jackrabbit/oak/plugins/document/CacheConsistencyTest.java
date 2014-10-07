@@ -50,7 +50,7 @@ public class CacheConsistencyTest extends AbstractMongoConnectionTest {
         DB db = mongoConnection.getDB();
         MongoUtils.dropCollections(db);
         DocumentMK.Builder builder = new DocumentMK.Builder()
-                .clock(getTestClock()).setAsyncDelay(0).setMongoDB(db);
+                .clock(getTestClock()).setAsyncDelay(0);
         store = new TestStore(db, builder);
         mk = builder.setDocumentStore(store).open();
     }
