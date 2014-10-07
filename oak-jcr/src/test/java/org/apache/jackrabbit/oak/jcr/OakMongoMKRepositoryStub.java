@@ -17,30 +17,21 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.lang.ref.WeakReference;
-import java.security.Principal;
 import java.util.Properties;
-
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
 import com.mongodb.BasicDBObject;
-
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
 
 /**
  * A repository stub implementation for Oak on DocumentMK
  */
-public class OakMongoMKRepositoryStub extends RepositoryStub {
+public class OakMongoMKRepositoryStub extends OakRepositoryStub {
 
     protected static final String HOST =
             System.getProperty("mongo.host", "127.0.0.1");
@@ -50,13 +41,6 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
 
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
-    
-    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
-        @Override
-        public String getName() {
-            return "an_unknown_user";
-        }
-    };
 
     private final MongoConnection connection;
     private final Repository repository;
@@ -156,24 +140,5 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
     @Override
     public synchronized Repository getRepository() {
         return repository;
-    }
-
-    @Override
-    public Credentials getReadOnlyCredentials() {
-        return new GuestCredentials();
-    }
-
-    @Override
-    public Principal getKnownPrincipal(Session session) throws RepositoryException {
-        if (session instanceof JackrabbitSession) {
-            return ((JackrabbitSession) session).getPrincipalManager().getPrincipal(session.getUserID());
-        }
-        throw new UnsupportedRepositoryOperationException();
-    }
-
-    @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException,
-            NotExecutableException {
-        return UNKNOWN_PRINCIPAL;
     }
 }
