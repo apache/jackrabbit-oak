@@ -125,7 +125,7 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
             superuser.save();
 
             StringBuilder diags = new StringBuilder();
-            if (!latch1.await(5, SECONDS)) {
+            if (!latch1.await(60, SECONDS)) {
                 diags.append("latch1 timed out ");
             }
 
