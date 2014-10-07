@@ -31,7 +31,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -85,12 +84,7 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
 
         PrincipalManager pMgr = ((JackrabbitSession) superuser).getPrincipalManager();
-        PrincipalIterator it = pMgr.getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
-        if (it.hasNext()) {
-            return it.nextPrincipal();
-        } else {
-            throw new NotExecutableException();
-        }
+        return pMgr.getEveryone();
     }
 
     @Test

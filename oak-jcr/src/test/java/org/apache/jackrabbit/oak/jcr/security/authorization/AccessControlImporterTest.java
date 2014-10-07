@@ -41,6 +41,8 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
 
 public class AccessControlImporterTest extends AbstractJCRTest {
 
+    private static final String VALID_PRINCIPAL_NAME = "anonymous";
+
     public static final String XML_POLICY_TREE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<sv:node sv:name=\"test\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
             "  <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>nt:unstructured</sv:value></sv:property>" +
@@ -54,7 +56,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "             <sv:value>rep:GrantACE</sv:value>" +
             "         </sv:property>" +
             "         <sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "             <sv:value>everyone</sv:value>" +
+            "             <sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
             "         </sv:property>" +
             "         <sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "             <sv:value>jcr:write</sv:value>" +
@@ -74,7 +76,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "<sv:value>rep:GrantACE</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>everyone</sv:value>" +
+            "<sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "<sv:value>jcr:write</sv:value>" +
@@ -93,7 +95,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "<sv:value>rep:GrantACE</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>everyone</sv:value>" +
+            "<sv:value>"+EveryonePrincipal.NAME+"</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "<sv:value>jcr:write</sv:value>" +
@@ -104,7 +106,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "<sv:value>rep:GrantACE</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>admin</sv:value>" +
+            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "<sv:value>jcr:write</sv:value>" +
@@ -123,7 +125,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "<sv:value>rep:GrantACE</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>admin</sv:value>" +
+            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "<sv:value>jcr:write</sv:value>" +
@@ -142,7 +144,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             "<sv:value>rep:GrantACE</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:principalName\" sv:type=\"String\">" +
-            "<sv:value>admin</sv:value>" +
+            "<sv:value>"+VALID_PRINCIPAL_NAME+"</sv:value>" +
             "</sv:property>" +
             "<sv:property sv:name=\"rep:privileges\" sv:type=\"Name\">" +
             "<sv:value>jcr:workspaceManagement</sv:value>" +
@@ -226,7 +228,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals("everyone", entry.getPrincipal().getName());
+            assertEquals(EveryonePrincipal.NAME, entry.getPrincipal().getName());
             assertEquals(1, entry.getPrivileges().length);
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
 
@@ -257,12 +259,12 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(2, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals("everyone", entry.getPrincipal().getName());
+            assertEquals(EveryonePrincipal.NAME, entry.getPrincipal().getName());
             assertEquals(1, entry.getPrivileges().length);
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
 
             entry = entries[1];
-            assertEquals("admin", entry.getPrincipal().getName());
+            assertEquals(VALID_PRINCIPAL_NAME, entry.getPrincipal().getName());
             assertEquals(1, entry.getPrivileges().length);
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
 
@@ -293,7 +295,7 @@ public class AccessControlImporterTest extends AbstractJCRTest {
             assertEquals(1, entries.length);
 
             AccessControlEntry entry = entries[0];
-            assertEquals("admin", entry.getPrincipal().getName());
+            assertEquals(VALID_PRINCIPAL_NAME, entry.getPrincipal().getName());
             assertEquals(1, entry.getPrivileges().length);
             assertEquals(acMgr.privilegeFromName(Privilege.JCR_WRITE), entry.getPrivileges()[0]);
 
