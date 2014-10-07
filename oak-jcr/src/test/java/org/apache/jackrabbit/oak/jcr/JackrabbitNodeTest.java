@@ -123,10 +123,13 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
             JackrabbitNode node = (JackrabbitNode) n;
             node.rename(name + 'X');
             superuser.save();
-            latch1.await(5, SECONDS);
+
+            StringBuilder diags = new StringBuilder();
+            if (!latch1.await(5, SECONDS)) {
+                diags.append("latch1 timed out ");
+            }
 
             boolean foundMove = false;
-            StringBuilder diags = new StringBuilder();
             synchronized (events) {
                 for (Event event : events) {
                     if (diags.length() != 0) {
@@ -138,18 +141,21 @@ public class JackrabbitNodeTest extends AbstractJCRTest {
                         break;
                     }
                 }
-            }
-            if (diags.length() == 0) {
-                diags.append("none");
+                if (events.isEmpty()) {
+                    diags.append("none");
+                }
             }
 
             if (!foundMove) {
                 // force another event, wait some more
                 testRootNode.addNode(name + "XYZ");
                 superuser.save();
-                latch2.await(60, SECONDS);
 
                 StringBuffer addDiags = new StringBuffer();
+                if (!latch2.await(60, SECONDS)) {
+                    addDiags.append("latch2 timed out ");
+                }
+
                 synchronized (events) {
                     for (Event event : events) {
                         if (addDiags.length() != 0) {
