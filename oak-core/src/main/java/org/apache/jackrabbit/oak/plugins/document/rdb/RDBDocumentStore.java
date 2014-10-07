@@ -987,7 +987,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 128));
+                stmt.setString(si++, "\"blob\"");
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
@@ -1022,7 +1022,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
-                stmt.setString(si++, "truncated...:" + data.substring(0, datalimit - 128));
+                stmt.setString(si++, "\"blob\"");
                 byte[] bytes = asBytes(data);
                 stmt.setBytes(si++, bytes);
             }
