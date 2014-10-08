@@ -97,14 +97,10 @@ public class LastRevRecoveryAgent {
                     startTime = leaseEnd - leaseTime - asyncDelay;
                 }
 
-                // Endtime is the leaseEnd + the asyncDelay
-                long endTime = leaseEnd + asyncDelay;
+                log.info("Recovering candidates modified after: [{}] for clusterId [{}]",
+                        Utils.timestampToString(startTime), clusterId);
 
-                log.info("Recovering candidates modified in time range : [{},{}] for clusterId [{}]",
-                        Utils.timestampToString(startTime),
-                        Utils.timestampToString(endTime), clusterId);
-
-                return recoverCandidates(clusterId, startTime, endTime);
+                return recoverCandidates(clusterId, startTime);
             }
         }
 
@@ -230,15 +226,14 @@ public class LastRevRecoveryAgent {
     }
 
     /**
-     * Retrieves possible candidates which have been modifed in the time range and recovers the
-     * missing updates.
+     * Retrieves possible candidates which have been modified after the given
+     * {@code startTime} and recovers the missing updates.
      * 
      * @param clusterId the cluster id
      * @param startTime the start time
-     * @param endTime the end time
      * @return the int the number of restored nodes
      */
-    private int recoverCandidates(final int clusterId, final long startTime, final long endTime) {
+    private int recoverCandidates(final int clusterId, final long startTime) {
         boolean lockAcquired = missingLastRevUtil.acquireRecoveryLock(clusterId);
 
         //TODO What if recovery is being performed for current clusterNode by some other node
@@ -249,7 +244,7 @@ public class LastRevRecoveryAgent {
             return 0;
         }
 
-        Iterable<NodeDocument> suspects = missingLastRevUtil.getCandidates(startTime, endTime);
+        Iterable<NodeDocument> suspects = missingLastRevUtil.getCandidates(startTime);
         log.debug("Performing Last Revision recovery for cluster {}", clusterId);
 
         try {

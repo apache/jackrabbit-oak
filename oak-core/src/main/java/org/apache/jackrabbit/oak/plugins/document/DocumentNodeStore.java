@@ -154,6 +154,12 @@ public final class DocumentNodeStore
     protected int asyncDelay = 1000;
 
     /**
+     * The maximum back off time in milliseconds when merges are retried. The
+     * default value is twice the {@link #asyncDelay}.
+     */
+    protected int maxBackOffMillis = asyncDelay * 2;
+
+    /**
      * Whether this instance is disposed.
      */
     private final AtomicBoolean isDisposed = new AtomicBoolean();
@@ -574,6 +580,14 @@ public final class DocumentNodeStore
 
     public int getAsyncDelay() {
         return asyncDelay;
+    }
+
+    public void setMaxBackOffMillis(int time) {
+        maxBackOffMillis = time;
+    }
+
+    public int getMaxBackOffMillis() {
+        return maxBackOffMillis;
     }
 
     @CheckForNull
