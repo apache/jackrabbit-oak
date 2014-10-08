@@ -53,12 +53,9 @@ public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     }
 
     @Override
-    public CloseableIterable<NodeDocument> getCandidates(final long startTime,
-            final long endTime) {
+    public CloseableIterable<NodeDocument> getCandidates(final long startTime) {
         DBObject query =
-                start(NodeDocument.MODIFIED_IN_SECS).lessThanEquals(
-                                NodeDocument.getModifiedInSecs(endTime))
-                        .put(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
+                start(NodeDocument.MODIFIED_IN_SECS).greaterThanEquals(
                                 NodeDocument.getModifiedInSecs(startTime))
                         .get();
         DBObject sortFields = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
