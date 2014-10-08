@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTE
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -51,7 +52,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -867,10 +867,13 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             LOG.debug("seek() - plain case");
             
             lane = OrderedIndex.LANES - 1;
-            
+            NodeBuilder currentNode = null;
             do {
                 stillLaning = lane > 0;
-                nextkey = getPropertyNext(index.getChildNode(currentKey), lane);
+                if (currentNode == null) {
+                    currentNode = index.getChildNode(currentKey);
+                }
+                nextkey = getPropertyNext(currentNode, lane);
                 if ((Strings.isNullOrEmpty(nextkey) || !walkingPredicate.apply(nextkey)) && lane > 0) {
                     // if we're currently pointing to NIL or the next element does not fit the search
                     // but we still have lanes left, let's lower the lane;
@@ -880,6 +883,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                         found = nextkey;
                     } else {
                         currentKey = nextkey;
+                        currentNode = null;
                         if (keepWalked && !Strings.isNullOrEmpty(currentKey)) {
                             for (int l = lane; l >= 0; l--) {
                                 walkedLanes[l] = currentKey;
@@ -1072,12 +1076,18 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
      */
     static void setPropertyNext(@Nonnull final NodeBuilder node, final String... next) {
         if (node != null && next != null) {
-            String n1 = (next.length > 0) ? next[0] : "";
-            String n2 = (next.length > 1) ? next[1] : "";
-            String n3 = (next.length > 2) ? next[2] : "";
-            String n4 = (next.length > 3) ? next[3] : "";
-            
-            node.setProperty(NEXT, ImmutableList.of(n1, n2, n3, n4), Type.STRINGS);
+            int len = next.length - 1;
+            for (; len >= 0; len--) {
+                if (next[len].length() != 0) {
+               	    break;
+                }
+            }
+            len++;
+            List<String> list = new ArrayList<String>(len);
+            for (int i = 0; i < len; i++) {
+                list.add(next[i]);
+            }
+            node.setProperty(NEXT, list, Type.STRINGS);
         }
     }
     
@@ -1102,7 +1112,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                         // content
                         LOG.debug("topping-up the number of lanes.");
                         List<String> vv = Lists.newArrayList(values);
-                        for (int i = vv.size(); i <= OrderedIndex.LANES; i++) {
+                        for (int i = vv.size(); i < OrderedIndex.LANES; i++) {
                             vv.add("");
                         }
                         values = vv.toArray(new String[vv.size()]);
@@ -1151,7 +1161,10 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
         PropertyState ps = node.getProperty(NEXT);
         if (ps != null) {
             if (ps.isArray()) {
-                next = ps.getValue(Type.STRING, Math.min(ps.count() - 1, lane));
+                int count = ps.count();
+                if (count > 0 && count > lane) {
+                    next = ps.getValue(Type.STRING, lane);
+                }
             } else {
                 next = ps.getValue(Type.STRING);
             }
