@@ -23,7 +23,8 @@ import java.io.IOException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -34,9 +35,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(Parameterized.class)
 public class LastRevRecoveryAgentTest {
@@ -172,7 +176,54 @@ public class LastRevRecoveryAgentTest {
         assertFalse(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
     }
 
-    private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {
-        return nodeStore.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
+    @Test
+    public void recoveryOfModifiedDocument() throws Exception {
+        // do not retry merges
+        ds1.setMaxBackOffMillis(0);
+        ds2.setMaxBackOffMillis(0);
+
+        NodeBuilder b1 = ds1.getRoot().builder();
+        b1.child("x").child("y").setProperty("p", "v1");
+        merge(ds1, b1);
+
+        ds1.runBackgroundOperations();
+        ds2.runBackgroundOperations();
+
+        NodeBuilder b2 = ds2.getRoot().builder();
+        b2.child("x").child("y").setProperty("p", "v2");
+        merge(ds2, b2);
+
+        // simulate a crash of ds2
+        long leaseTime = ds2.getClusterInfo().getLeaseTime();
+        clock.waitUntil(clock.getTime() + leaseTime * 2);
+
+        // this write will conflict because ds2 did not run
+        // background ops after setting p=v2
+        b1 = ds1.getRoot().builder();
+        b1.child("x").child("y").setProperty("p", "v11");
+        try {
+            merge(ds1, b1);
+            fail("CommitFailedException expected");
+        } catch (CommitFailedException e) {
+            // expected
+        }
+
+        ds1.getLastRevRecoveryAgent().recover(2);
+        ds1.runBackgroundOperations();
+
+        // now the write must succeed
+        b1 = ds1.getRoot().builder();
+        b1.child("x").child("y").setProperty("p", "v11");
+        merge(ds1, b1);
+    }
+
+    private static NodeDocument getDocument(DocumentNodeStore nodeStore,
+                                            String path) {
+        return nodeStore.getDocumentStore().find(NODES, getIdFromPath(path));
+    }
+
+    private static void merge(DocumentNodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }

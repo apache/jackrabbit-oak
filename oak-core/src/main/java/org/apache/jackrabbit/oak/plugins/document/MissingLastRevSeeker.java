@@ -61,13 +61,13 @@ public class MissingLastRevSeeker {
     }
 
     /**
-     * Get the candidates with modified time between the time range specified.
+     * Get the candidates with modified time after the specified
+     * {@code startTime}.
      *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
+     * @param startTime the start time.
      * @return the candidates
      */
-    public Iterable<NodeDocument> getCandidates(final long startTime, final long endTime) {
+    public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
         List<NodeDocument> nodes = store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
                 NodeDocument.MAX_ID_VALUE, NodeDocument.MODIFIED_IN_SECS,  NodeDocument.getModifiedInSecs(startTime), Integer.MAX_VALUE);
@@ -76,8 +76,7 @@ public class MissingLastRevSeeker {
             public boolean apply(NodeDocument input) {
                 Long modified = (Long) input.get(NodeDocument.MODIFIED_IN_SECS);
                 return (modified != null
-                        && (modified >= NodeDocument.getModifiedInSecs(startTime))
-                        && (modified <= NodeDocument.getModifiedInSecs(endTime)));
+                        && (modified >= NodeDocument.getModifiedInSecs(startTime)));
             }
         });
     }
