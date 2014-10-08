@@ -823,7 +823,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 // changes is the base of the branch
                 r = branchBase;
             }
-            if (isRevisionNewer(nodeStore, r, lastRevision)) {
+            if (revisionAreAmbiguous(nodeStore, r, lastRevision)) {
+                // _lastRev entries from multiple cluster nodes are ambiguous
+                // use readRevision to make sure read is consistent
+                lastRevision = readRevision;
+            } else if (isRevisionNewer(nodeStore, r, lastRevision)) {
                 lastRevision = r;
             }
         }
@@ -1199,6 +1203,34 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     //----------------------------< internal >----------------------------------
+
+    /**
+     * Returns {@code true} if the two revisions are ambiguous. That is, they
+     * are from different cluster nodes and the comparison of the two revision
+     * depends on the seen at revision and is different when just comparing the
+     * timestamps of the revisions.
+     *
+     * @param context the revision context.
+     * @param r1 the first revision.
+     * @param r2 the second revision.
+     * @return {@code true} if ambiguous, {@code false} otherwise.
+     */
+    static boolean revisionAreAmbiguous(@Nonnull RevisionContext context,
+                                        @Nonnull Revision r1,
+                                        @Nonnull Revision r2) {
+        if (r1.getClusterId() == r2.getClusterId()) {
+            return false;
+        }
+        int c1 = context.getRevisionComparator().compare(r1, r2);
+        int c2 = r1.compareRevisionTimeThenClusterId(r2);
+        if (c1 == 0) {
+            return c2 == 0;
+        } else if (c1 < 0) {
+            return c2 >= 0;
+        } else {
+            return c2 <= 0;
+        }
+    }
 
     /**
      * Returns the commit root document for the given revision. This may either
