@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
@@ -52,7 +51,6 @@ public class ClusterRevisionComparisonTest {
         Revision.setClock(clock);
     }
 
-    @Ignore("OAK-2144") //FIX ME OAK-2144
     @Test
     public void revisionComparisonMultipleClusterNode() throws Exception{
         DocumentNodeStore c1 = createNS(1);
@@ -109,7 +107,6 @@ public class ClusterRevisionComparisonTest {
         c1ns1.compareAgainstBaseState(c1ns2, new ClusterTest.TrackingDiff());
     }
 
-    @Ignore("OAK-2144")
     @Test
     public void revisionComparisonTwoClusterNodes() throws Exception {
         DocumentNodeStore c1 = createNS(1);
@@ -139,13 +136,26 @@ public class ClusterRevisionComparisonTest {
 
         // 6. Purge revision comparator. Also purge entries from nodeCache
         // such that later reads at rT1-C2 triggers read from underlying DocumentStore
-        c1.invalidateNodeCache("/a/c1" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
-        c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)c1ns1.getChildNode("a")).getLastRevision());
+        c1.invalidateNodeCache("/a/c1" , ((DocumentNodeState)a).getLastRevision());
+        c1.invalidateNodeCache("/a/c2" , ((DocumentNodeState)a).getLastRevision());
 
         //Revision comparator purge by moving in future
         clock.waitUntil(clock.getTime() + DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS * 2);
         runBgOps(c1);
 
+        assertTrue("/a/c1 disappeared", a.hasChildNode("c1"));
+        assertTrue("/a/c2 disappeared", a.hasChildNode("c2"));
+
+        // read again starting at root node with a invalidated cache
+        // and purged revision comparator
+        c1ns1 = c1.getRoot();
+        c1.invalidateNodeCache("/", c1ns1.getRevision());
+        c1ns1 = c1.getRoot();
+        c1.invalidateNodeCache("/a", c1ns1.getLastRevision());
+        assertTrue("/a missing", c1ns1.hasChildNode("a"));
+        a = c1ns1.getChildNode("a");
+        c1.invalidateNodeCache("/a/c1", ((DocumentNodeState)a).getLastRevision());
+        c1.invalidateNodeCache("/a/c2", ((DocumentNodeState)a).getLastRevision());
         assertTrue("/a/c1 disappeared", a.hasChildNode("c1"));
         assertTrue("/a/c2 disappeared", a.hasChildNode("c2"));
     }
