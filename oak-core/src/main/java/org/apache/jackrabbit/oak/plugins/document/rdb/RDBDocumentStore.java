@@ -1256,25 +1256,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 if (needComma) {
                     sb.append(",");
                 }
-                Object value = doc.get(key);
-                sb.append("\"");
-                appendEscapedString(sb, key);
-                sb.append("\":");
-                if (value == null) {
-                    sb.append("null");
-                } else if (value instanceof Number) {
-                    sb.append(value.toString());
-                } else if (value instanceof Boolean) {
-                    sb.append(value.toString());
-                } else if (value instanceof String) {
-                    sb.append("\"");
-                    appendEscapedString(sb, (String) value);
-                    sb.append("\"");
-                } else if (value instanceof Map) {
-                    serializeMap(sb, (Map<Object, Object>) value);
-                } else {
-                    throw new RuntimeException("unexpected type: " + value.getClass());
-                }
+                appendMember(sb, key, doc.get(key));
                 needComma = true;
             }
         }
@@ -1282,32 +1264,36 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return sb.toString();
     }
 
-    private static void serializeMap(StringBuilder sb, Map<Object, Object> map) {
+    private static void appendMember(StringBuilder sb, String key, Object value) {
+        appendString(sb, key);
+        sb.append(":");
+        appendValue(sb, value);
+    }
+
+    private static void appendValue(StringBuilder sb, Object value) {
+        if (value == null) {
+            sb.append("null");
+        } else if (value instanceof Number) {
+            sb.append(value.toString());
+        } else if (value instanceof Boolean) {
+            sb.append(value.toString());
+        } else if (value instanceof String) {
+            appendString(sb, (String) value);
+        } else if (value instanceof Map) {
+            appendMap(sb, (Map<Object, Object>) value);
+        } else {
+            throw new RuntimeException("unexpected type: " + value.getClass());
+        }
+    }
+
+    private static void appendMap(StringBuilder sb, Map<Object, Object> map) {
         sb.append("{");
         boolean needComma = false;
         for (Map.Entry<Object, Object> e : map.entrySet()) {
             if (needComma) {
                 sb.append(",");
             }
-            Object value = e.getValue();
-            sb.append("\"");
-            appendEscapedString(sb, e.getKey().toString());
-            sb.append("\":");
-            if (value == null) {
-                sb.append("null");
-            } else if (value instanceof Number) {
-                sb.append(value.toString());
-            } else if (value instanceof String) {
-                sb.append("\"");
-                appendEscapedString(sb, (String) value);
-                sb.append("\"");
-            } else if (value instanceof Boolean) {
-                sb.append(value.toString());
-            } else if (value instanceof Map) {
-                serializeMap(sb, (Map) value);
-            } else {
-                throw new RuntimeException("unexpected type");
-            }
+            appendMember(sb, e.getKey().toString(), e.getValue());
             needComma = true;
         }
         sb.append("}");
@@ -1318,10 +1304,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
             "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b",
             "\\u001c", "\\u001d", "\\u001e", "\\u001f" };
 
-    private static void appendEscapedString(StringBuilder sb, String s) {
+    private static void appendString(StringBuilder sb, String s) {
+        sb.append('"');
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if (c == '\"') {
+            if (c == '"') {
                 sb.append("\\\"");
             } else if (c == '\\') {
                 sb.append("\\\\");
@@ -1331,6 +1318,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 sb.append(c);
             }
         }
+        sb.append('"');
     }
 
     // JSON simple serializer
