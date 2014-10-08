@@ -28,6 +28,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -432,26 +433,31 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testPerfUpdateLimit() throws SQLException {
+    public void testPerfUpdateLimit() throws SQLException, UnsupportedEncodingException {
         internalTestPerfUpdateLimit("testPerfUpdateLimit", "raw row update (set long)", 0);
     }
 
     @Test
-    public void testPerfUpdateLimitString() throws SQLException {
+    public void testPerfUpdateLimitString() throws SQLException, UnsupportedEncodingException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitString", "raw row update (set long/string)", 1);
     }
 
     @Test
-    public void testPerfUpdateLimitStringBlob() throws SQLException {
+    public void testPerfUpdateLimitStringBlob() throws SQLException, UnsupportedEncodingException {
         internalTestPerfUpdateLimit("testPerfUpdateLimitStringBlob", "raw row update (set long/string/blob)", 2);
     }
 
     @Test
-    public void testPerfUpdateAppendString() throws SQLException {
+    public void testPerfUpdateAppendString() throws SQLException, UnsupportedEncodingException {
         internalTestPerfUpdateLimit("testPerfUpdateAppendString", "raw row update (append string)", 3);
     }
 
-    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException {
+    @Test
+    public void testPerfUpdateGrowingDoc() throws SQLException, UnsupportedEncodingException {
+        internalTestPerfUpdateLimit("testPerfUpdateGrowingDoc", "raw row update (string + blob)", 4);
+    }
+
+    private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException, UnsupportedEncodingException {
         if (super.rdbDataSource != null) {
             String key = name;
             Connection connection = null;
@@ -492,7 +498,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             long duration = 1000;
             long end = System.currentTimeMillis() + duration;
             long cnt = 0;
-            byte bdata[] = new byte[16384];
+            byte bdata[] = new byte[65536];
+            String sdata = appendString;
+            int datalength = (super.dsname.contains("Oracle") ? 4000 : 16384) / 3;
 
             while (System.currentTimeMillis() < end) {
 
@@ -528,7 +536,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
-                            bdata[(int) cnt % 256] = (byte) (cnt & 0xff);
+                            bdata[(int) cnt % bdata.length] = (byte) (cnt & 0xff);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
                             stmt.setBytes(3, bdata);
                             stmt.setString(4, key);
@@ -564,6 +572,33 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         } finally {
                             stmt.close();
                         }
+                    } else if (mode == 4) {
+                        PreparedStatement stmt = connection.prepareStatement("update " + table
+                                + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = ?, DATA = ?, BDATA = ? where ID = ?");
+                        try {
+                            int si = 1;
+                            stmt.setObject(si++, System.currentTimeMillis() / 5, Types.BIGINT);
+                            stmt.setObject(si++, 0, Types.SMALLINT);
+                            stmt.setObject(si++, cnt, Types.BIGINT);
+                            stmt.setObject(si++, null, Types.BIGINT);
+                            stmt.setObject(si++, sdata.length(), Types.BIGINT);
+
+                            if (sdata.length() < datalength) {
+                                stmt.setString(si++, sdata);
+                                stmt.setBinaryStream(si++, null, 0);
+                            }
+                            else {
+                                stmt.setString(si++, "null");
+                                stmt.setBytes(si++, sdata.getBytes("UTF-8"));
+                            }
+                            stmt.setString(si++, key);
+                            assertEquals(1, stmt.executeUpdate());
+                            connection.commit();
+                            sdata += appendString;
+                        } finally {
+                            stmt.close();
+                        }
+
                     }
                 } catch (SQLException ex) {
                     LOG.error(ex.getMessage() + " " + ex.getSQLState() + " " + ex.getErrorCode(), ex);
