@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -183,9 +182,12 @@ public class LastRevRecoveryAgentTest {
         assertFalse(ds1.getLastRevRecoveryAgent().isRecoveryNeeded());
     }
 
-    @Ignore("OAK-2167")
     @Test
     public void recoveryOfModifiedDocument() throws Exception {
+        // do not retry merges
+        ds1.setMaxBackOffMillis(0);
+        ds2.setMaxBackOffMillis(0);
+
         NodeBuilder b1 = ds1.getRoot().builder();
         b1.child("x").child("y").setProperty("p", "v1");
         merge(ds1, b1);
