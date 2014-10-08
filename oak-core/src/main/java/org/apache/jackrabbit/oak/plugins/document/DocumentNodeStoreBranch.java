@@ -47,8 +47,8 @@ class DocumentNodeStoreBranch
                             DocumentNodeState base,
                             ReadWriteLock mergeLock) {
         super(store, new ChangeDispatcher(store.getRoot()), mergeLock.readLock(),
-                base, null, getMaxBackoffMillis(store),
-                getMaxBackoffMillis(store) * 3);
+                base, null, store.getMaxBackOffMillis(),
+                store.getMaxBackOffMillis() * 3);
         this.mergeLock = mergeLock;
     }
 
@@ -167,11 +167,6 @@ class DocumentNodeStoreBranch
     }
 
     //------------------------------< internal >--------------------------------
-
-    private static long getMaxBackoffMillis(DocumentNodeStore store) {
-        // maximum back off is twice the async delay, but at least 2 seconds.
-        return Math.max(store.getAsyncDelay(), 1000) * 2;
-    }
 
     /**
      * Persist some changes on top of the given base state.
