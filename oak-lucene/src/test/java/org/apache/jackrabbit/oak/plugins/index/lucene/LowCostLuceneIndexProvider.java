@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,8 +43,10 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
         }
 
         @Override
-        public double getCost(Filter filter, NodeState root) {
-            return 1e-3;
+        public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+            return Collections.singletonList(planBuilder(filter)
+                    .setCostPerExecution(1e-3)
+                    .build());
         }
     }
 }
