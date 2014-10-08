@@ -10,6 +10,7 @@ The following runmodes are currently available:
     * benchmark   : Run benchmark tests against different Oak repository fixtures.
     * debug       : Print status information about an Oak repository.
     * compact     : Segment compaction on a TarMK repository.
+    * upgrade     : Migrate existing Jackrabbit 2.x repository to Oak.
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
