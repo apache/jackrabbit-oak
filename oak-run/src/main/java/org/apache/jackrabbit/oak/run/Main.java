@@ -618,8 +618,7 @@ public class Main {
             MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
             LastRevRecoveryAgent agent = new LastRevRecoveryAgent(dns);
             MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(docStore);
-            CloseableIterable<NodeDocument> docs = seeker.getCandidates(
-                    0, System.currentTimeMillis());
+            CloseableIterable<NodeDocument> docs = seeker.getCandidates(0);
             closer.register(docs);
             boolean dryRun = Arrays.asList(args).contains("dryRun");
             agent.recover(docs.iterator(), dns.getClusterId(), dryRun);
