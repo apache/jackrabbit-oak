@@ -172,6 +172,22 @@ var oak = (function(global){
         return new Revision(rev).toReadableString();
     }
 
+    /**
+     * Removes the complete subtree rooted at the given path.
+     */
+    api.removeDescendantsAndSelf = function(path) {
+        var count = 0;
+        var depth = pathDepth(path);
+        while (true) {
+            var result = db.nodes.remove({_id: pathFilter(depth++, path)});
+            if (result.nRemoved == 0) {
+                break;
+            }
+            count += result.nRemoved;
+        }
+        return {nRemoved : count};
+    }
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
