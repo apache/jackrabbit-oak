@@ -110,6 +110,11 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     protected static final boolean FULL_TEXT = !Boolean.getBoolean("noFullIndex");
 
     /**
+     * Controls whether to generate random dates in a range
+     */
+    protected static final boolean RAND_DATE = Boolean.getBoolean("randDate");
+
+    /**
      * Controls if a customType is to be created
      */
     protected static final boolean CUSTOM_TYPE = Boolean.getBoolean("customType");
@@ -410,7 +415,11 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
         long counter;
 
+        int secsIn2Years = 31622400;
+
         Calendar start;
+
+        long startMillis;
 
         Timer timer;
 
@@ -428,12 +437,22 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                     .getNode(ROOT_NODE_NAME)
                     .addNode("writer-" + id);
             start = Calendar.getInstance();
-            start.add(Calendar.YEAR, -1);
+            start.add(Calendar.YEAR, -2);
             start.setTimeZone(TimeZone.getTimeZone("GMT"));
+            startMillis = start.getTimeInMillis();
 
             session.save();
 
             timer = new Timer(writeStats);
+        }
+
+        protected Calendar generateDate() {
+            if (RAND_DATE) {
+                start.setTimeInMillis(startMillis + random.nextInt(secsIn2Years));
+            } else {
+                start.add(Calendar.SECOND, 1);
+            }
+            return start;
         }
 
         @Override
@@ -463,7 +482,6 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
         }
 
         private Node createParent(Node parent, boolean createChildren, String name) throws Exception {
-            start.add(Calendar.SECOND, 1);
             Node node = createNode(parent, 0, name);
 
             if (createChildren) {
@@ -480,7 +498,6 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
 
             // Recursively create sub nodes
             for (int idx = 0; idx < Integer.parseInt(NODE_LEVELS.get(levelIdx)); idx++) {
-                start.add(Calendar.SECOND, 1);
                 Node subNode =
                         createNode(parent, levelIdx, "SubNode-" + levelIdx + "-" + idx);
                 addDescSearchPath(subNode.getPath());
@@ -505,7 +522,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             Node node =
                     JcrUtils.getOrAddNode(parent, name, getType(levelIdx));
             // Add relevant properties
-            node.setProperty(DATE_PROP, start);
+            node.setProperty(DATE_PROP, generateDate());
             node.setProperty(SORT_PROP, toss());
             node.setProperty(FILTER_PROP, toss());
             node.setProperty(TITLE_PROP, name);
