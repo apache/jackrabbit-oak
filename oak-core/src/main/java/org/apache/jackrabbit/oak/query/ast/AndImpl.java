@@ -129,6 +129,18 @@ public class AndImpl extends ConstraintImpl {
         }
         return true;
     }
+    
+    @Override
+    public boolean evaluateStop() {
+        // the logic is reversed here:
+        // if one of the conditions is to stop, then we stop
+        for (ConstraintImpl constraint : constraints) {
+            if (constraint.evaluateStop()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     boolean accept(AstVisitor v) {
