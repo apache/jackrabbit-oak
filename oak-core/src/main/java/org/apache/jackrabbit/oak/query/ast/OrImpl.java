@@ -177,7 +177,18 @@ public class OrImpl extends ConstraintImpl {
         }
         return false;
     }
-
+    
+    @Override
+    public boolean evaluateStop() {
+        // the logic is reversed here:
+        // we stop only if both conditions say we need to
+        for (ConstraintImpl constraint : constraints) {
+            if (!constraint.evaluateStop()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     boolean accept(AstVisitor v) {

@@ -639,6 +639,11 @@ public class QueryImpl implements Query {
                         rowIndex++;
                         break;
                     }
+                    if (constraint != null && constraint.evaluateStop()) {
+                        current = null;
+                        end = true;
+                        break;
+                    }
                 } else {
                     current = null;
                     end = true;
