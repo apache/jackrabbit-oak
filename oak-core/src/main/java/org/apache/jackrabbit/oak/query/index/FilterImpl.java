@@ -286,7 +286,12 @@ public class FilterImpl implements Filter {
         if (x.list == null) {
             x.list = list;
         } else {
-            x.list.retainAll(list);
+            // this is required for multi-valued properties:
+            // for example, if a multi-value property p contains {1, 2},
+            // and we search using "p in (1, 3) and p in (2, 4)", then
+            // this needs to match - so we search for "p in (1, 2, 3, 4)"
+            x.list.removeAll(list);
+            x.list.addAll(list);
         }
     }
 
