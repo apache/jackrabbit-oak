@@ -244,7 +244,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
                         refreshHead();
                         return name;
                     } else {
-                        log.warn(
+                        log.debug(
                                 "Unable to update the head state for checkpoint {} ({}/5)",
                                 new Object[] { name, i + 1 });
                     }
@@ -255,7 +255,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             }
         }
 
-        log.warn("Failed to create checkpoint {}", name);
+        log.debug("Failed to create checkpoint {}", name);
         return name;
     }
 
