@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.junit.Test;
@@ -82,6 +82,31 @@ public class SegmentIdFactoryTest {
         Set<SegmentId> ids = factory.getReferencedSegmentIds();
         assertFalse(ids.contains(a));
         assertTrue(ids.contains(b));
+    }
+
+    /**
+     * OAK-2049 - error for data segments
+     */
+    @Test(expected = IllegalStateException.class)
+    public void dataAIOOBE() {
+        SegmentId id = factory.newDataSegmentId();
+        byte[] buffer = SegmentWriter.createNewBuffer();
+        ByteBuffer data = ByteBuffer.allocate(Segment.MAX_SEGMENT_SIZE);
+        data.put(buffer);
+        data.rewind();
+        Segment s = new Segment(factory, id, data);
+        s.getRefId(1);
+    }
+
+    /**
+     * OAK-2049 - error for bulk segments
+     */
+    @Test(expected = IllegalStateException.class)
+    public void bulkAIOOBE() {
+        SegmentId id = factory.newBulkSegmentId();
+        ByteBuffer data = ByteBuffer.allocate(4);
+        Segment s = new Segment(factory, id, data);
+        s.getRefId(1);
     }
 
 }
