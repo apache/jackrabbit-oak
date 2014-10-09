@@ -610,6 +610,10 @@ public final class DocumentNodeStore
         docChildrenCache.invalidateAll();
     }
 
+    void invalidateNodeCache(String path, Revision revision){
+        nodeCache.invalidate(new PathRev(path, revision));
+    }
+
     public int getPendingWriteCount() {
         return unsavedLastRevisions.getPaths().size();
     }

@@ -22,6 +22,11 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.revisionAreAmbiguous;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.RevisionComparator;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Tests for {@link NodeDocument}.
  */
@@ -40,10 +45,12 @@ public class NodeDocumentTest {
             NodeDocument.addCollision(op, r);
         }
         UpdateUtils.applyChanges(doc, op, StableRevisionComparator.INSTANCE);
-        doc.split(CONTEXT);
+        doc.split(DummyRevisionContext.INSTANCE);
     }
 
-    private static final RevisionContext CONTEXT = new RevisionContext() {
+    private static class DummyRevisionContext implements RevisionContext {
+
+        static final RevisionContext INSTANCE = new DummyRevisionContext();
 
         private final Comparator<Revision> comparator
                 = StableRevisionComparator.INSTANCE;
@@ -67,5 +74,42 @@ public class NodeDocumentTest {
         public int getClusterId() {
             return 1;
         }
-    };
+    }
+
+    @Test
+    public void ambiguousRevisions() {
+        // revisions from same cluster node are not ambiguous
+        RevisionContext context = DummyRevisionContext.INSTANCE;
+        Revision r1 = new Revision(1, 0, 1);
+        Revision r2 = new Revision(2, 0, 1);
+        assertFalse(revisionAreAmbiguous(context, r1, r1));
+        assertFalse(revisionAreAmbiguous(context, r1, r2));
+        assertFalse(revisionAreAmbiguous(context, r2, r1));
+
+        // revisions from different cluster nodes are not ambiguous
+        // if seen with stable revision comparator
+        r1 = new Revision(1, 0, 2);
+        r2 = new Revision(2, 0, 1);
+        assertFalse(revisionAreAmbiguous(context, r1, r1));
+        assertFalse(revisionAreAmbiguous(context, r1, r2));
+        assertFalse(revisionAreAmbiguous(context, r2, r1));
+
+        // now use a revision comparator with seen-at support
+        final RevisionComparator comparator = new RevisionComparator(1);
+        context = new DummyRevisionContext() {
+            @Override
+            public Comparator<Revision> getRevisionComparator() {
+                return comparator;
+            }
+        };
+        r1 = new Revision(1, 0, 2);
+        r2 = new Revision(2, 0, 1);
+        // add revision to comparator in reverse time order
+        comparator.add(r2, new Revision(2, 0, 0));
+        comparator.add(r1, new Revision(3, 0, 0)); // r1 seen after r2
+        assertFalse(revisionAreAmbiguous(context, r1, r1));
+        assertFalse(revisionAreAmbiguous(context, r2, r2));
+        assertTrue(revisionAreAmbiguous(context, r1, r2));
+        assertTrue(revisionAreAmbiguous(context, r2, r1));
+    }
 }
