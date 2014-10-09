@@ -283,7 +283,7 @@ public class AsyncIndexUpdate implements Runnable {
         String afterCheckpoint = store.checkpoint(lifetime);
         NodeState after = store.retrieve(afterCheckpoint);
         if (after == null) {
-            log.warn("Unable to retrieve newly created checkpoint {},"
+            log.debug("Unable to retrieve newly created checkpoint {},"
                     + " skipping the {} index update", afterCheckpoint, name);
             return;
         }
