@@ -310,9 +310,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
          */
         private void createActivityNode(Node activityParent, Map<String, String> props)
             throws RepositoryException {
-            start.add(Calendar.SECOND, 1);
             activityParent.setProperty(TITLE_PROP, props.get(TITLE_PROP));
-            activityParent.setProperty(CREATED, start);
+            activityParent.setProperty(CREATED, generateDate());
             activityParent.setProperty(ACTION, props.get(ACTION));
             activityParent.setProperty(SOURCE_ID, props.get(SOURCE_ID));
             Node sourceNode = JcrUtils
@@ -411,8 +410,6 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
             }
 
             for (int i = 0; i < NUM_RELATIONSHIPS; i++) {
-                start.add(Calendar.SECOND, 1);
-
                 if (usersIdx.size() > 0) {
                     String otherUser =
                         users.get(usersIdx.remove(random.nextInt(usersIdx.size()))).getID();
@@ -420,7 +417,7 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
 
                     String nameHint = Text.getName(otherUser);
                     Node rNode = relationshipsParentNode.addNode(nameHint, getType(1));
-                    rNode.setProperty(CREATED, start);
+                    rNode.setProperty(CREATED, generateDate());
                     rNode.setProperty(SOURCE_ID, user.getID());
                     rNode.setProperty(TARGET_ID, otherUser);
 
