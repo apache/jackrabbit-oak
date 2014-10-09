@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.6
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.7
 
 Introduction
 ------------
@@ -7,55 +7,52 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.6 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.7 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.6
+Changes in Oak 1.0.7
 --------------------
 
 Bug Fixes
 
-   [OAK-2047] - Missing privileges after repository upgrade
-   [OAK-2049] - ArrayIndexOutOfBoundsException in Segment.getRefId()
-   [OAK-2053] - Excessive memory usage with Oracle Java 6
-   [OAK-2059] - Reindexing can include hidden nodes in the index
-   [OAK-2062] - Range queries and relative properties resultset should be consistent with JR2
-   [OAK-2068] - Lucene index: "reindex" property is automatically set to true
-   [OAK-2073] - Prevent against integer overflow in compaction check
-   [OAK-2078] - Prevent null/empty passwords in ldap provider
-   [OAK-2084] - The query engine should not return hidden nodes
-   [OAK-2088] - AsyncIndexUpdate can leave orphaned checkpoint in case of abrupt shutdown
-   [OAK-2099] - AIOOBE in Segment#toString
-   [OAK-2102] - Oak-run add option to remove all unreferenced checkpoints
-   [OAK-2111] - Rename FileStoreCorruptException to SegmentNotFoundException and update the NodeStore contract
+   [OAK-1768] - DocumentNodeBuilder.setChildNode() runs OOM with large tree
+   [OAK-2118] - Aggregation cursor introduces doubles in the result set
+   [OAK-2123] - Tests do not tear down repository completely
+   [OAK-2127] - Long running merge may block other commits
+   [OAK-2132] - BackgroundWriteTest uses relative paths
+   [OAK-2142] - Possibility of numeric overflow in blobCacheSize in DocumentMK
+   [OAK-2144] - Intermittent Node not found at given revision with DocumentNodeStore
+   [OAK-2146] - empty resultset for PropertyIndex and multi-value properties with mixed OR+AND
+   [OAK-2147] - [Ordered Index] Indexing on large content is slow
+   [OAK-2151] - DocumentNodeStore does not detect hierarchy conflict
+   [OAK-2157] - Better error message for getPrimaryItem
+   [OAK-2163] - Oak-run "checkpoint" and "backup" don't use memory mapped files
+   [OAK-2166] - CacheConsistencyTest may fail with IllegalStateException
+   [OAK-2167] - Last revision recover incomplete
+   [OAK-2172] - ArrayIndexOutOfBoundsException in Segment.getRefId() protection and logs
 
 Improvements
 
-   [OAK-1880] - Omit Configuration Retrieval for PreAuthContext
-   [OAK-2004] - Add a way to pause the background async indexer
-   [OAK-2007] - MongoBlobStore improvements
-   [OAK-2051] - Provide option to use  Configuration SPI in JAAS authentication when running within AppServer
-   [OAK-2060] - MBean to provide consolidated cache stats 
-   [OAK-2069] - Log details of _lastRev recovery
-   [OAK-2087] - Record time when checpoint is created in SegmentNodeStore
-   [OAK-2090] - Improve logging in compaction and cleanup operation in SegmentMK
-   [OAK-2091] - Improve logging in MongoDocumentStore
-   [OAK-2094] - Oak Upgrade should depend on oak-jcr with a 'test' scope
-   [OAK-2100] - Change NodeStore#release method to return a boolean
-   [OAK-2104] - IndexStatsMBean should expose the time upto which the repository state has been indexed
+   [OAK-2057] - Add timing to OrderedIndex
+   [OAK-2115] - Turn async indexer checkpoint warning log to debug 
+   [OAK-2120] - Simplify BranchStates
+   [OAK-2133] - Lucene: improved batching and logging
+   [OAK-2134] - Lucene: not using the path restriction can speed up queries
+   [OAK-2143] - NodeObservor should catch exception in case event processing
+   [OAK-2160] - mk.getRevisionHistory: clarify since parameter
+   [OAK-2161] - MicroKernelIT: clean test content
 
-New Features
+Tasks
 
-   [OAK-1893] - MBean to dump Lucene Index content and related stats
-   [OAK-1906] - Adding information to a  Standard MBean interface using annotations
+   [OAK-2054] - MissingLastRevSeeker optimized only for MongoDS
 
-Task
+Sub-tasks
 
-   [OAK-2085] - Move CacheStats humanReadableByteCount to Oak Commons IOUtils
+    [OAK-2141] - Log timing of background operation
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
