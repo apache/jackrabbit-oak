@@ -210,6 +210,19 @@ public class FullTextSearchImpl extends ConstraintImpl {
         return getFullTextConstraint(selector).evaluate(buff.toString());
     }
     
+    @Override
+    public boolean evaluateStop() {
+        // if a fulltext index is used, then we are fine
+        if (selector.getIndex() instanceof FulltextQueryIndex) {
+            return false;
+        }
+        // OAK-2050
+        if (!query.getSettings().getFullTextComparisonWithoutIndex()) {
+            return true;
+        }
+        return false;
+    }
+
     private static void appendString(StringBuilder buff, PropertyValue p) {
         if (p.isArray()) {
             if (p.getType() == Type.BINARIES) {

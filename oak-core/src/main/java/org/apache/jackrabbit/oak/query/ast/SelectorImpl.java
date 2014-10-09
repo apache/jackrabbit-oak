@@ -441,6 +441,10 @@ public class SelectorImpl extends SourceImpl {
         }
         for (ConstraintImpl constraint : selectorConstraints) {
             if (!constraint.evaluate()) {
+                if (constraint.evaluateStop()) {
+                    // stop processing from now on
+                    cursor = null;
+                }
                 return false;
             }
         }
