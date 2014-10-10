@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -27,6 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.IN
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
@@ -36,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -45,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
@@ -260,6 +266,68 @@ public class IndexUpdateTest {
                 INDEX_CONTENT_NODE_NAME);
         checkPathExists(indexed, "test", "other", INDEX_DEFINITIONS_NAME,
                 "index2", INDEX_CONTENT_NODE_NAME);
+    }
+
+
+    /**
+     * Async Reindex Test (OAK-2174)
+     * <ul>
+     * <li>Add some content</li>
+     * <li>Add an index definition with the reindex flag and the reindex-async flag set</li>
+     * <li>Run the background async job manually</li>
+     * <li>Search & verify</li>
+     * </ul>
+     */
+    @Test
+    public void testReindexAsync() throws Exception {
+        IndexEditorProvider provider = new PropertyIndexEditorProvider();
+        EditorHook hook = new EditorHook(new IndexUpdateProvider(provider));
+
+        NodeStore store = new MemoryNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .setProperty(REINDEX_ASYNC_PROPERTY_NAME, true);
+        builder.child("testRoot").setProperty("foo", "abc");
+
+        // merge it back in
+        store.merge(builder, hook, CommitInfo.EMPTY);
+
+        // first check that the async flag exist
+        NodeState ns1 = checkPathExists(store.getRoot(),
+                INDEX_DEFINITIONS_NAME, "rootIndex");
+        assertTrue(ns1.getProperty(REINDEX_PROPERTY_NAME)
+                .getValue(Type.BOOLEAN));
+        assertTrue(ns1.getProperty(REINDEX_ASYNC_PROPERTY_NAME).getValue(
+                Type.BOOLEAN));
+        assertEquals(ASYNC_REINDEX_VALUE, ns1.getProperty(ASYNC_PROPERTY_NAME)
+                .getValue(Type.STRING));
+
+        AsyncIndexUpdate async = new AsyncIndexUpdate(ASYNC_REINDEX_VALUE,
+                store, provider, true);
+        int max = 5;
+        // same behaviour as PropertyIndexAsyncReindex mbean
+        boolean done = false;
+        int count = 0;
+        while (!done || count >= max) {
+            async.run();
+            done = async.isFinished();
+            count++;
+        }
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(store.getRoot(), INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+        checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
+        assertFalse(ns.getProperty(REINDEX_PROPERTY_NAME)
+                .getValue(Type.BOOLEAN));
+        assertNull(ns.getProperty(ASYNC_PROPERTY_NAME));
+
+        // next, lookup
+        PropertyIndexLookup lookup = new PropertyIndexLookup(store.getRoot());
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo",
+        "abc"));
     }
 
     private Set<String> find(PropertyIndexLookup lookup, String name,

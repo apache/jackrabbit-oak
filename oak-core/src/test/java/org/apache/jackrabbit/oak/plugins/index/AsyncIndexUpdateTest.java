@@ -23,8 +23,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
@@ -443,6 +443,7 @@ public class AsyncIndexUpdateTest {
 
         // no changes on diff, no checkpoints left behind
         async.run();
+        assertTrue(async.isFinished());
         Set<String> checkpoints = newHashSet(store.listCheckpoints());
         assertTrue("Expecting the initial checkpoint",
                 checkpoints.size() == 1);

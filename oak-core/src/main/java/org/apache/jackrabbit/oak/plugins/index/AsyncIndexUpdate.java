@@ -357,29 +357,30 @@ public class AsyncIndexUpdate implements Runnable {
                 } else {
                     postAsyncRunStatsStatus(indexStats);
                 }
-            } else if (switchOnSync) {
-                log.debug("No changes detected after diff; will try to"
-                        + " switch to synchronous updates on {}",
-                        reindexedDefinitions);
+            } else {
+                if (switchOnSync) {
+                    log.debug(
+                            "No changes detected after diff; will try to switch to synchronous updates on {}",
+                            reindexedDefinitions);
 
-                // no changes after diff, switch to sync on the async defs
-                for (String path : reindexedDefinitions) {
-                    NodeBuilder c = builder;
-                    for (String p : elements(path)) {
-                        c = c.getChildNode(p);
+                    // no changes after diff, switch to sync on the async defs
+                    for (String path : reindexedDefinitions) {
+                        NodeBuilder c = builder;
+                        for (String p : elements(path)) {
+                            c = c.getChildNode(p);
+                        }
+                        if (c.exists() && !c.getBoolean(REINDEX_PROPERTY_NAME)) {
+                            c.removeProperty(ASYNC_PROPERTY_NAME);
+                        }
                     }
-                    if (c.exists() && !c.getBoolean(REINDEX_PROPERTY_NAME)) {
-                        c.removeProperty(ASYNC_PROPERTY_NAME);
-                    }
+                    reindexedDefinitions.clear();
                 }
-                reindexedDefinitions.clear();
+                postAsyncRunStatsStatus(indexStats);
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
         } finally {
             callback.close();
         }
-
-        postAsyncRunStatsStatus(indexStats);
     }
 
     private void mergeWithConcurrencyCheck(
