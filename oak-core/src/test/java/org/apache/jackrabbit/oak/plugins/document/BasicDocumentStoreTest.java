@@ -31,7 +31,10 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -393,6 +396,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
         long cnt = 0;
+        Set<Revision> expectedRevs = new HashSet<Revision>();
 
         String id = this.getClass().getName() + ".testUpdatePerf" + (growing ? "Growing" : "") + "-" + size;
         removeMe.add(id);
@@ -404,6 +408,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 Revision r = new Revision(System.currentTimeMillis(), (int) cnt, 1);
                 up.setMapEntry("foo", r, pval);
                 up.setMapEntry("_commitRoot", r, "1");
+                up.increment("c", 1);
+                up.max("max", System.currentTimeMillis());
+                expectedRevs.add(r);
             } else {
                 up.set("foo", pval);
             }
@@ -414,6 +421,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 assertNotNull("fail on update " + cnt, old);
             }
             cnt += 1;
+        }
+
+        if (growing) {
+            NodeDocument result = super.ds.find(Collection.NODES, id, 0);
+            Map<Revision, Object> m = (Map<Revision, Object>)result.get("foo");
+            assertEquals("number of revisions", expectedRevs.size(), m.size());
+            assertTrue(m.keySet().equals(expectedRevs));
         }
 
         LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname
