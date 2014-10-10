@@ -227,6 +227,30 @@ might be used in various combinations with other property names. This rule is no
 behavior is undefined, one of the defined indexes will be updated while the others will simply be ignored by the
 indexer which can result in empty result sets at query time.
 
+#### Reindexing
+
+Reindexing a property index happens synchronously by setting the __`reindex`__ flag to __`true`__. This means that the 
+first #save call will generate a full repository traversal with the purpose of building the index content and it might
+take a long time.
+
+Asynchronous reindexing of a property index is available as of OAK-1456. The way this works is by pushing the property 
+index updates to a background job and when the indexing process is done, the property definition will be switched back 
+to a synchronous updates mode.
+To enable this async reindex behaviour you need to first set the __`reindex-async`__ and __`reindex`__ flags to 
+__`true`__ (call #save). You can verify the initial setup worked by refreshing the index definition node and looking
+for the __`async`__ = __`async-reindex`__ property.
+Next you need to start the dedicated background job via a jmx call to the 
+__`PropertyIndexAsyncReindex#startPropertyIndexAsyncReindex`__ MBean.
+
+Example:
+
+    {
+      NodeBuilder index = root.child("oak:index");
+      index.child("property")
+        .setProperty("reindex-async", true)
+        .setProperty("reindex", true);
+    }
+
 ### The Ordered Index
 
 Extension of the Property index will keep the order of the indexed
