@@ -319,7 +319,7 @@ public class AsyncIndexUpdate implements Runnable {
         } finally {
             if (checkpointToRelease != null) { // null during initial indexing
                 if (!store.release(checkpointToRelease)) {
-                    log.debug("Unable to reelase checkpoint {}",
+                    log.debug("Unable to release checkpoint {}",
                             checkpointToRelease);
                 }
             }
