@@ -161,6 +161,30 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testModifiedMaxUpdate() {
+        String id = this.getClass().getName() + ".testModifiedMaxUpdate";
+        // create a test node
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.set("_modified", 1000L);
+        boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+        assertTrue(success);
+        removeMe.add(id);
+
+        // update with smaller _modified
+//        UpdateOp up2 = new UpdateOp(id, true);
+//        up2.max("_modified", 100L);
+//        up2.set("_id", id);
+//        super.ds.findAndUpdate(Collection.NODES, up2);
+//
+//        super.ds.invalidateCache();
+
+        // this should find the document; will fail if the MAX operation wasn't applied to the indexed property
+        List<NodeDocument> results = super.ds.query(Collection.NODES, this.getClass().getName() + ".testModifiedMaxUpdatd", this.getClass().getName() + ".testModifiedMaxUpdatf", "_modified", 1000, 1);
+        assertEquals("document not found, maybe indexed _modified property not properly updated", 1, results.size());
+    }
+
+    @Test
     public void testInterestingStrings() {
         // TODO see OAK-1913
         Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
