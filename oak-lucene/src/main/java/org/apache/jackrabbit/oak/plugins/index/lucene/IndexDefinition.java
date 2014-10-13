@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +108,15 @@ public class IndexDefinition {
      */
     public boolean isStored(String name) {
         return storageEnabled;
+    }
+
+    public boolean skipTokenization(String propertyName) {
+        //If fulltext is not enabled then we never tokenize
+        //irrespective of property name
+        if (!isFullTextEnabled()) {
+            return true;
+        }
+        return LuceneIndexHelper.skipTokenization(propertyName);
     }
 
     //~------------------------------------------< Internal >
