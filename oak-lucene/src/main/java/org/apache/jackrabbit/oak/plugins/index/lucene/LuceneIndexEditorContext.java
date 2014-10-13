@@ -54,6 +54,7 @@ public class LuceneIndexEditorContext {
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             config.setMergeScheduler(new SerialMergeScheduler());
+            //TODO Use default codec for index where full text index is not stored
             config.setCodec(new OakCodec());
             return config;
         } finally {
@@ -107,12 +108,12 @@ public class LuceneIndexEditorContext {
         this.updateCallback = updateCallback;
     }
 
-    int getPropertyTypes() {
-        return definition.getPropertyTypes();
-    }
-
     boolean includeProperty(String name) {
         return definition.includeProperty(name);
+    }
+
+    boolean includePropertyType(int type){
+        return definition.includePropertyType(type);
     }
 
     Parser getParser() {
@@ -162,4 +163,15 @@ public class LuceneIndexEditorContext {
         return definition.isStored(name);
     }
 
+    public boolean isFullTextEnabled() {
+        return definition.isFullTextEnabled();
+    }
+
+    public boolean skipTokenization(String propertyName){
+        return definition.skipTokenization(propertyName);
+    }
+
+    public int getPropertyTypes() {
+        return definition.getPropertyTypes();
+    }
 }

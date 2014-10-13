@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFul
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.skipTokenization;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,7 +41,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.tika.metadata.Metadata;
@@ -191,24 +193,42 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
+        //TODO Possibly we can add support for compound properties like foo/bar
+        //i.e. support for relative path restrictions
+
         List<Field> fields = new ArrayList<Field>();
         boolean dirty = false;
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
             if (isVisible(pname)
-                    && (context.getPropertyTypes() & (1 << property.getType()
-                            .tag())) != 0 && context.includeProperty(pname)) {
+                    && context.includeProperty(pname)) {
+
+                //In case of fulltext we also check if given type is enabled for indexing
+                //TODO Use context.includePropertyType however that cause issue. Need
+                //to make filtering based on type consistent both on indexing side and
+                //query size
+                if(context.isFullTextEnabled()
+                        && (context.getPropertyTypes() & (1 << property.getType()
+                        .tag())) == 0){
+                    continue;
+                }
+
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     this.context.indexUpdate();
                     fields.addAll(newBinary(property, state));
                     dirty = true;
+                } else if(!context.isFullTextEnabled()
+                        && FieldFactory.canCreateTypedField(property.getType())){
+                    dirty = addTypedFields(fields, property);
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
                         this.context.indexUpdate();
                         fields.add(newPropertyField(pname, value,
-                                !skipTokenization(pname),
+                                !context.skipTokenization(pname),
                                 context.isStored(pname)));
-                        fields.add(newFulltextField(value));
+                        if (context.isFullTextEnabled()) {
+                            fields.add(newFulltextField(value));
+                        }
                         dirty = true;
                     }
                 }
@@ -222,13 +242,43 @@ public class LuceneIndexEditor implements IndexEditor {
         Document document = new Document();
         document.add(newPathField(path));
         String name = getName(path);
-        if (name != null) {
+
+        //TODO Possibly index nodeName without tokenization for node name based queries
+        if (context.isFullTextEnabled()) {
             document.add(newFulltextField(name));
         }
         for (Field f : fields) {
             document.add(f);
         }
         return document;
+    }
+
+    private boolean addTypedFields(List<Field> fields, PropertyState property) throws CommitFailedException {
+        int tag = property.getType().tag();
+        String name = property.getName();
+        boolean fieldAdded = false;
+        for (int i = 0; i < property.count(); i++) {
+            Field f = null;
+            if (tag == Type.LONG.tag()) {
+                //TODO Distinguish fields which need to be used for search and for sort
+                //If a field is only used for Sort then it can be stored with less precision
+                f = new LongField(name, property.getValue(Type.LONG, i), Field.Store.NO);
+            } else if (tag == Type.DATE.tag()) {
+                String date = property.getValue(Type.DATE, i);
+                f = new LongField(name, FieldFactory.dateToLong(date), Field.Store.NO);
+            } else if (tag == Type.DOUBLE.tag()) {
+                f = new DoubleField(name, property.getValue(Type.DOUBLE, i), Field.Store.NO);
+            } else if (tag == Type.BOOLEAN.tag()) {
+                f = new StringField(name, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+            }
+
+            if (f != null) {
+                this.context.indexUpdate();
+                fields.add(f);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
     }
 
     private static boolean isVisible(String name) {
