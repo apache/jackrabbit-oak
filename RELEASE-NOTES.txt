@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.1.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.1.1
 
 Introduction
 ------------
@@ -7,179 +7,37 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.1.0 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.1.1 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other improvements.
-For production use we recommend the latest stable 1.0.6 release.
+For production use we recommend the latest stable 1.0.7 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.1.0
+Changes in Oak 1.1.1
 ---------------------
 
-New Features
+Bug
 
-  [OAK-1323] - CLONE - XPath queries currently require @ in front of property names
-  [OAK-1522] - Provide PojoSR based RepositoryFactory implementation
-  [OAK-1805] - Debugging console
-  [OAK-1922] - Introduce Password Expiry With Max Password Age and On First Login
-  [OAK-1978] - Add path exclusion to JackrabbitEventFilter
-  [OAK-1993] - Add command to dump Lucene index in Oak Console
-  [OAK-2074] - _lastRev recovery tool
-  
-Improvements
+    [OAK-2144] - Intermittent Node not found at given revision with DocumentNodeStore
+    [OAK-2146] - empty resultset for PropertyIndex and multi-value properties with mixed OR+AND
+    [OAK-2147] - [Ordered Index] Indexing on large content is slow
+    [OAK-2151] - DocumentNodeStore does not detect hierarchy conflict
+    [OAK-2157] - Better error message for getPrimaryItem
+    [OAK-2163] - Oak-run "checkpoint" and "backup" don't use memory mapped files
+    [OAK-2166] - CacheConsistencyTest may fail with IllegalStateException
+    [OAK-2167] - Last revision recover incomplete
+    [OAK-2174] - Non-blocking reindexing doesn't finish properly
 
-  [OAK-1478] - allow selecting a nodestore fixture for tests
-  [OAK-1561] - Implement optimised range queries
-  [OAK-1570] - Improve perfomances of the OrderedIndex while insert
-  [OAK-1609] - Configurable property exclusions for SolrIndexEditor and SolrQueryIndex
-  [OAK-1618] - Implement noInternal from JackrabbitEventFilter
-  [OAK-1669] - JCR Event Info should contain NodeType for all Events 
-  [OAK-1673] - FulltextQueryTest coverage for Solr indexer
-  [OAK-1681] - Clarify contract of NodeBuilder.isReplaced()
-  [OAK-1683] - Remove dependency of DocumentStore to MicroKernelException
-  [OAK-1685] - BlobStore: improve code readability
-  [OAK-1691] - Use in-memory DB for DOCUMENT_JDBC fixture
-  [OAK-1694] - Use known.issues instead of commented tests
-  [OAK-1706] - Add RestrictionProvider#getPattern(String,Set<Restriction>)
-  [OAK-1716] - Enable passing of a execution context to runTest in multi threaded runs
-  [OAK-1718] - Avoid expanding empty property restrictions if not needed
-  [OAK-1721] - register ContentRepository to whiteboard
-  [OAK-1725] - Improved SolrCursor support for paged results
-  [OAK-1733] - Consolidate Mongo client connection creation logic
-  [OAK-1754] - add docu how to connect to Mongo w/ credentials
-  [OAK-1790] - Import of compressed wikipedia dump
-  [OAK-1794] - Keep commit info for local changes in main document
-  [OAK-1796] - Update Mongo Java Driver version to 2.12
-  [OAK-1815] - Don't create default (Scheduled)Executor when respective instance is supplied
-  [OAK-1820] - Set _lastRev on insert when new node is also commit root
-  [OAK-1830] - DocumentNodeStore code robustness when persistence inconsistent
-  [OAK-1847] - Use SegmentMK for testing where possible
-  [OAK-1850] - Dump help details for various command supported by oak-run
-  [OAK-1857] - Support collection object conversion to String[] in ConfigurationParameters
-  [OAK-1858] - Segment Explorer
-  [OAK-1863] - Generic operation tasks should be able to return specific results
-  [OAK-1867] - Optimize SegmentWriter.prepare()
-  [OAK-1876] - oak-run option to do diffs between TarMK revisions
-  [OAK-1919] - Use 127.0.0.1 as default for MongoDB host
-  [OAK-1928] - Cleanup test and execution fixtures
-  [OAK-1929] - MicroKernelServer not usable with user specified MicroKernel implementation 
-  [OAK-1942] - UserAuthentication: enhance login states with relevant exceptions
-  [OAK-1945] - Unclear NodeStore.merge() contract
-  [OAK-1950] - Add GlobalNameMapper(NodeState) constructor
-  [OAK-1955] - oak-run main method should print available run modes
-  [OAK-1961] - Introduce DocumentStoreException
-  [OAK-1965] - Support for constraints like: foo = 'X' OR bar = 'Y'
-  [OAK-1994] - Limit no of children listed with ls command in Oak Console
-  [OAK-2003] - Avoid <p/> in javadoc
-  [OAK-2013] - Add utility class for tracking time spent in the code
-  [OAK-2030] - Remove ContentRepositoryImpl#getNodeStore
-  [OAK-2031] - MemoryNodeBuilder#set only works on root builders
-  [OAK-2041] - Checkpoint list command should also provide the checkpoint lifetime
-  [OAK-2057] - Add timing to OrderedIndex
-  [OAK-2061] - Oak run debug option to list content from a tar file
-  [OAK-2101] - Add test for observation events when renaming a node
-  [OAK-2116] - Explorer should display the template Id and use it in the reference tracking report
-  [OAK-2120] - Simplify BranchStates
-  [OAK-2133] - Lucene: improved batching and logging
-  [OAK-2134] - Lucene: not using the path restriction can speed up queries
+Improvement
 
-Bugs
-  [OAK-203] - Basic same name sibling support
-  [OAK-1267] - Failure in ObservationRefreshTest 
-  [OAK-1414] - Copying a large subtrees does not scale as expected in the number of copied nodes on document node stores
-  [OAK-1472] - ConcurrentAddReferenceTest#addReferences still fails
-  [OAK-1488] - ConcurrentAddRemoveIT, ConcurrentAddIT test failures
-  [OAK-1491] - ObservationTest failure on Windows
-  [OAK-1626] - RDBBlobStoreTest fails occasionally
-  [OAK-1674] - Node isNew() is false in case the node is removed and added in same commit
-  [OAK-1676] - NodeStoreServices nondeterministic with customBlobStore
-  [OAK-1677] - Add ConflictHandler/Validator to AbstractSecurityTest
-  [OAK-1688] - document atomicity of DS.update(collection, keys, update)
-  [OAK-1690] - OrderableNodesTest fails with Document_JDBC
-  [OAK-1693] - "like '%'" does not use an index
-  [OAK-1697] - Unresolved conflicts in TokenProviderImpl#createToken()
-  [OAK-1707] - RestrictionProviderImpl returns empty pattern if all supported restrictions are set
-  [OAK-1747] - SolrIndexInitializer async parameter should be boolean
-  [OAK-1759] - Sporadic IllegalStateException in AbstractServiceTracker.getServices
-  [OAK-1766] - Remote Solr server should explicitly handle failures in connecting to ZK
-  [OAK-1768] - DocumentNodeBuilder.setChildNode() runs OOM with large tree
-  [OAK-1777] - Stats for the async indexing don't report 'done' status when there are no changes
-  [OAK-1778] - Ordered index: explain plan not implemented
-  [OAK-1792] - Sample descendant field configuration not working for root
-  [OAK-1824] - DocumentNodeStore "lease update thread" is not a daemon thread
-  [OAK-1833] - Logging in and out many sessions leads to high memory consumption 
-  [OAK-1840] - Failure when setting up DocumentNS fixture
-  [OAK-1848] - Default sync handler property mapping does not allow constant properties
-  [OAK-1853] - Potential NPE in RDBDocumentStore
-  [OAK-1855] - Travis builds time out
-  [OAK-1885] - Add restore option for oak-run
-  [OAK-1892] - OrderedIndexConcurrentClusterIT takes too long
-  [OAK-1933] - Query: UnsupportedOperationException for some combinations of "or" and "and" conditions
-  [OAK-1935] - MAX_QUEUED_CONTINUATIONS feature not working in EventGenerator class
-  [OAK-1943] - UserImporter doesn't import protected rep:passwordLastModified
-  [OAK-1946] - Restore: "Attempt to read external blob" error
-  [OAK-1949] - UserContext needs to be adjusted to reflect changes made with OAK-1922
-  [OAK-1951] - UserContext doesn't reflect new group-member structure
-  [OAK-1953] - Oak console on MongoMK fails with NPE
-  [OAK-1960] - Console in Oak Run does not close the NodeStore upon exit
-  [OAK-1977] - ContentMirrorStoreStrategy should utilize path restriction when available
-  [OAK-1985] - TokenLoginModule can't handle case insensitive userids
-  [OAK-1988] - Confusing debug message about old revision access
-  [OAK-2000] - Observation events accessibility not checked correctly
-  [OAK-2012] - oak run benchmark has bad imports
-  [OAK-2014] - oak-run build fails on windows
-  [OAK-2015] - PermissionStore doesn't reflect dynamic nature of jcr:all
-  [OAK-2032] - Setting a MV Name property does not validate the namespaces
-  [OAK-2033] - Setting a path property with a value that contains a unregistered namespace does not fail
-  [OAK-2058] - Hard-coded write concern
-  [OAK-2070] - Segment corruption
-  [OAK-2071] - ImporterImpl does not convert JCR paths to Oak paths
-  [OAK-2080] - BlobSize in OakDirectory differs between trunk and 1.0 branch
-  [OAK-2095] - ClassCastException in NodeDocument
-  [OAK-2118] - Aggregation cursor introduces doubles in the result set
-  [OAK-2123] - Tests do not tear down repository completely
-  [OAK-2127] - Long running merge may block other commits
-  [OAK-2132] - BackgroundWriteTest uses relative paths
-  [OAK-2139] - SegmentExplorer better binary display
-  [OAK-2142] - Possibility of numeric overflow in blobCacheSize in DocumentMK
-  [OAK-2145] - TarMK cold standby: file handle leak
-  [OAK-2148] - SegmentExplorer display in memory references to tar files 
-  [OAK-2150] - TarMK cold standby: logs are too verbose
-  [OAK-2153] - Disable TokenAuthenticationTest#tokenCreationWithPreAuth
-  [OAK-2152] - Ignore maven-javadoc-plugin -Xdoclint:none option
-
-Tasks
-
-  [OAK-1455] - document oak:unstructured performance advantages
-  [OAK-1533] - RdbDocumentStore should use a connection pool
-  [OAK-1536] - Add configuration for baselining-maven-plugin 
-  [OAK-1678] - document atomicity of DS.remove(collection, keys)
-  [OAK-1702] - Create a benchmark for Full text search
-  [OAK-1785] - Upgrade HttClient version in oak-solr-osgi
-  [OAK-1803] - Drop oak-mk-perf
-  [OAK-1896] - Move JR2 specific logic from oak-run to separate module
-  [OAK-2034] - Update parent pom.xml to latest 2.9 release
-  [OAK-2054] - MissingLastRevSeeker optimized only for MongoDS
-  [OAK-2079] - Refactor BlobStore creation logic in a BlobStoreFixture
-  [OAK-2082] - Analyze repository growth with Lucene index on SegmentMk
-
-Sub-tasks
-  [OAK-1544] - IBM DB2 support
-  [OAK-1746] - find portable variant of SQL "limit" clause
-  [OAK-1806] - Benchmark for blob upload and search longevity
-  [OAK-1811] - enable RDBBlobStore testing for non-H2 databases
-  [OAK-1812] - RDBBlobStore failures for large blobs
-  [OAK-1831] - catch ID mismatches in create operations
-  [OAK-1834] - DS.query: add tests for query collations, also catch fire when collation is incorrect
-  [OAK-1837] - improve error handling for closed RDBBlobStore
-  [OAK-1845] - Add command to execute script
-  [OAK-1851] - RDBBlobStore cache nonfunctional
-  [OAK-1856] - Enable specifying of OSGi config via JSON file and in memory map
-  [OAK-1938] - avoid use of system dependency for IBM DB2 JDBC JARs
-  [OAK-2129] - Benchmark for queries with multiple filters
-  [OAK-2130] - Benchmark for aggregated queries
-  [OAK-2141] - Log timing of background operation
+    [OAK-2112] - DocumentNodeStore: Error calculating the machine id
+    [OAK-2115] - Turn async indexer checkpoint warning log to debug
+    [OAK-2143] - NodeObservor should catch exception in case event processing
+    [OAK-2156] - UserAuthentication: Allow Password Change Via SimpleCredentials Attribute
+    [OAK-2158] - Fail for ACEs created for the admin principal
+    [OAK-2160] - mk.getRevisionHistory: clarify since parameter
+    [OAK-2161] - MicroKernelIT: clean test content
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
