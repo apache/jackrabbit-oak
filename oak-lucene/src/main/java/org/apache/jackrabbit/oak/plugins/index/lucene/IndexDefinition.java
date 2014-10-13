@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FULL_TEXT_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
@@ -46,6 +47,8 @@ public class IndexDefinition {
     private final Set<String> includes;
 
     private final boolean fullTextEnabled;
+
+    private final boolean storageEnabled;
 
     private final NodeBuilder definition;
 
@@ -69,6 +72,8 @@ public class IndexDefinition {
         this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
         this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
+        //Storage is disabled for non full text indexes
+        this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
     }
 
     boolean includeProperty(String name) {
@@ -91,6 +96,17 @@ public class IndexDefinition {
 
     public boolean isFullTextEnabled() {
         return fullTextEnabled;
+    }
+
+    public int getPropertyTypes() {
+        return propertyTypes;
+    }
+
+    /**
+     * Checks if a given property should be stored in the lucene index or not
+     */
+    public boolean isStored(String name) {
+        return storageEnabled;
     }
 
     //~------------------------------------------< Internal >
