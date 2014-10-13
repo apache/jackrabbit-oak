@@ -190,8 +190,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
             }
 
             @Override
-            void checkValidPrincipal(Principal principal) throws AccessControlException {
+            boolean checkValidPrincipal(Principal principal) throws AccessControlException {
                 Util.checkValidPrincipal(principal, pm, true);
+                return true;
             }
 
             @Override

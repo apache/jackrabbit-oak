@@ -59,7 +59,7 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     abstract ACE createACE(Principal principal, PrivilegeBits privilegeBits, boolean isAllow, Set<Restriction> restrictions) throws RepositoryException;
-    abstract void checkValidPrincipal(Principal principal) throws AccessControlException;
+    abstract boolean checkValidPrincipal(Principal principal) throws AccessControlException;
     abstract PrivilegeManager getPrivilegeManager();
     abstract PrivilegeBits getPrivilegeBits(Privilege[] privileges);
 
@@ -95,7 +95,9 @@ abstract class ACL extends AbstractAccessControlList {
             }
         }
 
-        checkValidPrincipal(principal);
+        if (!checkValidPrincipal(principal)) {
+            return false;
+        }
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             String jcrName = getNamePathMapper().getJcrName(def.getName());

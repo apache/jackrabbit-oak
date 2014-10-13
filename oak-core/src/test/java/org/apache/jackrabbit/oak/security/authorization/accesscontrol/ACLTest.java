@@ -113,9 +113,9 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
             }
 
             @Override
-            void checkValidPrincipal(Principal principal) throws AccessControlException {
+            boolean checkValidPrincipal(Principal principal) throws AccessControlException {
                 Util.checkValidPrincipal(principal, principalManager, true);
-
+                return true;
             }
 
             @Override
