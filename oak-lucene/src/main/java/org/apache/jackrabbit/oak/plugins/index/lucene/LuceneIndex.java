@@ -26,8 +26,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -50,7 +48,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.jcr.PropertyType;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
@@ -152,13 +149,19 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
 
     /**
+     * IndexPaln Attribute name which refers to the path of Lucene index to be used
+     * to perform query
+     */
+    static final String ATTR_INDEX_PATH = "oak.lucene.indexPath";
+
+    /**
      * Batch size for fetching results from Lucene queries.
      */
     static final int LUCENE_QUERY_BATCH_SIZE = 50;
-    
+
     static final boolean USE_PATH_RESTRICTION = Boolean.getBoolean("oak.luceneUsePath");
 
-    private final IndexTracker tracker;
+    protected final IndexTracker tracker;
 
     private final Analyzer analyzer;
 
@@ -186,37 +189,35 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return Collections.emptyList();
         }
 
-        IndexNode index = tracker.acquireIndexNode("/");
-        if (index == null) { // unusable index
+        String indexPath = new LuceneIndexLookup(rootState).getFullTextIndexPath(filter, tracker);
+        if (indexPath == null) { // unusable index
             return Collections.emptyList();
         }
-        try {
-            Set<String> relPaths = getRelativePaths(ft);
-            if (relPaths.size() > 1) {
-                LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
-                // there are multiple "parents", as in
-                // "contains(a/x, 'hello') and contains(b/x, 'world')"
-                return Collections.emptyList();
-            }
-            String parent = relPaths.iterator().next();
-
-            // no relative properties
-            double cost = 10;
-            if (!parent.isEmpty()) {
-                // all relative properties have the same "parent", as in
-                // "contains(a/x, 'hello') and contains(a/y, 'world')" or
-                // "contains(a/x, 'hello') or contains(a/*, 'world')"
-                // TODO: proper cost calculation
-                // we assume this will cause more read operations,
-                // as we need to read the node and then the parent
-                cost = 15;
-            }
-            return Collections.singletonList(planBuilder(filter)
-                    .setCostPerExecution(cost)
-                    .build());
-        } finally {
-            index.release();
+        Set<String> relPaths = getRelativePaths(ft);
+        if (relPaths.size() > 1) {
+            LOG.warn("More than one relative parent for query " + filter.getQueryStatement());
+            // there are multiple "parents", as in
+            // "contains(a/x, 'hello') and contains(b/x, 'world')"
+            return Collections.emptyList();
         }
+        String parent = relPaths.iterator().next();
+
+        // no relative properties
+        double cost = 10;
+        if (!parent.isEmpty()) {
+            // all relative properties have the same "parent", as in
+            // "contains(a/x, 'hello') and contains(a/y, 'world')" or
+            // "contains(a/x, 'hello') or contains(a/*, 'world')"
+            // TODO: proper cost calculation
+            // we assume this will cause more read operations,
+            // as we need to read the node and then the parent
+            cost = 15;
+        }
+        return Collections.singletonList(planBuilder(filter)
+                .setCostPerExecution(cost)
+                .setAttribute(ATTR_INDEX_PATH, indexPath)
+                .build());
+
     }
 
     @Override
@@ -232,7 +233,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
-        IndexNode index = tracker.acquireIndexNode("/");
+        IndexNode index = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
         checkState(index != null, "The Lucene index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
@@ -260,7 +261,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     @Override
-    public Cursor query(IndexPlan plan, NodeState rootState) {
+    public Cursor query(final IndexPlan plan, NodeState rootState) {
         final Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         Set<String> relPaths = getRelativePaths(ft);
@@ -325,7 +326,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             private boolean loadDocs() {
                 ScoreDoc lastDocToRecord = null;
 
-                IndexNode indexNode = tracker.acquireIndexNode("/");
+                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
@@ -437,7 +438,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      * @return the Lucene query
      */
     private static Query getQuery(Filter filter, IndexReader reader,
-            boolean nonFullTextConstraints, Analyzer analyzer, NodeState indexDefinition) {
+            boolean nonFullTextConstraints, Analyzer analyzer, IndexDefinition indexDefinition) {
         List<Query> qs = new ArrayList<Query>();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
@@ -485,7 +486,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     private static void addNonFullTextConstraints(List<Query> qs,
-            Filter filter, IndexReader reader, Analyzer analyzer, NodeState indexDefinition) {
+            Filter filter, IndexReader reader, Analyzer analyzer, IndexDefinition indexDefinition) {
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(qs, filter);
         }
@@ -629,7 +630,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     private static boolean isExcludedProperty(PropertyRestriction pr,
-            NodeState definition) {
+            IndexDefinition definition) {
         String name = pr.propertyName;
         if (name.contains("/")) {
             // lucene cannot handle child-level property restrictions
@@ -637,10 +638,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         }
 
         // check name
-        for (String e : definition.getStrings(EXCLUDE_PROPERTY_NAMES)) {
-            if (e.equalsIgnoreCase(name)) {
-                return true;
-            }
+        if(!definition.includeProperty(name)){
+            return true;
         }
 
         // check type
@@ -653,13 +652,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             type = pr.list.get(0).getType().tag();
         }
         if (type != null) {
-            boolean isIn = false;
-            for (String e : definition.getStrings(INCLUDE_PROPERTY_TYPES)) {
-                if (PropertyType.valueFromName(e) == type) {
-                    isIn = true;
-                }
-            }
-            if (!isIn) {
+            if (!definition.includePropertyType(type)) {
                 return true;
             }
         }
