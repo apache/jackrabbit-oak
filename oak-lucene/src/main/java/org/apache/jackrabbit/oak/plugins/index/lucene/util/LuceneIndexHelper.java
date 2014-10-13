@@ -45,6 +45,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class LuceneIndexHelper {
 
@@ -150,5 +151,9 @@ public class LuceneIndexHelper {
      */
     public static boolean skipTokenization(String name) {
         return NOT_TOKENIZED.contains(name);
+    }
+
+    public static boolean isLuceneIndexNode(NodeState node){
+        return TYPE_LUCENE.equals(node.getString(TYPE_PROPERTY_NAME));
     }
 }
