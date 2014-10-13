@@ -172,12 +172,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         removeMe.add(id);
 
         // update with smaller _modified
-//        UpdateOp up2 = new UpdateOp(id, true);
-//        up2.max("_modified", 100L);
-//        up2.set("_id", id);
-//        super.ds.findAndUpdate(Collection.NODES, up2);
-//
-//        super.ds.invalidateCache();
+        UpdateOp up2 = new UpdateOp(id, true);
+        up2.max("_modified", 100L);
+        up2.set("_id", id);
+        super.ds.findAndUpdate(Collection.NODES, up2);
+
+        super.ds.invalidateCache();
 
         // this should find the document; will fail if the MAX operation wasn't applied to the indexed property
         List<NodeDocument> results = super.ds.query(Collection.NODES, this.getClass().getName() + ".testModifiedMaxUpdatd", this.getClass().getName() + ".testModifiedMaxUpdatf", "_modified", 1000, 1);
