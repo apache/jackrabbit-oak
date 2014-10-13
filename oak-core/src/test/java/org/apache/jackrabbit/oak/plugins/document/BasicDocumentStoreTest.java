@@ -401,6 +401,51 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testPerfLastRevBatch() {
+        String bid = this.getClass().getName() + ".testPerfLastRevBatch";
+        int nodecount = 100;
+        long duration = 5000;
+        long end = System.currentTimeMillis() + duration;
+        int cnt = 0;
+        List<String> ids = new ArrayList<String>();
+        Revision cr = Revision.fromString("r0-0-1");
+
+        // create test nodes
+        for (int i = 0; i < nodecount; i++) {
+            String id = bid + "-" + i;
+            removeMe.add(id);
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set("testprop", generateString(100 * i, true));
+            up.setMapEntry("_lastRev", cr, "setup");
+            up.set("_modified", NodeDocument.getModifiedInSecs(System.currentTimeMillis()));
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("creation failed for " + id + " in " + super.dsname, success);
+            ids.add(id);
+        }
+
+        while (System.currentTimeMillis() < end) {
+            UpdateOp up = new UpdateOp(bid, true);
+            up.setMapEntry("_lastRev", cr, "iteration-" + cnt);
+            up.max("_modified", NodeDocument.getModifiedInSecs(System.currentTimeMillis()));
+            super.ds.update(Collection.NODES, ids, up);
+            cnt += 1;
+        }
+
+        // check postcondition
+        super.ds.invalidateCache();
+        for (int i = 0; i < nodecount; i++) {
+            NodeDocument d = super.ds.find(Collection.NODES, bid + "-" + i);
+            assertNotNull(d);
+            Map<Revision, String> m = (Map<Revision, String>)d.get("_lastRev");
+            assertEquals("iteration-" + (cnt - 1), m.get(cr));
+        }
+
+        LOG.info("batch update for _lastRev for " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+    }
+
+    @Test
     public void testUpdatePerfSmall() {
         updatePerf(16, false);
     }
