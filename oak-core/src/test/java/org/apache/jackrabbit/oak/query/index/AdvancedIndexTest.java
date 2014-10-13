@@ -56,5 +56,11 @@ public class AdvancedIndexTest {
         assertEquals(plan1.getFilter().getQueryStatement(), "SELECT * FROM [nt:file]");
         assertEquals(plan2.getFilter().getQueryStatement(), "SELECT * FROM [oak:Unstructured]");
     }
+
+    @Test
+    public void attribute() throws Exception{
+        IndexPlan plan = new IndexPlan.Builder().setAttribute("foo", "bar").build();
+        assertEquals("bar", plan.getAttribute("foo"));
+    }
     
 }

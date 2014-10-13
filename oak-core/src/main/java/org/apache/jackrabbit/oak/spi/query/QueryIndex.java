@@ -20,9 +20,11 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -285,6 +287,19 @@ public interface QueryIndex {
          * @return clone of current plan
          */
         IndexPlan copy();
+
+        /**
+         * Returns the value of the named attribute as an <code>Object</code>,
+         * or <code>null</code> if no attribute of the given name exists.
+         *
+         * @param name <code>String</code> specifying the name of
+         * the attribute
+         *
+         * @return an <code>Object</code> containing the value
+         * of the attribute, or <code>null</code> if the attribute does not exist
+         */
+        @CheckForNull
+        Object getAttribute(String name);
         
         /**
          * A builder for index plans.
@@ -302,6 +317,7 @@ public interface QueryIndex {
             protected NodeState definition;
             protected PropertyRestriction propRestriction;
             protected String pathPrefix = "/";
+            protected Map<String, Object> attributes = Maps.newHashMap();
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -358,6 +374,11 @@ public interface QueryIndex {
                 return this;
             }
 
+            public Builder setAttribute(String key, Object value){
+               this.attributes.put(key, value);
+               return this;
+            }
+
             public IndexPlan build() {
                 
                 return new IndexPlan() {
@@ -386,6 +407,8 @@ public interface QueryIndex {
                             Builder.this.propRestriction;
                     private final String pathPrefix =
                             Builder.this.pathPrefix;
+                    private final Map<String,Object> attributes =
+                            Builder.this.attributes;
 
                     @Override
                     public String toString() {
@@ -487,6 +510,11 @@ public interface QueryIndex {
                         } catch (CloneNotSupportedException e){
                             throw new IllegalStateException(e);
                         }
+                    }
+
+                    @Override
+                    public Object getAttribute(String name) {
+                        return attributes.get(name);
                     }
                 };
             }
