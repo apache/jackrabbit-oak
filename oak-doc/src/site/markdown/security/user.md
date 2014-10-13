@@ -214,6 +214,20 @@ by installing an OSGi service that implementats the `AuthorizableNodeName` inter
 In a non-OSGi setup the user configuration must be initialized with configuration
 parameters that provide the custom generator implementation.
 
+#### Password Expiry and Force Initial Password Change
+
+Since Oak 1.1.0 the default user management and authentication implementation
+provides password expiry and initial password change.
+
+By default these features are disabled. The corresponding configuration options
+are
+
+- `PARAM_PASSWORD_MAX_AGE`: number of days until the password expires.
+- `PARAM_PASSWORD_INITIAL_CHANGE`: boolean flag to enable this feature.
+
+See section [Password Expiry and Force Initial Password Change](user/expiry.html)
+for details.
+
 #### Utilities
 
 `org.apache.jackrabbit.oak.spi.security.user.*`
@@ -254,6 +268,8 @@ as of OAK 1.0:
 | `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider |
 | `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        |
 | `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    |
+| `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            |
+| `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        |
 | | | |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
@@ -317,6 +333,7 @@ to the user configuration as follows:
 - [Group Membership](user/membership.html)
 - [Authorizable Actions](user/authorizableaction.html)
 - [Searching Users and Groups](user/query.html)
+- [Password Expiry and Force Initial Password Change](user/expiry.html)
 
 <!-- hidden references -->
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html#NAME

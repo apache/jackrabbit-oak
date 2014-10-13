@@ -59,3 +59,5 @@ The Oak Security Layer
  * [Group Membership](user/membership.html)
  * [Authorizable Actions](user/authorizableaction.html)
  * [Searching Users and Groups](user/query.html)
+ * [Password Expiry and Force Initial Password Change](user/expiry.html)
+
