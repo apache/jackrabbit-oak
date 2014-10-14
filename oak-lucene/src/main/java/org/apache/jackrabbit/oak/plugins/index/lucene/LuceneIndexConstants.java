@@ -66,4 +66,10 @@ public interface LuceneIndexConstants {
      */
     String INCLUDE_PROPERTY_NAMES = "includePropertyNames";
 
+    /**
+     * Type of the property being indexed defined as part of property definition
+     * under the given index definition. Refer to {@ling javax.jcr.PropertyType}
+     * contants for the possible values
+     */
+    String PROP_TYPE = "propertyType";
 }

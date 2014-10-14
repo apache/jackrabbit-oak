@@ -20,11 +20,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,6 +57,8 @@ public class IndexDefinition {
 
     private final NodeBuilder definition;
 
+    private final Map<String, PropertyDefinition> propDefns;
+
     public IndexDefinition(NodeBuilder defn) {
         this.definition = defn;
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
@@ -75,6 +81,14 @@ public class IndexDefinition {
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
         //Storage is disabled for non full text indexes
         this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
+
+        Map<String, PropertyDefinition> propDefns = Maps.newHashMap();
+        for(String propName : includes){
+            if(defn.hasChildNode(propName)){
+                propDefns.put(propName, new PropertyDefinition(this, propName, defn.child(propName)));
+            }
+        }
+        this.propDefns = ImmutableMap.copyOf(propDefns);
     }
 
     boolean includeProperty(String name) {
@@ -117,6 +131,15 @@ public class IndexDefinition {
             return true;
         }
         return LuceneIndexHelper.skipTokenization(propertyName);
+    }
+
+    @CheckForNull
+    public PropertyDefinition getPropDefn(String propName){
+        return propDefns.get(propName);
+    }
+
+    public boolean hasPropertyDefinition(String propName){
+        return propDefns.containsKey(propName);
     }
 
     //~------------------------------------------< Internal >
