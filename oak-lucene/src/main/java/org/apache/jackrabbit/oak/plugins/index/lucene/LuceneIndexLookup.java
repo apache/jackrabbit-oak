@@ -19,9 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -42,7 +43,7 @@ public class LuceneIndexLookup {
      * fulltext search
      */
     public String getFullTextIndexPath(Filter filter, IndexTracker tracker) {
-        List<String> indexPaths = collectIndexNodePaths(filter);
+        Collection<String> indexPaths = collectIndexNodePaths(filter);
         IndexNode indexNode = null;
         for (String path : indexPaths) {
             try {
@@ -60,13 +61,13 @@ public class LuceneIndexLookup {
         return null;
     }
 
-    private List<String> collectIndexNodePaths(Filter filter){
-        List<String> paths = Lists.newArrayList();
+    public Collection<String> collectIndexNodePaths(Filter filter){
+        Set<String> paths = Sets.newHashSet();
         collectIndexNodePaths(filter.getPath(), paths);
         return paths;
     }
 
-    private void collectIndexNodePaths(String filterPath, List<String> paths) {
+    private void collectIndexNodePaths(String filterPath, Collection<String> paths) {
         //TODO Add support for looking index nodes from non root paths
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
