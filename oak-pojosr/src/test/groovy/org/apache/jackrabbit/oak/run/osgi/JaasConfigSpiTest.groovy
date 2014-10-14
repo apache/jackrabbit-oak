@@ -24,6 +24,7 @@ import org.apache.felix.jaas.LoginModuleFactory
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
 import javax.jcr.Credentials
@@ -57,6 +58,7 @@ class JaasConfigSpiTest extends AbstractRepositoryFactoryTest{
         ]
     }
 
+    @Ignore("OAK-2185")
     @Test
     public void defaultConfigSpiAuth() throws Exception{
         repository = repositoryFactory.getRepository(config)
