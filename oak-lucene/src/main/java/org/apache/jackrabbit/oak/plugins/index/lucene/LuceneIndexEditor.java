@@ -239,6 +239,13 @@ public class LuceneIndexEditor implements IndexEditor {
             // updated the state but had no relevant changes
             return null;
         }
+
+        //For property index no use making an empty document if
+        //none of the properties are indexed
+        if(!context.isFullTextEnabled() && !dirty){
+            return null;
+        }
+
         Document document = new Document();
         document.add(newPathField(path));
         String name = getName(path);
