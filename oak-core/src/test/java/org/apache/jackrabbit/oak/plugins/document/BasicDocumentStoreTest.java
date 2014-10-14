@@ -240,6 +240,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testUpdateMultiple() {
         String id = this.getClass().getName() + ".testUpdateMultiple";
         // create a test node
+        super.ds.remove(Collection.NODES, id);
         UpdateOp up = new UpdateOp(id, true);
         up.set("_id", id);
         boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -405,7 +406,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         String bid = this.getClass().getName() + ".testPerfLastRevBatch";
         int nodecount = 100;
         long duration = 5000;
-        long end = System.currentTimeMillis() + duration;
         int cnt = 0;
         List<String> ids = new ArrayList<String>();
         Revision cr = Revision.fromString("r0-0-1");
@@ -424,6 +424,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             ids.add(id);
         }
 
+        long end = System.currentTimeMillis() + duration;
         while (System.currentTimeMillis() < end) {
             UpdateOp up = new UpdateOp(bid, true);
             up.setMapEntry("_lastRev", cr, "iteration-" + cnt);
