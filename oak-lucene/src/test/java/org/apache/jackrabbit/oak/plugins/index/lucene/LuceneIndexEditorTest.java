@@ -129,6 +129,26 @@ public class LuceneIndexEditorTest {
                 dateToTime("05/05/2014"), dateToTime("05/07/2014"), true, true)));
     }
 
+    @Test
+    public void noOfDocsIndexedNonFullText() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        builder.child("test2").setProperty("bar", "kite is flying");
+        builder.child("test3").setProperty("foo", "wind is blowing");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertEquals(2, getSearcher().getIndexReader().numDocs());
+    }
+
     @After
     public void releaseIndexNode(){
         if(indexNode != null){
