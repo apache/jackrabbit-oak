@@ -102,7 +102,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
                 intValue = UserConstants.DEFAULT_PASSWORD_MAX_AGE),
         @Property(name = UserConstants.PARAM_PASSWORD_INITIAL_CHANGE,
                 label = "Change Password On First Login",
-                description = "When enabled, forces users to change their password upon first login. Note that a maximum password age must be set to a value > 0 in order to make this option functional.",
+                description = "When enabled, forces users to change their password upon first login.",
                 boolValue = UserConstants.DEFAULT_PASSWORD_INITIAL_CHANGE)
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
