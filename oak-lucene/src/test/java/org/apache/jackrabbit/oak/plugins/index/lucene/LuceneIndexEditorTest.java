@@ -179,14 +179,14 @@ public class LuceneIndexEditorTest {
         return indexNode.getSearcher();
     }
 
-    private static Calendar createDate(String dt) throws java.text.ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/mm/yyyy");
+    static Calendar createDate(String dt) throws java.text.ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         Calendar cal = Calendar.getInstance();
         cal.setTime(sdf.parse(dt));
         return cal;
     }
 
-    private static long dateToTime(String dt) throws java.text.ParseException {
+    static long dateToTime(String dt) throws java.text.ParseException {
         return FieldFactory.dateToLong(ISO8601.format(createDate(dt)));
     }
 }
