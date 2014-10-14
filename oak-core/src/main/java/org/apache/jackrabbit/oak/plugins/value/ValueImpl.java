@@ -41,9 +41,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  */
 public class ValueImpl implements JackrabbitValue {
 
-    public static Blob getBlob(Value value) {
-        checkState(value instanceof ValueImpl);
-        return ((ValueImpl) value).getBlob();
+    public static Blob getBlob(Value value) throws RepositoryException {
+        if (value instanceof ValueImpl) {
+            return ((ValueImpl) value).getBlob();
+        } else {
+            return new BinaryBasedBlob(value.getBinary());
+        }
     }
 
     private final PropertyState propertyState;

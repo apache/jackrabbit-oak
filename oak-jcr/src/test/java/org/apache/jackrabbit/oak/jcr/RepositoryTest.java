@@ -75,18 +75,13 @@ import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.spi.QValue;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
+import org.apache.jackrabbit.spi.commons.value.QValueFactoryImpl;
+import org.apache.jackrabbit.spi.commons.value.QValueValue;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.commons.JcrUtils.getChildNodes;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -964,6 +959,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
         InputStream is = new NumberStream(123456);
         Binary bin = getAdminSession().getValueFactory().createBinary(is);
         addProperty(parentNode, "bigBinary", getAdminSession().getValueFactory().createValue(bin));
+    }
+
+    @Test
+    public void addAlienBinaryProperty() throws RepositoryException, IOException {
+        Session session = getAdminSession();
+        QValue qValue = QValueFactoryImpl.getInstance().create("binaryValue".getBytes());
+        Value value = new QValueValue(qValue, new DefaultNamePathResolver(session));
+        getNode(TEST_PATH).setProperty("binary", value);
+        session.save();
+
+        Value valueAgain = getNode(TEST_PATH).getProperty("binary").getValue();
+        assertEqualStream(value.getBinary().getStream(), valueAgain.getBinary().getStream());
     }
 
     @Test
