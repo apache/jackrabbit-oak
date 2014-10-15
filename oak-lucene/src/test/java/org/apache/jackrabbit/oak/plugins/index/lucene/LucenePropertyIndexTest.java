@@ -283,6 +283,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
 
+    @Ignore("OAK-2196")
     @Test
     public void sortQueriesWithDate() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
