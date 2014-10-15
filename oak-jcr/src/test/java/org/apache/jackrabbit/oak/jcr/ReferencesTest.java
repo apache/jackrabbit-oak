@@ -473,7 +473,7 @@ public class ReferencesTest extends AbstractJCRTest {
         while (refs.hasNext()) {
             paths.add(refs.nextProperty().getPath());
         }
-//        checkEquals(msg, paths, expected);
+        checkEquals(msg, paths, expected);
     }
 
     private static void checkEquals(String msg, List<String> result, String ... expected) {
