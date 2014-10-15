@@ -353,7 +353,7 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
         return "";
     }
 
-    public void printDependenciesToFile(String file) {
+    public void printTarInfo(String file) {
         if (file == null || file.length() == 0) {
             return;
         }
@@ -386,6 +386,18 @@ public class NodeStoreTree extends JPanel implements TreeSelectionListener {
                 sb.append(p);
                 sb.append(newline);
             }
+        }
+
+        sb.append(newline);
+        try {
+            Map<UUID, List<UUID>> graph = store.getTarGraph(file);
+            sb.append("Tar graph:").append(newline);
+            for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+                sb.append(entry.getKey()).append('=').append(entry.getValue()).append(newline);
+            }
+            sb.append(newline);
+        } catch (IOException e) {
+            sb.append("Error getting tar graph:").append(e).append(newline);
         }
 
         log.setText(sb.toString());

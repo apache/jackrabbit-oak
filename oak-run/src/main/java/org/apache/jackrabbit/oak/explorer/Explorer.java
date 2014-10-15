@@ -137,7 +137,7 @@ public class Explorer {
             }
         });
 
-        JMenuItem menuRefs = new JMenuItem("Tar File Refs");
+        JMenuItem menuRefs = new JMenuItem("Tar File Info");
         menuRefs.setMnemonic(KeyEvent.VK_R);
         menuRefs.addActionListener(new ActionListener() {
             @Override
@@ -150,11 +150,11 @@ public class Explorer {
                 }
 
                 String s = (String) JOptionPane.showInputDialog(frame,
-                        "Choose a tar file", "Tar File References",
+                        "Choose a tar file", "Tar File Info",
                         JOptionPane.PLAIN_MESSAGE, null, tarFiles.toArray(),
                         tarFiles.get(0));
                 if (s != null) {
-                    treePanel.printDependenciesToFile(s);
+                    treePanel.printTarInfo(s);
                     return;
                 }
             }

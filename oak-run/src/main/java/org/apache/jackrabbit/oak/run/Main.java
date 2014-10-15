@@ -691,6 +691,18 @@ public class Main {
             } else {
                 System.out.println("No references to " + f);
             }
+
+            try {
+                Map<UUID, List<UUID>> graph = store.getTarGraph(f);
+                System.out.println();
+                System.out.println("Tar graph:");
+                for (Entry<UUID, List<UUID>> entry : graph.entrySet()) {
+                    System.out.println("" + entry.getKey() + '=' + entry.getValue());
+                }
+            } catch (IOException e) {
+                System.out.println("Error getting tar graph:");
+            }
+
         }
     }
 
