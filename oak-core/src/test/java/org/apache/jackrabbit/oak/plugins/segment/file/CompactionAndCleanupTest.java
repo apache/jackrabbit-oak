@@ -37,10 +37,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -116,7 +118,7 @@ public class CompactionAndCleanupTest {
 
         //Size is still double. Deleted space not reclaimed
         System.out.printf("File store post cleanup %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), 2*mb(blobSize));
+        assertEquals(mb(fileStore.size()), 2 * mb(blobSize));
 
         //6. Null out any hard reference
         ns1 = null;
@@ -250,6 +252,12 @@ public class CompactionAndCleanupTest {
         segmentIds.add(id);
         for (ChildNodeEntry cne : s.getChildNodeEntries()) {
             collectSegments((SegmentNodeState) cne.getNodeState(), segmentIds);
+        }
+        for (PropertyState propertyState : s.getProperties()) {
+            sid = ((SegmentPropertyState) propertyState).getRecordId().getSegmentId();
+            id = new UUID(sid.getMostSignificantBits(),
+                    sid.getLeastSignificantBits());
+            segmentIds.add(id);
         }
     }
 
