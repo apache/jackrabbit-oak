@@ -17,21 +17,25 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.SecureRandom;
+import java.util.Map;
 import java.util.Random;
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 
 /**
  * Implementation of the {@code AuthorizableNodeName} that generates a random
  * node name that doesn't reveal the ID of the authorizable.
- *
- * TODO: enable by default
  */
-@Component(metatype = true, description = "Generates a random name for the authorizable node.", enabled = false)
+@Component(metatype = true, label = "Random Authorizable Node Name", description = "Generates a random name for the authorizable node.", policy = ConfigurationPolicy.REQUIRE)
 @Service(AuthorizableNodeName.class)
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 
@@ -51,9 +55,10 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
         VALID_CHARS = sb.toString().toCharArray();
     }
 
+    private static final String PARAM_LENGTH = "length";
     private static final int DEFAULT_LENGTH = 8;
 
-    @Property(name = "length", label = "Name Length", description = "Length of the generated node name.", intValue = DEFAULT_LENGTH)
+    @Property(name = PARAM_LENGTH, label = "Name Length", description = "Length of the generated node name.", intValue = DEFAULT_LENGTH)
     private int length = DEFAULT_LENGTH;
 
     @Nonnull
@@ -65,5 +70,10 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
             chars[i] = VALID_CHARS[random.nextInt(VALID_CHARS.length)];
         }
         return new String(chars);
+    }
+
+    @Activate
+    private void activate(Map<String, Object> properties) {
+        length = PropertiesUtil.toInteger(properties.get(PARAM_LENGTH), DEFAULT_LENGTH);
     }
 }
