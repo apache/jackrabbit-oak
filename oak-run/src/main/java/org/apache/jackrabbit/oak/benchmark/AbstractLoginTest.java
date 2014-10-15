@@ -21,6 +21,7 @@ import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.Privilege;
@@ -72,16 +73,7 @@ abstract class AbstractLoginTest extends AbstractTest {
 
     @Override
     public void setUp(Repository repository, Credentials credentials) throws Exception {
-        Credentials creds;
-        if ("admin".equals(runAsUser)) {
-            creds = credentials;
-        } else if ("anonymous".equals(runAsUser)) {
-            creds = new GuestCredentials();
-        } else {
-            creds = new SimpleCredentials(USER, USER.toCharArray());
-        }
-        super.setUp(repository, creds);
-
+        super.setUp(repository, buildCredentials(repository, credentials));
         Session s = loginAdministrative();
         try {
             AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
@@ -92,7 +84,17 @@ abstract class AbstractLoginTest extends AbstractTest {
             s.save();
             s.logout();
         }
+    }
 
+    private Credentials buildCredentials(Repository repository, Credentials credentials) throws RepositoryException {
+        Credentials creds;
+        if ("admin".equals(runAsUser)) {
+            creds = credentials;
+        } else if ("anonymous".equals(runAsUser)) {
+            creds = new GuestCredentials();
+        } else {
+            creds = new SimpleCredentials(USER, USER.toCharArray());
+        }
         if (runWithToken) {
             Configuration.setConfiguration(ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY));
             if (creds instanceof SimpleCredentials) {
@@ -104,6 +106,7 @@ abstract class AbstractLoginTest extends AbstractTest {
                 throw new UnsupportedOperationException();
             }
         }
+        return creds;
     }
 
     @Override
