@@ -19,20 +19,31 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -179,5 +190,84 @@ public class CompactionAndCleanupTest {
             fileStore.close();
         }
     }
+
+    @Ignore("OAK-2192")  // FIXME OAK-2192
+    @Test
+    public void testMixedSegments() throws Exception {
+        FileStore store = new FileStore(directory, 2, false);
+        final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
+
+        NodeBuilder root = nodeStore.getRoot().builder();
+        createNodes(root.setChildNode("test"), 10, 3);
+        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        final Set<UUID> beforeSegments = new HashSet<UUID>();
+        collectSegments(store.getHead(), beforeSegments);
+
+        final AtomicReference<Boolean> run = new AtomicReference<Boolean>(true);
+        final List<Integer> failedCommits = newArrayList();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int k = 0; run.get(); k++) {
+                    try {
+                        NodeBuilder root = nodeStore.getRoot().builder();
+                        root.setChildNode("b" + k);
+                        nodeStore.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                        Thread.sleep(5);
+                    } catch (CommitFailedException e) {
+                        failedCommits.add(k);
+                    } catch (InterruptedException e) {
+                        Thread.interrupted();
+                        break;
+                    }
+                }
+            }
+        });
+        t.start();
+
+        store.compact();
+        run.set(false);
+        t.join();
+
+        assertTrue(failedCommits.isEmpty());
+
+        Set<UUID> afterSegments = new HashSet<UUID>();
+        collectSegments(store.getHead(), afterSegments);
+        try {
+            for (UUID u : beforeSegments) {
+                assertFalse("Mixed segments found: " + u, afterSegments.contains(u));
+            }
+        } finally {
+            store.close();
+        }
+    }
+
+    private static void collectSegments(SegmentNodeState s, Set<UUID> segmentIds) {
+        SegmentId sid = s.getRecordId().getSegmentId();
+        UUID id = new UUID(sid.getMostSignificantBits(),
+                sid.getLeastSignificantBits());
+        segmentIds.add(id);
+        for (ChildNodeEntry cne : s.getChildNodeEntries()) {
+            collectSegments((SegmentNodeState) cne.getNodeState(), segmentIds);
+        }
+    }
+
+    private static void createNodes(NodeBuilder builder, int count, int depth) {
+        if (depth > 0) {
+            for (int k = 0; k < count; k++) {
+                NodeBuilder child = builder.setChildNode("node" + k);
+                createProperties(child, count);
+                createNodes(child, count, depth - 1);
+            }
+        }
+    }
+
+    private static void createProperties(NodeBuilder builder, int count) {
+        for (int k = 0; k < count; k++) {
+            builder.setProperty("property-" + UUID.randomUUID().toString(), "value-" + UUID.randomUUID().toString());
+        }
+    }
+
 
 }
