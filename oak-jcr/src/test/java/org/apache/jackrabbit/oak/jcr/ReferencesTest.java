@@ -37,7 +37,6 @@ import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.api.util.Text;
-import org.junit.Ignore;
 
 /**
  * Some very special reference tests also including references into the version store.
@@ -72,7 +71,7 @@ public class ReferencesTest extends AbstractJCRTest {
         checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/myref");
     }
 
-    @Ignore("OAK-2197")  // FIXME OAK-2197
+    // FIXME OAK-2197
     public void testMultipleMultiReferences() throws RepositoryException {
         Node ref = testRootNode.addNode(nodeName2, testNodeType);
         ref.addMixin(mixReferenceable);
