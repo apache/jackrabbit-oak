@@ -181,7 +181,8 @@ public class VersionManagerDelegate {
         String vhRelPath = PathUtils.relativize(VersionStorage.VERSION_STORAGE_PATH,
                 checkNotNull(versionHistory).getPath());
         versionManager.addVersionLabel(storage, vhRelPath,
-                checkNotNull(version).getName(), checkNotNull(oakVersionLabel),
+                checkNotNull(version).getIdentifier(),
+                checkNotNull(oakVersionLabel),
                 moveLabel);
     }
 

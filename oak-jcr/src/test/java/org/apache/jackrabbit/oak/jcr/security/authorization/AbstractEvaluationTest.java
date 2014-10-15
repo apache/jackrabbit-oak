@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -32,8 +32,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
+import javax.jcr.security.AccessControlEntry;
+import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -42,11 +43,13 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.junit.After;
 import org.junit.Before;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -78,7 +81,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected Session testSession;
     protected AccessControlManager testAcMgr;
 
-    private Set<String> toClear = new HashSet<String>();
+    private List<ACL> toRestore = Lists.newArrayList();
 
     @Override
     @Before
@@ -116,8 +119,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         childchildPPath = ccp1.getPath();
         siblingPath = n2.getPath();
 
-        // setup default permissions
-        AccessControlUtils.addAccessControlEntry(superuser, "/", EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
         superuser.save();
 
         testSession = createTestSession();
@@ -139,14 +140,13 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
                 testSession.logout();
             }
             superuser.refresh(false);
-            for (String path : toClear) {
-                if (path != null && superuser.nodeExists(path)) {
-                    AccessControlPolicy[] policies = acMgr.getPolicies(path);
-                    for (AccessControlPolicy policy : policies) {
-                        acMgr.removePolicy(path, policy);
-                    }
+            // restore in reverse order
+            for (ACL acl : Lists.reverse(toRestore)) {
+                if (acl.path == null || superuser.nodeExists(acl.path)) {
+                    restoreAces(acl);
                 }
             }
+            toRestore.clear();
             if (testGroup != null) {
                 testGroup.remove();
             }
@@ -225,6 +225,9 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected JackrabbitAccessControlList modify(String path, Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
+        // remember for restore during tearDown
+        toRestore.add(getACL(path));
+
         JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, path);
         tmpl.addEntry(principal, privileges, isAllow, restrictions);
 
@@ -232,8 +235,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         superuser.save();
         testSession.refresh(false);
 
-        // remember for clean up during tearDown
-        toClear.add(tmpl.getPath());
         return tmpl;
     }
 
@@ -269,5 +270,37 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected JackrabbitAccessControlList deny(String nPath, Principal principal, Privilege[] privileges)
             throws Exception {
         return modify(nPath, principal, privileges, false, EMPTY_RESTRICTIONS);
+    }
+
+    private ACL getACL(String path) throws RepositoryException {
+        return new ACL(path, AccessControlUtils.getAccessControlList(superuser, path));
+    }
+
+    private void restoreAces(ACL restore) throws RepositoryException {
+        AccessControlList acl = AccessControlUtils.getAccessControlList(superuser, path);
+        if (acl != null) {
+            for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+                acl.removeAccessControlEntry(ace);
+            }
+            for (AccessControlEntry ace : restore.entries) {
+                acl.addAccessControlEntry(ace.getPrincipal(), ace.getPrivileges());
+            }
+            acMgr.setPolicy(path, acl);
+            superuser.save();
+        }
+    }
+
+    private static final class ACL {
+
+        private final String path;
+        private final Set<AccessControlEntry> entries = Sets.newHashSet();
+
+        ACL(String path, AccessControlList list)
+                throws RepositoryException {
+            this.path = path;
+            if (list != null) {
+                Collections.addAll(entries, list.getAccessControlEntries());
+            }
+        }
     }
 }

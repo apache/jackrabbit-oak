@@ -58,21 +58,6 @@ public interface VersionConstants extends JcrConstants {
     String MIX_REP_VERSIONABLE_PATHS = "rep:VersionablePaths";
 
     /**
-     * Version operation property name to add version labels.
-     */
-    String REP_ADD_VERSION_LABELS = "rep:addVersionLabels";
-
-    /**
-     * Version operation property name to remove version labels.
-     */
-    String REP_REMOVE_VERSION_LABELS = "rep:removeVersionLabels";
-
-    /**
-     * Version operation property name to remove version(s).
-     */
-    String REP_REMOVE_VERSION = "rep:removeVersion";
-
-    /**
      * Prefix of the jcr:baseVersion value for a restore.
      */
     String RESTORE_PREFIX = "restore-";
