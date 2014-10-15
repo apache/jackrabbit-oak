@@ -24,7 +24,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.Query;
-import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.Lists;
@@ -35,6 +34,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -57,6 +57,16 @@ public class UserManagementTest extends AbstractEvaluationTest {
     private List<String> authorizablesToRemove = Lists.newArrayList(userId, groupId);
 
     @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        // setup default permissions
+        String authPath = "/rep:security/rep:authorizables";
+        AccessControlUtils.addAccessControlEntry(superuser, authPath, EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
+        superuser.save();
+    }
+
+    @Override
     @Before
     public void tearDown() throws Exception {
         try {
@@ -68,20 +78,6 @@ public class UserManagementTest extends AbstractEvaluationTest {
                 Authorizable a = userMgr.getAuthorizable(id);
                 if (a != null) {
                     a.remove();
-                }
-            }
-
-            JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, "/");
-            if (acl != null) {
-                boolean modified = false;
-                for (AccessControlEntry entry : acl.getAccessControlEntries()) {
-                    if (testUser.getPrincipal().equals(entry.getPrincipal())) {
-                        acl.removeAccessControlEntry(entry);
-                        modified = true;
-                    }
-                }
-                if (modified) {
-                    acMgr.setPolicy("/", acl);
                 }
             }
 

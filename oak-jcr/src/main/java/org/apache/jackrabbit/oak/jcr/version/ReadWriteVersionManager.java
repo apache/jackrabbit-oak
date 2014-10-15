@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
-import java.util.Collections;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -44,9 +42,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_ADD_VERSION_LABELS;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION_LABELS;
-import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_REMOVE_VERSION;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -182,27 +177,22 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     public void addVersionLabel(@Nonnull VersionStorage versionStorage,
                                 @Nonnull String versionHistoryOakRelPath,
-                                @Nonnull String versionOakName,
+                                @Nonnull String versionIdentifier,
                                 @Nonnull String oakVersionLabel,
                                 boolean moveLabel) throws RepositoryException {
         Tree versionHistory = TreeUtil.getTree(checkNotNull(versionStorage.getTree()),
                 checkNotNull(versionHistoryOakRelPath));
         Tree labels = checkNotNull(versionHistory).getChild(JCR_VERSIONLABELS);
-        if (labels.hasProperty(checkNotNull(oakVersionLabel))) {
+        PropertyState existing = labels.getProperty(checkNotNull(oakVersionLabel));
+        if (existing != null) {
             if (moveLabel) {
-                String labelPath = PathUtils.concat(versionHistoryOakRelPath,
-                        JCR_VERSIONLABELS, oakVersionLabel, "dummy");
-                versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
-                        Collections.singleton(labelPath), Type.PATHS);
+                labels.removeProperty(existing.getName());
             } else {
                 throw new LabelExistsVersionException("Version label '"
                         + oakVersionLabel + "' already exists on this version history");
             }
         }
-        String labelPath = PathUtils.concat(versionHistoryOakRelPath,
-                JCR_VERSIONLABELS, oakVersionLabel, checkNotNull(versionOakName));
-        versionStorage.getTree().setProperty(REP_ADD_VERSION_LABELS,
-                Collections.singleton(labelPath), Type.PATHS);
+        labels.setProperty(oakVersionLabel, versionIdentifier, Type.REFERENCE);
         try {
             sessionDelegate.commit(versionStorage.getRoot());
             refresh();
@@ -223,10 +213,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             throw new VersionException("Version label " + oakVersionLabel +
                     " does not exist on this version history");
         }
-        String labelPath = PathUtils.concat(versionHistoryOakRelPath,
-                JCR_VERSIONLABELS, oakVersionLabel, "dummy");
-        versionStorage.getTree().setProperty(REP_REMOVE_VERSION_LABELS,
-                Collections.singleton(labelPath), Type.PATHS);
+        labels.removeProperty(oakVersionLabel);
         try {
             sessionDelegate.commit(versionStorage.getRoot());
             refresh();
@@ -248,8 +235,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
         if (!version.exists()) {
             throw new VersionException("Version " + oakVersionName + " does not exist on this version history");
         }
-        String versionPath = PathUtils.concat(versionHistoryOakRelPath, oakVersionName);
-        versionStorage.getTree().setProperty(REP_REMOVE_VERSION, Collections.singleton(versionPath), Type.PATHS);
+        version.remove();
         try {
             sessionDelegate.commit(versionStorage.getRoot());
             refresh();

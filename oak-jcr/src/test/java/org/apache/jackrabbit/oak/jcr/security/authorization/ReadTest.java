@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.Node;
@@ -26,11 +25,9 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlList;
 import javax.jcr.security.Privilege;
 import javax.jcr.util.TraversingItemVisitor;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -144,37 +141,12 @@ public class ReadTest extends AbstractEvaluationTest {
 
     @Test
     public void testDenyRoot() throws Exception {
-        Set<AccessControlEntry> acesBefore = getACEs("/");
         try {
             deny("/", readPrivileges);
             testSession.getRootNode();
             fail("root should not be accessible");
         } catch (Exception e) {
             // expected exception
-        } finally {
-            restoreAces("/", acesBefore);
-        }
-    }
-
-    private Set<AccessControlEntry> getACEs(String path) throws RepositoryException {
-        AccessControlList acl = AccessControlUtils.getAccessControlList(superuser, path);
-        Set<AccessControlEntry> acesBefore = Sets.newHashSet();
-        if (acl != null) {
-            Collections.addAll(acesBefore, acl.getAccessControlEntries());
-        }
-        return acesBefore;
-    }
-
-    private void restoreAces(String path, Set<AccessControlEntry> acesToKeep) throws RepositoryException {
-        AccessControlList acl = AccessControlUtils.getAccessControlList(superuser, path);
-        if (acl != null) {
-            for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-                if (!acesToKeep.contains(ace)) {
-                    acl.removeAccessControlEntry(ace);
-                }
-            }
-            acMgr.setPolicy("/", acl);
-            superuser.save();
         }
     }
 

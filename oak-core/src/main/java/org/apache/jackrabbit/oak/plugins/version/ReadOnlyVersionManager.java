@@ -112,6 +112,17 @@ public abstract class ReadOnlyVersionManager {
     }
 
     /**
+     * Returns the version tree with the given uuid.
+     *
+     * @param uuid the uuid of the version tree.
+     * @return the version tree or {@code null} if there is none.
+     */
+    @CheckForNull
+    public Tree getVersion(@Nonnull String uuid) {
+        return getIdentifierManager().getTree(uuid);
+    }
+
+    /**
      * Returns the path of the version history for the given {@code uuid}.
      * The returned path is relative to the version storage tree as returned
      * by {@link #getVersionStorage()}.

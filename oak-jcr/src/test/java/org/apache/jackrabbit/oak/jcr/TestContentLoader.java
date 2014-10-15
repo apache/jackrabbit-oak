@@ -69,6 +69,7 @@ public class TestContentLoader {
         }
 
         AccessControlUtils.addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+        AccessControlUtils.addAccessControlEntry(session, "/jcr:system", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, false);
         session.save();
     }
 
