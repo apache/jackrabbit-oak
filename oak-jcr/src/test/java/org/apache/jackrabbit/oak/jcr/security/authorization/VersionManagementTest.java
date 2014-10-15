@@ -48,7 +48,9 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         super.setUp();
 
         versionPrivileges = privilegesFromName(Privilege.JCR_VERSION_MANAGEMENT);
-        assertFalse(testAcMgr.hasPrivileges(VERSIONSTORE, versionPrivileges));
+        // must not see version storage or must not have version privilege
+        assertTrue(!testSession.nodeExists(VERSIONSTORE)
+                || !testAcMgr.hasPrivileges(VERSIONSTORE, versionPrivileges));
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
@@ -315,6 +317,30 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         VersionManager vMgr = testSession.getWorkspace().getVersionManager();
         history = vMgr.getVersionHistory(testNode.getPath());
         history.addVersionLabel(v.getName(), "testLabel", true);
+    }
+
+    /**
+     * @since oak
+     */
+    @Test
+    public void testRemoveVersionLabel() throws Exception {
+        Node n = createVersionableNode(superuser.getNode(path));
+        allow(n.getPath(), versionPrivileges);
+
+        Node testNode = testSession.getNode(n.getPath());
+        Version v = testNode.checkin();
+        testNode.checkout();
+        Version v2 = testNode.checkin();
+        testNode.checkout();
+
+        // -> VersionHistory.addVersionLabel must be allowed
+        VersionHistory history = testNode.getVersionHistory();
+        history.addVersionLabel(v.getName(), "testLabel", false);
+        history.addVersionLabel(v2.getName(), "testLabel", true);
+
+        VersionManager vMgr = testSession.getWorkspace().getVersionManager();
+        history = vMgr.getVersionHistory(testNode.getPath());
+        history.removeVersionLabel("testLabel");
     }
 
     /**

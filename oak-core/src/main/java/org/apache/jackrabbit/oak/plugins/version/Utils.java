@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.plugins.version;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
@@ -69,5 +72,10 @@ public final class Utils {
             throw new IllegalStateException("Node does not have a jcr:primaryType");
         }
         return primaryType;
+    }
+
+    static <T> T throwProtected(String path) throws CommitFailedException {
+        throw new CommitFailedException(CONSTRAINT, 100,
+                "Item is protected: " + path);
     }
 }

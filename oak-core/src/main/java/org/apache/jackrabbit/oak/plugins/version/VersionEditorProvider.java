@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.SubtreeEditor;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -47,7 +48,9 @@ public class VersionEditorProvider implements EditorProvider {
         NodeBuilder versionStorage = system.child(JCR_VERSIONSTORAGE);
         return new VisibleEditor(new CompositeEditor(
                 new VersionEditor(versionStorage, builder, info),
-                new VersionStorageEditor(versionStorage, builder)));
+                new SubtreeEditor(
+                        new VersionStorageEditor(versionStorage, builder),
+                            JCR_SYSTEM, JCR_VERSIONSTORAGE)));
     }
 
 }
