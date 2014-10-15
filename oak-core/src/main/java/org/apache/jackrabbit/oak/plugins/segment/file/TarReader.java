@@ -23,6 +23,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static com.google.common.collect.Maps.newTreeMap;
 import static com.google.common.collect.Sets.newHashSetWithExpectedSize;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.REF_COUNT_OFFSET;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentId.isDataSegmentId;
@@ -724,6 +725,14 @@ class TarReader {
     }
 
     //-----------------------------------------------------------< private >--
+
+    Map<UUID, List<UUID>> getGraph() throws IOException {
+        if (graph == null) {
+            return emptyMap();
+        } else {
+            return parseGraph();
+        }
+    }
 
     private Map<UUID, List<UUID>> parseGraph() throws IOException {
         int count = graph.getInt(graph.limit() - 12);

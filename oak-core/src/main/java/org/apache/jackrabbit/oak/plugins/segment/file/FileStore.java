@@ -24,6 +24,7 @@ import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -49,18 +50,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Stopwatch;
-
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -727,6 +728,20 @@ public class FileStore implements SegmentStore {
             index.put(reader.getFile().getAbsolutePath(), reader.getUUIDs());
         }
         return index;
+    }
+
+    public Map<UUID, List<UUID>> getTarGraph(String fileName) throws IOException {
+        for (TarReader reader : readers) {
+            if (fileName.equals(reader.getFile().getName())) {
+                Map<UUID, List<UUID>> graph = Maps.newHashMap();
+                for (UUID uuid : reader.getUUIDs()) {
+                    graph.put(uuid, null);
+                }
+                graph.putAll(reader.getGraph());
+                return graph;
+            }
+        }
+        return emptyMap();
     }
 
     public FileStore setPauseCompaction(boolean pauseCompaction) {
