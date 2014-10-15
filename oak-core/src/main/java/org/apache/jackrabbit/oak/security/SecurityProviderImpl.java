@@ -29,7 +29,6 @@ import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.authentication.AuthenticationConfigurationImpl;
@@ -50,11 +49,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Access
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAuthorizableNodeName;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardRestrictionProvider;
 import org.osgi.framework.BundleContext;
@@ -93,13 +92,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE)
     private final CompositeTokenConfiguration tokenConfiguration = new CompositeTokenConfiguration(this);
 
-    @Reference(referenceInterface = AuthorizableNodeName.class,
-            name = "authorizableNodeName",
-            bind = "bindAuthorizableNodeName",
-            cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY)
-    private final NameGenerator nameGenerator = new NameGenerator();
-
+    private final WhiteboardAuthorizableNodeName authorizableNodeName = new WhiteboardAuthorizableNodeName();
     private final WhiteboardAuthorizableActionProvider authorizableActionProvider = new WhiteboardAuthorizableActionProvider();
     private final WhiteboardRestrictionProvider restrictionProvider = new WhiteboardRestrictionProvider();
 
@@ -197,6 +190,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     protected void activate(BundleContext context) throws Exception {
         whiteboard = new OsgiWhiteboard(context);
         authorizableActionProvider.start(whiteboard);
+        authorizableNodeName.start(whiteboard);
         restrictionProvider.start(whiteboard);
 
         initializeConfigurations();
@@ -205,6 +199,7 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
     @Deactivate
     protected void deactivate() throws Exception {
         authorizableActionProvider.stop();
+        authorizableNodeName.stop();
         restrictionProvider.stop();
     }
 
@@ -224,10 +219,6 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         tokenConfiguration.removeConfiguration(reference);
     }
 
-    protected void bindAuthorizableNodeName(@Nonnull AuthorizableNodeName reference) {
-        nameGenerator.dlg = reference;
-    }
-
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
         Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
@@ -235,9 +226,9 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         );
         initConfiguration(authorizationConfiguration, ConfigurationParameters.of(authorizMap));
 
-        Map<String, Object> userMap = ImmutableMap.of(
+        Map<String, Object> userMap = ImmutableMap.<String,Object>of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
-                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, nameGenerator);
+                UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, authorizableNodeName);
         initConfiguration(userConfiguration, ConfigurationParameters.of(userMap));
 
         initConfiguration(authenticationConfiguration);
@@ -260,16 +251,5 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
             cfg.setParameters(ConfigurationParameters.of(params, cfg.getParameters()));
         }
         return config;
-    }
-
-    private final class NameGenerator implements AuthorizableNodeName {
-
-        private volatile AuthorizableNodeName dlg = AuthorizableNodeName.DEFAULT;
-
-        @Nonnull
-        @Override
-        public String generateNodeName(@Nonnull String authorizableId) {
-            return dlg.generateNodeName(authorizableId);
-        }
     }
 }
