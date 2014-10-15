@@ -283,7 +283,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
 
-    @Ignore("OAK-2196")
     @Test
     public void sortQueriesWithDate() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
@@ -415,7 +414,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Random rnd = new Random();
         List<Calendar> values = Lists.newArrayListWithCapacity(n);
         for (long i = 0; i < n; i++){
-            values.add(createCal(String.format("%02d/%02d/2014", rnd.nextInt(29) + 1, rnd.nextInt(11) + 1)));
+            values.add(createCal(String.format("%02d/%02d/2%03d", rnd.nextInt(26) + 1, rnd.nextInt(10) + 1,i)));
         }
         Collections.shuffle(values);
         return values;
