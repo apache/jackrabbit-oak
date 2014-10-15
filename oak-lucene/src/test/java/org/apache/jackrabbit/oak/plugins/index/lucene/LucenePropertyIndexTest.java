@@ -20,10 +20,16 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.text.ParseException;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -47,11 +53,17 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createDate;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
+import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.containsString;
 
 public class LucenePropertyIndexTest extends AbstractQueryTest {
+    /**
+     * Set the size to twice the batch size to test the pagination with sorting
+     */
+    static final int NUMBER_OF_NODES = LucenePropertyIndex.LUCENE_QUERY_BATCH_SIZE * 2;
 
     @Override
     protected void createTestIndexNode() throws Exception {
@@ -176,9 +188,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        test.addChild("a").setProperty("propa", createDate("14/02/2014"));
-        test.addChild("b").setProperty("propa", createDate("14/03/2014"));
-        test.addChild("c").setProperty("propa", createDate("14/04/2014"));
+        test.addChild("a").setProperty("propa", createCal("14/02/2014"));
+        test.addChild("b").setProperty("propa", createCal("14/03/2014"));
+        test.addChild("c").setProperty("propa", createCal("14/04/2014"));
         test.addChild("c").setProperty("propb", "foo");
         test.addChild("d").setProperty("propb", "foo");
         root.commit();
@@ -206,6 +218,124 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'", asList("/test/a", "/test/b"));
     }
 
+    @Test
+    public void sortQueriesWithLong() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<Long> values = createLongs(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.setProperty("foo", values.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithDouble() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<Double> values = createDoubles(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.setProperty("foo", values.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithString() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.addChild("foo");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<String> values = createStrings(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.setProperty("foo", values.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithDate() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<Calendar> values = createDates(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.setProperty("foo", values.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithStringAndLong() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar", "baz"));
+        Tree propIdx = idx.addChild("baz");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        int firstPropSize = 5;
+        List<String> values = createStrings(firstPropSize);
+        List<Long> longValues = createLongs(NUMBER_OF_NODES);
+        List<Tuple2> tuples = Lists.newArrayListWithCapacity(values.size());
+        Random r = new Random();
+        for(int i = 0; i < values.size(); i++){
+            String val = values.get(r.nextInt(firstPropSize));
+            Tree child = test.addChild("n"+i);
+            child.setProperty("foo", val);
+            child.setProperty("baz", longValues.get(i));
+            child.setProperty("bar", "baz");
+            tuples.add(new Tuple2(val, longValues.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] asc, [baz] desc", getSortedPaths(tuples));
+    }
+
+    private void assertOrderedQuery(String sql, List<String> paths) {
+        List<String> result = executeQuery(sql, SQL2, true);
+        assertEquals(paths, result);
+    }
+
     //TODO Test for range with Date. Check for precision
 
     private String explain(String query){
@@ -226,8 +356,119 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         return root.getTree("/").getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
-
     private static String dt(String date) throws ParseException {
-        return String.format("CAST ('%s' AS DATE)",ISO8601.format(createDate(date)));
+        return String.format("CAST ('%s' AS DATE)",ISO8601.format(createCal(date)));
+    }
+
+    private static List<String> getSortedPaths(List<Tuple> tuples, OrderDirection dir) {
+        if (OrderDirection.DESC == dir) {
+            Collections.sort(tuples, Collections.reverseOrder());
+        } else {
+            Collections.sort(tuples);
+        }
+        List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
+        for (Tuple t : tuples) {
+            paths.add(t.path);
+        }
+        return paths;
+    }
+
+    private static List<String> getSortedPaths(List<Tuple2> tuples) {
+        Collections.sort(tuples);
+        List<String> paths = Lists.newArrayListWithCapacity(tuples.size());
+        for (Tuple2 t : tuples) {
+            paths.add(t.path);
+        }
+        return paths;
+    }
+
+    private static List<Long> createLongs(int n){
+        List<Long> values = Lists.newArrayListWithCapacity(n);
+        for (long i = 0; i < n; i++){
+            values.add(i);
+        }
+        Collections.shuffle(values);
+        return values;
+    }
+
+    private static List<Double> createDoubles(int n){
+        Random rnd = new Random();
+        List<Double> values = Lists.newArrayListWithCapacity(n);
+        for (long i = 0; i < n; i++){
+            values.add(rnd.nextDouble());
+        }
+        Collections.shuffle(values);
+        return values;
+    }
+
+    private static List<String> createStrings(int n){
+        List<String> values = Lists.newArrayListWithCapacity(n);
+        for (long i = 0; i < n; i++){
+            values.add(String.format("value%04d",i));
+        }
+        Collections.shuffle(values);
+        return values;
+    }
+
+    private static List<Calendar> createDates(int n) throws ParseException {
+        Random rnd = new Random();
+        List<Calendar> values = Lists.newArrayListWithCapacity(n);
+        for (long i = 0; i < n; i++){
+            values.add(createCal(String.format("%02d/%02d/2014", rnd.nextInt(29) + 1, rnd.nextInt(11) + 1)));
+        }
+        Collections.shuffle(values);
+        return values;
+    }
+
+    private static class Tuple implements Comparable<Tuple>{
+        final Comparable value;
+        final String path;
+
+        private Tuple(Comparable value, String path) {
+            this.value = value;
+            this.path = path;
+        }
+
+        @Override
+        public int compareTo(Tuple o) {
+            return value.compareTo(o.value);
+        }
+
+        @Override
+        public String toString() {
+            return "Tuple{" +
+                    "value=" + value +
+                    ", path='" + path + '\'' +
+                    '}';
+        }
+    }
+
+    private static class Tuple2 implements Comparable<Tuple2>{
+        final Comparable value;
+        final Comparable value2;
+        final String path;
+
+        private Tuple2(Comparable value, Comparable value2, String path) {
+            this.value = value;
+            this.value2 = value2;
+            this.path = path;
+        }
+
+        @Override
+        public int compareTo(Tuple2 o) {
+            return ComparisonChain.start()
+                    .compare(value, o.value)
+                    .compare(value2, o.value2, Collections.reverseOrder())
+                    .result();
+        }
+
+        @Override
+        public String toString() {
+            return "Tuple2{" +
+                    "value=" + value +
+                    ", value2=" + value2 +
+                    ", path='" + path + '\'' +
+                    '}';
+        }
     }
 }
