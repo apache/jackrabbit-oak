@@ -101,8 +101,9 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>osgi-conf/master/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.cfg</exclude>
-                        <exclude>osgi-conf/slave/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.cfg</exclude>
+                        <exclude>osgi-conf/master/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.config</exclude>
+                        <exclude>osgi-conf/slave/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.config</exclude>
+                        <exclude>osgi-conf/slave/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
                     </excludes>
                 </configuration>
             </plugin>
