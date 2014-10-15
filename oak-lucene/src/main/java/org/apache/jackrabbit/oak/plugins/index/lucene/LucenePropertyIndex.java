@@ -79,6 +79,8 @@ import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
@@ -264,6 +266,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
     @Override
     public Cursor query(final IndexPlan plan, NodeState rootState) {
         final Filter filter = plan.getFilter();
+        final Sort sort = getSort(plan.getSortOrder(), plan);
         FullTextExpression ft = filter.getFullTextConstraint();
         Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
@@ -329,7 +332,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
             private boolean loadDocs() {
                 ScoreDoc lastDocToRecord = null;
 
-                IndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+                IndexNode indexNode = acquireIndexNode(plan);
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
@@ -339,10 +342,18 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                     long time = System.currentTimeMillis();
                     if (lastDoc != null) {
                         LOG.debug("loading the next {} entries for query {}", nextBatchSize, query);
-                        docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                        if (sort == null) {
+                            docs = searcher.searchAfter(lastDoc, query, nextBatchSize);
+                        } else {
+                            docs = searcher.searchAfter(lastDoc, query, LUCENE_QUERY_BATCH_SIZE, sort);
+                        }
                     } else {
                         LOG.debug("loading the first {} entries for query {}", nextBatchSize, query);
-                        docs = searcher.search(query, nextBatchSize);
+                        if (sort == null) {
+                            docs = searcher.search(query, nextBatchSize);
+                        } else {
+                            docs = searcher.search(query, LUCENE_QUERY_BATCH_SIZE, sort);
+                        }
                     }
                     time = System.currentTimeMillis() - time;
                     LOG.debug("... took {} ms", time);
@@ -369,6 +380,46 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
             }
         };
         return new LucenePathCursor(itr, settings);
+    }
+
+    private IndexNode acquireIndexNode(IndexPlan plan) {
+        return tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+    }
+
+    private Sort getSort(List<OrderEntry> sortOrder, IndexPlan plan) {
+        if (sortOrder == null || sortOrder.isEmpty()) {
+            return null;
+        }
+        IndexNode indexNode = acquireIndexNode(plan);
+        try {
+            SortField[] fields = new SortField[sortOrder.size()];
+            for (int i = 0; i < sortOrder.size(); i++) {
+                OrderEntry oe = sortOrder.get(i);
+                boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
+                fields[i] = new SortField(oe.getPropertyName(), toLuceneSortType(oe, indexNode.getDefinition()), reverse);
+            }
+            return new Sort(fields);
+        } finally {
+            indexNode.release();
+        }
+    }
+
+    private static SortField.Type toLuceneSortType(OrderEntry oe, IndexDefinition defn) {
+        Type<?> t = oe.getPropertyType();
+        checkState(t != null, "Type cannot be null");
+        checkState(!t.isArray(), "Array types are not supported");
+
+        int type = getPropertyType(defn, oe.getPropertyName(), t.tag());
+        switch (type) {
+            case PropertyType.LONG:
+            case PropertyType.DATE:
+                return SortField.Type.LONG;
+            case PropertyType.DOUBLE:
+                return SortField.Type.DOUBLE;
+            default:
+                //TODO Check about SortField.Type.STRING_VAL
+                return SortField.Type.STRING;
+        }
     }
 
     private static String getIndexName(IndexPlan plan){
@@ -627,13 +678,17 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         }
     }
 
+    private static int getPropertyType(IndexDefinition defn, String name, int defaultVal){
+        if (defn.hasPropertyDefinition(name)) {
+            return defn.getPropDefn(name).getPropertyType();
+        }
+        return defaultVal;
+    }
+
     @CheckForNull
     private static Query createQuery(PropertyRestriction pr,
                                      IndexDefinition defn) {
-        int propType = pr.propertyType;
-        if (defn.hasPropertyDefinition(pr.propertyName)) {
-            propType = defn.getPropDefn(pr.propertyName).getPropertyType();
-        }
+        int propType = getPropertyType(defn, pr.propertyName, pr.propertyType);
         switch (propType) {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
