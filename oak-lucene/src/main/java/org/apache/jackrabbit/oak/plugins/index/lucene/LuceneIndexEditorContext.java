@@ -174,4 +174,8 @@ public class LuceneIndexEditorContext {
     public int getPropertyTypes() {
         return definition.getPropertyTypes();
     }
+
+    public IndexDefinition getDefinition() {
+        return definition;
+    }
 }
