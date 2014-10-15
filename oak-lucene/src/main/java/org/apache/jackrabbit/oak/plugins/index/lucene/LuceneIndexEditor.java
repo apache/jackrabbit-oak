@@ -41,12 +41,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.util.BytesRef;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.sax.WriteOutContentHandler;
@@ -200,9 +204,16 @@ public class LuceneIndexEditor implements IndexEditor {
         boolean dirty = false;
         for (PropertyState property : state.getProperties()) {
             String pname = property.getName();
-            if (isVisible(pname)
-                    && context.includeProperty(pname)) {
 
+            if (!isVisible(pname)) {
+                continue;
+            }
+
+            if (context.getDefinition().isOrdered(pname)) {
+                dirty = addTypedOrderedFields(fields, property);
+            }
+
+            if (context.includeProperty(pname)) {
                 //In case of fulltext we also check if given type is enabled for indexing
                 //TODO Use context.includePropertyType however that cause issue. Need
                 //to make filtering based on type consistent both on indexing side and
@@ -267,8 +278,6 @@ public class LuceneIndexEditor implements IndexEditor {
         for (int i = 0; i < property.count(); i++) {
             Field f = null;
             if (tag == Type.LONG.tag()) {
-                //TODO Distinguish fields which need to be used for search and for sort
-                //If a field is only used for Sort then it can be stored with less precision
                 f = new LongField(name, property.getValue(Type.LONG, i), Field.Store.NO);
             } else if (tag == Type.DATE.tag()) {
                 String date = property.getValue(Type.DATE, i);
@@ -277,6 +286,38 @@ public class LuceneIndexEditor implements IndexEditor {
                 f = new DoubleField(name, property.getValue(Type.DOUBLE, i), Field.Store.NO);
             } else if (tag == Type.BOOLEAN.tag()) {
                 f = new StringField(name, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+            }
+
+            if (f != null) {
+                this.context.indexUpdate();
+                fields.add(f);
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+
+    private boolean addTypedOrderedFields(List<Field> fields, PropertyState property) throws CommitFailedException {
+        int tag = property.getType().tag();
+        String name = FieldNames.createDocValFieldName(property.getName());
+        boolean fieldAdded = false;
+        for (int i = 0; i < property.count(); i++) {
+            Field f = null;
+            if (tag == Type.LONG.tag()) {
+                //TODO Distinguish fields which need to be used for search and for sort
+                //If a field is only used for Sort then it can be stored with less precision
+                f = new NumericDocValuesField(name, property.getValue(Type.LONG, i));
+            } else if (tag == Type.DATE.tag()) {
+                String date = property.getValue(Type.DATE, i);
+                f = new NumericDocValuesField(name, FieldFactory.dateToLong(date));
+            } else if (tag == Type.DOUBLE.tag()) {
+                f = new DoubleDocValuesField(name, property.getValue(Type.DOUBLE, i));
+            } else if (tag == Type.BOOLEAN.tag()) {
+                f = new SortedDocValuesField(name,
+                        new BytesRef(property.getValue(Type.BOOLEAN, i).toString()));
+            } else if (tag == Type.STRING.tag()) {
+                f = new SortedDocValuesField(name,
+                        new BytesRef(property.getValue(Type.STRING, i)));
             }
 
             if (f != null) {
