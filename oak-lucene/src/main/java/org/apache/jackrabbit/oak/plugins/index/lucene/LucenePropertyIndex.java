@@ -392,11 +392,16 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         }
         IndexNode indexNode = acquireIndexNode(plan);
         try {
+            IndexDefinition defn = indexNode.getDefinition();
             SortField[] fields = new SortField[sortOrder.size()];
             for (int i = 0; i < sortOrder.size(); i++) {
                 OrderEntry oe = sortOrder.get(i);
                 boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
-                fields[i] = new SortField(oe.getPropertyName(), toLuceneSortType(oe, indexNode.getDefinition()), reverse);
+                String propName = oe.getPropertyName();
+                if (defn.isOrdered(propName)){
+                    propName = FieldNames.createDocValFieldName(propName);
+                }
+                fields[i] = new SortField(propName, toLuceneSortType(oe, defn), reverse);
             }
             return new Sort(fields);
         } finally {

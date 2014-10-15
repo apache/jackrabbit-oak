@@ -49,12 +49,16 @@ import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.containsString;
@@ -225,6 +229,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
+        assertSortedtLong();
+    }
+
+    @Test
+    public void sortQueriesWithLong_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        assertSortedtLong();
+    }
+
+    void assertSortedtLong() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Long> values = createLongs(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
@@ -247,6 +267,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
+        assertSortedDouble();
+    }
+
+    @Test
+    public void sortQueriesWithDouble_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
+        root.commit();
+
+        assertSortedDouble();
+    }
+
+    void assertSortedDouble() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Double> values = createDoubles(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
@@ -268,6 +304,21 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         idx.addChild("foo");
         root.commit();
 
+        assertSortedString();
+    }
+
+    @Test
+    public void sortQueriesWithString_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        idx.addChild("foo");
+        root.commit();
+
+        assertSortedString();
+    }
+
+    void assertSortedString() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<String> values = createStrings(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
@@ -290,6 +341,22 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
+        assertSortedDate();
+    }
+
+    @Test
+    public void sortQueriesWithDate_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        root.commit();
+
+        assertSortedDate();
+    }
+
+    void assertSortedDate() throws ParseException, CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Calendar> values = createDates(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());

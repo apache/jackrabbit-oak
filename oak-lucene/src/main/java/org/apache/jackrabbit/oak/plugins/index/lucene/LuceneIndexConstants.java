@@ -68,8 +68,14 @@ public interface LuceneIndexConstants {
 
     /**
      * Type of the property being indexed defined as part of property definition
-     * under the given index definition. Refer to {@ling javax.jcr.PropertyType}
+     * under the given index definition. Refer to {@link javax.jcr.PropertyType}
      * contants for the possible values
      */
     String PROP_TYPE = "propertyType";
+
+    /**
+     * Defines properties which would be used for ordering. If range queries are to
+     * be performed with same property then it must be part of include list also
+     */
+    String ORDERED_PROP_NAMES = "orderedProps";
 }
