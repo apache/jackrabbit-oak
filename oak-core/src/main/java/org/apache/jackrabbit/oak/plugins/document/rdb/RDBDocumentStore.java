@@ -1255,13 +1255,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbAppendingUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary, Long modcount, Long cmodcount, Long oldmodcount,
             String appendData) throws SQLException {
-        String t = "update " + tableName + " set MODIFIED = ?, HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ";
-        t += (this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || ? ");
-        t += "where ID = ?";
+        StringBuilder t = new StringBuilder();
+        t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
+        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || ? ");
+        t.append("where ID = ?");
         if (oldmodcount != null) {
-            t += " and MODCOUNT = ?";
+            t.append(" and MODCOUNT = ?");
         }
-        PreparedStatement stmt = connection.prepareStatement(t);
+        PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
             stmt.setObject(si++, modified, Types.BIGINT);
@@ -1287,7 +1288,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private boolean dbBatchedAppendingUpdate(Connection connection, String tableName, List<String> ids, Long modified, String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = ?, MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+        t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
         t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || ? ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
@@ -1296,7 +1297,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             t.append('?');
         }
-        t.append(") and MODIFIED <= ?");
+        t.append(")");
         PreparedStatement stmt = connection.prepareStatement(t.toString());
         try {
             int si = 1;
@@ -1306,10 +1307,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
             for (String id : ids) {
                 stmt.setString(si++, id);
             }
-            stmt.setObject(si++, modified, Types.BIGINT);
             int result = stmt.executeUpdate();
             if (result != ids.size()) {
-                LOG.debug("DB update failed for " + tableName + "/" + ids);
+                LOG.debug("DB update failed: only " + result + " of " + ids.size() + " updated. Table: " + tableName + ", IDs:" + ids);
             }
             return result == ids.size();
         } 
