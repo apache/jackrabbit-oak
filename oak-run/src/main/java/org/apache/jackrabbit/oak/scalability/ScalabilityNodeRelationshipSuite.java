@@ -22,6 +22,7 @@ import java.util.*;
 
 import javax.jcr.*;
 
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.*;
 
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.util.OakIndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
@@ -134,6 +136,9 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     }
 
     protected void createIndexes(Session session) throws RepositoryException {
+        Map<String, Map<String, String>> orderedMap = Maps.newHashMap();
+        String persistencePath = "";
+
         // define indexes on properties
         switch (INDEX_TYPE) {
             case PROPERTY:
@@ -145,8 +150,8 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                                 new String[]{SOURCE_ID},
                                 false, new String[]{CUSTOM_REL_NODE_TYPE});
                 break;
+            // define ordered indexes on properties
             case ORDERED:
-                // define ordered indexes on properties
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
                         new String[]{CREATED}, false,
                         new String[]{CUSTOM_ACT_NODE_TYPE},
@@ -156,7 +161,29 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
                         new String[]{CUSTOM_REL_NODE_TYPE},
                         OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
+            // define lucene index on properties
+            case LUCENE_FILE:
+                persistencePath =
+                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                        .valueOf(System.currentTimeMillis());
+                OakIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
+                    new String[] {SOURCE_ID, CREATED},
+                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    orderedMap, persistencePath);
+                break;
+            case LUCENE_FILE_DOC:
+                persistencePath =
+                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                        .valueOf(System.currentTimeMillis());
+            case LUCENE_DOC:
+                Map<String, String> propMap = Maps.newHashMap();
+                propMap.put(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+                orderedMap.put(CREATED, propMap);
             case LUCENE:
+                OakIndexUtils.luceneIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
+                    new String[] {SOURCE_ID, CREATED},
+                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    orderedMap, persistencePath);
                 break;
         }
     }
