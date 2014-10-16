@@ -66,6 +66,13 @@ public class IndexPlanner {
             return null;
         }
 
+        if (defn.hasFunctionDefined()
+                && filter.getPropertyRestriction(defn.getFunctionName()) != null) {
+            //If native function is handled by this index then ensure
+            // that lowest cost if returned
+            return defaultPlan().setEstimatedEntryCount(1);
+        }
+
         List<String> indexedProps = newArrayListWithCapacity(filter.getPropertyRestrictions().size());
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             //Only those properties which are included and not tokenized
