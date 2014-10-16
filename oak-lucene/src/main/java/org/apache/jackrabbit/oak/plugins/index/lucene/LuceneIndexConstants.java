@@ -80,6 +80,11 @@ public interface LuceneIndexConstants {
     String ORDERED_PROP_NAMES = "orderedProps";
 
     /**
+     * Size in bytes used for splitting the index files when storing them in NodeStore
+     */
+    String BLOB_SIZE = "blobSize";
+
+    /**
      * Native function name associated with this index definition. Any query can
      * use this as the function name to ensure that this index gets used for invoking
      * the index
