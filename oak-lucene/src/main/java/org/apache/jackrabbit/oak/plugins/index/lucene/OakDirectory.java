@@ -24,8 +24,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
+
+import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
@@ -50,12 +53,15 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
  */
 class OakDirectory extends Directory {
 
+    static final String PROP_BLOB_SIZE = "blobSize";
     protected final NodeBuilder directoryBuilder;
+    private final IndexDefinition definition;
     private LockFactory lockFactory;
 
-    public OakDirectory(NodeBuilder directoryBuilder) {
+    public OakDirectory(NodeBuilder directoryBuilder, IndexDefinition definition) {
         this.lockFactory = NoLockFactory.getNoLockFactory();
         this.directoryBuilder = directoryBuilder;
+        this.definition = definition;
     }
 
     @Override
@@ -88,7 +94,14 @@ class OakDirectory extends Directory {
     @Override
     public IndexOutput createOutput(String name, IOContext context)
             throws IOException {
-        return new OakIndexOutput(name, directoryBuilder.child(name));
+        NodeBuilder file;
+        if (!directoryBuilder.hasChildNode(name)) {
+            file = directoryBuilder.child(name);
+            file.setProperty(PROP_BLOB_SIZE, definition.getBlobSize());
+        } else {
+            file = directoryBuilder.child(name);
+        }
+        return new OakIndexOutput(name, file);
     }
 
 
@@ -137,13 +150,15 @@ class OakDirectory extends Directory {
      * Size of the blob entries to which the Lucene files are split.
      * Set to higher than the 4kB inline limit for the BlobStore,
      */
-    private static final int BLOB_SIZE = 32 * 1024;
+    static final int DEFAULT_BLOB_SIZE = 32 * 1024;
 
     private static class OakIndexFile {
 
         private final String name;
 
         private final NodeBuilder file;
+
+        private final int blobSize;
 
         private long position = 0;
 
@@ -155,13 +170,15 @@ class OakDirectory extends Directory {
 
         private int index = -1;
 
-        private final byte[] blob = new byte[BLOB_SIZE];
+        private final byte[] blob;
 
         private boolean blobModified = false;
 
         public OakIndexFile(String name, NodeBuilder file) {
             this.name = name;
             this.file = file;
+            this.blobSize = determineBlobSize(file);
+            this.blob = new byte[blobSize];
 
             PropertyState property = file.getProperty(JCR_DATA);
             if (property != null && property.getType() == BINARIES) {
@@ -170,16 +187,18 @@ class OakDirectory extends Directory {
                 this.data = newArrayList();
             }
 
-            this.length = data.size() * BLOB_SIZE;
+            this.length = data.size() * blobSize;
             if (!data.isEmpty()) {
                 Blob last = data.get(data.size() - 1);
-                this.length -= BLOB_SIZE - last.length();
+                this.length -= blobSize - last.length();
             }
         }
 
         private OakIndexFile(OakIndexFile that) {
             this.name = that.name;
             this.file = that.file;
+            this.blobSize = that.blobSize;
+            this.blob = new byte[blobSize];
 
             this.position = that.position;
             this.length = that.length;
@@ -193,7 +212,7 @@ class OakDirectory extends Directory {
                 flushBlob();
                 checkState(!blobModified);
 
-                int n = (int) Math.min(BLOB_SIZE, length - i * BLOB_SIZE);
+                int n = (int) Math.min(blobSize, length - i * blobSize);
                 InputStream stream = data.get(i).getNewStream();
                 try {
                     ByteStreams.readFully(stream, blob, 0, n);
@@ -206,7 +225,7 @@ class OakDirectory extends Directory {
 
         private void flushBlob() throws IOException {
             if (blobModified) {
-                int n = (int) Math.min(BLOB_SIZE, length - index * BLOB_SIZE);
+                int n = (int) Math.min(blobSize, length - index * blobSize);
                 Blob b = file.createBlob(new ByteArrayInputStream(blob, 0, n));
                 if (index < data.size()) {
                     data.set(index, b);
@@ -237,12 +256,12 @@ class OakDirectory extends Directory {
                 throw new IOException("Invalid byte range request");
             }
 
-            int i = (int) (position / BLOB_SIZE);
-            int o = (int) (position % BLOB_SIZE);
+            int i = (int) (position / blobSize);
+            int o = (int) (position % blobSize);
             while (len > 0) {
                 loadBlob(i);
 
-                int l = Math.min(len, BLOB_SIZE - o);
+                int l = Math.min(len, blobSize - o);
                 System.arraycopy(blob, o, b, offset, l);
 
                 offset += l;
@@ -256,13 +275,13 @@ class OakDirectory extends Directory {
 
         public void writeBytes(byte[] b, int offset, int len)
                 throws IOException {
-            int i = (int) (position / BLOB_SIZE);
-            int o = (int) (position % BLOB_SIZE);
+            int i = (int) (position / blobSize);
+            int o = (int) (position % blobSize);
             while (len > 0) {
-                int l = Math.min(len, BLOB_SIZE - o);
+                int l = Math.min(len, blobSize - o);
 
                 if (index != i) {
-                    if (o > 0 || (l < BLOB_SIZE && position + l < length)) {
+                    if (o > 0 || (l < blobSize && position + l < length)) {
                         loadBlob(i);
                     } else {
                         flushBlob();
@@ -280,6 +299,13 @@ class OakDirectory extends Directory {
                 i++;
                 o = 0;
             }
+        }
+
+        private static int determineBlobSize(NodeBuilder file){
+            if (file.hasProperty(PROP_BLOB_SIZE)){
+                return Ints.checkedCast(file.getProperty(PROP_BLOB_SIZE).getValue(Type.LONG));
+            }
+            return DEFAULT_BLOB_SIZE;
         }
 
         public void flush() throws IOException {
