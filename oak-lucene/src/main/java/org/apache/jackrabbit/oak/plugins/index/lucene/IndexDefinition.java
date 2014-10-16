@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FULL_TEXT_ENABLED;
@@ -47,6 +49,13 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 
 public class IndexDefinition {
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
+
+    /**
+     * Blob size to use by default. To avoid issues in OAK-2105 the size should not
+     * be power of 2.
+     */
+    static final int DEFAULT_BLOB_SIZE = OakDirectory.DEFAULT_BLOB_SIZE - 300;
+
     private final int propertyTypes;
 
     private final Set<String> excludes;
@@ -64,6 +73,8 @@ public class IndexDefinition {
     private final Map<String, PropertyDefinition> propDefns;
 
     private final String funcName;
+
+    private final int blobSize;
 
     public IndexDefinition(NodeBuilder defn) {
         this.definition = defn;
@@ -85,6 +96,7 @@ public class IndexDefinition {
         this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
         this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
         this.orderedProps = getMultiProperty(defn, ORDERED_PROP_NAMES);
+        this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
         //Storage is disabled for non full text indexes
@@ -165,11 +177,24 @@ public class IndexDefinition {
         return funcName != null;
     }
 
+    /**
+     * Size in bytes for the blobs created while storing the index content
+     * @return size in bytes
+     */
+    public int getBlobSize() {
+        return blobSize;
+    }
+
     //~------------------------------------------< Internal >
 
     private static boolean getOptionalValue(NodeBuilder definition, String propName, boolean defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.BOOLEAN);
+    }
+
+    private static int getOptionalValue(NodeBuilder definition, String propName, int defaultVal){
+        PropertyState ps = definition.getProperty(propName);
+        return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
     }
 
     private static String getOptionalValue(NodeBuilder definition, String propName, String defaultVal){
