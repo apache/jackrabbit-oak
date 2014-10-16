@@ -18,6 +18,7 @@
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterators.singletonIterator;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.Predicate;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
@@ -408,6 +410,25 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                 }
             }
             return it;
+        } else if (firstEncoded != null && firstEncoded.equals(lastEncoded)) {
+            // property = $value case
+            LOG.debug("'property = $value' case");
+            
+            final NodeState key = indexState.getChildNode(firstEncoded);
+            final String pf = pathPrefix;
+            if (key.exists()) {
+                return new Iterable<String>() {
+                    @Override
+                    public Iterator<String> iterator() {
+                        PathIterator pi = new PathIterator(filter, indexName, pf);
+                        pi.setPathContainsValue(true);
+                        pi.enqueue(singletonIterator(new MemoryChildNodeEntry(firstEncoded, key)));
+                        return pi;
+                    }
+                };
+            } else {
+                return Collections.emptyList();
+            }
         } else {
             // property is not null. AKA "open query"
             LOG.debug("property is not null. AKA 'open query'. FullIterable");
@@ -1079,7 +1100,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             int len = next.length - 1;
             for (; len >= 0; len--) {
                 if (next[len].length() != 0) {
-               	    break;
+                    break;
                 }
             }
             len++;
