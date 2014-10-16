@@ -63,6 +63,8 @@ public class IndexDefinition {
 
     private final Map<String, PropertyDefinition> propDefns;
 
+    private final String funcName;
+
     public IndexDefinition(NodeBuilder defn) {
         this.definition = defn;
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
@@ -95,6 +97,9 @@ public class IndexDefinition {
             }
         }
         this.propDefns = ImmutableMap.copyOf(propDefns);
+
+        String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
+        this.funcName = functionName != null ? "native*" + functionName : null;
     }
 
     boolean includeProperty(String name) {
@@ -152,11 +157,24 @@ public class IndexDefinition {
         return propDefns.containsKey(propName);
     }
 
+    public String getFunctionName(){
+        return funcName;
+    }
+
+    public boolean hasFunctionDefined(){
+        return funcName != null;
+    }
+
     //~------------------------------------------< Internal >
 
     private static boolean getOptionalValue(NodeBuilder definition, String propName, boolean defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.BOOLEAN);
+    }
+
+    private static String getOptionalValue(NodeBuilder definition, String propName, String defaultVal){
+        PropertyState ps = definition.getProperty(propName);
+        return ps == null ? defaultVal : ps.getValue(Type.STRING);
     }
 
     private static Set<String> getMultiProperty(NodeBuilder definition, String propName){
