@@ -190,7 +190,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         for (String succId :  successorIds.getValue(Type.REFERENCES)) {
             NodeBuilder successor = getVersionById(vh, succId);
 
-            PropertyBuilder pb = new PropertyBuilder(Type.REFERENCE).setArray();
+            PropertyBuilder<String> pb = PropertyBuilder.array(Type.REFERENCE);
             pb.setName(JCR_PREDECESSORS).setValues(successor.getProperty(JCR_PREDECESSORS).getValue(Type.REFERENCES));
 
             pb.removeValue(versionId);
@@ -201,7 +201,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
         for (String predId :  predecessorIds.getValue(Type.REFERENCES)) {
             NodeBuilder predecessor = getVersionById(vh, predId);
-            PropertyBuilder pb = new PropertyBuilder(Type.REFERENCE).setArray();
+            PropertyBuilder<String> pb = PropertyBuilder.array(Type.REFERENCE);
             pb.setName(JCR_SUCCESSORS).setValues(predecessor.getProperty(JCR_SUCCESSORS).getValue(Type.REFERENCES));
 
             pb.removeValue(versionId);
@@ -221,7 +221,8 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     public void checkin(@Nonnull NodeBuilder versionable)
             throws CommitFailedException {
-        NodeBuilder history = getOrCreateVersionHistory(versionable, Collections.EMPTY_MAP);
+        NodeBuilder history = getOrCreateVersionHistory(versionable,
+                Collections.<String, Object>emptyMap());
         createVersion(history, versionable);
     }
 
@@ -230,7 +231,8 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                         @Nullable VersionSelector selector)
             throws CommitFailedException {
         String versionPath = getIdentifierManager().getPath(versionUUID);
-        NodeBuilder history = getOrCreateVersionHistory(versionable, Collections.EMPTY_MAP);
+        NodeBuilder history = getOrCreateVersionHistory(versionable,
+                Collections.<String, Object>emptyMap());
         NodeBuilder version = null;
         if (versionPath != null) {
             String versionName = PathUtils.getName(versionPath);
