@@ -23,6 +23,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +35,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.Oak;
@@ -46,6 +49,7 @@ import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
@@ -147,7 +151,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             "LongevitySearchAssets" + TEST_ID;
 
     public enum Index {
-        PROPERTY, ORDERED, LUCENE
+        PROPERTY, ORDERED, LUCENE, LUCENE_DOC, LUCENE_FILE, LUCENE_FILE_DOC
     }
 
     /** Type of index to be created */
@@ -206,6 +210,9 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     protected void createIndexes(Session session) throws RepositoryException {
+        Map<String, Map<String, String>> orderedMap = Maps.newHashMap();
+        String persistencePath = "";
+
         switch (INDEX_TYPE) {
             case ORDERED:
                 // define ordered indexes on properties
@@ -218,7 +225,29 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                         new String[]{CUSTOM_DESC_NODE_TYPE},
                         OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
+            // define lucene index on properties
+            case LUCENE_FILE:
+                persistencePath =
+                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                        .valueOf(System.currentTimeMillis());
+                OakIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
+                    new String[] {FILTER_PROP, DATE_PROP},
+                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    null, persistencePath);
+                break;
+            case LUCENE_FILE_DOC:
+                persistencePath =
+                    "target" + StandardSystemProperty.FILE_SEPARATOR.value() + "lucene" + String
+                        .valueOf(System.currentTimeMillis());
+            case LUCENE_DOC:
+                Map<String, String> propMap = Maps.newHashMap();
+                propMap.put(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+                orderedMap.put(DATE_PROP, propMap);
             case LUCENE:
+                OakIndexUtils.luceneIndexDefinition(session, "customIndex", ASYNC_INDEX,
+                    new String[] {FILTER_PROP, DATE_PROP},
+                    new String[] {PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_DATE},
+                    orderedMap, persistencePath);
                 break;
             case PROPERTY:
                 break;
