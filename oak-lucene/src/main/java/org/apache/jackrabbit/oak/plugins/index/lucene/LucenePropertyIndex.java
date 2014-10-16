@@ -548,7 +548,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
     private static void addNonFullTextConstraints(List<Query> qs,
             Filter filter, IndexReader reader, Analyzer analyzer, IndexDefinition indexDefinition) {
         if (!filter.matchesAllTypes()) {
-            addNodeTypeConstraints(qs, filter);
+            addNodeTypeConstraints(indexDefinition, qs, filter);
         }
 
         String path = filter.getPath();
@@ -874,14 +874,19 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         qs.add(bq);
     }
 
-    private static void addNodeTypeConstraints(List<Query> qs, Filter filter) {
+    private static void addNodeTypeConstraints(IndexDefinition defn, List<Query> qs, Filter filter) {
         BooleanQuery bq = new BooleanQuery();
-        //TODO These condition should only be added if those propertyTypes are indexed
-        for (String type : filter.getPrimaryTypes()) {
-            bq.add(new TermQuery(new Term(JCR_PRIMARYTYPE, type)), SHOULD);
+        //TODO OAK-2198 Add proper nodeType query support
+        if (defn.includeProperty(JCR_PRIMARYTYPE)) {
+            for (String type : filter.getPrimaryTypes()) {
+                bq.add(new TermQuery(new Term(JCR_PRIMARYTYPE, type)), SHOULD);
+            }
         }
-        for (String type : filter.getMixinTypes()) {
-            bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
+
+        if (defn.includeProperty(JCR_MIXINTYPES)) {
+            for (String type : filter.getMixinTypes()) {
+                bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
+            }
         }
         qs.add(bq);
     }
