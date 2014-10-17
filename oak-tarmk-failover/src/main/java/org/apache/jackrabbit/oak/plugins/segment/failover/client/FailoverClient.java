@@ -119,14 +119,7 @@ public final class FailoverClient implements ClientFailoverStatusMBean, Runnable
             log.error("can unregister failover status mbean", e);
         }
         observer.unregister();
-        if (group != null && !group.isShuttingDown()) {
-            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
-        if (executor != null && !executor.isShuttingDown()) {
-            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
+        shutdownNetty();
         state = STATUS_CLOSED;
     }
 
@@ -185,7 +178,19 @@ public final class FailoverClient implements ClientFailoverStatusMBean, Runnable
         } finally {
             synchronized (this.sync) {
                 this.active = false;
+                shutdownNetty();
             }
+        }
+    }
+
+    private void shutdownNetty() {
+        if (group != null && !group.isShuttingDown()) {
+            group.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+                    .syncUninterruptibly();
+        }
+        if (executor != null && !executor.isShuttingDown()) {
+            executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
+                    .syncUninterruptibly();
         }
     }
 
