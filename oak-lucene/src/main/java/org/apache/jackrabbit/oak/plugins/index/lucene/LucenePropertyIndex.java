@@ -377,7 +377,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                 return !queue.isEmpty();
             }
         };
-        return new LucenePathCursor(itr, settings);
+        return new LucenePathCursor(itr, plan, settings);
     }
 
     private IndexNode acquireIndexNode(IndexPlan plan) {
@@ -1147,9 +1147,11 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
     static class LucenePathCursor implements Cursor {
         
         private final Cursor pathCursor;
+        private final String pathPrefix;
         LuceneResultRow currentRow;
         
-        LucenePathCursor(final Iterator<LuceneResultRow> it, QueryEngineSettings settings) {
+        LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings) {
+            pathPrefix = plan.getPathPrefix();
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -1190,7 +1192,12 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
 
                 @Override
                 public String getPath() {
-                    return pathRow.getPath();
+                    String sub = pathRow.getPath();
+                    if (PathUtils.isAbsolute(sub)) {
+                        return pathPrefix + sub;
+                    } else {
+                        return PathUtils.concat(pathPrefix, sub);
+                    }
                 }
 
                 @Override
