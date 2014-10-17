@@ -80,7 +80,7 @@ public class FailoverClientHandler extends
 
         if (store.getHead().getRecordId().equals(head)) {
             // all sync'ed up
-            log.info("no changes on sync.");
+            log.debug("no changes on sync.");
             ctx.close();
             return;
         }
