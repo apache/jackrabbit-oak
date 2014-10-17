@@ -9,17 +9,24 @@ The following runmodes are currently available:
     * debug     : Print status information about an Oak repository.
     * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
     * server    : Run the Oak Server
+    * syncmaster  : Run a TarMK Cold Standby master
+    * syncslave   : Run a TarMK Cold Standby slave
 
 See the subsections below for more details on how to use these modes.
 
 Backup
 ------
 
-The 'backup' mode creates a backup from an existing oak repository. To start this
-mode, use:
+The 'backup' mode creates a backup from an existing oak repository. To start this mode, use:
 
     $ java -jar oak-run-*.jar backup /path/to/repository /path/to/backup
 
+Restore
+-------
+
+The 'restore' mode imports a backup of an existing oak repository. To start this mode, use:
+
+    $ java -jar oak-run-*.jar restore /path/to/repository /path/to/backup
 
 Debug
 -----
@@ -30,13 +37,40 @@ store. Currently this is only supported for the TarMK. To start this mode, use:
     $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
 
+Syncmaster
+-------
+
+The 'syncmaster' mode starts a TarMK Cold Standby master listening on a TCP/IP port for connecting slaves.
+
+    $ java -jar oak-run-*.jar syncmaster [options] /path/to/TarMK
+    
+The following options are available:
+
+    --port 8023            - port to listen at
+    --admissible 127.0.0.1 - admissible client IP range or host name
+    --secure               - use secure connections
+
+Syncslave
+-------
+
+The 'syncslave' mode starts a TarMK Cold Standby slave to  create or update a continous backup from a Cold Standby master.
+
+    $ java -jar oak-run-*.jar syncslave [options] /path/to/TarMK
+
+The following options are available:
+
+    --port 8023            - port to connect to
+    --host 127.0.0.1       - host to connect to
+    --secure               - use secure connections
+    --interval 5           - schedule the slave to run continously, connecting every n seconds
+
 Compact
 -------
 
 The 'compact' mode runs the segment compaction operation on the provided TarMK
 repository. To start this mode, use:
 
-    $ java -jar oak-run-*.jar compact /path/to/oak/repository
+    $ java -jar oak-run-*.jar compact /path/to/TarMK
 
 Checkpoints
 -----------
