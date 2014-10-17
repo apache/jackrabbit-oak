@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -39,19 +38,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.zip.Deflater;
-import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -66,11 +62,8 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -357,6 +350,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // set of properties not serialized to JSON
     private static Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { ID, MODIFIED, MODCOUNT }));
+
+    private RDBDocumentSerializer SR = new RDBDocumentSerializer(this, COLUMNPROPERTIES);
 
     private void initialize(DataSource ds, DocumentMK.Builder builder, RDBOptions options) throws Exception {
 
@@ -662,6 +657,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
         if (isAppendableUpdate(update) && !requiresPreviousState(update)) {
             long modified = getModifiedFromUpdate(update);
+            String appendData = SR.asString(update);
 
             for (List<String> chunkedIds : Lists.partition(ids, CHUNKSIZE)) {
                 // remember what we already have in the cache
@@ -678,7 +674,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 boolean success = false;
                 try {
                     connection = getConnection();
-                    success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, asString(update));
+                    success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, appendData);
                     connection.commit();
                 } catch (SQLException ex) {
                     success = false;
@@ -727,7 +723,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             connection = getConnection();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (RDBRow r : dbresult) {
-                T doc = fromRow(collection, r);
+                T doc = SR.fromRow(collection, r);
                 doc.seal();
                 result.add(doc);
                 addToCacheIfNotNewer(collection, doc);
@@ -753,130 +749,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> T fromRow(Collection<T> collection, RDBRow row) throws ParseException {
-        T doc = collection.newDocument(this);
-        doc.put(ID, row.getId());
-        doc.put(MODIFIED, row.getModified());
-        doc.put(MODCOUNT, row.getModcount());
-
-        JSONParser jp = new JSONParser();
-
-        Map<String, Object> baseData = null;
-        byte[] bdata = row.getBdata();
-        if (bdata != null && bdata.length != 0) {
-            baseData = (Map<String, Object>) jp.parse(fromBlobData(bdata));
-        }
-        // TODO figure out a faster way
-        JSONArray arr = (JSONArray) new JSONParser().parse("[" + row.getData() + "]");
-
-        int updatesStartAt = 0;
-        if (baseData == null) {
-            // if we do not have a blob, the first part of the string data is the base JSON
-            baseData = (Map<String, Object>)arr.get(0);
-            updatesStartAt = 1; 
-        }
-
-        for (Map.Entry<String, Object> entry : baseData.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value == null) {
-                // ???
-                doc.put(key, value);
-            } else if (value instanceof Boolean || value instanceof Long || value instanceof String) {
-                doc.put(key, value);
-            } else if (value instanceof JSONObject) {
-                doc.put(key, convertJsonObject((JSONObject) value));
-            } else {
-                throw new RuntimeException("unexpected type: " + value.getClass());
-            }
-        }
-
-        for (int u = updatesStartAt; u < arr.size(); u++) {
-            Object ob = arr.get(u);
-            if (ob instanceof JSONArray) {
-                JSONArray update = (JSONArray)ob;
-                for (int o = 0; o < update.size(); o++) {
-                    JSONArray op = (JSONArray)update.get(o);
-                    String opcode = op.get(0).toString();
-                    String key = op.get(1).toString();
-                    Revision rev = null;
-                    Object value = null;
-                    if (op.size() == 3) {
-                        value = op.get(2);
-                    }
-                    else {
-                        rev = Revision.fromString(op.get(2).toString());
-                        value = op.get(3);
-                    }
-                    Object old = doc.get(key);
-
-                    if ("=".equals(opcode)) {
-                        if (rev == null) {
-                            doc.put(key, value);
-                        } else {
-                            @SuppressWarnings("unchecked")
-                            Map<Revision, Object> m = (Map<Revision, Object>) old;
-                            if (m == null) {
-                                m = new TreeMap<Revision, Object>(comparator);
-                                doc.put(key, m);
-                            }
-                            m.put(rev, value);
-                        }
-                    } else if ("*".equals(opcode)) {
-                        if (rev == null) {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        } else {
-                            @SuppressWarnings("unchecked")
-                            Map<Revision, Object> m = (Map<Revision, Object>) old;
-                            if (m != null) {
-                                m.remove(rev);
-                            }
-                        }
-                    } else if ("+".equals(opcode)) {
-                        if (rev == null) {
-                            Long x = (Long) value;
-                            if (old == null) {
-                                old = 0L;
-                            }
-                            doc.put(key, ((Long) old) + x);
-                        } else {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        }
-                    } else if ("M".equals(opcode)) {
-                        if (rev == null) {
-                            Comparable newValue = (Comparable) value;
-                            if (old == null || newValue.compareTo(old) > 0) {
-                                doc.put(key, value);
-                            }
-                        } else {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        }
-                    } else {
-                        throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                    }
-                }
-            }
-            else if (ob.toString().equals("blob") && u == 0) {
-                // expected placeholder
-            }
-            else {
-                throw new RuntimeException("unexpected: " + ob);
-            }
-        }
-        return doc;
-    }
-
-    @Nonnull
-    private Map<Revision, Object> convertJsonObject(@Nonnull JSONObject obj) {
-        Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
-        Set<Map.Entry> entries = obj.entrySet();
-        for (Map.Entry entry : entries) {
-            // not clear why every persisted map is a revision map
-            map.put(Revision.fromString(entry.getKey().toString()), entry.getValue());
-        }
-        return map;
-    }
-
     @CheckForNull
     private <T extends Document> T readDocumentUncached(Collection<T> collection, String id) {
         Connection connection = null;
@@ -884,7 +756,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             connection = getConnection();
             RDBRow row = dbRead(connection, tableName, id);
-            return row != null ? fromRow(collection, row) : null;
+            return row != null ? SR.fromRow(collection, row) : null;
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
@@ -937,11 +809,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
             // every 16th update is a full rewrite
             if (isAppendableUpdate(update) && modcount % 16 != 0) {
-                String appendData = asString(update);
+                String appendData = SR.asString(update);
                 if (appendData.length() < datalimit) {
                     try {
                         success = dbAppendingUpdate(connection, tableName, document.getId(), modified, hasBinary, modcount,
-                                cmodcount, oldmodcount, asString(update));
+                                cmodcount, oldmodcount, appendData);
                         connection.commit();
                     } catch (SQLException ex) {
                         continueIfStringOverflow(ex);
@@ -951,7 +823,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
             }
             if (! success) {
-                String data = asString(document);
+                String data = SR.asString(document);
                 success = dbUpdate(connection, tableName, document.getId(), modified, hasBinary, modcount, cmodcount,
                         oldmodcount, data);
                 connection.commit();
@@ -1007,53 +879,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return 0L;
     }
 
-    /**
-     * Serializes the changes in the {@link UpdateOp} into a JSON array; each entry is another
-     * JSON array holding operation, key, revision, and value.
-     */
-    private static String asString(UpdateOp update) {
-        StringBuilder sb = new StringBuilder("[");
-        boolean needComma = false;
-        for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
-            Operation op = change.getValue();
-            Key key = change.getKey();
-
-            // exclude properties that are serialized into special columns
-            if (MODCOUNT.equals(key.getName()) && null == key.getRevision()) continue;
-            if (MODIFIED.equals(key.getName()) && null == key.getRevision()) continue;
-            if (ID.equals(key.getName()) && null == key.getRevision()) continue;
-
-            // already checked
-            if (op.type == UpdateOp.Operation.Type.CONTAINS_MAP_ENTRY) continue;
-
-            if (needComma) {
-                sb.append(",");
-            }
-            sb.append("[");
-            if (op.type == UpdateOp.Operation.Type.INCREMENT) {
-                sb.append("\"+\",");
-            } else if (op.type == UpdateOp.Operation.Type.SET || op.type == UpdateOp.Operation.Type.SET_MAP_ENTRY) {
-                sb.append("\"=\",");
-            } else if (op.type == UpdateOp.Operation.Type.MAX) {
-                sb.append("\"M\",");
-            } else if (op.type == UpdateOp.Operation.Type.REMOVE_MAP_ENTRY) {
-                sb.append("\"*\",");
-            } else {
-                throw new RuntimeException("Can't serialize " + update.toString() + " for JSON append");
-            }
-            appendString(sb, key.getName());
-            sb.append(",");
-            if (key.getRevision() != null) {
-                appendString(sb, key.getRevision().toString());
-                sb.append(",");
-            }
-            appendValue(sb, op.value);
-            sb.append("]");
-            needComma = true;
-        }
-        return sb.append("]").toString();
-    }
-
     private <T extends Document> void insertDocuments(Collection<T> collection, List<T> documents) {
         Connection connection = null;
         String tableName = getTable(collection);
@@ -1061,7 +886,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         try {
             connection = getConnection();
             for (T document : documents) {
-                String data = asString(document);
+                String data = SR.asString(document);
                 Long modified = (Long) document.get(MODIFIED);
                 Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
                 Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
@@ -1091,25 +916,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
     // Number of documents to insert at once for batch create
     private static int CHUNKSIZE = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
-
-    // low level operations
-
-    private static byte[] GZIPSIG = { 31, -117 };
-
-    private static String fromBlobData(byte[] bdata) {
-        try {
-            if (bdata.length >= 2 && bdata[0] == GZIPSIG[0] && bdata[1] == GZIPSIG[1]) {
-                // GZIP
-                ByteArrayInputStream bis = new ByteArrayInputStream(bdata);
-                GZIPInputStream gis = new GZIPInputStream(bis, 65536);
-                return IOUtils.toString(gis, "UTF-8");
-            } else {
-                return IOUtils.toString(bdata, "UTF-8");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1547,91 +1353,4 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         return false;
     }
-
-    // custom serializer
-    private static String asString(@Nonnull Document doc) {
-        StringBuilder sb = new StringBuilder(32768);
-        sb.append("{");
-        boolean needComma = false;
-        for (String key : doc.keySet()) {
-            if (!COLUMNPROPERTIES.contains(key)) {
-                if (needComma) {
-                    sb.append(",");
-                }
-                appendMember(sb, key, doc.get(key));
-                needComma = true;
-            }
-        }
-        sb.append("}");
-        return sb.toString();
-    }
-
-    private static void appendMember(StringBuilder sb, String key, Object value) {
-        appendString(sb, key);
-        sb.append(":");
-        appendValue(sb, value);
-    }
-
-    private static void appendValue(StringBuilder sb, Object value) {
-        if (value == null) {
-            sb.append("null");
-        } else if (value instanceof Number) {
-            sb.append(value.toString());
-        } else if (value instanceof Boolean) {
-            sb.append(value.toString());
-        } else if (value instanceof String) {
-            appendString(sb, (String) value);
-        } else if (value instanceof Map) {
-            appendMap(sb, (Map<Object, Object>) value);
-        } else {
-            throw new RuntimeException("unexpected type: " + value.getClass());
-        }
-    }
-
-    private static void appendMap(StringBuilder sb, Map<Object, Object> map) {
-        sb.append("{");
-        boolean needComma = false;
-        for (Map.Entry<Object, Object> e : map.entrySet()) {
-            if (needComma) {
-                sb.append(",");
-            }
-            appendMember(sb, e.getKey().toString(), e.getValue());
-            needComma = true;
-        }
-        sb.append("}");
-    }
-
-    private static String[] JSONCONTROLS = new String[] { "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005",
-            "\\u0006", "\\u0007", "\\b", "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011",
-            "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b",
-            "\\u001c", "\\u001d", "\\u001e", "\\u001f" };
-
-    private static void appendString(StringBuilder sb, String s) {
-        sb.append('"');
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '"') {
-                sb.append("\\\"");
-            } else if (c == '\\') {
-                sb.append("\\\\");
-            } else if (c >= 0 && c < 0x20) {
-                sb.append(JSONCONTROLS[c]);
-            } else {
-                sb.append(c);
-            }
-        }
-        sb.append('"');
-    }
-
-    // JSON simple serializer
-//    private static String asString(@Nonnull Document doc) {
-//        JSONObject obj = new JSONObject();
-//        for (String key : doc.keySet()) {
-//            if (! COLUMNPROPERTIES.contains(key)) {
-//                Object value = doc.get(key);
-//                obj.put(key, value);
-//            }
-//        }
-//        return obj.toJSONString();
-//    }
 }
