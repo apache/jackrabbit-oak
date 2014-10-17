@@ -65,7 +65,6 @@ public abstract class SearchScalabilityBenchmark extends ScalabilityBenchmark {
         for (int rows = 0; it.hasNext() && rows < MAX_RESULTS; rows++) {
             Node node = it.nextRow().getNode();
             LOG.debug(node.getPath());
-            LOG.debug(node.getProperty("jcr:created").getString());
         }
     }
 

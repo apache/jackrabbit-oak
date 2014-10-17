@@ -228,8 +228,11 @@ public class OakIndexUtils {
         indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
                 PropertyType.NAME);
         indexDef.setProperty(IndexConstants.UNIQUE_PROPERTY_NAME, unique);
-        indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
+
+        if (enclosingNodeTypes != null && enclosingNodeTypes.length != 0) {
+            indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
                 PropertyType.NAME);
+        }
         session.save();
         
         return indexDef;
@@ -261,8 +264,11 @@ public class OakIndexUtils {
         indexDef.setProperty(IndexConstants.TYPE_PROPERTY_NAME, OrderedIndex.TYPE);
         indexDef.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames,
             PropertyType.NAME);
-        indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
-            PropertyType.NAME);
+
+        if (enclosingNodeTypes != null && enclosingNodeTypes.length != 0) {
+            indexDef.setProperty(IndexConstants.DECLARING_NODE_TYPES, enclosingNodeTypes,
+                PropertyType.NAME);
+        }
 
         if (direction != null) {
             indexDef.setProperty(OrderedIndex.DIRECTION, direction);

@@ -87,7 +87,7 @@ public abstract class ScalabilityAbstractSuite implements ScalabilitySuite, CSVR
      * Controls the incremental load for each iteration
      */
     protected static final List<String> INCREMENTS = Splitter.on(",").trimResults()
-                    .omitEmptyStrings().splitToList(System.getProperty("increments", "1,5,7,10"));
+                    .omitEmptyStrings().splitToList(System.getProperty("increments", "1,2,5"));
 
     protected static final Credentials CREDENTIALS = new SimpleCredentials("admin", "admin"
             .toCharArray());
