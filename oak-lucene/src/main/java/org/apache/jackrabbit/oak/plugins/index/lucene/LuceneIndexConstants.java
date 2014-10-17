@@ -90,4 +90,9 @@ public interface LuceneIndexConstants {
      * the index
      */
     String FUNC_NAME = "functionName";
+
+    /**
+     * Name of the codec to be used for indexing
+     */
+    String CODEC_NAME = "codec";
 }
