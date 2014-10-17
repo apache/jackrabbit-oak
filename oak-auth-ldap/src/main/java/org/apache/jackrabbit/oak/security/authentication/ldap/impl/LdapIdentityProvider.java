@@ -97,14 +97,20 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     private LdapConnectionPool adminPool;
 
     /**
+     * admin connection factory
+     */
+    private PoolableLdapConnectionFactory adminConnectionFactory;
+
+    /**
      * the connection pool with unbound connections
      */
     private UnboundLdapConnectionPool userPool;
 
     /**
-     * temporary flag to disable connection pooling during unit tests. somehow the internal DS does not work correctly.
+     * user connection factory
      */
-    public boolean disableConnectionPooling;
+    private PoolableUnboundConnectionFactory userConnectionFactory;
+
 
     /**
      * Default constructor for OSGi
@@ -138,7 +144,7 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
      * Initializes the ldap identity provider.
      */
     private void init() {
-        if (adminPool != null) {
+        if (adminConnectionFactory != null) {
             throw new IllegalStateException("Provider already initialized.");
         }
 
@@ -148,17 +154,27 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             cc.setName(config.getBindDN());
             cc.setCredentials(config.getBindPassword());
         }
+        adminConnectionFactory = new PoolableLdapConnectionFactory(cc);
 
-        PoolableLdapConnectionFactory factory = new PoolableLdapConnectionFactory(cc);
-        adminPool = new LdapConnectionPool(factory);
-        adminPool.setTestOnBorrow(true);
-        adminPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_GROW);
+        if (config.getAdminPoolConfig().getMaxActive() != 0) {
+            adminPool = new LdapConnectionPool(adminConnectionFactory);
+            adminPool.setTestOnBorrow(true);
+            adminPool.setMaxActive(config.getAdminPoolConfig().getMaxActive());
+            adminPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
+        }
 
         // setup unbound connection pool. let's create a new version of the config
         cc = createConnectionConfig();
-        userPool = new UnboundLdapConnectionPool(new PoolableUnboundConnectionFactory(cc));
-        userPool.setTestOnBorrow(true);
-        userPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_GROW);
+
+        userConnectionFactory = new PoolableUnboundConnectionFactory(cc);
+        if (config.getUserPoolConfig().getMaxActive() != 0) {
+            userPool = new UnboundLdapConnectionPool(userConnectionFactory);
+            userPool.setTestOnBorrow(true);
+            userPool.setMaxActive(config.getUserPoolConfig().getMaxActive());
+            userPool.setWhenExhaustedAction(GenericObjectPool.WHEN_EXHAUSTED_BLOCK);
+        }
+
+        log.info("LdapIdentityProvider initialized: {}", config);
     }
 
     /**
@@ -510,7 +526,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     @Nonnull
     private LdapConnection connect() throws ExternalIdentityException {
         try {
-            return adminPool.getConnection();
+            if (adminPool == null) {
+                return adminConnectionFactory.makeObject();
+            } else {
+                return adminPool.getConnection();
+            }
         } catch (Throwable e) {
             log.error("Error while connecting to the ldap server.", e);
             throw new ExternalIdentityException("Error while connecting and binding to the ldap server", e);
@@ -520,10 +540,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
     private void disconnect(@Nullable LdapConnection connection) throws ExternalIdentityException {
         try {
             if (connection != null) {
-                if (disableConnectionPooling) {
-                    connection.close();
+                if (adminPool == null) {
+                    adminConnectionFactory.destroyObject(connection);
+                } else {
+                    adminPool.releaseConnection(connection);
                 }
-                adminPool.releaseConnection(connection);
             }
         } catch (Exception e) {
             log.warn("Error while disconnecting from the ldap server.", e);
@@ -549,7 +570,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             LdapConnection connection = null;
             try {
                 DebugTimer timer = new DebugTimer();
-                connection = userPool.getConnection();
+                if (userPool == null) {
+                    connection = userConnectionFactory.makeObject();
+                } else {
+                    connection = userPool.getConnection();
+                }
                 timer.mark("connect");
                 connection.bind(user.getExternalId().getId(), new String(creds.getPassword()));
                 timer.mark("bind");
@@ -563,7 +588,11 @@ public class LdapIdentityProvider implements ExternalIdentityProvider {
             } finally {
                 if (connection != null) {
                     try {
-                        userPool.releaseConnection(connection);
+                        if (userPool == null) {
+                            userConnectionFactory.destroyObject(connection);
+                        } else {
+                            userPool.releaseConnection(connection);
+                        }
                     } catch (Exception e) {
                         // ignore
                     }
