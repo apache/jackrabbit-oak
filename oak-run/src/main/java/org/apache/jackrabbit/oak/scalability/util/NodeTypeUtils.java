@@ -56,7 +56,10 @@ public class NodeTypeUtils {
             NodeTypeDefinition ntd = ntm.getNodeType(baseType);
             ntt = ntm.createNodeTypeTemplate(ntd);
         }
-        ntt.setDeclaredSuperTypeNames(superTypes);
+
+        if ((superTypes != null) && (superTypes.length != 0)) {
+            ntt.setDeclaredSuperTypeNames(superTypes);
+        }
         ntt.setOrderableChildNodes(false);
         ntt.setName(name);
 

@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +163,12 @@ public class ScalabilityRunner {
             }
             argset.remove(arg);
         }
-        
+
+        if (argmap.isEmpty()) {
+            System.err.println("Warning: no scalability suites specified, " +
+                "supported  are: " + Arrays.asList(allSuites));
+        }
+
         List<ScalabilitySuite> suites = Lists.newArrayList();
         for (ScalabilitySuite suite : allSuites) {
             if (argmap.containsKey(suite.toString())) {

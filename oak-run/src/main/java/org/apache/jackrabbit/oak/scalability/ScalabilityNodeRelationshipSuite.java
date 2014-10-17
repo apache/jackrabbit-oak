@@ -142,23 +142,23 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
         // define indexes on properties
         switch (INDEX_TYPE) {
             case PROPERTY:
-                OakIndexUtils
-                        .propertyIndexDefinition(session, "customIndexActivity",
-                                new String[]{SOURCE_ID}, false, new String[]{CUSTOM_ACT_NODE_TYPE});
-                OakIndexUtils
-                        .propertyIndexDefinition(session, "customIndexRelationship",
-                                new String[]{SOURCE_ID},
-                                false, new String[]{CUSTOM_REL_NODE_TYPE});
+                OakIndexUtils.propertyIndexDefinition(session, "customIndexActivity",
+                    new String[] {SOURCE_ID}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_ACT_NODE_TYPE}));
+                OakIndexUtils.propertyIndexDefinition(session, "customIndexRelationship",
+                    new String[] {SOURCE_ID}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_REL_NODE_TYPE}));
                 break;
             // define ordered indexes on properties
             case ORDERED:
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexActivity", ASYNC_INDEX,
-                        new String[]{CREATED}, false,
-                        new String[]{CUSTOM_ACT_NODE_TYPE},
-                        OrderedIndex.OrderDirection.DESC.getDirection());
-                OakIndexUtils.orderedIndexDefinition(session, "customIndexRelationship", ASYNC_INDEX,
-                        new String[]{CREATED}, false,
-                        new String[]{CUSTOM_REL_NODE_TYPE},
+                    new String[] {CREATED}, false,
+                    (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_ACT_NODE_TYPE}),
+                    OrderedIndex.OrderDirection.DESC.getDirection());
+                OakIndexUtils
+                    .orderedIndexDefinition(session, "customIndexRelationship", ASYNC_INDEX,
+                        new String[] {CREATED}, false,
+                        (!CUSTOM_TYPE ? new String[0] : new String[] {CUSTOM_REL_NODE_TYPE}),
                         OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             // define lucene index on properties
