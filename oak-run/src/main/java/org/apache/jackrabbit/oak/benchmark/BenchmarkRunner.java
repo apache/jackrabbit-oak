@@ -23,6 +23,7 @@ import java.util.Set;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -76,7 +77,7 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> numberOfUsers = parser.accepts("numberOfUsers")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(10000);
-
+        OptionSpec<String> nonOption = parser.nonOptions();
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
@@ -204,7 +205,7 @@ public class BenchmarkRunner {
                     flatStructure.value(options))
         };
 
-        Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
+        Set<String> argset = Sets.newHashSet(nonOption.values(options));
         List<RepositoryFixture> fixtures = Lists.newArrayList();
         for (RepositoryFixture fixture : allFixtures) {
             if (argset.remove(fixture.toString())) {

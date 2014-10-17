@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,15 +32,11 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.jcr.Repository;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -46,6 +45,7 @@ import joptsimple.OptionSpec;
 import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -55,6 +55,8 @@ import org.apache.jackrabbit.oak.fixture.OakFixture;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
+import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
@@ -62,6 +64,8 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
+import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -76,7 +80,11 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import static com.google.common.collect.Sets.newHashSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
+import com.google.common.util.concurrent.AbstractScheduledService;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 
 public class Main {
 
@@ -104,6 +112,9 @@ public class Main {
             case BACKUP:
                 backup(args);
                 break;
+            case RESTORE:
+                restore(args);
+                break;
             case BENCHMARK:
                 BenchmarkRunner.main(args);
                 break;
@@ -118,6 +129,12 @@ public class Main {
                 break;
             case UPGRADE:
                 upgrade(args);
+                break;
+            case SYNCSLAVE:
+                syncSlave(args);
+                break;
+            case SYNCMASTER:
+                syncMaster(args);
                 break;
             case CHECKPOINTS:
                 checkpoints(args);
@@ -167,6 +184,222 @@ public class Main {
             System.err.println("usage: backup <repository> <backup>");
             System.exit(1);
         }
+    }
+
+    private static void restore(String[] args) throws IOException {
+        if (args.length == 2) {
+            // TODO: enable restore for other node store implementations
+            FileStore store = new FileStore(new File(args[0]), 256, false);
+            File target = new File(args[1]);
+            try {
+                FileStoreRestore.restore(target, new SegmentNodeStore(store));
+            } catch (CommitFailedException e) {
+                throw new IOException(e);
+            }
+            store.close();
+        } else {
+            System.err.println("usage: restore <repository> <backup>");
+            System.exit(1);
+        }
+    }
+
+    //TODO react to state changes of FailoverClient (triggered via JMX), once the state model of FailoverClient is complete.
+    private static class ScheduledSyncService extends AbstractScheduledService {
+
+        private final FailoverClient failoverClient;
+        private final int interval;
+
+        public ScheduledSyncService(FailoverClient failoverClient, int interval) {
+            this.failoverClient = failoverClient;
+            this.interval = interval;
+        }
+
+        @Override
+        public void runOneIteration() throws Exception {
+            failoverClient.run();
+        }
+
+        @Override
+        protected Scheduler scheduler() {
+            return Scheduler.newFixedDelaySchedule(0, interval, TimeUnit.SECONDS);
+        }
+    }
+
+
+    private static void syncSlave(String[] args) throws Exception {
+
+        final String defaultHost = "127.0.0.1";
+        final int defaultPort = 8023;
+
+        final OptionParser parser = new OptionParser();
+        final OptionSpec<String> host = parser.accepts("host", "master host").withRequiredArg().ofType(String.class).defaultsTo(defaultHost);
+        final OptionSpec<Integer> port = parser.accepts("port", "master port").withRequiredArg().ofType(Integer.class).defaultsTo(defaultPort);
+        final OptionSpec<Integer> interval = parser.accepts("interval", "interval between successive executions").withRequiredArg().ofType(Integer.class);
+        final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
+        final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCSLAVE + " <path to repository>");
+
+        final OptionSet options = parser.parse(args);
+        final List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        if (nonOptions.isEmpty()) {
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+        FileStore store = null;
+        FailoverClient failoverClient = null;
+        try {
+            store = new FileStore(new File(nonOptions.get(0)), 256);
+            failoverClient = new FailoverClient(
+                    options.has(host)? options.valueOf(host) : defaultHost,
+                    options.has(port)? options.valueOf(port) : defaultPort,
+                    store,
+                    options.has(secure) && options.valueOf(secure));
+            if (!options.has(interval)) {
+                failoverClient.run();
+            } else {
+                ScheduledSyncService syncService = new ScheduledSyncService(failoverClient, options.valueOf(interval));
+                syncService.startAsync();
+                syncService.awaitTerminated();
+            }
+        } finally {
+            if (store != null) {
+                store.close();
+            }
+            if (failoverClient != null) {
+                failoverClient.close();
+            }
+        }
+    }
+
+    private static void syncMaster(String[] args) throws Exception {
+
+        final int defaultPort = 8023;
+
+        final OptionParser parser = new OptionParser();
+        final OptionSpec<Integer> port = parser.accepts("port", "port to listen").withRequiredArg().ofType(Integer.class).defaultsTo(defaultPort);
+        final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
+        final OptionSpec<String> admissible = parser.accepts("admissible", "list of admissible slave host names or ip ranges").withRequiredArg().ofType(String.class);
+        final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+        final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCMASTER + " <path to repository>");
+
+        final OptionSet options = parser.parse(args);
+        final List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        if (nonOptions.isEmpty()) {
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+
+        List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
+
+        FileStore store = null;
+        FailoverServer failoverServer = null;
+        try {
+            store = new FileStore(new File(nonOptions.get(0)), 256);
+            failoverServer = new FailoverServer(
+                    options.has(port)? options.valueOf(port) : defaultPort,
+                    store,
+                    admissibleSlaves.toArray(new String[0]),
+                    options.has(secure) && options.valueOf(secure));
+            failoverServer.startAndWait();
+        } finally {
+            if (store != null) {
+                store.close();
+            }
+            if (failoverServer != null) {
+                failoverServer.close();
+            }
+        }
+    }
+
+    public static NodeStore bootstrapNodeStore(String[] args, Closer closer,
+            String h) throws IOException {
+        //TODO add support for other NodeStore flags
+        OptionParser parser = new OptionParser();
+        OptionSpec<Integer> clusterId = parser
+                .accepts("clusterId", "MongoMK clusterId").withRequiredArg()
+                .ofType(Integer.class).defaultsTo(0);
+        OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"),
+                "show help").forHelp();
+        OptionSpec<String> nonOption = parser
+                .nonOptions(h);
+
+        OptionSet options = parser.parse(args);
+        List<String> nonOptions = nonOption.values(options);
+
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            System.exit(0);
+        }
+
+        if (nonOptions.isEmpty()) {
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+        String src = nonOptions.get(0);
+        if (src.startsWith(MongoURI.MONGODB_PREFIX)) {
+            MongoClientURI uri = new MongoClientURI(src);
+            if (uri.getDatabase() == null) {
+                System.err.println("Database missing in MongoDB URI: "
+                        + uri.getURI());
+                System.exit(1);
+            }
+            MongoConnection mongo = new MongoConnection(uri.getURI());
+            closer.register(asCloseable(mongo));
+            DocumentNodeStore store = new DocumentMK.Builder()
+                    .setMongoDB(mongo.getDB())
+                    .setClusterId(clusterId.value(options)).getNodeStore();
+            closer.register(asCloseable(store));
+            return store;
+        } else {
+            FileStore fs = new FileStore(new File(src), 256, false);
+            closer.register(asCloseable(fs));
+            return new SegmentNodeStore(fs);
+        }
+    }
+
+    private static Closeable asCloseable(final FileStore fs) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                fs.close();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final DocumentNodeStore dns) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                dns.dispose();
+            }
+        };
+    }
+
+    private static Closeable asCloseable(final MongoConnection con) {
+        return new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                con.close();
+            }
+        };
     }
 
     private static void compact(String[] args) throws IOException {
@@ -456,10 +689,10 @@ public class Main {
     private static void upgrade(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         parser.accepts("datastore", "keep data store");
-
+        OptionSpec<String> nonOption = parser.nonOptions();
         OptionSet options = parser.parse(args);
 
-        List<String> argList = options.nonOptionArguments();
+        List<String> argList = nonOption.values(options);
         if (argList.size() == 2 || argList.size() == 3) {
             File dir = new File(argList.get(0));
             File xml = new File(dir, "repository.xml");
@@ -527,12 +760,12 @@ public class Main {
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port").withRequiredArg().ofType(Integer.class).defaultsTo(27017);
         OptionSpec<String> dbName = parser.accepts("db", "MongoDB database").withRequiredArg();
         OptionSpec<Integer> clusterIds = parser.accepts("clusterIds", "Cluster Ids").withOptionalArg().ofType(Integer.class).withValuesSeparatedBy(',');
-
+        OptionSpec<String> nonOption = parser.nonOptions();
         OptionSet options = parser.parse(args);
 
         OakFixture oakFixture;
 
-        List<String> arglist = options.nonOptionArguments();
+        List<String> arglist = nonOption.values(options);
         String uri = (arglist.isEmpty()) ? defaultUri : arglist.get(0);
         String fix = (arglist.size() <= 1) ? OakFixture.OAK_MEMORY : arglist.get(1);
 
@@ -672,11 +905,14 @@ public class Main {
     public enum Mode {
 
         BACKUP("backup"),
+        RESTORE("restore"),
         BENCHMARK("benchmark"),
         DEBUG("debug"),
         COMPACT("compact"),
         SERVER("server"),
         UPGRADE("upgrade"),
+        SYNCSLAVE("syncSlave"),
+        SYNCMASTER("syncmaster"),
         CHECKPOINTS("checkpoints");
 
         private final String name;
