@@ -68,7 +68,6 @@ public class FailoverStore implements SegmentStore {
 
     @Override
     public Segment readSegment(SegmentId sid) {
-        log.info("shall read segment " + sid);
         Deque<SegmentId> ids = new ArrayDeque<SegmentId>();
         ids.offer(sid);
         int err = 0;
@@ -80,7 +79,7 @@ public class FailoverStore implements SegmentStore {
                 log.debug("trying to read segment " + id);
                 Segment s = loader.readSegment(id.toString());
                 if (s != null) {
-                    log.info("got segment " + id + " with size " + s.size());
+                    log.debug("got segment " + id + " with size " + s.size());
                     ByteArrayOutputStream bout = new ByteArrayOutputStream(
                             s.size());
                     if (id.isDataSegmentId()) {
@@ -111,7 +110,7 @@ public class FailoverStore implements SegmentStore {
             }
         }
 
-        log.info("calling delegate to return segment " + sid);
+        log.debug("calling delegate to return segment " + sid);
         return delegate.readSegment(sid);
     }
 
