@@ -38,6 +38,7 @@ import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
@@ -85,7 +86,7 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
      * Controls the number of nodes at each level
      */
     protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
-            .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "100,10,5"));
+            .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2"));
 
     /**
      * Controls the number of concurrent thread for searching
@@ -155,7 +156,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
     }
 
     /** Type of index to be created */
-    public final Index INDEX_TYPE = Index.valueOf(System.getProperty("indexType", Index.PROPERTY.toString()));
+    public final Index INDEX_TYPE =
+        Index.valueOf(System.getProperty("indexType", Index.PROPERTY.toString()));
 
     protected final Boolean storageEnabled;
 
@@ -217,12 +219,12 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
             case ORDERED:
                 // define ordered indexes on properties
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexParent", ASYNC_INDEX,
-                        new String[]{DATE_PROP}, false,
-                        new String[]{CUSTOM_ROOT_NODE_TYPE},
-                        OrderedIndex.OrderDirection.DESC.getDirection());
+                    new String[] {DATE_PROP}, false,
+                    (nodeTypes.isEmpty() ? new String[0] : new String[] {nodeTypes.get(0)}),
+                    OrderedIndex.OrderDirection.DESC.getDirection());
                 OakIndexUtils.orderedIndexDefinition(session, "customIndexDescendant", ASYNC_INDEX,
                         new String[]{DATE_PROP}, false,
-                        new String[]{CUSTOM_DESC_NODE_TYPE},
+                        (nodeTypes.isEmpty() ? new String[0]: new String[] {nodeTypes.get(1)}),
                         OrderedIndex.OrderDirection.DESC.getDirection());
                 break;
             // define lucene index on properties
@@ -404,7 +406,8 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                             .with((Observer) provider)
                             .with(new LuceneIndexEditorProvider());
 
-                    if (ASYNC_INDEX.equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
+                    if (!Strings.isNullOrEmpty(ASYNC_INDEX) && ASYNC_INDEX
+                        .equals(IndexConstants.ASYNC_PROPERTY_NAME)) {
                         oak.withAsyncIndexing();
                     }
 
