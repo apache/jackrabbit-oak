@@ -240,6 +240,21 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void indexDefinitionBelowRoot() throws Exception {
+        Tree parent = root.getTree("/").addChild("test");
+        Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+        idx.addChild("propa");
+        root.commit();
+
+        Tree test = parent.addChild("test2");
+        test.addChild("a").setProperty("propa", "a");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test2/a"));
+    }
+
+
+    @Test
     public void sortQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
         Tree propIdx = idx.addChild("foo");
@@ -429,6 +444,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private Tree createIndex(String name, Set<String> propNames) throws CommitFailedException {
         Tree index = root.getTree("/");
+        return createIndex(index, name, propNames);
+    }
+
+    private Tree createIndex(Tree index, String name, Set<String> propNames) throws CommitFailedException {
         Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
         def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
@@ -437,7 +456,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
         root.commit();
-        return root.getTree("/").getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
     private static String dt(String date) throws ParseException {
