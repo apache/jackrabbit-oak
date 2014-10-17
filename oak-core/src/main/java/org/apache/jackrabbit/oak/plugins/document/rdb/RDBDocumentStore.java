@@ -725,9 +725,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         try {
             connection = getConnection();
-            List<DBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
-            for (DBRow r : dbresult) {
-                T doc = fromDBRow(collection, r);
+            List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
+            for (RDBRow r : dbresult) {
+                T doc = fromRow(collection, r);
                 doc.seal();
                 result.add(doc);
                 addToCacheIfNotNewer(collection, doc);
@@ -753,20 +753,21 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> T fromDBRow(Collection<T> collection, DBRow row) throws ParseException {
+    private <T extends Document> T fromRow(Collection<T> collection, RDBRow row) throws ParseException {
         T doc = collection.newDocument(this);
-        doc.put(ID, row.id);
-        doc.put(MODIFIED, row.modified);
-        doc.put(MODCOUNT, row.modcount);
+        doc.put(ID, row.getId());
+        doc.put(MODIFIED, row.getModified());
+        doc.put(MODCOUNT, row.getModcount());
 
         JSONParser jp = new JSONParser();
 
         Map<String, Object> baseData = null;
-        if (row.bdata != null && row.bdata.length != 0) {
-            baseData = (Map<String, Object>) jp.parse(fromBlobData(row.bdata));
+        byte[] bdata = row.getBdata();
+        if (bdata != null && bdata.length != 0) {
+            baseData = (Map<String, Object>) jp.parse(fromBlobData(bdata));
         }
         // TODO figure out a faster way
-        JSONArray arr = (JSONArray) new JSONParser().parse("[" + row.data + "]");
+        JSONArray arr = (JSONArray) new JSONParser().parse("[" + row.getData() + "]");
 
         int updatesStartAt = 0;
         if (baseData == null) {
@@ -882,8 +883,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         try {
             connection = getConnection();
-            DBRow row = dbRead(connection, tableName, id);
-            return row != null ? fromDBRow(collection, row) : null;
+            RDBRow row = dbRead(connection, tableName, id);
+            return row != null ? fromRow(collection, row) : null;
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
@@ -1141,7 +1142,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private DBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
+    private RDBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
         PreparedStatement stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
         try {
             stmt.setString(1, id);
@@ -1151,7 +1152,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 long modcount = rs.getLong(2);
                 String data = rs.getString(3);
                 byte[] bdata = rs.getBytes(4);
-                return new DBRow(id, modified, modcount, data, bdata);
+                return new RDBRow(id, modified, modcount, data, bdata);
             } else {
                 return null;
             }
@@ -1170,7 +1171,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private List<DBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
+    private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
         String t = "select ID, MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
@@ -1186,7 +1187,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         PreparedStatement stmt = connection.prepareStatement(t);
-        List<DBRow> result = new ArrayList<DBRow>();
+        List<RDBRow> result = new ArrayList<RDBRow>();
         try {
             int si = 1;
             stmt.setString(si++, minId);
@@ -1207,7 +1208,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 long modcount = rs.getLong(3);
                 String data = rs.getString(4);
                 byte[] bdata = rs.getBytes(5);
-                result.add(new DBRow(id, modified, modcount, data, bdata));
+                result.add(new RDBRow(id, modified, modcount, data, bdata));
             }
         } finally {
             stmt.close();
@@ -1545,20 +1546,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         }
         return false;
-    }
-
-    private static class DBRow {
-        public final String id, data;
-        public final long modified, modcount;
-        public final byte[] bdata;
-        
-        public DBRow(String id, long modified, long modcount, String data, byte[] bdata) {
-            this.id = id;
-            this.modified = modified;
-            this.modcount = modcount;
-            this.data = data;
-            this.bdata = bdata;
-        }
     }
 
     // custom serializer
