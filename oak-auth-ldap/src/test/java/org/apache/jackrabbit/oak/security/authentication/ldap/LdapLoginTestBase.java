@@ -158,9 +158,9 @@ public abstract class LdapLoginTestBase extends ExternalLoginModuleTestBase {
                 .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
                 .setObjectClasses(InternalLdapServer.GROUP_CLASS_ATTR);
 
-        LdapIdentityProvider ldapIDP = new LdapIdentityProvider(cfg);
-        ldapIDP.disableConnectionPooling = true;
-        return ldapIDP;
+        cfg.getAdminPoolConfig().setMaxActive(0);
+        cfg.getUserPoolConfig().setMaxActive(0);
+        return new LdapIdentityProvider(cfg);
     }
 
     @Override
