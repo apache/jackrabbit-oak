@@ -833,9 +833,17 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
             }
         }
         
-        synchronized V get(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
+        V get(K key, int hash, Callable<? extends V> valueLoader) throws ExecutionException {
+            // avoid synchronization if it's in the cache
             V value = get(key, hash);
-            if (value == null) {
+            if (value != null) {
+                return value;
+            }
+            synchronized (this) {
+                value = get(key, hash);
+                if (value != null) {
+                    return value;
+                }
                 long start = System.nanoTime();
                 try {
                     value = valueLoader.call();
@@ -848,15 +856,23 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     totalLoadTime += time;
                 }
                 put(key, hash, value, cache.sizeOf(key, value));
+                return value;
             }
-            return value;
         }
         
-        synchronized V get(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+        V get(K key, int hash, CacheLoader<K, V> loader) throws ExecutionException {
+            // avoid synchronization if it's in the cache
             V value = get(key, hash);
-            if (value == null) {
-                if (loader == null) {
-                    return null;
+            if (value != null) {
+                return value;
+            }
+            if (loader == null) {
+                return null;
+            }
+            synchronized (this) {
+                value = get(key, hash);
+                if (value != null) {
+                    return value;
                 }
                 long start = System.nanoTime();
                 try {
@@ -870,8 +886,8 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
                     totalLoadTime += time;
                 }
                 put(key, hash, value, cache.sizeOf(key, value));
+                return value;
             }
-            return value;
         }
         
         synchronized V replace(K key, int hash, V value, int memory) {
