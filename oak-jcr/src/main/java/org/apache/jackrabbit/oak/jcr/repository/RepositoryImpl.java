@@ -28,7 +28,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -332,7 +334,20 @@ public class RepositoryImpl implements JackrabbitRepository {
     //------------------------------------------------------------< private >---
 
     private static ScheduledExecutorService createListeningScheduledExecutorService() {
-        return new ScheduledThreadPoolExecutor(1) {
+        ThreadFactory tf = new ThreadFactory() {
+            private final AtomicLong counter = new AtomicLong();
+            @Override
+            public Thread newThread(@Nonnull Runnable r) {
+                Thread t = new Thread(r, newName());
+                t.setDaemon(true);
+                return t;
+            }
+
+            private String newName() {
+                return "oak-repository-executor-" + counter.incrementAndGet();
+            }
+        };
+        return new ScheduledThreadPoolExecutor(1, tf) {
             // purge the list of schedule tasks before scheduling a new task in order
             // to reduce memory consumption in the face of many cancelled tasks. See OAK-1890.
 
