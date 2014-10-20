@@ -38,6 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
+
 /**
  * A simple utility class for Oak indexes.
  */
@@ -306,9 +308,10 @@ public class OakIndexUtils {
         Node indexDefRoot = JcrUtils.getOrAddNode(root, IndexConstants.INDEX_DEFINITIONS_NAME,
             NodeTypeConstants.NT_UNSTRUCTURED);
 
-        // Raise nodeType index cost - OAK-2200
-        Node nodeTypeIndexDef = JcrUtils.getOrAddNode(indexDefRoot, "nodeType");
-        nodeTypeIndexDef.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.MAX_VALUE);
+        // OAK-2200
+        if (indexDefRoot.hasNode("nodetype")) {
+            indexDefRoot.getNode("nodetype").setProperty(KEY_COUNT_PROPERTY_NAME, 100);
+        }
 
         Node indexDef = JcrUtils.getOrAddNode(indexDefRoot, indexDefinitionName,
             IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
@@ -321,9 +324,11 @@ public class OakIndexUtils {
         // Set indexed property names
         indexDef.setProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propertyNames,
             PropertyType.NAME);
+
+        Node propsNode = JcrUtils.getOrAddNode(indexDef, LuceneIndexConstants.PROP_NODE);
         for (int i = 0; i < propertyNames.length; i++) {
             Node propNode =
-                JcrUtils.getOrAddNode(indexDef, propertyNames[i], NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+                JcrUtils.getOrAddNode(propsNode, propertyNames[i], NodeTypeConstants.NT_OAK_UNSTRUCTURED);
             propNode.setProperty(LuceneIndexConstants.PROP_TYPE, type[i]);
         }
 
@@ -332,11 +337,10 @@ public class OakIndexUtils {
             List<String> orderedProps = Lists.newArrayList();
             for (Map.Entry<String, Map<String, String>> orderedPropEntry : orderedPropsMap
                 .entrySet()) {
-                Node propNode = JcrUtils.getOrAddNode(indexDef, orderedPropEntry.getKey(),
+                Node propNode = JcrUtils.getOrAddNode(propsNode, orderedPropEntry.getKey(),
                     NodeTypeConstants.NT_OAK_UNSTRUCTURED);
                 propNode.setProperty(LuceneIndexConstants.PROP_TYPE,
                     orderedPropEntry.getValue().get(LuceneIndexConstants.PROP_TYPE));
-                propNode.setProperty(OrderedIndex.TYPE, true);
                 orderedProps.add(orderedPropEntry.getKey());
             }
             if (!orderedProps.isEmpty()) {
