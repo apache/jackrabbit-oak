@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.test.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -38,6 +40,7 @@ import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.junit.After;
 import org.junit.Test;
 
@@ -149,11 +152,37 @@ public class LuceneIndexEditorTest {
         assertEquals(2, getSearcher().getIndexReader().numDocs());
     }
 
+    //@Test
+    public void checkLuceneIndexFileUpdates() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar", "baz"), STRINGS));
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        before = commitAndDump(before);
+
+        builder.child("test2").setProperty("bar", "ship is sinking");
+        before = commitAndDump(before);
+
+        builder.child("test3").setProperty("baz", "horn is blowing");
+        before = commitAndDump(before);
+
+        builder.child("test2").remove();
+        before = commitAndDump(before);
+
+        builder.child("test2").setProperty("bar", "ship is back again");
+        before = commitAndDump(before);
+    }
+
     @After
     public void releaseIndexNode(){
         if(indexNode != null){
             indexNode.release();
         }
+        indexNode = null;
     }
 
     private String query(String query) throws IOException, ParseException {
@@ -177,6 +206,24 @@ public class LuceneIndexEditorTest {
             indexNode = tracker.acquireIndexNode("/oak:index/lucene");
         }
         return indexNode.getSearcher();
+    }
+
+    private NodeState commitAndDump(NodeState before) throws CommitFailedException, IOException {
+        NodeState after = builder.getNodeState();
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+        dumpIndexDir();
+        return after;
+    }
+
+    private void dumpIndexDir() throws IOException {
+        Directory dir = ((DirectoryReader)getSearcher().getIndexReader()).directory();
+
+        System.out.println("================");
+        for (String file : dir.listAll()){
+            System.out.printf("%s - %d %n", file, dir.fileLength(file));
+        }
+        releaseIndexNode();
     }
 
     static Calendar createCal(String dt) throws java.text.ParseException {
