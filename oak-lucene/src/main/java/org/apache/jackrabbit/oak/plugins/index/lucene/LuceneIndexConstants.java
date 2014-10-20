@@ -71,7 +71,7 @@ public interface LuceneIndexConstants {
      * under the given index definition. Refer to {@link javax.jcr.PropertyType}
      * contants for the possible values
      */
-    String PROP_TYPE = "propertyType";
+    String PROP_TYPE = "type";
 
     /**
      * Defines properties which would be used for ordering. If range queries are to
@@ -95,4 +95,9 @@ public interface LuceneIndexConstants {
      * Name of the codec to be used for indexing
      */
     String CODEC_NAME = "codec";
+
+    /**
+     * Child node name under which property details are provided
+     */
+    String PROP_NODE = "properties";
 }
