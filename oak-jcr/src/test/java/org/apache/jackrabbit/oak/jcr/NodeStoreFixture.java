@@ -84,7 +84,7 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            String folder = (new File("target")).isDirectory() ? "target/" : "";
+            String folder = (new File("target")).isDirectory() ? "./target/" : "./";
             DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + id + ";MVCC=true", "sa", "");
             return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
         }
@@ -92,7 +92,7 @@ public abstract class NodeStoreFixture {
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                String folder = (new File("target")).isDirectory() ? "target/" : "";
+                String folder = (new File("target")).isDirectory() ? "./target/" : "./";
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "");
                 return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
             } catch (Exception e) {
