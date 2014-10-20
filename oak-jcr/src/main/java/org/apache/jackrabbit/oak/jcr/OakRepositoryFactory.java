@@ -39,6 +39,8 @@ public class OakRepositoryFactory implements RepositoryFactory {
                 }
             } catch (URISyntaxException ignore) {
             }
+        } else {
+            return getRepository(null, null);
         }
         return null;
     }
