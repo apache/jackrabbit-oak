@@ -38,7 +38,7 @@ out of the box contains the following modifications:
 
 Oak provides two different mechanisms to create pre-authentication that doesn't
 involve the repositories internal authentication mechanism for credentials
-validation. See the corresponding section [Pre-Authentication](security/authentication/preauthentication.html)
+validation. See the corresponding section [Pre-Authentication](preauthentication.html)
 for details and examples.
 
 - Pre-Authentication combined with Login Module Chain
