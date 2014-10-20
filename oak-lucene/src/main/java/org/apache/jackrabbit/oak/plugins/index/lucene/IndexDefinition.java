@@ -106,9 +106,10 @@ public class IndexDefinition {
         this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
 
         Map<String, PropertyDefinition> propDefns = Maps.newHashMap();
+        NodeBuilder propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
         for(String propName : Iterables.concat(includes, orderedProps)){
-            if(defn.hasChildNode(propName)){
-                propDefns.put(propName, new PropertyDefinition(this, propName, defn.child(propName)));
+            if(propNode.hasChildNode(propName)){
+                propDefns.put(propName, new PropertyDefinition(this, propName, propNode.child(propName)));
             }
         }
         this.propDefns = ImmutableMap.copyOf(propDefns);
