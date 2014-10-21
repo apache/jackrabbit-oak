@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Queue;
 import java.util.Set;
@@ -41,6 +42,10 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
@@ -1222,7 +1227,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             return false;
         }
         int c1 = context.getRevisionComparator().compare(r1, r2);
-        int c2 = r1.compareRevisionTimeThenClusterId(r2);
+        int c2 = r1.compareTo(r2);
         if (c1 == 0) {
             return c2 == 0;
         } else if (c1 < 0) {
@@ -1474,12 +1479,89 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     private Map<Revision, String> getDeleted() {
         return ValueMap.create(this, DELETED);
     }
-
+    
+    public String asString() {
+        JsopWriter json = new JsopBuilder();
+        toJson(json, data);
+        return json.toString();
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static void toJson(JsopWriter json, Map<? extends Object, Object> map) {
+        for (Entry<? extends Object, Object>e : map.entrySet()) {
+            json.key(e.getKey().toString());
+            Object value = e.getValue();
+            if (value == null) {
+                json.value(null);
+            } else if (value instanceof Boolean) {
+                json.value((Boolean) value);
+            } else if (value instanceof Long) {
+                json.value((Long) value);
+            } else if (value instanceof Integer) {
+                json.value((Integer) value);
+            } else if (value instanceof Map) {
+                json.object();
+                toJson(json, (Map<Object, Object>) value);
+                json.endObject();
+            } else if (value instanceof Revision) {
+                json.value(value.toString());
+            } else {
+                json.value((String) value);
+            }        
+        }
+    }
+    
+    public static NodeDocument fromString(DocumentStore store, String s) {
+        JsopTokenizer json = new JsopTokenizer(s);
+        NodeDocument doc = new NodeDocument(store);
+        while (true) {
+            if (json.matches(JsopReader.END)) {
+                break;
+            }
+            String k = json.readString();
+            json.read(':');
+            if (json.matches(JsopReader.END)) {
+                break;
+            }
+            doc.put(k, fromJson(json));
+            json.matches(',');
+        }
+        return doc;
+    }
+    
+    private static Object fromJson(JsopTokenizer json) {
+        switch (json.read()) {
+        case JsopReader.NULL:
+            return null;
+        case JsopReader.TRUE:
+            return true;
+        case JsopReader.FALSE:
+            return false;
+        case JsopReader.NUMBER:
+            return Long.parseLong(json.getToken());
+        case JsopReader.STRING:
+            return json.getToken();
+        case '{':
+            TreeMap<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
+            while (true) {
+                if (json.matches('}')) {
+                    break;
+                }
+                String k = json.readString();
+                json.read(':');
+                map.put(Revision.fromString(k), fromJson(json));
+                json.matches(',');
+            }
+            return map;
+        }
+        throw new IllegalArgumentException(json.readRawValue());
+    }
+    
     /**
      * The list of children for a node. The list might be complete or not, in
      * which case it only represents a block of children.
      */
-    static final class Children implements CacheValue, Cloneable {
+    public static final class Children implements CacheValue, Cloneable {
 
         /**
          * The child node names, ordered as stored in DocumentStore.
@@ -1512,6 +1594,52 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 throw new RuntimeException();
             }
         }
+
+        public String asString() {
+            JsopWriter json = new JsopBuilder();
+            if (isComplete) {
+                json.key("isComplete").value(true);
+            }
+            if (childNames.size() > 0) {
+                json.key("children").array();
+                for (String c : childNames) {
+                    json.value(c);
+                }
+                json.endArray();
+            }
+            return json.toString();            
+        }
+        
+        public static Children fromString(String s) {
+            JsopTokenizer json = new JsopTokenizer(s);
+            Children children = new Children();
+            while (true) {
+                if (json.matches(JsopReader.END)) {
+                    break;
+                }
+                String k = json.readString();
+                json.read(':');
+                if ("isComplete".equals(k)) {
+                    children.isComplete = json.read() == JsopReader.TRUE;
+                } else if ("children".equals(k)) {
+                    json.read('[');
+                    while (true) {
+                        if (json.matches(']')) {
+                            break;
+                        }
+                        String value = json.readString();
+                        children.childNames.add(value);
+                        json.matches(',');
+                    }
+                }
+                if (json.matches(JsopReader.END)) {
+                    break;
+                }
+                json.read(',');
+            }
+            return children;            
+        }
+        
     }
 
     /**

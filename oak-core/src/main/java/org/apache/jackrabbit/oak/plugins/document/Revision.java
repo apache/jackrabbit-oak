@@ -136,6 +136,22 @@ public class Revision {
         }
         return comp;
     }
+    
+    /**
+     * Compare all components of two revisions.
+     * 
+     * @param other the other revision
+     * @return -1, 0, or 1
+     */
+    int compareTo(Revision other) {
+        int comp = compareRevisionTimeThenClusterId(other);
+        if (comp == 0) {
+            if (branch != other.branch) {
+                return branch ? -1 : 1;
+            }
+        }
+        return comp;
+    }
 
     /**
      * Compare the cluster node ids of both revisions.
@@ -526,17 +542,17 @@ public class Revision {
             Revision range1 = getRevisionSeen(o1);
             Revision range2 = getRevisionSeen(o2);
             if (range1 == FUTURE && range2 == FUTURE) {
-                return o1.compareRevisionTimeThenClusterId(o2);
+                return o1.compareTo(o2);
             }
             if (range1 == null && range2 == null) {
-                return o1.compareRevisionTimeThenClusterId(o2);
+                return o1.compareTo(o2);
             }
             if (range1 == null) {
                 return -1;
             } else if (range2 == null) {
                 return 1;
             }
-            int comp = range1.compareRevisionTimeThenClusterId(range2);
+            int comp = range1.compareTo(range2);
             if (comp != 0) {
                 return comp;
             }
