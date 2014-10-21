@@ -61,4 +61,13 @@ public final class StringValue implements CacheValue {
     public String toString() {
         return value;
     }
+
+    public String asString() {
+        return value;
+    }
+    
+    public static StringValue fromString(String value) {
+        return new StringValue(value);
+    }
+
 }
