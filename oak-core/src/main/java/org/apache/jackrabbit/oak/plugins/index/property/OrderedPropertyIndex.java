@@ -191,7 +191,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
         PropertyRestriction pr = plan.getPropertyRestriction();
         if (pr != null) {
             String propertyName = PathUtils.getName(pr.propertyName);
-            depth = PathUtils.getDepth(propertyName);
+            depth = PathUtils.getDepth(pr.propertyName);
             paths = strategy.query(plan.getFilter(), propertyName,
                     plan.getDefinition(), pr, pathPrefix);
         }
