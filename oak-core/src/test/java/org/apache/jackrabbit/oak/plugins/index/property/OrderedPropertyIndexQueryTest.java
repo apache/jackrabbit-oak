@@ -23,6 +23,8 @@ import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newString;
@@ -30,6 +32,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
@@ -67,6 +70,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -959,6 +963,78 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         results = executeQuery(String.format("SELECT * FROM [%s] as s WHERE ISDESCENDANTNODE(s, '/test') ORDER BY s.foo", NT_UNSTRUCTURED), SQL2, null)
                 .getRows().iterator();
         assertRightOrder(nodes, results);
+
+        setTraversalEnabled(true);
+    }
+    
+    @Test
+    public void oak2219() throws Exception {
+        setTraversalEnabled(false);
+        
+        List<String> expected = new ArrayList<String>();
+        Tree content = root.getTree("/").addChild("content");
+ 
+        for (String s : of("a", "b", "c")) {
+            Tree node = content.addChild(s);
+            node.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+            node.addChild("sub").setProperty(ORDERED_PROPERTY, s + "value", STRING);
+            expected.add(node.getPath());            
+        }
+        
+        root.commit();
+                
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + ")]", "xpath",
+            expected);
+        
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + " > 'avalue')]",
+            "xpath", Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "a".compareTo(PathUtils.getName(path)) < 0;
+                }
+            })));
+
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + " >= 'bvalue')]",
+            "xpath", Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "b".compareTo(PathUtils.getName(path)) <= 0;
+                }
+            })));
+
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + " <= 'bvalue')]",
+            "xpath", Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "b".compareTo(PathUtils.getName(path)) >= 0;
+                }
+            })));
+
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + " < 'cvalue')]",
+            "xpath", Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "c".compareTo(PathUtils.getName(path)) > 0;
+                }
+            })));
+
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY
+                    + " > 'avalue' and sub/@" + ORDERED_PROPERTY + " < 'cvalue')]", "xpath",
+            Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "c".compareTo(PathUtils.getName(path)) > 0
+                           && "a".compareTo(PathUtils.getName(path)) < 0;
+                }
+            })));
+
+        assertQuery("//element(*, nt:unstructured)[(sub/@" + ORDERED_PROPERTY + " = 'bvalue')]",
+            "xpath", Lists.newArrayList(Iterables.filter(expected, new Predicate<String>() {
+                @Override
+                public boolean apply(String path) {
+                    return "b".compareTo(PathUtils.getName(path)) == 0;
+                }
+            })));
 
         setTraversalEnabled(true);
     }
