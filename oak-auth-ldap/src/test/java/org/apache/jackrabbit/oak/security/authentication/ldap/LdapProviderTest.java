@@ -109,9 +109,9 @@ public class LdapProviderTest {
                 .setBaseDN(ServerDNConstants.GROUPS_SYSTEM_DN)
                 .setObjectClasses("groupOfUniqueNames");
 
-        LdapIdentityProvider ldapIDP = new LdapIdentityProvider(providerConfig);
-        ldapIDP.disableConnectionPooling = true;
-        return ldapIDP;
+        providerConfig.getAdminPoolConfig().setMaxActive(0);
+        providerConfig.getUserPoolConfig().setMaxActive(0);
+        return new LdapIdentityProvider(providerConfig);
     }
 
     protected static void initLdapFixture(InternalLdapServer server) throws Exception {
