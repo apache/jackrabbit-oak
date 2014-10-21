@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -69,16 +72,81 @@ public class MissingLastRevSeeker {
      */
     public Iterable<NodeDocument> getCandidates(final long startTime) {
         // Fetch all documents where lastmod >= startTime
-        List<NodeDocument> nodes = store.query(Collection.NODES, NodeDocument.MIN_ID_VALUE,
-                NodeDocument.MAX_ID_VALUE, NodeDocument.MODIFIED_IN_SECS,  NodeDocument.getModifiedInSecs(startTime), Integer.MAX_VALUE);
+        Iterable<NodeDocument> nodes = new MissingLastRevCandidateIterable(store, NodeDocument.getModifiedInSecs(startTime));
         return Iterables.filter(nodes, new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
                 Long modified = (Long) input.get(NodeDocument.MODIFIED_IN_SECS);
-                return (modified != null
-                        && (modified >= NodeDocument.getModifiedInSecs(startTime)));
+                return (modified != null && (modified >= NodeDocument.getModifiedInSecs(startTime)));
             }
         });
+    }
+
+    /**
+     * Query the document store for nodes newer than a specific timestamp; implement
+     * this as an Iterator that gets relatively small chunks from the store.
+     */
+    private class MissingLastRevCandidateIterable implements Iterable<NodeDocument> {
+
+        private final DocumentStore store;
+        private final long startTime;
+
+        public MissingLastRevCandidateIterable(DocumentStore store, long startTime) {
+            this.store = store;
+            this.startTime = startTime;
+        }
+
+        @Override
+        public Iterator<NodeDocument> iterator() {
+            return new MissingLastRevCandidateIterator(store, startTime);
+        }
+
+        private class MissingLastRevCandidateIterator extends AbstractIterator<NodeDocument> {
+
+            private static final int CHUNKSIZE = 256;
+            private final DocumentStore store;
+            private final long startTime;
+            private String startIndex = NodeDocument.MIN_ID_VALUE;
+
+            private List<NodeDocument> results = new LinkedList<NodeDocument>();
+
+            public MissingLastRevCandidateIterator(DocumentStore store, long startTime) {
+                this.store = store;
+                this.startTime = startTime;
+            }
+
+            private boolean refill() {
+                if (startIndex == null) {
+                    return false;
+                } else {
+                    List<NodeDocument> found = store.query(Collection.NODES, startIndex, NodeDocument.MAX_ID_VALUE,
+                            NodeDocument.MODIFIED_IN_SECS, startTime, CHUNKSIZE);
+                    if (found.isEmpty()) {
+                        startIndex = null;
+                        return false;
+                    } else {
+                        results.addAll(found);
+                        return true;
+                    }
+                }
+            }
+
+            @Override
+            protected NodeDocument computeNext() {
+                if (!results.isEmpty()) {
+                    NodeDocument result = results.remove(0);
+                    startIndex = result.getId();
+                    return result;
+                } else {
+                    // need to refill
+                    if (refill()) {
+                        return computeNext();
+                    } else {
+                        return endOfData();
+                    }
+                }
+            }
+        }
     }
 
     public boolean acquireRecoveryLock(int clusterId){
