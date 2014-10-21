@@ -200,7 +200,7 @@ public class LuceneIndexEditor implements IndexEditor {
                             .tag())) != 0 && context.includeProperty(pname)) {
                 if (Type.BINARY.tag() == property.getType().tag()) {
                     this.context.indexUpdate();
-                    fields.addAll(newBinary(property, state));
+                    fields.addAll(newBinary(property, state, path + "@" + pname));
                     dirty = true;
                 } else {
                     for (String value : property.getValue(Type.STRINGS)) {
@@ -236,7 +236,7 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private List<Field> newBinary(
-            PropertyState property, NodeState state) {
+            PropertyState property, NodeState state, String path) {
         List<Field> fields = new ArrayList<Field>();
         Metadata metadata = new Metadata();
         if (JCR_DATA.equals(property.getName())) {
@@ -251,12 +251,12 @@ public class LuceneIndexEditor implements IndexEditor {
         }
 
         for (Blob v : property.getValue(Type.BINARIES)) {
-            fields.add(newFulltextField(parseStringValue(v, metadata)));
+            fields.add(newFulltextField(parseStringValue(v, metadata, path)));
         }
         return fields;
     }
 
-    private String parseStringValue(Blob v, Metadata metadata) {
+    private String parseStringValue(Blob v, Metadata metadata, String path) {
         WriteOutContentHandler handler = new WriteOutContentHandler();
         try {
             InputStream stream = v.getNewStream();
@@ -274,7 +274,8 @@ public class LuceneIndexEditor implements IndexEditor {
             // Capture and report any other full text extraction problems.
             // The special STOP exception is used for normal termination.
             if (!handler.isWriteLimitReached(t)) {
-                log.debug("Failed to extract text from a binary property."
+                log.debug("Failed to extract text from a binary property: "
+                        + path
                         + " This is a fairly common case, and nothing to"
                         + " worry about. The stack trace is included to"
                         + " help improve the text extraction feature.", t);
