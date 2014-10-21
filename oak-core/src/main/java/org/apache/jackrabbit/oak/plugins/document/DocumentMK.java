@@ -33,6 +33,7 @@ import com.mongodb.DB;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
@@ -46,14 +47,27 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
  */
 public class DocumentMK implements MicroKernel {
+    
+    static final Logger LOG = LoggerFactory.getLogger(DocumentMK.class);
+    
+    /**
+     * The path where the persistent cache is stored.
+     */
+    static final String PERSISTENT_CACHE = 
+            System.getProperty("oak.documentMK.persCache");
 
     /**
      * The threshold where special handling for many child node starts.
@@ -468,6 +482,7 @@ public class DocumentMK implements MicroKernel {
         private boolean disableBranches;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
+        private PersistentCache persistentCache;
 
         public Builder() {
             memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
@@ -488,7 +503,12 @@ public class DocumentMK implements MicroKernel {
                 }
 
                 if (this.blobStore == null) {
-                    this.blobStore = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
+                    GarbageCollectableBlobStore s = new MongoBlobStore(db, blobCacheSizeMB * 1024 * 1024L);
+                    PersistentCache p = getPersistentCache();
+                    if (p != null) {
+                        s = p.wrapBlobStore(s);
+                    }
+                    this.blobStore = s;
                 }
 
                 if (this.diffCache == null) {
@@ -759,9 +779,62 @@ public class DocumentMK implements MicroKernel {
         public DocumentMK open() {
             return new DocumentMK(this);
         }
+        
+        public Cache<PathRev, DocumentNodeState> buildNodeCache(DocumentNodeStore store) {
+            return buildCache(CacheType.NODE, getNodeCacheSize(), store, null);
+        }
+        
+        public Cache<PathRev, DocumentNodeState.Children> buildChildrenCache() {
+            return buildCache(CacheType.CHILDREN, getChildrenCacheSize(), null, null);            
+        }
+        
+        public Cache<StringValue, NodeDocument.Children> buildDocChildrenCache() {
+            return buildCache(CacheType.DOC_CHILDREN, getDocChildrenCacheSize(), null, null);
+        }
+        
+        public Cache<PathRev, StringValue> buildDiffCache() {
+            return buildCache(CacheType.DIFF, getDiffCacheSize(), null, null);
+        }
 
-        public <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(long maxWeight) {
-            if (LIRS_CACHE) {
+        public Cache<CacheValue, NodeDocument> buildDocumentCache(DocumentStore docStore) {
+            return buildCache(CacheType.DOCUMENT, getDocumentCacheSize(), null, docStore);
+        }
+
+        private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
+                CacheType cacheType,
+                long maxWeight,
+                DocumentNodeStore docNodeStore,
+                DocumentStore docStore
+                ) {
+            Cache<K, V> cache = buildCache(maxWeight);
+            PersistentCache p = getPersistentCache();
+            if (p != null) {
+                if (docNodeStore != null) {
+                    docNodeStore.setPersistentCache(p);
+                }
+                cache = p.wrap(docNodeStore, docStore, cache, cacheType);
+            }
+            return cache;
+        }
+        
+        private PersistentCache getPersistentCache() {
+            if (PERSISTENT_CACHE == null) {
+                return null;
+            }
+            if (persistentCache == null) {
+                try {
+                    persistentCache = new PersistentCache(PERSISTENT_CACHE);
+                } catch (Throwable e) {
+                    LOG.warn("Persistent cache not available; please disable the configuration", e);
+                    throw new IllegalArgumentException(e);
+                }
+            }
+            return persistentCache;
+        }
+        
+        private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
+                long maxWeight) {
+            if (LIRS_CACHE || PERSISTENT_CACHE != null) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).
@@ -776,6 +849,7 @@ public class DocumentMK implements MicroKernel {
                     recordStats().
                     build();
         }
-    }
 
+    }
+    
 }
