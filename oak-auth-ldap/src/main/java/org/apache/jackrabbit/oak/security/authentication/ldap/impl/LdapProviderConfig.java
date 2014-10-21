@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
+import java.util.Arrays;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -170,6 +172,36 @@ public class LdapProviderConfig {
             value = PARAM_SEARCH_TIMEOUT_DEFAULT
     )
     public static final String PARAM_SEARCH_TIMEOUT = "searchTimeout";
+
+    /**
+     * @see PoolConfig#getMaxActive()
+     */
+    public static final int PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT = 8;
+
+    /**
+     * @see PoolConfig#getMaxActive()
+     */
+    @Property(
+            label = "Admin pool max active",
+            description = "The max active size of the admin connection pool.",
+            longValue = PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT
+    )
+    public static final String PARAM_ADMIN_POOL_MAX_ACTIVE = "adminPool.maxActive";
+
+    /**
+     * @see PoolConfig#getMaxActive()
+     */
+    public static final int PARAM_USER_POOL_MAX_ACTIVE_DEFAULT = 8;
+
+    /**
+     * @see PoolConfig#getMaxActive()
+     */
+    @Property(
+            label = "User pool max active",
+            description = "The max active size of the user connection pool.",
+            longValue = PARAM_USER_POOL_MAX_ACTIVE_DEFAULT
+    )
+    public static final String PARAM_USER_POOL_MAX_ACTIVE = "userPool.maxActive";
 
     /**
      * @see Identity#getBaseDN()
@@ -506,6 +538,60 @@ public class LdapProviderConfig {
             }
             return String.format(filterTemplate, encodeFilterValue(id));
         }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("Identity{");
+            sb.append("baseDN='").append(baseDN).append('\'');
+            sb.append(", objectClasses=").append(Arrays.toString(objectClasses));
+            sb.append(", idAttribute='").append(idAttribute).append('\'');
+            sb.append(", extraFilter='").append(extraFilter).append('\'');
+            sb.append(", filterTemplate='").append(filterTemplate).append('\'');
+            sb.append(", makeDnPath=").append(makeDnPath);
+            sb.append('}');
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Defines the configuration of a connection pool. Currently we only define the max size.
+     * (documentation copied from {@link org.apache.commons.pool.impl.GenericObjectPool})
+     */
+    public class PoolConfig {
+
+        private int maxActiveSize;
+
+        /**
+         * Returns the maximum number of objects that can be allocated by the pool
+         * (checked out to clients, or idle awaiting checkout) at a given time.
+         * When non-positive, there is no limit to the number of objects that can
+         * be managed by the pool at one time. A value of 0 disables this pool.
+         *
+         * @return the cap on the total number of object instances managed by the pool.
+         * @see #setMaxActive
+         */
+        public int getMaxActive() {
+            return maxActiveSize;
+        }
+
+        /**
+         * Sets the cap on the number of objects that can be allocated by the pool.
+         *
+         * @see #getMaxActive
+         * @return this
+         */
+        public PoolConfig setMaxActive(int maxActive) {
+            this.maxActiveSize = maxActive;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("PoolConfig{");
+            sb.append("maxActiveSize=").append(maxActiveSize);
+            sb.append('}');
+            return sb.toString();
+        }
     }
 
     /**
@@ -540,6 +626,12 @@ public class LdapProviderConfig {
                 .setObjectClasses(params.getConfigValue(PARAM_GROUP_OBJECTCLASS, PARAM_GROUP_OBJECTCLASS_DEFAULT))
                 .setMakeDnPath(params.getConfigValue(PARAM_GROUP_MAKE_DN_PATH, PARAM_GROUP_MAKE_DN_PATH_DEFAULT));
 
+        cfg.getAdminPoolConfig()
+                .setMaxActive(params.getConfigValue(PARAM_ADMIN_POOL_MAX_ACTIVE, PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT));
+
+        cfg.getUserPoolConfig()
+                .setMaxActive(params.getConfigValue(PARAM_USER_POOL_MAX_ACTIVE, PARAM_USER_POOL_MAX_ACTIVE_DEFAULT));
+
         return cfg;
     }
 
@@ -564,6 +656,12 @@ public class LdapProviderConfig {
     private String groupMemberAttribute = PARAM_GROUP_MEMBER_ATTRIBUTE;
 
     private String memberOfFilterTemplate;
+
+    private final PoolConfig adminPoolConfig = new PoolConfig()
+            .setMaxActive(PARAM_ADMIN_POOL_MAX_ACTIVE_DEFAULT);
+
+    private final PoolConfig userPoolConfig = new PoolConfig()
+            .setMaxActive(PARAM_USER_POOL_MAX_ACTIVE_DEFAULT);
 
     private final Identity userConfig = new Identity()
             .setBaseDN(PARAM_USER_BASE_DN_DEFAULT)
@@ -853,6 +951,24 @@ public class LdapProviderConfig {
     }
 
     /**
+     * Returns the admin connection pool configuration.
+     * @return admin pool config
+     */
+    @Nonnull
+    public PoolConfig getAdminPoolConfig() {
+        return adminPoolConfig;
+    }
+
+    /**
+     * Returns the user connection pool configuration.
+     * @return user pool config
+     */
+    @Nonnull
+    public PoolConfig getUserPoolConfig() {
+        return userPoolConfig;
+    }
+
+    /**
      * Copied from org.apache.directory.api.ldap.model.filter.FilterEncoder#encodeFilterValue(java.lang.String)
      * in order to keep this configuration LDAP client independent.
      *
@@ -899,5 +1015,27 @@ public class LdapProviderConfig {
             }
         }
         return (sb == null ? value : sb.toString());
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("LdapProviderConfig{");
+        sb.append("name='").append(name).append('\'');
+        sb.append(", hostname='").append(hostname).append('\'');
+        sb.append(", port=").append(port);
+        sb.append(", useSSL=").append(useSSL);
+        sb.append(", useTLS=").append(useTLS);
+        sb.append(", noCertCheck=").append(noCertCheck);
+        sb.append(", bindDN='").append(bindDN).append('\'');
+        sb.append(", bindPassword='***'");
+        sb.append(", searchTimeout=").append(searchTimeout);
+        sb.append(", groupMemberAttribute='").append(groupMemberAttribute).append('\'');
+        sb.append(", memberOfFilterTemplate='").append(memberOfFilterTemplate).append('\'');
+        sb.append(", adminPoolConfig=").append(adminPoolConfig);
+        sb.append(", userPoolConfig=").append(userPoolConfig);
+        sb.append(", userConfig=").append(userConfig);
+        sb.append(", groupConfig=").append(groupConfig);
+        sb.append('}');
+        return sb.toString();
     }
 }
