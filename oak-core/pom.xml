@@ -259,6 +259,14 @@
       <version>0.2</version>
       <optional>true</optional>
     </dependency>
+    
+    <!-- Required for the persistent cache -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+      <optional>true</optional>
+    </dependency>
 
     <!-- OAK-1768 added as short term workaround -->
     <dependency>
@@ -340,12 +348,6 @@
       <artifactId>oak-blob</artifactId>
       <version>${project.version}</version>
       <classifier>tests</classifier>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>${h2.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

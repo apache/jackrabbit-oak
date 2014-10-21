@@ -363,7 +363,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         this.ds = ds;
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
-        this.nodesCache = builder.buildCache(builder.getDocumentCacheSize());
+        this.nodesCache = builder.buildDocumentCache(this);
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
 
         Connection con = ds.getConnection();
