@@ -195,7 +195,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         if (builder.useOffHeapCache()) {
             nodesCache = createOffHeapCache(builder);
         } else {
-            nodesCache = builder.buildCache(builder.getDocumentCacheSize());
+            nodesCache = builder.buildDocumentCache(this);
         }
 
         cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(),

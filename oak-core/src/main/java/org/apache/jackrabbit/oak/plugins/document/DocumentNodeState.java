@@ -18,8 +18,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
@@ -59,7 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 /**
  * A {@link NodeState} implementation for the {@link DocumentNodeStore}.
  */
-class DocumentNodeState extends AbstractNodeState implements CacheValue {
+public class DocumentNodeState extends AbstractNodeState implements CacheValue {
 
     public static final Children NO_CHILDREN = new Children();
 
@@ -106,11 +108,15 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
             return true;
         } else if (that instanceof DocumentNodeState) {
             DocumentNodeState other = (DocumentNodeState) that;
-            if (getPath().equals(other.getPath())) {
-                if (revisionEquals(other)) {
-                    return true;
-                }
+            if (!getPath().equals(other.getPath())) {
+                // path does not match: not equals
+                // (even if the properties are equal)
+                return false;
             }
+            if (revisionEquals(other)) {
+                return true;
+            }
+            // revision does not match: might still be equals
         } else if (that instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) that;
             if (modified.getBaseState() == this) {
@@ -119,9 +125,8 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
         }
         if (that instanceof NodeState) {
             return AbstractNodeState.equals(this, (NodeState) that);
-        } else {
-            return false;
         }
+        return false;
     }
 
     @Override
@@ -480,6 +485,71 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
         });
     }
 
+    public String asString() {
+        JsopWriter json = new JsopBuilder();
+        json.key("path").value(path);
+        json.key("rev").value(rev.toString());
+        if (lastRevision != null) {
+            json.key("lastRev").value(lastRevision.toString());
+        }
+        if (hasChildren) {
+            json.key("hasChildren").value(hasChildren);
+        }
+        if (properties.size() > 0) {
+            json.key("prop").object();
+            for (String k : properties.keySet()) {
+                json.key(k).value(getPropertyAsString(k));
+            }
+            json.endObject();
+        }
+        return json.toString();
+    }
+    
+    public static DocumentNodeState fromString(DocumentNodeStore store, String s) {
+        JsopTokenizer json = new JsopTokenizer(s);
+        String path = null;
+        Revision rev = null;
+        Revision lastRev = null;
+        boolean hasChildren = false;
+        DocumentNodeState state = null;
+        HashMap<String, String> map = new HashMap<String, String>();
+        while (true) {
+            String k = json.readString();
+            json.read(':');
+            if ("path".equals(k)) {
+                path = json.readString();
+            } else if ("rev".equals(k)) {
+                rev = Revision.fromString(json.readString());
+            } else if ("lastRev".equals(k)) {
+                lastRev = Revision.fromString(json.readString());
+            } else if ("hasChildren".equals(k)) {
+                hasChildren = json.read() == JsopReader.TRUE;
+            } else if ("prop".equals(k)) {
+                json.read('{');
+                while (true) {
+                    if (json.matches('}')) {
+                        break;
+                    }
+                    k = json.readString();
+                    json.read(':');
+                    String v = json.readString();
+                    map.put(k, v);
+                    json.matches(',');
+                }
+            }
+            if (json.matches(JsopReader.END)) {
+                break;
+            }
+            json.read(',');
+        }
+        state = new DocumentNodeState(store, path, rev, hasChildren);
+        state.setLastRevision(lastRev);
+        for (Entry<String, String> e : map.entrySet()) {
+            state.setProperty(e.getKey(), e.getValue());
+        }
+        return state;
+    }
+
     /**
      * A list of children for a node.
      */
@@ -489,21 +559,71 @@ class DocumentNodeState extends AbstractNodeState implements CacheValue {
          * Ascending sorted list of names of child nodes.
          */
         final ArrayList<String> children = new ArrayList<String>();
+        int cachedMemory;
         boolean hasMore;
 
         @Override
         public int getMemory() {
-            int size = 114;
-            for (String c : children) {
-                size += c.length() * 2 + 56;
+            if (cachedMemory == 0) {
+                int size = 114;
+                for (String c : children) {
+                    size += c.length() * 2 + 56;
+                }
+                cachedMemory = size;
             }
-            return size;
+            return cachedMemory;
         }
 
         @Override
         public String toString() {
             return children.toString();
         }
+
+        public String asString() {
+            JsopWriter json = new JsopBuilder();
+            if (hasMore) {
+                json.key("hasMore").value(true);
+            }
+            if (children.size() > 0) {
+                json.key("children").array();
+                for (String c : children) {
+                    json.value(c);
+                }
+                json.endArray();
+            }
+            return json.toString();            
+        }
+        
+        public static Children fromString(String s) {
+            JsopTokenizer json = new JsopTokenizer(s);
+            Children children = new Children();
+            while (true) {
+                if (json.matches(JsopReader.END)) {
+                    break;
+                }
+                String k = json.readString();
+                json.read(':');
+                if ("hasMore".equals(k)) {
+                    children.hasMore = json.read() == JsopReader.TRUE;
+                } else if ("children".equals(k)) {
+                    json.read('[');
+                    while (true) {
+                        if (json.matches(']')) {
+                            break;
+                        }
+                        String value = json.readString();
+                        children.children.add(value);
+                        json.matches(',');
+                    }
+                }
+                if (json.matches(JsopReader.END)) {
+                    break;
+                }
+                json.read(',');
+            }
+            return children;            
+        }
+        
     }
 
     private class ChildNodeEntryIterator implements Iterator<ChildNodeEntry> {

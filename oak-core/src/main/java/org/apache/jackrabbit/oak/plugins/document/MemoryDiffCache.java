@@ -20,7 +20,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 
 import com.google.common.cache.Cache;
@@ -37,12 +36,12 @@ class MemoryDiffCache implements DiffCache {
      *
      * Key: PathRev, value: StringValue
      */
-    protected final Cache<CacheValue, StringValue> diffCache;
+    protected final Cache<PathRev, StringValue> diffCache;
     protected final CacheStats diffCacheStats;
 
 
     MemoryDiffCache(DocumentMK.Builder builder) {
-        diffCache = builder.buildCache(builder.getDiffCacheSize());
+        diffCache = builder.buildDiffCache();
         diffCacheStats = new CacheStats(diffCache, "Document-Diff",
                 builder.getWeigher(), builder.getDiffCacheSize());
     }

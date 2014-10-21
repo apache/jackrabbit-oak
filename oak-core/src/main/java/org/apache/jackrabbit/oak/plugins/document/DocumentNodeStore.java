@@ -64,13 +64,13 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.kernel.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
@@ -249,7 +249,7 @@ public final class DocumentNodeStore
      *
      * Key: PathRev, value: DocumentNodeState
      */
-    private final Cache<CacheValue, DocumentNodeState> nodeCache;
+    private final Cache<PathRev, DocumentNodeState> nodeCache;
     private final CacheStats nodeCacheStats;
 
     /**
@@ -257,7 +257,7 @@ public final class DocumentNodeStore
      *
      * Key: PathRev, value: Children
      */
-    private final Cache<CacheValue, DocumentNodeState.Children> nodeChildrenCache;
+    private final Cache<PathRev, DocumentNodeState.Children> nodeChildrenCache;
     private final CacheStats nodeChildrenCacheStats;
 
     /**
@@ -265,7 +265,7 @@ public final class DocumentNodeStore
      *
      * Key: StringValue, value: Children
      */
-    private final Cache<CacheValue, NodeDocument.Children> docChildrenCache;
+    private final Cache<StringValue, NodeDocument.Children> docChildrenCache;
     private final CacheStats docChildrenCacheStats;
 
     /**
@@ -319,6 +319,8 @@ public final class DocumentNodeStore
 
     private final boolean disableBranches;
 
+    private PersistentCache persistentCache;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -361,15 +363,15 @@ public final class DocumentNodeStore
 
         //TODO Make stats collection configurable as it add slight overhead
 
-        nodeCache = builder.buildCache(builder.getNodeCacheSize());
+        nodeCache = builder.buildNodeCache(this);
         nodeCacheStats = new CacheStats(nodeCache, "Document-NodeState",
                 builder.getWeigher(), builder.getNodeCacheSize());
 
-        nodeChildrenCache = builder.buildCache(builder.getChildrenCacheSize());
+        nodeChildrenCache = builder.buildChildrenCache();
         nodeChildrenCacheStats = new CacheStats(nodeChildrenCache, "Document-NodeChildren",
                 builder.getWeigher(), builder.getChildrenCacheSize());
 
-        docChildrenCache = builder.buildCache(builder.getDocChildrenCacheSize());
+        docChildrenCache = builder.buildDocChildrenCache();
         docChildrenCacheStats = new CacheStats(docChildrenCache, "Document-DocChildren",
                 builder.getWeigher(), builder.getDocChildrenCacheSize());
 
@@ -464,6 +466,9 @@ public final class DocumentNodeStore
                     LOG.debug("Error closing blob store " + blobStore, ex);
                 }
             }
+        }
+        if (persistentCache != null) {
+            persistentCache.close();
         }
     }
 
@@ -686,7 +691,7 @@ public final class DocumentNodeStore
                     return n;
                 }
             });
-            return node == missing ? null : node;
+            return node == missing || node.equals(missing) ? null : node;
         } catch (ExecutionException e) {
             throw new MicroKernelException(e);
         }
@@ -701,32 +706,28 @@ public final class DocumentNodeStore
         }
         final String path = checkNotNull(parent).getPath();
         final Revision readRevision = parent.getLastRevision();
-        PathRev key = childNodeCacheKey(path, readRevision, name);
-        DocumentNodeState.Children children;
-        for (;;) {
-            try {
-                children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
-                    @Override
-                    public DocumentNodeState.Children call() throws Exception {
-                        return readChildren(parent, name, limit);
-                    }
-                });
-            } catch (ExecutionException e) {
-                throw new MicroKernelException(
-                        "Error occurred while fetching children for path "
-                                + path, e.getCause());
+        try {
+            PathRev key = childNodeCacheKey(path, readRevision, name);
+            DocumentNodeState.Children children = nodeChildrenCache.get(key, new Callable<DocumentNodeState.Children>() {
+                @Override
+                public DocumentNodeState.Children call() throws Exception {
+                    return readChildren(parent, name, limit);
+                }
+            });
+            if (children.children.size() < limit && children.hasMore) {
+                // not enough children loaded - load more,
+                // and put that in the cache
+                // (not using nodeChildrenCache.invalidate, because
+                // the generational persistent cache doesn't support that)
+                children = readChildren(parent, name, limit);
+                nodeChildrenCache.put(key, children);
             }
-            if (children.hasMore && limit > children.children.size()) {
-                // there are potentially more children and
-                // current cache entry contains less than requested limit
-                // -> need to refresh entry with current limit
-                nodeChildrenCache.invalidate(key);
-            } else {
-                // use this cache entry
-                break;
-            }
+            return children;
+        } catch (ExecutionException e) {
+            throw new MicroKernelException(
+                    "Error occurred while fetching children for path "
+                            + path, e.getCause());
         }
-        return children;
     }
 
     /**
@@ -812,7 +813,7 @@ public final class DocumentNodeStore
             // or more than 16k child docs are requested
             return store.query(Collection.NODES, from, to, limit);
         }
-        CacheValue key = new StringValue(path);
+        StringValue key = new StringValue(path);
         // check cache
         NodeDocument.Children c = docChildrenCache.getIfPresent(key);
         if (c == null) {
@@ -937,13 +938,13 @@ public final class DocumentNodeStore
             }
         }
         if (isNew) {
-            CacheValue key = childNodeCacheKey(path, rev, null);
             DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet();
             for (String p : added) {
                 set.add(Utils.unshareString(PathUtils.getName(p)));
             }
             c.children.addAll(set);
+            PathRev key = childNodeCacheKey(path, rev, null);
             nodeChildrenCache.put(key, c);
         }
 
@@ -962,7 +963,7 @@ public final class DocumentNodeStore
 
         // update docChildrenCache
         if (!added.isEmpty()) {
-            CacheValue docChildrenKey = new StringValue(path);
+            StringValue docChildrenKey = new StringValue(path);
             NodeDocument.Children docChildren = docChildrenCache.getIfPresent(docChildrenKey);
             if (docChildren != null) {
                 int currentSize = docChildren.childNames.size();
@@ -1628,7 +1629,11 @@ public final class DocumentNodeStore
                 if (toNode != null) {
                     // exists in both revisions
                     // check if different
-                    if (!fromNode.getLastRevision().equals(toNode.getLastRevision())) {
+                    Revision a = fromNode.getLastRevision();
+                    Revision b = toNode.getLastRevision();
+                    if (a == null && b == null) {
+                        // ok
+                    } else if (a == null || b == null || !a.equals(b)) {
                         w.tag('^').key(name).object().endObject().newline();
                     }
                 } else {
@@ -1693,7 +1698,8 @@ public final class DocumentNodeStore
     private static PathRev childNodeCacheKey(@Nonnull String path,
                                              @Nonnull Revision readRevision,
                                              @Nullable String name) {
-        return new PathRev((name == null ? "" : name) + path, readRevision);
+        String p = (name == null ? "" : name) + path;
+        return new PathRev(p, readRevision);
     }
 
     private static DocumentRootBuilder asDocumentRootBuilder(NodeBuilder builder)
@@ -1877,5 +1883,9 @@ public final class DocumentNodeStore
     @Nonnull
     public LastRevRecoveryAgent getLastRevRecoveryAgent() {
         return lastRevRecoveryAgent;
+    }
+
+    public void setPersistentCache(PersistentCache persistentCache) {
+        this.persistentCache = persistentCache;
     }
 }
