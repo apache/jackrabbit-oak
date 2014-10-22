@@ -89,9 +89,9 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.failover.client.FailoverClient;
-import org.apache.jackrabbit.oak.plugins.segment.failover.server.FailoverServer;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -248,10 +248,10 @@ public class Main {
     //TODO react to state changes of FailoverClient (triggered via JMX), once the state model of FailoverClient is complete.
     private static class ScheduledSyncService extends AbstractScheduledService {
 
-        private final FailoverClient failoverClient;
+        private final StandbyClient failoverClient;
         private final int interval;
 
-        public ScheduledSyncService(FailoverClient failoverClient, int interval) {
+        public ScheduledSyncService(StandbyClient failoverClient, int interval) {
             this.failoverClient = failoverClient;
             this.interval = interval;
         }
@@ -295,10 +295,10 @@ public class Main {
         }
 
         FileStore store = null;
-        FailoverClient failoverClient = null;
+        StandbyClient failoverClient = null;
         try {
             store = new FileStore(new File(nonOptions.get(0)), 256);
-            failoverClient = new FailoverClient(
+            failoverClient = new StandbyClient(
                     options.has(host)? options.valueOf(host) : defaultHost,
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
@@ -348,10 +348,10 @@ public class Main {
         List<String> admissibleSlaves = options.has(admissible) ? options.valuesOf(admissible) : Collections.EMPTY_LIST;
 
         FileStore store = null;
-        FailoverServer failoverServer = null;
+        StandbyServer failoverServer = null;
         try {
             store = new FileStore(new File(nonOptions.get(0)), 256);
-            failoverServer = new FailoverServer(
+            failoverServer = new StandbyServer(
                     options.has(port)? options.valueOf(port) : defaultPort,
                     store,
                     admissibleSlaves.toArray(new String[0]),
