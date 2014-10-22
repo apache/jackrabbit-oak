@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.commons.jmx.Description;
 import javax.annotation.Nonnull;
 
 public interface FailoverStatusMBean {
-    public static final String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"FailOver\"";
+    public static final String JMX_NAME = "org.apache.jackrabbit.oak:name=Status,type=\"Standby\"";
     public static final String STATUS_INITIALIZING = "initializing";
     public static final String STATUS_STOPPED = "stopped";
     public static final String STATUS_STARTING = "starting";
