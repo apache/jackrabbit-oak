@@ -164,11 +164,11 @@ public class Main {
             case EXPLORE:
                 Explorer.main(args);
                 break;
-            case SYNCSLAVE:
-                syncSlave(args);
+            case STANDBY:
+                standbyInstance(args);
                 break;
-            case SYNCMASTER:
-                syncMaster(args);
+            case PRIMARY:
+                primaryInstance(args);
                 break;
             case CHECKPOINTS:
                 checkpoints(args);
@@ -268,7 +268,7 @@ public class Main {
     }
 
 
-    private static void syncSlave(String[] args) throws Exception {
+    private static void standbyInstance(String[] args) throws Exception {
 
         final String defaultHost = "127.0.0.1";
         final int defaultPort = 8023;
@@ -279,7 +279,7 @@ public class Main {
         final OptionSpec<Integer> interval = parser.accepts("interval", "interval between successive executions").withRequiredArg().ofType(Integer.class);
         final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
         final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCSLAVE + " <path to repository>");
+        final OptionSpec<String> nonOption = parser.nonOptions(Mode.STANDBY + " <path to repository>");
 
         final OptionSet options = parser.parse(args);
         final List<String> nonOptions = nonOption.values(options);
@@ -320,7 +320,7 @@ public class Main {
         }
     }
 
-    private static void syncMaster(String[] args) throws Exception {
+    private static void primaryInstance(String[] args) throws Exception {
 
         final int defaultPort = 8023;
 
@@ -329,7 +329,7 @@ public class Main {
         final OptionSpec<Boolean> secure = parser.accepts("secure", "use secure connections").withRequiredArg().ofType(Boolean.class);
         final OptionSpec<String> admissible = parser.accepts("admissible", "list of admissible slave host names or ip ranges").withRequiredArg().ofType(String.class);
         final OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
-        final OptionSpec<String> nonOption = parser.nonOptions(Mode.SYNCMASTER + " <path to repository>");
+        final OptionSpec<String> nonOption = parser.nonOptions(Mode.PRIMARY + " <path to repository>");
 
         final OptionSet options = parser.parse(args);
         final List<String> nonOptions = nonOption.values(options);
@@ -1094,8 +1094,8 @@ public class Main {
         UPGRADE("upgrade"),
         SCALABILITY("scalability"),
         EXPLORE("explore"),
-        SYNCSLAVE("syncSlave"),
-        SYNCMASTER("syncmaster"),
+        PRIMARY("primary"),
+        STANDBY("standy"),
         HELP("help"),
         CHECKPOINTS("checkpoints"),
         RECOVERY("recovery");

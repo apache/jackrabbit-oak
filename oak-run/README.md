@@ -14,8 +14,8 @@ The following runmodes are currently available:
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
-    * syncmaster  : Run a TarMK Cold Standby master
-    * syncslave   : Run a TarMK Cold Standby slave
+    * primary     : Run a TarMK Cold Standby primary instance
+    * standby     : Run a TarMK Cold Standby standby instance
     * scalability : Run scalability tests against different Oak repository fixtures.
     * recovery    : Run a _lastRev recovery on a MongoMK repository
     * checkpoints : Manage checkpoints
@@ -88,32 +88,32 @@ browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
 
-Syncmaster
+Primary
 -------
 
-The 'syncmaster' mode starts a TarMK Cold Standby master listening on a TCP/IP port for connecting slaves.
+The 'primary' mode starts a TarMK Cold Standby primary instance (master) listening on a TCP/IP port for connecting slaves.
 
-    $ java -jar oak-run-*.jar syncmaster [options] /path/to/TarMK
-    
+    $ java -jar oak-run-*.jar primary [options] /path/to/TarMK
+
 The following options are available:
 
     --port 8023            - port to listen at
     --admissible 127.0.0.1 - admissible client IP range or host name
     --secure               - use secure connections
 
-Syncslave
+Standby
 -------
 
-The 'syncslave' mode starts a TarMK Cold Standby slave to  create or update a continous backup from a Cold Standby master.
+The 'standby' mode starts a TarMK Cold Standby standby instance (slave) to create or update a continuous backup from a Cold Standby primary.
 
-    $ java -jar oak-run-*.jar syncslave [options] /path/to/TarMK
+    $ java -jar oak-run-*.jar standby [options] /path/to/TarMK
 
 The following options are available:
 
     --port 8023            - port to connect to
     --host 127.0.0.1       - host to connect to
     --secure               - use secure connections
-    --interval 5           - schedule the slave to run continously, connecting every n seconds
+    --interval 5           - schedule the slave to run continuously, connecting every n seconds
 
 Compact
 -------
