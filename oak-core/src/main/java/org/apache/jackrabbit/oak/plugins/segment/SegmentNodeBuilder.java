@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -47,6 +51,12 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
         this.writer = writer;
     }
 
+    SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
+            SegmentWriter writer) {
+        super(parent, name);
+        this.writer = writer;
+    }
+
     //-------------------------------------------------< MemoryNodeBuilder >--
 
     @Override
@@ -60,12 +70,6 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     //-------------------------------------------------------< NodeBuilder >--
 
     @Override
-    public SegmentNodeState getBaseState() {
-        // guaranteed to be a SegmentNodeState
-        return (SegmentNodeState) super.getBaseState();
-    }
-
-    @Override
     public SegmentNodeState getNodeState() {
         NodeState state = super.getNodeState();
         SegmentNodeState sstate = writer.writeNode(state);
@@ -74,6 +78,17 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
             updateCount = 0;
         }
         return sstate;
+    }
+
+    @Override
+    protected MemoryNodeBuilder createChildBuilder(String name) {
+        return new SegmentNodeBuilder(this, name, writer);
+    }
+
+    @Override
+    public Blob createBlob(InputStream stream) throws IOException {
+        SegmentNodeState sns = getNodeState();
+        return sns.getTracker().getWriter().writeStream(stream);
     }
 
 }
