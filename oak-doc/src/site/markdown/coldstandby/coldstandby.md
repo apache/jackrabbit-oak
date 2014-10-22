@@ -19,11 +19,11 @@
 
 ### What is it?
 
-The *Cold Standby* feature allows one or more clients to connect to a master instance and ensure automatic on-the-fly synchronization of the repository state from the master to the client(s). The sync process is one-way only. Data stored on the master is never changed. The only purpose of this client installation(s) is to garantuee a (almost live) data copy and enable a quick switch from the master to a client installation without data loss.
+The *Cold Standby* feature allows one or more clients to connect to a primary instance and ensure automatic on-the-fly synchronization of the repository state from the master to the client(s). The sync process is one-way only. Data stored on the master is never changed. The only purpose of this client installation(s) is to guarantee an (almost live) data copy and enable a quick switch from the master to a client installation without data loss.
 
 ### What is isn't
 
-The *Cold Standby* feature does not garantuee file, filesystem or even repository **integrity**! If the content of a tar file is corrupted, a file is missing or anything similar happens to the locally stored files the installation will break because these situation or not checked, detected or treated!
+The *Cold Standby* feature does not guarantee file, filesystem or even repository **integrity**! If the content of a tar file is corrupted, a file is missing or anything similar happens to the locally stored files the installation will break because these situation or not checked, detected or treated!
 
 ### How it works
 
@@ -42,20 +42,23 @@ An Oak installation using a SegmentStore using the TarMK.
 ### Setup
 
 1. Perform a filesystem based copy of the master repository.
-2. on the master activate the feature by specifying the runmode <!-- TODO: this must be changed --> `syncmaster`. If the repository is running within a OSGI environment the feature will be activated by a corresponding configuration. <!-- TODO: add some OSGI specific info here -->
-3. on the client(s) activate the feature by specifying the runmode `syncslave` (add additional parameters if desired) and specify the path to the repository (-tar) files
+2. on the master activate the feature by specifying the runmode `primary`.
+3. on the client(s) activate the feature by specifying the runmode `standby` (add additional parameters if desired) and specify the path to the repository
 4. start the master and the client(s).
 
 You can add the additional argument `--secure true` if you like a SSL secured connection between the client and the master. It must be garantueed that **all** clients and the master either use secure or standard connections! A mixed configuration will definitely fail.
 
-The clients specify the master host using the `--host` (default is `localhost`) and `--port` (default is `8023`) arguments. For monitoring reasons (see below) the client(s) must be distinctable. Therefore a generic UUID is automatically created for each running client and this UUID is used to identify the client on the master. If you want to specify the name of the client you can set a system property `failOverID`.
+The clients specify the master host using the `--host` (default is `localhost`) and `--port` (default is `8023`) arguments. For monitoring reasons (see below) the client(s) must be distinctable. Therefore a generic UUID is automatically created for each running client and this UUID is used to identify the client on the master. If you want to specify the name of the client you can set a system property `standbyID`.
 
 To sum it up a typical client command line could be:
 
-	java -DfailOverID="Client#1" -jar oak-run.jar syncslave --secure false --host 192.168.0.1 crx-quickstart/repository/segmentstore
+	java -DstandbyID="Client#1" -jar oak-run.jar syncslave --secure false --host 192.168.0.1 crx-quickstart/repository/segmentstore
 
 <!-- TODO: add the master specific arguments (like the accepted incoming IP ranges) -->
 The master can define the TCP port the feature is listening (default is `8023`) using the `--port` argument. If you want to restrict the communication you can specify a list of allowed IPs or IP ranges....
+
+#### OSGi setup
+If the repository is running within a OSGI environment the feature will be activated by a corresponding configuration. See examples attached to the [oak-tarmk-standby module](https://github.com/apache/jackrabbit-oak/tree/trunk/oak-tarmk-standby/osgi-conf)
 
 ### Robustness
 
@@ -63,10 +66,10 @@ The data flow is designed to detect and handle connection and network related pr
 
 ### Monitoring
 
-The *Cold Standby* feature exposes informations using JMX/MBeans. Doing so you can inspect the current state of the client(s) and the master using standard tools like `jconsole` or `jmc` (if running JDK 1.7 or higher). The information can be found if you look for a `org.apache.jackrabbit.oak:type="FailOver"` MBean named `Status`.
+The *Cold Standby* feature exposes informations using JMX/MBeans. Doing so you can inspect the current state of the client(s) and the master using standard tools like `jconsole` or `jmc` (if running JDK 1.7 or higher). The information can be found if you look for a `org.apache.jackrabbit.oak:type="Standby"` MBean named `Status`.
 
 #####Client
-Observing a client you will notice exactly one node (the id is either a generic UUID or the name specified by the `failOverID` system property). This node has five readonly attributes:
+Observing a client you will notice exactly one node (the id is either a generic UUID or the name specified by the `standbyID` system property). This node has five readonly attributes:
 
 * `Running`: boolean indicating whether the sync process is running
 * `Mode`: always `Client: ` followed by the ID described above
