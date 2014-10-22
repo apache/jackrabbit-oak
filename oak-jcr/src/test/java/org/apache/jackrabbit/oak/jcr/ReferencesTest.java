@@ -54,6 +54,41 @@ public class ReferencesTest extends AbstractJCRTest {
 
         assertEquals("ref", ref.getPath(), n.getProperty("myref").getNode().getPath());
         checkReferences("refs", ref.getReferences(), n.getPath() + "/myref");
+        checkReferences("refs", ref.getWeakReferences());
+    }
+
+    public void testSimpleWeakReferences() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName2, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        n.setProperty("myref", superuser.getValueFactory().createValue(ref, true));
+        superuser.save();
+
+        assertEquals("ref", ref.getPath(), n.getProperty("myref").getNode().getPath());
+        checkReferences("refs", ref.getReferences());
+        checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/myref");
+    }
+
+    // FIXME OAK-2197
+    public void testMultipleMultiReferences() throws RepositoryException {
+        Node ref = testRootNode.addNode(nodeName2, testNodeType);
+        ref.addMixin(mixReferenceable);
+        superuser.save();
+
+        Node n = testRootNode.addNode(nodeName1, testNodeType);
+        Value weak = superuser.getValueFactory().createValue(ref, true);
+        n.setProperty("ref1", new Value[]{weak, weak});
+        n.setProperty("ref2", new Value[]{weak, weak});
+
+        Value hard = superuser.getValueFactory().createValue(ref, false);
+        n.setProperty("ref3", new Value[]{hard, hard});
+        n.setProperty("ref4", new Value[]{hard, hard});
+        superuser.save();
+
+        checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/ref1", n.getPath() + "/ref2");
+        checkReferences("refs", ref.getReferences(), n.getPath() + "/ref3", n.getPath() + "/ref4");
     }
 
     // OAK-1242
