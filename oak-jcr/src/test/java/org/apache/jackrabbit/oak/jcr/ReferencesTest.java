@@ -71,7 +71,6 @@ public class ReferencesTest extends AbstractJCRTest {
         checkReferences("refs", ref.getWeakReferences(), n.getPath() + "/myref");
     }
 
-    // FIXME OAK-2197
     public void testMultipleMultiReferences() throws RepositoryException {
         Node ref = testRootNode.addNode(nodeName2, testNodeType);
         ref.addMixin(mixReferenceable);
