@@ -63,4 +63,59 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         nd = super.ds1.find(Collection.NODES, id, 0);
         assertEquals("_foo should have been incremented 10 times", increments, nd.get("_foo"));
     }
+
+    @Test
+    public void testInterleavedUpdate2() {
+        String id = this.getClass().getName() + ".testInterleavedUpdate2";
+
+        // remove if present
+        NodeDocument nd1 = super.ds1.find(Collection.NODES, id);
+        if (nd1 != null) {
+            super.ds1.remove(Collection.NODES, id);
+        }
+
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        assertTrue(super.ds1.create(Collection.NODES, Collections.singletonList(up)));
+        nd1 = super.ds1.find(Collection.NODES, id, 0);
+        Number n = nd1.getModCount();
+        if (n != null) {
+            // Document store uses modCount
+            int n1 = n.intValue();
+
+            // get the document into ds2's cache
+            NodeDocument nd2 = super.ds2.find(Collection.NODES, id, 0);
+            int n2 = nd2.getModCount().intValue();
+            assertEquals(n1, n2);
+
+            UpdateOp upds1 = new UpdateOp(id, true);
+            upds1.set("_id", id);
+            upds1.set("foo", "bar");
+            super.ds1.update(Collection.NODES, Collections.singletonList(id), upds1);
+            nd1 = super.ds1.find(Collection.NODES, id);
+            int oldn1 = n1;
+            n1 = nd1.getModCount().intValue();
+            assertEquals(oldn1 + 1, n1);
+            assertEquals("bar", nd1.get("foo"));
+
+            // modify in DS2
+            UpdateOp upds2 = new UpdateOp(id, true);
+            upds2.set("_id", id);
+            upds2.set("foo", "qux");
+            super.ds2.update(Collection.NODES, Collections.singletonList(id), upds2);
+            nd2 = super.ds2.find(Collection.NODES, id);
+            n2 = nd2.getModCount().intValue();
+            assertEquals(oldn1 + 1, n2);
+            assertEquals("qux", nd2.get("foo"));
+
+            // both stores are now at the same modCount with different contents
+            upds1 = new UpdateOp(id, true);
+            upds1.set("_id", id);
+            upds1.set("foo", "barbar");
+            NodeDocument prev = super.ds1.findAndUpdate(Collection.NODES, upds1);
+            // prev document should contain mod from DS2
+            assertEquals("qux", prev.get("foo"));
+            assertEquals(oldn1 + 2, prev.getModCount().intValue());
+        }
+    }
 }
