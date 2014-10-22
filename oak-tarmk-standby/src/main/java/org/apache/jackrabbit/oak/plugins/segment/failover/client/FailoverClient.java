@@ -56,7 +56,7 @@ import javax.management.StandardMBean;
 import javax.net.ssl.SSLException;
 
 public final class FailoverClient implements ClientFailoverStatusMBean, Runnable, Closeable {
-    public static final String CLIENT_ID_PROPERTY_NAME = "failOverID";
+    public static final String CLIENT_ID_PROPERTY_NAME = "standbyID";
 
     private static final Logger log = LoggerFactory
             .getLogger(FailoverClient.class);
