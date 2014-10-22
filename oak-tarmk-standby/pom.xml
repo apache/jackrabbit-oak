@@ -52,6 +52,7 @@
               *
             </Import-Package>
             <Embed-Dependency>netty-*;inline=true</Embed-Dependency>
+            <Export-Package>!org.apache.jackrabbit.oak.plugins.segment.standby.*</Export-Package>
           </instructions>
         </configuration>
       </plugin>
@@ -101,8 +102,8 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>osgi-conf/primary/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.config</exclude>
-                        <exclude>osgi-conf/standby/org.apache.jackrabbit.oak.plugins.segment.failover.store.FailoverStoreService.config</exclude>
+                        <exclude>osgi-conf/primary/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
+                        <exclude>osgi-conf/standby/org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStoreService.config</exclude>
                         <exclude>osgi-conf/standby/org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStoreService.config</exclude>
                     </excludes>
                 </configuration>
