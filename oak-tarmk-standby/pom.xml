@@ -21,10 +21,10 @@
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
-  <artifactId>oak-tarmk-failover</artifactId>
-  <name>Oak TarMK Failover</name>
+  <artifactId>oak-tarmk-standby</artifactId>
+  <name>Oak TarMK Standby</name>
   <packaging>bundle</packaging>
-  <description>Oak TarMK failover module</description>
+  <description>Oak TarMK standby module</description>
 
   <properties>
       <netty-version>4.0.23.Final</netty-version>
@@ -72,7 +72,7 @@
             <phase>process-test-resources</phase>
             <configuration>
               <portNames>
-                <portName>failover.server.port</portName>
+                <portName>standby.server.port</portName>
               </portNames>
             </configuration>
           </execution>
@@ -82,7 +82,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <systemPropertyVariables combine.children="append">
-            <failover.server.port>${failover.server.port}</failover.server.port>
+            <standby.server.port>${standby.server.port}</standby.server.port>
           </systemPropertyVariables>
           <excludes>
             <!-- excluding long running tests -->
