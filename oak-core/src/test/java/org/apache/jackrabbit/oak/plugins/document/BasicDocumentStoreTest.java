@@ -577,14 +577,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             removeMe.add(key);
             StringBuffer expect = new StringBuffer("X");
 
-            String appendString = generateString(32, true);
+            String appendString = generateString(512, true);
 
             long duration = 1000;
             long end = System.currentTimeMillis() + duration;
             long cnt = 0;
             byte bdata[] = new byte[65536];
             String sdata = appendString;
-            int datalength = (super.dsname.contains("Oracle") ? 4000 : 16384) / 3;
+            boolean needsConcat = super.dsname.contains("MySQL");
+            int dataInChars = (super.dsname.contains("Oracle") ? 4000 : 16384);
+            int dataInBytes = dataInChars / 3;
 
             while (System.currentTimeMillis() < end) {
 
@@ -630,8 +632,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             stmt.close();
                         }
                     } else if (mode == 3) {
-                        PreparedStatement stmt = connection.prepareStatement("update " + table
-                                + " set DATA = DATA || ? where ID = ?");
+                        PreparedStatement stmt = connection.prepareStatement("update "
+                                + table
+                                + " set "
+                                + (needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || CAST(? as varchar(" + dataInChars
+                                        + "))") + " where ID = ?");
                         try {
                             stmt.setString(1, appendString);
                             stmt.setString(2, key);
@@ -667,7 +672,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             stmt.setObject(si++, null, Types.BIGINT);
                             stmt.setObject(si++, sdata.length(), Types.BIGINT);
 
-                            if (sdata.length() < datalength) {
+                            if (sdata.length() < dataInBytes) {
                                 stmt.setString(si++, sdata);
                                 stmt.setBinaryStream(si++, null, 0);
                             }
