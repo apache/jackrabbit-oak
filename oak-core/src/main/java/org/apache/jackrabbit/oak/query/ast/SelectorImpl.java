@@ -581,11 +581,18 @@ public class SelectorImpl extends SourceImpl {
                 }
                 return PropertyValues.newString(strings);
             }
+            Type<?> baseType = type.isArray() ? type.getBaseType() : type;
             @SuppressWarnings("unchecked")
-            PropertyBuilder<Object> builder = (PropertyBuilder<Object>) PropertyBuilder.array(type);
+            PropertyBuilder<Object> builder = (PropertyBuilder<Object>) PropertyBuilder.array(baseType);
             builder.setName("");
             for (PropertyValue v : list) {
-                builder.addValue(v.getValue(type));
+                if (type.isArray()) {
+                    for (Object value : (Iterable<?>) v.getValue(type)) {
+                        builder.addValue(value);
+                    }
+                } else {
+                    builder.addValue(v.getValue(type));
+                }
             }
             PropertyState s = builder.getPropertyState();
             return PropertyValues.create(s);
