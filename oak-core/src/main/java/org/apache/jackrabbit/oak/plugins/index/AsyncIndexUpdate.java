@@ -448,7 +448,6 @@ public class AsyncIndexUpdate implements Runnable {
 
         public void done(String now) {
             status = STATUS_DONE;
-            start = "";
             done = now;
         }
 
