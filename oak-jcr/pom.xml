@@ -146,6 +146,8 @@
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
       org.apache.jackrabbit.oak.jcr.query.QueryTest#fnNameEncoding                                   <!-- OAK-1000 -->
+
+      org.apache.jackrabbit.oak.jcr.ReferencesTest#testMultipleMultiReferences                       <!-- OAK-2197 -->
     </known.issues>
   </properties>
 
