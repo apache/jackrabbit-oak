@@ -336,7 +336,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static int CHAR2OCTETRATIO = 3;
 
     // capacity of DATA column
-    private int datalimit = 16384 / CHAR2OCTETRATIO;
+    private int dataLimitInOctets = 16384;
 
     // number of retries for updates
     private static int RETRIES = 10;
@@ -402,7 +402,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (col.equals(Collection.NODES)) {
                 // try to discover size of DATA column
                 ResultSetMetaData met = rs.getMetaData();
-                this.datalimit = met.getPrecision(1) / CHAR2OCTETRATIO;
+                this.dataLimitInOctets = met.getPrecision(1);
             }
         } catch (SQLException ex) {
             // table does not appear to exist
@@ -428,7 +428,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
             } else if ("Oracle".equals(dbtype)) {
                 // see https://issues.apache.org/jira/browse/OAK-1914
-                this.datalimit = 4000 / CHAR2OCTETRATIO;
+                this.dataLimitInOctets = 4000;
                 stmt.execute("create table "
                         + tableName
                         + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
@@ -810,7 +810,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             // every 16th update is a full rewrite
             if (isAppendableUpdate(update) && modcount % 16 != 0) {
                 String appendData = SR.asString(update);
-                if (appendData.length() < datalimit) {
+                if (appendData.length() < this.dataLimitInOctets / CHAR2OCTETRATIO) {
                     try {
                         success = dbAppendingUpdate(connection, tableName, document.getId(), modified, hasBinary, modcount,
                                 cmodcount, oldmodcount, appendData);
@@ -992,6 +992,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         }
         t += " order by ID";
+        if (limit != Integer.MAX_VALUE) {
+            t += " FETCH FIRST " + limit + " ROWS ONLY";
+        }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
         try {
@@ -1037,7 +1040,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
 
-            if (data.length() < datalimit) {
+            if (data.length() <  this.dataLimitInOctets / CHAR2OCTETRATIO) {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
@@ -1064,7 +1067,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
         t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
-        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || ? ");
+        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
+                + ")) ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");
@@ -1096,7 +1100,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private boolean dbBatchedAppendingUpdate(Connection connection, String tableName, List<String> ids, Long modified, String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
         t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || ? ");
+        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
+                + ")) ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
             if (i != 0) {
@@ -1137,7 +1142,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, modcount, Types.BIGINT);
             stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
             stmt.setObject(si++, data.length(), Types.BIGINT);
-            if (data.length() < datalimit) {
+            if (data.length() <  this.dataLimitInOctets / CHAR2OCTETRATIO) {
                 stmt.setString(si++, data);
                 stmt.setBinaryStream(si++, null, 0);
             } else {
