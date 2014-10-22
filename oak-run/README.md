@@ -9,8 +9,8 @@ The following runmodes are currently available:
     * debug     : Print status information about an Oak repository.
     * upgrade   : Upgrade from Jackrabbit 2.x repository to Oak.
     * server    : Run the Oak Server
-    * syncmaster  : Run a TarMK Cold Standby master
-    * syncslave   : Run a TarMK Cold Standby slave
+    * primary     : Run a TarMK Cold Standby primary instance
+    * standby     : Run a TarMK Cold Standby standby instance
 
 See the subsections below for more details on how to use these modes.
 
@@ -37,32 +37,32 @@ store. Currently this is only supported for the TarMK. To start this mode, use:
     $ java -jar oak-run-*.jar debug /path/to/oak/repository [id...]
 
 
-Syncmaster
+Primary
 -------
 
-The 'syncmaster' mode starts a TarMK Cold Standby master listening on a TCP/IP port for connecting slaves.
+The 'primary' mode starts a TarMK Cold Standby primary instance (master) listening on a TCP/IP port for connecting slaves.
 
-    $ java -jar oak-run-*.jar syncmaster [options] /path/to/TarMK
-    
+    $ java -jar oak-run-*.jar primary [options] /path/to/TarMK
+
 The following options are available:
 
     --port 8023            - port to listen at
     --admissible 127.0.0.1 - admissible client IP range or host name
     --secure               - use secure connections
 
-Syncslave
+Standby
 -------
 
-The 'syncslave' mode starts a TarMK Cold Standby slave to  create or update a continous backup from a Cold Standby master.
+The 'standby' mode starts a TarMK Cold Standby standby instance (slave) to create or update a continuous backup from a Cold Standby primary.
 
-    $ java -jar oak-run-*.jar syncslave [options] /path/to/TarMK
+    $ java -jar oak-run-*.jar standby [options] /path/to/TarMK
 
 The following options are available:
 
     --port 8023            - port to connect to
     --host 127.0.0.1       - host to connect to
     --secure               - use secure connections
-    --interval 5           - schedule the slave to run continously, connecting every n seconds
+    --interval 5           - schedule the slave to run continuously, connecting every n seconds
 
 Compact
 -------
