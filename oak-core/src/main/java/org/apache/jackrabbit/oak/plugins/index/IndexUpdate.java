@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Objects;
 
 public class IndexUpdate implements Editor {
+
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final IndexEditorProvider provider;
@@ -84,6 +85,8 @@ public class IndexUpdate implements Editor {
      * Callback for the update events of the indexing job
      */
     private final IndexUpdateCallback updateCallback;
+
+    private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
     public IndexUpdate(
             IndexEditorProvider provider, String async,
@@ -151,12 +154,15 @@ public class IndexUpdate implements Editor {
             NodeBuilder definition = definitions.getChildNode(name);
             if (Objects.equal(async, definition.getString(ASYNC_PROPERTY_NAME))) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
+                if (type == null) {
+                    // probably not an index def
+                    continue;
+                }
                 boolean shouldReindex = shouldReindex(definition,
                         before, name);
                 Editor editor = provider.getIndexEditor(type, definition, root, updateCallback);
                 if (editor == null) {
-                    // trigger reindexing when an indexer becomes available
-                    definition.setProperty(REINDEX_PROPERTY_NAME, true);
+                    missingProvider.onMissingIndex(type, definition);
                 } else if (shouldReindex) {
                     if (definition.getBoolean(REINDEX_ASYNC_PROPERTY_NAME)
                             && definition.getString(ASYNC_PROPERTY_NAME) == null) {
@@ -265,6 +271,20 @@ public class IndexUpdate implements Editor {
 
     protected Set<String> getReindexedDefinitions() {
         return reindex.keySet();
+    }
+
+    public static class MissingIndexProviderStrategy {
+        public void onMissingIndex(String type, NodeBuilder definition)
+                throws CommitFailedException {
+            // trigger reindexing when an indexer becomes available
+            definition.setProperty(REINDEX_PROPERTY_NAME, true);
+        }
+    }
+
+    public IndexUpdate withMissingProviderStrategy(
+            MissingIndexProviderStrategy missingProvider) {
+        this.missingProvider = missingProvider;
+        return this;
     }
 
 }
