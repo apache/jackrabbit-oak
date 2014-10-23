@@ -402,6 +402,60 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testPerfCollectionPaging() {
+        String cid = this.getClass().getName() + ".testPerfCollectionPaging";
+        int nodecount = 20000;
+        int initialFetchCount = 100;
+        int maxFetchCount = 1600;
+        int fetchcount = initialFetchCount;
+        long duration = 2000;
+        int cnt = 0;
+        List<UpdateOp> ups = new ArrayList<UpdateOp>();
+
+        UpdateOp container = new UpdateOp(cid, true);
+        container.set("_id", cid);
+        ups.add(container);
+        removeMe.add(cid);
+        for (int i = 0; i < nodecount; i++) {
+            String id = String.format("%s/%08d", cid, i);
+            removeMe.add(id);
+            UpdateOp u = new UpdateOp(id, true);
+            u.set("_id", id);
+            ups.add(u);
+        }
+
+        boolean success = super.ds.create(Collection.NODES, ups);
+        assertTrue(success);
+
+        long end = System.currentTimeMillis() + duration;
+        String sid = cid;
+        int found = 0;
+        while (System.currentTimeMillis() < end) {
+            List<NodeDocument> result = super.ds.query(Collection.NODES, sid, cid + "X", fetchcount);
+            found += result.size();
+            if (result.size() < fetchcount) {
+                if (sid.equals(cid)) {
+                    fail("first page must not be empty");
+                }
+                sid = cid;
+                assertEquals(nodecount, found);
+                found = 0;
+                fetchcount = initialFetchCount;
+            }
+            else {
+                sid = result.get(result.size() -1).getId();
+                if (fetchcount < maxFetchCount) {
+                    fetchcount *= 2;
+                }
+            }
+            cnt += 1;
+        }
+
+        LOG.info("collection lookups " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+    }
+
+    @Test
     public void testPerfLastRevBatch() {
         String bid = this.getClass().getName() + ".testPerfLastRevBatch";
         int nodecount = 100;

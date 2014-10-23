@@ -344,6 +344,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // for DBs that prefer "concat" over "||"
     private boolean needsConcat = false;
 
+    // for DBs that prefer "limit" over "fetch first"
+    private boolean needsLimit = false;
+
     // set of supported indexed properties
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
@@ -378,6 +381,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             con.commit();
         } else if ("MySQL".equals(dbtype)) {
             this.needsConcat = true;
+            this.needsLimit = true;
         }
 
         try {
@@ -993,7 +997,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
-            t += " FETCH FIRST " + limit + " ROWS ONLY";
+            t += this.needsConcat ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
         }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
