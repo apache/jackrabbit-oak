@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdate.MissingIndexProviderStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -120,6 +121,8 @@ public class AsyncIndexUpdate implements Runnable {
      * a run with no changes.
      */
     private final Set<String> reindexedDefinitions = new HashSet<String>();
+
+    private final MissingIndexProviderStrategy missingStrategy = new DefaultMissingIndexProviderStrategy();
 
     public AsyncIndexUpdate(@Nonnull String name, @Nonnull NodeStore store,
             @Nonnull IndexEditorProvider provider, boolean switchOnSync) {
@@ -341,7 +344,8 @@ public class AsyncIndexUpdate implements Runnable {
             NodeBuilder builder = store.getRoot().builder();
 
             IndexUpdate indexUpdate =
-                    new IndexUpdate(provider, name, after, builder, callback);
+                    new IndexUpdate(provider, name, after, builder, callback)
+                    .withMissingProviderStrategy(missingStrategy);
             CommitFailedException exception =
                     EditorDiff.process(VisibleEditor.wrap(indexUpdate), before, after);
             if (exception != null) {
@@ -576,6 +580,26 @@ public class AsyncIndexUpdate implements Runnable {
 
     private static boolean isHidden(String name) {
         return name.charAt(0) == ':';
+    }
+
+    static class DefaultMissingIndexProviderStrategy extends
+            MissingIndexProviderStrategy {
+
+        private final Set<String> ignore = Sets.newHashSet("disabled");
+
+        @Override
+        public void onMissingIndex(String type, NodeBuilder definition)
+                throws CommitFailedException {
+            if (ignore.contains(type)) {
+                return;
+            }
+            throw new CommitFailedException("Async", 2,
+                    "Missing index provider detected");
+        }
+    }
+
+    public boolean isFailing() {
+        return failing;
     }
 
 }
