@@ -40,7 +40,19 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     private final SegmentWriter writer;
 
-    private long updateCount = 0;
+    /**
+     * Local update counter for the root builder.
+     * 
+     * The value encodes both the counter and the type of the node builder:
+     * <ul>
+     * <li>value >= <code>0</code> represents a root builder (builder keeps
+     * counter updates)</li>
+     * <li>value = <code>-1</code> represents a child builder (value doesn't
+     * change, builder doesn't keep an updated counter)</li>
+     * </ul>
+     * 
+     */
+    private long updateCount;
 
     SegmentNodeBuilder(SegmentNodeState base) {
         this(base, base.getTracker().getWriter());
@@ -49,22 +61,32 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     SegmentNodeBuilder(SegmentNodeState base, SegmentWriter writer) {
         super(base);
         this.writer = writer;
+        this.updateCount = 0;
     }
 
     SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
             SegmentWriter writer) {
         super(parent, name);
         this.writer = writer;
+        this.updateCount = -1;
     }
 
     //-------------------------------------------------< MemoryNodeBuilder >--
 
     @Override
     protected void updated() {
-        updateCount++;
-        if (updateCount > UPDATE_LIMIT) {
-            getNodeState();
+        if (isChildBuilder()) {
+            super.updated();
+        } else {
+            updateCount++;
+            if (updateCount > UPDATE_LIMIT) {
+                getNodeState();
+            }
         }
+    }
+
+    private boolean isChildBuilder() {
+        return updateCount < 0;
     }
 
     //-------------------------------------------------------< NodeBuilder >--
