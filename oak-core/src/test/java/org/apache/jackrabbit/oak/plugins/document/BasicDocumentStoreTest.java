@@ -403,7 +403,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testPerfCollectionPaging() {
-        String cid = this.getClass().getName() + ".testPerfCollectionPaging";
+        testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPaging", false);
+    }
+
+    @Test
+    public void testPerfCollectionPagingUnCached() {
+        testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPagingUnCached", true);
+    }
+
+    private void testPerfCollectionPaging(String name, boolean invalidateCache) {
+        String cid = name;
         int nodecount = 20000;
         int initialFetchCount = 100;
         int maxFetchCount = 1600;
@@ -426,6 +435,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         boolean success = super.ds.create(Collection.NODES, ups);
         assertTrue(success);
+        super.ds.invalidateCache();
 
         long end = System.currentTimeMillis() + duration;
         String sid = cid;
@@ -449,10 +459,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 }
             }
             cnt += 1;
+            if (invalidateCache) {
+                super.ds.invalidateCache();
+            }
         }
 
-        LOG.info("collection lookups " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("collection lookups " + (invalidateCache ? "(uncached) " : "") + super.dsname + " was " + cnt + " in " + duration
+                + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
