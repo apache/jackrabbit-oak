@@ -202,14 +202,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, int limit) {
-        // TODO cache
         return query(collection, fromKey, toKey, null, 0, limit);
     }
 
     @Override
     public <T extends Document> List<T> query(Collection<T> collection, String fromKey, String toKey, String indexedProperty,
             long startValue, int limit) {
-        // TODO cache
         return internalQuery(collection, fromKey, toKey, indexedProperty, startValue, limit);
     }
 
@@ -727,10 +725,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             connection = getConnection();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (RDBRow r : dbresult) {
-                T doc = SR.fromRow(collection, r);
-                doc.seal();
+                T doc = runThroughCache(collection, r);
                 result.add(doc);
-                addToCacheIfNotNewer(collection, doc);
             }
         } catch (Exception ex) {
             LOG.error("SQL exception on query", ex);
@@ -920,6 +916,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
     // Number of documents to insert at once for batch create
     private static int CHUNKSIZE = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
+    // Whether to use cache for query results
+    private static boolean NOQUERYFROMCACHE = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOQUERYFROMCACHE");
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1306,32 +1304,59 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> void addToCacheIfNotNewer(Collection<T> collection, T doc) {
-        if (collection == Collection.NODES) {
-            String id = doc.getId();
-            Lock lock = getAndLock(id);
-            CacheValue cacheKey = new StringValue(id);
-            try {
-                // do not overwrite document in cache if the
-                // existing one in the cache is newer
-                NodeDocument cached = nodesCache.getIfPresent(cacheKey);
-                if (cached != null && cached != NodeDocument.NULL) {
-                    // check mod count
-                    Number cachedModCount = cached.getModCount();
-                    Number modCount = doc.getModCount();
-                    if (cachedModCount == null || modCount == null) {
-                        throw new IllegalStateException("Missing " + Document.MOD_COUNT);
-                    }
-                    if (modCount.longValue() > cachedModCount.longValue()) {
-                        nodesCache.put(cacheKey, (NodeDocument) doc);
-                    }
-                } else {
-                    nodesCache.put(cacheKey, (NodeDocument) doc);
+    private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row) {
+
+        if (collection != Collection.NODES) {
+            // not in the cache anyway
+            return SR.fromRow(collection, row);
+        }
+
+        String id = row.getId();
+        CacheValue cacheKey = new StringValue(id);
+        NodeDocument inCache = nodesCache.getIfPresent(cacheKey);
+        Number modCount = row.getModcount();
+
+        if (! NOQUERYFROMCACHE) {
+            // do not overwrite document in cache if the
+            // existing one in the cache is newer
+            if (inCache != null && inCache != NodeDocument.NULL) {
+                // check mod count
+                Number cachedModCount = inCache.getModCount();
+                if (cachedModCount == null) {
+                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
                 }
-            } finally {
-                lock.unlock();
+                if (modCount.longValue() <= cachedModCount.longValue()) {
+                    // we can use the cached document
+                    return (T) inCache;
+                }
             }
         }
+
+        NodeDocument fresh = (NodeDocument) SR.fromRow(collection, row);
+        fresh.seal();
+
+        Lock lock = getAndLock(id);
+        try {
+            inCache = nodesCache.getIfPresent(cacheKey);
+            if (inCache != null && inCache != NodeDocument.NULL) {
+                // check mod count
+                Number cachedModCount = inCache.getModCount();
+                if (cachedModCount == null) {
+                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
+                }
+                if (modCount.longValue() > cachedModCount.longValue()) {
+                    nodesCache.put(cacheKey, fresh);
+                } else {
+                    fresh = inCache;
+                }
+            }
+            else {
+                nodesCache.put(cacheKey, fresh);
+            }
+        } finally {
+            lock.unlock();
+        }
+        return (T) fresh;
     }
 
     private Connection getConnection() throws SQLException {
