@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -159,22 +160,29 @@ public class LuceneIndexEditorTest {
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar", "baz"), STRINGS));
+        //nb.removeProperty(REINDEX_PROPERTY_NAME);
 
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
-        before = commitAndDump(before);
 
+        //InfoStream.setDefault(new PrintStreamInfoStream(System.out));
+        before = commitAndDump(before, builder.getNodeState());
+
+        builder = before.builder();
         builder.child("test2").setProperty("bar", "ship is sinking");
-        before = commitAndDump(before);
+        before = commitAndDump(before, builder.getNodeState());
 
+        builder = before.builder();
         builder.child("test3").setProperty("baz", "horn is blowing");
-        before = commitAndDump(before);
+        before = commitAndDump(before, builder.getNodeState());
 
+        builder = before.builder();
         builder.child("test2").remove();
-        before = commitAndDump(before);
+        before = commitAndDump(before, builder.getNodeState());
 
+        builder = before.builder();
         builder.child("test2").setProperty("bar", "ship is back again");
-        before = commitAndDump(before);
+        before = commitAndDump(before, builder.getNodeState());
     }
 
     @After
@@ -208,19 +216,20 @@ public class LuceneIndexEditorTest {
         return indexNode.getSearcher();
     }
 
-    private NodeState commitAndDump(NodeState before) throws CommitFailedException, IOException {
-        NodeState after = builder.getNodeState();
+    private NodeState commitAndDump(NodeState before, NodeState after) throws CommitFailedException, IOException {
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
         dumpIndexDir();
-        return after;
+        return indexed;
     }
 
     private void dumpIndexDir() throws IOException {
         Directory dir = ((DirectoryReader)getSearcher().getIndexReader()).directory();
 
         System.out.println("================");
-        for (String file : dir.listAll()){
+        String[] fileNames = dir.listAll();
+        Arrays.sort(fileNames);
+        for (String file : fileNames){
             System.out.printf("%s - %d %n", file, dir.fileLength(file));
         }
         releaseIndexNode();
