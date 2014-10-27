@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterators.transform;
+import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -43,6 +44,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import com.google.common.base.Function;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -270,6 +272,33 @@ public class LuceneIndexTest {
 
         assertQuery(tracker, indexed, "foo2", "bar2");
     }
+
+    @Test
+    public void luceneWithCopyOnReadDir() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(TYPENAME_STRING));
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        File indexRootDir = new File(getIndexDir());
+        IndexTracker tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo", "bar");
+
+        builder = indexed.builder();
+        builder.setProperty("foo2", "bar2");
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo2", "bar2");
+    }
+
 
     private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
         AdvancedQueryIndex queryIndex = new LuceneIndex(tracker, analyzer, null);
