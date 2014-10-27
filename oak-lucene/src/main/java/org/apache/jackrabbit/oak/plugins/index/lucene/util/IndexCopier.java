@@ -22,14 +22,30 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeType;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.OpenType;
+import javax.management.openmbean.SimpleType;
+import javax.management.openmbean.TabularData;
+import javax.management.openmbean.TabularDataSupport;
+import javax.management.openmbean.TabularType;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.CopyOnReadStatsMBean;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.lucene.store.BaseDirectory;
 import org.apache.lucene.store.Directory;
@@ -43,12 +59,18 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newConcurrentMap;
 
-public class IndexCopier {
+public class IndexCopier implements CopyOnReadStatsMBean {
     private static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Executor executor;
     private final File indexRootDir;
+
+    private final AtomicInteger localReadCount = new AtomicInteger();
+    private final AtomicInteger remoteReadCount = new AtomicInteger();
+    private final AtomicLong downloadSize = new AtomicLong();
+    private final AtomicLong downloadTime = new AtomicLong();
+    private final Map<String, String> indexPathMapping = Maps.newConcurrentMap();
 
     public IndexCopier(Executor executor, File indexRootDir) {
         this.executor = executor;
@@ -67,6 +89,7 @@ public class IndexCopier {
         if (!indexDir.exists()) {
             checkState(indexDir.mkdirs(), "Cannot create directory %s", indexDir);
         }
+        indexPathMapping.put(indexPath, indexDir.getAbsolutePath());
         return FSDirectory.open(indexDir);
     }
 
@@ -126,6 +149,7 @@ public class IndexCopier {
                 if (ref.isLocalValid()) {
                     return files.get(name).openLocalInput(context);
                 } else {
+                    remoteReadCount.incrementAndGet();
                     return remote.openInput(name, context);
                 }
             }
@@ -151,8 +175,11 @@ public class IndexCopier {
                     String name = reference.name;
                     try {
                         if (!local.fileExists(name)) {
+                            long start = System.currentTimeMillis();
                             remote.copy(local, name, name, IOContext.READ);
                             reference.markValid();
+                            downloadTime.addAndGet(System.currentTimeMillis() - start);
+                            downloadSize.addAndGet(remote.fileLength(name));
                         } else {
                             long localLength = local.fileLength(name);
                             long remoteLength = remote.fileLength(name);
@@ -246,6 +273,7 @@ public class IndexCopier {
             }
 
             IndexInput openLocalInput( IOContext context) throws IOException {
+                localReadCount.incrementAndGet();
                 return local.openInput(name, context);
             }
 
@@ -254,4 +282,83 @@ public class IndexCopier {
             }
         }
     }
+
+    //~------------------------------------------< CopyOnReadStatsMBean >
+
+    @Override
+    public TabularData getIndexPathMapping() {
+        TabularDataSupport tds;
+        try{
+            TabularType tt = new TabularType(IndexMappingData.class.getName(),
+                    "Lucene Index Stats", IndexMappingData.TYPE, new String[]{"jcrPath"});
+            tds = new TabularDataSupport(tt);
+            for (Map.Entry<String, String> e : indexPathMapping.entrySet()){
+                tds.put(new CompositeDataSupport(IndexMappingData.TYPE,
+                        IndexMappingData.FIELD_NAMES,
+                        new String[] {e.getKey(), e.getValue()}));
+            }
+        } catch (OpenDataException e){
+            throw new IllegalStateException(e);
+        }
+        return tds;
+    }
+
+    @Override
+    public int getLocalReadCount() {
+        return localReadCount.get();
+    }
+
+    @Override
+    public int getRemoteReadCount() {
+        return remoteReadCount.get();
+    }
+
+    @Override
+    public String getDownloadSize() {
+        return IOUtils.humanReadableByteCount(downloadSize.get());
+    }
+
+    @Override
+    public long getDownloadTime() {
+        return downloadTime.get();
+    }
+
+    @Override
+    public String getLocalIndexSize() {
+        return IOUtils.humanReadableByteCount(FileUtils.sizeOfDirectory(indexRootDir));
+    }
+
+    private static class IndexMappingData {
+        static final String[] FIELD_NAMES = new String[]{
+                "jcrPath",
+                "fsPath",
+        };
+
+        static final String[] FIELD_DESCRIPTIONS = new String[]{
+                "JCR Path",
+                "Filesystem Path",
+        };
+
+        static final OpenType[] FIELD_TYPES = new OpenType[]{
+                SimpleType.STRING,
+                SimpleType.STRING,
+        };
+
+        static final CompositeType TYPE = createCompositeType();
+
+        static CompositeType createCompositeType() {
+            try {
+                return new CompositeType(
+                        IndexMappingData.class.getName(),
+                        "Composite data type for Index Mapping Data",
+                        IndexMappingData.FIELD_NAMES,
+                        IndexMappingData.FIELD_DESCRIPTIONS,
+                        IndexMappingData.FIELD_TYPES);
+            } catch (OpenDataException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+    }
+
 }
