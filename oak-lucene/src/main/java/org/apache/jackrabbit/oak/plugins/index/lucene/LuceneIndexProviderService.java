@@ -64,6 +64,7 @@ public class LuceneIndexProviderService {
     private LuceneIndexProvider indexProvider;
 
     private final List<ServiceRegistration> regs = Lists.newArrayList();
+    private final List<Registration> oakRegs = Lists.newArrayList();
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -102,8 +103,6 @@ public class LuceneIndexProviderService {
     )
     private static final String PROP_LOCAL_INDEX_DIR = "localIndexDir";
 
-    private Registration mbeanReg;
-
     private Whiteboard whiteboard;
 
     private WhiteboardExecutor executor;
@@ -122,11 +121,11 @@ public class LuceneIndexProviderService {
         regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), aggregate, null));
         regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
 
-        mbeanReg = registerMBean(whiteboard,
+        oakRegs.add(registerMBean(whiteboard,
                 LuceneIndexMBean.class,
                 new LuceneIndexMBeanImpl(indexProvider.getTracker()),
                 LuceneIndexMBean.TYPE,
-                "Lucene Index statistics");
+                "Lucene Index statistics"));
     }
 
     @Deactivate
@@ -135,8 +134,8 @@ public class LuceneIndexProviderService {
             reg.unregister();
         }
 
-        if(mbeanReg != null){
-            mbeanReg.unregister();
+        for (Registration reg : oakRegs){
+            reg.unregister();
         }
 
         if (indexProvider != null) {
@@ -194,6 +193,13 @@ public class LuceneIndexProviderService {
             executor.start(whiteboard);
             IndexCopier copier = new IndexCopier(executor, indexDir);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
+
+            oakRegs.add(registerMBean(whiteboard,
+                    CopyOnReadStatsMBean.class,
+                    copier,
+                    CopyOnReadStatsMBean.TYPE,
+                    "CopyOnRead support statistics"));
+
             return new IndexTracker(copier);
         }
 
