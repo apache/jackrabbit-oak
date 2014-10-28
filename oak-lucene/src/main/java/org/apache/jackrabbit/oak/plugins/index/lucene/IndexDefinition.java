@@ -177,6 +177,10 @@ public class IndexDefinition {
     public Set<String> getDeclaringNodeTypes() {
         return declaringNodeTypes;
     }
+
+    public boolean hasDeclaredNodeTypes(){
+        return !declaringNodeTypes.isEmpty();
+    }
     /**
      * Checks if a given property should be stored in the lucene index or not
      */

@@ -93,10 +93,8 @@ public class IndexPlanner {
             int costPerEntryFactor = indexedProps.size();
             
             // Restrict matching index when declaringNodeTypes declared
-            Set<String> supertypes = getSuperTypes(filter);
-            if (!defn.getDeclaringNodeTypes().isEmpty()) {
-                if ((supertypes != null) && !Sets
-                    .intersection(defn.getDeclaringNodeTypes(), supertypes).isEmpty()) {
+            if (defn.hasDeclaredNodeTypes()) {
+                if (supportsNodeTypes(filter)) {
                     // Reduce cost per entry by a small factor because number of nodes would be less
                     costPerEntryFactor += 1;
                 } else {
@@ -117,11 +115,12 @@ public class IndexPlanner {
         return null;
     }
 
-    private static Set<String> getSuperTypes(Filter filter) {
-        if (filter != null && !filter.matchesAllTypes()) {
-            return filter.getSupertypes();
-        }
-        return null;
+    /**
+     * Determines if NodeTypes as defined in Filter are supported by current index
+     */
+    private boolean supportsNodeTypes(Filter filter) {
+        return !Sets
+            .intersection(defn.getDeclaringNodeTypes(), getSuperTypes(filter)).isEmpty();
     }
 
     private IndexPlan.Builder defaultPlan() {
@@ -171,5 +170,9 @@ public class IndexPlanner {
             }
         }
         return orderEntries;
+    }
+
+    private static Set<String> getSuperTypes(Filter filter) {
+        return filter.matchesAllTypes() ? Collections.<String>emptySet() : filter.getSupertypes();
     }
 }
