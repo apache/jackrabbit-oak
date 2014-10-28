@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
@@ -42,7 +43,6 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -102,11 +102,18 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         user = createUser(null);
 
         Credentials creds = user.getCredentials();
-        assertTrue(creds instanceof CredentialsImpl);
+        assertTrue(creds instanceof UserIdCredentials);
 
-        CredentialsImpl impl = (CredentialsImpl) creds;
+        UserIdCredentials impl = (UserIdCredentials) creds;
         assertEquals(uid, impl.getUserId());
-        assertNull(impl.getPasswordHash());
+    }
+
+    @Test
+    public void testHasNoPassword() throws Exception {
+        user = createUser(null);
+
+        Tree userTree = root.getTree(user.getPath());
+        assertFalse(userTree.hasProperty(UserConstants.REP_PASSWORD));
     }
 
 
@@ -193,6 +200,17 @@ public class SystemUserImplTest extends AbstractSecurityTest {
         user = createUser(null);
         try {
             login(new SimpleCredentials(uid, new char[0])).close();
+            fail();
+        } catch (LoginException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testLoginAsSystemUser2() throws Exception {
+        user = createUser(null);
+        try {
+            login(user.getCredentials()).close();
             fail();
         } catch (LoginException e) {
             // success

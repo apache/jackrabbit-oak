@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.UserIdCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -86,7 +87,12 @@ class UserImpl extends AuthorizableImpl implements User {
 
     @Override
     public Credentials getCredentials() {
-        return new CredentialsImpl(getID(), getPasswordHash());
+        String pwHash = getPasswordHash();
+        if (pwHash == null) {
+            return new UserIdCredentials(getID());
+        } else {
+            return new CredentialsImpl(getID(), pwHash);
+        }
     }
 
     @Override
