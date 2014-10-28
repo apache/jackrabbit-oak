@@ -888,7 +888,10 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                 bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
             }
         }
-        qs.add(bq);
+
+        if (bq.clauses().size() != 0) {
+            qs.add(bq);
+        }
     }
 
     static Query getFullTextQuery(FullTextExpression ft, final Analyzer analyzer, final IndexReader reader) {
