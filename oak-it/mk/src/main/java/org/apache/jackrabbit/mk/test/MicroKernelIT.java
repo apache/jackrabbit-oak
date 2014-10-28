@@ -573,6 +573,26 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void getNodesWithDefaultFilter() {
+        String head = mk.getHeadRevision();
+
+        String[] filters = { null, "" };
+
+        for (String filter : filters) {
+            // verify initial content with implicit default filter
+            JSONObject obj = parseJSONObject(mk.getNodes("/", head, 1, 0, -1, filter));
+            assertPropertyExists(obj, "test/:childNodeCount");
+            assertPropertyNotExists(obj, "test/:hash");
+            assertPropertyNotExists(obj, "test/:id");
+            assertPropertyValue(obj, "test/stringProp", "stringVal");
+            assertPropertyValue(obj, "test/intProp", 42L);
+            assertPropertyValue(obj, "test/floatProp", 42.2);
+            assertPropertyValue(obj, "test/booleanProp", true);
+            assertPropertyValue(obj, "test/multiIntProp", new Object[]{1, 2, 3});
+        }
+    }
+
+    @Test
     public void getNodesNonExistingPath() {
         String head = mk.getHeadRevision();
 
