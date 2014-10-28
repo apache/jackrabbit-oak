@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -81,13 +82,21 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private boolean propertiesChanged = false;
 
-    LuceneIndexEditor(NodeBuilder definition, Analyzer analyzer,
-            IndexUpdateCallback updateCallback) throws CommitFailedException {
+    private NodeState root;
+
+    private TypePredicate typePredicate;
+
+    LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
+        IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
         this.context = new LuceneIndexEditorContext(definition, analyzer,
                 updateCallback);
+        this.root = root;
+        if (root != null && !context.getDefinition().getDeclaringNodeTypes().isEmpty()) {
+            typePredicate = new TypePredicate(root, context.getDefinition().getDeclaringNodeTypes());
+        }
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
@@ -95,6 +104,8 @@ public class LuceneIndexEditor implements IndexEditor {
         this.name = name;
         this.path = null;
         this.context = parent.context;
+        this.root = parent.root;
+        this.typePredicate = parent.typePredicate;
     }
 
     public String getPath() {
@@ -199,6 +210,11 @@ public class LuceneIndexEditor implements IndexEditor {
     private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
         //TODO Possibly we can add support for compound properties like foo/bar
         //i.e. support for relative path restrictions
+
+        // Check for declaringNodeType validity
+        if (typePredicate != null && !typePredicate.apply(state)) {
+            return null;
+        }
 
         List<Field> fields = new ArrayList<Field>();
         boolean dirty = false;

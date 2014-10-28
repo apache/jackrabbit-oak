@@ -21,9 +21,11 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -88,16 +90,37 @@ public class IndexPlanner {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
+            int costPerEntryFactor = indexedProps.size();
+            
+            // Restrict matching index when declaringNodeTypes declared
+            Set<String> supertypes = getSuperTypes(filter);
+            if (!defn.getDeclaringNodeTypes().isEmpty()) {
+                if ((supertypes != null) && !Sets
+                    .intersection(defn.getDeclaringNodeTypes(), supertypes).isEmpty()) {
+                    // Reduce cost per entry by a small factor because number of nodes would be less
+                    costPerEntryFactor += 1;
+                } else {
+                    return null;
+                }
+            }
+            //this index can evaluate more propertyRestrictions natively (if more props are indexed)
+            //For now we reduce cost per entry
             IndexPlan.Builder plan = defaultPlan();
             if (plan != null) {
-                return plan.setCostPerEntry(1.0 / indexedProps.size());
+                return plan.setCostPerEntry(1.0 / costPerEntryFactor);
             }
         }
 
         //TODO Support for path restrictions
-        //TODO support for NodeTypes
         //TODO Support for property existence queries
         //TODO support for nodeName queries
+        return null;
+    }
+
+    private static Set<String> getSuperTypes(Filter filter) {
+        if (filter != null && !filter.matchesAllTypes()) {
+            return filter.getSupertypes();
+        }
         return null;
     }
 
