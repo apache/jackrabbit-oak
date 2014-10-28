@@ -493,7 +493,7 @@ public class NodeStoreKernel implements MicroKernel {
             if (maxChildNodes < 0) {
                 maxChildNodes = Integer.MAX_VALUE;
             }
-            if (filter == null) {
+            if (filter == null || filter.isEmpty()) {
                 filter = "{}";
             }
             JsonSerializer json = new JsonSerializer(
