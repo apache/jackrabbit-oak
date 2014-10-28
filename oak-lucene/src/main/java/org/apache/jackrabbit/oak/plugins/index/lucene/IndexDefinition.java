@@ -40,6 +40,7 @@ import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
@@ -71,6 +72,8 @@ public class IndexDefinition {
     private final Set<String> includes;
 
     private final Set<String> orderedProps;
+
+    private final Set<String> declaringNodeTypes;
 
     private final boolean fullTextEnabled;
 
@@ -112,6 +115,8 @@ public class IndexDefinition {
         this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
         this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
         this.orderedProps = getMultiProperty(defn, ORDERED_PROP_NAMES);
+        this.declaringNodeTypes = getMultiProperty(defn, DECLARING_NODE_TYPES);
+
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
@@ -169,6 +174,9 @@ public class IndexDefinition {
         return propertyTypes;
     }
 
+    public Set<String> getDeclaringNodeTypes() {
+        return declaringNodeTypes;
+    }
     /**
      * Checks if a given property should be stored in the lucene index or not
      */
