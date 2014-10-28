@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_REINDEX_VALUE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_ASYNC_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
@@ -42,6 +43,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -174,6 +176,7 @@ public class IndexUpdate implements Editor {
                                 ASYNC_REINDEX_VALUE);
                     } else {
                         definition.setProperty(REINDEX_PROPERTY_NAME, false);
+                        incrementReIndexCount(definition);
                         // as we don't know the index content node name
                         // beforehand, we'll remove all child nodes
                         for (String rm : definition.getChildNodeNames()) {
@@ -188,6 +191,14 @@ public class IndexUpdate implements Editor {
                 }
             }
         }
+    }
+
+    private void incrementReIndexCount(NodeBuilder definition) {
+        long count = 0;
+        if(definition.hasProperty(REINDEX_COUNT)){
+            count = definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        }
+        definition.setProperty(REINDEX_COUNT, count + 1);
     }
 
     /**

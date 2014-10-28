@@ -388,6 +388,34 @@ public class IndexUpdateTest {
                 azerty.getProperty(REINDEX_PROPERTY_NAME));
     }
 
+    @Test
+    public void testReindexCount() throws Exception{
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", false, false, ImmutableSet.of("foo"), null);
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        long t1 = getReindexCount(indexed);
+
+        NodeBuilder b2 = indexed.builder();
+        b2.child(INDEX_DEFINITIONS_NAME).child("rootIndex").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        indexed = HOOK.processCommit(indexed, b2.getNodeState(), CommitInfo.EMPTY);
+        long t2 = getReindexCount(indexed);
+
+        assertTrue(t2 > t1);
+    }
+
+
+    long getReindexCount(NodeState indexed) {
+        return indexed.getChildNode(INDEX_DEFINITIONS_NAME)
+                .getChildNode("rootIndex")
+                .getProperty(IndexConstants.REINDEX_COUNT).getValue(Type.LONG);
+    }
+
     private static IndexEditorProvider emptyProvider() {
         return new IndexEditorProvider() {
             @Override
@@ -418,5 +446,7 @@ public class IndexUpdateTest {
         }
         return c;
     }
+
+
 
 }
