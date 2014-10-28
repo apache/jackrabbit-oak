@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.of;
 import static com.google.common.collect.Sets.newHashSet;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
@@ -30,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
@@ -44,6 +46,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -142,6 +145,23 @@ public class LuceneIndexHelper {
             index.setProperty(createProperty(EXCLUDE_PROPERTY_NAMES, excludes,
                     STRINGS));
         }
+        return index;
+    }
+
+    public static NodeBuilder newLucenePropertyIndexDefinition(
+            @Nonnull NodeBuilder index, @Nonnull String name,
+            @Nonnull Set<String> includes,
+            @Nonnull String async) {
+        checkArgument(!includes.isEmpty(), "Lucene property index " +
+                "requires explicit list of property names to be indexed");
+
+        index = index.child(name);
+        index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+                .setProperty(REINDEX_PROPERTY_NAME, true);
+        index.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        index.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, includes, STRINGS));
+        index.setProperty(ASYNC_PROPERTY_NAME, async);
         return index;
     }
 
