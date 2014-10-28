@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -84,7 +86,7 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private NodeState root;
 
-    private TypePredicate typePredicate;
+    private final Predicate typePredicate;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
@@ -94,8 +96,10 @@ public class LuceneIndexEditor implements IndexEditor {
         this.context = new LuceneIndexEditorContext(definition, analyzer,
                 updateCallback);
         this.root = root;
-        if (root != null && !context.getDefinition().getDeclaringNodeTypes().isEmpty()) {
+        if (context.getDefinition().hasDeclaredNodeTypes()) {
             typePredicate = new TypePredicate(root, context.getDefinition().getDeclaringNodeTypes());
+        } else {
+            typePredicate = Predicates.alwaysTrue();
         }
     }
 
@@ -212,7 +216,7 @@ public class LuceneIndexEditor implements IndexEditor {
         //i.e. support for relative path restrictions
 
         // Check for declaringNodeType validity
-        if (typePredicate != null && !typePredicate.apply(state)) {
+        if (!typePredicate.apply(state)) {
             return null;
         }
 
