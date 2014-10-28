@@ -342,6 +342,17 @@ public class LuceneIndexTest {
         assertQuery(tracker, indexed, "foo2", "bar2");
         //If reindex case handled properly then invalid count should be zero
         assertEquals(0, copier.getInvalidFileCount());
+        assertEquals(2, copier.getIndexDir("/oak:index/lucene").listFiles().length);
+
+        //3. Update again. Now with close of previous reader
+        //orphaned directory must be removed
+        builder = indexed.builder();
+        builder.setProperty("foo3", "bar3");
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        tracker.update(indexed);
+        assertQuery(tracker, indexed, "foo3", "bar3");
+        assertEquals(0, copier.getInvalidFileCount());
+        assertEquals(1, copier.getIndexDir("/oak:index/lucene").listFiles().length);
     }
 
     @After
