@@ -68,6 +68,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
 
     private final AtomicInteger localReadCount = new AtomicInteger();
     private final AtomicInteger remoteReadCount = new AtomicInteger();
+    private final AtomicInteger invalidFileCount = new AtomicInteger();
     private final AtomicLong downloadSize = new AtomicLong();
     private final AtomicLong downloadTime = new AtomicLong();
     private final Map<String, String> indexPathMapping = Maps.newConcurrentMap();
@@ -83,14 +84,14 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     }
 
     protected Directory createLocalDir(String indexPath, IndexDefinition definition) throws IOException {
-        //TODO Handle the reindex case. In case of reindex a new directory should be used
         String subDir = Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
         File indexDir = new File(indexRootDir, subDir);
-        if (!indexDir.exists()) {
-            checkState(indexDir.mkdirs(), "Cannot create directory %s", indexDir);
+        File versionedIndexDir = new File(indexDir, String.valueOf(definition.getReindexCount()));
+        if (!versionedIndexDir.exists()) {
+            checkState(versionedIndexDir.mkdirs(), "Cannot create directory %s", versionedIndexDir);
         }
         indexPathMapping.put(indexPath, indexDir.getAbsolutePath());
-        return FSDirectory.open(indexDir);
+        return FSDirectory.open(versionedIndexDir);
     }
 
     /**
@@ -190,6 +191,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                                 log.warn("Found local copy for {} in {} but size of local {} differs from remote {}. " +
                                                 "Content would be read from remote file only",
                                         name, local, localLength, remoteLength);
+                                invalidFileCount.incrementAndGet();
                             } else {
                                 reference.markValid();
                             }
@@ -311,6 +313,10 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     @Override
     public int getRemoteReadCount() {
         return remoteReadCount.get();
+    }
+
+    public int getInvalidFileCount(){
+        return invalidFileCount.get();
     }
 
     @Override

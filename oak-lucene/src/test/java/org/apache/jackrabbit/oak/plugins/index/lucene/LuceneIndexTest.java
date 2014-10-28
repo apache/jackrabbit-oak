@@ -18,12 +18,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static junit.framework.Assert.assertEquals;
@@ -32,6 +34,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
@@ -42,6 +45,7 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 
 import com.google.common.base.Function;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexCopier;
@@ -63,6 +67,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.analysis.Analyzer;
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -79,6 +84,8 @@ public class LuceneIndexTest {
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
+
+    private Set<File> dirs = newHashSet();
 
     @Test
     public void testLucene() throws Exception {
@@ -299,6 +306,51 @@ public class LuceneIndexTest {
         assertQuery(tracker, indexed, "foo2", "bar2");
     }
 
+    @Test
+    public void luceneWithCopyOnReadDirAndReindex() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        newLuceneIndexDefinition(index, "lucene",
+                ImmutableSet.of(TYPENAME_STRING));
+
+        //1. Create index in two increments
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+
+        NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
+
+        IndexCopier copier = new IndexCopier(sameThreadExecutor(), new File(getIndexDir()));
+        IndexTracker tracker = new IndexTracker(copier);
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo", "bar");
+        assertEquals(0, copier.getInvalidFileCount());
+
+        builder = indexed.builder();
+        builder.setProperty("foo2", "bar2");
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo2", "bar2");
+        assertEquals(0, copier.getInvalidFileCount());
+
+        //2. Reindex. This would create index with different index content
+        builder = indexed.builder();
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(REINDEX_PROPERTY_NAME, true);
+        indexed = HOOK.processCommit(indexed, builder.getNodeState(),CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertQuery(tracker, indexed, "foo2", "bar2");
+        //If reindex case handled properly then invalid count should be zero
+        assertEquals(0, copier.getInvalidFileCount());
+    }
+
+    @After
+    public void cleanUp(){
+        for (File d: dirs){
+            FileUtils.deleteQuietly(d);
+        }
+    }
+
 
     private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
         AdvancedQueryIndex queryIndex = new LuceneIndex(tracker, analyzer, null);
@@ -314,6 +366,7 @@ public class LuceneIndexTest {
 
     private String getIndexDir(){
         File dir = new File("target", "indexdir"+System.nanoTime());
+        dirs.add(dir);
         return dir.getAbsolutePath();
     }
 
