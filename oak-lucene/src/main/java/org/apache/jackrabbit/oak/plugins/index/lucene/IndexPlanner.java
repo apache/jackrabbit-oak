@@ -59,8 +59,6 @@ public class IndexPlanner {
     }
 
     private IndexPlan.Builder getPlanBuilder() {
-        //TODO Support native functions
-
         FullTextExpression ft = filter.getFullTextConstraint();
 
         //IndexPlanner is currently for property indexes only and does not
@@ -109,7 +107,6 @@ public class IndexPlanner {
             }
         }
 
-        //TODO Support for path restrictions
         //TODO Support for property existence queries
         //TODO support for nodeName queries
         return null;
@@ -162,7 +159,6 @@ public class IndexPlanner {
         for (OrderEntry o : sortOrder) {
             //sorting can only be done for known/configured properties
             // and whose types are known
-            //TODO Can sorting be done for array properties
             if (defn.includeProperty(o.getPropertyName()) || defn.isOrdered(o.getPropertyName())
                     && o.getPropertyType() != null
                     && !o.getPropertyType().isArray()) {
