@@ -307,6 +307,10 @@ public class ScalabilityNodeSuite extends ScalabilityAbstractSuite {
                 }
                 lastIndexedTime = indexStatsMBean.getLastIndexedTime();
             }
+
+            LOG.info("Execution Count {}", indexStatsMBean.getExecutionCount());
+            LOG.info("Execution Time {}", indexStatsMBean.getExecutionTime());
+            LOG.info("Consolidated Execution Stats {}", indexStatsMBean.getConsolidatedExecutionStats());
         }
     }
 

@@ -308,11 +308,6 @@ public class OakIndexUtils {
         Node indexDefRoot = JcrUtils.getOrAddNode(root, IndexConstants.INDEX_DEFINITIONS_NAME,
             NodeTypeConstants.NT_UNSTRUCTURED);
 
-        // OAK-2200
-        if (indexDefRoot.hasNode("nodetype")) {
-            indexDefRoot.getNode("nodetype").setProperty(KEY_COUNT_PROPERTY_NAME, 100);
-        }
-
         Node indexDef = JcrUtils.getOrAddNode(indexDefRoot, indexDefinitionName,
             IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
 
