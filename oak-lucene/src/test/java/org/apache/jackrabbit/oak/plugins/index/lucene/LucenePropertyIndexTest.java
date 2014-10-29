@@ -30,6 +30,7 @@ import javax.jcr.PropertyType;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -482,7 +483,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+        assertOrderedQuery(
+            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+            getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -518,7 +521,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+        assertOrderedQuery(
+            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+            getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -555,8 +560,46 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
+            getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery(
+            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+            getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithDateStringMixed_OrderedProps() throws Exception {
+        Tree idx = createIndex("test1", of("foo", "bar"));
+        idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        List<Calendar> values = createDates(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.setProperty("bar", "baz");
+            if (i != 0) {
+                child.setProperty("foo", values.get(i));
+                tuples.add(new Tuple(values.get(i), child.getPath()));
+            } else {
+                child.setProperty("foo", String.valueOf(values.get(i).getTimeInMillis()));
+            }
+        }
+        root.commit();
+
+        // Add the path of property added as timestamp string in the sorted list
+        assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
+            Lists.newArrayList(Iterables.concat(Lists.newArrayList("/test/n0"),
+                getSortedPaths(tuples, OrderDirection.ASC))));
+        // Append the path of property added as timestamp string to the sorted list
+        assertOrderedQuery(
+            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
+            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
+                Lists.newArrayList("/test/n0"))));
     }
 
     @Test
