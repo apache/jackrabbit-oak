@@ -23,6 +23,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 
@@ -532,6 +534,35 @@ public class Revision {
                     }
                 }
             }
+        }
+
+        /**
+         * Returns the minimum timestamp of the most recent revisions from all
+         * cluster nodes as seen from the given {@code revision}.
+         *
+         * @param revision a revision.
+         * @return the minimum timestamp.
+         */
+        public long getMinimumTimestamp(@Nonnull Revision revision) {
+            long timestamp = checkNotNull(revision).getTimestamp();
+            Revision seenAt = getRevisionSeen(revision);
+            if (seenAt == null) {
+                // already purged
+                return timestamp;
+            }
+            // go through all known cluster nodes
+            for (List<RevisionRange> list : map.values()) {
+                RevisionRange range;
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    range = list.get(i);
+                    if (range.seenAt.compareRevisionTimeThenClusterId(seenAt) <= 0) {
+                        // found newest range older or equal the given seenAt
+                        timestamp = Math.min(timestamp, range.revision.getTimestamp());
+                        break;
+                    }
+                }
+            }
+            return timestamp;
         }
 
         @Override

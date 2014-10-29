@@ -549,6 +549,73 @@ public class DocumentNodeStoreTest {
         assertEquals("value", state.getProperty("prop").getValue(Type.STRING));
     }
 
+    // OAK-2232
+    @Test
+    public void diffExternalChanges() throws Exception {
+        long modifiedResMillis = SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = new DocumentMK.Builder().setAsyncDelay(0)
+                .clock(clock).setDocumentStore(docStore).setClusterId(1)
+                .getNodeStore();
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
+                .clock(clock).setDocumentStore(docStore).setClusterId(2)
+                .getNodeStore();
+
+        NodeBuilder builder = ns1.getRoot().builder();
+        NodeBuilder test = builder.child("test");
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            test.child("node-" + i);
+        }
+        ns1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        ns1.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        // make sure next change has a different _modified value
+        clock.waitUntil(clock.getTime() + modifiedResMillis * 2);
+
+        builder = ns2.getRoot().builder();
+        builder.child("test").child("foo");
+        ns2.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // 'wait' again for a different _modified value
+        clock.waitUntil(clock.getTime() + modifiedResMillis * 2);
+
+        builder = ns1.getRoot().builder();
+        builder.child("test").child("bar");
+        ns1.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // remember current root for diff
+        NodeState r1 = ns1.getRoot();
+
+        ns2.runBackgroundOperations();
+        ns1.runBackgroundOperations();
+
+        NodeState r2 = ns1.getRoot();
+
+        // are we able to see foo?
+        boolean found = false;
+        for (ChildNodeEntry entry : r2.getChildNode("test").getChildNodeEntries()) {
+            if (entry.getName().equals("foo")) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(found);
+
+        // diff must report '/test' modified and '/test/foo' added
+        ClusterTest.TrackingDiff diff = new ClusterTest.TrackingDiff();
+        r2.compareAgainstBaseState(r1, diff);
+        assertEquals(1, diff.modified.size());
+        assertTrue(diff.modified.contains("/test"));
+        assertEquals(1, diff.added.size());
+        assertTrue(diff.added.contains("/test/foo"));
+    }
+
     private static class TestHook extends EditorHook {
 
         TestHook(final String prefix) {
