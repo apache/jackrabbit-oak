@@ -1556,10 +1556,12 @@ public final class DocumentNodeStore
             for (UpdateOp op : doc.split(this)) {
                 NodeDocument before = store.createOrUpdate(Collection.NODES, op);
                 if (before != null) {
-                    NodeDocument after = store.find(Collection.NODES, op.getId());
-                    if (after != null) {
-                        LOG.debug("Split operation on {}. Size before: {}, after: {}",
-                                id, before.getMemory(), after.getMemory());
+                    if (LOG.isDebugEnabled()) {
+                        NodeDocument after = store.find(Collection.NODES, op.getId());
+                        if (after != null) {
+                            LOG.debug("Split operation on {}. Size before: {}, after: {}",
+                                    id, before.getMemory(), after.getMemory());
+                        }
                     }
                 } else {
                     LOG.debug("Split operation created {}", op.getId());
