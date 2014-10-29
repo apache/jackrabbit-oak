@@ -48,8 +48,7 @@ public class MissingLastRevSeeker {
      * @return the clusters
      */
     public Iterable<ClusterNodeInfoDocument> getAllClusters() {
-        return store.query(Collection.CLUSTER_NODES, ClusterNodeInfoDocument.MIN_ID_VALUE,
-                ClusterNodeInfoDocument.MAX_ID_VALUE, Integer.MAX_VALUE);
+        return ClusterNodeInfoDocument.all(store);
     }
     
     /**
