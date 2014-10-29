@@ -66,7 +66,7 @@ public class DocumentMK implements MicroKernel {
     /**
      * The path where the persistent cache is stored.
      */
-    static final String PERSISTENT_CACHE = 
+    static final String DEFAULT_PERSISTENT_CACHE_URI = 
             System.getProperty("oak.documentMK.persCache");
 
     /**
@@ -508,6 +508,7 @@ public class DocumentMK implements MicroKernel {
         private boolean disableBranches;
         private Clock clock = Clock.SIMPLE;
         private Executor executor;
+        private String persistentCacheURI = DEFAULT_PERSISTENT_CACHE_URI;
         private PersistentCache persistentCache;
 
         public Builder() {
@@ -565,6 +566,16 @@ public class DocumentMK implements MicroKernel {
             if(this.blobStore == null) {
                 this.blobStore = new RDBBlobStore(ds);
             }
+            return this;
+        }
+        
+        /**
+         * Sets the persistent cache option.
+         *
+         * @return this
+         */
+        public Builder setPersistentCache(String persistentCache) {
+            this.persistentCacheURI = persistentCache;
             return this;
         }
 
@@ -846,12 +857,12 @@ public class DocumentMK implements MicroKernel {
         }
         
         private PersistentCache getPersistentCache() {
-            if (PERSISTENT_CACHE == null) {
+            if (persistentCacheURI == null) {
                 return null;
             }
             if (persistentCache == null) {
                 try {
-                    persistentCache = new PersistentCache(PERSISTENT_CACHE);
+                    persistentCache = new PersistentCache(persistentCacheURI);
                 } catch (Throwable e) {
                     LOG.warn("Persistent cache not available; please disable the configuration", e);
                     throw new IllegalArgumentException(e);
@@ -862,7 +873,7 @@ public class DocumentMK implements MicroKernel {
         
         private <K extends CacheValue, V extends CacheValue> Cache<K, V> buildCache(
                 long maxWeight) {
-            if (LIRS_CACHE || PERSISTENT_CACHE != null) {
+            if (LIRS_CACHE || persistentCacheURI != null) {
                 return CacheLIRS.newBuilder().
                         weigher(weigher).
                         averageWeight(2000).
