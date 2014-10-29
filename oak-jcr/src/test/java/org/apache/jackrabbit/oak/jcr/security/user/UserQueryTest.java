@@ -358,7 +358,7 @@ public class UserQueryTest extends AbstractUserTest {
      * principal name but also needs to take the new rep:authoriableId into
      * account that has been introduced as of Oak 1.0
      *
-     * @see <a href="">OAK-xxx</a>
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2243">OAK-2243</a>
      */
     @Test
     public void testNameMatch2() throws RepositoryException {
