@@ -47,6 +47,12 @@ class XPathConditionVisitor implements ConditionVisitor {
     public void visit(Condition.Node condition) throws RepositoryException {
         statement.append('(')
                 .append("jcr:like(@")
+                .append(QueryUtil.escapeForQuery(UserConstants.REP_AUTHORIZABLE_ID, namePathMapper))
+                .append(",'")
+                .append(QueryUtil.escapeForQuery(condition.getPattern()))
+                .append("')")
+                .append(" or ")
+                .append("jcr:like(@")
                 .append(QueryUtil.escapeForQuery(UserConstants.REP_PRINCIPAL_NAME, namePathMapper))
                 .append(",'")
                 .append(QueryUtil.escapeForQuery(condition.getPattern()))
