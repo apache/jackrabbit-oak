@@ -154,7 +154,6 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
             .newRuleWithName("rep:User", newArrayList("profile"));
     }
         
-    @Ignore
     @Test
     public void oak2226() throws Exception {
         setTraversalEnabled(false);
