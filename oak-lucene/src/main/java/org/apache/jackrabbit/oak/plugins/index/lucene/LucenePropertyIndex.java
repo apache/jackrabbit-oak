@@ -183,7 +183,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
 
     @Override
     public String getIndexName() {
-        return "lucene";
+        return "lucene-property";
     }
 
     @Override
