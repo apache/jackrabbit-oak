@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.List;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
@@ -29,13 +31,13 @@ public class ClusterNodeInfoDocument extends Document {
      * All ClusterNodeInfoDocument ID value would be greater than this value
      * It can be used as startKey in DocumentStore#query methods
      */
-    public static final String MIN_ID_VALUE = "0";
+    private static final String MIN_ID_VALUE = "0";
 
     /**
      * All ClusterNodeInfoDocument ID value would be less than this value
      * It can be used as endKey in DocumentStore#query methods
      */
-    public static final String MAX_ID_VALUE = "a";
+    private static final String MAX_ID_VALUE = "a";
 
     public long getLeaseEndTime(){
         return checkNotNull((Long) get(ClusterNodeInfo.LEASE_END_KEY), "Lease End Time not set");
@@ -48,6 +50,25 @@ public class ClusterNodeInfoDocument extends Document {
     public boolean isBeingRecovered(){
         return getRecoveryState() == RecoverLockState.ACQUIRED;
     }
+
+    public int getClusterId() {
+        return Integer.parseInt(getId());
+    }
+
+    /**
+     * Returns all cluster node info documents currently available in the given
+     * document store.
+     *
+     * @param store the document store.
+     * @return list of cluster node info documents.
+     */
+    public static List<ClusterNodeInfoDocument> all(DocumentStore store) {
+        // keys between "0" and "a" includes all possible numbers
+        return store.query(Collection.CLUSTER_NODES,
+                MIN_ID_VALUE, MAX_ID_VALUE, Integer.MAX_VALUE);
+    }
+
+    //-----------------------< internal >---------------------------------------
 
     private ClusterNodeState getState(){
         return ClusterNodeState.fromString((String) get(ClusterNodeInfo.STATE));

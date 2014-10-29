@@ -68,6 +68,9 @@ public class AbstractClusterTest {
         }
     }
 
+    protected void prepareTestData(Session s) throws RepositoryException {
+    }
+
     @Before
     public void login() throws RepositoryException {
         ns1 = fixture.createNodeStore(1);
@@ -75,12 +78,13 @@ public class AbstractClusterTest {
             return;
         }
         r1  = new Jcr(ns1).createRepository();
+        s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
+        prepareTestData(s1);
         if (ns1 instanceof DocumentNodeStore) {
             // make sure initial repository data is visible to
             // other cluster nodes initialized later
             ((DocumentNodeStore) ns1).runBackgroundOperations();
         }
-        s1 = r1.login(new SimpleCredentials("admin", "admin".toCharArray()));
         ns2 = fixture.createNodeStore(2);
         r2  = new Jcr(ns2).createRepository();
         s2 = r2.login(new SimpleCredentials("admin", "admin".toCharArray()));

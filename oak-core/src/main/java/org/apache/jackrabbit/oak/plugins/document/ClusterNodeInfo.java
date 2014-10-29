@@ -301,10 +301,7 @@ public class ClusterNodeInfo {
     private static ClusterNodeInfo createInstance(DocumentStore store, String machineId,
             String instanceId) {
         long now = getCurrentTime();
-        // keys between "0" and "a" includes all possible numbers
-        List<ClusterNodeInfoDocument> list = store.query(Collection.CLUSTER_NODES,
-                ClusterNodeInfoDocument.MIN_ID_VALUE, ClusterNodeInfoDocument.MAX_ID_VALUE,
-                Integer.MAX_VALUE);
+        List<ClusterNodeInfoDocument> list = ClusterNodeInfoDocument.all(store);
         int clusterNodeId = 0;
         int maxId = 0;
         ClusterNodeState state = ClusterNodeState.NONE;
@@ -365,11 +362,13 @@ public class ClusterNodeInfo {
      * to ensure the same cluster id is not re-used by a different instance.
      * The lease is only renewed when half of the lease time passed. That is,
      * with a lease time of 60 seconds, the lease is renewed every 30 seconds.
+     *
+     * @return {@code true} if the lease was renewed; {@code false} otherwise.
      */
-    public void renewLease() {
+    public boolean renewLease() {
         long now = getCurrentTime();
         if (now + leaseTime / 2 < leaseEndTime) {
-            return;
+            return false;
         }
         UpdateOp update = new UpdateOp("" + id, true);
         leaseEndTime = now + leaseTime;
@@ -381,6 +380,7 @@ public class ClusterNodeInfo {
             readWriteMode = mode;
             store.setReadWriteMode(mode);
         }
+        return true;
     }
 
     public void setLeaseTime(long leaseTime) {
