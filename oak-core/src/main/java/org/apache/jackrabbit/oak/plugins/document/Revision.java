@@ -19,9 +19,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -532,6 +535,47 @@ public class Revision {
                     }
                 }
             }
+        }
+
+        /**
+         * Returns the minimum timestamp of the most recent revisions from all
+         * active cluster nodes as seen from the given {@code revision}.
+         *
+         * @param revision a revision.
+         * @param inactive map of cluster nodes considered inactive.
+         * @return the minimum timestamp.
+         */
+        public long getMinimumTimestamp(@Nonnull Revision revision,
+                                        @Nonnull Map<Integer, Long> inactive) {
+            long timestamp = checkNotNull(revision).getTimestamp();
+            Revision seenAt = getRevisionSeen(revision);
+            if (seenAt == null) {
+                // already purged
+                return timestamp;
+            }
+            // go through all known cluster nodes
+            for (List<RevisionRange> list : map.values()) {
+                RevisionRange range;
+                for (int i = list.size() - 1; i >= 0; i--) {
+                    range = list.get(i);
+                    if (range.seenAt.compareRevisionTimeThenClusterId(seenAt) <= 0) {
+                        // found newest range older or equal the given seenAt
+                        // check if the cluster node is still active
+                        Long inactiveSince = inactive.get(range.revision.getClusterId());
+                        if (inactiveSince != null
+                                && revision.getTimestamp() > inactiveSince
+                                && range.revision.getTimestamp() < inactiveSince) {
+                            // ignore, because the revision is after the
+                            // cluster node became inactive and the most recent
+                            // range is before it became inactive
+                        } else {
+                            timestamp = Math.min(timestamp, range.revision.getTimestamp());
+                        }
+                        break;
+                    }
+                }
+            }
+            return timestamp;
         }
 
         @Override
