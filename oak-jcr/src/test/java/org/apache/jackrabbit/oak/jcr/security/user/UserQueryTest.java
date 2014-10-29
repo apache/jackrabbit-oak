@@ -29,6 +29,7 @@ import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -36,7 +37,9 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.util.Text;
 import org.junit.Test;
 
 /**
@@ -348,6 +351,57 @@ public class UserQueryTest extends AbstractUserTest {
 
         assertTrue(result.hasNext());
         assertSameElements(result, expected);
+    }
+
+    /**
+     * The name matching condition must not only search for node-name and
+     * principal name but also needs to take the new rep:authoriableId into
+     * account that has been introduced as of Oak 1.0
+     *
+     * @see <a href="">OAK-xxx</a>
+     */
+    @Test
+    public void testNameMatch2() throws RepositoryException {
+        // create a user with different id and principal name
+        User user = userMgr.createUser("moloch", null, new PrincipalImpl("MolochHorridus"), "reptiles");
+        String userPath = user.getPath();
+        // move it such that the node name doesn't reveal the id.
+        superuser.move(userPath, Text.getRelativeParent(userPath, 1) + "/thorny_dragon");
+        superuser.save();
+        authorizables.add(user);
+
+        // search for the authorizable ID
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches("moloch"));
+            }
+        });
+        assertTrue(result.hasNext());
+        Authorizable a = result.next();
+        assertEquals("moloch", a.getID());
+        assertFalse(result.hasNext());
+
+        // search for the principal name (basically just for backwards compatibility)
+        result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches("MolochHorridus"));
+            }
+        });
+        assertTrue(result.hasNext());
+        a = result.next();
+        assertEquals("MolochHorridus", a.getPrincipal().getName());
+        assertFalse(result.hasNext());
+
+        // search for the node name
+        result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.nameMatches("thorny_dragon"));
+            }
+        });
+        assertTrue(result.hasNext());
+        a = result.next();
+        assertEquals("thorny_dragon", Text.getName(a.getPath()));
+        assertFalse(result.hasNext());
     }
 
     @Test
