@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +34,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -457,32 +459,41 @@ public class RevisionTest {
 
     @Test
     public void getMinimumTimestamp() {
+        Map<Integer, Long> inactive = Maps.newHashMap();
         RevisionComparator comp = new RevisionComparator(1);
 
         Revision r11 = new Revision(1, 0, 1);
         comp.add(r11, new Revision(1, 0, 0));
 
-        assertEquals(1, comp.getMinimumTimestamp(r11));
+        assertEquals(1, comp.getMinimumTimestamp(r11, inactive));
 
         Revision r21 = new Revision(1, 0, 2);
         comp.add(r21, new Revision(2, 0, 0));
 
-        assertEquals(1, comp.getMinimumTimestamp(r21));
+        assertEquals(1, comp.getMinimumTimestamp(r21, inactive));
 
         Revision r13 = new Revision(3, 0, 1);
         comp.add(r13, new Revision(3, 0, 0));
 
-        assertEquals(1, comp.getMinimumTimestamp(r13));
+        assertEquals(1, comp.getMinimumTimestamp(r13, inactive));
 
         Revision r24 = new Revision(4, 0, 2);
         comp.add(r24, new Revision(4, 0, 0));
 
-        assertEquals(3, comp.getMinimumTimestamp(r24));
+        assertEquals(3, comp.getMinimumTimestamp(r24, inactive));
 
         Revision r15 = new Revision(5, 0, 1);
         comp.add(r15, new Revision(5, 0, 0));
 
-        assertEquals(4, comp.getMinimumTimestamp(r15));
+        assertEquals(4, comp.getMinimumTimestamp(r15, inactive));
+
+        // simulate cluster node 2 is stopped
+        inactive.put(2, 6L);
+
+        Revision r17 = new Revision(7, 0, 1);
+        comp.add(r17, new Revision(7, 0, 0));
+
+        assertEquals(7, comp.getMinimumTimestamp(r17, inactive));
     }
 
 }

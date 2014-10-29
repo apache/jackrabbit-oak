@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -538,12 +539,14 @@ public class Revision {
 
         /**
          * Returns the minimum timestamp of the most recent revisions from all
-         * cluster nodes as seen from the given {@code revision}.
+         * active cluster nodes as seen from the given {@code revision}.
          *
          * @param revision a revision.
+         * @param inactive map of cluster nodes considered inactive.
          * @return the minimum timestamp.
          */
-        public long getMinimumTimestamp(@Nonnull Revision revision) {
+        public long getMinimumTimestamp(@Nonnull Revision revision,
+                                        @Nonnull Map<Integer, Long> inactive) {
             long timestamp = checkNotNull(revision).getTimestamp();
             Revision seenAt = getRevisionSeen(revision);
             if (seenAt == null) {
@@ -557,7 +560,17 @@ public class Revision {
                     range = list.get(i);
                     if (range.seenAt.compareRevisionTimeThenClusterId(seenAt) <= 0) {
                         // found newest range older or equal the given seenAt
-                        timestamp = Math.min(timestamp, range.revision.getTimestamp());
+                        // check if the cluster node is still active
+                        Long inactiveSince = inactive.get(range.revision.getClusterId());
+                        if (inactiveSince != null
+                                && revision.getTimestamp() > inactiveSince
+                                && range.revision.getTimestamp() < inactiveSince) {
+                            // ignore, because the revision is after the
+                            // cluster node became inactive and the most recent
+                            // range is before it became inactive
+                        } else {
+                            timestamp = Math.min(timestamp, range.revision.getTimestamp());
+                        }
                         break;
                     }
                 }

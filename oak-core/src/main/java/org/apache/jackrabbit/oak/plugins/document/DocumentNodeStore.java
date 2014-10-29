@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -173,6 +175,14 @@ public final class DocumentNodeStore
      * The unique cluster id, similar to the unique machine id in MongoDB.
      */
     private final int clusterId;
+
+    /**
+     * Map of inactive cluster nodes and when the cluster node was last seen
+     * as inactive.
+     * Key: clusterId, value: timeInMillis
+     */
+    private final ConcurrentMap<Integer, Long> inactiveClusterNodes
+            = new ConcurrentHashMap<Integer, Long>();
 
     /**
      * The comparator for revisions.
@@ -1434,11 +1444,42 @@ public final class DocumentNodeStore
         }
     }
 
-    void renewClusterIdLease() {
-        if (clusterNodeInfo == null) {
-            return;
+    /**
+     * Renews the cluster lease if necessary.
+     *
+     * @return {@code true} if the lease was renewed; {@code false} otherwise.
+     */
+    boolean renewClusterIdLease() {
+        return clusterNodeInfo != null && clusterNodeInfo.renewLease();
+    }
+
+    /**
+     * Updates the info about inactive cluster nodes in
+     * {@link #inactiveClusterNodes}.
+     */
+    void updateClusterState() {
+        long now = clock.getTime();
+        Set<Integer> inactive = Sets.newHashSet();
+        for (ClusterNodeInfoDocument doc : ClusterNodeInfoDocument.all(store)) {
+            int cId = doc.getClusterId();
+            if (cId != this.clusterId && !doc.isActive()) {
+                inactive.add(cId);
+            }
         }
-        clusterNodeInfo.renewLease();
+        inactiveClusterNodes.keySet().retainAll(inactive);
+        for (Integer clusterId : inactive) {
+            inactiveClusterNodes.putIfAbsent(clusterId, now);
+        }
+    }
+
+    /**
+     * Returns the cluster nodes currently known to be inactive.
+     *
+     * @return a map with the cluster id as key and the time in millis when it
+     *          was first seen inactive.
+     */
+    Map<Integer, Long> getInactiveClusterNodes() {
+        return new HashMap<Integer, Long>(inactiveClusterNodes);
     }
 
     /**
@@ -1603,8 +1644,8 @@ public final class DocumentNodeStore
 
     private void diffManyChildren(JsopWriter w, String path, Revision fromRev, Revision toRev) {
         long minTimestamp = Math.min(
-                revisionComparator.getMinimumTimestamp(fromRev),
-                revisionComparator.getMinimumTimestamp(toRev));
+                revisionComparator.getMinimumTimestamp(fromRev, inactiveClusterNodes),
+                revisionComparator.getMinimumTimestamp(toRev, inactiveClusterNodes));
         long minValue = NodeDocument.getModifiedInSecs(minTimestamp);
         String fromKey = Utils.getKeyLowerLimit(path);
         String toKey = Utils.getKeyUpperLimit(path);
@@ -1839,7 +1880,9 @@ public final class DocumentNodeStore
 
         @Override
         protected void execute(@Nonnull DocumentNodeStore nodeStore) {
-            nodeStore.renewClusterIdLease();
+            if (nodeStore.renewClusterIdLease()) {
+                nodeStore.updateClusterState();
+            }
         }
     }
 

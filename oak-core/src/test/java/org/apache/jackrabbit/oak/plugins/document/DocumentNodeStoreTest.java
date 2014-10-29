@@ -614,6 +614,31 @@ public class DocumentNodeStoreTest {
         assertTrue(diff.modified.contains("/test"));
         assertEquals(1, diff.added.size());
         assertTrue(diff.added.contains("/test/foo"));
+
+        ns1.dispose();
+        ns2.dispose();
+    }
+
+    @Test
+    public void updateClusterState() {
+        DocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = new DocumentMK.Builder().setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+        DocumentNodeStore ns2 = new DocumentMK.Builder().setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+
+        assertEquals(0, ns1.getInactiveClusterNodes().size());
+        assertEquals(0, ns2.getInactiveClusterNodes().size());
+
+        ns1.dispose();
+
+        ns2.updateClusterState();
+
+        Map<Integer, Long> inactive = ns2.getInactiveClusterNodes();
+        assertEquals(1, inactive.size());
+        assertEquals(1, (int) inactive.keySet().iterator().next());
+
+        ns2.dispose();
     }
 
     private static class TestHook extends EditorHook {
