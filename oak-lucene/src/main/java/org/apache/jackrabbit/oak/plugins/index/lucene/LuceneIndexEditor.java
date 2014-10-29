@@ -87,7 +87,7 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private NodeState root;
 
-    private final Predicate typePredicate;
+    private final Predicate<NodeState> typePredicate;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
