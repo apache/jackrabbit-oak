@@ -25,25 +25,22 @@ construction/configuration mechanism of the environment.
 First, we construct a Repository instance.
 Both the `Oak` and the `Jcr` classes support `with()` methods, 
 so you can easily extend the repository with custom functionality if you like.
-The `OpenSecurityProvider` will cause all login attempts will work.
 To construct an in-memory repository, use:
 
-        Repository repo = new Jcr(new Oak())
-                .with(new OpenSecurityProvider())
-                .createRepository();
+        Repository repo = new Jcr(new Oak()).createRepository();
 
 To use a MongoDB backend, use:
 
         DB db = new MongoClient("127.0.0.1", 27017).getDB("test2");
         DocumentNodeStore ns = new DocumentMK.Builder().
                 setMongoDB(db).getNodeStore();
-        Repository repo = new Jcr(new Oak(ns))
-                .with(new OpenSecurityProvider())
-                .createRepository();
+        Repository repo = new Jcr(new Oak(ns)).createRepository();
 
-To login to the repository and do some work:
-                
-        Session session = repo.login();
+To login to the repository and do some work.
+The default username/password combination is admin/admin:
+
+        Session session = repo.login(
+                new SimpleCredentials("admin", "admin".toCharArray()));
         Node root = session.getRootNode();
         if (root.hasNode("hello")) {
             Node hello = root.getNode("hello");
