@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.cluster;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -38,11 +42,16 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import static java.util.Collections.synchronizedSet;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Test for external events from another cluster node.
  */
-@Ignore
+@Ignore("This is a rather long running test and therefore disabled. See " +
+        "DocumentNodeStoreTest.diffExternalChanges() in oak-core for a unit test")
 public class ObservationTest extends AbstractClusterTest {
 
     private ScheduledExecutorService executor;
@@ -68,6 +77,7 @@ public class ObservationTest extends AbstractClusterTest {
 
     @Test
     public void externalEvents() throws Throwable {
+        final Set<String> externallyAdded = synchronizedSet(new LinkedHashSet<String>());
         final List<Throwable> exceptions = Lists.newArrayList();
         ObservationManager obsMgr = s1.getWorkspace().getObservationManager();
         final AtomicLong localEvents = new AtomicLong();
@@ -76,6 +86,7 @@ public class ObservationTest extends AbstractClusterTest {
             @Override
             public void onEvent(EventIterator events) {
                 try {
+                    Set<String> paths = Sets.newHashSet();
                     while (events.hasNext()) {
                         Event event = events.nextEvent();
                         String external = "";
@@ -84,12 +95,19 @@ public class ObservationTest extends AbstractClusterTest {
                            if (((JackrabbitEvent) event).isExternal()) {
                                external = " (external)";
                                counter = externalEvents;
+                               paths.add(event.getPath());
                            }
                         }
                         System.out.println(event.getPath() + external);
                         counter.incrementAndGet();
                     }
-                } catch (RepositoryException e) {
+                    while (!paths.isEmpty()) {
+                        Iterator<String> it = externallyAdded.iterator();
+                        String p = it.next();
+                        assertTrue("missing event for " + p, paths.remove(p));
+                        it.remove();
+                    }
+                } catch (Throwable e) {
                     exceptions.add(e);
                 }
             }
@@ -97,8 +115,8 @@ public class ObservationTest extends AbstractClusterTest {
         obsMgr.addEventListener(listener, Event.NODE_ADDED, "/",
                 true, null, null, false);
 
-        Future f1 = executor.submit(new Worker(s1, exceptions));
-        Future f2 = executor.submit(new Worker(s2, exceptions));
+        Future f1 = executor.submit(new Worker(s1, exceptions, new HashSet<String>()));
+        Future f2 = executor.submit(new Worker(s2, exceptions, externallyAdded));
 
         f1.get();
         f2.get();
@@ -117,18 +135,21 @@ public class ObservationTest extends AbstractClusterTest {
 
         private Session s;
         private List<Throwable> exceptions;
+        private Set<String> paths;
 
-        Worker(Session s, List<Throwable> exceptions) {
+        Worker(Session s, List<Throwable> exceptions, Set<String> paths) {
             this.s = s;
             this.exceptions = exceptions;
+            this.paths = paths;
         }
 
         @Override
         public void run() {
             try {
                 Node test = s.getNode("/test");
-                for (int i = 0; i < 500; i++) {
-                    test.addNode(UUID.randomUUID().toString());
+                for (int i = 0; i < 500 && exceptions.isEmpty(); i++) {
+                    Node n = test.addNode(UUID.randomUUID().toString());
+                    paths.add(n.getPath());
                     s.save();
                     Thread.sleep((long) (Math.random() * 100));
                 }

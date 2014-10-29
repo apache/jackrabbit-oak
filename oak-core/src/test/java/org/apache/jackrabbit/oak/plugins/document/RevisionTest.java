@@ -455,4 +455,34 @@ public class RevisionTest {
         assertTrue(String.format("Duplicate rev seen %s %n Seen %s", duplicates, seenRevs), duplicates.isEmpty());
     }
 
+    @Test
+    public void getMinimumTimestamp() {
+        RevisionComparator comp = new RevisionComparator(1);
+
+        Revision r11 = new Revision(1, 0, 1);
+        comp.add(r11, new Revision(1, 0, 0));
+
+        assertEquals(1, comp.getMinimumTimestamp(r11));
+
+        Revision r21 = new Revision(1, 0, 2);
+        comp.add(r21, new Revision(2, 0, 0));
+
+        assertEquals(1, comp.getMinimumTimestamp(r21));
+
+        Revision r13 = new Revision(3, 0, 1);
+        comp.add(r13, new Revision(3, 0, 0));
+
+        assertEquals(1, comp.getMinimumTimestamp(r13));
+
+        Revision r24 = new Revision(4, 0, 2);
+        comp.add(r24, new Revision(4, 0, 0));
+
+        assertEquals(3, comp.getMinimumTimestamp(r24));
+
+        Revision r15 = new Revision(5, 0, 1);
+        comp.add(r15, new Revision(5, 0, 0));
+
+        assertEquals(4, comp.getMinimumTimestamp(r15));
+    }
+
 }
