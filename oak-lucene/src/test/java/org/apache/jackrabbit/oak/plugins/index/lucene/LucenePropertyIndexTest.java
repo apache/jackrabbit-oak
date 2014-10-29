@@ -359,6 +359,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'", asList("/test/a", "/test/b"));
     }
 
+    @Ignore("OAK-2241")
     @Test
     public void nativeQueries() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
