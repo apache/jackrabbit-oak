@@ -36,8 +36,8 @@ To use a MongoDB backend, use:
                 setMongoDB(db).getNodeStore();
         Repository repo = new Jcr(new Oak(ns)).createRepository();
 
-To login to the repository and do some work.
-The default username/password combination is admin/admin:
+To login to the repository and do some work (using 
+the default username/password combination), use:
 
         Session session = repo.login(
                 new SimpleCredentials("admin", "admin".toCharArray()));
@@ -53,7 +53,7 @@ The default username/password combination is admin/admin:
         }
         session.save();
         
-To logout and close the backend store:
+To logout and close the backend store, use:
         
         session.logout();
         ns.dispose();
