@@ -83,6 +83,7 @@ public class DocumentNodeStoreService {
     private static final int DEFAULT_CHANGES_SIZE = 256;
     private static final int DEFAULT_BLOB_CACHE_SIZE = 16;
     private static final String DEFAULT_DB = "oak";
+    private static final String DEFAULT_PERSISTENT_CACHE = "";
     private static final String PREFIX = "oak.documentstore.";
 
     /**
@@ -118,6 +119,9 @@ public class DocumentNodeStoreService {
 
     @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE)
     private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
+    
+    @Property(value =  DEFAULT_PERSISTENT_CACHE)
+    private static final String PROP_PERSISTENT_CACHE = "persistentCache";
 
     /**
      * Boolean value indicating a blobStore is to be used
@@ -238,12 +242,17 @@ public class DocumentNodeStoreService {
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
+        String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
         boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
                 offHeapCacheSize(offHeapCache * MB);
+        
+        if (persistentCache != null && persistentCache.length() > 0) {
+            mkBuilder.setPersistentCache(persistentCache);
+        }
 
         //Set blobstore before setting the DB
         if (customBlobStore) {
