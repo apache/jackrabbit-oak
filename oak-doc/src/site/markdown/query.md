@@ -351,6 +351,11 @@ Example:
 
 __Note__ The Oak Lucene index will only index _Strings_ and _Binaries_ by default. If you need to add another data type, you need to add it to the  _includePropertyTypes_ setting, and don't forget to set the _reindex_ flag to true.
 
+To store the Lucene index in the file system, 
+in the Lucene index definition node, 
+set the property "persistence" to "file", and 
+set the property "path" to the directory where the index should be stored. 
+Then start reindexing by setting "reindex" to "true" (a boolean).
 
 ### The Solr Index
 
