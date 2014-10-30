@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.lang.IllegalArgumentException;
 import java.security.AccessControlException;
 import java.security.Principal;
 import java.util.HashSet;
@@ -24,6 +23,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -49,9 +49,6 @@ import org.slf4j.LoggerFactory;
  */
 class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(CugImporter.class);
 
     private boolean initialized;
@@ -120,6 +117,11 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, ConstraintViolationException, RepositoryException {
+        // nothing to do
     }
 
     //--------------------------------------------------------------------------
