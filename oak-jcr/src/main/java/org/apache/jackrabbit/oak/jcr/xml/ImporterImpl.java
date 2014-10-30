@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
@@ -41,6 +42,9 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionManager;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -295,20 +299,48 @@ public class ImporterImpl implements Importer {
                 log.debug("Protected property " + pi.getName());
 
                 // notify the ProtectedPropertyImporter.
-                for (ProtectedItemImporter ppi : pItemImporters) {
-                    if (ppi instanceof ProtectedPropertyImporter
-                            && ((ProtectedPropertyImporter) ppi).handlePropInfo(tree, pi, def)) {
+                for (ProtectedPropertyImporter ppi : getPropertyImporters()) {
+                    if (ppi.handlePropInfo(tree, pi, def)) {
                         log.debug("Protected property -> delegated to ProtectedPropertyImporter");
                         break;
-                    } /* else: p-i-Importer isn't able to deal with this property.
-                                     try next pp-importer */
-
+                    } /* else: p-i-Importer isn't able to deal with this property. try next pp-importer */
                 }
             } else if (!ignoreRegular) {
                 // regular property -> create the property
                 createProperty(tree, pi, def);
             }
         }
+        for (ProtectedPropertyImporter ppi : getPropertyImporters()) {
+            ppi.propertiesCompleted(tree);
+        }
+    }
+
+    private Iterable<ProtectedPropertyImporter> getPropertyImporters() {
+        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedPropertyImporter>() {
+            @Nullable
+            @Override
+            public ProtectedPropertyImporter apply(@Nullable ProtectedItemImporter importer) {
+                if (importer instanceof ProtectedPropertyImporter) {
+                    return (ProtectedPropertyImporter) importer;
+                } else {
+                    return null;
+                }
+            }
+        }), Predicates.notNull());
+    }
+
+    private Iterable<ProtectedNodeImporter> getNodeImporters() {
+        return Iterables.filter(Iterables.transform(pItemImporters, new Function<ProtectedItemImporter, ProtectedNodeImporter>() {
+            @Nullable
+            @Override
+            public ProtectedNodeImporter apply(@Nullable ProtectedItemImporter importer) {
+                if (importer instanceof ProtectedNodeImporter) {
+                    return (ProtectedNodeImporter) importer;
+                } else {
+                    return null;
+                }
+            }
+        }), Predicates.notNull());
     }
 
     //-----------------------------------------------------------< Importer >---
@@ -355,10 +387,10 @@ public class ImporterImpl implements Importer {
                 // if there is one, notify the ProtectedNodeImporter about the
                 // start of a item tree that is protected by this parent. If it
                 // potentially is able to deal with it, notify it about the child node.
-                for (ProtectedItemImporter pni : pItemImporters) {
-                    if (pni instanceof ProtectedNodeImporter && ((ProtectedNodeImporter) pni).start(parent)) {
+                for (ProtectedNodeImporter pni : getNodeImporters()) {
+                    if (pni.start(parent)) {
                         log.debug("Protected node -> delegated to ProtectedNodeImporter");
-                        pnImporter = (ProtectedNodeImporter) pni;
+                        pnImporter = pni;
                         pnImporter.startChildInfo(nodeInfo, propInfos);
                         break;
                     } /* else: p-i-Importer isn't able to deal with the protected tree.

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.xml;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -44,5 +45,21 @@ public interface ProtectedPropertyImporter extends ProtectedItemImporter {
      */
     boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo,
                            @Nonnull PropertyDefinition def) throws RepositoryException;
+
+    /**
+     * Informs this importer that all properties to be imported below
+     * {@code protectedParent} have been processed by the importer. If this importer
+     * did not import any protected properties this method doesn't do anything.
+     * Otherwise it may perform some validation and cleanup required based
+     * on the set of protected properties handled by this importer.
+     *
+     * @param protectedParent The protected parent tree.
+     * @throws IllegalStateException If this method is called in an illegal state.
+     * @throws javax.jcr.nodetype.ConstraintViolationException If the set of
+     * properties was incomplete and the importer was not able to fix the problem.
+     * @throws RepositoryException If another error occurs.
+     */
+    void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException,
+            ConstraintViolationException, RepositoryException;
 
 }

@@ -152,12 +152,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      * Temporary store for the pw an imported new user to be able to call
      * the creation actions irrespective of the order of protected properties
      */
-    private Map<String, String> currentPw = new HashMap<String, String>(1);
+    private String currentPw;
 
     /**
      * Remember all new principals for impersonation handling.
      */
-    private Map<String, Principal> principals;
+    private Map<String, Principal> principals = new HashMap<String, Principal>();;
 
     UserImporter(ConfigurationParameters config) {
         String importBehaviorStr = config.getConfigValue(PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_IGNORE);
@@ -221,143 +221,130 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         checkInitialized();
 
         String propName = propInfo.getName();
-        boolean isPwdNode = isPwdNode(parent);
-        Tree authorizableTree = (isPwdNode) ? parent.getParent() : parent;
-        Authorizable a = userManager.getAuthorizable(authorizableTree);
-
-        if (a == null) {
-            log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
-            return false;
-        }
-
-        if (REP_AUTHORIZABLE_ID.equals(propName)) {
-            if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
-                return false;
-            }
-            String id = propInfo.getTextValue().getString();
-            Authorizable existing = userManager.getAuthorizable(id);
-            if (a.getPath().equals(existing.getPath())) {
-                parent.setProperty(REP_AUTHORIZABLE_ID, id);
-            } else {
-                throw new AuthorizableExistsException(id);
-            }
-        } else if (REP_PRINCIPAL_NAME.equals(propName)) {
-            if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+        if (isPwdNode(parent)) {
+            // overwrite any properties generated underneath the rep:pwd node
+            // by "UserManagerImpl#setPassword" by the properties defined by
+            // the XML to be imported. see OAK-1943 for the corresponding discussion.
+            return importPwdNodeProperty(parent, propInfo, def);
+        } else {
+            Authorizable a = userManager.getAuthorizable(parent);
+            if (a == null) {
+                log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
                 return false;
             }
 
-            String principalName = propInfo.getTextValue().getString();
-            Principal principal = new PrincipalImpl(principalName);
-            userManager.checkValidPrincipal(principal, a.isGroup());
-            userManager.setPrincipal(parent, principal);
+            if (REP_AUTHORIZABLE_ID.equals(propName)) {
+                if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+                    return false;
+                }
+                String id = propInfo.getTextValue().getString();
+                Authorizable existing = userManager.getAuthorizable(id);
+                if (a.getPath().equals(existing.getPath())) {
+                    parent.setProperty(REP_AUTHORIZABLE_ID, id);
+                } else {
+                    throw new AuthorizableExistsException(id);
+                }
+            } else if (REP_PRINCIPAL_NAME.equals(propName)) {
+                if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
+                    return false;
+                }
+
+                String principalName = propInfo.getTextValue().getString();
+                Principal principal = new PrincipalImpl(principalName);
+                userManager.checkValidPrincipal(principal, a.isGroup());
+                userManager.setPrincipal(parent, principal);
 
             /*
              Remember principal of new user/group for further processing
              of impersonators
              */
-            if (principals == null) {
-                principals = new HashMap<String, Principal>();
-            }
-            principals.put(principalName, a.getPrincipal());
-
-            /*
-            Execute authorizable actions for a NEW group as this is the
-            same place in the userManager#createGroup that the actions
-            are called.
-            In case of a NEW user the actions are executed if the password
-            has been imported before.
-            */
-            a = userManager.getAuthorizable(parent);
-            if (a == null) {
-                log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
-                return false;
-            }
-            if (parent.getStatus() == Tree.Status.NEW) {
-                if (a.isGroup()) {
-                    userManager.onCreate((Group) a);
-                } else if (currentPw.containsKey(a.getID())) {
-                    userManager.onCreate((User) a, currentPw.remove(a.getID()));
+                if (principals == null) {
+                    principals = new HashMap<String, Principal>();
                 }
-            }
-            return true;
-        } else if (REP_PASSWORD.equals(propName)) {
-            if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
-                log.warn("Unexpected authorizable or definition for property rep:password");
-                return false;
-            }
-            if (((User) a).isSystemUser()) {
-                log.warn("System users may not have a password set.");
-                return false;
-            }
+                principals.put(principalName, a.getPrincipal());
 
-            String pw = propInfo.getTextValue().getString();
-            userManager.setPassword(parent, a.getID(), pw, false);
-
-            /*
-            Execute authorizable actions for a NEW user at this point after
-            having set the password if the principal name has already been
-            processed, otherwise postpone it.
-            */
-            if (parent.getStatus() == Tree.Status.NEW) {
-                if (parent.hasProperty(REP_PRINCIPAL_NAME)) {
-                    userManager.onCreate((User) a, pw);
-                } else {
-                    // principal name not yet available -> remember the pw
-                    currentPw.clear();
-                    currentPw.put(a.getID(), pw);
+                return true;
+            } else if (REP_PASSWORD.equals(propName)) {
+                if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
+                    log.warn("Unexpected authorizable or definition for property rep:password");
+                    return false;
                 }
-            }
-            return true;
+                if (((User) a).isSystemUser()) {
+                    log.warn("System users may not have a password set.");
+                    return false;
+                }
 
-        } else if (REP_IMPERSONATORS.equals(propName)) {
-            if (a.isGroup() || !isValid(def, MIX_REP_IMPERSONATABLE, true)) {
-                log.warn("Unexpected authorizable or definition for property rep:impersonators");
-                return false;
-            }
+                String pw = propInfo.getTextValue().getString();
+                userManager.setPassword(parent, a.getID(), pw, false);
+                currentPw = pw;
 
-            // since impersonators may be imported later on, postpone processing
-            // to the end.
-            // see -> process References
-            referenceTracker.processedReference(new Impersonators(a.getID(), propInfo.getTextValues()));
-            return true;
+                return true;
 
-        } else if (REP_DISABLED.equals(propName)) {
-            if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
-                log.warn("Unexpected authorizable or definition for property rep:disabled");
-                return false;
-            }
+            } else if (REP_IMPERSONATORS.equals(propName)) {
+                if (a.isGroup() || !isValid(def, MIX_REP_IMPERSONATABLE, true)) {
+                    log.warn("Unexpected authorizable or definition for property rep:impersonators");
+                    return false;
+                }
 
-            ((User) a).disable(propInfo.getTextValue().getString());
-            return true;
+                // since impersonators may be imported later on, postpone processing
+                // to the end.
+                // see -> process References
+                referenceTracker.processedReference(new Impersonators(a.getID(), propInfo.getTextValues()));
+                return true;
 
-        } else if (REP_MEMBERS.equals(propName)) {
-            if (!a.isGroup() || !isValid(def, NT_REP_MEMBER_REFERENCES, true)) {
-                return false;
-            }
-            // since group-members are references to user/groups that potentially
-            // are to be imported later on -> postpone processing to the end.
-            // see -> process References
-            getMembership(a.getID()).addMembers(propInfo.getTextValues());
-            return true;
+            } else if (REP_DISABLED.equals(propName)) {
+                if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
+                    log.warn("Unexpected authorizable or definition for property rep:disabled");
+                    return false;
+                }
 
-        } else if (isPwdNode) {
-            // overwrite any properties generated underneath the rep:pwd node
-            // by "UserManagerImpl#setPassword" by the properties defined by
-            // the XML to be imported. see OAK-1943 for the corresponding discussion.
-            int targetType = def.getRequiredType();
-            if (targetType == PropertyType.UNDEFINED) {
-                targetType = (REP_PASSWORD_LAST_MODIFIED.equals(propName)) ? PropertyType.LONG : PropertyType.STRING;
-            }
-            PropertyState property;
-            if (def.isMultiple()) {
-                property = PropertyStates.createProperty(propName, propInfo.getValues(targetType));
-            } else {
-                property = PropertyStates.createProperty(propName, propInfo.getValue(targetType));
-            };
-            parent.setProperty(property);
-        }// else: cannot handle -> return false
+                ((User) a).disable(propInfo.getTextValue().getString());
+                return true;
 
+            } else if (REP_MEMBERS.equals(propName)) {
+                if (!a.isGroup() || !isValid(def, NT_REP_MEMBER_REFERENCES, true)) {
+                    return false;
+                }
+                // since group-members are references to user/groups that potentially
+                // are to be imported later on -> postpone processing to the end.
+                // see -> process References
+                getMembership(a.getID()).addMembers(propInfo.getTextValues());
+                return true;
+
+            } // another protected property -> return false
+        }
+
+        // neither rep:pwd nor authorizable node -> not covered by this importer.
         return false;
+    }
+
+    @Override
+    public void propertiesCompleted(@Nonnull Tree protectedParent) throws IllegalStateException, ConstraintViolationException, RepositoryException {
+        Authorizable a = userManager.getAuthorizable(protectedParent);
+        if (a == null) {
+            // not an authorizable
+            return;
+        }
+
+        // make sure the authorizable ID property is always set even if the
+        // authorizable defined by the imported XML didn't provide rep:authorizableID
+        if (!protectedParent.hasProperty(REP_AUTHORIZABLE_ID)) {
+            protectedParent.setProperty(REP_AUTHORIZABLE_ID, a.getID(), Type.STRING);
+        }
+
+        /*
+        Execute authorizable actions for a NEW user at this point after
+        having set the password and the principal name (all protected properties
+        have been processed now).
+        */
+        if (protectedParent.getStatus() == Tree.Status.NEW) {
+            if (a.isGroup()) {
+                userManager.onCreate((Group) a);
+            } else {
+                userManager.onCreate((User) a, currentPw);
+            }
+        }
+        currentPw = null;
     }
 
     @Override
@@ -496,6 +483,25 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
 
     private static boolean isPwdNode(@Nonnull Tree tree) {
         return REP_PWD.equals(tree.getName()) && NT_REP_PASSWORD.equals(TreeUtil.getPrimaryTypeName(tree));
+    }
+
+    private static boolean importPwdNodeProperty(@Nonnull Tree parent, @Nonnull PropInfo propInfo, @Nonnull PropertyDefinition def) throws RepositoryException {
+        String propName = propInfo.getName();
+        // overwrite any properties generated underneath the rep:pwd node
+        // by "UserManagerImpl#setPassword" by the properties defined by
+        // the XML to be imported. see OAK-1943 for the corresponding discussion.
+        int targetType = def.getRequiredType();
+        if (targetType == PropertyType.UNDEFINED) {
+            targetType = (REP_PASSWORD_LAST_MODIFIED.equals(propName)) ? PropertyType.LONG : PropertyType.STRING;
+        }
+        PropertyState property;
+        if (def.isMultiple()) {
+            property = PropertyStates.createProperty(propName, propInfo.getValues(targetType));
+        } else {
+            property = PropertyStates.createProperty(propName, propInfo.getValue(targetType));
+        }
+        parent.setProperty(property);
+        return true;
     }
 
     /**
