@@ -193,12 +193,15 @@ public class LuceneIndexEditorTest {
         releaseIndexNode();
         before = indexed;
         builder = before.builder();
-        builder.child("test").child("jcr:content").child("metadata").remove();
+        builder.child("test").child("jcr:content").remove();
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
-        assertNull("relative removes must be persisted too",
-                getPath(new TermQuery(new Term("jcr:content/metadata/type", "image"))));
+        assertNull("removes must be persisted too, 1st level",
+                getPath(new TermQuery(new Term("jcr:content/mime", "pdf"))));
+        assertNull("removes must be persisted too, 2nd level",
+                getPath(new TermQuery(new Term("jcr:content/metadata/type",
+                        "image"))));
     }
 
     //@Test
