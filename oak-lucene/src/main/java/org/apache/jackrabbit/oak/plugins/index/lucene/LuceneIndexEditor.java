@@ -237,7 +237,7 @@ public class LuceneIndexEditor implements IndexEditor {
             }
 
             if (context.getDefinition().isOrdered(pname)) {
-                dirty = addTypedOrderedFields(fields, property);
+                dirty |= addTypedOrderedFields(fields, property);
             }
 
             if (context.includeProperty(pname)) {
@@ -251,25 +251,7 @@ public class LuceneIndexEditor implements IndexEditor {
                     continue;
                 }
 
-                if (Type.BINARY.tag() == property.getType().tag()) {
-                    this.context.indexUpdate();
-                    fields.addAll(newBinary(property, state, path + "@" + pname));
-                    dirty = true;
-                } else if(!context.isFullTextEnabled()
-                        && FieldFactory.canCreateTypedField(property.getType())){
-                    dirty = addTypedFields(fields, property);
-                } else {
-                    for (String value : property.getValue(Type.STRINGS)) {
-                        this.context.indexUpdate();
-                        fields.add(newPropertyField(pname, value,
-                                !context.skipTokenization(pname),
-                                context.isStored(pname)));
-                        if (context.isFullTextEnabled()) {
-                            fields.add(newFulltextField(value));
-                        }
-                        dirty = true;
-                    }
-                }
+                dirty |= indexProperty(path, fields, state, property, pname);
             }
         }
 
@@ -296,6 +278,31 @@ public class LuceneIndexEditor implements IndexEditor {
             document.add(f);
         }
         return document;
+    }
+
+    private boolean indexProperty(String path, List<Field> fields, NodeState state,
+                                  PropertyState property, String pname) throws CommitFailedException {
+        if (Type.BINARY.tag() == property.getType().tag()) {
+            this.context.indexUpdate();
+            fields.addAll(newBinary(property, state, path + "@" + pname));
+            return true;
+        } else if(!context.isFullTextEnabled()
+                && FieldFactory.canCreateTypedField(property.getType())){
+            return addTypedFields(fields, property);
+        } else {
+            boolean dirty = false;
+            for (String value : property.getValue(Type.STRINGS)) {
+                this.context.indexUpdate();
+                fields.add(newPropertyField(pname, value,
+                        !context.skipTokenization(pname),
+                        context.isStored(pname)));
+                if (context.isFullTextEnabled()) {
+                    fields.add(newFulltextField(value));
+                }
+                dirty = true;
+            }
+            return dirty;
+        }
     }
 
     private boolean addTypedFields(List<Field> fields, PropertyState property) throws CommitFailedException {
