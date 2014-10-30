@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.index.lucene.util;
+package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,8 +45,6 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.CopyOnReadStatsMBean;
-import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.lucene.store.BaseDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -60,7 +58,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newConcurrentMap;
 
-public class IndexCopier implements CopyOnReadStatsMBean {
+class IndexCopier implements CopyOnReadStatsMBean {
     private static final Set<String> REMOTE_ONLY = ImmutableSet.of("segments.gen");
 
     private final Logger log = LoggerFactory.getLogger(getClass());
