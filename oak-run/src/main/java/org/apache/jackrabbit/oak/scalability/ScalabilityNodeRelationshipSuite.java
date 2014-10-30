@@ -18,12 +18,17 @@
  */
 package org.apache.jackrabbit.oak.scalability;
 
-import java.util.*;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
-import javax.jcr.*;
-
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.collect.*;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.api.JackrabbitSession;
@@ -40,6 +45,11 @@ import org.apache.jackrabbit.oak.scalability.util.NodeTypeUtils;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Splitter;
+import com.google.common.base.StandardSystemProperty;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * The suite test will incrementally increase the load and execute searches.
@@ -79,6 +89,9 @@ public class ScalabilityNodeRelationshipSuite extends ScalabilityNodeSuite {
     public static final String OBJECT = "object";
     public static final String OBJECT_ID = "objectId";
     public static final String TARGET = "target";
+
+    protected static final List<String> NODE_LEVELS = Splitter.on(",").trimResults()
+        .omitEmptyStrings().splitToList(System.getProperty("nodeLevels", "10,5,2,1"));
 
     private static final int NUM_USERS = Integer.parseInt(NODE_LEVELS.get(0));
 
