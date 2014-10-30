@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PropertyDefinition {
+class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
     private final String name;
     private final NodeBuilder definition;

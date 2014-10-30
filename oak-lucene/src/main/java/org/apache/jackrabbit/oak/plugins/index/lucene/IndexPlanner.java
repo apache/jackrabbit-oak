@@ -35,7 +35,7 @@ import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
-public class IndexPlanner {
+class IndexPlanner {
     private final IndexDefinition defn;
     private final Filter filter;
     private final String indexPath;
