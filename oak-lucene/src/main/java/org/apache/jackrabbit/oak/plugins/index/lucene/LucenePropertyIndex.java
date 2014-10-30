@@ -40,7 +40,6 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
@@ -843,10 +842,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex {
     private static boolean isExcludedProperty(PropertyRestriction pr,
             IndexDefinition definition) {
         String name = pr.propertyName;
-        if (name.contains("/")) {
-            // lucene cannot handle child-level property restrictions
-            return true;
-        }
 
         boolean includeProperty = definition.includeProperty(name);
         // check name

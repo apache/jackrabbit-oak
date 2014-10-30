@@ -153,6 +153,54 @@ public class LuceneIndexEditorTest {
         assertEquals(2, getSearcher().getIndexReader().numDocs());
     }
 
+    @Test
+    public void testLuceneWithRelativeProperty() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "jcr:content/mime",
+                "jcr:content/metadata/type"), STRINGS));
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        builder.child("test").child("jcr:content").setProperty("mime", "text");
+        builder.child("test").child("jcr:content").child("metadata").setProperty("type", "image");
+        builder.child("jcr:content").setProperty("count", "text");
+        builder.child("jcr:content").child("boom").child("metadata").setProperty("type", "image");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertEquals(1, getSearcher().getIndexReader().numDocs());
+
+        assertEquals("/test", getPath(new TermQuery(new Term("foo", "fox is jumping"))));
+        assertEquals("/test", getPath(new TermQuery(new Term("jcr:content/mime", "text"))));
+        assertEquals("/test", getPath(new TermQuery(new Term("jcr:content/metadata/type", "image"))));
+        assertNull("bar must NOT be indexed", getPath(new TermQuery(new Term("count", "text"))));
+
+        releaseIndexNode();
+        before = indexed;
+        builder = before.builder();
+        builder.child("test").child("jcr:content").setProperty("mime", "pdf");
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertEquals("/test", getPath(new TermQuery(new Term("jcr:content/mime", "pdf"))));
+
+        releaseIndexNode();
+        before = indexed;
+        builder = before.builder();
+        builder.child("test").child("jcr:content").child("metadata").remove();
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+        assertNull("relative removes must be persisted too",
+                getPath(new TermQuery(new Term("jcr:content/metadata/type", "image"))));
+    }
+
     //@Test
     public void checkLuceneIndexFileUpdates() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
