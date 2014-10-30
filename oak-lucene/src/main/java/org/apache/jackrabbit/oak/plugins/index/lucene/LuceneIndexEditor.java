@@ -31,6 +31,8 @@ import java.util.List;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -89,6 +91,13 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private final Predicate<NodeState> typePredicate;
 
+    private List<RelativeProperty> changedRelativeProps;
+
+    /**
+     * Flag indicating if the current tree being traversed has a deleted parent.
+     */
+    private final boolean isDeleted;
+
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
@@ -102,15 +111,17 @@ public class LuceneIndexEditor implements IndexEditor {
         } else {
             typePredicate = Predicates.alwaysTrue();
         }
+        this.isDeleted = false;
     }
 
-    private LuceneIndexEditor(LuceneIndexEditor parent, String name) {
+    private LuceneIndexEditor(LuceneIndexEditor parent, String name, boolean isDeleted) {
         this.parent = parent;
         this.name = name;
         this.path = null;
         this.context = parent.context;
         this.root = parent.root;
         this.typePredicate = parent.typePredicate;
+        this.isDeleted = isDeleted;
     }
 
     public String getPath() {
@@ -141,6 +152,10 @@ public class LuceneIndexEditor implements IndexEditor {
             }
         }
 
+        if (changedRelativeProps != null) {
+            markParentsOnRelPropChange();
+        }
+
         if (parent == null) {
             try {
                 context.closeWriter();
@@ -156,47 +171,57 @@ public class LuceneIndexEditor implements IndexEditor {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        propertiesChanged = true;
+        markPropertiesChanged();
+        checkForRelativePropertyChange(after.getName());
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        propertiesChanged = true;
+        markPropertiesChanged();
+        checkForRelativePropertyChange(before.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        propertiesChanged = true;
+        markPropertiesChanged();
+        checkForRelativePropertyChange(before.getName());
     }
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new LuceneIndexEditor(this, name);
+        return new LuceneIndexEditor(this, name, false);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return new LuceneIndexEditor(this, name);
+        return new LuceneIndexEditor(this, name, false);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        String path = concat(getPath(), name);
 
-        try {
-            IndexWriter writer = context.getWriter();
-            // Remove all index entries in the removed subtree
-            writer.deleteDocuments(newPathTerm(path));
-            writer.deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
-            this.context.indexUpdate();
-        } catch (IOException e) {
-            throw new CommitFailedException(
-                    "Lucene", 5, "Failed to remove the index entries of"
-                    + " the removed subtree " + path, e);
+        if (!isDeleted) {
+            // tree deletion is handled on the parent node
+            String path = concat(getPath(), name);
+            try {
+                IndexWriter writer = context.getWriter();
+                // Remove all index entries in the removed subtree
+                writer.deleteDocuments(newPathTerm(path));
+                writer.deleteDocuments(new PrefixQuery(newPathTerm(path + "/")));
+                this.context.indexUpdate();
+            } catch (IOException e) {
+                throw new CommitFailedException("Lucene", 5,
+                        "Failed to remove the index entries of"
+                                + " the removed subtree " + path, e);
+            }
         }
 
+        if (context.getDefinition().hasRelativeProperties()) {
+            // need to possibly update aggregated properties
+            return new LuceneIndexEditor(this, name, true);
+        }
         return null; // no need to recurse down the removed subtree
     }
 
@@ -237,7 +262,7 @@ public class LuceneIndexEditor implements IndexEditor {
             }
 
             if (context.getDefinition().isOrdered(pname)) {
-                dirty |= addTypedOrderedFields(fields, property);
+                dirty |= addTypedOrderedFields(fields, property, pname);
             }
 
             if (context.includeProperty(pname)) {
@@ -254,6 +279,8 @@ public class LuceneIndexEditor implements IndexEditor {
                 dirty |= indexProperty(path, fields, state, property, pname);
             }
         }
+
+        dirty |= indexRelativeProperties(path, fields, state);
 
         if (isUpdate && !dirty) {
             // updated the state but had no relevant changes
@@ -288,7 +315,7 @@ public class LuceneIndexEditor implements IndexEditor {
             return true;
         } else if(!context.isFullTextEnabled()
                 && FieldFactory.canCreateTypedField(property.getType())){
-            return addTypedFields(fields, property);
+            return addTypedFields(fields, property, pname);
         } else {
             boolean dirty = false;
             for (String value : property.getValue(Type.STRINGS)) {
@@ -305,21 +332,20 @@ public class LuceneIndexEditor implements IndexEditor {
         }
     }
 
-    private boolean addTypedFields(List<Field> fields, PropertyState property) throws CommitFailedException {
+    private boolean addTypedFields(List<Field> fields, PropertyState property, String pname) throws CommitFailedException {
         int tag = property.getType().tag();
-        String name = property.getName();
         boolean fieldAdded = false;
         for (int i = 0; i < property.count(); i++) {
             Field f = null;
             if (tag == Type.LONG.tag()) {
-                f = new LongField(name, property.getValue(Type.LONG, i), Field.Store.NO);
+                f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
             } else if (tag == Type.DATE.tag()) {
                 String date = property.getValue(Type.DATE, i);
-                f = new LongField(name, FieldFactory.dateToLong(date), Field.Store.NO);
+                f = new LongField(pname, FieldFactory.dateToLong(date), Field.Store.NO);
             } else if (tag == Type.DOUBLE.tag()) {
-                f = new DoubleField(name, property.getValue(Type.DOUBLE, i), Field.Store.NO);
+                f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
             } else if (tag == Type.BOOLEAN.tag()) {
-                f = new StringField(name, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+                f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
             }
 
             if (f != null) {
@@ -331,10 +357,10 @@ public class LuceneIndexEditor implements IndexEditor {
         return fieldAdded;
     }
 
-    private boolean addTypedOrderedFields(List<Field> fields, PropertyState property) throws CommitFailedException {
+    private boolean addTypedOrderedFields(List<Field> fields, PropertyState property, String pname) throws CommitFailedException {
         int tag = property.getType().tag();
 
-        int idxDefinedTag = getIndexDefinitionType(property);
+        int idxDefinedTag = getIndexDefinitionType(pname);
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
             log.debug(
@@ -345,7 +371,7 @@ public class LuceneIndexEditor implements IndexEditor {
             tag = idxDefinedTag;
         }
 
-        String name = FieldNames.createDocValFieldName(property.getName());
+        String name = FieldNames.createDocValFieldName(pname);
         boolean fieldAdded = false;
         for (int i = 0; i < property.count(); i++) {
             Field f = null;
@@ -376,20 +402,23 @@ public class LuceneIndexEditor implements IndexEditor {
                 log.warn(
                     "Ignoring ordered property. Could not convert property {} of type {} to type " +
                         "{} for path {}",
-                    property, Type.fromTag(property.getType().tag(), false),
+                    pname, Type.fromTag(property.getType().tag(), false),
                     Type.fromTag(tag, false), getPath(), e);
             }
         }
         return fieldAdded;
     }
 
-    private int getIndexDefinitionType(PropertyState property) {
-        int idxDefinedTag =
-            context.getDefinition().getPropDefn(property.getName()).getPropertyType();
-        if (idxDefinedTag == Type.UNDEFINED.tag()) {
-            idxDefinedTag = Type.STRING.tag();
+    private int getIndexDefinitionType(String pname) {
+        int type = Type.UNDEFINED.tag();
+        if (context.getDefinition().hasPropertyDefinition(pname)) {
+            type = context.getDefinition().getPropDefn(pname).getPropertyType();
         }
-        return idxDefinedTag;
+        if (type == Type.UNDEFINED.tag()) {
+            //If no explicit type is defined we assume it to be string
+            type = Type.STRING.tag();
+        }
+        return type;
     }
 
     private static boolean isVisible(String name) {
@@ -415,6 +444,61 @@ public class LuceneIndexEditor implements IndexEditor {
             fields.add(newFulltextField(parseStringValue(v, metadata, path)));
         }
         return fields;
+    }
+
+    private boolean indexRelativeProperties(String path, List<Field> fields, NodeState state) throws CommitFailedException {
+        IndexDefinition defn = context.getDefinition();
+        boolean dirty = false;
+        for (RelativeProperty rp : defn.getRelativeProps()){
+            String pname = rp.propertyPath;
+
+            PropertyState property = rp.getProperty(state);
+
+            if (property == null){
+                continue;
+            }
+
+            if (defn.isOrdered(pname)) {
+                dirty |= addTypedOrderedFields(fields, property, pname);
+            }
+
+            dirty |= indexProperty(path, fields, state, property, pname);
+        }
+        return dirty;
+    }
+
+    private void checkForRelativePropertyChange(String name) {
+        if (context.getDefinition().hasRelativeProperty(name)) {
+            context.getDefinition().collectRelPropsForName(name, getChangedRelProps());
+        }
+    }
+
+    private void markParentsOnRelPropChange() {
+        for (RelativeProperty rp : changedRelativeProps) {
+            LuceneIndexEditor p = this;
+            for (String parentName : rp.ancestors) {
+                if (p == null || !p.name.equals(parentName)) {
+                    p = null;
+                    break;
+                }
+                p = p.parent;
+            }
+
+            if (p != null) {
+                p.markPropertiesChanged();
+            }
+        }
+    }
+
+    private List<RelativeProperty> getChangedRelProps(){
+        if (changedRelativeProps == null) {
+            changedRelativeProps = Lists.newArrayList();
+        }
+        return changedRelativeProps;
+    }
+
+    private void markPropertiesChanged() {
+        propertiesChanged = true;
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path) {

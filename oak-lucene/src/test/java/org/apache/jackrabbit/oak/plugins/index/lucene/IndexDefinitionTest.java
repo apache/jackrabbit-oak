@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
@@ -108,5 +109,28 @@ public class IndexDefinitionTest {
         assertEquals(simple.getName(), defn.getCodec().getName());
     }
 
+    @Test
+    public void relativeProperty() throws Exception{
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "foo1/bar"), STRINGS));
+        IndexDefinition defn = new IndexDefinition(builder);
 
+        assertEquals(1, defn.getRelativeProps().size());
+        assertEquals(new RelativeProperty("foo1/bar"), Iterables.getFirst(defn.getRelativeProps(), null));
+        assertTrue(defn.hasRelativeProperty("bar"));
+        assertFalse(defn.hasRelativeProperty("foo"));
+    }
+
+    @Test
+    public void relativePropertyConfig() throws Exception{
+        builder.child(PROP_NODE).child("foo1").child("bar").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
+        IndexDefinition defn = new IndexDefinition(builder);
+
+        assertEquals(2, defn.getRelativeProps().size());
+        assertNull(defn.getPropDefn("foo"));
+        assertNotNull(defn.getPropDefn("foo1/bar"));
+        assertEquals(PropertyType.DATE, defn.getPropDefn("foo1/bar").getPropertyType());
+        assertEquals(PropertyType.LONG, defn.getPropDefn("foo2/bar2/baz").getPropertyType());
+    }
 }
