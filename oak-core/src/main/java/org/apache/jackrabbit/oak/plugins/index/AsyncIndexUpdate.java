@@ -28,9 +28,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -394,7 +392,6 @@ public class AsyncIndexUpdate implements Runnable {
                     reindexedDefinitions.clear();
                 }
                 postAsyncRunStatsStatus(indexStats);
-                indexStats.resetConsolidatedExecutionStats();
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
         } finally {
@@ -447,7 +444,7 @@ public class AsyncIndexUpdate implements Runnable {
         return indexStats.getStatus() == STATUS_DONE;
     }
 
-    final class AsyncIndexStats implements IndexStatsMBean {
+    final class AsyncIndexStats implements IndexStatsMBean, Runnable {
 
         private String start = "";
         private String done = "";
@@ -458,8 +455,8 @@ public class AsyncIndexUpdate implements Runnable {
 
         private volatile boolean isPaused;
         private volatile long updates;
-        private Stopwatch watch = Stopwatch.createUnstarted();
-        private ExecutionStats execStats = new ExecutionStats();
+        private final Stopwatch watch = Stopwatch.createUnstarted();
+        private final ExecutionStats execStats = new ExecutionStats();
 
         public void start(String now) {
             status = STATUS_RUNNING;
@@ -589,38 +586,27 @@ public class AsyncIndexUpdate implements Runnable {
                     + " ,tempCheckpoints=" + tempCps + " ]";
         }
 
-        class ExecutionStats {
-            final ScheduledExecutorService executor;
-            final TimeSeriesRecorder execCounter;
-            final TimeSeriesRecorder execTimer;
+        @Override
+        public void run() {
+            execStats.recordTick();
+        }
+
+        private class ExecutionStats {
+            private final TimeSeriesRecorder execCounter;
+            private final TimeSeriesRecorder execTimer;
 
             /**
              * Captures consolidated execution stats since last reset
              */
-            final AtomicLong consolidatedExecTime = new AtomicLong();
-            final AtomicInteger consolidatedExecRuns = new AtomicInteger();
-            final AtomicLong consolidatedNodes = new AtomicLong();
-            final String[] names = {"Executions", "Execution Time", "Nodes"};
-            CompositeType consolidatedType;
+            private final AtomicLong consolidatedExecTime = new AtomicLong();
+            private final AtomicInteger consolidatedExecRuns = new AtomicInteger();
+            private final AtomicLong consolidatedNodes = new AtomicLong();
+            private final String[] names = {"Executions", "Execution Time", "Nodes"};
+            private CompositeType consolidatedType;
 
-            ExecutionStats() {
-                executor = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-                    @Override
-                    public Thread newThread(@Nonnull Runnable r) {
-                        Thread thread = new Thread(r, "AsyncIndexStats-ExecutionsStats");
-                        thread.setDaemon(true);
-                        return thread;
-                    }
-                });
+            private ExecutionStats() {
                 execCounter = new TimeSeriesRecorder(true);
                 execTimer = new TimeSeriesRecorder(true);
-
-                executor.scheduleAtFixedRate(new Runnable() {
-                    public void run() {
-                        execCounter.recordOneSecond();
-                        execTimer.recordOneSecond();
-                    }
-                }, 1, 1, TimeUnit.SECONDS);
 
                 try {
                     consolidatedType = new CompositeType("ConsolidatedStats",
@@ -632,26 +618,26 @@ public class AsyncIndexUpdate implements Runnable {
                 }
             }
 
-            void incrementCounter() {
+            private void incrementCounter() {
                 execCounter.getCounter().incrementAndGet();
                 consolidatedExecRuns.incrementAndGet();
             }
 
-            void recordExecution(long time, long updates) {
+            private void recordExecution(long time, long updates) {
                 execTimer.getCounter().addAndGet(time);
                 consolidatedExecTime.addAndGet(time);
                 consolidatedNodes.addAndGet(updates);
             }
 
-            public CompositeData getExecutionCount() {
+            private CompositeData getExecutionCount() {
                 return TimeSeriesStatsUtil.asCompositeData(execCounter, "ExecutionCount");
             }
 
-            public CompositeData getExecutionTime() {
+            private CompositeData getExecutionTime() {
                 return TimeSeriesStatsUtil.asCompositeData(execTimer, "ExecutionTime");
             }
 
-            public CompositeData getConsolidatedStats() {
+            private CompositeData getConsolidatedStats() {
                 try {
                     Long[] values = new Long[]{consolidatedExecRuns.longValue(),
                         consolidatedExecTime.longValue(), consolidatedNodes.longValue()};
@@ -662,10 +648,15 @@ public class AsyncIndexUpdate implements Runnable {
                 }
             }
 
-            public void resetConsolidatedStats() {
+            private void resetConsolidatedStats() {
                 consolidatedExecRuns.set(0);
                 consolidatedExecTime.set(0);
                 consolidatedNodes.set(0);
+            }
+
+            private void recordTick() {
+                execCounter.recordOneSecond();
+                execTimer.recordOneSecond();
             }
         }
     }
