@@ -94,6 +94,8 @@ class IndexDefinition {
 
     private final Set<String> relativePropNames;
 
+    private final int relativePropsMaxLevels;
+
     /**
      * Defines the maximum estimated entry count configured.
      * Defaults to {#DEFAULT_ENTRY_COUNT}
@@ -131,6 +133,7 @@ class IndexDefinition {
         this.relativeProps = collectRelativeProps(Iterables.concat(includes, orderedProps));
         this.propDefns = collectPropertyDefns(defn);
         this.relativePropNames = collectRelPropertyNames(this.relativeProps.values());
+        this.relativePropsMaxLevels = getRelPropertyMaxLevels(this.relativeProps.values());
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
         this.funcName = functionName != null ? "native*" + functionName : null;
@@ -299,10 +302,22 @@ class IndexDefinition {
 
     private Set<String> collectRelPropertyNames(Collection<RelativeProperty> props) {
         Set<String> propNames = newHashSet();
-        for (RelativeProperty prop : props){
+        for (RelativeProperty prop : props) {
             propNames.add(prop.name);
         }
         return ImmutableSet.copyOf(propNames);
+    }
+
+    private int getRelPropertyMaxLevels(Collection<RelativeProperty> props) {
+        int max = -1;
+        for (RelativeProperty prop : props) {
+            max = Math.max(max, prop.ancestors.length);
+        }
+        return max;
+    }
+
+    public int getRelPropertyMaxLevels() {
+        return relativePropsMaxLevels;
     }
 
     private Codec createCodec() {

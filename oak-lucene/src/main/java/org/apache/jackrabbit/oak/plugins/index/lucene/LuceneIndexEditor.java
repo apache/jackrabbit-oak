@@ -98,6 +98,8 @@ public class LuceneIndexEditor implements IndexEditor {
      */
     private final boolean isDeleted;
 
+    private final int deletedMaxLevels;
+
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
@@ -112,9 +114,11 @@ public class LuceneIndexEditor implements IndexEditor {
             typePredicate = Predicates.alwaysTrue();
         }
         this.isDeleted = false;
+        this.deletedMaxLevels = -1;
     }
 
-    private LuceneIndexEditor(LuceneIndexEditor parent, String name, boolean isDeleted) {
+    private LuceneIndexEditor(LuceneIndexEditor parent, String name,
+            boolean isDeleted, int deletedMaxLevels) {
         this.parent = parent;
         this.name = name;
         this.path = null;
@@ -122,6 +126,7 @@ public class LuceneIndexEditor implements IndexEditor {
         this.root = parent.root;
         this.typePredicate = parent.typePredicate;
         this.isDeleted = isDeleted;
+        this.deletedMaxLevels = deletedMaxLevels;
     }
 
     public String getPath() {
@@ -189,13 +194,13 @@ public class LuceneIndexEditor implements IndexEditor {
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new LuceneIndexEditor(this, name, false);
+        return new LuceneIndexEditor(this, name, false, -1);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return new LuceneIndexEditor(this, name, false);
+        return new LuceneIndexEditor(this, name, false, -1);
     }
 
     @Override
@@ -219,8 +224,17 @@ public class LuceneIndexEditor implements IndexEditor {
         }
 
         if (context.getDefinition().hasRelativeProperties()) {
-            // need to possibly update aggregated properties
-            return new LuceneIndexEditor(this, name, true);
+            int maxLevelsDown;
+            if (isDeleted) {
+                maxLevelsDown = deletedMaxLevels - 1;
+            } else {
+                maxLevelsDown = context.getDefinition()
+                        .getRelPropertyMaxLevels();
+            }
+            if (maxLevelsDown > 0) {
+                // need to update aggregated properties on deletes
+                return new LuceneIndexEditor(this, name, true, maxLevelsDown);
+            }
         }
         return null; // no need to recurse down the removed subtree
     }
