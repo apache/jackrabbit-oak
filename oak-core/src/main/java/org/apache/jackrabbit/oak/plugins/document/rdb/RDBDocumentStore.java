@@ -466,7 +466,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
                 if (doc != null) {
-                    if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                    if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - doc.getLastCheckTime() < maxCacheAge) {
                         return castAsT(unwrap(doc));
                     }
                 }
@@ -723,9 +723,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         try {
             connection = getConnection();
+            long now = System.currentTimeMillis();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (RDBRow r : dbresult) {
-                T doc = runThroughCache(collection, r);
+                T doc = runThroughCache(collection, r, now);
                 result.add(doc);
             }
         } catch (Exception ex) {
@@ -1304,7 +1305,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
-    private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row) {
+    private <T extends Document> T runThroughCache(Collection<T> collection, RDBRow row, long now) {
 
         if (collection != Collection.NODES) {
             // not in the cache anyway
@@ -1327,6 +1328,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
                 if (modCount.longValue() <= cachedModCount.longValue()) {
                     // we can use the cached document
+                    inCache.markUpToDate(now);
                     return (T) inCache;
                 }
             }
