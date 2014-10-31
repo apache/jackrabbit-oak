@@ -131,6 +131,10 @@ public interface QueryIndex {
 
     }
 
+    public interface AdvanceFulltextQueryIndex extends FulltextQueryIndex, AdvancedQueryIndex {
+
+    }
+
     /**
      * An query index that may support using multiple access orders
      * (returning the rows in a specific order), and that can provide detailed
@@ -153,6 +157,9 @@ public interface QueryIndex {
 
         /**
          * Get the query plan description (for logging purposes).
+         * <p>
+         * The index plan is one of the plans that the index returned in the
+         * getPlans call.
          * 
          * @param plan the index plan
          * @return the query plan description
@@ -162,6 +169,9 @@ public interface QueryIndex {
         /**
          * Start a query. The filter and sort order of the index plan is to be
          * used.
+         * <p>
+         * The index plan is one of the plans that the index returned in the
+         * getPlans call.
          * 
          * @param plan the index plan to use
          * @param root root state of the current repository snapshot
@@ -174,7 +184,7 @@ public interface QueryIndex {
     /**
      * An index plan.
      */
-    public interface IndexPlan {
+    public interface IndexPlan extends Cloneable{
 
         /**
          * The cost to execute the query once. The returned value should
@@ -254,7 +264,6 @@ public interface QueryIndex {
 
         /**
          * The path prefix for this index plan.
-         * @return
          */
         String getPathPrefix();
 
@@ -267,6 +276,14 @@ public interface QueryIndex {
          */
         @CheckForNull
         PropertyRestriction getPropertyRestriction();
+
+        /**
+         * Creates a cloned copy of current plan. Mostly used when the filter needs to be
+         * modified for a given call
+         *
+         * @return clone of current plan
+         */
+        IndexPlan copy();
         
         /**
          * A builder for index plans.
@@ -456,6 +473,20 @@ public interface QueryIndex {
                     public String getPathPrefix() {
                         return pathPrefix;
                     }
+
+                    @Override
+                    protected Object clone() throws CloneNotSupportedException {
+                        return super.clone();
+                    }
+
+                    @Override
+                    public IndexPlan copy() {
+                        try {
+                            return (IndexPlan) super.clone();
+                        } catch (CloneNotSupportedException e){
+                            throw new IllegalStateException(e);
+                        }
+                    }
                 };
             }
 
@@ -481,7 +512,7 @@ public interface QueryIndex {
         /**
          * The sort order (ascending or descending).
          */
-        public enum Order { ASCENDING, DESCENDING };
+        public enum Order { ASCENDING, DESCENDING }
         
         private final Order order;
         
