@@ -996,7 +996,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
-            t += this.needsConcat ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
+            t += this.needsLimit ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
         }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
