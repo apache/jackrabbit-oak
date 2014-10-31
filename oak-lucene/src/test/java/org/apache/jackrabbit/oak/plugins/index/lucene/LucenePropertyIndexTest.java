@@ -36,7 +36,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
+import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
@@ -85,6 +88,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
                 .with(new LuceneIndexEditorProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new NodeTypeIndexProvider())
                 .createContentRepository();
     }
 
@@ -108,6 +113,35 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery(propaQuery, asList("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where [propa] = 'foo2'", asList("/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where [propc] = 'foo'", asList("/test/d"));
+    }
+
+    @Test
+    public void indexSelectionVsNodeType() throws Exception {
+        Tree luceneIndex = createIndex("test1", of("propa"));
+        luceneIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 5L, Type.LONG);
+
+        // Decrease cost of node type index
+        Tree nodeTypeIndex = root.getTree("/").getChild("oak:index").getChild("nodetype");
+        nodeTypeIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 50L, Type.LONG);
+        nodeTypeIndex.setProperty(IndexConstants.KEY_COUNT_PROPERTY_NAME, 10L, Type.LONG);
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+
+        List<String> paths = Lists.newArrayList();
+        for (int idx = 0; idx < 15; idx++) {
+            Tree a = test.addChild("n"+idx);
+            a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+            a.setProperty("propa", "foo");
+            paths.add("/test/n" + idx);
+        }
+        root.commit();
+
+        String propaQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
+        String explain = explain(propaQuery);
+        assertThat(explain(propaQuery), containsString("lucene:test1"));
+
+        assertQuery(propaQuery, paths);
     }
 
     @Test
