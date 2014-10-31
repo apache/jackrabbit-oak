@@ -172,7 +172,7 @@ public interface QueryIndex {
          * <p>
          * The index plan is one of the plans that the index returned in the
          * getPlans call.
-         * 
+         *
          * @param plan the index plan to use
          * @param rootState root state of the current repository snapshot
          * @return a cursor to iterate over the result
@@ -297,7 +297,7 @@ public interface QueryIndex {
          */
         @CheckForNull
         Object getAttribute(String name);
-        
+
         /**
          * A builder for index plans.
          */
