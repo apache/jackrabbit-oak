@@ -104,7 +104,7 @@ public class LuceneIndexEditorTest {
         builder.child("test").setProperty("weight", 10.0);
         builder.child("test").setProperty("bool", true);
         builder.child("test").setProperty("truth", true);
-        builder.child("test").setProperty("creationTime", createDate("05/06/2014"));
+        builder.child("test").setProperty("creationTime", createCal("05/06/2014"));
         NodeState after = builder.getNodeState();
 
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
@@ -179,7 +179,7 @@ public class LuceneIndexEditorTest {
         return indexNode.getSearcher();
     }
 
-    static Calendar createDate(String dt) throws java.text.ParseException {
+    static Calendar createCal(String dt) throws java.text.ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         Calendar cal = Calendar.getInstance();
         cal.setTime(sdf.parse(dt));
@@ -187,6 +187,6 @@ public class LuceneIndexEditorTest {
     }
 
     static long dateToTime(String dt) throws java.text.ParseException {
-        return FieldFactory.dateToLong(ISO8601.format(createDate(dt)));
+        return FieldFactory.dateToLong(ISO8601.format(createCal(dt)));
     }
 }

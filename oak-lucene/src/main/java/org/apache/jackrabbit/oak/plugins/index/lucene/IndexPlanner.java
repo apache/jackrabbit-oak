@@ -27,8 +27,6 @@ import javax.annotation.CheckForNull;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.index.IndexReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
@@ -129,7 +127,7 @@ public class IndexPlanner {
             //sorting can only be done for known/configured properties
             // and whose types are known
             //TODO Can sorting be done for array properties
-            if (defn.includeProperty(o.getPropertyName())
+            if (defn.includeProperty(o.getPropertyName()) || defn.isOrdered(o.getPropertyName())
                     && o.getPropertyType() != null
                     && !o.getPropertyType().isArray()) {
                 orderEntries.add(o); //Lucene can manage any order desc/asc

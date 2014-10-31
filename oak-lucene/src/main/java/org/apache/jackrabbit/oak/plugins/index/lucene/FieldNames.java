@@ -48,4 +48,16 @@ public final class FieldNames {
     public static final Set<String> PATH_SELECTOR = new HashSet<String>(
             Arrays.asList(PATH));
 
+    /**
+     * Encodes the field name such that it can be used for storing DocValue
+     * This is done such a field if used for both sorting and querying uses
+     * a different name for docvalue field
+     *
+     * @param name name to encode
+     * @return encoded field name
+     */
+    public static String createDocValFieldName(String name){
+        return ":dv" + name;
+    }
+
 }
