@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.index.IndexReader;
@@ -107,10 +108,16 @@ public class IndexPlanner {
                 .setFulltextIndex(defn.isFullTextEnabled())
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
+                .setPathPrefix(getPathPrefix())
                 .setSortOrder(createSortOrder())
                 .setDelayed(true) //Lucene is always async
                 .setAttribute(LuceneIndex.ATTR_INDEX_PATH, indexPath)
                 .setEstimatedEntryCount(getReader().numDocs());
+    }
+
+    private String getPathPrefix() {
+        String parentPath = PathUtils.getAncestorPath(indexPath, 2);
+        return PathUtils.denotesRoot(parentPath) ? "" : parentPath;
     }
 
     private IndexReader getReader() {
