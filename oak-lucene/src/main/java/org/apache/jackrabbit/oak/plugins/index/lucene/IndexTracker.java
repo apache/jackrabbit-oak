@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexCopier;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -53,9 +54,19 @@ class IndexTracker {
     private static final Logger log =
             LoggerFactory.getLogger(IndexTracker.class);
 
+    private final IndexCopier cloner;
+
     private NodeState root = EMPTY_NODE;
 
     private volatile Map<String, IndexNode> indices = emptyMap();
+
+    IndexTracker() {
+        this(null);
+    }
+
+    IndexTracker(IndexCopier cloner){
+        this.cloner = cloner;
+    }
 
     synchronized void close() {
         Map<String, IndexNode> indices = this.indices;
@@ -77,14 +88,13 @@ class IndexTracker {
         List<Editor> editors = newArrayListWithCapacity(original.size());
         for (Map.Entry<String, IndexNode> entry : original.entrySet()) {
             final String path = entry.getKey();
-            final String name = entry.getValue().getName();
 
             editors.add(new SubtreeEditor(new DefaultEditor() {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
                         // TODO: Use DirectoryReader.openIfChanged()
-                        IndexNode index = IndexNode.open(name, after);
+                        IndexNode index = IndexNode.open(path, after, cloner);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
                         log.error("Failed to open Lucene index at " + path, e);
@@ -102,6 +112,8 @@ class IndexTracker {
                     .putAll(filterValues(updates, notNull()))
                     .build();
 
+            //TODO This might take some time as close need to acquire the
+            //write lock which might be held by current running searches
             for (String path : updates.keySet()) {
                 IndexNode index = original.get(path);
                 try {
@@ -141,10 +153,9 @@ class IndexTracker {
             node = node.getChildNode(name);
         }
 
-        final String indexName = PathUtils.getName(path);
         try {
             if (isLuceneIndexNode(node)) {
-                index = IndexNode.open(indexName, node);
+                index = IndexNode.open(path, node, cloner);
                 if (index != null) {
                     checkState(index.acquire());
                     indices = ImmutableMap.<String, IndexNode>builder()
