@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
@@ -118,6 +119,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void indexSelectionVsNodeType() throws Exception {
         Tree luceneIndex = createIndex("test1", of("propa"));
+        // decrease cost of lucene property index
         luceneIndex.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, 5L, Type.LONG);
 
         // Decrease cost of node type index
@@ -138,10 +140,76 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         String propaQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
-        String explain = explain(propaQuery);
         assertThat(explain(propaQuery), containsString("lucene:test1"));
 
         assertQuery(propaQuery, paths);
+    }
+
+    @Test
+    public void declaringNodeTypeSameProp() throws Exception {
+        createIndex("test1", of("propa"));
+
+        Tree indexWithType = createIndex("test2", of("propa"));
+        indexWithType.setProperty(PropertyStates
+            .createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:unstructured"),
+                Type.STRINGS));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        root.commit();
+
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("propa", "foo");
+        Tree b = test.addChild("b");
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("propa", "foo");
+
+        test.addChild("c").setProperty("propa", "foo");
+        test.addChild("d").setProperty("propa", "foo");
+
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:unstructured] where [propa] = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertQuery(propabQuery, asList("/test/a", "/test/b"));
+
+        String propcdQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo'";
+        assertThat(explain(propcdQuery), containsString("lucene:test1"));
+        assertQuery(propcdQuery, asList("/test/a", "/test/b", "/test/c", "/test/d"));
+    }
+
+    @Test
+    public void declaringNodeTypeSingleIndex() throws Exception {
+        Tree indexWithType = createIndex("test2", of("propa", "propb"));
+        indexWithType.setProperty(PropertyStates
+            .createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:unstructured"),
+                Type.STRINGS));
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        root.commit();
+
+        Tree a = test.addChild("a");
+        a.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        a.setProperty("propa", "foo");
+        a.setProperty("propb", "baz");
+
+        Tree b = test.addChild("b");
+        b.setProperty("jcr:primaryType", "nt:unstructured", Type.NAME);
+        b.setProperty("propa", "foo");
+        b.setProperty("propb", "baz");
+
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:unstructured] where [propb] = 'baz' and " +
+            "[propa] = 'foo'";
+        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertQuery(propabQuery, asList("/test/a", "/test/b"));
+
+        String propNoIdxQuery = "select [jcr:path] from [nt:base] where [propb] = 'baz'";
+        assertThat(explain(propNoIdxQuery), containsString("no-index"));
+        assertQuery(propNoIdxQuery, ImmutableList.<String>of());
     }
 
     @Test

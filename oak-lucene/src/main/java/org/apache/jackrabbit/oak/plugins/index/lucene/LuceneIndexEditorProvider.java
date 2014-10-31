@@ -51,7 +51,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
             String type, NodeBuilder definition, NodeState root, IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(definition, analyzer, callback);
+            return new LuceneIndexEditor(root, definition, analyzer, callback);
         }
         return null;
     }
