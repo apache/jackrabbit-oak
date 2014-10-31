@@ -37,15 +37,15 @@ import org.apache.lucene.store.FSDirectory;
 
 class IndexNode {
 
-    static IndexNode open(String name, NodeState definition)
+    static IndexNode open(String name, NodeState defnNodeState)
             throws IOException {
         Directory directory = null;
-
-        NodeState data = definition.getChildNode(INDEX_DATA_CHILD_NAME);
+        IndexDefinition definition = new IndexDefinition(new ReadOnlyBuilder(defnNodeState));
+        NodeState data = defnNodeState.getChildNode(INDEX_DATA_CHILD_NAME);
         if (data.exists()) {
-            directory = new OakDirectory(new ReadOnlyBuilder(data));
-        } else if (PERSISTENCE_FILE.equalsIgnoreCase(definition.getString(PERSISTENCE_NAME))) {
-            String path = definition.getString(PERSISTENCE_PATH);
+            directory = new OakDirectory(new ReadOnlyBuilder(data), definition);
+        } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
+            String path = defnNodeState.getString(PERSISTENCE_PATH);
             if (path != null && new File(path).exists()) {
                 directory = FSDirectory.open(new File(path));
             }
@@ -80,10 +80,10 @@ class IndexNode {
 
     private boolean closed = false;
 
-    IndexNode(String name, NodeState definition, Directory directory)
+    IndexNode(String name, IndexDefinition definition, Directory directory)
             throws IOException {
         this.name = name;
-        this.definition = new IndexDefinition(new ReadOnlyBuilder(definition));
+        this.definition = definition;
         this.directory = directory;
         this.reader = DirectoryReader.open(directory);
         this.searcher = new IndexSearcher(reader);
