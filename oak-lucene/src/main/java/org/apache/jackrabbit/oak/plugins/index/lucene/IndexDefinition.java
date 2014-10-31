@@ -28,6 +28,7 @@ import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -42,6 +43,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FULL_TEXT_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 
 public class IndexDefinition {
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
@@ -50,6 +52,8 @@ public class IndexDefinition {
     private final Set<String> excludes;
 
     private final Set<String> includes;
+
+    private final Set<String> orderedProps;
 
     private final boolean fullTextEnabled;
 
@@ -78,12 +82,14 @@ public class IndexDefinition {
 
         this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
         this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
+        this.orderedProps = getMultiProperty(defn, ORDERED_PROP_NAMES);
+
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
         //Storage is disabled for non full text indexes
         this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
 
         Map<String, PropertyDefinition> propDefns = Maps.newHashMap();
-        for(String propName : includes){
+        for(String propName : Iterables.concat(includes, orderedProps)){
             if(defn.hasChildNode(propName)){
                 propDefns.put(propName, new PropertyDefinition(this, propName, defn.child(propName)));
             }
@@ -103,6 +109,10 @@ public class IndexDefinition {
             return false;
         }
         return (propertyTypes & (1 << type)) != 0;
+    }
+
+    boolean isOrdered(String name) {
+        return orderedProps.contains(name);
     }
 
     public NodeBuilder getDefinition() {
