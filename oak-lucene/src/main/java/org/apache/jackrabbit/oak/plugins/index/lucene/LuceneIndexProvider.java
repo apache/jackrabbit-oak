@@ -38,11 +38,19 @@ import com.google.common.collect.ImmutableList;
  */
 public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closeable {
 
-    protected final IndexTracker tracker = new IndexTracker();
+    protected final IndexTracker tracker;
 
     protected volatile Analyzer analyzer = LuceneIndexConstants.ANALYZER;
 
     protected volatile NodeAggregator aggregator = null;
+
+    public LuceneIndexProvider() {
+        this(new IndexTracker());
+    }
+
+    public LuceneIndexProvider(IndexTracker tracker) {
+        this.tracker = tracker;
+    }
 
     public void close() {
         tracker.close();

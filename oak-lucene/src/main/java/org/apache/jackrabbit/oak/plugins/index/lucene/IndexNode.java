@@ -27,6 +27,10 @@ import java.io.IOException;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.annotation.Nullable;
+
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexCopier;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.apache.lucene.index.DirectoryReader;
@@ -37,13 +41,16 @@ import org.apache.lucene.store.FSDirectory;
 
 class IndexNode {
 
-    static IndexNode open(String name, NodeState defnNodeState)
+    static IndexNode open(String indexPath, NodeState defnNodeState,@Nullable IndexCopier cloner)
             throws IOException {
         Directory directory = null;
         IndexDefinition definition = new IndexDefinition(new ReadOnlyBuilder(defnNodeState));
         NodeState data = defnNodeState.getChildNode(INDEX_DATA_CHILD_NAME);
         if (data.exists()) {
             directory = new OakDirectory(new ReadOnlyBuilder(data), definition);
+            if (cloner != null){
+                directory = cloner.wrap(indexPath, definition, directory);
+            }
         } else if (PERSISTENCE_FILE.equalsIgnoreCase(defnNodeState.getString(PERSISTENCE_NAME))) {
             String path = defnNodeState.getString(PERSISTENCE_PATH);
             if (path != null && new File(path).exists()) {
@@ -53,7 +60,7 @@ class IndexNode {
 
         if (directory != null) {
             try {
-                IndexNode index = new IndexNode(name, definition, directory);
+                IndexNode index = new IndexNode(PathUtils.getName(indexPath), definition, directory);
                 directory = null; // closed in Index.close()
                 return index;
             } finally {
