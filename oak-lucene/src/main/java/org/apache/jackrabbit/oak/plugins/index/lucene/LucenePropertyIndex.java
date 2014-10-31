@@ -194,7 +194,13 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         for (String path : indexPaths) {
             try {
                 indexNode = tracker.acquireIndexNode(path);
+
                 if (indexNode != null) {
+                    //Ignore full text indexes
+                    if (indexNode.getDefinition().isFullTextEnabled()){
+                        continue;
+                    }
+
                     IndexPlan plan = new IndexPlanner(indexNode, path, filter, sortOrder).getPlan();
                     if (plan != null) {
                         plans.add(plan);
