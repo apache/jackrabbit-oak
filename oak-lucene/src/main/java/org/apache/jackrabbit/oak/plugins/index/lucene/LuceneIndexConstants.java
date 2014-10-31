@@ -78,4 +78,11 @@ public interface LuceneIndexConstants {
      * be performed with same property then it must be part of include list also
      */
     String ORDERED_PROP_NAMES = "orderedProps";
+
+    /**
+     * Native function name associated with this index definition. Any query can
+     * use this as the function name to ensure that this index gets used for invoking
+     * the index
+     */
+    String FUNC_NAME = "functionName";
 }
