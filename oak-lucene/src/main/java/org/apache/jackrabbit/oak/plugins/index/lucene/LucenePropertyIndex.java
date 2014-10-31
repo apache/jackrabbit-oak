@@ -596,19 +596,6 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         }
 
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-
-            if (pr.first == null && pr.last == null && pr.list == null) {
-                // ignore property existence checks, Lucene can't to 'property
-                // is not null' queries (OAK-1208)
-
-                //TODO May be this can be relaxed if we have an index which
-                //maintains the list of propertyName present in a node say
-                //against :propNames. Only configured set of properties would
-                //be
-
-                continue;
-            }
-
             // check excluded properties and types
             if (isExcludedProperty(pr, indexDefinition)) {
                 continue;
@@ -729,6 +716,9 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                         in.add(NumericRangeQuery.newLongRange(pr.propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
+                } else if (pr.first == null && pr.last == null ) {
+                    // not null. For date lower bound of zero can be used
+                    return NumericRangeQuery.newLongRange(pr.propertyName, 0L, Long.MAX_VALUE, true, true);
                 }
 
                 break;
@@ -756,6 +746,9 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                         in.add(NumericRangeQuery.newDoubleRange(pr.propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
+                } else if (pr.first == null && pr.last == null ) {
+                    // not null.
+                    return NumericRangeQuery.newDoubleRange(pr.propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 }
                 break;
             }
@@ -782,6 +775,9 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                         in.add(NumericRangeQuery.newLongRange(pr.propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
+                } else if (pr.first == null && pr.last == null ) {
+                    // not null.
+                    return NumericRangeQuery.newLongRange(pr.propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 }
                 break;
             }
@@ -811,6 +807,8 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                         in.add(new TermQuery(new Term(pr.propertyName, strVal)), BooleanClause.Occur.SHOULD);
                     }
                     return in;
+                } else if (pr.first == null && pr.last == null ) {
+                    return new TermRangeQuery(pr.propertyName, null, null, true, true);
                 }
             }
         }
