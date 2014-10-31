@@ -54,4 +54,22 @@ public interface LuceneIndexConstants {
      */
     String EXPERIMENTAL_STORAGE = "oak.experimental.storage";
 
+    /**
+     * Determines if full text indexing is enabled for this index definition.
+     * Default is true
+     */
+    String FULL_TEXT_ENABLED = "fulltextEnabled";
+
+    /**
+     * Only include properties with name in this set. If this property is defined
+     * then {@code excludePropertyNames} would be ignored
+     */
+    String INCLUDE_PROPERTY_NAMES = "includePropertyNames";
+
+    /**
+     * Type of the property being indexed defined as part of property definition
+     * under the given index definition. Refer to {@ling javax.jcr.PropertyType}
+     * contants for the possible values
+     */
+    String PROP_TYPE = "propertyType";
 }
