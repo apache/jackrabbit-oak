@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Type;
@@ -114,10 +113,8 @@ public final class FieldFactory {
         if( date == null){
             return null;
         }
-        //TODO Should we change the precision to 5 min resolution
-        //TODO make if configurable as part of property definition
-        long millis = ISO8601.parse(date).getTimeInMillis();
-        return TimeUnit.MILLISECONDS.toSeconds(millis);
+        //TODO OAK-2204 - Should we change the precision to lower resolution
+        return ISO8601.parse(date).getTimeInMillis();
     }
 
 }
