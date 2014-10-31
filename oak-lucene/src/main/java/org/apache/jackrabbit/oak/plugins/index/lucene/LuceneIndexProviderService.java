@@ -28,10 +28,12 @@ import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
@@ -39,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.util.InfoStream;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.slf4j.Logger;
@@ -47,7 +50,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 @SuppressWarnings("UnusedDeclaration")
-@Component(immediate = true)
+@Component(metatype = true, label = "Apache Jackrabbit Oak LuceneIndexProvider")
 public class LuceneIndexProviderService {
 
     private LuceneIndexProvider indexProvider;
@@ -70,12 +73,20 @@ public class LuceneIndexProviderService {
     )
     protected Analyzer analyzer;
 
+    @Property(
+            boolValue = false,
+            label = "Enable Debug Logging",
+            description = "Enables debug logging in Lucene. After enabling this actual logging can be " +
+            "controlled via changing log level for category 'oak.lucene' to debug")
+    private static final String PROP_DEBUG = "debug";
+
     private Registration mbeanReg;
 
     @Activate
     private void activate(BundleContext bundleContext, Map<String, ?> config)
             throws NotCompliantMBeanException {
         indexProvider = new LuceneIndexProvider();
+        initializeLogging(config);
         initialize();
 
         QueryIndexProvider aggregate = AggregateIndexProvider.wrap(indexProvider);
@@ -104,6 +115,8 @@ public class LuceneIndexProviderService {
             indexProvider.close();
             indexProvider = null;
         }
+
+        InfoStream.setDefault(InfoStream.NO_OUTPUT);
     }
 
     private void initialize(){
@@ -119,6 +132,15 @@ public class LuceneIndexProviderService {
 
         Analyzer analyzer = this.analyzer != null ? this.analyzer : defaultAnalyzer;
         indexProvider.setAnalyzer(analyzer);
+    }
+
+    private void initializeLogging(Map<String, ?> config) {
+        boolean debug = PropertiesUtil.toBoolean(config.get(PROP_DEBUG), false);
+        if (debug) {
+            InfoStream.setDefault(LoggingInfoStream.INSTANCE);
+            log.info("Registered LoggingInfoStream with Lucene. Lucene logs can be enabled " +
+                    "now via category [{}]", LoggingInfoStream.PREFIX);
+        }
     }
 
     protected void bindNodeAggregator(NodeAggregator aggregator) {
