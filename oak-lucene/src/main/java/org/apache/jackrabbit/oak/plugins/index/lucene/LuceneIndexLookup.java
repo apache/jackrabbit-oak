@@ -43,7 +43,7 @@ public class LuceneIndexLookup {
      * fulltext search
      */
     public String getFullTextIndexPath(Filter filter, IndexTracker tracker) {
-        Collection<String> indexPaths = collectIndexNodePaths(filter);
+        Collection<String> indexPaths = collectIndexNodePaths(filter, false);
         IndexNode indexNode = null;
         for (String path : indexPaths) {
             try {
@@ -62,23 +62,38 @@ public class LuceneIndexLookup {
     }
 
     public Collection<String> collectIndexNodePaths(Filter filter){
+        return collectIndexNodePaths(filter, true);
+    }
+
+    private Collection<String> collectIndexNodePaths(Filter filter, boolean recurse){
         Set<String> paths = Sets.newHashSet();
-        collectIndexNodePaths(filter.getPath(), paths);
+
+        collectIndexNodePaths(root, "/", paths);
+
+        if (recurse) {
+            StringBuilder sb = new StringBuilder();
+            NodeState nodeState = root;
+            for (String element : PathUtils.elements(filter.getPath())) {
+                nodeState = nodeState.getChildNode(element);
+                collectIndexNodePaths(nodeState,
+                        sb.append("/").append(element).toString(),
+                        paths);
+            }
+        }
+
         return paths;
     }
 
-    private void collectIndexNodePaths(String filterPath, Collection<String> paths) {
-        //TODO Add support for looking index nodes from non root paths
-        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
+    private static void collectIndexNodePaths(NodeState nodeState, String parentPath, Collection<String> paths) {
+        NodeState state = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             if (isLuceneIndexNode(entry.getNodeState())) {
-                paths.add(createIndexNodePath(entry.getName()));
+                paths.add(createIndexNodePath(parentPath, entry.getName()));
             }
         }
     }
 
-    private String createIndexNodePath(String name){
-        //TODO getPath would lead to duplicate path constru
-        return PathUtils.concat("/", INDEX_DEFINITIONS_NAME, name);
+    private static String createIndexNodePath(String parentPath, String name){
+        return PathUtils.concat(parentPath, INDEX_DEFINITIONS_NAME, name);
     }
 }
