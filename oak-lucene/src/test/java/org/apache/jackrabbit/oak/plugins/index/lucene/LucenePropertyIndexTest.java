@@ -56,6 +56,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PRO
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -112,7 +113,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void rangeQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree propIdx = idx.addChild("propa");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
@@ -139,7 +140,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void rangeQueriesWithDouble() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree propIdx = idx.addChild("propa");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
@@ -161,7 +162,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void rangeQueriesWithString() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild("propa");
+        idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -187,7 +188,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void rangeQueriesWithDate() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        Tree propIdx = idx.addChild("propa");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("propa");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
@@ -209,7 +210,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void likeQueriesWithString() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild("propa");
+        idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
@@ -225,7 +226,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void nativeQueries() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
-        idx.addChild("propa");
+        idx.addChild(PROP_NODE).addChild("propa");
         idx.setProperty(LuceneIndexConstants.FUNC_NAME, "foo");
         root.commit();
 
@@ -243,7 +244,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void indexDefinitionBelowRoot() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
         Tree idx = createIndex(parent, "test1", of("propa", "propb"));
-        idx.addChild("propa");
+        idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
         Tree test = parent.addChild("test2");
@@ -257,7 +258,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
@@ -269,7 +270,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex("test1", of("foo", "bar"));
         idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
@@ -295,7 +296,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithDouble() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
@@ -307,7 +308,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex("test1", of("foo", "bar"));
         idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DOUBLE);
         root.commit();
 
@@ -333,7 +334,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithString() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
-        idx.addChild("foo");
+        idx.addChild(PROP_NODE).addChild("foo");
         root.commit();
 
         assertSortedString();
@@ -344,7 +345,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex("test1", of("foo", "bar"));
         idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        idx.addChild("foo");
+        idx.addChild(PROP_NODE).addChild("foo");
         root.commit();
 
         assertSortedString();
@@ -369,7 +370,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithDate() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
@@ -381,7 +382,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex("test1", of("foo", "bar"));
         idx.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("bar"), STRINGS));
         idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
-        Tree propIdx = idx.addChild("foo");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         root.commit();
 
@@ -407,7 +408,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     @Test
     public void sortQueriesWithStringAndLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar", "baz"));
-        Tree propIdx = idx.addChild("baz");
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("baz");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
