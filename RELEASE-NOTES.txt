@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.7
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.8
 
 Introduction
 ------------
@@ -7,52 +7,65 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.7 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.8 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.7
+Changes in Oak 1.0.8
 --------------------
+
+New Features
+
+   [OAK-1915] TarMK Cold Standby
+   [OAK-2005] Use separate Lucene index for performing property related queries
+   [OAK-2191] Persistent cache for the DocumentNodeStore
 
 Bug Fixes
 
-   [OAK-1768] - DocumentNodeBuilder.setChildNode() runs OOM with large tree
-   [OAK-2118] - Aggregation cursor introduces doubles in the result set
-   [OAK-2123] - Tests do not tear down repository completely
-   [OAK-2127] - Long running merge may block other commits
-   [OAK-2132] - BackgroundWriteTest uses relative paths
-   [OAK-2142] - Possibility of numeric overflow in blobCacheSize in DocumentMK
-   [OAK-2144] - Intermittent Node not found at given revision with DocumentNodeStore
-   [OAK-2146] - empty resultset for PropertyIndex and multi-value properties with mixed OR+AND
-   [OAK-2147] - [Ordered Index] Indexing on large content is slow
-   [OAK-2151] - DocumentNodeStore does not detect hierarchy conflict
-   [OAK-2157] - Better error message for getPrimaryItem
-   [OAK-2163] - Oak-run "checkpoint" and "backup" don't use memory mapped files
-   [OAK-2166] - CacheConsistencyTest may fail with IllegalStateException
-   [OAK-2167] - Last revision recover incomplete
-   [OAK-2172] - ArrayIndexOutOfBoundsException in Segment.getRefId() protection and logs
+   [OAK-1778] Ordered index: explain plan not implemented
+   [OAK-1885] Add restore option for oak-run
+   [OAK-2052] Node.setProperty(String, Value) fails for binary non ValueImpls
+   [OAK-2117] Reindex removes all nodes under index definition node
+   [OAK-2145] TarMK cold standby: file handle leak
+   [OAK-2150] TarMK cold standby: logs are too verbose
+   [OAK-2174] Non-blocking reindexing doesn't finish properly
+   [OAK-2197] Node.getReferences throws IllegalArgumentException
+   [OAK-2203] Full reindexing is triggered when the IndexEditor is missing
+   [OAK-2226] Aggregate Lucene no results for multiple jcr:contains
+   [OAK-2227] Increase package export on org.apache.jackrabbit.oak.plugins.segment
+   [OAK-2232] External events incomplete
+   [OAK-2235] Lucene index not created if no node is indexed
+   [OAK-2237] NodeStoreKernel.getNodes throws when passing filter=""
 
 Improvements
 
-   [OAK-2057] - Add timing to OrderedIndex
-   [OAK-2115] - Turn async indexer checkpoint warning log to debug 
-   [OAK-2120] - Simplify BranchStates
-   [OAK-2133] - Lucene: improved batching and logging
-   [OAK-2134] - Lucene: not using the path restriction can speed up queries
-   [OAK-2143] - NodeObservor should catch exception in case event processing
-   [OAK-2160] - mk.getRevisionHistory: clarify since parameter
-   [OAK-2161] - MicroKernelIT: clean test content
-
-Tasks
-
-   [OAK-2054] - MissingLastRevSeeker optimized only for MongoDS
+   [OAK-1724] Enable copying of Lucene index to local file system for read queries
+   [OAK-2119] AggregateIndex should support AdvanceQueryIndex
+   [OAK-2125] Integrate Lucene logging with Slf4j
+   [OAK-2173] Allow specifying custom attributes in IndexPlan
+   [OAK-2180] Solr default rows number is too high
+   [OAK-2189] TarMK cold standby: update OSGi config example files
+   [OAK-2201] Make blobSize in OakDirectory configurable
+   [OAK-2212] Add configuration options for ldap connection pools
+   [OAK-2213] The unbound connection pool does not verify if the connection is still alive
+   [OAK-2216] LIRS cache: improved concurrency when using the cache loader
+   [OAK-2221] Log path for text extraction error on the Lucene index
+   [OAK-2229] Provide a way for Index implementation to determine reindex mode
 
 Sub-tasks
 
-    [OAK-2141] - Log timing of background operation
+   [OAK-2122] Make LuceneIndex implement AdvanceQueryIndex
+   [OAK-2196] Implement sorting based on Lucene sorting
+   [OAK-2198] Add support for declaringNodeTypes to only index node with specific types
+   [OAK-2200] Tune cost calculation for lucene property index
+   [OAK-2210] Add support for customizing the codec
+   [OAK-2211] Use Lucene index on non root node
+   [OAK-2236] Support queries with only order by specified
+   [OAK-2239] Do not wrap LucenePropertyIndex with AggregateIndex
+   [OAK-2240] Support for indexing relative properties
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
