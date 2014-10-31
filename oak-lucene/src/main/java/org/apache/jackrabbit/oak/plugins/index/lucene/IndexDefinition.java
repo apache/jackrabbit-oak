@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -29,8 +30,6 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -40,6 +39,8 @@ import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
@@ -89,6 +90,12 @@ class IndexDefinition {
 
     private final Codec codec;
 
+    private final Map<String,RelativeProperty> relativeProps;
+
+    private final Set<String> relativePropNames;
+
+    private final int relativePropsMaxLevels;
+
     /**
      * Defines the maximum estimated entry count configured.
      * Defaults to {#DEFAULT_ENTRY_COUNT}
@@ -122,15 +129,11 @@ class IndexDefinition {
         this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
         //Storage is disabled for non full text indexes
         this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
-
-        Map<String, PropertyDefinition> propDefns = Maps.newHashMap();
-        NodeBuilder propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
-        for(String propName : Iterables.concat(includes, orderedProps)){
-            if(propNode.hasChildNode(propName)){
-                propDefns.put(propName, new PropertyDefinition(this, propName, propNode.child(propName)));
-            }
-        }
-        this.propDefns = ImmutableMap.copyOf(propDefns);
+        //TODO Flag out invalid propertyNames like one which are absolute
+        this.relativeProps = collectRelativeProps(Iterables.concat(includes, orderedProps));
+        this.propDefns = collectPropertyDefns(defn);
+        this.relativePropNames = collectRelPropertyNames(this.relativeProps.values());
+        this.relativePropsMaxLevels = getRelPropertyMaxLevels(this.relativeProps.values());
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
         this.funcName = functionName != null ? "native*" + functionName : null;
@@ -237,7 +240,85 @@ class IndexDefinition {
         return entryCount;
     }
 
+    public Collection<RelativeProperty> getRelativeProps() {
+        return relativeProps.values();
+    }
+
+    /**
+     * Collects the relative properties where the property name matches given name. Note
+     * that multiple relative properties can end with same name e.g. foo/bar, baz/bar
+     *
+     * @param name property name without path
+     * @param relProps matching relative properties where the relative property path ends
+     *                 with given name
+     */
+    public void collectRelPropsForName(String name, Collection<RelativeProperty> relProps){
+        if(hasRelativeProperty(name)){
+            for(RelativeProperty rp : relativeProps.values()){
+                if(rp.name.equals(name)){
+                    relProps.add(rp);
+                }
+            }
+        }
+    }
+
+    boolean hasRelativeProperties(){
+        return !relativePropNames.isEmpty();
+    }
+
+    boolean hasRelativeProperty(String name) {
+        return relativePropNames.contains(name);
+    }
+
     //~------------------------------------------< Internal >
+
+    private Map<String, RelativeProperty> collectRelativeProps(Iterable<String> propNames) {
+        Map<String, RelativeProperty> relProps = newHashMap();
+        for (String propName : propNames) {
+            if (RelativeProperty.isRelativeProperty(propName)) {
+                relProps.put(propName, new RelativeProperty(propName));
+            }
+        }
+        return ImmutableMap.copyOf(relProps);
+    }
+
+    private Map<String, PropertyDefinition> collectPropertyDefns(NodeBuilder defn) {
+        Map<String, PropertyDefinition> propDefns = newHashMap();
+        NodeBuilder propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
+        for (String propName : Iterables.concat(includes, orderedProps)) {
+            NodeBuilder propDefnNode;
+            if (relativeProps.containsKey(propName)) {
+                propDefnNode = relativeProps.get(propName).getPropDefnNode(propNode);
+            } else {
+                propDefnNode = propNode.getChildNode(propName);
+            }
+
+            if (propDefnNode.exists()) {
+                propDefns.put(propName, new PropertyDefinition(this, propName, propDefnNode));
+            }
+        }
+        return ImmutableMap.copyOf(propDefns);
+    }
+
+    private Set<String> collectRelPropertyNames(Collection<RelativeProperty> props) {
+        Set<String> propNames = newHashSet();
+        for (RelativeProperty prop : props) {
+            propNames.add(prop.name);
+        }
+        return ImmutableSet.copyOf(propNames);
+    }
+
+    private int getRelPropertyMaxLevels(Collection<RelativeProperty> props) {
+        int max = -1;
+        for (RelativeProperty prop : props) {
+            max = Math.max(max, prop.ancestors.length);
+        }
+        return max;
+    }
+
+    public int getRelPropertyMaxLevels() {
+        return relativePropsMaxLevels;
+    }
 
     private Codec createCodec() {
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
@@ -271,10 +352,10 @@ class IndexDefinition {
     }
 
     private static Set<String> toLowerCase(Set<String> values){
-        Set<String> result = Sets.newHashSet();
+        Set<String> result = newHashSet();
         for(String val : values){
             result.add(val.toLowerCase());
         }
-        return Collections.unmodifiableSet(result);
+        return ImmutableSet.copyOf(result);
     }
 }

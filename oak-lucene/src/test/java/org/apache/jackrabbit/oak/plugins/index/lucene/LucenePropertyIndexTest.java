@@ -378,6 +378,20 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void testWithRelativeProperty() throws Exception{
+        Tree parent = root.getTree("/");
+        Tree idx = createIndex(parent, "test1", of("b/propa", "propb"));
+        root.commit();
+
+        Tree test = parent.addChild("test2");
+        test.addChild("a").addChild("b").setProperty("propa", "a");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] as s where [b/propa] = 'a'", asList("/test2/a"));
+
+    }
+
+    @Test
     public void indexDefinitionBelowRoot() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
         Tree idx = createIndex(parent, "test1", of("propa", "propb"));
@@ -427,6 +441,30 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         List<Tuple> tuples = createDataForLongProp();
         assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo] DESC", getSortedPaths(tuples, OrderDirection.DESC));
+    }
+
+    @Test
+    public void sortQueriesWithLong_NotIndexed_relativeProps() throws Exception {
+        Tree idx = createIndex("test1", Collections.<String>emptySet());
+        idx.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo/bar"), STRINGS));
+        Tree propIdx = idx.addChild(PROP_NODE).addChild("foo").addChild("bar");
+        propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
+        root.commit();
+
+        assertThat(explain("select [jcr:path] from [nt:base] order by [foo/bar]"), containsString("lucene:test1"));
+
+        Tree test = root.getTree("/").addChild("test");
+        List<Long> values = createLongs(NUMBER_OF_NODES);
+        List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
+        for(int i = 0; i < values.size(); i++){
+            Tree child = test.addChild("n"+i);
+            child.addChild("foo").setProperty("bar", values.get(i));
+            tuples.add(new Tuple(values.get(i), child.getPath()));
+        }
+        root.commit();
+
+        assertOrderedQuery("select [jcr:path] from [nt:base] order by [foo/bar]", getSortedPaths(tuples, OrderDirection.ASC));
+        assertOrderedQuery("select [jcr:path] from [nt:base]  order by [foo/bar] DESC", getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     void assertSortedLong() throws CommitFailedException {
