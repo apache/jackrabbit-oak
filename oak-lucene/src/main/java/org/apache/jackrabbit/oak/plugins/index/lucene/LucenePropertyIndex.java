@@ -154,8 +154,6 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
-    public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
-
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
      * to perform query
@@ -242,7 +240,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                     .append("(")
                     .append(path)
                     .append(") ");
-            sb.append(getQuery(filter, null, nonFullTextConstraints, analyzer, index.getDefinition()));
+            sb.append(getQuery(plan, null, nonFullTextConstraints, analyzer, index.getDefinition()));
             if(plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()){
                 sb.append(" ordering:").append(plan.getSortOrder());
             }
@@ -336,7 +334,7 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    Query query = getQuery(filter, searcher.getIndexReader(),
+                    Query query = getQuery(plan, searcher.getIndexReader(),
                             nonFullTextConstraints, analyzer, indexNode.getDefinition());
                     TopDocs docs;
                     long time = System.currentTimeMillis();
@@ -480,18 +478,19 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
     /**
      * Get the Lucene query for the given filter.
      *
-     * @param filter the filter, including full-text constraint
+     * @param plan index plan containing filter details
      * @param reader the Lucene reader
      * @param nonFullTextConstraints whether non-full-text constraints (such a
      *            path, node type, and so on) should be added to the Lucene
      *            query
      * @param analyzer the Lucene analyzer used for building the fulltext query
-     * @param indexDefinition nodestate that contains the index definition
+     * @param defn nodestate that contains the index definition
      * @return the Lucene query
      */
-    private static Query getQuery(Filter filter, IndexReader reader,
-            boolean nonFullTextConstraints, Analyzer analyzer, IndexDefinition indexDefinition) {
+    private static Query getQuery(IndexPlan plan, IndexReader reader,
+            boolean nonFullTextConstraints, Analyzer analyzer, IndexDefinition defn) {
         List<Query> qs = new ArrayList<Query>();
+        Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
             // there might be no full-text constraint
@@ -500,7 +499,13 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
         } else {
             qs.add(getFullTextQuery(ft, analyzer, reader));
         }
-        PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
+
+        //Check if native function is supported
+        PropertyRestriction pr = null;
+        if (defn.hasFunctionDefined()) {
+            pr = filter.getPropertyRestriction(defn.getFunctionName());
+        }
+
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
             QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
@@ -522,10 +527,10 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
             }
         } else if (nonFullTextConstraints) {
             addNonFullTextConstraints(qs, filter, reader, analyzer,
-                    indexDefinition);
+                    defn);
         }
         if (qs.size() == 0) {
-            if (!indexDefinition.isFullTextEnabled()) {
+            if (!defn.isFullTextEnabled()) {
                 throw new IllegalStateException("No query created for filter " + filter);
             }
             return new MatchAllDocsQuery();

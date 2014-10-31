@@ -223,13 +223,30 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     @Test
+    public void nativeQueries() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.addChild("propa");
+        idx.setProperty(LuceneIndexConstants.FUNC_NAME, "foo");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "humpty");
+        test.addChild("b").setProperty("propa", "dumpty");
+        test.addChild("c").setProperty("propa", "humpy");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] where native('foo', 'propa:(humpty OR dumpty)')",
+                asList("/test/a", "/test/b"));
+    }
+
+    @Test
     public void sortQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
         Tree propIdx = idx.addChild("foo");
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
-        assertSortedtLong();
+        assertSortedLong();
     }
 
     @Test
@@ -241,10 +258,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         propIdx.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         root.commit();
 
-        assertSortedtLong();
+        assertSortedLong();
     }
 
-    void assertSortedtLong() throws CommitFailedException {
+    void assertSortedLong() throws CommitFailedException {
         Tree test = root.getTree("/").addChild("test");
         List<Long> values = createLongs(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
