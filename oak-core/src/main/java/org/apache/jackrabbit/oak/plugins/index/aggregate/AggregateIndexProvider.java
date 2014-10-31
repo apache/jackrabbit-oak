@@ -22,9 +22,10 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 
 /**
  * A provider for aggregate indexes. It wraps all full-text query indexes.
@@ -47,11 +48,10 @@ public class AggregateIndexProvider implements QueryIndexProvider {
     public List<? extends QueryIndex> getQueryIndexes(NodeState state) {
         List<? extends QueryIndex> list = baseProvider.getQueryIndexes(state);
         ArrayList<AggregateIndex> aggregateList = new ArrayList<AggregateIndex>();
-        for (int i = 0; i < list.size(); i++) {
-            QueryIndex index = list.get(i);
-            if (index instanceof FulltextQueryIndex) {
+        for (QueryIndex index : list) {
+            if (index instanceof AdvanceFulltextQueryIndex) {
                 aggregateList
-                        .add(new AggregateIndex((FulltextQueryIndex) index));
+                        .add(new AggregateIndex((AdvanceFulltextQueryIndex) index));
             }
         }
         return aggregateList;
