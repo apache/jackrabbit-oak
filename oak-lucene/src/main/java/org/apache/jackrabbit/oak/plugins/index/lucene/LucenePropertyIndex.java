@@ -535,6 +535,23 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
             addNonFullTextConstraints(qs, filter, reader, analyzer,
                     defn);
         }
+
+        if (qs.size() == 0
+                && plan.getSortOrder() != null) {
+            //This case indicates that query just had order by and no
+            //property restriction defined. In this case property
+            //existence queries for each sort entry
+
+            for (OrderEntry oe : plan.getSortOrder()) {
+                PropertyRestriction orderRest = new PropertyRestriction();
+                orderRest.propertyName = oe.getPropertyName();
+                Query q = createQuery(orderRest, defn);
+                if (q != null) {
+                    qs.add(q);
+                }
+            }
+        }
+
         if (qs.size() == 0) {
             if (!defn.isFullTextEnabled()) {
                 throw new IllegalStateException("No query created for filter " + filter);
