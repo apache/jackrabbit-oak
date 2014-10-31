@@ -47,14 +47,14 @@ public class AggregateIndexProvider implements QueryIndexProvider {
     @Override @Nonnull
     public List<? extends QueryIndex> getQueryIndexes(NodeState state) {
         List<? extends QueryIndex> list = baseProvider.getQueryIndexes(state);
-        ArrayList<AggregateIndex> aggregateList = new ArrayList<AggregateIndex>();
+        List<QueryIndex> newList = new ArrayList<QueryIndex>();
         for (QueryIndex index : list) {
             if (index instanceof AdvanceFulltextQueryIndex) {
-                aggregateList
-                        .add(new AggregateIndex((AdvanceFulltextQueryIndex) index));
+                index = new AggregateIndex((AdvanceFulltextQueryIndex) index);
             }
+            newList.add(index);
         }
-        return aggregateList;
+        return newList;
     }
 
 }
