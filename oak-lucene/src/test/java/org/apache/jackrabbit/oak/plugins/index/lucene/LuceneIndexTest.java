@@ -289,7 +289,10 @@ public class LuceneIndexTest {
     }
 
     private IndexPlan createPlan(Filter filter){
-        return new IndexPlan.Builder().setFilter(filter).build();
+        return new IndexPlan.Builder()
+                .setFilter(filter)
+                .setAttribute(LuceneIndex.ATTR_INDEX_PATH, "/oak:index/lucene")
+                .build();
     }
 
 }

@@ -68,7 +68,7 @@ class IndexNode {
 
     private final String name;
 
-    private final NodeState definition;
+    private final IndexDefinition definition;
 
     private final Directory directory;
 
@@ -83,7 +83,7 @@ class IndexNode {
     IndexNode(String name, NodeState definition, Directory directory)
             throws IOException {
         this.name = name;
-        this.definition = definition;
+        this.definition = new IndexDefinition(new ReadOnlyBuilder(definition));
         this.directory = directory;
         this.reader = DirectoryReader.open(directory);
         this.searcher = new IndexSearcher(reader);
@@ -93,7 +93,7 @@ class IndexNode {
         return name;
     }
 
-    NodeState getDefinition() {
+    IndexDefinition getDefinition() {
         return definition;
     }
 

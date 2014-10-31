@@ -59,12 +59,17 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(newLuceneIndex());
+        return ImmutableList.<QueryIndex> of(newLuceneIndex(), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
         return new LuceneIndex(tracker, analyzer, aggregator);
     }
+
+    protected LucenePropertyIndex newLucenePropertyIndex() {
+        return new LucenePropertyIndex(tracker, analyzer, aggregator);
+    }
+
 
     /**
      * sets the default analyzer that will be used at query time
