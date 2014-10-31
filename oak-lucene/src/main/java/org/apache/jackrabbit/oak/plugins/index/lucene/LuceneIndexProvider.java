@@ -21,6 +21,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndex;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -67,7 +68,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(newLuceneIndex(), newLucenePropertyIndex());
+        return ImmutableList.<QueryIndex> of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
