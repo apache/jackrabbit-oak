@@ -46,7 +46,7 @@ public class LuceneIndexEditorContext {
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
 
-    private static IndexWriterConfig getIndexWriterConfig(Analyzer analyzer) {
+    private static IndexWriterConfig getIndexWriterConfig(Analyzer analyzer, IndexDefinition definition) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
@@ -54,8 +54,9 @@ public class LuceneIndexEditorContext {
         try {
             IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
             config.setMergeScheduler(new SerialMergeScheduler());
-            //TODO Use default codec for index where full text index is not stored
-            config.setCodec(new OakCodec());
+            if (definition.getCodec() != null) {
+                config.setCodec(definition.getCodec());
+            }
             return config;
         } finally {
             thread.setContextClassLoader(loader);
@@ -103,7 +104,7 @@ public class LuceneIndexEditorContext {
     LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
         this.definition = new IndexDefinition(definitionBuilder);
-        this.config = getIndexWriterConfig(analyzer);
+        this.config = getIndexWriterConfig(analyzer, this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
     }
