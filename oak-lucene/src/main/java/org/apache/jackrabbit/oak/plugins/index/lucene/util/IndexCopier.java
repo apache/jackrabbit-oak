@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition;
 import org.apache.lucene.store.BaseDirectory;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
@@ -68,9 +69,12 @@ public class IndexCopier implements CopyOnReadStatsMBean {
 
     private final AtomicInteger localReadCount = new AtomicInteger();
     private final AtomicInteger remoteReadCount = new AtomicInteger();
+    private final AtomicInteger invalidFileCount = new AtomicInteger();
     private final AtomicLong downloadSize = new AtomicLong();
     private final AtomicLong downloadTime = new AtomicLong();
+
     private final Map<String, String> indexPathMapping = Maps.newConcurrentMap();
+    private final Map<String, String> indexPathVersionMapping = Maps.newConcurrentMap();
 
     public IndexCopier(Executor executor, File indexRootDir) {
         this.executor = executor;
@@ -83,14 +87,25 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     }
 
     protected Directory createLocalDir(String indexPath, IndexDefinition definition) throws IOException {
-        //TODO Handle the reindex case. In case of reindex a new directory should be used
-        String subDir = Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
-        File indexDir = new File(indexRootDir, subDir);
-        if (!indexDir.exists()) {
-            checkState(indexDir.mkdirs(), "Cannot create directory %s", indexDir);
+        File indexDir = getIndexDir(indexPath);
+        String newVersion = String.valueOf(definition.getReindexCount());
+        File versionedIndexDir = new File(indexDir, newVersion);
+        if (!versionedIndexDir.exists()) {
+            checkState(versionedIndexDir.mkdirs(), "Cannot create directory %s", versionedIndexDir);
         }
         indexPathMapping.put(indexPath, indexDir.getAbsolutePath());
-        return FSDirectory.open(indexDir);
+        Directory result = FSDirectory.open(versionedIndexDir);
+
+        String oldVersion = indexPathVersionMapping.put(indexPath, newVersion);
+        if (!newVersion.equals(oldVersion) && oldVersion != null) {
+            result = new DeleteOldDirOnClose(result, new File(indexDir, oldVersion));
+        }
+        return result;
+    }
+
+    public File getIndexDir(String indexPath) {
+        String subDir = Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
+        return new File(indexRootDir, subDir);
     }
 
     /**
@@ -190,6 +205,7 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                                 log.warn("Found local copy for {} in {} but size of local {} differs from remote {}. " +
                                                 "Content would be read from remote file only",
                                         name, local, localLength, remoteLength);
+                                invalidFileCount.incrementAndGet();
                             } else {
                                 reference.markValid();
                             }
@@ -222,7 +238,10 @@ public class IndexCopier implements CopyOnReadStatsMBean {
          */
         @Override
         public void close() throws IOException {
-            //TODO Handle cleanup of orphaned index directory caused by reindex
+            //Always remove old index file on close as it ensures that
+            //no other IndexSearcher are opened with previous revision of Index due to
+            //way IndexTracker closes IndexNode. At max there would be only two IndexNode
+            //opened pinned to different revision of same Lucene index
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -234,6 +253,9 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                     }
 
                     try {
+                        //This would also remove old index files if current
+                        //directory was based on newerRevision as local would
+                        //be of type DeleteOldDirOnClose
                         local.close();
                         remote.close();
                     } catch (IOException e) {
@@ -283,6 +305,26 @@ public class IndexCopier implements CopyOnReadStatsMBean {
         }
     }
 
+    private class DeleteOldDirOnClose extends FilterDirectory {
+        private final File oldIndexDir;
+
+        protected DeleteOldDirOnClose(Directory in, File oldIndexDir) {
+            super(in);
+            this.oldIndexDir = oldIndexDir;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try{
+                FileUtils.deleteDirectory(oldIndexDir);
+                log.debug("Removed old index content from {} ", oldIndexDir);
+            } catch (IOException e){
+                log.warn("Not able to remove old version of copied index at {}", oldIndexDir, e);
+            }
+            super.close();
+        }
+    }
+
     //~------------------------------------------< CopyOnReadStatsMBean >
 
     @Override
@@ -311,6 +353,10 @@ public class IndexCopier implements CopyOnReadStatsMBean {
     @Override
     public int getRemoteReadCount() {
         return remoteReadCount.get();
+    }
+
+    public int getInvalidFileCount(){
+        return invalidFileCount.get();
     }
 
     @Override
@@ -358,7 +404,5 @@ public class IndexCopier implements CopyOnReadStatsMBean {
                 throw new IllegalStateException(e);
             }
         }
-
     }
-
 }

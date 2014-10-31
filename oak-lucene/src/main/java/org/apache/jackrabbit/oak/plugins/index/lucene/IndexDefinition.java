@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
@@ -211,6 +212,13 @@ public class IndexDefinition {
 
     public Codec getCodec() {
         return codec;
+    }
+
+    public long getReindexCount(){
+        if(definition.hasProperty(REINDEX_COUNT)){
+            return definition.getProperty(REINDEX_COUNT).getValue(Type.LONG);
+        }
+        return 0;
     }
 
     public long getEntryCount() {
