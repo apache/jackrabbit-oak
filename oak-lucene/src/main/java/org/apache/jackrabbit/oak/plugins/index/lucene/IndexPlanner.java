@@ -112,7 +112,7 @@ public class IndexPlanner {
                 .setSortOrder(createSortOrder())
                 .setDelayed(true) //Lucene is always async
                 .setAttribute(LuceneIndex.ATTR_INDEX_PATH, indexPath)
-                .setEstimatedEntryCount(getReader().numDocs());
+                .setEstimatedEntryCount(Math.min(defn.getEntryCount(), getReader().numDocs()));
     }
 
     private String getPathPrefix() {
