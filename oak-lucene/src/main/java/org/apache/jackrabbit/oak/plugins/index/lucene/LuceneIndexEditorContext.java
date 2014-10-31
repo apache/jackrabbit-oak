@@ -66,7 +66,7 @@ public class LuceneIndexEditorContext {
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME));
+            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(definition));
         } else {
             // try {
             File file = new File(path);
