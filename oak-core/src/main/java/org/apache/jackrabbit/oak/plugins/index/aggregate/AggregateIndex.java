@@ -16,20 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.aggregate;
 
-
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
@@ -38,10 +29,13 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
-import org.apache.jackrabbit.oak.spi.query.Cursors.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 
@@ -50,6 +44,8 @@ import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQuer
  * Internally, it uses another full-text index.
  */
 public class AggregateIndex implements AdvanceFulltextQueryIndex {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AggregateIndex.class);    
 
     private final AdvanceFulltextQueryIndex baseIndex;
 
@@ -72,32 +68,40 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         if (baseIndex == null) {
             return Collections.emptyList();
         }
-        return baseIndex.getPlans(filter, sortOrder, rootState);
+        FullTextExpression e = filter.getFullTextConstraint();
+        if (getNodeAggregator() == null || e == null) {
+            // no aggregation: path-though
+            return baseIndex.getPlans(filter, sortOrder, rootState);
+        }
+        if (!hasCompositeExpression(e)) {
+            // path-though, but without node type restriction
+            return baseIndex.getPlans(newAggregationFilter(filter, null), sortOrder, rootState);
+        }
+        AggregateIndexPlan plan = new AggregateIndexPlan(filter);
+        collectCombinedPlan(e, filter, sortOrder, rootState, plan, "");
+        if (plan.containsPathWithoutPlan()) {
+            // this is not expected (a full-text index that 
+            // can't deal with a full-text restriction)
+            LOG.warn("Full-text index without plan: " + e);
+            return Collections.emptyList();
+        }
+        return Collections.singletonList((IndexPlan) plan);
     }
 
     @Override
     public Cursor query(IndexPlan plan, NodeState rootState) {
-
-        if (baseIndex.getNodeAggregator() == null) {
+        if (getNodeAggregator() == null) {
+            // path-though
             return baseIndex.query(plan, rootState);
+        } else if (!(plan instanceof AggregateIndexPlan)) {
+            // remove the node type restriction
+            plan.setFilter(newAggregationFilter(plan.getFilter(), null));
+            return newAggregationCursor(plan, rootState);
         }
-        return newCursor(plan, baseIndex, rootState);
-    }
-
-    private static Cursor newCursor(IndexPlan plan, AdvanceFulltextQueryIndex index,
-                                    NodeState state) {
-        Filter f = plan.getFilter();
-        FullTextExpression e = f.getFullTextConstraint();
-        if (hasCompositeExpression(e)) {
-            Cursor c = flatten(e, plan, index, state);
-            if (c != null) {
-                return c;
-            }
-        }
-
-        IndexPlan newPlan = newPlanWithAggregationFilter(plan, null);
-        return new AggregationCursor(index.query(newPlan,
-                state), index.getNodeAggregator(), state);
+        Filter filter = plan.getFilter();
+        AggregateIndexPlan aggPlan = (AggregateIndexPlan) plan;
+        FullTextExpression constraint = filter.getFullTextConstraint();
+        return flatten(constraint, aggPlan, filter, rootState, "");
     }
 
     private static boolean hasCompositeExpression(FullTextExpression ft) {
@@ -150,30 +154,34 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         return hasNegative.get();
     }
 
-    private static Cursor flatten(FullTextExpression constraint,
-            final IndexPlan plan, final AdvanceFulltextQueryIndex index,
-            final NodeState state) {
+    private Cursor flatten(FullTextExpression constraint,
+            final AggregateIndexPlan plan,
+            final Filter filter, final NodeState state,
+            final String path) {
         if (constraint == null) {
             return null;
         }
-        final Filter filter = plan.getFilter();
         final AtomicReference<Cursor> result = new AtomicReference<Cursor>();
         constraint.accept(new FullTextVisitor() {
 
             @Override
             public boolean visit(FullTextTerm term) {
-                result.set(filterToCursor(newPlanWithAggregationFilter(plan, term),
-                        index, state));
+                IndexPlan p = plan.getPlan(path);
+                result.set(newAggregationCursor(p, state));
                 return true;
             }
 
             @Override
             public boolean visit(FullTextAnd and) {
                 Iterator<FullTextExpression> iterator = and.list.iterator();
-                Cursor c = flatten(iterator.next(), plan, index, state);
+                int index = 0;
+                Cursor c = flatten(iterator.next(), plan, filter, state,
+                        path + " and(" + index + ")");
                 while (iterator.hasNext()) {
+                    index++;
                     FullTextExpression input = iterator.next();
-                    Cursor newC = flatten(input, plan, index, state);
+                    Cursor newC = flatten(input, plan, filter, state,
+                            path + " and(" + index + ")");
                     c = Cursors.newIntersectionCursor(c, newC,
                             filter.getQueryEngineSettings());
                 }
@@ -183,11 +191,13 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
 
             @Override
             public boolean visit(FullTextOr or) {
+                final int[] index = new int[1];
                 List<Cursor> cursors = Lists.transform(or.list,
                         new Function<FullTextExpression, Cursor>() {
                             @Override
                             public Cursor apply(FullTextExpression input) {
-                                return flatten(input, plan, index, state);
+                                return flatten(input, plan, filter, state,
+                                        path + " or(" + index[0]++ + ")");
                             }
                         });
                 result.set(Cursors.newConcatCursor(cursors,
@@ -198,22 +208,63 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         return result.get();
     }
 
-    private static Cursor filterToCursor(IndexPlan plan, AdvanceFulltextQueryIndex index,
-            NodeState state) {
-        return new AggregationCursor(index.query(plan, state),
-                index.getNodeAggregator(), state);
+    private void collectCombinedPlan(FullTextExpression constraint,
+            final Filter filter,
+            final List<OrderEntry> sortOrder, 
+            final NodeState state,
+            final AggregateIndexPlan target,
+            final String path) {
+        
+        constraint.accept(new FullTextVisitor() {
+
+            @Override
+            public boolean visit(FullTextTerm term) {
+                List<IndexPlan> list = baseIndex.getPlans(
+                        newAggregationFilter(filter, term), sortOrder, state);
+                target.setPlan(path, list);
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextAnd and) {
+                int index = 0;
+                for (FullTextExpression input : and.list) {
+                    collectCombinedPlan(input, filter, sortOrder, state, target, 
+                            path + " and(" + index + ")");
+                    index++;
+                }
+                return true;
+            }
+
+            @Override
+            public boolean visit(FullTextOr or) {
+                int index = 0;
+                for (FullTextExpression input : or.list) {
+                    collectCombinedPlan(input, filter, sortOrder, state, target, 
+                            path + " or(" + index + ")");
+                    index++;
+                }
+                return true;
+            }
+        });
     }
 
-    private static IndexPlan newPlanWithAggregationFilter(IndexPlan plan, FullTextExpression exp) {
-        FilterImpl f = new FilterImpl(plan.getFilter());
+    private Cursor newAggregationCursor(IndexPlan plan, NodeState rootState) {
+        Cursor c = baseIndex.query(plan, rootState);
+        // we possibly get results from a child,
+        // so we need to wrap the cursor to do aggregation
+        return new AggregationCursor(c,
+                getNodeAggregator(), rootState);         
+    }
+
+    private static Filter newAggregationFilter(Filter filter, FullTextExpression exp) {
+        FilterImpl f = new FilterImpl(filter);
         // disables node type checks for now
         f.setMatchesAllTypes(true);
         if (exp != null) {
             f.setFullTextConstraint(exp);
         }
-        IndexPlan copy = plan.copy();
-        copy.setFilter(f);
-        return copy;
+        return f;
     }
 
     @Override
@@ -226,7 +277,23 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         if (baseIndex == null) {
             return "aggregate no-index";
         }
-        return "aggregate " + baseIndex.getPlanDescription(plan, root);
+        StringBuilder buff = new StringBuilder("aggregate ");
+        if (getNodeAggregator() == null) {
+            // path-though
+            buff.append(baseIndex.getPlanDescription(plan, root));
+            return buff.toString();
+        } else if (!(plan instanceof AggregateIndexPlan)) {
+            buff.append(baseIndex.getPlanDescription(plan, root));
+            return buff.toString();
+        }
+        AggregateIndexPlan aggPlan = (AggregateIndexPlan) plan;
+        for (IndexPlan p : aggPlan.getPlans()) {
+            if (p != null) {
+                buff.append(baseIndex.getPlanDescription(p, root));
+                buff.append(" ");
+            }
+        }
+        return buff.toString();
     }
 
     @Override
@@ -240,103 +307,6 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
     @Override
     public NodeAggregator getNodeAggregator() {
         return baseIndex.getNodeAggregator();
-    }
-
-    /**
-     * An aggregation aware cursor.
-     */
-    private static class AggregationCursor extends AbstractCursor {
-
-        private final Cursor cursor;
-        private final NodeAggregator aggregator;
-        private final NodeState rootState;
-
-        private boolean init;
-        private boolean closed;
-
-        /**
-         * the current row
-         */
-        private IndexRow currentRow;
-
-        /**
-         * the path of the current item of the cursor
-         */
-        private String currentPath;
-
-        /**
-         * all of the item's known aggregates
-         */
-        private Iterator<String> aggregates;
-
-        /**
-         * should enforce uniqueness of the aggregated paths
-         */
-        private Set<String> seenPaths = new HashSet<String>();
-
-        public AggregationCursor(Cursor cursor, NodeAggregator aggregator,
-                NodeState rootState) {
-            this.cursor = cursor;
-            this.aggregator = aggregator;
-            this.rootState = rootState;
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (!closed && !init) {
-                fetchNext();
-                init = true;
-            }
-            return !closed;
-        }
-
-        private void fetchNext() {
-            if (aggregates != null && aggregates.hasNext()) {
-                currentPath = aggregates.next();
-                init = true;
-                return;
-            }
-            aggregates = null;
-            if (cursor.hasNext()) {
-                currentRow = cursor.next();
-                String path = currentRow.getPath();
-                aggregates = Iterators.filter(Iterators.concat(
-                        Iterators.singletonIterator(path),
-                        aggregator.getParents(rootState, path)), Predicates
-                        .not(Predicates.in(seenPaths)));
-                fetchNext();
-                return;
-            }
-            closed = true;
-        }
-
-        @Override
-        public IndexRow next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            seenPaths.add(currentPath);
-            init = false;
-            if (currentRow.getPath().equals(currentPath)) {
-                return currentRow;
-            }
-            // create a new overlayed index row,
-            // where the path is different but all other
-            // properties are kept
-            return new IndexRow() {
-
-                @Override
-                public String getPath() {
-                    return currentPath;
-                }
-
-                @Override
-                public PropertyValue getValue(String columnName) {
-                    return currentRow.getValue(columnName);
-                }
-                
-            };
-        }
     }
 
 }
