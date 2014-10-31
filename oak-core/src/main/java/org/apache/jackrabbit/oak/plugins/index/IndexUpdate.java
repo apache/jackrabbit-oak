@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,7 +178,9 @@ public class IndexUpdate implements Editor {
                         // as we don't know the index content node name
                         // beforehand, we'll remove all child nodes
                         for (String rm : definition.getChildNodeNames()) {
-                            definition.getChildNode(rm).remove();
+                            if (NodeStateUtils.isHidden(rm)) {
+                                definition.getChildNode(rm).remove();
+                            }
                         }
                         reindex.put(concat(getPath(), INDEX_DEFINITIONS_NAME, name), editor);
                     }
