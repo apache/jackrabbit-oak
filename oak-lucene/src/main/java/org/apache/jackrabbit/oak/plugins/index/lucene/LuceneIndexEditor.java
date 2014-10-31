@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -122,6 +123,9 @@ public class LuceneIndexEditor implements IndexEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
+        if (EmptyNodeState.MISSING_NODE == before && parent == null){
+            context.enableReindexMode();
+        }
     }
 
     @Override
