@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.isLuceneIndexNode;
 
-public class LuceneIndexLookup {
+class LuceneIndexLookup {
     private final NodeState root;
 
     public LuceneIndexLookup(NodeState root) {

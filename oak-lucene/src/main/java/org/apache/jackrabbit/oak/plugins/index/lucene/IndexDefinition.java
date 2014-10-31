@@ -51,7 +51,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 
-public class IndexDefinition {
+class IndexDefinition {
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
 
     /**
