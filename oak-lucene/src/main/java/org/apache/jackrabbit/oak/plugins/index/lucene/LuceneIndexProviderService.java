@@ -38,6 +38,7 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.IndexCopier;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
@@ -115,7 +116,9 @@ public class LuceneIndexProviderService {
         initializeLogging(config);
         initialize();
 
-        regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), indexProvider, null));
+        QueryIndexProvider aggregate = AggregateIndexProvider.wrap(indexProvider);
+
+        regs.add(bundleContext.registerService(QueryIndexProvider.class.getName(), aggregate, null));
         regs.add(bundleContext.registerService(Observer.class.getName(), indexProvider, null));
 
         oakRegs.add(registerMBean(whiteboard,
