@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -186,6 +187,23 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/2014"), asList("/test/b", "/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/2014"), asList("/test/a"));
         assertQuery("select [jcr:path] from [nt:base] where [propa] > "+ dt("15/02/2014") + " and [propa] < " + dt("13/04/2014"), asList("/test/b"));
+    }
+
+    @Ignore("OAK-2190")
+    @Test
+    public void likeQueriesWithString() throws Exception {
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.addChild("propa");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", "humpty");
+        test.addChild("b").setProperty("propa", "dumpty");
+        test.addChild("c").setProperty("propa", "humpy");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'", asList("/test/a", "test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'", asList("/test/a", "/test/b"));
     }
 
     //TODO Test for range with Date. Check for precision
