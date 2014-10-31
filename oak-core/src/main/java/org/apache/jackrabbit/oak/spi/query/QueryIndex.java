@@ -159,14 +159,12 @@ public interface QueryIndex {
 
         /**
          * Get the query plan description (for logging purposes).
-         * <p>
-         * The index plan is one of the plans that the index returned in the
-         * getPlans call.
-         * 
+         *
          * @param plan the index plan
+         * @param rootState root state of the current repository snapshot
          * @return the query plan description
          */
-        String getPlanDescription(IndexPlan plan);
+        String getPlanDescription(IndexPlan plan, NodeState rootState);
 
         /**
          * Start a query. The filter and sort order of the index plan is to be
@@ -176,7 +174,7 @@ public interface QueryIndex {
          * getPlans call.
          * 
          * @param plan the index plan to use
-         * @param root root state of the current repository snapshot
+         * @param rootState root state of the current repository snapshot
          * @return a cursor to iterate over the result
          */
         Cursor query(IndexPlan plan, NodeState rootState);

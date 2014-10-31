@@ -174,7 +174,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
     }
 
     @Override
-    public String getPlanDescription(IndexPlan plan) {
+    public String getPlanDescription(IndexPlan plan, NodeState root) {
         LOG.debug("getPlanDescription() - plan: {}", plan);
         LOG.error("Not implemented yet");
         throw new UnsupportedOperationException("Not implemented yet.");
