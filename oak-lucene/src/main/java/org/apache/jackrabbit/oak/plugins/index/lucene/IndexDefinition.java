@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +77,8 @@ public class IndexDefinition {
 
     private final int blobSize;
 
+    private final Codec codec;
+
     public IndexDefinition(NodeBuilder defn) {
         this.definition = defn;
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
@@ -112,6 +115,8 @@ public class IndexDefinition {
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
         this.funcName = functionName != null ? "native*" + functionName : null;
+
+        this.codec = createCodec();
     }
 
     boolean includeProperty(String name) {
@@ -185,7 +190,22 @@ public class IndexDefinition {
         return blobSize;
     }
 
+    public Codec getCodec() {
+        return codec;
+    }
+
     //~------------------------------------------< Internal >
+
+    private Codec createCodec() {
+        String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
+        Codec codec = null;
+        if (codecName != null) {
+            codec = Codec.forName(codecName);
+        } else if (fullTextEnabled) {
+            codec = new OakCodec();
+        }
+        return codec;
+    }
 
     private static boolean getOptionalValue(NodeBuilder definition, String propName, boolean defaultVal){
         PropertyState ps = definition.getProperty(propName);

@@ -23,6 +23,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.lucene.codecs.Codec;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -34,9 +35,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class IndexDefinitionTest {
+    private Codec oakCodec = new OakCodec();
+
     private NodeState root = INITIAL_CONTENT;
 
     private NodeBuilder builder = root.builder();
@@ -83,7 +88,23 @@ public class IndexDefinitionTest {
         assertFalse(defn.hasPropertyDefinition("bar"));
 
         assertEquals(PropertyType.DATE, defn.getPropDefn("foo").getPropertyType());
+    }
 
+    @Test
+    public void codecConfig() throws Exception{
+        IndexDefinition defn = new IndexDefinition(builder);
+        assertNotNull(defn.getCodec());
+        assertEquals(oakCodec.getName(), defn.getCodec().getName());
+
+        builder.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        defn = new IndexDefinition(builder);
+        assertNull(defn.getCodec());
+
+        Codec simple = Codec.getDefault();
+        builder.setProperty(LuceneIndexConstants.CODEC_NAME, simple.getName());
+        defn = new IndexDefinition(builder);
+        assertNotNull(defn.getCodec());
+        assertEquals(simple.getName(), defn.getCodec().getName());
     }
 
 
