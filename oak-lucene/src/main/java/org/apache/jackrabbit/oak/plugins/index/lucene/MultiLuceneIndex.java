@@ -50,7 +50,7 @@ public class MultiLuceneIndex {
 
     public Cursor query() {
         throw new IllegalStateException(
-                "Queries that use multiple relative properties is not yet supported");
+                "Queries that use multiple relative properties are not yet supported");
     }
 
 }
