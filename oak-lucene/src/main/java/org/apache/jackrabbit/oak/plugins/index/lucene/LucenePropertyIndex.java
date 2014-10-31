@@ -55,6 +55,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -106,7 +107,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
@@ -150,7 +151,7 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  * @see org.apache.jackrabbit.oak.spi.query.QueryIndex
  *
  */
-public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
+public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
@@ -171,14 +172,10 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
 
     private final Analyzer analyzer;
 
-    private final NodeAggregator aggregator;
-
     public LucenePropertyIndex(
-            IndexTracker tracker, Analyzer analyzer,
-            NodeAggregator aggregator) {
+            IndexTracker tracker, Analyzer analyzer) {
         this.tracker = tracker;
         this.analyzer = analyzer;
-        this.aggregator = aggregator;
     }
 
     @Override
@@ -1142,11 +1139,6 @@ public class LucenePropertyIndex implements AdvanceFulltextQueryIndex {
             }
         }
         return tokens;
-    }
-
-    @Override
-    public NodeAggregator getNodeAggregator() {
-        return aggregator;
     }
 
     static class LuceneResultRow {

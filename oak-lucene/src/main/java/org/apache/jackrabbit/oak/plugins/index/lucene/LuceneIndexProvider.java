@@ -68,7 +68,7 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
 
     @Override @Nonnull
     public List<QueryIndex> getQueryIndexes(NodeState nodeState) {
-        return ImmutableList.<QueryIndex> of(new AggregateIndex(newLuceneIndex()), newLucenePropertyIndex());
+        return ImmutableList.<QueryIndex> of(newLuceneIndex(), newLucenePropertyIndex());
     }
 
     protected LuceneIndex newLuceneIndex() {
@@ -76,9 +76,8 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker, analyzer, aggregator);
+        return new LucenePropertyIndex(tracker, analyzer);
     }
-
 
     /**
      * sets the default analyzer that will be used at query time
