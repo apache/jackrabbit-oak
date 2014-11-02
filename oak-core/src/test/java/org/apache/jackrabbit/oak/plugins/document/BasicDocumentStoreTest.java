@@ -523,6 +523,31 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
+    public void testPerfReadBigDoc() {
+        String id = this.getClass().getName() + ".testReadBigDoc";
+        long duration = 1000;
+        int cnt = 0;
+
+        super.ds.remove(Collection.NODES, Collections.singletonList(id));
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        for (int i = 0; i < 100; i++) {
+            up.set("foo" + i, generateString(1024, true));
+        }
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
+        long end = System.currentTimeMillis() + duration;
+        while (System.currentTimeMillis() < end) {
+            NodeDocument d = super.ds.find(Collection.NODES, id, 10); // allow 10ms old entries
+            cnt += 1;
+        }
+
+        LOG.info("big doc read from " + super.dsname + " was "
+                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+    }
+
+    @Test
     public void testUpdatePerfSmall() {
         updatePerf(16, false);
     }
