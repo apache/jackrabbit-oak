@@ -94,7 +94,7 @@ public class MoreLikeThisHelper {
                                 fieldNames.add(f.name());
                             }
                         }
-                        String[] docFields = fieldNames.toArray(new String[0]);
+                        String[] docFields = fieldNames.toArray(new String[fieldNames.size()]);
                         mlt.setFieldNames(docFields);
                         moreLikeThisQuery = mlt.like(d.doc);
                     }
