@@ -667,8 +667,49 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] asc, [baz] desc", getSortedPaths(tuples));
     }
 
+    @Test
+    public void indexTimeFieldBoost() throws Exception {
+
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb", "propc"));
+        idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
+        Tree propNode = idx.addChild(PROP_NODE);
+        root.commit();
+
+        // property definition for index test1
+        Tree propA = propNode.addChild("propa");
+        propA.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propA.setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+
+        Tree propB = propNode.addChild("propb");
+        propB.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propB.setProperty(LuceneIndexConstants.FIELD_BOOST, 1.0);
+
+        Tree propC = propNode.addChild("propc");
+        propC.setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_STRING);
+        propC.setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+        root.commit();
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+        test.addChild("a").setProperty("propa", "foo");
+        test.addChild("b").setProperty("propb", "foo");
+        test.addChild("c").setProperty("propc", "foo");
+        root.commit();
+
+        String queryString = "//* [jcr:contains(., 'foo' )]";
+        // verify results ordering
+        // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
+        assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
+    }
+
     private void assertOrderedQuery(String sql, List<String> paths) {
-        List<String> result = executeQuery(sql, SQL2, true);
+        assertOrderedQuery(sql, paths, SQL2, false);
+    }
+
+    private void assertOrderedQuery(String sql, List<String> paths, String language, boolean skipSort) {
+        List<String> result = executeQuery(sql, language, true, skipSort);
         assertEquals(paths, result);
     }
 

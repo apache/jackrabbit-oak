@@ -100,4 +100,10 @@ public interface LuceneIndexConstants {
      * Child node name under which property details are provided
      */
     String PROP_NODE = "properties";
+
+    /**
+     * Field boost factor
+     */
+    String FIELD_BOOST = "boost";
+
 }
