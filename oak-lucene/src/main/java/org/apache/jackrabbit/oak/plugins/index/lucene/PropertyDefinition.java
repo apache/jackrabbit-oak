@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,8 @@ class PropertyDefinition {
     private final NodeBuilder definition;
 
     private final int propertyType;
+    private double fieldBoost;
+    private boolean hasFieldBoost;
 
     public PropertyDefinition(IndexDefinition idxDefn, String name, NodeBuilder defn) {
         this.name = name;
@@ -46,9 +49,20 @@ class PropertyDefinition {
             }
         }
         this.propertyType = type;
+        this.hasFieldBoost = defn.hasProperty(LuceneIndexConstants.FIELD_BOOST) && (defn.getProperty(LuceneIndexConstants.FIELD_BOOST).getType().tag() == Type.DOUBLE.tag());
+        // if !hasFieldBoost then setting default lucene field boost = 1.0
+        fieldBoost = hasFieldBoost ? defn.getProperty(LuceneIndexConstants.FIELD_BOOST).getValue(Type.DOUBLE) : 1.0;
     }
 
     public int getPropertyType() {
         return propertyType;
+    }
+
+    public boolean hasFieldBoost() {
+        return hasFieldBoost;
+    }
+
+    public double fieldBoost() {
+        return fieldBoost;
     }
 }
