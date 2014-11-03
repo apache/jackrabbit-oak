@@ -345,6 +345,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // for DBs that prefer "limit" over "fetch first"
     private boolean needsLimit = false;
 
+    // for DBs that do not support CASE in SELECT (currently all)
+    private boolean allowsCaseInSelect = true;
+
     // set of supported indexed properties
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
@@ -761,7 +764,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 lastmodcount = cachedDoc.getModCount().longValue();
             }
             connection = getConnection();
-            RDBRow row = dbRead(connection, tableName, id);
+            RDBRow row = dbRead(connection, tableName, id, lastmodcount);
             if (row == null) {
                 return null;
             }
@@ -968,12 +971,29 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private RDBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
+    private RDBRow dbRead(Connection connection, String tableName, String id, long lastmodcount) throws SQLException {
         PreparedStatement stmt;
-        stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
+        boolean useCaseStatement = lastmodcount != -1 && allowsCaseInSelect;
+        if (useCaseStatement) {
+            // either we don't have a previous version of the document
+            // or the database does not support CASE in SELECT
+            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
+        } else {
+            // the case statement causes the actual row data not to be
+            // sent in case we already have it
+            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, case MODCOUNT when ? then null else DATA end as DATA, "
+                    + "case MODCOUNT when ? then null else BDATA end as BDATA from " + tableName + " where ID = ?");
+        }
 
         try {
-            stmt.setString(1, id);
+            if (useCaseStatement) {
+                stmt.setString(1, id);
+            }
+            else {
+                stmt.setLong(1, lastmodcount);
+                stmt.setLong(2, lastmodcount);
+                stmt.setString(3, id);
+            }
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 long modified = rs.getLong(1);
