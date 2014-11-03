@@ -458,10 +458,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
         if (collection != Collection.NODES) {
-            return readDocumentUncached(collection, id);
+            return readDocumentUncached(collection, id, null);
         } else {
             CacheValue cacheKey = new StringValue(id);
-            NodeDocument doc;
+            NodeDocument doc = null;
             if (maxCacheAge > 0) {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
@@ -473,6 +473,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             try {
                 Lock lock = getAndLock(id);
+                final NodeDocument cachedDoc = doc;
                 try {
                     if (maxCacheAge == 0) {
                         invalidateCache(collection, id);
@@ -481,7 +482,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
                             @Override
                             public NodeDocument call() throws Exception {
-                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id);
+                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
                                 if (doc != null) {
                                     doc.seal();
                                 }
@@ -491,7 +492,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
                             break;
                         }
-                        if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                        if (System.currentTimeMillis() - doc.getLastCheckTime() < maxCacheAge) {
                             break;
                         }
                         // too old: invalidate, try again
@@ -566,7 +567,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // this is an edge case, so it's ok to bypass the cache
                 // (avoiding a race condition where the DB is already updated
                 // but the cache is not)
-                oldDoc = readDocumentUncached(collection, update.getId());
+                oldDoc = readDocumentUncached(collection, update.getId(), null);
                 if (oldDoc == null) {
                     // something else went wrong
                     LOG.error("insert failed, but document " + update.getId() + " is not present, aborting", ex);
@@ -606,7 +607,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was updated by
                                 // a different instance, get a fresh one
-                                oldDoc = readDocumentUncached(collection, update.getId());
+                                oldDoc = readDocumentUncached(collection, update.getId(), null);
                             }
                         }
 
@@ -751,13 +752,29 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id) {
+    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id, NodeDocument cachedDoc) {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
+            long lastmodcount = -1;
+            if (cachedDoc != null && cachedDoc.getModCount() != null) {
+                lastmodcount = cachedDoc.getModCount().longValue();
+            }
             connection = getConnection();
             RDBRow row = dbRead(connection, tableName, id);
-            return row != null ? SR.fromRow(collection, row) : null;
+            if (row == null) {
+                return null;
+            }
+            else {
+                if (lastmodcount == row.getModcount()) {
+                    // we can re-use the cached document
+                    cachedDoc.markUpToDate(System.currentTimeMillis());
+                    return (T)cachedDoc;
+                }
+                else {
+                    return SR.fromRow(collection, row);
+                }
+            }
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
@@ -952,7 +969,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @CheckForNull
     private RDBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
+        PreparedStatement stmt;
+        stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
+
         try {
             stmt.setString(1, id);
             ResultSet rs = stmt.executeQuery();
