@@ -16,8 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 /**
  * Container for the information in a RDB database column.
+ * <p>
+ * Note that the String "data" and the byte[] "bdata" may be null
+ * when the SQL SELECT request was conditional on "modcount" being
+ * unchanged.
  */
 public class RDBRow {
 
@@ -33,22 +40,27 @@ public class RDBRow {
         this.bdata = bdata;
     }
 
+    @Nonnull
     public String getId() {
         return id;
     }
 
+    @CheckForNull
     public String getData() {
         return data;
     }
 
+    @Nonnull
     public long getModified() {
         return modified;
     }
 
+    @Nonnull
     public long getModcount() {
         return modcount;
     }
 
+    @CheckForNull
     public byte[] getBdata() {
         return bdata;
     }
