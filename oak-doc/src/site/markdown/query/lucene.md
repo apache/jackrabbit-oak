@@ -370,23 +370,18 @@ index content e.g. size of index, number of documents present in index etc
 Following are some best practices to get good performance from Lucene based 
 indexes
 
-1. Make use of [CopyOnRead](#copy-on-read) so as to enable local copying of 
-   Lucene index. This would enable use of memory mapped io on supported 
-   platforms and hence better performance/
-    
-2. Make use on [non root indexes](#non-root-index). If you query always 
+1. Make use on [non root indexes](#non-root-index). If you query always 
   perform search under certain paths then create index definition under those 
   paths only. This might be helpful in multi tenant deployment where each tenant 
   data is stored under specific repository path and all queries are made under 
   those path.
    
-3. Index only required data. Depending on your requirement you can create 
+2. Index only required data. Depending on your requirement you can create 
    multiple Lucene indexes. For example if in majority of cases you are 
    querying on various properties specified under `<node>/jcr:content/metadata`
    where node belong to certain specific nodeType then create single index 
    definition listing all such properties and restrict it that nodeType. You 
    can the size of index via mbean
-
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
