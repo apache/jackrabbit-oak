@@ -107,6 +107,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFull
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
+import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST;
 import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
 import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
@@ -150,7 +151,7 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  * @see org.apache.jackrabbit.oak.spi.query.QueryIndex
  *
  */
-public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex {
+public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
