@@ -39,7 +39,7 @@ under the License.
       <item href="nodestore/overview.html" name="NodeStore and MicroKernel API" />
     </menu>
     <menu name="Features and Plugins">
-      <item href="query.html" name="Query" />
+      <item href="query/query.html" name="Query" />
       <item href="security/overview.html" name="Security" />
       <item href="plugins/blobstore.html" name="BlobStore" />
       <item href="clustering.html" name="Clustering" />
