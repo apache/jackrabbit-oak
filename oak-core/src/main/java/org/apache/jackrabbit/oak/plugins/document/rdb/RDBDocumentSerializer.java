@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
@@ -52,6 +53,8 @@ public class RDBDocumentSerializer {
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
     private static final String ID = "_id";
+    private static final String HASBINARY = NodeDocument.HAS_BINARY_FLAG;
+
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
     public RDBDocumentSerializer(DocumentStore store, Set<String> columnProperties) {
@@ -197,6 +200,9 @@ public class RDBDocumentSerializer {
         doc.put(ID, row.getId());
         doc.put(MODIFIED, row.getModified());
         doc.put(MODCOUNT, row.getModcount());
+        if (row.hasBinaryProperties()) {
+            doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
+        }
 
         JSONParser jp = new JSONParser();
 
