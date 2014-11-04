@@ -179,6 +179,7 @@ Usually, data is read from the index and repository while traversing over the qu
 result. There are exceptions however, where all data is read in memory when the query
 is executed: when using a full-text index, and when using an "order by" clause.
 
+<a name="property-index"></a>
 ### The Property Index
 
 Is useful whenever there is a query with a property constraint that is not full-text:
@@ -295,67 +296,9 @@ _Caveats_
   define it as asynchronous by providing `async=async` in the index
   definition. This is to avoid cluster merges.
 
-### The Lucene Full-Text Index
+### The Lucene Index
 
-The full-text index handles the 'contains' type of queries:
-
-    //*[jcr:contains(., 'text')]
-
-If a full-text index is configured, then all queries that have a full-text condition
-use the full-text index, no matter if there are other conditions that are indexed,
-and no matter if there is a path restriction.
-
-If no full-text index is configured, then queries with full-text conditions
-may not work as expected. (The query engine has a basic verification in place 
-for full-text conditions, but it does not support all features that Lucene does,
-and it traverses all nodes if there are no indexed constraints).
-
-The full-text index update is asynchronous via a background thread, 
-see `Oak#withAsyncIndexing`.
-This means that some full-text searches will not work for a small window of time: 
-the background thread runs every 5 seconds, plus the time is takes to run the diff 
-and to run the text-extraction process. 
-
-The async update status is now reflected on the `oak:index` node with the help of 
-a few properties, see [OAK-980](https://issues.apache.org/jira/browse/OAK-980)
-
-TODO Node aggregation [OAK-828](https://issues.apache.org/jira/browse/OAK-828)
-
-The index definition node for a lucene-based full-text index:
-
-* must be of type `oak:QueryIndexDefinition`
-* must have the `type` property set to __`lucene`__
-* must contain the `async` property set to the value `async`, this is what sends the 
-index update process to a background thread
-
-_Optionally_ you can add
-
- * what subset of property types to be included in the index via the `includePropertyTypes` property
- * a blacklist of property names: what property to be excluded from the index via the `excludePropertyNames` property
- * the `reindex` flag which when set to `true`, triggers a full content re-index.
-
-Example:
-
-    {
-      NodeBuilder index = root.child("oak:index");
-      index.child("lucene")
-        .setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME)
-        .setProperty("type", "lucene")
-        .setProperty("async", "async")
-        .setProperty(PropertyStates.createProperty("includePropertyTypes", ImmutableSet.of(
-            PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), Type.STRINGS))
-        .setProperty(PropertyStates.createProperty("excludePropertyNames", ImmutableSet.of( 
-            "jcr:createdBy", "jcr:lastModifiedBy"), Type.STRINGS))
-        .setProperty("reindex", true);
-    }
-
-__Note__ The Oak Lucene index will only index _Strings_ and _Binaries_ by default. If you need to add another data type, you need to add it to the  _includePropertyTypes_ setting, and don't forget to set the _reindex_ flag to true.
-
-To store the Lucene index in the file system, 
-in the Lucene index definition node, 
-set the property "persistence" to "file", and 
-set the property "path" to the directory where the index should be stored. 
-Then start reindexing by setting "reindex" to "true" (a boolean).
+Refer to [Lucene Index](lucene.html) for details.
 
 ### The Solr Index
 
