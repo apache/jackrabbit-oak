@@ -115,12 +115,19 @@ public interface QueryIndex {
     String getIndexName();
 
     /**
-     * A maker interface which means this index supports may support more than
+     *  A marker interface which means this index supports executing native queries
+     */
+    public interface NativeQueryIndex {
+
+    }
+
+    /**
+     * A marker interface which means this index supports may support more than
      * just the minimal fulltext query syntax. If this index is used, then the
      * query engine does not verify the fulltext constraint(s) for the given
      * selector.
      */
-    public interface FulltextQueryIndex extends QueryIndex {
+    public interface FulltextQueryIndex extends QueryIndex, NativeQueryIndex {
 
         /**
          * Returns the NodeAggregator responsible for providing the aggregation
