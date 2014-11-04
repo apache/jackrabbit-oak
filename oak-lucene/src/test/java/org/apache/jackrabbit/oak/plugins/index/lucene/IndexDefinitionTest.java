@@ -93,6 +93,17 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void propertyDefinitionWithExcludes() throws Exception{
+        builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        IndexDefinition defn = new IndexDefinition(builder);
+
+        assertTrue(defn.hasPropertyDefinition("foo"));
+        assertFalse(defn.hasPropertyDefinition("bar"));
+
+        assertEquals(PropertyType.DATE, defn.getPropDefn("foo").getPropertyType());
+    }
+
+    @Test
     public void codecConfig() throws Exception{
         IndexDefinition defn = new IndexDefinition(builder);
         assertNotNull(defn.getCodec());
