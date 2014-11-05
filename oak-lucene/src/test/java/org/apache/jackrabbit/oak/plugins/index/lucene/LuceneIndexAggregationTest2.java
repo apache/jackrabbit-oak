@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.ImmutableList.of;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.fail;
 
@@ -30,6 +35,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -57,6 +64,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
@@ -217,4 +225,85 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         setTraversalEnabled(true);
     }
 
+    @Test
+    public void oak2249() throws Exception {
+        setTraversalEnabled(false);
+        final String statement = "//element(*, test:Asset)[ " +
+            "( " +
+                "jcr:contains(., 'summer') " +
+                "or " + 
+                "jcr:content/metadata/@tags = 'namespace:season/summer' " +
+            ") and " +
+                "jcr:contains(jcr:content/metadata/@format, 'image') " +
+            "]"; 
+        
+        Tree content = root.getTree("/").addChild("content");
+        List<String> expected = newArrayList();
+        
+        Tree metadata = createAssetStructure(content, "tagged");
+        metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+        metadata.setProperty("format", "image/jpeg", STRING);
+        expected.add("/content/tagged");
+        
+        metadata = createAssetStructure(content, "titled");
+        metadata.setProperty("title", "Lorem summer ipsum", STRING);
+        metadata.setProperty("format", "image/jpeg", STRING);
+        expected.add("/content/titled");
+
+        metadata = createAssetStructure(content, "summer-node");
+        metadata.setProperty("format", "image/jpeg", STRING);
+        expected.add("/content/summer-node");
+        
+        // the following is NOT expected
+        metadata = createAssetStructure(content, "winter-node");
+        metadata.setProperty("tags", of("namespace:season/winter"), STRINGS);
+        metadata.setProperty("title", "Lorem winter ipsum", STRING);
+        metadata.setProperty("format", "image/jpeg", STRING);
+
+        root.commit();
+        
+        assertQuery(statement, "xpath", expected);
+        setTraversalEnabled(true);
+    }
+    
+    /**
+     * <p>
+     * convenience method that create an "asset" structure like
+     * </p>
+     * 
+     * <pre>
+     *  "parent" : {
+     *      "nodeName" : {
+     *          "jcr:primaryType" : "test:Asset",
+     *          "jcr:content" : {
+     *              "jcr:primaryType" : "test:AssetContent",
+     *              "metatada" : {
+     *                  "jcr:primaryType" : "nt:unstructured"
+     *              }
+     *          }
+     *      }
+     *  }
+     * </pre>
+     * 
+     * <p>
+     *  and returns the {@code metadata} node
+     * </p>
+     * 
+     * @param parent the parent under which creating the node
+     * @param nodeName the node name to be used
+     * @return the {@code metadata} node. See above for details
+     */
+    private static Tree createAssetStructure(@Nonnull final Tree parent, 
+                                             @Nonnull final String nodeName) {
+        checkNotNull(parent);
+        checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
+        
+        Tree node = parent.addChild(nodeName);
+        node.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
+        node = node.addChild(JCR_CONTENT);
+        node.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSETCONTENT, NAME);
+        node = node.addChild("metadata");
+        node.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, NAME);
+        return node;
+    }
 }
