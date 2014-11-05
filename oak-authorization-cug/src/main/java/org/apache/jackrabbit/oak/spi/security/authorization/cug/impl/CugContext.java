@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * CugContext... TODO
+ * CUG specific {@code Context} implementation.
  */
 final class CugContext implements Context, CugConstants {
 
@@ -55,8 +55,8 @@ final class CugContext implements Context, CugConstants {
             PropertyState p = location.getProperty();
             return (p == null) ? definesTree(tree) : definesProperty(tree, p);
         } else {
-            String name = Text.getName(location.getPath());
-            return REP_PRINCIPAL_NAMES.equals(name) || REP_CUG_POLICY.equals(name);
+            String path = location.getPath();
+            return REP_CUG_POLICY.equals(Text.getName(path)) || path.endsWith(REP_CUG_POLICY + '/' + REP_PRINCIPAL_NAMES);
         }
     }
 }

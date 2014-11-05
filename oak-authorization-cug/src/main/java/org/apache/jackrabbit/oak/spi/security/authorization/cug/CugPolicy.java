@@ -28,11 +28,35 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
  */
 public interface CugPolicy extends JackrabbitAccessControlPolicy {
 
+    /**
+     * Returns the set of {@code Principal}s that are allowed to access the items
+     * in the restricted area defined by this policy.
+     *
+     * @return The set of {@code Principal}s that are allowed to access the
+     * restricted area.
+     */
     @Nonnull
     Set<Principal> getPrincipals();
 
+    /**
+     * Add {@code Principal}s that are allowed to access the restricted area.
+     *
+     * @param principals The {@code Principal}s that are granted read access.
+     * @return {@code true} if this policy was modified; {@code false} otherwise.
+     * @throws AccessControlException If any of the specified principals is
+     * invalid.
+     */
     boolean addPrincipals(@Nonnull Principal... principals) throws AccessControlException;
 
-    boolean removePrincipals(@Nonnull Principal... principals);
+    /**
+     * Remove the specified {@code Principal}s for the set of allowed principals
+     * thus revoking their ability to read items in the restricted area defined
+     * by this policy.
+     *
+     * @param principals The {@code Principal}s for which access should be revoked.
+     * @return {@code true} if this policy was modified; {@code false} otherwise.
+     * @throws  AccessControlException If an error occurs.
+     */
+    boolean removePrincipals(@Nonnull Principal... principals) throws AccessControlException;
 
 }

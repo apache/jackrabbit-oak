@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CugImporter... TODO
+ * CUG specific implementation of the {@code ProtectedPropertyImporter}.
  */
 class CugImporter implements ProtectedPropertyImporter, CugConstants {
 
@@ -98,11 +98,12 @@ class CugImporter implements ProtectedPropertyImporter, CugConstants {
                 if (principal == null) {
                     switch (importBehavior) {
                         case ImportBehavior.IGNORE:
-                            log.debug("Unknown principal " + principalName + " -> Ignoring this ACE.");
+                            log.debug("Ignoring unknown principal with name '" + principalName + "'.");
                             break;
                         case ImportBehavior.ABORT:
-                            throw new AccessControlException("Unknown principal " + principalName);
+                            throw new AccessControlException("Unknown principal '" + principalName + "'.");
                         case ImportBehavior.BESTEFFORT:
+                            log.debug("Importing unknown principal '" + principalName + '\'');
                             principalNames.add(principalName);
                             break;
                         default:
