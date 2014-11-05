@@ -123,6 +123,7 @@
       org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefToVersionNode                              <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testMultipleDeref                                   <!-- OAK-321 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- OAK-2249 -->
       org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeSQL                    <!-- OAK-902 -->
       org.apache.jackrabbit.core.query.FulltextQueryTest#testContainsPropScopeXPath                  <!-- OAK-902 -->
       org.apache.jackrabbit.core.query.XPathAxisTest#testIndex0Descendant                            <!-- OAK-322 -->
