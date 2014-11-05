@@ -83,9 +83,7 @@ public class Statement {
     }
     
     private static void addToUnionList(Expression condition,  ArrayList<Expression> unionList) {
-        if (condition.containsFullTextCondition()) {
-            // do not use union
-        } else if (condition instanceof OrCondition) {
+        if (condition instanceof OrCondition) {
             OrCondition or = (OrCondition) condition;
             // conditions of type                
             // @x = 1 or @y = 2

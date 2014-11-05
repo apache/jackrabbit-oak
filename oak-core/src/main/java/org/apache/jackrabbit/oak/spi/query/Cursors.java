@@ -439,7 +439,12 @@ public class Cursors {
         ConcatCursor(List<Cursor> cursors, QueryEngineSettings settings) {
             this.cursors = cursors;
             this.settings = settings;
-            this.currentCursor = cursors.remove(0);
+            if (cursors.size() == 0) {
+                init = true;
+                closed = true;
+            } else {
+                this.currentCursor = cursors.remove(0);
+            }
         }
 
         @Override
