@@ -401,7 +401,7 @@ public class FilterImpl implements Filter {
             buff.append("query=").append(queryStatement);
         }
         if (fullTextConstraint != null) {
-            buff.append("fullText=").append(fullTextConstraint);
+            buff.append(" fullText=").append(fullTextConstraint);
         }
         buff.append(", path=").append(getPathPlan());
         if (!propertyRestrictions.isEmpty()) {

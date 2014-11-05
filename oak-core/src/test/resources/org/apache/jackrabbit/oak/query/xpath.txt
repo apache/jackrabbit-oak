@@ -237,8 +237,11 @@ xpath2sql //*[((@jcr:primaryType = 'nt:unstructured')
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
   where [jcr:primaryType] = 'nt:unstructured'
-  and (contains(*, 'hello')
-  or contains(*, 'world'))
+  and contains(*, 'hello')
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where [jcr:primaryType] = 'nt:unstructured'
+  and contains(*, 'world')
   /* xpath ... */
 
 xpath2sql //*[(((@jcr:primaryType = 'nt:unstructured')
@@ -249,9 +252,14 @@ xpath2sql //*[(((@jcr:primaryType = 'nt:unstructured')
 select [jcr:path], [jcr:score], *
   from [nt:base] as a
   where [jcr:primaryType] = 'nt:unstructured'
-  and (contains(*, 'hello')
-  or contains(*, 'world'))
-  or [content] = '/data'
+  and contains(*, 'hello')
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where [jcr:primaryType] = 'nt:unstructured'
+  and contains(*, 'world')
+  union select [jcr:path], [jcr:score], *
+  from [nt:base] as a
+  where [content] = '/data'
   and [jcr:primaryType] = 'nt:folder'
   /* xpath ... */
 
@@ -590,10 +598,18 @@ xpath2sql //element(*,rep:Authorizable)
 select [jcr:path], [jcr:score], *
   from [rep:Authorizable] as a
   where contains([profile/givenName/*], '**')
-  or contains([profile/familyName/*], '**')
-  or contains([profile/email/*], '**')
-  or [rep:principalName] like '%%'
-  or name(a) like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/familyName/*], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/email/*], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where [rep:principalName] like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where name(a) like '%%'
   order by [rep:principalName]
   /* xpath ... */
 
@@ -607,10 +623,18 @@ xpath2sql //element(*,rep:Authorizable)
 select [jcr:path], [jcr:score], *
   from [rep:Authorizable] as a
   where contains([profile/givenName/*], '**')
-  or contains([profile/familyName/*], '**')
-  or contains([profile/email/*], '**')
-  or [rep:principalName] like '%%'
-  or name(a) like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/familyName/*], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/email/*], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where [rep:principalName] like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where name(a) like '%%'
   order by [rep:principalName]
   /* xpath ... */
 
@@ -672,10 +696,18 @@ xpath2sql //element(*,rep:Authorizable)
 select [jcr:path], [jcr:score], *
   from [rep:Authorizable] as a
   where contains([profile/givenName], '**')
-  or contains([profile/familyName], '**')
-  or contains([profile/email], '**')
-  or [rep:principalName] like '%%'
-  or name(a) like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/familyName], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where contains([profile/email], '**')
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where [rep:principalName] like '%%'
+  union select [jcr:path], [jcr:score], *
+  from [rep:Authorizable] as a
+  where name(a) like '%%'
   order by [rep:principalName]
   /* xpath ... */
 
