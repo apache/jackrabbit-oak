@@ -176,19 +176,19 @@ public class LuceneIndexEditor implements IndexEditor {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        markPropertiesChanged();
+        markPropertyChanged(after.getName());
         checkForRelativePropertyChange(after.getName());
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
-        markPropertiesChanged();
+        markPropertyChanged(before.getName());
         checkForRelativePropertyChange(before.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
-        markPropertiesChanged();
+        markPropertyChanged(before.getName());
         checkForRelativePropertyChange(before.getName());
     }
 
@@ -505,7 +505,7 @@ public class LuceneIndexEditor implements IndexEditor {
             }
 
             if (p != null) {
-                p.markPropertiesChanged();
+                p.relativePropertyChanged();
             }
         }
     }
@@ -517,7 +517,13 @@ public class LuceneIndexEditor implements IndexEditor {
         return changedRelativeProps;
     }
 
-    private void markPropertiesChanged() {
+    private void markPropertyChanged(String name) {
+        if (!propertiesChanged && context.getDefinition().includeProperty(name)) {
+            propertiesChanged = true;
+        }
+    }
+
+    private void relativePropertyChanged() {
         propertiesChanged = true;
     }
 
