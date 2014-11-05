@@ -402,9 +402,11 @@ mentioned steps
         Copied 8.5 MB in 218.7 ms
         />
        
-3. Post dump open the index via luke
+3. Post dump open the index via Luke. Oak Lucene uses a [custom 
+   Codec][OAK-1737]. So oak-lucene jar needs to be included in Luke classpath
+   for it to display the index details
 
-        $java -XX:MaxPermSize=512m -jar luke-with-deps.jar
+        $ java -XX:MaxPermSize=512m luke-with-deps.jar:oak-lucene-1.0.8.jar org.getoptuke.Luke
         
 From the Luke UI shown you can access various details.
 
@@ -431,5 +433,6 @@ indexes
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-2196]: https://issues.apache.org/jira/browse/OAK-2196
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
+[OAK-1737]: https://issues.apache.org/jira/browse/OAK-1737 
 [luke]: https://code.google.com/p/luke/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
