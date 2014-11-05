@@ -56,7 +56,8 @@ public interface ProtectedItemImporter {
     boolean init(@Nonnull Session session, @Nonnull Root root,
             @Nonnull NamePathMapper namePathMapper,
             boolean isWorkspaceImport, int uuidBehavior,
-            @Nonnull ReferenceChangeTracker referenceTracker, SecurityProvider securityProvider);
+            @Nonnull ReferenceChangeTracker referenceTracker,
+            @Nonnull SecurityProvider securityProvider);
 
     /**
      * Post processing protected reference properties underneath a protected
