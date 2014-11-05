@@ -365,6 +365,49 @@ index content e.g. size of index, number of documents present in index etc
 
 ![Lucene Index MBean](lucene-index-mbean.png)
 
+<a name="luke"></a>
+### Analyzing created Lucene Index
+
+[Luke]  is a handy development and diagnostic tool, which accesses already 
+existing Lucene indexes and allows you to display index details. In Oak 
+Lucene index files are stored in `NodeStore` and hence not directly 
+accessible. To enable analyzing the index files via Luke follow below 
+mentioned steps
+
+1. Download the Luke version which includes the matching Lucene jars used by 
+   Oak. As of Oak 1.0.8 release the Lucene version used is 4.7.1. So download
+    the jar from [here](https://github.com/DmitryKey/luke/releases)
+     
+        $wget https://github.com/DmitryKey/luke/releases/download/4.7.0/luke-with-deps.jar
+        
+2. Use the [Oak Console][oak-console] to dump the Lucene index from `NodeStore`
+   to filesystem directory. Use the `lc dump` command
+   
+        $ java -jar oak-run-*.jar console /path/to/oak/repository
+        Apache Jackrabbit Oak 1.1-SNAPSHOT
+        Jackrabbit Oak Shell (Apache Jackrabbit Oak 1.1-SNAPSHOT, JVM: 1.7.0_55)
+        Type ':help' or ':h' for help.
+        -------------------------------------------------------------------------
+        /> lc info /oak:index/lucene
+        Index size : 74.1 MB
+        Number of documents : 235708
+        Number of deleted documents : 231
+        /> lc 
+        dump   info   
+        /> lc dump /path/to/dump/index/lucene /oak:index/lucene
+        Copying Lucene indexes to [/path/to/dump/index/lucene]
+        Copied 74.1 MB in 1.209 s
+        /> lc dump /path/to/dump/index/slingAlias /oak:index/slingAlias
+        Copying Lucene indexes to [/path/to/dump/index/lucene-index/slingAlias]
+        Copied 8.5 MB in 218.7 ms
+        />
+       
+3. Post dump open the index via luke
+
+        $java -XX:MaxPermSize=512m -jar luke-with-deps.jar
+        
+From the Luke UI shown you can access various details.
+
 ### Index performance
 
 Following are some best practices to get good performance from Lucene based 
@@ -388,3 +431,5 @@ indexes
 [OAK-1724]: https://issues.apache.org/jira/browse/OAK-1724
 [OAK-2196]: https://issues.apache.org/jira/browse/OAK-2196
 [OAK-2005]: https://issues.apache.org/jira/browse/OAK-2005
+[luke]: https://code.google.com/p/luke/
+[oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
