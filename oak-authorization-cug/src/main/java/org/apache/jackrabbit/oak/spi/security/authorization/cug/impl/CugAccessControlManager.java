@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Abstra
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -58,7 +59,8 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * CugAccessControlManager... TODO
+ * Implementation of the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}
+ * interface that allows to create, modify and remove closed user group policies.
  */
 class CugAccessControlManager extends AbstractAccessControlManager implements CugConstants {
 
@@ -80,7 +82,7 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
     @Override
     public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
         if (isSupportedPath(getOakPath(absPath))) {
-            return new Privilege[] {privilegeFromName(Privilege.JCR_READ)};
+            return new Privilege[] {privilegeFromName(PrivilegeConstants.JCR_READ)};
         } else {
             return new Privilege[0];
         }
@@ -190,8 +192,15 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
 
     //--------------------------------------------------------------------------
 
-    private boolean isSupportedPath(@Nullable String oakPath) {
+    private boolean isSupportedPath(@Nullable String oakPath) throws RepositoryException {
+        checkValidPath(oakPath);
         return CugUtil.isSupportedPath(oakPath, config);
+    }
+
+    private void checkValidPath(@Nullable String oakPath) throws RepositoryException {
+        if (oakPath != null) {
+            getTree(oakPath, Permissions.NO_PERMISSION, false);
+        }
     }
 
     @CheckForNull

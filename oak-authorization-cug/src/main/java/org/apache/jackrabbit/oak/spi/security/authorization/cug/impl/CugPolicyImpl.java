@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-import java.lang.IllegalArgumentException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,7 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CugPolicyImpl... TODO
+ * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy}
+ * interface that respects the configured {@link org.apache.jackrabbit.oak.spi.xml.ImportBehavior}.
  */
 class CugPolicyImpl implements CugPolicy {
 
@@ -48,11 +48,14 @@ class CugPolicyImpl implements CugPolicy {
 
     private final Set<Principal> principals = new HashSet<Principal>();
 
-    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper, PrincipalManager principalManager, int importBehavior) {
+    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
+                  @Nonnull PrincipalManager principalManager, int importBehavior) {
         this(oakPath, namePathMapper, principalManager, importBehavior, Collections.<Principal>emptySet());
     }
 
-    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper, PrincipalManager principalManager, int importBehavior, @Nonnull Set<Principal> principals) {
+    CugPolicyImpl(@Nonnull String oakPath, @Nonnull NamePathMapper namePathMapper,
+                  @Nonnull PrincipalManager principalManager, int importBehavior,
+                  @Nonnull Set<Principal> principals) {
         this.oakPath = oakPath;
         this.namePathMapper = namePathMapper;
         this.principalManager = principalManager;
