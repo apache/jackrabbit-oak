@@ -85,7 +85,7 @@ _includePropertyTypes_ setting, and don't forget to set the _reindex_ flag to tr
 Oak uses Lucene for creating index to support queries which involve property 
 constraint that is not full-text
 
-    select * from [nt:base] where [jcr:uuid] = $id
+    select * from [nt:base] where [alias] = '/admin'
 
 To define a property index on a subtree for above query you have to add an 
 index definition 
@@ -96,7 +96,7 @@ index definition
         "type": "lucene",
         "async": "async",
         "fulltextEnabled": false,
-        "includePropertyNames": ["jcr:uuid"]
+        "includePropertyNames": ["alias"]
     }
 ```
 The index definition node for a lucene-based full-text index:
