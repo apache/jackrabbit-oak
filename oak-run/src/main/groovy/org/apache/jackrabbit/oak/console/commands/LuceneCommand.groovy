@@ -97,7 +97,7 @@ class LuceneCommand extends ComplexCommandSupport {
             //OakDirectory is package scope but Groovy allows us
             //to use it. Good or bad but its helpful debug scripts
             //can access inner classes and prod code cannot. Win win :)
-            return new OakDirectory(new ReadOnlyBuilder(data), new IndexDefinition(definition));
+            return new OakDirectory(new ReadOnlyBuilder(data), new IndexDefinition(new ReadOnlyBuilder(definition)));
         }
         return null
     }
