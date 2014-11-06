@@ -58,6 +58,11 @@ Bug
     authorizable id
     [OAK-2248] - IndexOutOfBoundsException in
     o.a.j.o.scalability.ScalabilityNodeRelationshipSuite
+    [OAK-2249] - Query with mixed full-text, "and", "or" conditions
+    fails
+    [OAK-2250] - Lucene Index property definition is ignored if its
+    not in includePropertyNames config
+    [OAK-2255] - PermissionStoreImpl refresh root on flush
 
 Improvement
 
@@ -66,6 +71,7 @@ Improvement
     [OAK-2119] - AggregateIndex should support AdvanceQueryIndex
     [OAK-2125] - Integrate Lucene logging with Slf4j
     [OAK-2173] - Allow specifying custom attributes in IndexPlan
+    [OAK-2178] - Lucene index boosting on certain fields
     [OAK-2189] - TarMK cold standby: update OSGi config example files
     [OAK-2194] - Print tar file graph in segment explorer
     [OAK-2201] - Make blobSize in OakDirectory configurable
@@ -86,7 +92,9 @@ Improvement
     [OAK-2230] - Execution Stats for async indexing
     [OAK-2233] - Add UserIdCredentials to Oak user management
     extension
+    [OAK-2241] - Support native queries for non-full-text indexes
     [OAK-2245] - UserImporter should always set the rep:authorizableID
+    [OAK-2253] - Index node only if configured property changed
 
 New Feature
 

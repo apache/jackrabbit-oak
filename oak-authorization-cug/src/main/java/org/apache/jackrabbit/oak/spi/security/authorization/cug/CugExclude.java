@@ -25,14 +25,22 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal;
 
 /**
- * CugExclude... TODO
+ * Interface that allows to exclude certain principals from the CUG evaluation.
+ * For the excluded principals the closed user group policies will be ignored.
  */
 public interface CugExclude {
 
     boolean isExcluded(@Nonnull Set<Principal> principals);
 
-    CugExclude DEFAULT = new Default();
-
+    /**
+     * Default implementation of the {@link CugExclude} interface that exclude
+     * the following principal classes from CUG evaluation:
+     * <ul>
+     *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal AdminPrincipals}</li>
+     *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal SystemPrincipal}</li>
+     *     <li>{@link org.apache.jackrabbit.oak.spi.security.principal.SystemUserPrincipal SystemUserPrincipal}</li>
+     * </ul>
+     */
     class Default implements CugExclude {
 
         @Override

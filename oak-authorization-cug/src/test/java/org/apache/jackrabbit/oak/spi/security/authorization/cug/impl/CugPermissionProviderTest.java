@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
-public class CugPermissionProviderTest {
+public class CugPermissionProviderTest extends AbstractCugTest {
 
     // TODO
 }

@@ -71,6 +71,7 @@ public abstract class AbstractQueryTest {
 
     protected static final String TEST_INDEX_NAME = "test-index";
     protected static final String SQL2 = QueryEngineImpl.SQL2;
+    protected static final String XPATH = QueryEngineImpl.XPATH;
 
     protected QueryEngine qe;
     protected ContentSession session;
@@ -231,6 +232,10 @@ public abstract class AbstractQueryTest {
     }
 
     protected List<String> executeQuery(String query, String language, boolean pathsOnly) {
+        return executeQuery(query, language, pathsOnly, false);
+    }
+
+    protected List<String> executeQuery(String query, String language, boolean pathsOnly, boolean skipSort) {
         long time = System.currentTimeMillis();
         List<String> lines = new ArrayList<String>();
         try {
@@ -242,7 +247,7 @@ public abstract class AbstractQueryTest {
                 }
                 lines.add(r);
             }
-            if (!query.contains("order by")) {
+            if (!query.contains("order by") && !skipSort) {
                 Collections.sort(lines);
             }
         } catch (ParseException e) {
@@ -263,13 +268,19 @@ public abstract class AbstractQueryTest {
 
     protected List<String> assertQuery(String sql, String language,
             List<String> expected) {
-        List<String> paths = executeQuery(sql, language, true);
+        return assertQuery(sql, language, expected, false);
+    }
+
+    protected List<String> assertQuery(String sql, String language,
+                                       List<String> expected, boolean skipSort) {
+        List<String> paths = executeQuery(sql, language, true, skipSort);
         for (String p : expected) {
             assertTrue("Expected path " + p + " not found", paths.contains(p));
         }
         assertEquals("Result set size is different", expected.size(),
                 paths.size());
         return paths;
+
     }
 
     protected void setTraversalEnabled(boolean traversalEnabled) {

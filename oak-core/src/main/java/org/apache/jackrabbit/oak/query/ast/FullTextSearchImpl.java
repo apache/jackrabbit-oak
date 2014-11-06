@@ -48,7 +48,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
      * instead, as in the spec, using double quotes.
      */
     public static final boolean JACKRABBIT_2_SINGLE_QUOTED_PHRASE = true;
-    
+
     private final String selectorName;
     private final String relativePath;
     private final String propertyName;
@@ -251,8 +251,12 @@ public class FullTextSearchImpl extends ConstraintImpl {
     public void restrict(FilterImpl f) {
         if (propertyName != null) {
             if (f.getSelector().equals(selector)) {
-                String pn = normalizePropertyName(propertyName);
-                f.restrictProperty(pn, Operator.NOT_EQUAL, null);
+                String p = propertyName;
+                if (relativePath != null) {
+                    p = PathUtils.concat(p, relativePath);
+                }                
+                p = normalizePropertyName(p);
+                f.restrictProperty(p, Operator.NOT_EQUAL, null);
             }
         }
         f.restrictFulltextCondition(fullTextSearchExpression.currentValue().getValue(Type.STRING));

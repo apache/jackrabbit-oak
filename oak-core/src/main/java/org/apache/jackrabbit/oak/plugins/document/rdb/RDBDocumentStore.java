@@ -345,12 +345,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // for DBs that prefer "limit" over "fetch first"
     private boolean needsLimit = false;
 
+    // for DBs that do not support CASE in SELECT (currently all)
+    private boolean allowsCaseInSelect = true;
+
     // set of supported indexed properties
     private static Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG }));
 
     // set of properties not serialized to JSON
-    private static Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { ID, MODIFIED, MODCOUNT }));
+    private static Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { ID,
+            NodeDocument.HAS_BINARY_FLAG, MODIFIED, MODCOUNT }));
 
     private RDBDocumentSerializer SR = new RDBDocumentSerializer(this, COLUMNPROPERTIES);
 
@@ -458,10 +462,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private <T extends Document> T readDocumentCached(final Collection<T> collection, final String id, int maxCacheAge) {
         if (collection != Collection.NODES) {
-            return readDocumentUncached(collection, id);
+            return readDocumentUncached(collection, id, null);
         } else {
             CacheValue cacheKey = new StringValue(id);
-            NodeDocument doc;
+            NodeDocument doc = null;
             if (maxCacheAge > 0) {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
@@ -473,6 +477,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             try {
                 Lock lock = getAndLock(id);
+                final NodeDocument cachedDoc = doc;
                 try {
                     if (maxCacheAge == 0) {
                         invalidateCache(collection, id);
@@ -481,7 +486,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
                             @Override
                             public NodeDocument call() throws Exception {
-                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id);
+                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
                                 if (doc != null) {
                                     doc.seal();
                                 }
@@ -491,7 +496,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
                             break;
                         }
-                        if (System.currentTimeMillis() - doc.getCreated() < maxCacheAge) {
+                        if (System.currentTimeMillis() - doc.getLastCheckTime() < maxCacheAge) {
                             break;
                         }
                         // too old: invalidate, try again
@@ -566,7 +571,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 // this is an edge case, so it's ok to bypass the cache
                 // (avoiding a race condition where the DB is already updated
                 // but the cache is not)
-                oldDoc = readDocumentUncached(collection, update.getId());
+                oldDoc = readDocumentUncached(collection, update.getId(), null);
                 if (oldDoc == null) {
                     // something else went wrong
                     LOG.error("insert failed, but document " + update.getId() + " is not present, aborting", ex);
@@ -606,7 +611,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was updated by
                                 // a different instance, get a fresh one
-                                oldDoc = readDocumentUncached(collection, update.getId());
+                                oldDoc = readDocumentUncached(collection, update.getId(), null);
                             }
                         }
 
@@ -751,13 +756,29 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id) {
+    private <T extends Document> T readDocumentUncached(Collection<T> collection, String id, NodeDocument cachedDoc) {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
+            long lastmodcount = -1;
+            if (cachedDoc != null && cachedDoc.getModCount() != null) {
+                lastmodcount = cachedDoc.getModCount().longValue();
+            }
             connection = getConnection();
-            RDBRow row = dbRead(connection, tableName, id);
-            return row != null ? SR.fromRow(collection, row) : null;
+            RDBRow row = dbRead(connection, tableName, id, lastmodcount);
+            if (row == null) {
+                return null;
+            }
+            else {
+                if (lastmodcount == row.getModcount()) {
+                    // we can re-use the cached document
+                    cachedDoc.markUpToDate(System.currentTimeMillis());
+                    return (T)cachedDoc;
+                }
+                else {
+                    return SR.fromRow(collection, row);
+                }
+            }
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
@@ -951,17 +972,39 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     @CheckForNull
-    private RDBRow dbRead(Connection connection, String tableName, String id) throws SQLException {
-        PreparedStatement stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID = ?");
+    private RDBRow dbRead(Connection connection, String tableName, String id, long lastmodcount) throws SQLException {
+        PreparedStatement stmt;
+        boolean useCaseStatement = lastmodcount != -1 && allowsCaseInSelect;
+        if (useCaseStatement) {
+            // either we don't have a previous version of the document
+            // or the database does not support CASE in SELECT
+            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, HASBINARY, DATA, BDATA from " + tableName
+                    + " where ID = ?");
+        } else {
+            // the case statement causes the actual row data not to be
+            // sent in case we already have it
+            stmt = connection
+                    .prepareStatement("select MODIFIED, MODCOUNT, HASBINARY, case MODCOUNT when ? then null else DATA end as DATA, "
+                            + "case MODCOUNT when ? then null else BDATA end as BDATA from " + tableName + " where ID = ?");
+        }
+
         try {
-            stmt.setString(1, id);
+            if (useCaseStatement) {
+                stmt.setString(1, id);
+            }
+            else {
+                stmt.setLong(1, lastmodcount);
+                stmt.setLong(2, lastmodcount);
+                stmt.setString(3, id);
+            }
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 long modified = rs.getLong(1);
                 long modcount = rs.getLong(2);
-                String data = rs.getString(3);
-                byte[] bdata = rs.getBytes(4);
-                return new RDBRow(id, modified, modcount, data, bdata);
+                long hasBinary = rs.getLong(3);
+                String data = rs.getString(4);
+                byte[] bdata = rs.getBytes(5);
+                return new RDBRow(id, hasBinary == 1, modified, modcount, data, bdata);
             } else {
                 return null;
             }
@@ -982,12 +1025,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select ID, MODIFIED, MODCOUNT, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
+        String t = "select ID, MODIFIED, MODCOUNT, HASBINARY, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
                 t += " and MODIFIED >= ?";
-            }
-            else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
+            } else if (NodeDocument.HAS_BINARY_FLAG.equals(indexedProperty)) {
                 if (startValue != NodeDocument.HAS_BINARY_VAL) {
                     throw new DocumentStoreException("unsupported value for property " + NodeDocument.HAS_BINARY_FLAG);
                 }
@@ -996,7 +1038,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
-            t += this.needsConcat ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
+            t += this.needsLimit ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
         }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
@@ -1018,9 +1060,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
                 long modified = rs.getLong(2);
                 long modcount = rs.getLong(3);
-                String data = rs.getString(4);
-                byte[] bdata = rs.getBytes(5);
-                result.add(new RDBRow(id, modified, modcount, data, bdata));
+                long hasBinary = rs.getLong(4);
+                String data = rs.getString(5);
+                byte[] bdata = rs.getBytes(6);
+                result.add(new RDBRow(id, hasBinary == 1, modified, modcount, data, bdata));
             }
         } finally {
             stmt.close();

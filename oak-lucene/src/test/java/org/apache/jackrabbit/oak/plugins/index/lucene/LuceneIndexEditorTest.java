@@ -153,6 +153,46 @@ public class LuceneIndexEditorTest {
         assertEquals(2, getSearcher().getIndexReader().numDocs());
     }
 
+    /**
+     * 1. Index property foo in /test
+     * 2. Then modify some other property in /test
+     *
+     * This should not cause the index to be updated
+     */
+    @Test
+    public void nonIncludedPropertyChange() throws Exception {
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+        nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"),
+                STRINGS));
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        builder.child("test2").setProperty("foo", "bird is chirping");
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertEquals(2, getSearcher().getIndexReader().numDocs());
+
+        assertEquals("/test", getPath(new TermQuery(new Term("foo", "fox is jumping"))));
+
+        releaseIndexNode();
+        before = indexed;
+        builder = before.builder();
+        builder.child("test").setProperty("bar", "kite is flying");
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        assertEquals(2, getSearcher().getIndexReader().numDocs());
+        assertEquals("change in non included property should not cause " +
+                "index update",0, getSearcher().getIndexReader().numDeletedDocs());
+    }
+
     @Test
     public void testLuceneWithRelativeProperty() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
