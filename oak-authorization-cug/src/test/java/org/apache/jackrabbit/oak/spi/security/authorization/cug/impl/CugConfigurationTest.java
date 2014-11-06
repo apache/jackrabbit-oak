@@ -53,7 +53,7 @@ public class CugConfigurationTest extends AbstractSecurityTest {
     public void testGetPermissionProviderDisabled() {
         CugConfiguration cc = createConfiguration(ConfigurationParameters.of(CugConstants.PARAM_CUG_ENABLED, false));
 
-        PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
+        PermissionProvider pp = cc.getPermissionProvider(root, root.getContentSession().getWorkspaceName(), ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
 
@@ -123,35 +123,35 @@ public class CugConfigurationTest extends AbstractSecurityTest {
         assertTrue(acMgr instanceof CugAccessControlManager);
     }
 
-    @Test
-    public void testExcludedPrincipals() {
-        Map<String, Object> params = ImmutableMap.<String, Object>of(
-                CugConstants.PARAM_CUG_ENABLED, true,
-                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
-
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
-
-        List<Principal> excluded = ImmutableList.of(
-                SystemPrincipal.INSTANCE,
-                new AdminPrincipal() {
-                    @Override
-                    public String getName() {
-                        return "admin";
-                    }
-                },
-                new SystemUserPrincipal() {
-                    @Override
-                    public String getName() {
-                        return "systemUser";
-                    }
-                });
-
-        for (Principal p : excluded) {
-            Set<Principal> principals = ImmutableSet.of(p, EveryonePrincipal.getInstance());
-            PermissionProvider pp = cc.getPermissionProvider(root, "default", principals);
-
-            assertSame(EmptyPermissionProvider.getInstance(), pp);
-        }
-    }
+//    @Test
+//    public void testExcludedPrincipals() {
+//        Map<String, Object> params = ImmutableMap.<String, Object>of(
+//                CugConstants.PARAM_CUG_ENABLED, true,
+//                CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
+//
+//        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
+//
+//        List<Principal> excluded = ImmutableList.of(
+//                SystemPrincipal.INSTANCE,
+//                new AdminPrincipal() {
+//                    @Override
+//                    public String getName() {
+//                        return "admin";
+//                    }
+//                },
+//                new SystemUserPrincipal() {
+//                    @Override
+//                    public String getName() {
+//                        return "systemUser";
+//                    }
+//                });
+//
+//        for (Principal p : excluded) {
+//            Set<Principal> principals = ImmutableSet.of(p, EveryonePrincipal.getInstance());
+//            PermissionProvider pp = cc.getPermissionProvider(root, "default", principals);
+//
+//            assertSame(EmptyPermissionProvider.getInstance(), pp);
+//        }
+//    }
 
 }
