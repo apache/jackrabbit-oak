@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.1.1
+Release Notes -- Apache Jackrabbit Oak -- Version 1.1.2
 
 Introduction
 ------------
@@ -7,37 +7,107 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.1.1 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.1.2 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other improvements.
 For production use we recommend the latest stable 1.0.7 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.1.1
+Changes in Oak 1.1.2
 ---------------------
+
+Sub-task
+
+    [OAK-2122] - Make LuceneIndex implement AdvanceQueryIndex
+    [OAK-2196] - Implement sorting based on Lucene sorting
+    [OAK-2198] - Add support for declaringNodeTypes to only index node
+    with specific types
+    [OAK-2199] - Capture performance stats for lucene property indexes
+    [OAK-2200] - Tune cost calculation for lucene property index
+    [OAK-2206] - Support lucene property indexes
+    [OAK-2210] - Add support for customizing the codec
+    [OAK-2211] - Use Lucene index on non root node
+    [OAK-2236] - Support queries with only order by specified
+    [OAK-2239] - Do not wrap LucenePropertyIndex with AggregateIndex
+    [OAK-2240] - Support for indexing relative properties
 
 Bug
 
-    [OAK-2144] - Intermittent Node not found at given revision with DocumentNodeStore
-    [OAK-2146] - empty resultset for PropertyIndex and multi-value properties with mixed OR+AND
-    [OAK-2147] - [Ordered Index] Indexing on large content is slow
-    [OAK-2151] - DocumentNodeStore does not detect hierarchy conflict
-    [OAK-2157] - Better error message for getPrimaryItem
-    [OAK-2163] - Oak-run "checkpoint" and "backup" don't use memory mapped files
-    [OAK-2166] - CacheConsistencyTest may fail with IllegalStateException
-    [OAK-2167] - Last revision recover incomplete
-    [OAK-2174] - Non-blocking reindexing doesn't finish properly
+    [OAK-2117] - Reindex removes all nodes under index definition node
+    [OAK-2186] - Change Password On First Login: Wrong Config Property
+    Description
+    [OAK-2188] - Add/remove version label fails with restricted access
+    on /jcr:system
+    [OAK-2197] - Node.getReferences throws IllegalArgumentException
+    [OAK-2202] - OrderedIndex should not return the whole index on
+    property=$value statement
+    [OAK-2203] - Full reindexing is triggered when the IndexEditor is
+    missing
+    [OAK-2219] - Ordered index does not return relative properties for
+    un-restricted indexes
+    [OAK-2224] - Increase the threshold for warning in PathIterator
+    [OAK-2226] - Aggregate Lucene no results for multiple jcr:contains
+    [OAK-2227] - Increase package export on
+    org.apache.jackrabbit.oak.plugins.segment
+    [OAK-2232] - External events incomplete
+    [OAK-2235] - Lucene index not created if no node is indexed
+    [OAK-2237] - NodeStoreKernel.getNodes throws when passing
+    filter=""
+    [OAK-2243] - User Query: Condition 'nameMatches' ignores
+    authorizable id
+    [OAK-2248] - IndexOutOfBoundsException in
+    o.a.j.o.scalability.ScalabilityNodeRelationshipSuite
+    [OAK-2249] - Query with mixed full-text, "and", "or" conditions
+    fails
+    [OAK-2250] - Lucene Index property definition is ignored if its
+    not in includePropertyNames config
+    [OAK-2255] - PermissionStoreImpl refresh root on flush
 
 Improvement
 
-    [OAK-2112] - DocumentNodeStore: Error calculating the machine id
-    [OAK-2115] - Turn async indexer checkpoint warning log to debug
-    [OAK-2143] - NodeObservor should catch exception in case event processing
-    [OAK-2156] - UserAuthentication: Allow Password Change Via SimpleCredentials Attribute
-    [OAK-2158] - Fail for ACEs created for the admin principal
-    [OAK-2160] - mk.getRevisionHistory: clarify since parameter
-    [OAK-2161] - MicroKernelIT: clean test content
+    [OAK-1724] - Enable copying of Lucene index to local file system
+    for read queries
+    [OAK-2119] - AggregateIndex should support AdvanceQueryIndex
+    [OAK-2125] - Integrate Lucene logging with Slf4j
+    [OAK-2173] - Allow specifying custom attributes in IndexPlan
+    [OAK-2178] - Lucene index boosting on certain fields
+    [OAK-2189] - TarMK cold standby: update OSGi config example files
+    [OAK-2194] - Print tar file graph in segment explorer
+    [OAK-2201] - Make blobSize in OakDirectory configurable
+    [OAK-2212] - Add configuration options for ldap connection pools
+    [OAK-2213] - The unbound connection pool does not verify if the
+    connection is still alive
+    [OAK-2215] - Create default repository in OakRepositoryFactory
+    [OAK-2216] - LIRS cache: improved concurrency when using the cache
+    loader
+    [OAK-2217] - Use daemon threads for scheduled executor service in
+    RepositoryImpl
+    [OAK-2218] - Allow SegmentNodeBuilder to provide child builders of
+    the same type
+    [OAK-2221] - Log path for text extraction error on the Lucene
+    index
+    [OAK-2229] - Provide a way for Index implementation to determine
+    reindex mode
+    [OAK-2230] - Execution Stats for async indexing
+    [OAK-2233] - Add UserIdCredentials to Oak user management
+    extension
+    [OAK-2241] - Support native queries for non-full-text indexes
+    [OAK-2245] - UserImporter should always set the rep:authorizableID
+    [OAK-2253] - Index node only if configured property changed
+
+New Feature
+
+    [OAK-1915] - TarMK Cold Standby
+    [OAK-2005] - Use separate Lucene index for performing property
+    related queries
+    [OAK-2138] - Alternative implementation of AuthorizableNodeName
+    interface
+    [OAK-2191] - Persistent cache for the DocumentNodeStore
+
+Task
+
+    [OAK-2208] - MissingLastRevSeeker non MongoDS may fail with OOM
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
