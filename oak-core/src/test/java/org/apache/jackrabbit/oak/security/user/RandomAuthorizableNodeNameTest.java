@@ -67,7 +67,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         Tree tree = root.getTree(path);
 
         assertFalse(id.equals(tree.getName()));
-        assertEquals(8, tree.getName().length());
+        assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, tree.getName().length());
     }
 
     private void assertNodeName(Authorizable authorizable, String relPath) throws RepositoryException {
@@ -77,7 +77,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         Tree tree = root.getTree(path);
 
         assertFalse(id.equals(tree.getName()));
-        assertEquals(8, tree.getName().length());
+        assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, tree.getName().length());
 
         String end = '/' + relPath + '/' + tree.getName();
         assertTrue(path.endsWith(end));
@@ -88,7 +88,7 @@ public class RandomAuthorizableNodeNameTest extends AbstractSecurityTest {
         String nodeName = nameGenerator.generateNodeName(id);
 
         assertFalse("id".equals(nodeName));
-        assertEquals(8, nodeName.length());
+        assertEquals(RandomAuthorizableNodeName.DEFAULT_LENGTH, nodeName.length());
         assertFalse(nodeName.equals(nameGenerator.generateNodeName(id)));
     }
 
