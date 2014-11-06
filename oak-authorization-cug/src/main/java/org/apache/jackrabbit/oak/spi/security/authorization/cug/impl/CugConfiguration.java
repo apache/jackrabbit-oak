@@ -61,8 +61,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugExclude;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.EmptyPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.OpenPermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -127,6 +130,10 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
 
     @Override
     public PermissionProvider getPermissionProvider(Root root, String workspaceName, Set<Principal> principals) {
+        if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
+            return OpenPermissionProvider.getInstance();
+        }
+
         ConfigurationParameters params = getParameters();
         boolean enabled = params.getConfigValue(CugConstants.PARAM_CUG_ENABLED, false);
 
@@ -201,5 +208,14 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
     //--------------------------------------------------------------------------
     private CugExclude getExclude() {
         return (exclude == null) ? new CugExclude.Default() : exclude;
+    }
+
+    private static boolean isAdmin(@Nonnull Set<Principal> principals) {
+        for (Principal p : principals) {
+            if (p instanceof AdminPrincipal) {
+                return true;
+            }
+        }
+        return false;
     }
 }
