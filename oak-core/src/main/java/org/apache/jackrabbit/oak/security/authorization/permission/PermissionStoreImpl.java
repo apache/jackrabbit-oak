@@ -48,31 +48,29 @@ public class PermissionStoreImpl implements PermissionStore, PermissionConstants
      */
     private static final Logger log = LoggerFactory.getLogger(PermissionStoreImpl.class);
 
-    private Tree permissionsTree;
-
     private final String workspaceName;
 
     private final RestrictionProvider restrictionProvider;
 
-    private final PrivilegeBitsProvider privilegeBitsProvider;
-
-    private PrivilegeBits allBits;
-
     private final Map<String, Tree> principalTreeMap = new HashMap<String, Tree>();
 
+    private Tree permissionsTree;
+    private PrivilegeBits allBits;
+
     public PermissionStoreImpl(Root root, String workspaceName, RestrictionProvider restrictionProvider) {
-        this.permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
-        this.privilegeBitsProvider = new PrivilegeBitsProvider(root);
-
-        allBits = privilegeBitsProvider.getBits(PrivilegeConstants.JCR_ALL);
+        reset(root);
     }
 
-    protected void flush(Root root) {
-        this.permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
-        this.principalTreeMap.clear();
-        allBits = privilegeBitsProvider.getBits(PrivilegeConstants.JCR_ALL);
+    protected void flush(@Nonnull Root root) {
+        principalTreeMap.clear();
+        reset(root);
+    }
+
+    private void reset(@Nonnull Root root) {
+        permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
+        allBits = new PrivilegeBitsProvider(root).getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @CheckForNull
