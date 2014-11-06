@@ -19,13 +19,14 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.CompositeAuthorizationConfiguration;
 
 /**
  * Base class for CUG related test that setup the authorization configuration
@@ -37,42 +38,62 @@ public class AbstractCugTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new CugSecurityProvider(getSecurityConfigParameters());
+            securityProvider = new CugSecurityProvider(getSecurityConfigParameters(), super.getSecurityProvider());
         }
         return securityProvider;
     }
 
-    private final class CugSecurityProvider extends SecurityProviderImpl {
+    final class CugSecurityProvider implements SecurityProvider {
 
-        private AuthorizationConfiguration cugConfiguration;
+        private final ConfigurationParameters configuration;
+        private final SecurityProvider base;
 
-        private CugSecurityProvider(@Nonnull ConfigurationParameters configuration) {
-            super(configuration);
+        private final CugConfiguration cugConfiguration;
+
+        private CugSecurityProvider(@Nonnull ConfigurationParameters configuration, @Nonnull SecurityProvider base) {
+            this.configuration = configuration;
+            this.base = base;
+
             cugConfiguration = new CugConfiguration(this);
         }
 
         @Nonnull
         @Override
-        public Iterable<? extends SecurityConfiguration> getConfigurations() {
-            Set<SecurityConfiguration> configs = (Set<SecurityConfiguration>) super.getConfigurations();
+        public ConfigurationParameters getParameters(@Nullable String name) {
+            return base.getParameters(name);
+        }
 
+        @Nonnull
+        @Override
+        public Iterable<? extends SecurityConfiguration> getConfigurations() {
+            Set<SecurityConfiguration> configs = (Set<SecurityConfiguration>) base.getConfigurations();
+
+            CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
             Iterator<SecurityConfiguration> it = configs.iterator();
             while (it.hasNext()) {
-                if (it.next() instanceof AuthorizationConfiguration) {
+                SecurityConfiguration sc = it.next();
+                if (sc instanceof AuthorizationConfiguration) {
+                    composite.addConfiguration((AuthorizationConfiguration) sc);
                     it.remove();
                 }
             }
-            configs.add(cugConfiguration);
+            composite.addConfiguration(new CugConfiguration(this));
+            configs.add(composite);
+
             return configs;
         }
 
         @Nonnull
         @Override
         public <T> T getConfiguration(@Nonnull Class<T> configClass) {
+            T c = base.getConfiguration(configClass);
             if (AuthorizationConfiguration.class == configClass) {
-                return (T) cugConfiguration;
+                CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
+                composite.addConfiguration((AuthorizationConfiguration) c);
+                composite.addConfiguration(new CugConfiguration(this));
+                return (T) composite;
             } else {
-                return super.getConfiguration(configClass);
+                return c;
             }
         }
     }
