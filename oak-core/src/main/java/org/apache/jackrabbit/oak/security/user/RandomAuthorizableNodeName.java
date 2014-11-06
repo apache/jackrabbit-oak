@@ -24,11 +24,9 @@ import javax.annotation.Nonnull;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 
 /**
@@ -39,7 +37,11 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableNodeName;
 @Service(AuthorizableNodeName.class)
 public class RandomAuthorizableNodeName implements AuthorizableNodeName {
 
-    private static char[] VALID_CHARS;
+    /**
+     * Characters used to encode the random data. This matches the Base64URL
+     * characters, which is both filename- and URL-safe.
+     */
+    private static final char[] VALID_CHARS;
     static {
         StringBuilder sb = new StringBuilder();
         char i;
@@ -52,11 +54,19 @@ public class RandomAuthorizableNodeName implements AuthorizableNodeName {
         for (i = '0'; i <= '9'; i++) {
             sb.append(i);
         }
+        sb.append("-_");
         VALID_CHARS = sb.toString().toCharArray();
     }
 
     private static final String PARAM_LENGTH = "length";
-    private static final int DEFAULT_LENGTH = 8;
+    
+    /**
+     * 21 characters, each character with 6 bit of entropy (64 possible
+     * characters), results in 126 bits of entropy. With regards to probability
+     * of duplicates, this is even better than standard UUIDs, which have 122
+     * bits of entropy and are 36 characters long.
+     */
+    public static final int DEFAULT_LENGTH = 21;
 
     @Property(name = PARAM_LENGTH, label = "Name Length", description = "Length of the generated node name.", intValue = DEFAULT_LENGTH)
     private int length = DEFAULT_LENGTH;
