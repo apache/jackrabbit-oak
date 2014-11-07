@@ -277,7 +277,7 @@ class ChangeProcessor implements Observer {
                     }
                 }
             } catch (Exception e) {
-                LOG.warn("Error while dispatching observation events", e);
+                LOG.warn("Error while dispatching observation events for " + tracker, e);
             }
         }
         previousRoot = root;
