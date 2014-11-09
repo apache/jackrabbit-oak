@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
-import org.apache.jackrabbit.oak.jcr.session.operation.SessionOperation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
@@ -118,13 +117,7 @@ public class ObservationManagerImpl implements JackrabbitObservationManager {
             Set<Principal> principals = sessionDelegate.getAuthInfo().getPrincipals();
             @Nonnull
             @Override
-            public PermissionProvider create() {
-                Root root = sessionDelegate.safePerform(new SessionOperation<Root>("refresh-root") {
-                    @Override
-                    public Root perform() {
-                        return sessionDelegate.getRoot();
-                    }
-                });
+            public PermissionProvider create(Root root) {
                 return authorizationConfig.getPermissionProvider(root,
                         sessionDelegate.getWorkspaceName(), principals);
             }
