@@ -75,8 +75,19 @@ public class Compactor {
      */
     private final Map<String, List<RecordId>> binaries = newHashMap();
 
+    /**
+     * If the compactor should copy large binaries as streams or just copy the
+     * refs
+     */
+    private final boolean cloneBinaries;
+
     public Compactor(SegmentWriter writer) {
+        this(writer, false);
+    }
+
+    public Compactor(SegmentWriter writer, boolean cloneBinaries) {
         this.writer = writer;
+        this.cloneBinaries = cloneBinaries;
     }
 
     public SegmentNodeState compact(NodeState before, NodeState after) {
@@ -212,7 +223,7 @@ public class Compactor {
             try {
                 // if the blob is inlined or external, just clone it
                 if (sb.isExternal() || sb.length() < Segment.MEDIUM_LIMIT) {
-                    return sb.clone(writer);
+                    return sb.clone(writer, cloneBinaries);
                 }
 
                 // else check if we've already cloned this specific record
@@ -235,7 +246,7 @@ public class Compactor {
                 }
 
                 // if not, clone the blob and keep track of the result
-                sb = sb.clone(writer);
+                sb = sb.clone(writer, cloneBinaries);
                 map.put(id, sb.getRecordId());
                 if (ids == null) {
                     ids = newArrayList();
