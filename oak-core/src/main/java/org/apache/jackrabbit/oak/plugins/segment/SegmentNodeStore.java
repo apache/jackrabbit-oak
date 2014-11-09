@@ -34,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -127,7 +126,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
     @Override
     public NodeState merge(
             @Nonnull NodeBuilder builder, @Nonnull CommitHook commitHook,
-            @Nullable CommitInfo info) throws CommitFailedException {
+            @Nonnull CommitInfo info) throws CommitFailedException {
         checkArgument(builder instanceof SegmentNodeBuilder);
         checkNotNull(commitHook);
 
@@ -156,7 +155,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
         SegmentNodeBuilder snb = (SegmentNodeBuilder) builder;
 
         NodeState root = getRoot();
-        SegmentNodeState before = snb.getBaseState();
+        NodeState before = snb.getBaseState();
         if (!fastEquals(before, root)) {
             SegmentNodeState after = snb.getNodeState();
             snb.reset(root);
@@ -301,9 +300,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
         private final Random random = new Random();
 
-        private SegmentNodeState before;
+        private final NodeState before;
 
-        private SegmentNodeState after;
+        private final SegmentNodeState after;
 
         private final CommitHook hook;
 
@@ -319,10 +318,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             this.info = checkNotNull(info);
         }
 
-        private boolean setHead(SegmentNodeBuilder builder) {
-            SegmentNodeState before = builder.getBaseState();
-            SegmentNodeState after = builder.getNodeState();
-
+        private boolean setHead(SegmentNodeState before, SegmentNodeState after) {
             refreshHead();
             if (store.setHead(before, after)) {
                 head.set(after);
@@ -334,8 +330,7 @@ public class SegmentNodeStore implements NodeStore, Observable {
             }
         }
 
-        private SegmentNodeBuilder prepare() throws CommitFailedException {
-            SegmentNodeState state = head.get();
+        private SegmentNodeBuilder prepare(SegmentNodeState state) throws CommitFailedException {
             SegmentNodeBuilder builder = state.builder();
             if (fastEquals(before, state.getChildNode(ROOT))) {
                 // use a shortcut when there are no external changes
@@ -370,9 +365,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     // someone else has a pessimistic lock on the journal,
                     // so we should not try to commit anything yet
                 } else {
-                    SegmentNodeBuilder builder = prepare();
+                    SegmentNodeBuilder builder = prepare(state);
                     // use optimistic locking to update the journal
-                    if (setHead(builder)) {
+                    if (setHead(state, builder.getNodeState())) {
                         return -1;
                     }
                 }
@@ -406,14 +401,14 @@ public class SegmentNodeStore implements NodeStore, Observable {
                     builder.setProperty("token", UUID.randomUUID().toString());
                     builder.setProperty("timeout", now + timeout);
 
-                    if (setHead(builder)) {
+                    if (setHead(state, builder.getNodeState())) {
                          // lock acquired; rebase, apply commit hooks, and unlock
-                        builder = prepare();
+                        builder = prepare(state);
                         builder.removeProperty("token");
                         builder.removeProperty("timeout");
 
                         // complete the commit
-                        if (setHead(builder)) {
+                        if (setHead(state, builder.getNodeState())) {
                             return;
                         }
                     }
