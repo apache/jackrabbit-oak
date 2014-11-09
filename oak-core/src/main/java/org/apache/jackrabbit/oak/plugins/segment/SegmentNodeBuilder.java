@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -34,19 +30,7 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
 
     private final SegmentWriter writer;
 
-    /**
-     * Local update counter for the root builder.
-     * 
-     * The value encodes both the counter and the type of the node builder:
-     * <ul>
-     * <li>value >= <code>0</code> represents a root builder (builder keeps
-     * counter updates)</li>
-     * <li>value = <code>-1</code> represents a child builder (value doesn't
-     * change, builder doesn't keep an updated counter)</li>
-     * </ul>
-     * 
-     */
-    private long updateCount;
+    private long updateCount = 0;
 
     SegmentNodeBuilder(SegmentNodeState base) {
         this(base, base.getTracker().getWriter());
@@ -55,35 +39,25 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
     SegmentNodeBuilder(SegmentNodeState base, SegmentWriter writer) {
         super(base);
         this.writer = writer;
-        this.updateCount = 0;
-    }
-
-    SegmentNodeBuilder(SegmentNodeBuilder parent, String name,
-            SegmentWriter writer) {
-        super(parent, name);
-        this.writer = writer;
-        this.updateCount = -1;
     }
 
     //-------------------------------------------------< MemoryNodeBuilder >--
 
     @Override
     protected void updated() {
-        if (isChildBuilder()) {
-            super.updated();
-        } else {
-            updateCount++;
-            if (updateCount > UPDATE_LIMIT) {
-                getNodeState();
-            }
+        updateCount++;
+        if (updateCount > UPDATE_LIMIT) {
+            getNodeState();
         }
     }
 
-    private boolean isChildBuilder() {
-        return updateCount < 0;
-    }
-
     //-------------------------------------------------------< NodeBuilder >--
+
+    @Override
+    public SegmentNodeState getBaseState() {
+        // guaranteed to be a SegmentNodeState
+        return (SegmentNodeState) super.getBaseState();
+    }
 
     @Override
     public SegmentNodeState getNodeState() {
@@ -94,17 +68,6 @@ public class SegmentNodeBuilder extends MemoryNodeBuilder {
             updateCount = 0;
         }
         return sstate;
-    }
-
-    @Override
-    protected MemoryNodeBuilder createChildBuilder(String name) {
-        return new SegmentNodeBuilder(this, name, writer);
-    }
-
-    @Override
-    public Blob createBlob(InputStream stream) throws IOException {
-        SegmentNodeState sns = getNodeState();
-        return sns.getTracker().getWriter().writeStream(stream);
     }
 
 }
