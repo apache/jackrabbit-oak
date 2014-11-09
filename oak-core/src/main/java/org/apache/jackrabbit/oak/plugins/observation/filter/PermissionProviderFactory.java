@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.observation.filter;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 
 /**
@@ -33,5 +34,5 @@ public interface PermissionProviderFactory {
      * @return
      */
     @Nonnull
-    PermissionProvider create();
+    PermissionProvider create(Root root);
 }
