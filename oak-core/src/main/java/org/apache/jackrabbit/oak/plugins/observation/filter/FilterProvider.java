@@ -35,11 +35,10 @@ public interface FilterProvider {
      * Filter whole commits. Only commits for which this method returns
      * {@code true} will be further processed to create individual events.
      *
-     * @param sessionId  id of the filtering (this) session
-     * @param info       commit info of the commit or {@code null} if not available
-     * @return           {@code true} if observation events should be created from this
-     *                   commit, {@code false} otherwise.
-     *
+     * @param sessionId id of the filtering (this) session
+     * @param info      commit info of the commit or {@code null} if not available
+     * @return {@code true} if observation events should be created from this
+     * commit, {@code false} otherwise.
      * @see org.apache.jackrabbit.oak.spi.commit.Observer
      */
     boolean includeCommit(@Nonnull String sessionId, @CheckForNull CommitInfo info);
@@ -48,18 +47,19 @@ public interface FilterProvider {
      * Factory method for creating a {@code Filter} for the passed before and after
      * states.
      *
-     * @param before  before state
-     * @param after   after state
+     * @param before before state
+     * @param after  after state
      * @return new {@code Filter} instance
      */
     @Nonnull
     EventFilter getFilter(@Nonnull NodeState before, @Nonnull NodeState after);
 
+
     /**
-     * Path of the subtree to which the the filter returned by
-     * {@link #getFilter(NodeState, NodeState)} applies.
-     * @return path to which the filter applies.
+     * A set of paths whose subtrees include all events of this filter.
+     * @return  list of paths
+     * @see org.apache.jackrabbit.oak.plugins.observation.filter.FilterBuilder#addSubTree(String)
      */
     @Nonnull
-    String getPath();
+    Iterable<String> getSubTrees();
 }

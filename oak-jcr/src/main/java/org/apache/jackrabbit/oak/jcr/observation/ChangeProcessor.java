@@ -19,14 +19,12 @@
 package org.apache.jackrabbit.oak.jcr.observation;
 
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterators.concat;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_COUNTER;
 import static org.apache.jackrabbit.api.stats.RepositoryStatistics.Type.OBSERVATION_EVENT_DURATION;
+import static org.apache.jackrabbit.oak.plugins.observation.filter.VisibleFilter.VISIBLE_FILTER;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerObserver;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,26 +32,22 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.observation.Event;
+import javax.jcr.observation.EventIterator;
 import javax.jcr.observation.EventListener;
 
-import com.google.common.collect.ForwardingIterator;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Monitor;
 import com.google.common.util.concurrent.Monitor.Guard;
 import org.apache.jackrabbit.api.jmx.EventListenerMBean;
-import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.commons.observation.ListenerTracker;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
-import org.apache.jackrabbit.oak.plugins.observation.filter.ACFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.EventFilter;
 import org.apache.jackrabbit.oak.plugins.observation.filter.FilterProvider;
 import org.apache.jackrabbit.oak.plugins.observation.filter.Filters;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -88,10 +82,9 @@ class ChangeProcessor implements Observer {
 
     private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
-    private final PermissionProvider permissionProvider;
     private final ListenerTracker tracker;
     private final EventListener eventListener;
-    private final AtomicReference<List<FilterProvider>> filterProvider;
+    private final AtomicReference<FilterProvider> filterProvider;
     private final AtomicLong eventCount;
     private final AtomicLong eventDuration;
     private final TimeSeriesMax maxQueueLength;
@@ -104,18 +97,16 @@ class ChangeProcessor implements Observer {
     public ChangeProcessor(
             ContentSession contentSession,
             NamePathMapper namePathMapper,
-            PermissionProvider permissionProvider,
             ListenerTracker tracker,
-            List<FilterProvider> filters,
+            FilterProvider filter,
             StatisticManager statisticManager,
             int queueLength,
             CommitRateLimiter commitRateLimiter) {
         this.contentSession = contentSession;
         this.namePathMapper = namePathMapper;
-        this.permissionProvider = permissionProvider;
         this.tracker = tracker;
         eventListener = tracker.getTrackedListener();
-        filterProvider = new AtomicReference<List<FilterProvider>>(filters);
+        filterProvider = new AtomicReference<FilterProvider>(filter);
         this.eventCount = statisticManager.getCounter(OBSERVATION_EVENT_COUNTER);
         this.eventDuration = statisticManager.getCounter(OBSERVATION_EVENT_DURATION);
         this.maxQueueLength = statisticManager.maxQueLengthRecorder();
@@ -125,10 +116,10 @@ class ChangeProcessor implements Observer {
 
     /**
      * Set the filter for the events this change processor will generate.
-     * @param filters
+     * @param filter
      */
-    public void setFilterProvider(List<FilterProvider> filters) {
-        filterProvider.set(filters);
+    public void setFilterProvider(FilterProvider filter) {
+        filterProvider.set(filter);
     }
 
     /**
@@ -268,29 +259,21 @@ class ChangeProcessor implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
-                List<FilterProvider> providers = filterProvider.get();
-                List<Iterator<Event>> eventQueues = Lists.newArrayList();
-                for (FilterProvider provider : providers) {
-                    // FIXME don't rely on toString for session id
-                    if (provider.includeCommit(contentSession.toString(), info)) {
-                        String basePath = provider.getPath();
-                        EventFilter userFilter = provider.getFilter(previousRoot, root);
-                        EventFilter acFilter = new ACFilter(previousRoot, root, permissionProvider, basePath);
-                        EventQueue events = new EventQueue(
-                                namePathMapper, info, previousRoot, root, basePath,
-                                Filters.all(userFilter, acFilter));
-                        eventQueues.add(events);
-                    }
-                }
+                FilterProvider provider = filterProvider.get();
+                // FIXME don't rely on toString for session id
+                if (provider.includeCommit(contentSession.toString(), info)) {
+                    EventFilter filter = provider.getFilter(previousRoot, root);
+                    EventIterator events = new EventQueue(namePathMapper, info, previousRoot, root,
+                            provider.getSubTrees(), Filters.all(filter, VISIBLE_FILTER));
 
-                Iterator<Event> events = concat(eventQueues.iterator());
-                if (events.hasNext() && runningMonitor.enterIf(running)) {
-                    try {
-                        CountingIterator<Event> countingEvents = new CountingIterator<Event>(events);
-                        eventListener.onEvent(new EventIteratorAdapter(countingEvents));
-                        countingEvents.updateCounters(eventCount, eventDuration);
-                    } finally {
-                        runningMonitor.leave();
+                    if (events.hasNext() && runningMonitor.enterIf(running)) {
+                        try {
+                            CountingIterator countingEvents = new CountingIterator(events);
+                            eventListener.onEvent(countingEvents);
+                            countingEvents.updateCounters(eventCount, eventDuration);
+                        } finally {
+                            runningMonitor.leave();
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -300,13 +283,13 @@ class ChangeProcessor implements Observer {
         previousRoot = root;
     }
 
-    private static class CountingIterator<T> extends ForwardingIterator<T> {
+    private static class CountingIterator implements EventIterator {
         private final long t0 = System.nanoTime();
-        private final Iterator<T> events;
+        private final EventIterator events;
         private long eventCount;
         private long sysTime;
 
-        public CountingIterator(Iterator<T> events) {
+        public CountingIterator(EventIterator events) {
             this.events = events;
         }
 
@@ -318,12 +301,7 @@ class ChangeProcessor implements Observer {
         }
 
         @Override
-        protected Iterator<T> delegate() {
-            return events;
-        }
-
-        @Override
-        public T next() {
+        public Event next() {
             if (eventCount == -1) {
                 LOG.warn("Access to EventIterator outside the onEvent callback detected. This will " +
                     "cause observation related values in RepositoryStatistics to become unreliable.");
@@ -332,7 +310,7 @@ class ChangeProcessor implements Observer {
 
             long t0 = System.nanoTime();
             try {
-                return super.next();
+                return events.nextEvent();
             } finally {
                 eventCount++;
                 sysTime += System.nanoTime() - t0;
@@ -343,10 +321,40 @@ class ChangeProcessor implements Observer {
         public boolean hasNext() {
             long t0 = System.nanoTime();
             try {
-                return super.hasNext();
+                return events.hasNext();
             } finally {
                 sysTime += System.nanoTime() - t0;
             }
+        }
+
+        @Override
+        public Event nextEvent() {
+            return next();
+        }
+
+        @Override
+        public void skip(long skipNum) {
+            long t0 = System.nanoTime();
+            try {
+                events.skip(skipNum);
+            } finally {
+                sysTime += System.nanoTime() - t0;
+            }
+        }
+
+        @Override
+        public long getSize() {
+            return events.getSize();
+        }
+
+        @Override
+        public long getPosition() {
+            return events.getPosition();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
         }
     }
 
