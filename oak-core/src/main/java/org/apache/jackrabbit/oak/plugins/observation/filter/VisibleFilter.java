@@ -27,6 +27,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Event filter that hides all non-visible content.
  */
 public class VisibleFilter implements EventFilter {
+    public static VisibleFilter VISIBLE_FILTER = new VisibleFilter();
+
+    private VisibleFilter() {}
 
     private static boolean isVisible(String name) {
         return !name.startsWith(":");
