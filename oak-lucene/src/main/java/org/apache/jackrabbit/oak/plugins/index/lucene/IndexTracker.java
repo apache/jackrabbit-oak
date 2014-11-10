@@ -80,7 +80,7 @@ class IndexTracker {
         }
     }
 
-    synchronized void update(NodeState root) {
+    synchronized void update(final NodeState root) {
         Map<String, IndexNode> original = indices;
         final Map<String, IndexNode> updates = newHashMap();
 
@@ -93,7 +93,7 @@ class IndexTracker {
                 public void leave(NodeState before, NodeState after) {
                     try {
                         // TODO: Use DirectoryReader.openIfChanged()
-                        IndexNode index = IndexNode.open(path, after, cloner);
+                        IndexNode index = IndexNode.open(path, root, after, cloner);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
                         log.error("Failed to open Lucene index at " + path, e);
@@ -154,7 +154,7 @@ class IndexTracker {
 
         try {
             if (isLuceneIndexNode(node)) {
-                index = IndexNode.open(path, node, cloner);
+                index = IndexNode.open(path, root, node, cloner);
                 if (index != null) {
                     checkState(index.acquire());
                     indices = ImmutableMap.<String, IndexNode>builder()

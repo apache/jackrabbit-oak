@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -63,11 +64,11 @@ public class LuceneIndexEditorContext {
         }
     }
 
-    private static Directory newIndexDirectory(NodeBuilder definition)
+    private static Directory newIndexDirectory(IndexDefinition indexDefinition, NodeBuilder definition)
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(definition.getBaseState()));
+            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), indexDefinition);
         } else {
             // try {
             File file = new File(path);
@@ -103,9 +104,9 @@ public class LuceneIndexEditorContext {
 
     private boolean reindex;
 
-    LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
-        this.definition = new IndexDefinition(definitionBuilder.getBaseState());
+        this.definition = new IndexDefinition(root, definitionBuilder.getBaseState());
         this.config = getIndexWriterConfig(analyzer, this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
@@ -125,7 +126,7 @@ public class LuceneIndexEditorContext {
 
     IndexWriter getWriter() throws IOException {
         if (writer == null) {
-            writer = new IndexWriter(newIndexDirectory(definitionBuilder), config);
+            writer = new IndexWriter(newIndexDirectory(definition, definitionBuilder), config);
         }
         return writer;
     }
