@@ -50,7 +50,7 @@ public class IndexDefinitionTest {
 
     @Test
     public void fullTextEnabled() throws Exception{
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
         assertTrue("By default fulltext is enabled", defn.isFullTextEnabled());
         assertTrue("By default everything is indexed", defn.includeProperty("foo"));
         assertFalse("Property types need to be defined", defn.includePropertyType(PropertyType.DATE));
@@ -65,7 +65,7 @@ public class IndexDefinitionTest {
         builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, of(TYPENAME_LONG), STRINGS));
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
         builder.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
 
         assertFalse(defn.isFullTextEnabled());
         assertFalse("If fulltext disabled then nothing stored",defn.isStored("foo"));
@@ -84,7 +84,7 @@ public class IndexDefinitionTest {
     public void propertyDefinition() throws Exception{
         builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
 
         assertTrue(defn.hasPropertyDefinition("foo"));
         assertFalse(defn.hasPropertyDefinition("bar"));
@@ -95,7 +95,7 @@ public class IndexDefinitionTest {
     @Test
     public void propertyDefinitionWithExcludes() throws Exception{
         builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
 
         assertTrue(defn.hasPropertyDefinition("foo"));
         assertFalse(defn.hasPropertyDefinition("bar"));
@@ -105,17 +105,17 @@ public class IndexDefinitionTest {
 
     @Test
     public void codecConfig() throws Exception{
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
         assertNotNull(defn.getCodec());
         assertEquals(oakCodec.getName(), defn.getCodec().getName());
 
         builder.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        defn = new IndexDefinition(builder);
+        defn = new IndexDefinition(builder.getNodeState());
         assertNull(defn.getCodec());
 
         Codec simple = Codec.getDefault();
         builder.setProperty(LuceneIndexConstants.CODEC_NAME, simple.getName());
-        defn = new IndexDefinition(builder);
+        defn = new IndexDefinition(builder.getNodeState());
         assertNotNull(defn.getCodec());
         assertEquals(simple.getName(), defn.getCodec().getName());
     }
@@ -123,7 +123,7 @@ public class IndexDefinitionTest {
     @Test
     public void relativeProperty() throws Exception{
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "foo1/bar"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
 
         assertEquals(1, defn.getRelativeProps().size());
         assertEquals(new RelativeProperty("foo1/bar"), Iterables.getFirst(defn.getRelativeProps(), null));
@@ -136,7 +136,7 @@ public class IndexDefinitionTest {
         builder.child(PROP_NODE).child("foo1").child("bar").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(builder.getNodeState());
 
         assertEquals(2, defn.getRelativeProps().size());
         assertNull(defn.getPropDefn("foo"));

@@ -67,7 +67,7 @@ public class LuceneIndexEditorContext {
             throws IOException {
         String path = definition.getString(PERSISTENCE_PATH);
         if (path == null) {
-            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(definition));
+            return new OakDirectory(definition.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(definition.getBaseState()));
         } else {
             // try {
             File file = new File(path);
@@ -105,7 +105,7 @@ public class LuceneIndexEditorContext {
 
     LuceneIndexEditorContext(NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
-        this.definition = new IndexDefinition(definitionBuilder);
+        this.definition = new IndexDefinition(definitionBuilder.getBaseState());
         this.config = getIndexWriterConfig(analyzer, this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
