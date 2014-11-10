@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newLinkedList;
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static com.google.common.collect.Maps.newLinkedHashMap;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,25 +30,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.zip.CheckedInputStream;
-import java.util.zip.Checksum;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
+import com.google.common.collect.Lists;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -269,14 +272,7 @@ public class NodeStoreKernel implements MicroKernel {
                 addNode(child, tokenizer);
                 break;
             case '[':
-                // FIXME: proper array parsing with support for more types
-                List<Long> array = newArrayList();
-                while (tokenizer.matches(JsopReader.NUMBER)) {
-                    array.add(Long.parseLong(tokenizer.getToken()));
-                    tokenizer.matches(',');
-                }
-                tokenizer.read(']');
-                builder.setProperty(name, array, Type.LONGS);
+                builder.setProperty(readArrayProperty(name, tokenizer));
                 break;
             case JsopReader.FALSE:
                 builder.setProperty(name, Boolean.FALSE);
@@ -301,6 +297,59 @@ public class NodeStoreKernel implements MicroKernel {
             }
         } while (tokenizer.matches(','));
         tokenizer.read('}');
+    }
+
+    /**
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private static PropertyState readArrayProperty(String name, JsopReader reader) {
+        int type = PropertyType.STRING;
+        List<Object> values = Lists.newArrayList();
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopReader.NUMBER)) {
+                String number = reader.getToken();
+                try {
+                    type = PropertyType.LONG;
+                    values.add(Long.parseLong(number));
+                } catch (NumberFormatException e) {
+                    type = PropertyType.DOUBLE;
+                    values.add(Double.parseDouble(number));
+                }
+            } else if (reader.matches(JsopReader.TRUE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(true);
+            } else if (reader.matches(JsopReader.FALSE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(false);
+            } else if (reader.matches(JsopReader.STRING)) {
+                String jsonString = reader.getToken();
+                int split = TypeCodes.split(jsonString);
+                if (split != -1) {
+                    type = TypeCodes.decodeType(split, jsonString);
+                    String value = TypeCodes.decodeName(split, jsonString);
+                    if (type == PropertyType.BINARY) {
+                        // TODO implement support for arrays of binaries
+                        throw new UnsupportedOperationException("Array of PropertyType.BINARY");
+                    } else if (type == PropertyType.DOUBLE) {
+                        values.add(Conversions.convert(value).toDouble());
+                    } else if (type == PropertyType.DECIMAL) {
+                        values.add(Conversions.convert(value).toDecimal());
+                    } else {
+                        values.add(StringCache.get(value));
+                    }
+                } else {
+                    type = PropertyType.STRING;
+                    values.add(StringCache.get(jsonString));
+                }
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        return createProperty(name, values, Type.fromTag(type, true));
     }
 
     @Override
