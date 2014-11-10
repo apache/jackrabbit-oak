@@ -54,7 +54,7 @@ public class IndexPlannerTest {
     @Test
     public void planForSortField() throws Exception{
         NodeBuilder defn = LuceneIndexHelper.newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
-        IndexNode node = createIndexNode(new IndexDefinition(defn));
+        IndexNode node = createIndexNode(new IndexDefinition(defn.getNodeState()));
         IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:base"),
                 ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
