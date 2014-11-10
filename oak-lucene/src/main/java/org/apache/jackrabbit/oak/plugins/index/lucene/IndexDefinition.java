@@ -82,6 +82,8 @@ class IndexDefinition {
 
     private final NodeState definition;
 
+    private final NodeState root;
+
     private final Map<String, PropertyDefinition> propDefns;
 
     private final String funcName;
@@ -102,7 +104,8 @@ class IndexDefinition {
      */
     private final long entryCount;
 
-    public IndexDefinition(NodeState defn) {
+    public IndexDefinition(NodeState root, NodeState defn) {
+        this.root = root;
         this.definition = defn;
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
         if (pst != null) {
