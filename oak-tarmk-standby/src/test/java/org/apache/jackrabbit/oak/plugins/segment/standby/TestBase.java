@@ -49,11 +49,31 @@ public class TestBase {
     public void setUpServerAndClient() throws IOException {
         // server
         directoryS = createTmpTargetDir("FailoverServerTest");
-        storeS = new FileStore(directoryS, 1, false);
+        storeS = setupPrimary(directoryS);
 
         // client
         directoryC = createTmpTargetDir("FailoverClientTest");
-        storeC = new FileStore(directoryC, 1, false);
+        storeC = setupSecondary(directoryC);
+    }
+
+    protected FileStore setupPrimary(File directory) throws IOException {
+        return new FileStore(directory, 1, false);
+    }
+
+    protected FileStore getPrimary() {
+        return storeS;
+    }
+
+    protected FileStore setupSecondary(File directory) throws IOException {
+        return new FileStore(directoryC, 1, false);
+    }
+
+    protected FileStore getSecondary() {
+        return storeC;
+    }
+
+    protected int getPort() {
+        return port;
     }
 
     public void setUpServerAndTwoClients() throws Exception {
