@@ -21,48 +21,50 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
+
 class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
+    /**
+     * The default boost: 1.0f.
+     */
+    private static final float DEFAULT_BOOST = 1.0f;
+
     private final String name;
     private final NodeState definition;
 
-    private final int propertyType;
-    private double fieldBoost;
-    private boolean hasFieldBoost;
+    final int propertyType;
+    /**
+     * The boost value for a property.
+     */
+    final float boost;
 
     public PropertyDefinition(IndexDefinition idxDefn, String name, NodeState defn) {
         this.name = name;
         this.definition = defn;
-
-        int type = PropertyType.UNDEFINED;
-        if(defn.hasProperty(LuceneIndexConstants.PROP_TYPE)){
-            String typeName  = defn.getString(LuceneIndexConstants.PROP_TYPE);
-            try{
-                type = PropertyType.valueFromName(typeName);
-            } catch (IllegalArgumentException e){
-                log.warn("Invalid property type {} for property {} in Index {}", typeName, name, idxDefn);
-            }
-        }
-        this.propertyType = type;
-        this.hasFieldBoost = defn.hasProperty(LuceneIndexConstants.FIELD_BOOST) && (defn.getProperty(LuceneIndexConstants.FIELD_BOOST).getType().tag() == Type.DOUBLE.tag());
-        // if !hasFieldBoost then setting default lucene field boost = 1.0
-        fieldBoost = hasFieldBoost ? defn.getProperty(LuceneIndexConstants.FIELD_BOOST).getValue(Type.DOUBLE) : 1.0;
+        this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
+        this.propertyType = getPropertyType(idxDefn, name, defn);
     }
 
     public int getPropertyType() {
         return propertyType;
     }
 
-    public boolean hasFieldBoost() {
-        return hasFieldBoost;
-    }
-
-    public double fieldBoost() {
-        return fieldBoost;
+    private static int getPropertyType(IndexDefinition idxDefn, String name, NodeState defn) {
+        int type = PropertyType.UNDEFINED;
+        if (defn.hasProperty(LuceneIndexConstants.PROP_TYPE)) {
+            String typeName = defn.getString(LuceneIndexConstants.PROP_TYPE);
+            try {
+                type = PropertyType.valueFromName(typeName);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid property type {} for property {} in Index {}", typeName, name, idxDefn);
+            }
+        }
+        return type;
     }
 }
