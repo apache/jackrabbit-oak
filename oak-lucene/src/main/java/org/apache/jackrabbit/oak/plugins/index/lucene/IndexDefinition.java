@@ -30,7 +30,6 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
@@ -51,6 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
 class IndexDefinition {
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
@@ -333,21 +333,6 @@ class IndexDefinition {
             codec = new OakCodec();
         }
         return codec;
-    }
-
-    private static boolean getOptionalValue(NodeState definition, String propName, boolean defaultVal){
-        PropertyState ps = definition.getProperty(propName);
-        return ps == null ? defaultVal : ps.getValue(Type.BOOLEAN);
-    }
-
-    private static int getOptionalValue(NodeState definition, String propName, int defaultVal){
-        PropertyState ps = definition.getProperty(propName);
-        return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
-    }
-
-    private static String getOptionalValue(NodeState definition, String propName, String defaultVal){
-        PropertyState ps = definition.getProperty(propName);
-        return ps == null ? defaultVal : ps.getValue(Type.STRING);
     }
 
     private static Set<String> getMultiProperty(NodeState definition, String propName){
