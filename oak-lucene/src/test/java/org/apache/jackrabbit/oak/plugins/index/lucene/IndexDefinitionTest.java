@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -35,6 +36,7 @@ import org.junit.Test;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
@@ -43,6 +45,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -192,6 +195,34 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void indexRuleInheritanceOrdering() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"),NAMES);
+        rules.child("nt:hierarchyNode").setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+        rules.child("nt:base").setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertEquals(3.0, getRule(defn, "nt:base").boost, 0);
+        assertEquals(2.0, getRule(defn, "nt:hierarchyNode").boost, 0);
+        assertEquals(3.0, getRule(defn, "nt:query").boost, 0);
+    }
+    @Test
+    public void indexRuleInheritanceOrdering2() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:base", "nt:hierarchyNode"),NAMES);
+        rules.child("nt:hierarchyNode").setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+        rules.child("nt:base").setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        //As nt:base is defined earlier it would supercede everything
+        assertEquals(3.0, getRule(defn, "nt:base").boost, 0);
+        assertEquals(3.0, getRule(defn, "nt:hierarchyNode").boost, 0);
+        assertEquals(3.0, getRule(defn, "nt:file").boost, 0);
+    }
+
+    @Test
     public void indexRuleWithPropertyRegEx() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
@@ -213,6 +244,46 @@ public class IndexDefinitionTest {
 
         PropertyDefinition pd = rule1.getConfig("fooProp2");
         assertEquals(4.0f, pd.boost, 0);
+    }
+
+    @Test
+    public void indexRuleWithPropertyOrdering() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo.*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+        child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop2", "prop1"), NAMES);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+
+        assertTrue(rule1.isIndexed("prop1"));
+        assertTrue(rule1.isIndexed("fooProp"));
+
+        assertEquals(4.0f, rule1.getConfig("bazProp2").boost, 0);
+        //As prop2 is ordered before prop1 its regEx is evaluated first
+        //hence even with a specific regex of foo.* the defn used is from .*
+        assertEquals(4.0f, rule1.getConfig("fooProp").boost, 0);
+
+        //Order it correctly to get expected result
+        rules.child("nt:folder").child(PROP_NODE).setProperty(OAK_CHILD_ORDER, ImmutableList.of("prop1", "prop2"), NAMES);
+        defn = new IndexDefinition(root, builder.getNodeState());
+        rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
+    }
+
+
+    private static IndexingRule getRule(IndexDefinition defn, String typeName){
+        return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
     }
 
     private static Tree newTree(NodeBuilder nb){

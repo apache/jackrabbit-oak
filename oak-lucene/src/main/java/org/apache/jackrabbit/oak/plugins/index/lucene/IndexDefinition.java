@@ -44,7 +44,7 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.codecs.Codec;
@@ -67,6 +67,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 class IndexDefinition {
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
@@ -402,14 +403,18 @@ class IndexDefinition {
         //TODO if a rule is defined for nt:base then this map would have entry for each
         //registered nodeType in the system
 
-        //TODO Add check that children are orderable
+        if (!hasOrderableChildren(indexRules)){
+            log.warn("IndexRule node does not have orderable children in [{}]", IndexDefinition.this);
+        }
 
         Map<String, List<IndexingRule>> nt2rules = newHashMap();
         ReadOnlyNodeTypeManager ntReg = ReadOnlyNodeTypeManager.getInstance(new ImmutableRoot(root),
                 NamePathMapper.DEFAULT);
 
-        for (ChildNodeEntry ruleEntry : indexRules.getChildNodeEntries()) {
-            IndexingRule rule = new IndexingRule(ruleEntry.getName(), ruleEntry.getNodeState());
+        //Use Tree API to read ordered child nodes
+        ImmutableTree ruleTree = new ImmutableTree(indexRules);
+        for (Tree ruleEntry : ruleTree.getChildren()) {
+            IndexingRule rule = new IndexingRule(ruleEntry.getName(), indexRules.getChildNode(ruleEntry.getName()));
             // register under node type and all its sub types
             log.debug("Found rule '{}' for NodeType '{}'", rule, rule.getNodeTypeName());
             NodeTypeIterator ntItr = getAllNodeTypes(ntReg);
@@ -436,6 +441,7 @@ class IndexDefinition {
     }
 
     public class IndexingRule {
+        private final String baseNodeType;
         private final String nodeTypeName;
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
@@ -443,9 +449,13 @@ class IndexDefinition {
 
         IndexingRule(String nodeTypeName, NodeState config) {
             this.nodeTypeName = nodeTypeName;
+            this.baseNodeType = nodeTypeName;
             this.boost = getOptionalValue(config, FIELD_BOOST, DEFAULT_BOOST);
-            this.propConfigs = collectPropConfigs(config);
-            this.namePatterns = collectNamePatterns(propConfigs.values());
+
+            List<NamePattern> namePatterns = newArrayList();
+            this.propConfigs = collectPropConfigs(config, namePatterns);
+
+            this.namePatterns = ImmutableList.copyOf(namePatterns);
         }
 
         /**
@@ -457,6 +467,7 @@ class IndexDefinition {
          */
         IndexingRule(IndexingRule original, String nodeTypeName) {
             this.nodeTypeName = nodeTypeName;
+            this.baseNodeType = original.getNodeTypeName();
             this.propConfigs = original.propConfigs;
             this.namePatterns = original.namePatterns;
             this.boost = original.boost;
@@ -482,6 +493,15 @@ class IndexDefinition {
          */
         public String getNodeTypeName() {
             return nodeTypeName;
+        }
+
+        @Override
+        public String toString() {
+            String str = "IndexRule: "+ nodeTypeName;
+            if (!baseNodeType.equals(nodeTypeName)){
+                str += "(" + baseNodeType + ")";
+            }
+            return str;
         }
 
         /**
@@ -523,28 +543,30 @@ class IndexDefinition {
             return null;
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config) {
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
+
+            if (!hasOrderableChildren(propNode)){
+                log.warn("Properties node for [{}] does not have orderable " +
+                "children in [{}]", this, IndexDefinition.this);
+            }
+
             //Include all immediate child nodes to 'properties' node by default
-            for (String propName : propNode.getChildNodeNames()) {
+            Tree propTree = new ImmutableTree(propNode);
+            for (Tree prop : propTree.getChildren()) {
+                String propName = prop.getName();
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
                     PropertyDefinition pd = new PropertyDefinition(IndexDefinition.this, propName, propDefnNode);
-                    propDefns.put(pd.name, pd);
+                    if(pd.isRegexp){
+                        patterns.add(new NamePattern(pd.name, pd));
+                    } else {
+                        propDefns.put(pd.name, pd);
+                    }
                 }
             }
             return ImmutableMap.copyOf(propDefns);
-        }
-
-        private List<NamePattern> collectNamePatterns(Collection<PropertyDefinition> propConfigs) {
-            List<NamePattern> patterns = newArrayList();
-            for (PropertyDefinition pd : propConfigs) {
-                if (pd.isRegexp) {
-                    patterns.add(new NamePattern(pd.name, pd));
-                }
-            }
-            return ImmutableList.copyOf(patterns);
         }
     }
 
@@ -621,5 +643,9 @@ class IndexDefinition {
     private static Iterable<String> getMixinTypeNames(Tree tree) {
         PropertyState property = tree.getProperty(JcrConstants.JCR_MIMETYPE);
         return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
+    }
+
+    private static boolean hasOrderableChildren(NodeState state){
+        return state.hasProperty(OAK_CHILD_ORDER);
     }
 }
