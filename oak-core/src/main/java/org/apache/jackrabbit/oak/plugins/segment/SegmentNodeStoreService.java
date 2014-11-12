@@ -35,6 +35,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
@@ -108,6 +109,7 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
     private ServiceRegistration storeRegistration;
     private ServiceRegistration providerRegistration;
+    private Registration checkpointRegistration;
     private Registration revisionGCRegistration;
     private Registration blobGCRegistration;
     private WhiteboardExecutor executor;
@@ -188,6 +190,9 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
+        checkpointRegistration = registerMBean(whiteboard, CheckpointMBean.class, new SegmentCheckpointMBean(delegate),
+                CheckpointMBean.TYPE, "Segment node store checkpoint management");
+
         RevisionGC revisionGC = new RevisionGC(new Runnable() {
             @Override
             public void run() {
@@ -255,6 +260,10 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         if(storeRegistration != null){
             storeRegistration.unregister();
             storeRegistration = null;
+        }
+        if (checkpointRegistration != null) {
+            checkpointRegistration.unregister();
+            checkpointRegistration = null;
         }
         if (revisionGCRegistration != null) {
             revisionGCRegistration.unregister();
