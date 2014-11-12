@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeTypeIterator;
@@ -65,6 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
@@ -126,9 +128,16 @@ class IndexDefinition {
      */
     private final Map<String, List<IndexingRule>> indexRules;
 
+    private final String indexName;
+
     public IndexDefinition(NodeState root, NodeState defn) {
+        this(root, defn, null);
+    }
+
+    public IndexDefinition(NodeState root, NodeState defn, @Nullable String indexPath) {
         this.root = root;
         this.definition = defn;
+        this.indexName = determineIndexName(defn, indexPath);
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
         if (pst != null) {
             int types = 0;
@@ -296,6 +305,11 @@ class IndexDefinition {
 
     boolean hasRelativeProperty(String name) {
         return relativePropNames.contains(name);
+    }
+
+    @Override
+    public String toString() {
+        return "IndexDefinition : " + indexName;
     }
 
     //~------------------------------------------< Internal >
@@ -612,6 +626,21 @@ class IndexDefinition {
     }
 
     //~---------------------------------------------< utility >
+
+    private static String determineIndexName(NodeState defn, String indexPath) {
+        String indexName = defn.getString(PROP_NAME);
+        if (indexName ==  null){
+            if (indexPath != null) {
+                return indexPath;
+            }
+            return "<No 'name' property defined>";
+        }
+
+        if (indexPath != null){
+            return indexName + "(" + indexPath + ")";
+        }
+        return indexName;
+    }
 
     private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
