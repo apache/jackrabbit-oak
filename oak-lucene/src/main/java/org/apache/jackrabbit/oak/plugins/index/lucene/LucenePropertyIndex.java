@@ -647,28 +647,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
 
             if (isLike) {
-                first = first.replace('%', WildcardQuery.WILDCARD_STRING);
-                first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
-
-                int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
-                int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
-                int len = first.length();
-
-                if (indexOfWS == len || indexOfWC == len) {
-                    // remove trailing "*" for prefixquery
-                    first = first.substring(0, first.length() - 1);
-                    if (JCR_PATH.equals(name)) {
-                        qs.add(new PrefixQuery(newPathTerm(first)));
-                    } else {
-                        qs.add(new PrefixQuery(new Term(name, first)));
-                    }
-                } else {
-                    if (JCR_PATH.equals(name)) {
-                        qs.add(new WildcardQuery(newPathTerm(first)));
-                    } else {
-                        qs.add(new WildcardQuery(new Term(name, first)));
-                    }
-                }
+                qs.add(createLikeQuery(name, first));
                 continue;
             }
 
@@ -700,6 +679,31 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return defn.getPropDefn(name).getPropertyType();
         }
         return defaultVal;
+    }
+
+    private static Query createLikeQuery(String name, String first) {
+        first = first.replace('%', WildcardQuery.WILDCARD_STRING);
+        first = first.replace('_', WildcardQuery.WILDCARD_CHAR);
+
+        int indexOfWS = first.indexOf(WildcardQuery.WILDCARD_STRING);
+        int indexOfWC = first.indexOf(WildcardQuery.WILDCARD_CHAR);
+        int len = first.length();
+
+        if (indexOfWS == len || indexOfWC == len) {
+            // remove trailing "*" for prefixquery
+            first = first.substring(0, first.length() - 1);
+            if (JCR_PATH.equals(name)) {
+                return new PrefixQuery(newPathTerm(first));
+            } else {
+                return new PrefixQuery(new Term(name, first));
+            }
+        } else {
+            if (JCR_PATH.equals(name)) {
+                return new WildcardQuery(newPathTerm(first));
+            } else {
+                return new WildcardQuery(new Term(name, first));
+            }
+        }
     }
 
     @CheckForNull
@@ -796,7 +800,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 break;
             }
             default: {
-                //TODO Support for pr.like
+                if (pr.isLike) {
+                    return createLikeQuery(pr.propertyName, pr.first.getValue(STRING));
+                }
 
                 //TODO Confirm that all other types can be treated as string
                 String first = pr.first != null ? pr.first.getValue(STRING) : null;
