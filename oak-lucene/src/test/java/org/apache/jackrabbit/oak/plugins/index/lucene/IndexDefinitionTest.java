@@ -22,17 +22,25 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.junit.Test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -143,5 +151,84 @@ public class IndexDefinitionTest {
         assertNotNull(defn.getPropDefn("foo1/bar"));
         assertEquals(PropertyType.DATE, defn.getPropDefn("foo1/bar").getPropertyType());
         assertEquals(PropertyType.LONG, defn.getPropDefn("foo2/bar2/baz").getPropertyType());
+    }
+
+    @Test
+    public void indexRuleSanity() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder").setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+        child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0)
+                .setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_BOOLEAN);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+        assertEquals(2.0f, rule1.boost, 0);
+
+        assertTrue(rule1.isIndexed("prop1"));
+        assertFalse(rule1.isIndexed("prop2"));
+
+        PropertyDefinition pd = rule1.getConfig("prop1");
+        assertEquals(3.0f, pd.boost, 0);
+        assertEquals(PropertyType.BOOLEAN, pd.propertyType);
+    }
+
+    @Test
+    public void indexRuleInheritance() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:hierarchyNode").setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:hierarchyNode"))));
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+
+        //TODO Inheritance and mixin
+    }
+
+    @Test
+    public void indexRuleWithPropertyRegEx() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
+        child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo.*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+
+        assertTrue(rule1.isIndexed("prop1"));
+        assertFalse(rule1.isIndexed("prop2"));
+        assertTrue(rule1.isIndexed("fooProp"));
+
+        PropertyDefinition pd = rule1.getConfig("fooProp2");
+        assertEquals(4.0f, pd.boost, 0);
+    }
+
+    private static Tree newTree(NodeBuilder nb){
+        return new ImmutableTree(nb.getNodeState());
+    }
+
+    private static NodeBuilder newNode(String typeName){
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName);
+        return builder;
+    }
+
+    private static NodeBuilder child(NodeBuilder nb, String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = nb.child(name);
+        }
+        return nb;
     }
 }
