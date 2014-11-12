@@ -339,10 +339,8 @@ public class LuceneIndexEditor implements IndexEditor {
                         context.isStored(pname)));
                 if (context.isFullTextEnabled()) {
                     Field field = newFulltextField(value);
-                    boolean hasBoost = context.getDefinition().getPropDefn(pname) != null &&
-                            context.getDefinition().getPropDefn(pname).hasFieldBoost();
-                    if (hasBoost) {
-                        field.setBoost((float)context.getDefinition().getPropDefn(pname).fieldBoost());
+                    if (context.getDefinition().hasPropertyDefinition(pname)) {
+                        field.setBoost(context.getDefinition().getPropDefn(pname).boost);
                     }
                     fields.add(field);
                 }
