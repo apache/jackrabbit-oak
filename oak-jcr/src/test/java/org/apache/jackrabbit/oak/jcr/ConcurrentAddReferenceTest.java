@@ -76,7 +76,6 @@ public class ConcurrentAddReferenceTest extends AbstractRepositoryTest {
     @SuppressWarnings("unchecked")
     @Test
     public void addReferences() throws Exception {
-        Assume.assumeTrue(fixture != NodeStoreFixture.DOCUMENT_JDBC);  // FIXME OAK-1472
         List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
         List<Thread> worker = new ArrayList<Thread>();
         for (int i = 0; i < NUM_WORKERS; i++) {
