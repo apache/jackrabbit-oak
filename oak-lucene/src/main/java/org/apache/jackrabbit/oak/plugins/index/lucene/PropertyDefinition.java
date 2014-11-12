@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
 class PropertyDefinition {
@@ -33,10 +36,16 @@ class PropertyDefinition {
     /**
      * The default boost: 1.0f.
      */
-    private static final float DEFAULT_BOOST = 1.0f;
+    static final float DEFAULT_BOOST = 1.0f;
 
-    private final String name;
     private final NodeState definition;
+    /**
+     * Property name. By default derived from the NodeState name which has the
+     * property definition. However in case property name is a pattern, relative
+     * property etc then it should be defined via 'name' property in NodeState.
+     * In such case NodeState name can be set to anything
+     */
+    final String name;
 
     final int propertyType;
     /**
@@ -44,8 +53,11 @@ class PropertyDefinition {
      */
     final float boost;
 
+    final boolean isRegexp;
+
     public PropertyDefinition(IndexDefinition idxDefn, String name, NodeState defn) {
-        this.name = name;
+        this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
+        this.name = getName(defn, name);
         this.definition = defn;
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
         this.propertyType = getPropertyType(idxDefn, name, defn);
@@ -53,6 +65,13 @@ class PropertyDefinition {
 
     public int getPropertyType() {
         return propertyType;
+    }
+
+    //~---------------------------------------------< internal >
+
+    private static String getName(NodeState definition, String defaultName){
+        PropertyState ps = definition.getProperty(LuceneIndexConstants.PROP_NAME);
+        return ps == null ? defaultName : ps.getValue(Type.STRING);
     }
 
     private static int getPropertyType(IndexDefinition idxDefn, String name, NodeState defn) {

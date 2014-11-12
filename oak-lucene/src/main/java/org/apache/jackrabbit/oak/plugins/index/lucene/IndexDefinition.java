@@ -19,25 +19,39 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeTypeIterator;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
@@ -46,10 +60,12 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COU
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FULL_TEXT_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 
 class IndexDefinition {
@@ -104,6 +120,11 @@ class IndexDefinition {
      */
     private final long entryCount;
 
+    /**
+     * The {@link IndexingRule}s inside this configuration. Keys being the NodeType names
+     */
+    private final Map<String, List<IndexingRule>> indexRules;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this.root = root;
         this.definition = defn;
@@ -135,6 +156,9 @@ class IndexDefinition {
         //TODO Flag out invalid propertyNames like one which are absolute
         this.relativeProps = collectRelativeProps(Iterables.concat(includes, orderedProps));
         this.propDefns = collectPropertyDefns(defn);
+
+        this.indexRules = collectIndexRules(defn.getChildNode(LuceneIndexConstants.INDEX_RULES));
+
         this.relativePropNames = collectRelPropertyNames(this.relativeProps.values());
         this.relativePropsMaxLevels = getRelPropertyMaxLevels(this.relativeProps.values());
 
@@ -335,6 +359,238 @@ class IndexDefinition {
         return codec;
     }
 
+    //~---------------------------------------------------< IndexRule >
+
+    /**
+     * Returns the first indexing rule that applies to the given node
+     * <code>state</code>.
+     *
+     * @param state a node state.
+     * @return the indexing rule or <code>null</code> if none applies.
+     */
+    public IndexingRule getApplicableIndexingRule(Tree state) {
+        List<IndexingRule> rules = null;
+        List<IndexingRule> r = indexRules.get(getPrimaryTypeName(state));
+        if (r != null) {
+            rules = new ArrayList<IndexingRule>();
+            rules.addAll(r);
+        }
+
+        for (String name : getMixinTypeNames(state)) {
+            r = indexRules.get(name);
+            if (r != null) {
+                if (rules == null) {
+                    rules = new ArrayList<IndexingRule>();
+                }
+                rules.addAll(r);
+            }
+        }
+
+        if (rules != null) {
+            for (IndexingRule rule : rules) {
+                if (rule.appliesTo(state)) {
+                    return rule;
+                }
+            }
+        }
+
+        // no applicable rule
+        return null;
+    }
+
+    private Map<String, List<IndexingRule>> collectIndexRules(NodeState indexRules){
+        //TODO if a rule is defined for nt:base then this map would have entry for each
+        //registered nodeType in the system
+
+        //TODO Add check that children are orderable
+
+        Map<String, List<IndexingRule>> nt2rules = newHashMap();
+        ReadOnlyNodeTypeManager ntReg = ReadOnlyNodeTypeManager.getInstance(new ImmutableRoot(root),
+                NamePathMapper.DEFAULT);
+
+        for (ChildNodeEntry ruleEntry : indexRules.getChildNodeEntries()) {
+            IndexingRule rule = new IndexingRule(ruleEntry.getName(), ruleEntry.getNodeState());
+            // register under node type and all its sub types
+            log.debug("Found rule '{}' for NodeType '{}'", rule, rule.getNodeTypeName());
+            NodeTypeIterator ntItr = getAllNodeTypes(ntReg);
+            while (ntItr.hasNext()) {
+                String ntName = ntItr.nextNodeType().getName();
+
+                if (ntReg.isNodeType(ntName, rule.getNodeTypeName())) {
+                    List<IndexingRule> perNtConfig = nt2rules.get(ntName);
+                    if (perNtConfig == null) {
+                        perNtConfig = new ArrayList<IndexingRule>();
+                        nt2rules.put(ntName, perNtConfig);
+                    }
+                    log.debug("Registering it for name '{}'", ntName);
+                    perNtConfig.add(new IndexingRule(rule, ntName));
+                }
+            }
+        }
+
+        for (Map.Entry<String, List<IndexingRule>> e : nt2rules.entrySet()){
+            e.setValue(ImmutableList.copyOf(e.getValue()));
+        }
+
+        return ImmutableMap.copyOf(nt2rules);
+    }
+
+    public class IndexingRule {
+        private final String nodeTypeName;
+        private final Map<String, PropertyDefinition> propConfigs;
+        private final List<NamePattern> namePatterns;
+        final float boost;
+
+        IndexingRule(String nodeTypeName, NodeState config) {
+            this.nodeTypeName = nodeTypeName;
+            this.boost = getOptionalValue(config, FIELD_BOOST, DEFAULT_BOOST);
+            this.propConfigs = collectPropConfigs(config);
+            this.namePatterns = collectNamePatterns(propConfigs.values());
+        }
+
+        /**
+         * Creates a new indexing rule base on an existing one, but for a
+         * different node type name.
+         *
+         * @param original the existing rule.
+         * @param nodeTypeName the node type name for the rule.
+         */
+        IndexingRule(IndexingRule original, String nodeTypeName) {
+            this.nodeTypeName = nodeTypeName;
+            this.propConfigs = original.propConfigs;
+            this.namePatterns = original.namePatterns;
+            this.boost = original.boost;
+        }
+
+        /**
+         * Returns <code>true</code> if the property with the given name is
+         * indexed according to this rule.
+         *
+         * @param propertyName the name of a property.
+         * @return <code>true</code> if the property is indexed;
+         *         <code>false</code> otherwise.
+         */
+        public boolean isIndexed(String propertyName) {
+            return getConfig(propertyName) != null;
+        }
+
+
+        /**
+         * Returns the name of the node type where this rule applies to.
+         *
+         * @return name of the node type.
+         */
+        public String getNodeTypeName() {
+            return nodeTypeName;
+        }
+
+        /**
+         * Returns <code>true</code> if this rule applies to the given node
+         * <code>state</code>.
+         *
+         * @param state the state to check.
+         * @return <code>true</code> the rule applies to the given node;
+         *         <code>false</code> otherwise.
+         */
+        private boolean appliesTo(Tree state) {
+            if (!nodeTypeName.equals(getPrimaryTypeName(state))) {
+                return false;
+            }
+            //TODO Add support for condition
+            //return condition == null || condition.evaluate(state);
+            return true;
+        }
+
+        /**
+         * @param propertyName name of a property.
+         * @return the property configuration or <code>null</code> if this
+         *         indexing rule does not contain a configuration for the given
+         *         property.
+         */
+        @CheckForNull
+        public PropertyDefinition getConfig(String propertyName) {
+            PropertyDefinition config = propConfigs.get(propertyName);
+            if (config != null) {
+                return config;
+            } else if (namePatterns.size() > 0) {
+                // check patterns
+                for (NamePattern np : namePatterns) {
+                    if (np.matches(propertyName)) {
+                        return np.getConfig();
+                    }
+                }
+            }
+            return null;
+        }
+
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config) {
+            Map<String, PropertyDefinition> propDefns = newHashMap();
+            NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
+            //Include all immediate child nodes to 'properties' node by default
+            for (String propName : propNode.getChildNodeNames()) {
+                NodeState propDefnNode = propNode.getChildNode(propName);
+                if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
+                    PropertyDefinition pd = new PropertyDefinition(IndexDefinition.this, propName, propDefnNode);
+                    propDefns.put(pd.name, pd);
+                }
+            }
+            return ImmutableMap.copyOf(propDefns);
+        }
+
+        private List<NamePattern> collectNamePatterns(Collection<PropertyDefinition> propConfigs) {
+            List<NamePattern> patterns = newArrayList();
+            for (PropertyDefinition pd : propConfigs) {
+                if (pd.isRegexp) {
+                    patterns.add(new NamePattern(pd.name, pd));
+                }
+            }
+            return ImmutableList.copyOf(patterns);
+        }
+    }
+
+    /**
+     * A property name pattern.
+     */
+    private static final class NamePattern {
+        /**
+         * The pattern to match.
+         */
+        private final Pattern pattern;
+
+        /**
+         * The associated configuration.
+         */
+        private final PropertyDefinition config;
+
+        /**
+         * Creates a new name pattern.
+         *
+         * @param pattern the pattern as defined by the property definition
+         * @param config the associated configuration.
+         */
+        private NamePattern(String pattern,
+                            PropertyDefinition config){
+
+            this.pattern = Pattern.compile(pattern);
+            this.config = config;
+        }
+
+        /**
+         * @param path property name to match
+         * @return <code>true</code> if <code>property name</code> matches this name
+         *         pattern; <code>false</code> otherwise.
+         */
+        boolean matches(String propertyPath) {
+            return pattern.matcher(propertyPath).matches();
+        }
+
+        PropertyDefinition getConfig() {
+            return config;
+        }
+    }
+
+    //~---------------------------------------------< utility >
+
     private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
@@ -346,5 +602,24 @@ class IndexDefinition {
             result.add(val.toLowerCase());
         }
         return ImmutableSet.copyOf(result);
+    }
+
+    private static NodeTypeIterator getAllNodeTypes(ReadOnlyNodeTypeManager ntReg) {
+        try {
+            return ntReg.getAllNodeTypes();
+        } catch (RepositoryException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String getPrimaryTypeName(Tree state) {
+        String primaryType = TreeUtil.getPrimaryTypeName(state);
+        //In case not a proper JCR assume nt:base
+        return primaryType != null ? primaryType : "nt:base";
+    }
+
+    private static Iterable<String> getMixinTypeNames(Tree tree) {
+        PropertyState property = tree.getProperty(JcrConstants.JCR_MIMETYPE);
+        return property != null ? property.getValue(Type.NAMES) : Collections.<String>emptyList();
     }
 }

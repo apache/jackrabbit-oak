@@ -101,9 +101,17 @@ public interface LuceneIndexConstants {
      */
     String PROP_NODE = "properties";
 
+    String INDEX_RULES = "indexRules";
+
     /**
      * Field boost factor
      */
     String FIELD_BOOST = "boost";
 
+    /**
+     * Property name defined explicitly. Mostly used in case of relative property names
+     */
+    String PROP_NAME = "name";
+
+    String PROP_IS_REGEX = "isRegexp";
 }
