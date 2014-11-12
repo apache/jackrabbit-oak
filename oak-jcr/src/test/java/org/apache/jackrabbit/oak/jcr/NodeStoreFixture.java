@@ -19,11 +19,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
-
-import javax.sql.DataSource;
 
 import com.mongodb.DB;
 
@@ -31,7 +27,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -79,34 +74,6 @@ public abstract class NodeStoreFixture {
     };
 
     public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
-
-    public static final NodeStoreFixture DOCUMENT_JDBC = new NodeStoreFixture() {
-        @Override
-        public NodeStore createNodeStore() {
-            String id = UUID.randomUUID().toString();
-            String folder = (new File("target")).isDirectory() ? "./target/" : "./";
-            DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + id + ";MVCC=true", "sa", "");
-            return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
-        }
-
-        @Override
-        public NodeStore createNodeStore(int clusterNodeId) {
-            try {
-                String folder = (new File("target")).isDirectory() ? "./target/" : "./";
-                DataSource ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "");
-                return new DocumentMK.Builder().setRDBConnection(ds).getNodeStore();
-            } catch (Exception e) {
-                return null;
-            }
-        }
-
-        @Override
-        public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof DocumentNodeStore) {
-                ((DocumentNodeStore) nodeStore).dispose();
-            }
-        }
-    };
 
     public static final NodeStoreFixture MK_IMPL = new NodeStoreFixture() {
         @Override

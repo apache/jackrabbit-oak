@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.sql.DataSource;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -49,8 +48,6 @@ import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
@@ -530,36 +527,12 @@ public class DocumentMK implements MicroKernel {
         }
 
         /**
-         * Sets a {@link DataSource} to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource ds) {
-            this.documentStore = new RDBDocumentStore(ds, this);
-            this.blobStore = new RDBBlobStore(ds);
-            return this;
-        }
-        
-        /**
          * Sets the persistent cache option.
          *
          * @return this
          */
         public Builder setPersistentCache(String persistentCache) {
             this.persistentCacheURI = persistentCache;
-            return this;
-        }
-
-        /**
-         * Sets a {@link DataSource}s to use for the RDB document and blob
-         * stores.
-         *
-         * @return this
-         */
-        public Builder setRDBConnection(DataSource documentStoreDataSource, DataSource blobStoreDataSource) {
-            this.documentStore = new RDBDocumentStore(documentStoreDataSource, this);
-            this.blobStore = new RDBBlobStore(blobStoreDataSource);
             return this;
         }
 

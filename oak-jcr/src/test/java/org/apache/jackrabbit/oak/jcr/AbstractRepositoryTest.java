@@ -92,9 +92,6 @@ public abstract class AbstractRepositoryTest {
         if (FIXTURES.isEmpty() || FIXTURES.contains("SEGMENT_MK")) {
             result.add(new Object[] { NodeStoreFixture.SEGMENT_MK });
         }
-        if (FIXTURES.isEmpty() || FIXTURES.contains("DOCUMENT_JDBC")) {
-            result.add(new Object[] { NodeStoreFixture.DOCUMENT_JDBC });
-        }
         return result;
     }
 
