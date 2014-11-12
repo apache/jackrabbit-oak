@@ -40,4 +40,9 @@ public class ConfigUtil {
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.STRING);
     }
+
+    public static float getOptionalValue(NodeState definition, String propName, float defaultVal){
+        PropertyState ps = definition.getProperty(propName);
+        return ps == null ? defaultVal : ps.getValue(Type.DOUBLE).floatValue();
+    }
 }
