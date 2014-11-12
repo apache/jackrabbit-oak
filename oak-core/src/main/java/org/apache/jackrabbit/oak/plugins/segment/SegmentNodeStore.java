@@ -302,6 +302,10 @@ public class SegmentNodeStore implements NodeStore, Observable {
         return false;
     }
 
+    NodeState getCheckpoints() {
+        return head.get().getChildNode(CHECKPOINTS);
+    }
+
     private class Commit {
 
         private final Random random = new Random();
