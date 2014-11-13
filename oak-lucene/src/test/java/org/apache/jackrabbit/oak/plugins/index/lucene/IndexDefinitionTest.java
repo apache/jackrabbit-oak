@@ -197,6 +197,22 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void indexRuleInheritanceDisabled() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        builder.setProperty(PROP_NAME, "testIndex");
+        rules.child("nt:hierarchyNode")
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0)
+                .setProperty(LuceneIndexConstants.RULE_INHERITED, false);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        assertNull(defn.getApplicableIndexingRule(newTree(newNode("nt:base"))));
+        assertNotNull(defn.getApplicableIndexingRule(newTree(newNode("nt:hierarchyNode"))));
+        assertNull("nt:folder should not be index as rule is not inheritable",
+                defn.getApplicableIndexingRule(newTree(newNode("nt:folder"))));
+    }
+
+    @Test
     public void indexRuleInheritanceOrdering() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.setProperty(OAK_CHILD_ORDER, ImmutableList.of("nt:hierarchyNode", "nt:base"),NAMES);
