@@ -72,7 +72,10 @@ public interface FileStoreBackupRestoreMBean {
      * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
      *                 should remain available
      * @return string reference of this checkpoint
+     *
+     * @deprecated Use {@link org.apache.jackrabbit.oak.api.jmx.CheckpointMBean} instead
      */
+    @Deprecated
     @Nonnull
     String checkpoint(long lifetime);
 
