@@ -171,7 +171,10 @@ public interface RepositoryManagementMBean {
      *                 should remain available
      * @return string reference of this checkpoint or {@code null} if
      * the checkpoint could not be set.
+     *
+     * @deprecated Use {@link CheckpointMBean} instead
      */
+    @Deprecated
     @CheckForNull
     String checkpoint(long lifetime);
 
