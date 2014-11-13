@@ -383,7 +383,10 @@ class IndexDefinition {
      * @param state a node state.
      * @return the indexing rule or <code>null</code> if none applies.
      */
+    @CheckForNull
     public IndexingRule getApplicableIndexingRule(Tree state) {
+        //This method would be invoked for every node. So be as
+        //conservative as possible in object creation
         List<IndexingRule> rules = null;
         List<IndexingRule> r = indexRules.get(getPrimaryTypeName(state));
         if (r != null) {
@@ -427,14 +430,20 @@ class IndexDefinition {
 
         //Use Tree API to read ordered child nodes
         ImmutableTree ruleTree = new ImmutableTree(indexRules);
+        final List<String> allNames = getAllNodeTypes(ntReg);
         for (Tree ruleEntry : ruleTree.getChildren()) {
             IndexingRule rule = new IndexingRule(ruleEntry.getName(), indexRules.getChildNode(ruleEntry.getName()));
             // register under node type and all its sub types
             log.debug("Found rule '{}' for NodeType '{}'", rule, rule.getNodeTypeName());
-            NodeTypeIterator ntItr = getAllNodeTypes(ntReg);
-            while (ntItr.hasNext()) {
-                String ntName = ntItr.nextNodeType().getName();
 
+            List<String> ntNames = allNames;
+            if (!rule.inherited){
+                //Trim the list to rule's nodeType so that inheritance check
+                //is not performed for other nodeTypes
+                ntNames = Collections.singletonList(rule.getNodeTypeName());
+            }
+
+            for (String ntName : ntNames) {
                 if (ntReg.isNodeType(ntName, rule.getNodeTypeName())) {
                     List<IndexingRule> perNtConfig = nt2rules.get(ntName);
                     if (perNtConfig == null) {
@@ -460,11 +469,13 @@ class IndexDefinition {
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
         final float boost;
+        final boolean inherited;
 
         IndexingRule(String nodeTypeName, NodeState config) {
             this.nodeTypeName = nodeTypeName;
             this.baseNodeType = nodeTypeName;
             this.boost = getOptionalValue(config, FIELD_BOOST, DEFAULT_BOOST);
+            this.inherited = getOptionalValue(config, LuceneIndexConstants.RULE_INHERITED, true);
 
             List<NamePattern> namePatterns = newArrayList();
             this.propConfigs = collectPropConfigs(config, namePatterns);
@@ -485,6 +496,7 @@ class IndexDefinition {
             this.propConfigs = original.propConfigs;
             this.namePatterns = original.namePatterns;
             this.boost = original.boost;
+            this.inherited = original.inherited;
         }
 
         /**
@@ -655,9 +667,14 @@ class IndexDefinition {
         return ImmutableSet.copyOf(result);
     }
 
-    private static NodeTypeIterator getAllNodeTypes(ReadOnlyNodeTypeManager ntReg) {
+    private static List<String> getAllNodeTypes(ReadOnlyNodeTypeManager ntReg) {
         try {
-            return ntReg.getAllNodeTypes();
+            List<String> typeNames = newArrayList();
+            NodeTypeIterator ntItr = ntReg.getAllNodeTypes();
+            while (ntItr.hasNext()){
+                typeNames.add(ntItr.nextNodeType().getName());
+            }
+            return typeNames;
         } catch (RepositoryException e) {
             throw new RuntimeException(e);
         }
