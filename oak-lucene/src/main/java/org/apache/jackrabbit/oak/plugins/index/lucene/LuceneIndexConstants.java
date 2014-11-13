@@ -114,4 +114,6 @@ public interface LuceneIndexConstants {
     String PROP_NAME = "name";
 
     String PROP_IS_REGEX = "isRegexp";
+
+    String RULE_INHERITED = "inherited";
 }
