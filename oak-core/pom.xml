@@ -285,17 +285,10 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- db blob store -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>1.4.182</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
       <optional>true</optional>
     </dependency>
 
