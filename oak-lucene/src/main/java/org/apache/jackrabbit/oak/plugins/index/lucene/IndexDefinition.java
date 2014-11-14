@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -41,7 +42,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -69,6 +69,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
 class IndexDefinition {
@@ -425,8 +426,7 @@ class IndexDefinition {
         }
 
         Map<String, List<IndexingRule>> nt2rules = newHashMap();
-        ReadOnlyNodeTypeManager ntReg = ReadOnlyNodeTypeManager.getInstance(new ImmutableRoot(root),
-                NamePathMapper.DEFAULT);
+        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(new ImmutableTree(root));
 
         //Use Tree API to read ordered child nodes
         ImmutableTree ruleTree = new ImmutableTree(indexRules);
@@ -678,6 +678,21 @@ class IndexDefinition {
         } catch (RepositoryException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static ReadOnlyNodeTypeManager createNodeTypeManager(final Tree root) {
+        return new ReadOnlyNodeTypeManager() {
+            @Override
+            protected Tree getTypes() {
+                return TreeUtil.getTree(root,NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected NamePathMapper getNamePathMapper() {
+                return NamePathMapper.DEFAULT;
+            }
+        };
     }
 
     private static String getPrimaryTypeName(Tree state) {
