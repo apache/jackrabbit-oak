@@ -115,5 +115,17 @@ public interface LuceneIndexConstants {
 
     String PROP_IS_REGEX = "isRegexp";
 
+    String PROP_INDEX = "index";
+
+    String PROP_USE_IN_EXCERPT = "useInExcerpt";
+
+    String PROP_NODE_SCOPE_INDEX = "nodeScopeIndex";
+
+    String PROP_PROPERTY_INDEX = "propertyIndex";
+
+    String PROP_ANALYZED = "analyzed";
+
     String RULE_INHERITED = "inherited";
+
+    String PROP_ORDERED = "ordered";
 }
