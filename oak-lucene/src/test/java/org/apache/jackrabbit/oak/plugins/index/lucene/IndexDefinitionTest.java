@@ -36,6 +36,7 @@ import org.junit.Test;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
@@ -62,14 +63,15 @@ public class IndexDefinitionTest {
 
     @Test
     public void fullTextEnabled() throws Exception{
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-        assertTrue("By default fulltext is enabled", defn.isFullTextEnabled());
-        assertTrue("By default everything is indexed", defn.includeProperty("foo"));
-        assertFalse("Property types need to be defined", defn.includePropertyType(PropertyType.DATE));
-        assertTrue("For fulltext storage is enabled", defn.isStored("foo"));
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
+        assertTrue("By default fulltext is enabled", idxDefn.isFullTextEnabled());
+        assertTrue("By default everything is indexed", rule.isIndexed("foo"));
+        assertTrue("Property types need to be defined", rule.includePropertyType(PropertyType.DATE));
+        assertTrue("For fulltext storage is enabled", rule.getConfig("foo").stored);
 
-        assertFalse(defn.skipTokenization("foo"));
-        assertTrue(defn.skipTokenization("jcr:uuid"));
+        assertFalse(rule.getConfig("foo").skipTokenization("foo"));
+        assertTrue(rule.getConfig("jcr:uuid").skipTokenization("jcr:uuid"));
     }
 
     @Test
@@ -77,42 +79,43 @@ public class IndexDefinitionTest {
         builder.setProperty(createProperty(INCLUDE_PROPERTY_TYPES, of(TYPENAME_LONG), STRINGS));
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
         builder.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
+        assertFalse(idxDefn.isFullTextEnabled());
+        assertFalse("If fulltext disabled then nothing stored", rule.getConfig("foo").stored);
 
-        assertFalse(defn.isFullTextEnabled());
-        assertFalse("If fulltext disabled then nothing stored",defn.isStored("foo"));
+        assertTrue(rule.includePropertyType(PropertyType.LONG));
+        assertFalse(rule.includePropertyType(PropertyType.STRING));
 
-        assertTrue(defn.includePropertyType(PropertyType.LONG));
-        assertFalse(defn.includePropertyType(PropertyType.STRING));
+        assertTrue(rule.isIndexed("foo"));
+        assertTrue(rule.isIndexed("bar"));
+        assertFalse(rule.isIndexed("baz"));
 
-        assertTrue(defn.includeProperty("foo"));
-        assertTrue(defn.includeProperty("bar"));
-        assertFalse(defn.includeProperty("baz"));
-
-        assertTrue(defn.skipTokenization("foo"));
+        assertTrue(rule.getConfig("foo").skipTokenization("foo"));
     }
 
     @Test
     public void propertyDefinition() throws Exception{
         builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "bar"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
 
-        assertTrue(defn.hasPropertyDefinition("foo"));
-        assertFalse(defn.hasPropertyDefinition("bar"));
+        assertTrue(rule.isIndexed("foo"));
+        assertTrue(rule.isIndexed("bar"));
 
-        assertEquals(PropertyType.DATE, defn.getPropDefn("foo").getPropertyType());
+        assertEquals(PropertyType.DATE, rule.getConfig("foo").getPropertyType());
     }
 
     @Test
     public void propertyDefinitionWithExcludes() throws Exception{
         builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
+        assertTrue(rule.isIndexed("foo"));
+        assertTrue(rule.isIndexed("bar"));
 
-        assertTrue(defn.hasPropertyDefinition("foo"));
-        assertFalse(defn.hasPropertyDefinition("bar"));
-
-        assertEquals(PropertyType.DATE, defn.getPropDefn("foo").getPropertyType());
+        assertEquals(PropertyType.DATE, rule.getConfig("foo").getPropertyType());
     }
 
     @Test
@@ -135,12 +138,13 @@ public class IndexDefinitionTest {
     @Test
     public void relativeProperty() throws Exception{
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "foo1/bar"), STRINGS));
-        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
 
-        assertEquals(1, defn.getRelativeProps().size());
-        assertEquals(new RelativeProperty("foo1/bar"), Iterables.getFirst(defn.getRelativeProps(), null));
-        assertTrue(defn.hasRelativeProperty("bar"));
-        assertFalse(defn.hasRelativeProperty("foo"));
+        assertEquals(1, rule.getRelativeProps().size());
+        assertEquals(new RelativeProperty("foo1/bar"), Iterables.getFirst(rule.getRelativeProps(), null));
+        assertTrue(rule.hasRelativeProperty("bar"));
+        assertFalse(rule.hasRelativeProperty("foo"));
     }
 
     @Test

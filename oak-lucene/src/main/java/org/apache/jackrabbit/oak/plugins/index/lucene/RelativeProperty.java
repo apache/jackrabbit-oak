@@ -52,6 +52,13 @@ class RelativeProperty {
         ancestors = computeAncestors(parentPath);
     }
 
+    /**
+     * The first index definition format supported relative property definition
+     * by replicating the property path in 'properties' node. Later version
+     * supported property definition as immediated child node of 'properties' node
+     * where the relative property path is specified as part of 'name' property
+     */
+    @Deprecated
     @Nonnull
     public NodeState getPropDefnNode(NodeState propNode) {
         NodeState result = propNode;
