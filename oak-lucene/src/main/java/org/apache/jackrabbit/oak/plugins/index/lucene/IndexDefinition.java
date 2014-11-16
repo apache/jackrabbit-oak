@@ -659,6 +659,10 @@ class IndexDefinition {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
+            if (!propNode.exists()){
+                return Collections.emptyMap();
+            }
+
             if (!hasOrderableChildren(propNode)){
                 log.warn("Properties node for [{}] does not have orderable " +
                 "children in [{}]", this, IndexDefinition.this);
@@ -744,6 +748,20 @@ class IndexDefinition {
 
     //~---------------------------------------------< compatibility >
 
+    public void updateDefinition(NodeBuilder indexDefn){
+        //TODO Remove existing config once transformed config is persisted
+        NodeState rulesState = definition.getChildNode(LuceneIndexConstants.INDEX_RULES);
+        if (!rulesState.exists()){
+            rulesState = createIndexRules(definition).getNodeState();
+            indexDefn.setChildNode(LuceneIndexConstants.INDEX_RULES, rulesState);
+            log.info("Updated index definition for {}", this);
+            //indexDefn.removeProperty(DECLARING_NODE_TYPES);
+            //indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
+            //indexDefn.removeProperty(EXCLUDE_PROPERTY_NAMES);
+            //indexDefn.removeProperty(ORDERED_PROP_NAMES);
+        }
+    }
+
     /**
      * Constructs IndexingRule based on earlier format of index configuration
      */
@@ -786,16 +804,22 @@ class IndexDefinition {
 
         for (String typeName : declaringNodeTypes){
             NodeBuilder rule = builder.child(typeName);
-
+            markAsNtUnstructured(rule);
             List<String> propNodeNames = newArrayListWithCapacity(propNamesSet.size());
             NodeBuilder propNodes = rule.child(PROP_NODE);
             int i = 0;
             for (String propName : propNames){
-                String propNodeName = "prop" + i++;
+                String propNodeName = propName;
+
+                //For proper propName use the propName as childNode name
+                if(RelativeProperty.isRelativeProperty(propName)
+                        || propName.equals(includeAllProp)){
+                    propNodeName = "prop" + i++;
+                }
                 propNodeNames.add(propNodeName);
 
                 NodeBuilder prop = propNodes.child(propNodeName);
-
+                markAsNtUnstructured(prop);
                 prop.setProperty(LuceneIndexConstants.PROP_NAME, propName);
 
                 if (excludes.contains(propName)){
@@ -835,8 +859,10 @@ class IndexDefinition {
             }
 
             propNodes.setProperty(OAK_CHILD_ORDER, propNodeNames ,NAMES);
+            markAsNtUnstructured(propNodes);
         }
 
+        markAsNtUnstructured(builder);
         builder.setProperty(OAK_CHILD_ORDER, declaringNodeTypes ,NAMES);
         return builder;
     }
@@ -964,5 +990,9 @@ class IndexDefinition {
             propNames.add(prop.name);
         }
         return ImmutableSet.copyOf(propNames);
+    }
+
+    private static void markAsNtUnstructured(NodeBuilder nb){
+        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
     }
 }
