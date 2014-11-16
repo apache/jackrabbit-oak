@@ -108,7 +108,7 @@
             <Embed-Dependency>
                 lucene-*;inline=true,
                 <!-- TODO FIXME OAK-2270 -->
-                oak-core;inline=org/apache/jackrabbit/oak/plugins/tree/AbstractTree*;org/apache/jackrabbit/oak/plugins/tree/ImmutableTree*
+                oak-core;inline="org/apache/jackrabbit/oak/plugins/tree/AbstractTree*|org/apache/jackrabbit/oak/plugins/tree/ImmutableTree*"
                 <!-- TODO FIXME OAK-2270 -->
             </Embed-Dependency>
           </instructions>
