@@ -38,14 +38,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.codecs.Codec;
@@ -53,8 +57,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
@@ -67,8 +74,10 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 
@@ -85,6 +94,12 @@ class IndexDefinition {
      * Default entry count to keep estimated entry count low.
      */
     static final long DEFAULT_ENTRY_COUNT = 1000;
+
+    private static String TYPES_ALLOW_ALL_NAME = "allTypes";
+
+    private static final int TYPES_ALLOW_NONE = PropertyType.UNDEFINED;
+
+    private static final int TYPES_ALLOW_ALL = -1;
 
     private final int propertyTypes;
 
@@ -139,20 +154,7 @@ class IndexDefinition {
         this.root = root;
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
-        PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
-        if (pst != null) {
-            int types = 0;
-            for (String inc : pst.getValue(Type.STRINGS)) {
-                try {
-                    types |= 1 << PropertyType.valueFromName(inc);
-                } catch (IllegalArgumentException e) {
-                    log.warn("Unknown property type: " + inc);
-                }
-            }
-            this.propertyTypes = types;
-        } else {
-            this.propertyTypes = -1;
-        }
+        this.propertyTypes = getSupportedTypes(defn, TYPES_ALLOW_ALL);
 
         this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
         this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
@@ -161,14 +163,19 @@ class IndexDefinition {
 
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
-        this.fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
-        //Storage is disabled for non full text indexes
-        this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
         //TODO Flag out invalid propertyNames like one which are absolute
         this.relativeProps = collectRelativeProps(Iterables.concat(includes, orderedProps));
         this.propDefns = collectPropertyDefns(defn);
 
-        this.indexRules = collectIndexRules(defn.getChildNode(LuceneIndexConstants.INDEX_RULES));
+        NodeState rulesState = defn.getChildNode(LuceneIndexConstants.INDEX_RULES);
+        if (!rulesState.exists()){
+            rulesState = createIndexRules(defn).getNodeState();
+        }
+        this.indexRules = collectIndexRules(rulesState);
+
+        this.fullTextEnabled = hasFulltextEnabledIndexRule(indexRules);
+        //Storage is disabled for non full text indexes
+        this.storageEnabled = this.fullTextEnabled && getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
 
         this.relativePropNames = collectRelPropertyNames(this.relativeProps.values());
         this.relativePropsMaxLevels = getRelPropertyMaxLevels(this.relativeProps.values());
@@ -327,6 +334,8 @@ class IndexDefinition {
 
     private Map<String, PropertyDefinition> collectPropertyDefns(NodeState defn) {
         Map<String, PropertyDefinition> propDefns = newHashMap();
+        //TODO FIXME
+        IndexingRule dummyRule = new IndexingRule("nt:base", EMPTY_NODE);
         NodeState propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
         //Include all immediate child nodes to 'properties' node by default
         for (String propName : Iterables.concat(includes, orderedProps, propNode.getChildNodeNames())) {
@@ -338,18 +347,10 @@ class IndexDefinition {
             }
 
             if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
-                propDefns.put(propName, new PropertyDefinition(this, propName, propDefnNode));
+                propDefns.put(propName, new PropertyDefinition(dummyRule, propName, propDefnNode));
             }
         }
         return ImmutableMap.copyOf(propDefns);
-    }
-
-    private Set<String> collectRelPropertyNames(Collection<RelativeProperty> props) {
-        Set<String> propNames = newHashSet();
-        for (RelativeProperty prop : props) {
-            propNames.add(prop.name);
-        }
-        return ImmutableSet.copyOf(propNames);
     }
 
     private int getRelPropertyMaxLevels(Collection<RelativeProperty> props) {
@@ -377,13 +378,36 @@ class IndexDefinition {
 
     //~---------------------------------------------------< IndexRule >
 
-    /**
-     * Returns the first indexing rule that applies to the given node
-     * <code>state</code>.
-     *
-     * @param state a node state.
-     * @return the indexing rule or <code>null</code> if none applies.
-     */
+    @CheckForNull
+    public IndexingRule getApplicableIndexingRule(String primaryNodeType) {
+        //This method would be invoked for every node. So be as
+        //conservative as possible in object creation
+        List<IndexingRule> rules = null;
+        List<IndexingRule> r = indexRules.get(primaryNodeType);
+        if (r != null) {
+            rules = new ArrayList<IndexingRule>();
+            rules.addAll(r);
+        }
+
+        if (rules != null) {
+            for (IndexingRule rule : rules) {
+                if (rule.appliesTo(primaryNodeType)) {
+                    return rule;
+                }
+            }
+        }
+
+        // no applicable rule
+        return null;
+    }
+
+        /**
+         * Returns the first indexing rule that applies to the given node
+         * <code>state</code>.
+         *
+         * @param state a node state.
+         * @return the indexing rule or <code>null</code> if none applies.
+         */
     @CheckForNull
     public IndexingRule getApplicableIndexingRule(Tree state) {
         //This method would be invoked for every node. So be as
@@ -420,6 +444,10 @@ class IndexDefinition {
     private Map<String, List<IndexingRule>> collectIndexRules(NodeState indexRules){
         //TODO if a rule is defined for nt:base then this map would have entry for each
         //registered nodeType in the system
+
+        if (!indexRules.exists()) {
+            return Collections.emptyMap();
+        }
 
         if (!hasOrderableChildren(indexRules)){
             log.warn("IndexRule node does not have orderable children in [{}]", IndexDefinition.this);
@@ -470,17 +498,34 @@ class IndexDefinition {
         private final List<NamePattern> namePatterns;
         final float boost;
         final boolean inherited;
+        final boolean defaultFulltextEnabled;
+        final boolean defaultStorageEnabled;
+        final int propertyTypes;
+        final boolean fulltextEnabled;
+
+        //TODO To be relooked with support for aggregation
+        final Map<String,RelativeProperty> relativeProps;
+        final Set<String> relativePropNames;
+
 
         IndexingRule(String nodeTypeName, NodeState config) {
             this.nodeTypeName = nodeTypeName;
             this.baseNodeType = nodeTypeName;
             this.boost = getOptionalValue(config, FIELD_BOOST, DEFAULT_BOOST);
             this.inherited = getOptionalValue(config, LuceneIndexConstants.RULE_INHERITED, true);
+            this.defaultFulltextEnabled = getOptionalValue(config, LuceneIndexConstants.FULL_TEXT_ENABLED, false);
+            //TODO Provide a new proper propertyName for enabling storage
+            this.defaultStorageEnabled = getOptionalValue(config, LuceneIndexConstants.EXPERIMENTAL_STORAGE, false);
+            this.propertyTypes = getSupportedTypes(config, TYPES_ALLOW_ALL);
 
             List<NamePattern> namePatterns = newArrayList();
-            this.propConfigs = collectPropConfigs(config, namePatterns);
+            Map<String,RelativeProperty> relativeProps = newHashMap();
+            this.propConfigs = collectPropConfigs(config, namePatterns, relativeProps);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
+            this.fulltextEnabled = hasAnyFullTextEnabledProperty();
+            this.relativeProps = ImmutableMap.copyOf(relativeProps);
+            this.relativePropNames = collectRelPropertyNames(this.relativeProps.values());
         }
 
         /**
@@ -496,7 +541,13 @@ class IndexDefinition {
             this.propConfigs = original.propConfigs;
             this.namePatterns = original.namePatterns;
             this.boost = original.boost;
+            this.defaultFulltextEnabled = original.defaultFulltextEnabled;
+            this.defaultStorageEnabled = original.defaultStorageEnabled;
             this.inherited = original.inherited;
+            this.propertyTypes = original.propertyTypes;
+            this.fulltextEnabled = original.fulltextEnabled;
+            this.relativeProps = original.relativeProps;
+            this.relativePropNames = original.relativePropNames;
         }
 
         /**
@@ -538,7 +589,7 @@ class IndexDefinition {
          * @return <code>true</code> the rule applies to the given node;
          *         <code>false</code> otherwise.
          */
-        private boolean appliesTo(Tree state) {
+        public boolean appliesTo(Tree state) {
             if (!nodeTypeName.equals(getPrimaryTypeName(state))) {
                 return false;
             }
@@ -546,6 +597,18 @@ class IndexDefinition {
             //return condition == null || condition.evaluate(state);
             return true;
         }
+
+        public boolean appliesTo(String nodeTypeName) {
+            if (!this.nodeTypeName.equals(nodeTypeName)) {
+                return false;
+            }
+
+            //TODO Once condition support is done return false
+            //return condition == null || condition.evaluate(state);
+            return true;
+
+        }
+
 
         /**
          * @param propertyName name of a property.
@@ -569,7 +632,30 @@ class IndexDefinition {
             return null;
         }
 
-        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns) {
+        public boolean includePropertyType(int type){
+            //TODO Rules related to type inclusion need to be synced
+            //Login IndexEditor evaluates differently compared to IndexDefinition
+            if(propertyTypes == TYPES_ALLOW_ALL){
+                return true;
+            }
+
+            if (propertyTypes == TYPES_ALLOW_NONE){
+                return false;
+            }
+
+            return (propertyTypes & (1 << type)) != 0;
+        }
+
+        public Collection<RelativeProperty> getRelativeProps() {
+            return relativeProps.values();
+        }
+
+        boolean hasRelativeProperty(String name) {
+            return relativePropNames.contains(name);
+        }
+
+        private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
+                                                                   Map<String,RelativeProperty> relativeProps) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -584,15 +670,34 @@ class IndexDefinition {
                 String propName = prop.getName();
                 NodeState propDefnNode = propNode.getChildNode(propName);
                 if (propDefnNode.exists() && !propDefns.containsKey(propName)) {
-                    PropertyDefinition pd = new PropertyDefinition(IndexDefinition.this, propName, propDefnNode);
+                    PropertyDefinition pd = new PropertyDefinition(this, propName, propDefnNode);
                     if(pd.isRegexp){
                         patterns.add(new NamePattern(pd.name, pd));
                     } else {
                         propDefns.put(pd.name, pd);
                     }
+
+                    if (RelativeProperty.isRelativeProperty(pd.name)){
+                        relativeProps.put(pd.name, new RelativeProperty(pd.name));
+                    }
                 }
             }
             return ImmutableMap.copyOf(propDefns);
+        }
+
+        private boolean hasAnyFullTextEnabledProperty() {
+            for (PropertyDefinition pd : propConfigs.values()){
+                if (pd.fulltextEnabled()){
+                    return true;
+                }
+            }
+
+            for (NamePattern np : namePatterns){
+                if (np.getConfig().fulltextEnabled()){
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -636,6 +741,117 @@ class IndexDefinition {
             return config;
         }
     }
+
+    //~---------------------------------------------< compatibility >
+
+    /**
+     * Constructs IndexingRule based on earlier format of index configuration
+     */
+    private NodeBuilder createIndexRules(NodeState defn){
+        NodeBuilder builder = EMPTY_NODE.builder();
+        Set<String> declaringNodeTypes = getMultiProperty(defn, DECLARING_NODE_TYPES);
+        Set<String> includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
+        Set<String> excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
+        Set<String> orderedProps = getMultiProperty(defn, ORDERED_PROP_NAMES);
+        boolean fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
+        boolean storageEnabled = getOptionalValue(defn, EXPERIMENTAL_STORAGE, true);
+        NodeState propNodeState = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
+
+        //If no explicit nodeType defined then all config applies for nt:base
+        if (declaringNodeTypes.isEmpty()){
+            declaringNodeTypes = Collections.singleton(NT_BASE);
+        }
+
+        Set<String> propNamesSet = Sets.newHashSet();
+        propNamesSet.addAll(includes);
+        propNamesSet.addAll(excludes);
+        propNamesSet.addAll(orderedProps);
+
+        //Also include all immediate leaf propNode names
+        for (ChildNodeEntry cne : propNodeState.getChildNodeEntries()){
+            if (!propNamesSet.contains(cne.getName())
+                    && Iterables.isEmpty(cne.getNodeState().getChildNodeNames())){
+                propNamesSet.add(cne.getName());
+            }
+        }
+
+        List<String> propNames = new ArrayList<String>(propNamesSet);
+
+        final String includeAllProp = ".*";
+        if (fullTextEnabled){
+            //Add the regEx for including all properties at the end
+            //for fulltext index
+            propNames.add(includeAllProp);
+        }
+
+        for (String typeName : declaringNodeTypes){
+            NodeBuilder rule = builder.child(typeName);
+
+            List<String> propNodeNames = newArrayListWithCapacity(propNamesSet.size());
+            NodeBuilder propNodes = rule.child(PROP_NODE);
+            int i = 0;
+            for (String propName : propNames){
+                String propNodeName = "prop" + i++;
+                propNodeNames.add(propNodeName);
+
+                NodeBuilder prop = propNodes.child(propNodeName);
+
+                prop.setProperty(LuceneIndexConstants.PROP_NAME, propName);
+
+                if (excludes.contains(propName)){
+                    prop.setProperty(LuceneIndexConstants.PROP_INDEX, false);
+                } else if (fullTextEnabled){
+                    prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+                    prop.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+                    prop.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, storageEnabled);
+                } else {
+                    prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+
+                    if (orderedProps.contains(propName)){
+                        prop.setProperty(LuceneIndexConstants.PROP_ORDERED, true);
+                    }
+                }
+
+                if (propName.equals(includeAllProp)){
+                    prop.setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+                }
+
+                NodeState propDefNode  = getPropDefnNode(defn, propName);
+                if (propDefNode != null && propDefNode.hasProperty(LuceneIndexConstants.PROP_TYPE)){
+                    prop.setProperty(propDefNode.getProperty(LuceneIndexConstants.PROP_TYPE));
+                }
+            }
+
+            //If no propertyType defined then default to UNKNOWN such that none
+            //of the properties get indexed
+            PropertyState supportedTypes = defn.getProperty(INCLUDE_PROPERTY_TYPES);
+            if (supportedTypes == null){
+                supportedTypes = PropertyStates.createProperty(INCLUDE_PROPERTY_TYPES, TYPES_ALLOW_ALL_NAME);
+            }
+            rule.setProperty(supportedTypes);
+
+            if (!NT_BASE.equals(typeName)) {
+                rule.setProperty(LuceneIndexConstants.RULE_INHERITED, false);
+            }
+
+            propNodes.setProperty(OAK_CHILD_ORDER, propNodeNames ,NAMES);
+        }
+
+        builder.setProperty(OAK_CHILD_ORDER, declaringNodeTypes ,NAMES);
+        return builder;
+    }
+
+    private NodeState getPropDefnNode(NodeState defn, String propName){
+        NodeState propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
+        NodeState propDefNode;
+        if (RelativeProperty.isRelativeProperty(propName)) {
+            propDefNode = new RelativeProperty(propName).getPropDefnNode(propNode);
+        } else {
+            propDefNode = propNode.getChildNode(propName);
+        }
+        return propDefNode.exists() ? propDefNode : null;
+    }
+
 
     //~---------------------------------------------< utility >
 
@@ -697,7 +913,8 @@ class IndexDefinition {
 
     private static String getPrimaryTypeName(Tree state) {
         String primaryType = TreeUtil.getPrimaryTypeName(state);
-        //In case not a proper JCR assume nt:base
+        //In case not a proper JCR assume nt:base TODO return null and ignore indexing such nodes
+        //at all
         return primaryType != null ? primaryType : "nt:base";
     }
 
@@ -708,5 +925,44 @@ class IndexDefinition {
 
     private static boolean hasOrderableChildren(NodeState state){
         return state.hasProperty(OAK_CHILD_ORDER);
+    }
+
+    private static int getSupportedTypes(NodeState defn, int defaultVal) {
+        PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
+        if (pst != null) {
+            int types = 0;
+            for (String inc : pst.getValue(Type.STRINGS)) {
+                if (TYPES_ALLOW_ALL_NAME.equals(inc)){
+                    return TYPES_ALLOW_ALL;
+                }
+
+                try {
+                    types |= 1 << PropertyType.valueFromName(inc);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Unknown property type: " + inc);
+                }
+            }
+            return types;
+        }
+        return defaultVal;
+    }
+
+    private static boolean hasFulltextEnabledIndexRule(Map<String, List<IndexingRule>> indexRules) {
+        for (List<IndexingRule> rules : indexRules.values()){
+            for (IndexingRule rule : rules){
+                if (rule.fulltextEnabled){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Set<String> collectRelPropertyNames(Collection<RelativeProperty> props) {
+        Set<String> propNames = newHashSet();
+        for (RelativeProperty prop : props) {
+            propNames.add(prop.name);
+        }
+        return ImmutableSet.copyOf(propNames);
     }
 }
