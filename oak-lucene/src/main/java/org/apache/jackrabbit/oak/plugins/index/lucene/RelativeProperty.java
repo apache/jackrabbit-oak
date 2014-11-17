@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
@@ -35,6 +36,7 @@ class RelativeProperty {
     final String propertyPath;
     final String parentPath;
     final String name;
+    private final PropertyDefinition propertyDefinition;
     /**
      * Stores the parent path element in reverse order
      * parentPath -> foo/bar/baz -> [baz, bar, foo]
@@ -46,10 +48,15 @@ class RelativeProperty {
     }
 
     public RelativeProperty(String propertyPath){
+        this(propertyPath, null);
+    }
+
+    public RelativeProperty(String propertyPath, PropertyDefinition pd){
         this.propertyPath = propertyPath;
         name = PathUtils.getName(propertyPath);
         parentPath = PathUtils.getParentPath(propertyPath);
         ancestors = computeAncestors(parentPath);
+        this.propertyDefinition = pd;
     }
 
     /**
@@ -80,21 +87,8 @@ class RelativeProperty {
         return node.exists() ? node.getProperty(name) : null;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        RelativeProperty that = (RelativeProperty) o;
-
-        if (!propertyPath.equals(that.propertyPath)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return propertyPath.hashCode();
+    public PropertyDefinition getPropertyDefinition() {
+        return checkNotNull(propertyDefinition, "Property definition not specified");
     }
 
     @Override

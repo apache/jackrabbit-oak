@@ -40,7 +40,6 @@ class PropertyDefinition {
      */
     static final float DEFAULT_BOOST = 1.0f;
 
-    private final NodeState definition;
     /**
      * Property name. By default derived from the NodeState name which has the
      * property definition. However in case property name is a pattern, relative
@@ -49,7 +48,7 @@ class PropertyDefinition {
      */
     final String name;
 
-    final int propertyType;
+    private final int propertyType;
     /**
      * The boost value for a property.
      */
@@ -72,7 +71,6 @@ class PropertyDefinition {
     public PropertyDefinition(IndexingRule idxDefn, String name, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, name);
-        this.definition = defn;
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
 
         //By default if a property is defined it is indexed
@@ -90,10 +88,6 @@ class PropertyDefinition {
         this.propertyType = getPropertyType(idxDefn, name, defn);
     }
 
-    public int getPropertyType() {
-        return propertyType;
-    }
-
     public boolean skipTokenization(String propertyName) {
         //For regEx case check against a whitelist
         if (isRegexp){
@@ -104,6 +98,21 @@ class PropertyDefinition {
 
     public boolean fulltextEnabled(){
         return index && (analyzed || nodeScopeIndex);
+    }
+
+    public boolean isTypeDefined(){
+        return propertyType != PropertyType.UNDEFINED;
+    }
+
+    /**
+     * Returns the property type. If no explicit type is defined the default is assumed
+     * to be {@link javax.jcr.PropertyType#STRING}
+     *
+     * @return propertyType as per javax.jcr.PropertyType
+     */
+    public int getType(){
+        //If no explicit type is defined we assume it to be string
+        return isTypeDefined() ? propertyType : PropertyType.STRING;
     }
 
     @Override

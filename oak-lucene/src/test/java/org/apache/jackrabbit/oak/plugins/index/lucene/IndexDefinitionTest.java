@@ -104,7 +104,7 @@ public class IndexDefinitionTest {
         assertTrue(rule.isIndexed("foo"));
         assertTrue(rule.isIndexed("bar"));
 
-        assertEquals(PropertyType.DATE, rule.getConfig("foo").getPropertyType());
+        assertEquals(PropertyType.DATE, rule.getConfig("foo").getType());
     }
 
     @Test
@@ -115,7 +115,7 @@ public class IndexDefinitionTest {
         assertTrue(rule.isIndexed("foo"));
         assertTrue(rule.isIndexed("bar"));
 
-        assertEquals(PropertyType.DATE, rule.getConfig("foo").getPropertyType());
+        assertEquals(PropertyType.DATE, rule.getConfig("foo").getType());
     }
 
     @Test
@@ -142,9 +142,9 @@ public class IndexDefinitionTest {
         IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
 
         assertEquals(1, rule.getRelativeProps().size());
-        assertEquals(new RelativeProperty("foo1/bar"), Iterables.getFirst(rule.getRelativeProps(), null));
-        assertTrue(rule.hasRelativeProperty("bar"));
-        assertFalse(rule.hasRelativeProperty("foo"));
+        assertEquals("foo1/bar", Iterables.getFirst(rule.getRelativeProps(), null).propertyPath);
+        assertTrue(idxDefn.hasRelativeProperty("bar"));
+        assertFalse(idxDefn.hasRelativeProperty("foo"));
     }
 
     @Test
@@ -157,8 +157,8 @@ public class IndexDefinitionTest {
         assertEquals(2, defn.getRelativeProps().size());
         assertNull(defn.getPropDefn("foo"));
         assertNotNull(defn.getPropDefn("foo1/bar"));
-        assertEquals(PropertyType.DATE, defn.getPropDefn("foo1/bar").getPropertyType());
-        assertEquals(PropertyType.LONG, defn.getPropDefn("foo2/bar2/baz").getPropertyType());
+        assertEquals(PropertyType.DATE, defn.getPropDefn("foo1/bar").getType());
+        assertEquals(PropertyType.LONG, defn.getPropDefn("foo2/bar2/baz").getType());
     }
 
     @Test
@@ -182,7 +182,7 @@ public class IndexDefinitionTest {
 
         PropertyDefinition pd = rule1.getConfig("prop1");
         assertEquals(3.0f, pd.boost, 0);
-        assertEquals(PropertyType.BOOLEAN, pd.propertyType);
+        assertEquals(PropertyType.BOOLEAN, pd.getType());
     }
 
     @Test
