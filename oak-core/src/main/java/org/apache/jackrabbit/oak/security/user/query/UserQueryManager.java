@@ -117,11 +117,13 @@ public class UserQueryManager {
 
         if (sortCol != null) {
             boolean ignoreCase = builder.getSortIgnoreCase();
-            statement.append(" order by ")
-                    .append(ignoreCase ? "" : "fn:lower-case(")
-                    .append(sortCol)
-                    .append(ignoreCase ? " " : ") ")
-                    .append(sortDir.getDirection());
+            statement.append(" order by ");
+            if (ignoreCase) {
+                statement.append("fn:lower-case(").append(sortCol).append(')');
+            } else {
+                statement.append(sortCol);
+            }
+            statement.append(' ').append(sortDir.getDirection());
         }
 
         final String groupId = builder.getGroupID();
