@@ -28,8 +28,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -111,10 +111,10 @@ public class UserQueryTest extends AbstractUserTest {
 
         User jackrabbit = createUser("jackrabbit", "carrots", 2500, true);
         User deer = createUser("deer", "leaves", 120000, true);
-        User opposum = createUser("opposum", "fruit", 1200, true);
+        User opossum = createUser("opossum", "fruit", 1200, true);
         kangaroo = createUser("kangaroo", "grass", 90000, true);
         elephant = createUser("elephant", "leaves", 5000000, true);
-        addMembers(mammals, jackrabbit, deer, opposum, kangaroo, elephant);
+        addMembers(mammals, jackrabbit, deer, opossum, kangaroo, elephant);
 
         User lemur = createUser("lemur", "nectar", 1100, true);
         User gibbon = createUser("gibbon", "meat", 20000, true);
@@ -140,16 +140,22 @@ public class UserQueryTest extends AbstractUserTest {
         setProperty("poisonous", vf.createValue(true), blackWidow, bee, poisonDartFrog);
         setProperty("poisonous", vf.createValue(false), turtle, lemur);
         setProperty("hasWings", vf.createValue(false), blackWidow, gardenSpider, jumpingSpider, ant,
-                jackrabbit, deer, opposum, kangaroo, elephant, lemur, gibbon, crocodile, turtle, lizard,
+                jackrabbit, deer, opossum, kangaroo, elephant, lemur, gibbon, crocodile, turtle, lizard,
                 salamander, goldenToad, poisonDartFrog);
         setProperty("color", vf.createValue("black"), blackWidow, gardenSpider, ant, fly, lizard, salamander);
-        setProperty("color", vf.createValue("WHITE"), opposum, goose, pelican, dove);
+        setProperty("color", vf.createValue("WHITE"), opossum, goose, pelican, dove);
         setProperty("color", vf.createValue("gold"), goldenToad);
         setProperty("numberOfLegs", vf.createValue(2), kangaroo, gibbon, kestrel, goose, dove);
-        setProperty("numberOfLegs", vf.createValue(4), jackrabbit, deer, opposum, elephant, lemur, crocodile,
+        setProperty("numberOfLegs", vf.createValue(4), jackrabbit, deer, opossum, elephant, lemur, crocodile,
                 turtle, lizard, salamander, goldenToad, poisonDartFrog);
         setProperty("numberOfLegs", vf.createValue(6), ant, bee, fly);
         setProperty("numberOfLegs", vf.createValue(8), blackWidow, gardenSpider, jumpingSpider);
+
+        // testing ignore-case with sort order
+        setProperty("continent", vf.createValue("africa"), lemur, gibbon);
+        setProperty("continent", vf.createValue("Africa"), elephant);
+        setProperty("continent", vf.createValue("australia"), kangaroo);
+        setProperty("continent", vf.createValue("America"), opossum);
 
         elephant.getImpersonation().grantImpersonation(jackrabbit.getPrincipal());
 
@@ -676,12 +682,12 @@ public class UserQueryTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSortOrder1() throws RepositoryException {
+    public void testSortOrderIgnoreCaseDescending() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("@color"));
-                builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING);
+                builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, true);
             }
         });
 
@@ -698,12 +704,34 @@ public class UserQueryTest extends AbstractUserTest {
     }
 
     @Test
-    public void testSortOrder2() throws RepositoryException {
+    public void testSortOrderRespectCaseDescending() throws RepositoryException {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.
+                        exists("@color"));
+                builder.setSortOrder("@color", QueryBuilder.Direction.DESCENDING, false);
+            }
+        });
+
+        assertTrue(result.hasNext());
+        String prev = null;
+        while (result.hasNext()) {
+            Authorizable authorizable = result.next();
+            Value[] color = authorizable.getProperty("color");
+            assertNotNull(color);
+            assertEquals(1, color.length);
+            assertTrue(prev == null || prev.compareTo(color[0].getString()) >= 0);
+            prev = color[0].getString();
+        }
+    }
+
+    @Test
+    public void testSortOrderRespectCaseAscendingDoubleValue() throws RepositoryException {
         Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
             public <T> void build(QueryBuilder<T> builder) {
                 builder.setCondition(builder.
                         exists("profile/@weight"));
-                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, true);
+                builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
             }
         });
 
@@ -716,6 +744,54 @@ public class UserQueryTest extends AbstractUserTest {
             assertEquals(1, weight.length);
             assertTrue(prev <= weight[0].getDouble());
             prev = weight[0].getDouble();
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2266">OAK-2266</a>
+     */
+    @Test
+    public void testSortOrderIgnoreCaseAscending() throws Exception {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.exists("@continent"));
+                builder.setSortOrder("@continent", QueryBuilder.Direction.ASCENDING, true);
+            }
+        });
+
+        Iterator<String> continents = ImmutableList.of("africa", "america", "australia").iterator();
+        String expected = continents.next();
+        while (result.hasNext()) {
+            Authorizable a = result.next();
+            String continent = a.getProperty("continent")[0].getString().toLowerCase();
+            if (!continent.equals(expected)) {
+                expected = continents.next();
+                assertEquals(expected, continent);
+            }
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2266">OAK-2266</a>
+     */
+    @Test()
+    public void testSortOrderRespectCaseAscending() throws Exception {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(new Query() {
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.exists("@continent"));
+                builder.setSortOrder("@continent", QueryBuilder.Direction.ASCENDING, false);
+            }
+        });
+
+        Iterator<String> continents = ImmutableList.of("Africa", "America", "africa", "australia").iterator();
+        String expected = continents.next();
+        while (result.hasNext()) {
+            Authorizable a = result.next();
+            String continent = a.getProperty("continent")[0].getString();
+            if (!continent.equals(expected)) {
+                expected = continents.next();
+                assertEquals(expected, continent);
+            }
         }
     }
 
@@ -777,7 +853,7 @@ public class UserQueryTest extends AbstractUserTest {
                 public <T> void build(QueryBuilder<T> builder) {
                     builder.setCondition(builder.
                             eq("profile/@cute", vf.createValue(true)));
-                    builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, true);
+                    builder.setSortOrder("profile/@weight", QueryBuilder.Direction.ASCENDING, false);
                     builder.setLimit(vf.createValue(1000.0), count);
                 }
             });
