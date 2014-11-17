@@ -675,8 +675,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     private static int getPropertyType(IndexDefinition defn, String name, int defaultVal){
+        //TODO Revisit with recent propertyType changes
         if (defn.hasPropertyDefinition(name)) {
-            return defn.getPropDefn(name).getPropertyType();
+            return defn.getPropDefn(name).getType();
         }
         return defaultVal;
     }
