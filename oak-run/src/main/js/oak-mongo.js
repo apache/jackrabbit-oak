@@ -188,6 +188,55 @@ var oak = (function(global){
         return {nRemoved : count};
     }
 
+    /**
+     * List all checkpoints.
+     */
+    api.listCheckpoints = function() {
+        var result = {};
+        var doc = db.settings.findOne({_id:"checkpoint"});
+        if (doc == null) {
+            print("No checkpoint document found.");
+            return;
+        }
+        var data = doc.data;
+        var r;
+        for (r in data) {
+            var rev = new Revision(r);
+            var exp = data[r];
+            result[r] = {created:rev.asDate(), expires:new Date(parseInt(exp, 10))};
+        }
+        return result;
+    }
+
+    /**
+     * Removes all checkpoints older than a given Revision.
+     */
+    api.removeCheckpointsOlderThan = function(rev) {
+        if (rev === undefined) {
+            print("No revision specified");
+            return;
+        }
+        var r = new Revision(rev);
+        var unset = {};
+        var cps = api.listCheckpoints();
+        var x;
+        var num = 0;
+        for (x in cps) {
+            if (r.isNewerThan(new Revision(x))) {
+                unset["data." + x] = "";
+                num++;
+            }
+        }
+        if (num > 0) {
+            var update = {};
+            update["$inc"] = {_modCount: 1};
+            update["$unset"] = unset;
+            return db.settings.update({_id:"checkpoint"}, update);
+        } else {
+            print("No checkpoint older than " + rev);
+        }
+    }
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
@@ -260,7 +309,11 @@ var oak = (function(global){
     }
 
     Revision.prototype.toReadableString = function () {
-        return this.rev + " (" + new Date(this.timestamp).toString() + ")"
+        return this.rev + " (" + this.asDate().toString() + ")"
+    }
+
+    Revision.prototype.asDate = function() {
+        return new Date(this.timestamp);
     }
 
     var pathDepth = function(path){
