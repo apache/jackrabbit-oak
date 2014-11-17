@@ -51,6 +51,9 @@ import org.slf4j.LoggerFactory;
  *     of a given access control entries to JCR nodes of any of the specified
  *     primary node type. In case of a JCR property the primary type of the
  *     parent node is taken into consideration when evaluating the permissions.</li>
+ *     <li>{@link #REP_PREFIXES}: A multivalued access control restriction
+ *     which matches by name space prefix. The corresponding restriction type
+ *     is {@link org.apache.jackrabbit.oak.api.Type#STRINGS}.</li>
  * </ul>
  */
 @Component
