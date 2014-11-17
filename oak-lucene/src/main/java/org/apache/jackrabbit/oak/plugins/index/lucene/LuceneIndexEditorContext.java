@@ -112,14 +112,6 @@ public class LuceneIndexEditorContext {
         this.updateCallback = updateCallback;
     }
 
-    boolean includeProperty(String name) {
-        return definition.includeProperty(name);
-    }
-
-    boolean includePropertyType(int type){
-        return definition.includePropertyType(type);
-    }
-
     Parser getParser() {
         return parser;
     }
@@ -170,25 +162,6 @@ public class LuceneIndexEditorContext {
 
     void indexUpdate() throws CommitFailedException {
         updateCallback.indexUpdate();
-    }
-
-    /**
-     * Checks if a given property should be stored in the lucene index or not
-     */
-    public boolean isStored(String name) {
-        return definition.isStored(name);
-    }
-
-    public boolean isFullTextEnabled() {
-        return definition.isFullTextEnabled();
-    }
-
-    public boolean skipTokenization(String propertyName){
-        return definition.skipTokenization(propertyName);
-    }
-
-    public int getPropertyTypes() {
-        return definition.getPropertyTypes();
     }
 
     public IndexDefinition getDefinition() {
