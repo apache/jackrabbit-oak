@@ -20,14 +20,17 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
@@ -39,12 +42,19 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
+import static com.google.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class IndexPlannerTest {
     private NodeState root = INITIAL_CONTENT;
@@ -53,11 +63,61 @@ public class IndexPlannerTest {
 
     @Test
     public void planForSortField() throws Exception{
-        NodeBuilder defn = LuceneIndexHelper.newLucenePropertyIndexDefinition(builder, "test", ImmutableSet.of("foo"), "async");
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(createProperty(ORDERED_PROP_NAMES, of("foo"), STRINGS));
         IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
         IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:base"),
                 ImmutableList.of(new OrderEntry("foo", Type.LONG, OrderEntry.Order.ASCENDING)));
         assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fullTextQueryNonFulltextIndex() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void noApplicableRule() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:folder"), STRINGS));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
+
+        filter = createFilter("nt:folder");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void nodeTypeInheritance() throws Exception{
+        //Index if for nt:hierarchyNode and query is for nt:folder
+        //as nt:folder extends nt:hierarchyNode we should get a plan
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:hierarchyNode"), STRINGS));
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:folder");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void noMatchingProperty() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
     }
 
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
