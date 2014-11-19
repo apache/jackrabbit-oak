@@ -35,10 +35,11 @@ public class FilterIterators {
      * Verify the number of in-memory nodes is below the limit.
      * 
      * @param count the number of nodes
-     * @param maxMemoryEntries the maximum number of nodes
+     * @param settings the query engine settings
      * @throws UnsupportedOperationException if the limit was exceeded
      */
-    public static void checkMemoryLimit(long count, long maxMemoryEntries) {
+    public static void checkMemoryLimit(long count, QueryEngineSettings settings) {
+        long maxMemoryEntries = settings.getLimitInMemory();
         if (count > maxMemoryEntries) {
             String message = "The query read more than " + 
                     maxMemoryEntries + " nodes in memory.";
@@ -54,9 +55,11 @@ public class FilterIterators {
      * Verify the number of node read operations is below the limit.
      * 
      * @param count the number of read operations
+     * @param settings the query engine settings
      * @throws UnsupportedOperationException if the limit was exceeded
      */
-    public static void checkReadLimit(long count, long maxReadEntries) {
+    public static void checkReadLimit(long count, QueryEngineSettings settings) {
+        long maxReadEntries = settings.getLimitReads();
         if (count > maxReadEntries) {
             String message = "The query read or traversed more than " + 
                     maxReadEntries + " nodes.";
@@ -116,14 +119,14 @@ public class FilterIterators {
     static class DistinctIterator<K> implements Iterator<K> {
 
         private final Iterator<K> source;
-        private final long maxMemoryEntries;
+        private final QueryEngineSettings settings;
         private final HashSet<K> distinctSet;
         private K current;
         private boolean end;
 
         DistinctIterator(Iterator<K> source, QueryEngineSettings settings) {
             this.source = source;
-            this.maxMemoryEntries = settings.getLimitInMemory();
+            this.settings = settings;
             distinctSet = new HashSet<K>();
         }
 
@@ -134,7 +137,7 @@ public class FilterIterators {
             while (source.hasNext()) {
                 current = source.next();
                 if (distinctSet.add(current)) {
-                    checkMemoryLimit(distinctSet.size(), maxMemoryEntries);
+                    checkMemoryLimit(distinctSet.size(), settings);
                     return;
                 }
             }
@@ -180,7 +183,7 @@ public class FilterIterators {
     static class SortIterator<K> implements Iterator<K> {
 
         private final Iterator<K> source;
-        private final long maxMemoryEntries;
+        private final QueryEngineSettings settings;
         private final Comparator<K> orderBy;
         private Iterator<K> result;
         private final int max;
@@ -189,7 +192,7 @@ public class FilterIterators {
             this.source = source;
             this.orderBy = orderBy;
             this.max = max;
-            this.maxMemoryEntries = settings.getLimitInMemory();
+            this.settings = settings;
         }
         
         private void init() {
@@ -200,7 +203,7 @@ public class FilterIterators {
             while (source.hasNext()) {
                 K x = source.next();
                 list.add(x);
-                checkMemoryLimit(list.size(), maxMemoryEntries);
+                checkMemoryLimit(list.size(), settings);
                 // from time to time, sort and truncate
                 // this should results in O(n*log(2*keep)) operations,
                 // which is close to the optimum O(n*log(keep))
