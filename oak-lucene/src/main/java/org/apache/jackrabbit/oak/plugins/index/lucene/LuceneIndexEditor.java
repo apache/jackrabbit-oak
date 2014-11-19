@@ -349,7 +349,7 @@ public class LuceneIndexEditor implements IndexEditor {
                     //as term field use the same name. For compatibility this should be done
                     //for newer index versions only
                     if (pd.analyzed) {
-                        fields.add(newPropertyField(pname, value, true, pd.stored));
+                        fields.add(newPropertyField(pname, value, !pd.skipTokenization(pname), pd.stored));
                         //TODO Property field uses OakType which has omitNorms set hence
                         //cannot be boosted
                     }

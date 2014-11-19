@@ -88,10 +88,19 @@ class PropertyDefinition {
         this.propertyType = getPropertyType(idxDefn, name, defn);
     }
 
+    /**
+     * If 'analyzed' is enabled then property value would be used to evaluate the
+     * contains clause related to those properties. In such mode also some properties
+     * would be skipped from analysis
+     *
+     * @param propertyName name of the property to check. As property definition might
+     *                     be regEx based this is required to be passed explicitly
+     * @return true if the property value should be tokenized/analyzed
+     */
     public boolean skipTokenization(String propertyName) {
         //For regEx case check against a whitelist
-        if (isRegexp){
-            return LuceneIndexHelper.skipTokenization(propertyName);
+        if (isRegexp && LuceneIndexHelper.skipTokenization(propertyName)){
+            return true;
         }
         return !analyzed;
     }
