@@ -153,12 +153,11 @@ public class IndexDefinitionTest {
         builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
-
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
         assertEquals(2, defn.getRelativeProps().size());
-        assertNull(defn.getPropDefn("foo"));
-        assertNotNull(defn.getPropDefn("foo1/bar"));
-        assertEquals(PropertyType.DATE, defn.getPropDefn("foo1/bar").getType());
-        assertEquals(PropertyType.LONG, defn.getPropDefn("foo2/bar2/baz").getType());
+        assertNotNull(rule.getConfig("foo1/bar"));
+        assertEquals(PropertyType.DATE, rule.getConfig("foo1/bar").getType());
+        assertEquals(PropertyType.LONG, rule.getConfig("foo2/bar2/baz").getType());
     }
 
     @Test
@@ -301,6 +300,22 @@ public class IndexDefinitionTest {
         defn = new IndexDefinition(root, builder.getNodeState());
         rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
         assertEquals(3.0f, rule1.getConfig("fooProp").boost, 0);
+    }
+
+    @Test
+    public void skipTokenization() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertFalse(rule.getConfig("foo").skipTokenization("foo"));
+        assertTrue(rule.getConfig(JcrConstants.JCR_UUID).skipTokenization(JcrConstants.JCR_UUID));
     }
 
 
