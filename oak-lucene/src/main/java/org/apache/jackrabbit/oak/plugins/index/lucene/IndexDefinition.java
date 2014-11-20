@@ -974,6 +974,10 @@ class IndexDefinition {
             return IndexFormatVersion.getCurrent();
         }
 
+        if (defn.hasProperty(LuceneIndexConstants.COMPAT_MODE)){
+            return IndexFormatVersion.getVersion((int)defn.getLong(LuceneIndexConstants.COMPAT_MODE));
+        }
+
         if (defn.hasProperty(INDEX_VERSION)){
             return IndexFormatVersion.getVersion((int)defn.getLong(INDEX_VERSION));
         }
