@@ -58,6 +58,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -278,6 +279,19 @@ public class LuceneIndexEditorTest {
         assertEquals(IndexFormatVersion.getCurrent(), new IndexDefinition(root,
                 indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
 
+    }
+
+    @Test
+    public void autoFormatUpdate() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+
+        //1. Trigger a index so that next index step does not see it as a fresh index
+        NodeState indexed = HOOK.processCommit(EMPTY_NODE, builder.getNodeState(), CommitInfo.EMPTY);
+
+        IndexDefinition defn = new IndexDefinition(root, indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene"));
+        assertFalse(defn.isOfOldFormat());
     }
 
     //@Test
