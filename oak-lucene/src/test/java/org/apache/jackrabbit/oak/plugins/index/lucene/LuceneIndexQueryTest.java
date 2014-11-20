@@ -45,7 +45,9 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        //TODO Remove compat mode once OAK-2278 resolved
+        indexDefn.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
         root.commit();
     }
 

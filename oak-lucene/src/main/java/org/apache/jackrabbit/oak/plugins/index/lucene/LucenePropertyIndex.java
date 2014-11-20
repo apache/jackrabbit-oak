@@ -192,12 +192,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 indexNode = tracker.acquireIndexNode(path);
 
                 if (indexNode != null) {
-                    //TODO Need to be removed for supporting hybrid indexes
-                    //Ignore full text indexes
-                    if (indexNode.getDefinition().isFullTextEnabled()){
-                        continue;
-                    }
-
                     IndexPlan plan = new IndexPlanner(indexNode, path, filter, sortOrder).getPlan();
                     if (plan != null) {
                         plans.add(plan);
@@ -438,6 +432,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @return the set of relative paths (possibly empty)
      */
     private static Set<String> getRelativePaths(FullTextExpression ft) {
+        //TODO This would need to be relooked as with aggregation we would be
+        //aggregating child properties also
         if (ft == null) {
             // there might be no full-text constraint when using the
             // LowCostLuceneIndexProvider which is used for testing
