@@ -124,7 +124,7 @@ class Checkpoints {
 
     @SuppressWarnings("unchecked")
     @CheckForNull
-    private SortedMap<Revision, String> getCheckpoints() {
+    SortedMap<Revision, String> getCheckpoints() {
         Document cdoc = store.find(Collection.SETTINGS, ID, 0);
         return (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
     }
