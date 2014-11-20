@@ -128,4 +128,10 @@ public interface LuceneIndexConstants {
     String RULE_INHERITED = "inherited";
 
     String PROP_ORDERED = "ordered";
+
+    /**
+     * Integer property indicating that LuceneIndex should be
+     * used in compat mode to specific version
+     */
+    String COMPAT_MODE = "compatVersion";
 }

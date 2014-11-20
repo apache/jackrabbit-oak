@@ -367,6 +367,16 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void versionFreshCompateMode() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+        defnb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(IndexFormatVersion.V1, defn.getVersion());
+    }
+
+    @Test
     public void formatUpdate() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "lucene", of(TYPENAME_STRING), of("foo"), "async");
