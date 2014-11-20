@@ -40,6 +40,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
@@ -57,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -153,7 +155,8 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
  * @see org.apache.jackrabbit.oak.spi.query.QueryIndex
  *
  */
-public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex {
+public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, NativeQueryIndex,
+        AdvanceFulltextQueryIndex {
 
     private static final Logger LOG = LoggerFactory
             .getLogger(LucenePropertyIndex.class);
@@ -375,6 +378,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
         };
         return new LucenePathCursor(itr, plan, settings);
+    }
+
+    @Override
+    public NodeAggregator getNodeAggregator() {
+        return null;
     }
 
     private IndexNode acquireIndexNode(IndexPlan plan) {
