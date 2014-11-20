@@ -366,6 +366,22 @@ public class IndexDefinitionTest {
         assertEquals(IndexFormatVersion.getCurrent(), defn.getVersion());
     }
 
+    @Test
+    public void formatUpdate() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING), of("foo"), "async");
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertTrue(defn.isOfOldFormat());
+
+        NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
+        IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState());
+
+        assertFalse(defn2.isOfOldFormat());
+        IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
+        assertNotNull(rule);
+        assertFalse(rule.getConfig("foo").index);
+    }
+
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
         return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
