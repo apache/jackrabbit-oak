@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -53,6 +54,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -242,6 +244,40 @@ public class LuceneIndexEditorTest {
         assertNull("removes must be persisted too, 2nd level",
                 getPath(new TermQuery(new Term("jcr:content/metadata/type",
                         "image"))));
+    }
+
+    @Test
+    public void indexVersionSwitchOnReindex() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+
+        //1. Trigger a index so that next index step does not see it as a fresh index
+        NodeState indexed = HOOK.processCommit(EMPTY_NODE, builder.getNodeState(), CommitInfo.EMPTY);
+        builder = indexed.builder();
+
+        //By default logic would use current version. To simulate upgrade we forcefully set
+        //version to V1
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(IndexDefinition.INDEX_VERSION,
+                IndexFormatVersion.V1.getVersion());
+
+        NodeState before = builder.getNodeState();
+        builder.child("test").setProperty("foo", "fox is jumping");
+        NodeState after = builder.getNodeState();
+
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        assertEquals(IndexFormatVersion.V1, new IndexDefinition(root,
+                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
+
+        //3. Trigger a reindex and version should switch to current
+        builder = indexed.builder();
+        before = indexed;
+        builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        assertEquals(IndexFormatVersion.getCurrent(), new IndexDefinition(root,
+                indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
+
     }
 
     //@Test
