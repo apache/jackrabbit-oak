@@ -191,7 +191,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             return Collections.emptyList();
         }
 
-        String indexPath = new LuceneIndexLookup(rootState).getFullTextIndexPath(filter, tracker);
+        String indexPath = new LuceneIndexLookup(rootState).getOldFullTextIndexPath(filter, tracker);
         if (indexPath == null) { // unusable index
             return Collections.emptyList();
         }
