@@ -22,6 +22,8 @@ package org.apache.jackrabbit.oak.run.osgi
 import de.kalpatec.pojosr.framework.launch.PojoServiceRegistry
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexFormatVersion
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder
@@ -94,8 +96,9 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
                     if (builder.hasChildNode(INDEX_DEFINITIONS_NAME)) {
                         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
                         if (!index.hasChildNode("lucene")) {
-                            LuceneIndexHelper.newLuceneIndexDefinition(
+                            NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(
                                     index, "lucene", LuceneIndexHelper.JR_PROPERTY_INCLUDES)
+                            nb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
                         }
                     }
                 }
