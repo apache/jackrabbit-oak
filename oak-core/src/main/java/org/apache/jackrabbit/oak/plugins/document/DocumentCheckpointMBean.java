@@ -24,39 +24,15 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.management.openmbean.CompositeDataSupport;
-import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
-import javax.management.openmbean.OpenType;
-import javax.management.openmbean.SimpleType;
-import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
-import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
+import org.apache.jackrabbit.oak.util.AbstractCheckpointMBean;
 
 /**
  * {@code CheckpointMBean} implementation for the {@code DocumentNodeStore}.
  */
-public class DocumentCheckpointMBean implements CheckpointMBean {
-    private static final String[] FIELD_NAMES = new String[] { "id", "created", "expires"};
-    private static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
-
-    @SuppressWarnings("rawtypes")
-    private static final OpenType[] FIELD_TYPES = new OpenType[] {
-            SimpleType.STRING, SimpleType.STRING, SimpleType.STRING };
-
-    private static final CompositeType TYPE = createCompositeType();
-
-    private static CompositeType createCompositeType() {
-        try {
-            return new CompositeType(DocumentCheckpointMBean.class.getName(),
-                    "Checkpoints", FIELD_NAMES, FIELD_DESCRIPTIONS, FIELD_TYPES);
-        } catch (OpenDataException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
+public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
     private final DocumentNodeStore store;
 
     public DocumentCheckpointMBean(DocumentNodeStore store) {
@@ -64,33 +40,18 @@ public class DocumentCheckpointMBean implements CheckpointMBean {
     }
 
     @Override
-    public TabularData listCheckpoints() {
+    protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
         Map<Revision, String> checkpoints = store.getCheckpoints().getCheckpoints();
         if (checkpoints == null) {
             checkpoints = Collections.emptyMap();
         }
 
-        try {
-            TabularDataSupport tab = new TabularDataSupport(
-                    new TabularType(DocumentCheckpointMBean.class.getName(),
-                            "Checkpoints", TYPE, new String[] { "id" }));
-
-            for (Entry<Revision, String> checkpoint : checkpoints.entrySet()) {
-                String id = checkpoint.getKey().toString();
-                Date created = new Date(checkpoint.getKey().getTimestamp());
-                Date expires = new Date(Long.parseLong(checkpoint.getValue()));
-                tab.put(id, toCompositeData(id, created.toString(), expires.toString()));
-            }
-
-            return tab;
-        } catch (OpenDataException e) {
-            throw new IllegalStateException(e);
+        for (Entry<Revision, String> checkpoint : checkpoints.entrySet()) {
+            String id = checkpoint.getKey().toString();
+            Date created = new Date(checkpoint.getKey().getTimestamp());
+            Date expires = new Date(Long.parseLong(checkpoint.getValue()));
+            tab.put(id, toCompositeData(id, created.toString(), expires.toString()));
         }
-    }
-
-    private static CompositeDataSupport toCompositeData(String id, String created, String expires)
-            throws OpenDataException {
-        return new CompositeDataSupport(TYPE, FIELD_NAMES, new String[] { id, created, expires });
     }
 
     @Override
