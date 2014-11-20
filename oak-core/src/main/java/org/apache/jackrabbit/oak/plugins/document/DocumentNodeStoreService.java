@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -42,6 +48,7 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
+import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
@@ -65,12 +72,6 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
-import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
@@ -413,6 +414,13 @@ public class DocumentNodeStoreService {
                         store.getDocChildrenCacheStats(),
                         CacheStatsMBean.TYPE,
                         store.getDocChildrenCacheStats().getName())
+        );
+        registrations.add(
+                registerMBean(whiteboard,
+                        CheckpointMBean.class,
+                        new DocumentCheckpointMBean(store),
+                        CheckpointMBean.TYPE,
+                        "Document node store checkpoint management")
         );
         DiffCache cl = store.getDiffCache();
         if (cl instanceof MemoryDiffCache) {
