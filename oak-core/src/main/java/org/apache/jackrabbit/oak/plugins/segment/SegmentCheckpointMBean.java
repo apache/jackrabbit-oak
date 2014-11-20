@@ -21,43 +21,19 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.Date;
 
-import javax.management.openmbean.CompositeDataSupport;
-import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
-import javax.management.openmbean.OpenType;
-import javax.management.openmbean.SimpleType;
-import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
-import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.AbstractCheckpointMBean;
 
 /**
  * {@code CheckpointMBean} implementation for the {@code SegmentNodeStore}.
  */
-public class SegmentCheckpointMBean implements CheckpointMBean {
-    private static final String[] FIELD_NAMES = new String[] { "id", "created", "expires"};
-    private static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
-
-    @SuppressWarnings("rawtypes")
-    private static final OpenType[] FIELD_TYPES = new OpenType[] {
-            SimpleType.STRING, SimpleType.STRING, SimpleType.STRING };
-
-    private static final CompositeType TYPE = createCompositeType();
-
-    private static CompositeType createCompositeType() {
-        try {
-            return new CompositeType(SegmentCheckpointMBean.class.getName(),
-                    "Checkpoints", FIELD_NAMES, FIELD_DESCRIPTIONS, FIELD_TYPES);
-        } catch (OpenDataException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
+public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
     private final SegmentNodeStore store;
 
     public SegmentCheckpointMBean(SegmentNodeStore store) {
@@ -65,31 +41,14 @@ public class SegmentCheckpointMBean implements CheckpointMBean {
     }
 
     @Override
-    public TabularData listCheckpoints() {
-        NodeState checkpoints = store.getCheckpoints();
-
-        try {
-            TabularDataSupport tab = new TabularDataSupport(
-                    new TabularType(SegmentCheckpointMBean.class.getName(),
-                            "Checkpoints", TYPE, new String[] { "id" }));
-
-            for (ChildNodeEntry cne : checkpoints.getChildNodeEntries()) {
-                String id = cne.getName();
-                NodeState checkpoint = cne.getNodeState();
-                String created = getDate(checkpoint, "created");
-                String expires = getDate(checkpoint, "timestamp");
-                tab.put(id, toCompositeData(id, created, expires));
-            }
-
-            return tab;
-        } catch (OpenDataException e) {
-            throw new IllegalStateException(e);
+    protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
+        for (ChildNodeEntry cne : store.getCheckpoints().getChildNodeEntries()) {
+            String id = cne.getName();
+            NodeState checkpoint = cne.getNodeState();
+            String created = getDate(checkpoint, "created");
+            String expires = getDate(checkpoint, "timestamp");
+            tab.put(id, toCompositeData(id, created, expires));
         }
-    }
-
-    private static CompositeDataSupport toCompositeData(String id, String created, String expires)
-            throws OpenDataException {
-        return new CompositeDataSupport(TYPE, FIELD_NAMES, new String[] { id, created, expires });
     }
 
     private static String getDate(NodeState checkpoint, String name) {
