@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
@@ -101,12 +100,6 @@ class IndexDefinition {
 
     private static final int TYPES_ALLOW_ALL = -1;
 
-    private final int propertyTypes;
-
-    private final Set<String> excludes;
-
-    private final Set<String> includes;
-
     private final boolean fullTextEnabled;
 
     private final boolean propertyIndexEnabled;
@@ -150,11 +143,6 @@ class IndexDefinition {
         this.root = root;
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
-        this.propertyTypes = getSupportedTypes(defn, TYPES_ALLOW_ALL);
-
-        this.excludes = toLowerCase(getMultiProperty(defn, EXCLUDE_PROPERTY_NAMES));
-        this.includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
-
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
 
         NodeState rulesState = defn.getChildNode(LuceneIndexConstants.INDEX_RULES);
@@ -185,35 +173,12 @@ class IndexDefinition {
         }
     }
 
-    boolean includeProperty(String name) {
-        if(!includes.isEmpty()){
-            return includes.contains(name);
-        }
-        return !excludes.contains(name.toLowerCase());
-    }
-
-    boolean includePropertyType(int type){
-        if(propertyTypes < 0){
-            return false;
-        }
-        return (propertyTypes & (1 << type)) != 0;
-    }
-
     public boolean isFullTextEnabled() {
         return fullTextEnabled;
     }
 
     public boolean isPropertyIndexEnabled() {
         return propertyIndexEnabled;
-    }
-
-    public boolean skipTokenization(String propertyName) {
-        //If fulltext is not enabled then we never tokenize
-        //irrespective of property name
-        if (!isFullTextEnabled()) {
-            return true;
-        }
-        return LuceneIndexHelper.skipTokenization(propertyName);
     }
 
     public String getFunctionName(){
@@ -283,17 +248,6 @@ class IndexDefinition {
     }
 
     //~------------------------------------------< Internal >
-
-    private Map<String, RelativeProperty> collectRelativeProps(Iterable<String> propNames) {
-        Map<String, RelativeProperty> relProps = newHashMap();
-        for (String propName : propNames) {
-            if (RelativeProperty.isRelativeProperty(propName)) {
-                relProps.put(propName, new RelativeProperty(propName));
-            }
-        }
-        return ImmutableMap.copyOf(relProps);
-    }
-
 
     private int getRelPropertyMaxLevels(Collection<RelativeProperty> props) {
         int max = -1;
@@ -699,7 +653,7 @@ class IndexDefinition {
         }
 
         /**
-         * @param path property name to match
+         * @param propertyPath property name to match
          * @return <code>true</code> if <code>property name</code> matches this name
          *         pattern; <code>false</code> otherwise.
          */
