@@ -134,4 +134,10 @@ public interface LuceneIndexConstants {
      * used in compat mode to specific version
      */
     String COMPAT_MODE = "compatVersion";
+
+    /**
+     * Boolean property to indicate that LuceneIndex is being used in testMode
+     * and it should participate in every test
+     */
+    String TEST_MODE = "testMode";
 }
