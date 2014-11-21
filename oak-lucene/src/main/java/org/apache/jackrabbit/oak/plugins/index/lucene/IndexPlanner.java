@@ -124,19 +124,20 @@ class IndexPlanner {
             }
         }
 
+        boolean evalPathRestrictions = canEvalPathRestrictions();
         //TODO For the full text case need to determine if all field names
         //used in fulltext expression are fulltext indexed or not
 
         //Fulltext expression can also be like jcr:contains(jcr:content/metadata/@format, 'image')
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
-        if (!indexedProps.isEmpty() || !sortOrder.isEmpty() || ft != null) {
+        if (!indexedProps.isEmpty() || !sortOrder.isEmpty() || ft != null || evalPathRestrictions) {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
             int costPerEntryFactor = indexedProps.size();
             costPerEntryFactor += sortOrder.size();
-            
+
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
             IndexPlan.Builder plan = defaultPlan();
@@ -154,6 +155,16 @@ class IndexPlanner {
         //TODO Support for property existence queries
         //TODO support for nodeName queries
         return null;
+    }
+
+    private boolean canEvalPathRestrictions() {
+        if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION){
+            return false;
+        }
+        //TODO If no other restrictions is provided and query is pure
+        //path restriction based then need to be sure that index definition at least
+        //allows indexing all the path for given nodeType
+        return defn.evaluatePathRestrictions();
     }
 
     private IndexPlan.Builder defaultPlan() {
