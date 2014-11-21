@@ -68,6 +68,8 @@ class PropertyDefinition {
 
     final boolean ordered;
 
+    final int includedPropertyTypes;
+
     public PropertyDefinition(IndexingRule idxDefn, String name, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, name);
@@ -82,6 +84,8 @@ class PropertyDefinition {
         //If node is not set for full text then a property definition indicates that definition is for property index
         this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, !idxDefn.defaultFulltextEnabled);
         this.ordered = getOptionalValue(defn, LuceneIndexConstants.PROP_ORDERED, false);
+        this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
+                IndexDefinition.TYPES_ALLOW_ALL);
 
         //TODO Add test case for above cases
 
@@ -126,6 +130,10 @@ class PropertyDefinition {
     public int getType(){
         //If no explicit type is defined we assume it to be string
         return isTypeDefined() ? propertyType : PropertyType.STRING;
+    }
+
+    public boolean includePropertyType(int type){
+        return IndexDefinition.includePropertyType(includedPropertyTypes, type);
     }
 
     @Override

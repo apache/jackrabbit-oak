@@ -103,9 +103,9 @@ class IndexDefinition {
 
     private static String TYPES_ALLOW_ALL_NAME = "all";
 
-    private static final int TYPES_ALLOW_NONE = PropertyType.UNDEFINED;
+    static final int TYPES_ALLOW_NONE = PropertyType.UNDEFINED;
 
-    private static final int TYPES_ALLOW_ALL = -1;
+    static final int TYPES_ALLOW_ALL = -1;
 
     private final boolean fullTextEnabled;
 
@@ -464,7 +464,7 @@ class IndexDefinition {
             this.defaultFulltextEnabled = getOptionalValue(config, LuceneIndexConstants.FULL_TEXT_ENABLED, false);
             //TODO Provide a new proper propertyName for enabling storage
             this.defaultStorageEnabled = getOptionalValue(config, LuceneIndexConstants.EXPERIMENTAL_STORAGE, false);
-            this.propertyTypes = getSupportedTypes(config, TYPES_ALLOW_ALL);
+            this.propertyTypes = getSupportedTypes(config, INCLUDE_PROPERTY_TYPES, TYPES_ALLOW_ALL);
 
             List<NamePattern> namePatterns = newArrayList();
             Map<String,RelativeProperty> relativeProps = newHashMap();
@@ -585,17 +585,7 @@ class IndexDefinition {
         }
 
         public boolean includePropertyType(int type){
-            //TODO Rules related to type inclusion need to be synced
-            //Login IndexEditor evaluates differently compared to IndexDefinition
-            if(propertyTypes == TYPES_ALLOW_ALL){
-                return true;
-            }
-
-            if (propertyTypes == TYPES_ALLOW_NONE){
-                return false;
-            }
-
-            return (propertyTypes & (1 << type)) != 0;
+           return IndexDefinition.includePropertyType(propertyTypes, type);
         }
 
         public Collection<RelativeProperty> getRelativeProps() {
@@ -925,8 +915,8 @@ class IndexDefinition {
         return state.hasProperty(OAK_CHILD_ORDER);
     }
 
-    private static int getSupportedTypes(NodeState defn, int defaultVal) {
-        PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
+    static int getSupportedTypes(NodeState defn, String typePropertyName, int defaultVal) {
+        PropertyState pst = defn.getProperty(typePropertyName);
         if (pst != null) {
             int types = 0;
             for (String inc : pst.getValue(Type.STRINGS)) {
@@ -943,6 +933,18 @@ class IndexDefinition {
             return types;
         }
         return defaultVal;
+    }
+
+    static boolean includePropertyType(int includedPropertyTypes, int type){
+        if(includedPropertyTypes == TYPES_ALLOW_ALL){
+            return true;
+        }
+
+        if (includedPropertyTypes == TYPES_ALLOW_NONE){
+            return false;
+        }
+
+        return (includedPropertyTypes & (1 << type)) != 0;
     }
 
     private static boolean hasFulltextEnabledIndexRule(List<IndexingRule> rules) {
