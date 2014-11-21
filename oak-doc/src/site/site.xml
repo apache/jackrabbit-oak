@@ -76,6 +76,12 @@ under the License.
     <fluidoSkin>
       <sourceLineNumbersEnabled>true</sourceLineNumbersEnabled>
       <topBarEnabled>true</topBarEnabled>
+      <topBarIcon>
+        <name>Oak logo</name>
+        <alt>Oak logo</alt>
+        <src>oak_logo.png</src>
+        <href>/oak/docs/</href>
+      </topBarIcon>
       <sideBarEnabled>true</sideBarEnabled>
       <gitHub>
         <projectId>apache/jackrabbit-oak</projectId>
