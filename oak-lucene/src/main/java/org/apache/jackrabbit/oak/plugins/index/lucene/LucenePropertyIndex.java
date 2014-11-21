@@ -167,8 +167,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      */
     static final int LUCENE_QUERY_BATCH_SIZE = 50;
 
-    static final boolean USE_PATH_RESTRICTION = Boolean.getBoolean("oak.luceneUsePath");
-
     protected final IndexTracker tracker;
 
     private final Analyzer analyzer;
@@ -571,14 +569,16 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             IndexPlan plan, IndexReader reader) {
         Filter filter = plan.getFilter();
         PlanResult planResult = pr(plan);
+        IndexDefinition defn = planResult.indexDefinition;
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
         }
 
         String path = filter.getPath();
+        //TODO Readjust path based on pathPrefix of the index
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
-            if (USE_PATH_RESTRICTION) {
+            if (defn.evaluatePathRestrictions()) {
                 if ("/".equals(path)) {
                     break;
                 }
@@ -589,7 +589,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
             break;
         case DIRECT_CHILDREN:
-            if (USE_PATH_RESTRICTION) {
+            if (defn.evaluatePathRestrictions()) {
                 if (!path.endsWith("/")) {
                     path += "/";
                 }

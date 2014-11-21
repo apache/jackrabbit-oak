@@ -65,6 +65,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
@@ -143,6 +144,8 @@ class IndexDefinition {
 
     private final boolean testMode;
 
+    private final boolean evaluatePathRestrictions;
+
     private final IndexFormatVersion version;
 
     public IndexDefinition(NodeState root, NodeState defn) {
@@ -180,6 +183,7 @@ class IndexDefinition {
 
         this.relativePropNames = collectRelPropertyNames(relativeProperties);
         this.relativePropsMaxLevels = getRelPropertyMaxLevels(relativeProperties);
+        this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
         if (fullTextEnabled && functionName == null){
@@ -277,6 +281,10 @@ class IndexDefinition {
         return testMode;
     }
 
+    public boolean evaluatePathRestrictions() {
+        return evaluatePathRestrictions;
+    }
+
     @Override
     public String toString() {
         return "IndexDefinition : " + indexName;
@@ -337,13 +345,13 @@ class IndexDefinition {
         return null;
     }
 
-        /**
-         * Returns the first indexing rule that applies to the given node
-         * <code>state</code>.
-         *
-         * @param state a node state.
-         * @return the indexing rule or <code>null</code> if none applies.
-         */
+    /**
+     * Returns the first indexing rule that applies to the given node
+     * <code>state</code>.
+     *
+     * @param state a node state.
+     * @return the indexing rule or <code>null</code> if none applies.
+     */
     @CheckForNull
     public IndexingRule getApplicableIndexingRule(Tree state) {
         //This method would be invoked for every node. So be as
