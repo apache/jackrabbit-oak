@@ -43,6 +43,11 @@ public final class FieldNames {
     public static final String FULLTEXT = ":fulltext";
 
     /**
+     * Prefix for all field names that are fulltext indexed by property name.
+     */
+    public static final String FULLTEXT_PREFIX = ":full";
+
+    /**
      * Used to select only the PATH field from the lucene documents
      */
     public static final Set<String> PATH_SELECTOR = new HashSet<String>(
@@ -60,4 +65,7 @@ public final class FieldNames {
         return ":dv" + name;
     }
 
+    public static String createAnalyzedFieldName(String pname) {
+        return FULLTEXT_PREFIX + pname;
+    }
 }
