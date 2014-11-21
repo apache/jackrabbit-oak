@@ -80,7 +80,7 @@ under the License.
         <name>Oak logo</name>
         <alt>Oak logo</alt>
         <src>oak_logo.png</src>
-        <href>/oak/docs/</href>
+        <href>/</href>
       </topBarIcon>
       <sideBarEnabled>true</sideBarEnabled>
       <gitHub>
