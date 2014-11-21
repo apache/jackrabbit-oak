@@ -103,7 +103,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -494,16 +493,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         List<Query> qs = new ArrayList<Query>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
+        PlanResult planResult = pr(plan);
+        IndexDefinition defn = planResult.indexDefinition;
         if (ft == null) {
             // there might be no full-text constraint
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            qs.add(getFullTextQuery(ft, analyzer, reader));
+            qs.add(getFullTextQuery(defn, ft, analyzer, reader));
         }
 
-        PlanResult planResult = pr(plan);
-        IndexDefinition defn = planResult.indexDefinition;
+
         //Check if native function is supported
         PropertyRestriction pr = null;
         if (defn.hasFunctionDefined()) {
@@ -856,7 +856,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    static Query getFullTextQuery(FullTextExpression ft, final Analyzer analyzer, final IndexReader reader) {
+    static Query getFullTextQuery(final IndexDefinition defn, FullTextExpression ft,
+                                  final Analyzer analyzer, final IndexReader reader) {
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
         final AtomicReference<Query> result = new AtomicReference<Query>();
@@ -866,7 +867,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextOr or) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : or.list) {
-                    Query x = getFullTextQuery(e, analyzer, reader);
+                    Query x = getFullTextQuery(defn, e, analyzer, reader);
                     q.add(x, SHOULD);
                 }
                 result.set(q);
@@ -877,7 +878,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextAnd and) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : and.list) {
-                    Query x = getFullTextQuery(e, analyzer, reader);
+                    Query x = getFullTextQuery(defn, e, analyzer, reader);
                     // Lucene can't deal with "must(must_not(x))"
                     if (x instanceof BooleanQuery) {
                         BooleanQuery bq = (BooleanQuery) x;
@@ -895,8 +896,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             @Override
             public boolean visit(FullTextTerm term) {
                 String p = term.getPropertyName();
-                if (p != null && p.indexOf('/') >= 0) {
-                    p = getName(p);
+                if (p != null) {
+                    p = FieldNames.createAnalyzedFieldName(p);
                 }
                 Query q = tokenToQuery(term.getText(), p, analyzer, reader);
                 if (q == null) {
