@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.index.IndexReader;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -118,7 +117,7 @@ class IndexPlanner {
         if (indexingRule.propertyIndexEnabled) {
             for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
                 PropertyDefinition pd = indexingRule.getConfig(pr.propertyName);
-                if (pd != null && pd.propertyIndex) {
+                if (pd != null && pd.propertyIndexEnabled()) {
                     indexedProps.add(pr.propertyName);
                     result.propDefns.put(pr.propertyName, pd);
                 }
