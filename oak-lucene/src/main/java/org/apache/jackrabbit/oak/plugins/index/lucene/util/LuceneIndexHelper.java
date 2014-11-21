@@ -161,7 +161,10 @@ public class LuceneIndexHelper {
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         index.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         index.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, includes, STRINGS));
-        index.setProperty(ASYNC_PROPERTY_NAME, async);
+
+        if (async != null) {
+            index.setProperty(ASYNC_PROPERTY_NAME, async);
+        }
         return index;
     }
 
