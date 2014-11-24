@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 
@@ -49,8 +48,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.response.FacetField;
-import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
@@ -159,20 +156,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             Collection<String> fulltextConditions = filter.getFulltextConditions();
             for (String fulltextCondition : fulltextConditions) {
                 queryBuilder.append(fulltextCondition).append(" ");
-            }
-        }
-
-        // facet enable
-        String facetFunctionStartToken = "facet(";
-        String queryStatement = filter.getQueryStatement();
-        if (queryStatement != null) {
-            int facetTokenIndex = queryStatement.indexOf(facetFunctionStartToken);
-            if (facetTokenIndex > -1) {
-                String facetFieldsString = queryStatement.substring(facetTokenIndex +
-                        facetFunctionStartToken.length(), queryStatement.indexOf(")", facetTokenIndex));
-                for (String facetField : facetFieldsString.split(",")) {
-                    solrQuery.addFacetField(facetField);
-                }
             }
         }
 
@@ -310,7 +293,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
         if (log.isDebugEnabled()) {
             log.debug("JCR query {} has been converted to Solr query {}",
-                    queryStatement, solrQuery.toString());
+                    filter.getQueryStatement(), solrQuery.toString());
         }
 
         return solrQuery;
@@ -465,30 +448,22 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     public Cursor query(final Filter filter, NodeState root) {
         Cursor cursor;
         try {
-            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint()) :
-                    Collections.<String>emptySet();
+            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint()) : Collections.<String>emptySet();
             final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
 
             final int parentDepth = getDepth(parent);
 
-            cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
 
+            cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
                 private final Set<String> seenPaths = Sets.newHashSet();
                 private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
-
                 private SolrDocument lastDoc;
-                private int lastFacet = 0;
-
                 public int offset = 0;
-                public List<FacetField> facetFields;
 
                 @Override
                 protected SolrResultRow computeNext() {
-                    if (!queue.isEmpty() || loadDocs()) {
+                    while (!queue.isEmpty() || loadDocs()) {
                         return queue.remove();
-                    } else if (facetFields != null && lastFacet < facetFields.size()) {
-                        lastFacet++;
-                        return new SolrResultRow(facetFields.get(lastFacet - 1));
                     }
                     return endOfData();
                 }
@@ -538,11 +513,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         if (log.isDebugEnabled()) {
                             log.debug("sending query {}", query);
                         }
-
-                        QueryResponse queryResponse = solrServer.query(query);
-
-                        facetFields = queryResponse.getFacetFields();
-                        SolrDocumentList docs = queryResponse.getResults();
+                        SolrDocumentList docs = solrServer.query(query).getResults();
 
                         if (log.isDebugEnabled()) {
                             log.debug("getting docs {}", docs);
@@ -575,10 +546,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     static class SolrResultRow {
-        String path;
-        double score;
+        final String path;
+        final double score;
         SolrDocument doc;
-        FacetField facetField;
 
         SolrResultRow(String path, double score) {
             this.path = path;
@@ -589,11 +559,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             this.path = path;
             this.score = score;
             this.doc = doc;
-        }
-
-        SolrResultRow(FacetField facetField) {
-            this.facetField = facetField;
-            this.path = "/" + facetField.toString();
         }
 
         @Override
@@ -613,7 +578,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         SolrResultRow currentRow;
 
         SolrRowCursor(final Iterator<SolrResultRow> it, QueryEngineSettings settings) {
-
             Iterator<String> pathIterator = new Iterator<String>() {
 
                 @Override
@@ -634,8 +598,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
             };
             pathCursor = new Cursors.PathCursor(pathIterator, true, settings);
-
         }
+
 
         @Override
         public boolean hasNext() {
