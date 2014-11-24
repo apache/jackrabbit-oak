@@ -17,6 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -31,9 +37,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.sax.WriteOutContentHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
@@ -43,16 +55,24 @@ public class SolrIndexEditor implements IndexEditor {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    /** Parent editor, or {@code null} if this is the root editor. */
+    /**
+     * Parent editor, or {@code null} if this is the root editor.
+     */
     private final SolrIndexEditor parent;
 
-    /** Name of this node, or {@code null} for the root node. */
+    /**
+     * Name of this node, or {@code null} for the root node.
+     */
     private final String name;
 
-    /** Path of this editor, built lazily in {@link #getPath()}. */
+    /**
+     * Path of this editor, built lazily in {@link #getPath()}.
+     */
     private String path;
 
-    /** Index definition node builder */
+    /**
+     * Index definition node builder
+     */
     private final NodeBuilder definition;
 
     private final SolrServer solrServer;
@@ -62,6 +82,8 @@ public class SolrIndexEditor implements IndexEditor {
     private boolean propertiesChanged = false;
 
     private final IndexUpdateCallback updateCallback;
+
+    private static final Parser parser = new AutoDetectParser();
 
     SolrIndexEditor(
             NodeBuilder definition, SolrServer solrServer,
@@ -223,12 +245,69 @@ public class SolrIndexEditor implements IndexEditor {
                         inputDocument.addField(property.getName(), s);
                     }
                 } else {
-                    inputDocument.addField(
-                            property.getName(), property.getValue(Type.STRING));
+                    if (Type.BINARY.tag() == property.getType().tag()) {
+                        inputDocument.addField(property.getName(), extractTextValues(property, state));
+                    } else if (property.isArray()) { // or fallback to adding propertyName:stringValue(s)
+                        for (String s : property.getValue(Type.STRINGS)) {
+                            inputDocument.addField(property.getName(), s);
+                        }
+                    } else {
+                        inputDocument.addField(
+                                property.getName(), property.getValue(Type.STRING));
+                    }
                 }
             }
         }
         return inputDocument;
+    }
+
+    private List<String> extractTextValues(
+            PropertyState property, NodeState state) {
+        List<String> values = new LinkedList<String>();
+        Metadata metadata = new Metadata();
+        if (JCR_DATA.equals(property.getName())) {
+            String type = state.getString(JcrConstants.JCR_MIMETYPE);
+            if (type != null) { // not mandatory
+                metadata.set(Metadata.CONTENT_TYPE, type);
+            }
+            String encoding = state.getString(JcrConstants.JCR_ENCODING);
+            if (encoding != null) { // not mandatory
+                metadata.set(Metadata.CONTENT_ENCODING, encoding);
+            }
+        }
+
+        for (Blob v : property.getValue(Type.BINARIES)) {
+            values.add(parseStringValue(v, metadata));
+        }
+        return values;
+    }
+
+    private String parseStringValue(Blob v, Metadata metadata) {
+        WriteOutContentHandler handler = new WriteOutContentHandler();
+        try {
+            InputStream stream = v.getNewStream();
+            try {
+                parser.parse(stream, handler, metadata, new ParseContext());
+            } finally {
+                stream.close();
+            }
+        } catch (LinkageError e) {
+            // Capture and ignore errors caused by extraction libraries
+            // not being present. This is equivalent to disabling
+            // selected media types in configuration, so we can simply
+            // ignore these errors.
+        } catch (Throwable t) {
+            // Capture and report any other full text extraction problems.
+            // The special STOP exception is used for normal termination.
+            if (!handler.isWriteLimitReached(t)) {
+                log.debug("Failed to extract text from a binary property: "
+                        + " This is a fairly common case, and nothing to"
+                        + " worry about. The stack trace is included to"
+                        + " help improve the text extraction feature.", t);
+                return "TextExtractionError";
+            }
+        }
+        return handler.toString();
     }
 
 }

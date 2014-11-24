@@ -40,4 +40,7 @@ public class SolrServerConfigurationDefaults {
     public static final boolean PROPERTY_RESTRICTIONS = false;
     public static final boolean PATH_RESTRICTIONS = false;
     public static final boolean PRIMARY_TYPES = false;
+    public static final String IGNORED_PROPERTIES = "";
+    public static final String TYPE_MAPPINGS = "";
+    public static final String PROPERTY_MAPPINGS = "";
 }

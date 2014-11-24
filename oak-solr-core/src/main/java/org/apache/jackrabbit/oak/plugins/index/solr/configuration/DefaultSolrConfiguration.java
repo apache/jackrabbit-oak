@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -24,12 +27,10 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  */
 public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
+    private static Collection<String> ignoredProperties = Arrays.asList(SolrServerConfigurationDefaults.IGNORED_PROPERTIES.split(","));
+
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
-        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
-            // TODO : use Tika / SolrCell here
-            return propertyType.toString() + "_bin";
-        }
         return null;
     }
 
@@ -100,6 +101,11 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
     @Override
     public boolean useForPathRestrictions() {
         return SolrServerConfigurationDefaults.PATH_RESTRICTIONS;
+    }
+
+    @Override
+    public Collection<String> getIgnoredProperties() {
+        return ignoredProperties;
     }
 
 }
