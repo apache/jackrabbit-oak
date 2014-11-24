@@ -938,8 +938,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private static boolean NOGZIP = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOGZIP");
     // Number of documents to insert at once for batch create
     private static int CHUNKSIZE = Integer.getInteger("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHUNKSIZE", 64);
-    // Whether to use cache for query results
-    private static boolean NOQUERYFROMCACHE = Boolean.getBoolean("org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.NOQUERYFROMCACHE");
 
     private static byte[] asBytes(String data) {
         byte[] bytes;
@@ -1360,20 +1358,18 @@ public class RDBDocumentStore implements CachingDocumentStore {
         NodeDocument inCache = nodesCache.getIfPresent(cacheKey);
         Number modCount = row.getModcount();
 
-        if (! NOQUERYFROMCACHE) {
-            // do not overwrite document in cache if the
-            // existing one in the cache is newer
-            if (inCache != null && inCache != NodeDocument.NULL) {
-                // check mod count
-                Number cachedModCount = inCache.getModCount();
-                if (cachedModCount == null) {
-                    throw new IllegalStateException("Missing " + Document.MOD_COUNT);
-                }
-                if (modCount.longValue() <= cachedModCount.longValue()) {
-                    // we can use the cached document
-                    inCache.markUpToDate(now);
-                    return (T) inCache;
-                }
+        // do not overwrite document in cache if the
+        // existing one in the cache is newer
+        if (inCache != null && inCache != NodeDocument.NULL) {
+            // check mod count
+            Number cachedModCount = inCache.getModCount();
+            if (cachedModCount == null) {
+                throw new IllegalStateException("Missing " + Document.MOD_COUNT);
+            }
+            if (modCount.longValue() <= cachedModCount.longValue()) {
+                // we can use the cached document
+                inCache.markUpToDate(now);
+                return (T) inCache;
             }
         }
 
