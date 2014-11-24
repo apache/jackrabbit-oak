@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.blob;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -28,10 +31,12 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -41,17 +46,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.BaseEncoding;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
+import org.apache.jackrabbit.oak.commons.cache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.Charsets;
+import com.google.common.io.BaseEncoding;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -130,6 +133,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      * Encryption key for creating secure references from blobId
      */
     private byte[] referenceKey;
+    
+    /**
+     * Anchor value to provide better locality to chunks in distributed storage.
+     */
+    protected int anchor;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -159,6 +167,17 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
 
     public int getBlockSize() {
         return blockSize;
+    }
+    
+    protected int getAnchor(){
+    	return this.anchor;
+    }
+
+    private void generateAnchor(){
+    	String pattern = "HHmmssSSS";
+    	SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+    	StringBuilder reverse = new StringBuilder(sdf.format(new Date()));
+    	this.anchor = Integer.parseInt( reverse.reverse().toString() );
     }
 
     @Override
@@ -319,6 +338,8 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
             // create a new one
             block = new byte[blockSize];
         }
+        //generates an anchor at the begging of stream processing.
+        generateAnchor();
         while (true) {
             int blockLen = IOUtils.readFully(in, block, 0, block.length);
             count++;

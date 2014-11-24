@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.blob;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Random;
+
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -24,6 +31,11 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.QueryBuilder;
 
 /**
  * Tests the {@link MongoBlobStore} implementation.
@@ -54,6 +66,24 @@ public class MongoBlobStoreTest extends AbstractBlobStoreTest {
     public void tearDown() throws Exception {
         MongoUtils.dropCollections(mongoConnection.getDB());
         super.tearDown();
+    }
+    
+    @Test
+    public void testAnchor() throws IOException { 
+    	byte[] load = new byte[200];
+    	new Random().nextBytes(load);
+    	InputStream bin = new ByteArrayInputStream(load);
+    	String id = this.store.writeBlob(bin);
+    	
+    	DBCollection col = mongoConnection.getDB().getCollection("blobs");
+    	//db.blobs.find({_anchor: {$exits:1})
+    	DBObject query = QueryBuilder.start("_anchor").exists(true).get();
+    	long actual = col.count(query);
+    	
+    	assertTrue(actual > 0);
+    	
+    	long len = this.store.getBlobLength(id);
+    	assertTrue("should be same size has array size", len == 200 );
     }
 
 }

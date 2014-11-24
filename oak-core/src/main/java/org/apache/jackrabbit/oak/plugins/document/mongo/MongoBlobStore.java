@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -79,6 +81,8 @@ public class MongoBlobStore extends CachingBlobStore {
         mongoBlob.setData(data);
         mongoBlob.setLevel(level);
         mongoBlob.setLastMod(System.currentTimeMillis());
+        // set anchor field OAK-2284
+        mongoBlob.setAnchor(this.getAnchor());
         // TODO check the return value
         // TODO verify insert is fast if the entry already exists
         try {
