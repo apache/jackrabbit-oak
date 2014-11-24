@@ -426,12 +426,12 @@ public class SessionDelegate {
             return getRootNode();
         } else {
             Tree parent = root.getTree(PathUtils.getParentPath(path));
-            if (parent.hasProperty(name)) {
-                return new PropertyDelegate(this, parent, name);
-            }
+
             Tree child = parent.getChild(name);
             if (child.exists()) {
                 return new NodeDelegate(this, child);
+            } else if (parent.hasProperty(name)) {
+                return new PropertyDelegate(this, parent, name);
             } else {
                 return null;
             }
