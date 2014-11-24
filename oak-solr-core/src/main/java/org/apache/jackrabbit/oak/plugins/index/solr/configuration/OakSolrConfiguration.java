@@ -106,7 +106,7 @@ public interface OakSolrConfiguration {
     /**
      * Provide the collection of properties that should be neither indexed nor searched by the Solr index
      *
-     * @return a <code>Collection</code> of <code>String</code>s representing the names of the ignored properties
+     * @return a {@link java.util.Collection} of names of properties to be ignored
      */
     Collection<String> getIgnoredProperties();
 }

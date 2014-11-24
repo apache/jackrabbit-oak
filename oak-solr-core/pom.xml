@@ -33,13 +33,10 @@
     <packaging>bundle</packaging>
 
     <properties>
+        <tika.version>1.5</tika.version>
         <known.issues>
             org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- different ranking -->
             org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                               <!-- wildcards with multi byte support -->
-            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4                                      <!-- OAK-955 -->
-            org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5                                      <!-- OAK-955 -->
-            org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest#testLowerLocalNameOrContains            <!-- OAK-957 -->
-            org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest#testUpperLocalNameOrContains            <!-- OAK-957 -->
             org.apache.jackrabbit.core.query.FnNameQueryTest#testLikeWithPrefix                            <!-- OAK-328 -->
             org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
             org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
@@ -50,13 +47,11 @@
             org.apache.jackrabbit.core.query.ChildAxisQueryTest#testLike                                   <!-- OAK-203 -->
             org.apache.jackrabbit.core.query.ChildAxisQueryTest#testContains                               <!-- OAK-203 -->
             org.apache.jackrabbit.core.query.ChildAxisQueryTest#testStarNameTest                           <!-- OAK-203 -->
-            org.apache.jackrabbit.core.query.ChildAxisQueryTest#testNotIsDescendantNodeQuery               <!-- OAK-203? -->
             org.apache.jackrabbit.core.query.SQL2PathEscapingTest                                          <!-- ? -->
             org.apache.jackrabbit.core.query.UpperLowerCaseQueryTest                                       <!-- ? -->
             org.apache.jackrabbit.core.query.SimpleQueryTest                                               <!-- ? -->
             org.apache.jackrabbit.core.query.XPathAxisTest                                                 <!-- ? -->
             org.apache.jackrabbit.core.query.DerefTest                                                     <!-- ? -->
-            org.apache.jackrabbit.core.query.ParentNodeTest                                                <!-- ? -->
             org.apache.jackrabbit.core.query.QueryResultTest                                               <!-- ? -->
             org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtEnd                             <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testMoreTextDotsAtStart                           <!-- OAK-318 -->
@@ -64,8 +59,6 @@
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragment                     <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
             org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
-            org.apache.jackrabbit.core.query.SQL2OuterJoinTest                                             <!-- ? -->
-            org.apache.jackrabbit.core.query.MixinTest                                                     <!-- ? -->
         </known.issues>
     </properties>
 
@@ -87,7 +80,22 @@
                 <artifactId>maven-scr-plugin</artifactId>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <configuration>
+                        <excludes>
+                            <exclude>src/test/resources/org/apache/jackrabbit/oak/jcr/query/test.txt</exclude>
+                            <exclude>src/test/resources/org/apache/jackrabbit/oak/jcr/query/test.rtf</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
+
 
     <dependencies>
         <!-- TEST -->
@@ -163,6 +171,18 @@
             <version>${lucene.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers</artifactId>
+            <version>${tika.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
@@ -222,6 +242,13 @@
             <groupId>org.apache.solr</groupId>
             <artifactId>solr-solrj</artifactId>
             <version>${lucene.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${tika.version}</version>
             <scope>provided</scope>
         </dependency>
 

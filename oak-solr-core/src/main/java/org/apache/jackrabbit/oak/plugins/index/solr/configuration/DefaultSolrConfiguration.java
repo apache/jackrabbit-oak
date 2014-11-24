@@ -31,10 +31,6 @@ public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
-        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
-            // TODO : use Tika / SolrCell here
-            return propertyType.toString() + "_bin";
-        }
         return null;
     }
 
