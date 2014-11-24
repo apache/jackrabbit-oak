@@ -19,14 +19,17 @@ package org.apache.jackrabbit.oak.plugins.segment.file;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
 import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.hash.BloomFilter;
 import com.google.common.hash.Funnel;
@@ -48,23 +51,28 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     private long reachableSize = 0;
 
-    CompactionGainEstimate(NodeState node, int estimatedBulkCount) {
+    CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount) {
         uuids = BloomFilter.create(UUID_FUNNEL, estimatedBulkCount);
-        collectBulkSegments(node);
+        collectBulkSegments(node, new HashSet<ThinRecordId>());
     }
 
-    private void collectBulkSegments(NodeState node) {
-        for (PropertyState property : node.getProperties()) {
-            for (Blob blob : property.getValue(BINARIES)) {
-                for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
-                    uuids.put(new UUID(
-                            id.getMostSignificantBits(),
-                            id.getLeastSignificantBits()));
+    private void collectBulkSegments(SegmentNodeState node,
+            Set<ThinRecordId> visited) {
+        ThinRecordId tr = ThinRecordId.apply(node.getRecordId());
+        if (!visited.contains(tr)) {
+            for (PropertyState property : node.getProperties()) {
+                for (Blob blob : property.getValue(BINARIES)) {
+                    for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
+                        uuids.put(new UUID(id.getMostSignificantBits(), id
+                                .getLeastSignificantBits()));
+                    }
                 }
             }
-        }
-        for (ChildNodeEntry child : node.getChildNodeEntries()) {
-            collectBulkSegments(child.getNodeState());
+            for (ChildNodeEntry child : node.getChildNodeEntries()) {
+                collectBulkSegments((SegmentNodeState) child.getNodeState(),
+                        visited);
+            }
+            visited.add(tr);
         }
     }
 
@@ -89,7 +97,7 @@ class CompactionGainEstimate implements TarEntryVisitor {
         return reachableSize;
     }
 
-    //---------------------------------------------------< TarEntryVisitor >--
+    // ---------------------------------------------------< TarEntryVisitor >--
 
     @Override
     public void visit(long msb, long lsb, File file, int offset, int size) {
@@ -98,6 +106,56 @@ class CompactionGainEstimate implements TarEntryVisitor {
         if (SegmentId.isDataSegmentId(lsb)
                 || uuids.mightContain(new UUID(msb, lsb))) {
             reachableSize += entrySize;
+        }
+    }
+
+    private static class ThinRecordId {
+
+        static ThinRecordId apply(RecordId r) {
+            return new ThinRecordId(r.getOffset(), r.getSegmentId()
+                    .getMostSignificantBits(), r.getSegmentId()
+                    .getLeastSignificantBits());
+        }
+
+        private final int offset;
+
+        private final long msb;
+
+        private final long lsb;
+
+        public ThinRecordId(int offset, long msb, long lsb) {
+            super();
+            this.offset = offset;
+            this.msb = msb;
+            this.lsb = lsb;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + (int) (lsb ^ (lsb >>> 32));
+            result = prime * result + (int) (msb ^ (msb >>> 32));
+            result = prime * result + offset;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            ThinRecordId other = (ThinRecordId) obj;
+            if (lsb != other.lsb)
+                return false;
+            if (msb != other.msb)
+                return false;
+            if (offset != other.offset)
+                return false;
+            return true;
         }
     }
 
