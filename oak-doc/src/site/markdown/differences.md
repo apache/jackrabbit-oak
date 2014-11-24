@@ -257,9 +257,13 @@ Identifiers
 
 In contrast to Jackrabbit 2.x, only referenceable nodes in Oak have a UUID assigned. With Jackrabbit
 2.x the UUID is only visible in content when the node is referenceable and exposes the UUID as a
-`jcr:uuid` property. But using `Node.getIdentifer()`, it is possible to get the UUID of any node.
+`jcr:uuid` property. But using `Node.getIdentifier()`, it is possible to get the UUID of any node.
 With Oak this method will only return a UUID when the node is referenceable, otherwise the
 identifier is the UUID of the nearest referenceable ancestor with the relative path to the node.
+
+Manually adding a property with the name `jcr:uuid` to a non referenceable node might have
+unexpected effects as Oak maintains an unique index on `jcr:uuid` properties. As the namespace
+`jcr` is reserved, doing so is strongly discouraged.
 
 Versioning
 ----------
