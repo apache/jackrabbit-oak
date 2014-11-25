@@ -60,14 +60,19 @@ class IndexPlanner {
     IndexPlan getPlan() {
         IndexPlan.Builder builder = getPlanBuilder();
 
-        if (defn.isTestMode()
-                && builder == null){
-            if (notSupportedFeature()) {
-                return null;
+        if (defn.isTestMode()){
+            if ( builder == null) {
+                if (notSupportedFeature()) {
+                    return null;
+                }
+                String msg = String.format("No plan found for filter [%s] " +
+                        "while using definition [%s] and testMode is found to be enabled", filter, defn);
+                throw new IllegalStateException(msg);
+            } else {
+                builder.setEstimatedEntryCount(1)
+                        .setCostPerExecution(1e-3)
+                        .setCostPerEntry(1e-3);
             }
-            String msg = String.format("No plan found for filter [%s] " +
-                    "while using definition [%s] and testMode is found to be enabled", filter, defn);
-            throw new IllegalStateException(msg);
         }
 
         return builder != null ? builder.build() : null;
@@ -157,6 +162,11 @@ class IndexPlanner {
 
         //TODO Support for property existence queries
         //TODO support for nodeName queries
+
+        //Above logic would not return any plan for pure nodeType based query like
+        //select * from nt:unstructured. We can do that but this is better handled
+        //by NodeType index
+
         return null;
     }
 
@@ -250,6 +260,7 @@ class IndexPlanner {
                 && filter.getPropertyRestrictions().isEmpty()){
             //This mode includes name(), localname() queries
             //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
+            //Relative parent properties where [../foo1] is not null
             return true;
         }
         return false;
