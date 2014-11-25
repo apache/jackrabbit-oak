@@ -149,4 +149,9 @@ public interface LuceneIndexConstants {
      * should be sufficient
      */
     String PROP_INCLUDED_TYPE = "oak.experimental.includePropertyTypes";
+
+    /**
+     * Regex to allow inclusion of all immediate properties of the node
+     */
+    String REGEX_ALL_PROPS = "^[^\\/]*$";
 }

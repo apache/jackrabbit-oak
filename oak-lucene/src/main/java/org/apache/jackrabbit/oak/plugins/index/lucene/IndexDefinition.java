@@ -752,7 +752,7 @@ class IndexDefinition {
 
         List<String> propNames = new ArrayList<String>(propNamesSet);
 
-        final String includeAllProp = ".*";
+        final String includeAllProp = LuceneIndexConstants.REGEX_ALL_PROPS;
         if (fullTextEnabled
                 && includes.isEmpty()){
             //Add the regEx for including all properties at the end
