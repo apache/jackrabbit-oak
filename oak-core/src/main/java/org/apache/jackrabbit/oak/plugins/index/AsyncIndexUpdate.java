@@ -203,6 +203,7 @@ public class AsyncIndexUpdate implements Runnable {
             Set<String> temps = Sets.newHashSet();
             for (String cp : getStrings(async, tempCpName)) {
                 if (cp.equals(checkpoint)) {
+                    temps.add(cp);
                     continue;
                 }
                 boolean released = store.release(cp);
