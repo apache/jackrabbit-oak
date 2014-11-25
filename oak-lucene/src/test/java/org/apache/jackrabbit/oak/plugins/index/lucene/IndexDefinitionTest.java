@@ -392,6 +392,21 @@ public class IndexDefinitionTest {
         assertFalse(rule.getConfig("foo").index);
     }
 
+    @Test
+    public void propertyRegExAndRelativeProperty() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING), of("foo"), "async");
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertTrue(defn.isOfOldFormat());
+
+        NodeBuilder updated = IndexDefinition.updateDefinition(defnb.getNodeState().builder());
+        IndexDefinition defn2 = new IndexDefinition(root, updated.getNodeState());
+
+        IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
+        assertNotNull(rule.getConfig("foo"));
+        assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
+    }
+
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
         return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
