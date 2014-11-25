@@ -1519,9 +1519,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                 @Nonnull Revision revision,
                                 @Nullable String commitValue,
                                 @Nonnull Revision readRevision) {
-        if (revision.equalsIgnoreBranch(readRevision)) {
-            return true;
-        }
         if (commitValue == null) {
             commitValue = getCommitValue(revision);
         }

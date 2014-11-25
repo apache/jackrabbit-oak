@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Test;
@@ -616,6 +617,46 @@ public class DocumentNodeStoreTest {
         assertEquals(1, (int) inactive.keySet().iterator().next());
 
         ns2.dispose();
+    }
+
+    // OAK-2288
+    @Test
+    public void mergedBranchVisibility() throws Exception {
+        final DocumentNodeStore store = new DocumentMK.Builder()
+                .setAsyncDelay(0).getNodeStore();
+        DocumentStore docStore = store.getDocumentStore();
+
+        NodeBuilder builder1 = store.getRoot().builder();
+        builder1.child("test");
+        merge(store, builder1);
+
+        builder1 = store.getRoot().builder();
+        NodeBuilder node = builder1.getChildNode("test").child("node");
+        String id = Utils.getIdFromPath("/test/node");
+        int i = 0;
+        // force creation of a branch
+        while (docStore.find(NODES, id) == null) {
+            node.setProperty("foo", i++);
+        }
+
+        NodeDocument doc = docStore.find(NODES, id);
+        assertNotNull(doc);
+        Revision rev = doc.getLocalDeleted().firstKey();
+
+        merge(store, builder1);
+
+        // must not be visible at the revision of the branch commit
+        assertFalse(store.getRoot(rev).getChildNode("test").getChildNode("node").exists());
+
+        // must be visible at the revision of the merged branch
+        assertTrue(store.getRoot().getChildNode("test").getChildNode("node").exists());
+
+        store.dispose();
+    }
+
+    private static void merge(NodeStore store, NodeBuilder root)
+            throws CommitFailedException {
+        store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private static class TestHook extends EditorHook {
