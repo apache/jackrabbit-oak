@@ -80,8 +80,9 @@ public class LuceneIndexEditorTest {
     @Test
     public void testLuceneWithFullText() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder idxnb = newLuceneIndexDefinition(index, "lucene",
                 of(TYPENAME_STRING));
+        setCompatVersionToV2(idxnb);
 
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
@@ -277,7 +278,7 @@ public class LuceneIndexEditorTest {
         builder.child(INDEX_DEFINITIONS_NAME).child("lucene").setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         after = builder.getNodeState();
         indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
-        assertEquals(IndexFormatVersion.getCurrent(), new IndexDefinition(root,
+        assertEquals(IndexFormatVersion.getDefault(), new IndexDefinition(root,
                 indexed.getChildNode(INDEX_DEFINITIONS_NAME).getChildNode("lucene")).getVersion());
 
     }
@@ -386,5 +387,9 @@ public class LuceneIndexEditorTest {
 
     static long dateToTime(String dt) throws java.text.ParseException {
         return FieldFactory.dateToLong(ISO8601.format(createCal(dt)));
+    }
+
+    private static void setCompatVersionToV2(NodeBuilder idxNb) {
+        idxNb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
     }
 }
