@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.run;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
 
 import java.io.Closeable;
 import java.io.File;
@@ -60,9 +61,8 @@ import org.apache.jackrabbit.core.RepositoryContext;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
+import org.apache.jackrabbit.oak.checkpoint.Checkpoints;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.console.Console;
@@ -93,8 +93,6 @@ import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.scalability.ScalabilityRunner;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
@@ -478,126 +476,114 @@ public class Main {
     private static void checkpoints(String[] args) throws IOException {
         if (args.length == 0) {
             System.out
-                    .println("usage: checkpoints <path> [list|rm-all|rm-unreferenced|rm <checkpoint>]");
+                    .println("usage: checkpoints {<path>|<mongo-uri>} [list|rm-all|rm-unreferenced|rm <checkpoint>]");
             System.exit(1);
         }
-        if (!isValidFileStore(args[0])) {
-            System.err.println("Invalid FileStore directory " + args[0]);
-            System.exit(1);
-        }
-
-        String path = args[0];
-        String op = "list";
-        if (args.length >= 2) {
-            op = args[1];
-            if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op)) {
-                System.err.println("Unknown comand.");
-                System.exit(1);
-            }
-        }
-        System.out.println("Checkpoints " + path);
-        FileStore store = new FileStore(new File(path), 256, TAR_STORAGE_MEMORY_MAPPED);
+        boolean success = false;
+        Checkpoints cps;
+        Closer closer = Closer.create();
         try {
-            if ("list".equals(op)) {
-                NodeState ns = store.getHead().getChildNode("checkpoints");
-                for (ChildNodeEntry cne : ns.getChildNodeEntries()) {
-                    NodeState cneNs = cne.getNodeState();
-                    System.out.printf("- %s created %s expires %s%n",
-                            cne.getName(),
-                            new Timestamp(cneNs.getLong("created")),
-                            new Timestamp(cneNs.getLong("timestamp")));
+            String op = "list";
+            if (args.length >= 2) {
+                op = args[1];
+                if (!"list".equals(op) && !"rm-all".equals(op) && !"rm-unreferenced".equals(op) && !"rm".equals(op)) {
+                    failWith("Unknown command.");
                 }
-                System.out.println("Found "
-                        + ns.getChildNodeCount(Integer.MAX_VALUE)
-                        + " checkpoints");
+            }
+
+            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(args[0]);
+                MongoClient client = new MongoClient(uri);
+                final DocumentNodeStore store = new DocumentMK.Builder()
+                        .setMongoDB(client.getDB(uri.getDatabase()))
+                        .getNodeStore();
+                closer.register(new Closeable() {
+                    @Override
+                    public void close() throws IOException {
+                        store.dispose();
+                    }
+                });
+                cps = Checkpoints.onDocumentMK(store);
+            } else if (isValidFileStore(args[0])) {
+                final FileStore store = new FileStore(new File(args[0]),
+                        256, TAR_STORAGE_MEMORY_MAPPED);
+                closer.register(new Closeable() {
+                    @Override
+                    public void close() throws IOException {
+                        store.close();
+                    }
+                });
+                cps = Checkpoints.onTarMK(store);
+            } else {
+                failWith("Invalid FileStore directory " + args[0]);
+                return;
+            }
+
+            System.out.println("Checkpoints " + args[0]);
+            if ("list".equals(op)) {
+                int cnt = 0;
+                for (CP cp : cps.list()) {
+                    System.out.printf("- %s created %s expires %s%n",
+                            cp.id,
+                            new Timestamp(cp.created),
+                            new Timestamp(cp.expires));
+                    cnt++;
+                }
+                System.out.println("Found " + cnt + " checkpoints");
             }
             if ("rm-all".equals(op)) {
                 long time = System.currentTimeMillis();
-                SegmentNodeState head = store.getHead();
-                NodeBuilder builder = head.builder();
-
-                NodeBuilder cps = builder.getChildNode("checkpoints");
-                long cnt = cps.getChildNodeCount(Integer.MAX_VALUE);
-                builder.setChildNode("checkpoints");
-                boolean ok = store.setHead(head,
-                        (SegmentNodeState) builder.getNodeState());
+                long cnt = cps.removeAll();
                 time = System.currentTimeMillis() - time;
-                if (ok) {
-                    System.out.println("Removed " + cnt + " checkpoints in "
-                            + time + "ms.");
+                if (cnt != -1) {
+                    System.out.println("Removed " + cnt + " checkpoints in " + time + "ms.");
                 } else {
-                    System.err.println("Failed to remove all checkpoints.");
+                    failWith("Failed to remove all checkpoints.");
                 }
             }
             if ("rm-unreferenced".equals(op)) {
                 long time = System.currentTimeMillis();
-                SegmentNodeState head = store.getHead();
-
-                String ref = null;
-                PropertyState refPS = head.getChildNode("root")
-                        .getChildNode(":async").getProperty("async");
-                if (refPS != null) {
-                    ref = refPS.getValue(Type.STRING);
-                }
-                if (ref != null) {
-                    System.out
-                            .println("Referenced checkpoint from /:async@async is "
-                                    + ref);
-                }
-
-                NodeBuilder builder = head.builder();
-                NodeBuilder cps = builder.getChildNode("checkpoints");
-                long cnt = 0;
-                for (String c : cps.getChildNodeNames()) {
-                    if (c.equals(ref)) {
-                        continue;
-                    }
-                    cps.getChildNode(c).remove();
-                    cnt++;
-                }
-
-                boolean ok = cnt == 0 || store.setHead(head,
-                        (SegmentNodeState) builder.getNodeState());
+                long cnt = cps.removeUnreferenced();
                 time = System.currentTimeMillis() - time;
-                if (ok) {
-                    System.out.println("Removed " + cnt + " checkpoints in "
-                            + time + "ms.");
+                if (cnt != -1) {
+                    System.out.println("Removed " + cnt + " checkpoints in " + time + "ms.");
                 } else {
-                    System.err.println("Failed to remove unreferenced checkpoints.");
+                    failWith("Failed to remove unreferenced checkpoints.");
                 }
             }
             if ("rm".equals(op)) {
                 if (args.length != 3) {
-                    System.err.println("Missing checkpoint id");
-                    System.exit(1);
-                }
-                long time = System.currentTimeMillis();
-                String cp = args[2];
-                SegmentNodeState head = store.getHead();
-                NodeBuilder builder = head.builder();
-
-                NodeBuilder cpn = builder.getChildNode("checkpoints")
-                        .getChildNode(cp);
-                if (cpn.exists()) {
-                    cpn.remove();
-                    boolean ok = store.setHead(head,
-                            (SegmentNodeState) builder.getNodeState());
-                    time = System.currentTimeMillis() - time;
-                    if (ok) {
-                        System.err.println("Removed checkpoint " + cp + " in "
-                                + time + "ms.");
-                    } else {
-                        System.err.println("Failed to remove checkpoint " + cp);
-                    }
+                    failWith("Missing checkpoint id");
                 } else {
-                    System.err.println("Checkpoint '" + cp + "' not found.");
-                    System.exit(1);
+                    String cp = args[2];
+                    long time = System.currentTimeMillis();
+                    int cnt = cps.remove(cp);
+                    time = System.currentTimeMillis() - time;
+                    if (cnt != 0) {
+                        if (cnt == 1) {
+                            System.out.println("Removed checkpoint " + cp + " in "
+                                    + time + "ms.");
+                        } else {
+                            failWith("Failed to remove checkpoint " + cp);
+                        }
+                    } else {
+                        failWith("Checkpoint '" + cp + "' not found.");
+                    }
                 }
             }
+            success = true;
+        } catch (Throwable t) {
+            System.err.println(t.getMessage());
         } finally {
-            store.close();
+            closer.close();
         }
+        if (!success) {
+            System.exit(1);
+        }
+    }
 
+    private static void failWith(String message) {
+        throw new RuntimeException(message);
     }
 
     private static void recovery(String[] args) throws IOException {
