@@ -27,6 +27,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 
 import java.util.List;
 
@@ -53,6 +54,8 @@ public class LuceneIndexExclusionQueryTest extends AbstractQueryTest {
         lucene.setProperty(INCLUDE_PROPERTY_TYPES,
                 of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
         lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
+        lucene.setProperty(LuceneIndexConstants.COMPAT_MODE, of(NOT_IN), STRINGS);
+        useV2(lucene);
         root.commit();
     }
 
