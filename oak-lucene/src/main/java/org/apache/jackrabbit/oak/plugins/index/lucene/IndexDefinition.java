@@ -463,7 +463,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
-            this.fulltextEnabled = hasAnyFullTextEnabledProperty();
+            this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
         }
 
@@ -484,10 +484,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.defaultStorageEnabled = original.defaultStorageEnabled;
             this.inherited = original.inherited;
             this.propertyTypes = original.propertyTypes;
-            this.fulltextEnabled = original.fulltextEnabled;
             this.propertyIndexEnabled = original.propertyIndexEnabled;
             this.propAggregate = original.propAggregate;
             this.aggregate = combine(propAggregate, nodeTypeName);
+            this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
         }
 
         /**
