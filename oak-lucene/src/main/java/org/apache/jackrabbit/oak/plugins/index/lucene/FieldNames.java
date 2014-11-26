@@ -45,7 +45,12 @@ public final class FieldNames {
     /**
      * Prefix for all field names that are fulltext indexed by property name.
      */
-    public static final String FULLTEXT_PREFIX = ":full";
+    public static final String ANALYZED_FIELD_PREFIX = "full:";
+
+    /**
+     * Prefix used for storing fulltext of relative node
+     */
+    public static final String FULLTEXT_RELATIVE_NODE = "fullnode:";
 
     /**
      * Used to select only the PATH field from the lucene documents
@@ -66,6 +71,13 @@ public final class FieldNames {
     }
 
     public static String createAnalyzedFieldName(String pname) {
-        return FULLTEXT_PREFIX + pname;
+        return ANALYZED_FIELD_PREFIX + pname;
+    }
+
+    public static String createFulltextFieldName(String nodeRelativePath) {
+        if (nodeRelativePath == null){
+            return FULLTEXT;
+        }
+        return FULLTEXT_RELATIVE_NODE + nodeRelativePath;
     }
 }

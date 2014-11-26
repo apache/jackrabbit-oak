@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,5 +45,10 @@ public class ConfigUtil {
     public static float getOptionalValue(NodeState definition, String propName, float defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.DOUBLE).floatValue();
+    }
+
+    public static String getPrimaryTypeName(NodeState nodeState) {
+        PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
     }
 }
