@@ -340,6 +340,7 @@ public class SegmentWriter {
 
     private synchronized int getSegmentRef(SegmentId segmentId) {
         int refcount = segment.getRefCount();
+        checkState(refcount < 256, "Segment cannot have more than 255 references", segment.getSegmentId());
         for (int index = 0; index < refcount; index++) {
             if (segmentId == segment.getRefId(index)) {
                 return index;
