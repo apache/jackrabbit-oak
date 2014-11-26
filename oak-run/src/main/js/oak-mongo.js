@@ -178,8 +178,28 @@ var oak = (function(global){
     api.removeDescendantsAndSelf = function(path) {
         var count = 0;
         var depth = pathDepth(path);
+        var id = depth + ":" + path;
+        // current node at path
+        var result = db.nodes.remove({_id: id});
+        count += result.nRemoved;
+        // might be a long path
+        result = db.nodes.remove(longPathQuery(path));
+        count += result.nRemoved;
+        // descendants
+        var prefix = path + "/";
+        depth++;
         while (true) {
-            var result = db.nodes.remove({_id: pathFilter(depth++, path)});
+            result = db.nodes.remove(longPathFilter(depth, prefix));
+            count += result.nRemoved;
+            result = db.nodes.remove({_id: pathFilter(depth++, prefix)});
+            count += result.nRemoved;
+            if (result.nRemoved == 0) {
+                break;
+            }
+        }
+        // descendants further down the hierarchy with long path
+        while (true) {
+            result = db.nodes.remove(longPathFilter(depth++, prefix));
             if (result.nRemoved == 0) {
                 break;
             }
@@ -331,6 +351,20 @@ var oak = (function(global){
 
     var pathFilter = function (depth, prefix){
         return new RegExp("^"+ depth + ":" + prefix);
+    };
+
+    var longPathFilter = function (depth, prefix) {
+        var filter = {};
+        filter._id = new RegExp("^" + depth + ":h");
+        filter._path = new RegExp("^" + prefix);
+        return filter;
+    };
+
+    var longPathQuery = function (path) {
+        var query = {};
+        query._id = new RegExp("^" + pathDepth(path) + ":h");
+        query._path = path;
+        return query;
     };
 
     //http://stackoverflow.com/a/20732091/1035417
