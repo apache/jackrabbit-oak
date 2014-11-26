@@ -104,6 +104,10 @@ public final class FieldFactory {
         return new TextField(FULLTEXT, value, NO);
     }
 
+    public static Field newFulltextField(String name, String value) {
+        return new TextField(FieldNames.createFulltextFieldName(name), value, NO);
+    }
+
     /**
      * Date values are saved with sec resolution
      * @param date jcr data string

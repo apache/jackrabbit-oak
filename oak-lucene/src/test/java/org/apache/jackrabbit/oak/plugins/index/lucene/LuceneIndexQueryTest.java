@@ -28,11 +28,13 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -46,8 +48,14 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
-        //TODO Remove compat mode once OAK-2278 resolved
-        indexDefn.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+        useV2(indexDefn);
+        indexDefn.setProperty(LuceneIndexConstants.TEST_MODE, true);
+        indexDefn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
+        TestUtil.enablePropertyIndex(props, "c1/p", false);
+        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
         root.commit();
     }
 
@@ -67,6 +75,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         test("sql1.txt");
     }
 
+    @Ignore("OAK-2296")
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");

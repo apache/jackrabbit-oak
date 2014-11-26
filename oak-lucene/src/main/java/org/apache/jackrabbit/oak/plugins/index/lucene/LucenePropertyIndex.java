@@ -22,9 +22,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -101,8 +99,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
@@ -223,29 +219,18 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         checkState(index != null, "The Lucene index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
-            Set<String> relPaths = getRelativePaths(ft);
-            if (relPaths.size() > 1) {
-                return new MultiLuceneIndex(filter, root, relPaths).getPlan();
-            }
-            String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
-            // we only restrict non-full-text conditions if there is
-            // no relative property in the full-text constraint
-            boolean nonFullTextConstraints = parent.isEmpty();
             StringBuilder sb = new StringBuilder("lucene:");
             String path = pr(plan).indexPath;
             sb.append(getIndexName(plan))
                     .append("(")
                     .append(path)
                     .append(") ");
-            sb.append(getQuery(plan, null, nonFullTextConstraints, analyzer));
+            sb.append(getQuery(plan, null, analyzer));
             if(plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()){
                 sb.append(" ordering:").append(plan.getSortOrder());
             }
             if (ft != null) {
                 sb.append(" ft:(").append(ft).append(")");
-            }
-            if (!parent.isEmpty()) {
-                sb.append(" parent:").append(parent);
             }
             return sb.toString();
         } finally {
@@ -262,17 +247,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     public Cursor query(final IndexPlan plan, NodeState rootState) {
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
-        FullTextExpression ft = filter.getFullTextConstraint();
-        Set<String> relPaths = getRelativePaths(ft);
-        if (relPaths.size() > 1) {
-            return new MultiLuceneIndex(filter, rootState, relPaths).query();
-        }
-
-        final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
-        // we only restrict non-full-text conditions if there is
-        // no relative property in the full-text constraint
-        final boolean nonFullTextConstraints = parent.isEmpty();
-        final int parentDepth = getDepth(parent);
+        final PlanResult pr = pr(plan);
         QueryEngineSettings settings = filter.getQueryEngineSettings();
         Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
@@ -299,17 +274,10 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if ("".equals(path)) {
                         path = "/";
                     }
-                    if (!parent.isEmpty()) {
-                        // TODO OAK-828 this breaks node aggregation
-                        // get the base path
-                        // ensure the path ends with the given
-                        // relative path
-                        // if (!path.endsWith("/" + parent)) {
-                        // continue;
-                        // }
-                        path = getAncestorPath(path, parentDepth);
+                    if (pr.isPathTransformed()) {
+                        path = pr.transformPath(path);
                         // avoid duplicate entries
-                        if (seenPaths.contains(path)) {
+                        if (path == null || seenPaths.contains(path)) {
                             return null;
                         }
                         seenPaths.add(path);
@@ -331,8 +299,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    Query query = getQuery(plan, searcher.getIndexReader(),
-                            nonFullTextConstraints, analyzer);
+                    Query query = getQuery(plan, searcher.getIndexReader(), analyzer);
                     TopDocs docs;
                     long time = System.currentTimeMillis();
                     if (lastDoc != null) {
@@ -382,6 +349,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return null;
     }
 
+    /**
+     * In a fulltext term for jcr:contains(foo, 'bar') 'foo'
+     * is the property name. While in jcr:contains(foo/*, 'bar')
+     * 'foo' is node name
+     *
+     * @return true if the term is related to node
+     */
+    public static boolean isNodePath(String fulltextTermPath){
+        return fulltextTermPath.endsWith("/*");
+    }
+
     private IndexNode acquireIndexNode(IndexPlan plan) {
         return tracker.acquireIndexNode(pr(plan).indexPath);
     }
@@ -427,54 +405,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     /**
-     * Get the set of relative paths of a full-text condition. For example, for
-     * the condition "contains(a/b, 'hello') and contains(c/d, 'world'), the set
-     * { "a", "c" } is returned. If there are no relative properties, then one
-     * entry is returned (the empty string). If there is no expression, then an
-     * empty set is returned.
-     *
-     * @param ft the full-text expression
-     * @return the set of relative paths (possibly empty)
-     */
-    private static Set<String> getRelativePaths(FullTextExpression ft) {
-        //TODO This would need to be relooked as with aggregation we would be
-        //aggregating child properties also
-        if (ft == null) {
-            // there might be no full-text constraint when using the
-            // LowCostLuceneIndexProvider which is used for testing
-            // TODO if the LowCostLuceneIndexProvider is removed, we should do
-            // the following instead:
-
-            // throw new
-            // IllegalStateException("Lucene index is used even when no full-text conditions are used for filter "
-            // + filter);
-
-            return Collections.emptySet();
-        }
-        final HashSet<String> relPaths = new HashSet<String>();
-        ft.accept(new FullTextVisitor.FullTextVisitorBase() {
-
-            @Override
-            public boolean visit(FullTextTerm term) {
-                String p = term.getPropertyName();
-                if (p == null) {
-                    relPaths.add("");
-                } else if (p.startsWith("../") || p.startsWith("./")) {
-                    throw new IllegalArgumentException("Relative parent is not supported:" + p);
-                } else if (getDepth(p) > 1) {
-                    String parent = getParentPath(p);
-                    relPaths.add(parent);
-                } else {
-                    relPaths.add("");
-                }
-                return true;
-            }
-        });
-        return relPaths;
-    }
-
-
-    /**
      * Get the Lucene query for the given filter.
      *
      * @param plan index plan containing filter details
@@ -486,8 +416,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param defn nodestate that contains the index definition
      * @return the Lucene query
      */
-    private static Query getQuery(IndexPlan plan, IndexReader reader,
-            boolean nonFullTextConstraints, Analyzer analyzer) {
+    private static Query getQuery(IndexPlan plan, IndexReader reader, Analyzer analyzer) {
         List<Query> qs = new ArrayList<Query>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
@@ -498,7 +427,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             // when using the LowCostLuceneIndexProvider
             // which is used for testing
         } else {
-            qs.add(getFullTextQuery(defn, ft, analyzer, reader));
+            qs.add(getFullTextQuery(plan, ft, analyzer, reader));
         }
 
 
@@ -527,7 +456,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     throw new RuntimeException(e);
                 }
             }
-        } else if (nonFullTextConstraints) {
+        } else if (planResult.evaluateNonFullTextConstraints()) {
             addNonFullTextConstraints(qs, plan, reader);
         }
 
@@ -872,8 +801,9 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
-    static Query getFullTextQuery(final IndexDefinition defn, FullTextExpression ft,
+    static Query getFullTextQuery(final IndexPlan plan, FullTextExpression ft,
                                   final Analyzer analyzer, final IndexReader reader) {
+        final PlanResult pr = pr(plan);
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
         final AtomicReference<Query> result = new AtomicReference<Query>();
@@ -883,7 +813,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextOr or) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : or.list) {
-                    Query x = getFullTextQuery(defn, e, analyzer, reader);
+                    Query x = getFullTextQuery(plan, e, analyzer, reader);
                     q.add(x, SHOULD);
                 }
                 result.set(q);
@@ -894,7 +824,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextAnd and) {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : and.list) {
-                    Query x = getFullTextQuery(defn, e, analyzer, reader);
+                    Query x = getFullTextQuery(plan, e, analyzer, reader);
                     // Lucene can't deal with "must(must_not(x))"
                     if (x instanceof BooleanQuery) {
                         BooleanQuery bq = (BooleanQuery) x;
@@ -913,7 +843,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextTerm term) {
                 String p = term.getPropertyName();
                 if (p != null) {
-                    p = FieldNames.createAnalyzedFieldName(p);
+                    p = getLuceneFieldName(p, pr);
                 }
                 Query q = tokenToQuery(term.getText(), p, analyzer, reader);
                 if (q == null) {
@@ -934,6 +864,24 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
         });
         return result.get();
+    }
+
+    static String getLuceneFieldName(String p, PlanResult pr) {
+        if (isNodePath(p)){
+            if (pr.isPathTransformed()){
+                p = PathUtils.getName(p);
+            } else {
+                //Get rid of /* as aggregated fulltext field name is the
+                //node relative path
+                p = FieldNames.createFulltextFieldName(PathUtils.getParentPath(p));
+            }
+        } else {
+            if (pr.isPathTransformed()){
+                p = PathUtils.getName(p);
+            }
+            p = FieldNames.createAnalyzedFieldName(p);
+        }
+        return p;
     }
 
     static Query tokenToQuery(String text, String fieldName, Analyzer analyzer, IndexReader reader) {
