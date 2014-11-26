@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -391,6 +392,21 @@ public class IndexDefinitionTest {
         IndexingRule rule = defn2.getApplicableIndexingRule(newTree(newNode("nt:base")));
         assertNotNull(rule.getConfig("foo"));
         assertNull("Property regex used should not allow relative properties", rule.getConfig("foo/bar"));
+    }
+
+    @Test
+    public void fulltextEnabledAndAggregate() throws Exception{
+        NodeBuilder defnb = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of("foo"), "async");
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertFalse(defn.isFullTextEnabled());
+
+        NodeBuilder aggregates = defnb.child(LuceneIndexConstants.AGGREGATES);
+        NodeBuilder aggFolder = aggregates.child("nt:base");
+        aggFolder.child("i1").setProperty(LuceneIndexConstants.AGG_PATH, "*");
+
+        defn = new IndexDefinition(root, defnb.getNodeState());
+        assertTrue(defn.isFullTextEnabled());
     }
 
 

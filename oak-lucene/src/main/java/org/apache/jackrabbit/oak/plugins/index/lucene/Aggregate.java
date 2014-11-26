@@ -26,7 +26,9 @@ import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,6 +55,7 @@ class Aggregate {
     private final List<? extends Include> includes;
     final int reAggregationLimit;
     private final List<NodeInclude> relativeNodeIncludes;
+    private final boolean nodeAggregates;
 
     Aggregate(String nodeTypeName) {
        this(nodeTypeName, Collections.<Include>emptyList());
@@ -68,6 +71,7 @@ class Aggregate {
         this.includes = ImmutableList.copyOf(includes);
         this.reAggregationLimit = recursionLimit;
         this.relativeNodeIncludes = findRelativeNodeIncludes(includes);
+        this.nodeAggregates = hasNodeIncludes(includes);
     }
 
     public List<? extends Include> getIncludes() {
@@ -96,6 +100,10 @@ class Aggregate {
             }
         }
         return false;
+    }
+
+    public boolean hasNodeAggregates(){
+        return nodeAggregates;
     }
 
     @Override
@@ -142,6 +150,15 @@ class Aggregate {
             }
         }
         return ImmutableList.copyOf(result);
+    }
+
+    private static boolean hasNodeIncludes(List<? extends Include> includes) {
+        return Iterables.any(includes, new Predicate<Include>() {
+            @Override
+            public boolean apply(Include input) {
+                return input instanceof NodeInclude;
+            }
+        });
     }
 
     public static interface AggregateMapper {
