@@ -23,21 +23,29 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFul
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getPrimaryTypeName;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -67,7 +75,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @see LuceneIndex
  */
-public class LuceneIndexEditor implements IndexEditor {
+public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private static final Logger log =
             LoggerFactory.getLogger(LuceneIndexEditor.class);
@@ -87,18 +95,18 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private final NodeState root;
 
-    private List<RelativeProperty> changedRelativeProps;
-
     /**
      * Flag indicating if the current tree being traversed has a deleted parent.
      */
     private final boolean isDeleted;
 
-    private final int deletedMaxLevels;
-
     private ImmutableTree current;
 
     private IndexDefinition.IndexingRule indexingRule;
+
+    private List<Matcher> currentMatchers = Collections.emptyList();
+
+    private final MatcherState matcherState;
 
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
@@ -109,18 +117,19 @@ public class LuceneIndexEditor implements IndexEditor {
                 updateCallback);
         this.root = root;
         this.isDeleted = false;
-        this.deletedMaxLevels = -1;
+        this.matcherState = MatcherState.NONE;
     }
 
     private LuceneIndexEditor(LuceneIndexEditor parent, String name,
-            boolean isDeleted, int deletedMaxLevels) {
+                              MatcherState matcherState,
+            boolean isDeleted) {
         this.parent = parent;
         this.name = name;
         this.path = null;
         this.context = parent.context;
         this.root = parent.root;
         this.isDeleted = isDeleted;
-        this.deletedMaxLevels = deletedMaxLevels;
+        this.matcherState = matcherState;
     }
 
     public String getPath() {
@@ -147,6 +156,10 @@ public class LuceneIndexEditor implements IndexEditor {
         }
 
         indexingRule = getDefinition().getApplicableIndexingRule(current);
+
+        if (indexingRule != null) {
+            currentMatchers = indexingRule.getAggregate().createMatchers(this);
+        }
     }
 
     @Override
@@ -162,8 +175,8 @@ public class LuceneIndexEditor implements IndexEditor {
             }
         }
 
-        if (changedRelativeProps != null) {
-            markParentsOnRelPropChange();
+        for (Matcher m : matcherState.affectedMatchers){
+            m.markRootDirty();
         }
 
         if (parent == null) {
@@ -182,30 +195,30 @@ public class LuceneIndexEditor implements IndexEditor {
     @Override
     public void propertyAdded(PropertyState after) {
         markPropertyChanged(after.getName());
-        checkForRelativePropertyChange(after.getName());
+        checkAggregates(after.getName());
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) {
         markPropertyChanged(before.getName());
-        checkForRelativePropertyChange(before.getName());
+        checkAggregates(before.getName());
     }
 
     @Override
     public void propertyDeleted(PropertyState before) {
         markPropertyChanged(before.getName());
-        checkForRelativePropertyChange(before.getName());
+        checkAggregates(before.getName());
     }
 
     @Override
     public Editor childNodeAdded(String name, NodeState after) {
-        return new LuceneIndexEditor(this, name, false, -1);
+        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
     }
 
     @Override
     public Editor childNodeChanged(
             String name, NodeState before, NodeState after) {
-        return new LuceneIndexEditor(this, name, false, -1);
+        return new LuceneIndexEditor(this, name, getMatcherState(name, after), false);
     }
 
     @Override
@@ -228,18 +241,9 @@ public class LuceneIndexEditor implements IndexEditor {
             }
         }
 
-        if (getDefinition().hasRelativeProperties()) {
-            int maxLevelsDown;
-            if (isDeleted) {
-                maxLevelsDown = deletedMaxLevels - 1;
-            } else {
-                maxLevelsDown = getDefinition()
-                        .getRelPropertyMaxLevels();
-            }
-            if (maxLevelsDown > 0) {
-                // need to update aggregated properties on deletes
-                return new LuceneIndexEditor(this, name, true, maxLevelsDown);
-            }
+        MatcherState ms = getMatcherState(name, before);
+        if (!ms.isEmpty()){
+            return new LuceneIndexEditor(this, name, ms, true);
         }
         return null; // no need to recurse down the removed subtree
     }
@@ -286,10 +290,10 @@ public class LuceneIndexEditor implements IndexEditor {
                 dirty |= addTypedOrderedFields(fields, property, pname, pd);
             }
 
-            dirty |= indexProperty(path, fields, state, property, pname, pd);
+            dirty |= indexProperty(path, fields, state, property, pname, false, pd);
         }
 
-        dirty |= indexRelativeProperties(path, fields, state);
+        dirty |= indexAggregates(path, fields, state);
 
         if (isUpdate && !dirty) {
             // updated the state but had no relevant changes
@@ -320,15 +324,17 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private boolean indexProperty(String path,
-                                  List<Field> fields, NodeState state,
+                                  List<Field> fields,
+                                  NodeState state,
                                   PropertyState property,
                                   String pname,
+                                  boolean aggregateMode,
                                   PropertyDefinition pd) throws CommitFailedException {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
         if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
             this.context.indexUpdate();
-            fields.addAll(newBinary(property, state, path + "@" + pname));
+            fields.addAll(newBinary(property, state, null, path + "@" + pname));
             return true;
         }  else {
             boolean dirty = false;
@@ -345,7 +351,7 @@ public class LuceneIndexEditor implements IndexEditor {
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
                     }
 
-                    if (pd.nodeScopeIndex) {
+                    if (pd.nodeScopeIndex && !aggregateMode) {
                         Field field = newFulltextField(value);
                         field.setBoost(pd.boost);
                         fields.add(field);
@@ -448,7 +454,7 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private List<Field> newBinary(
-            PropertyState property, NodeState state, String path) {
+            PropertyState property, NodeState state, String nodePath, String path) {
         List<Field> fields = new ArrayList<Field>();
         Metadata metadata = new Metadata();
         if (JCR_DATA.equals(property.getName())) {
@@ -463,59 +469,180 @@ public class LuceneIndexEditor implements IndexEditor {
         }
 
         for (Blob v : property.getValue(Type.BINARIES)) {
-            fields.add(newFulltextField(parseStringValue(v, metadata, path)));
+            if (nodePath != null){
+                fields.add(newFulltextField(nodePath, parseStringValue(v, metadata, path)));
+            } else {
+                fields.add(newFulltextField(parseStringValue(v, metadata, path)));
+            }
+
         }
         return fields;
     }
 
-    private boolean indexRelativeProperties(String path, List<Field> fields, NodeState state) throws CommitFailedException {
+    //~-------------------------------------------------------< Aggregate >
+
+    @Override
+    public void markDirty() {
+        propertiesChanged = true;
+    }
+
+    private MatcherState getMatcherState(String name, NodeState after) {
+        List<Matcher> matched = Lists.newArrayList();
+        List<Matcher> inherited = Lists.newArrayList();
+        for (Matcher m : Iterables.concat(matcherState.inherited, currentMatchers)) {
+            Matcher result = m.match(name, after);
+            if (result.getStatus() == Matcher.Status.MATCH_FOUND){
+                matched.add(result);
+            }
+
+            if (result.getStatus() != Matcher.Status.FAIL){
+                inherited.addAll(result.nextSet());
+            }
+        }
+
+        if (!matched.isEmpty() || !inherited.isEmpty()) {
+            return new MatcherState(matched, inherited);
+        }
+        return MatcherState.NONE;
+    }
+
+    private boolean indexAggregates(final String path, final List<Field> fields,
+                                    final NodeState state) throws CommitFailedException {
+        final AtomicBoolean dirtyFlag = new AtomicBoolean();
+        indexingRule.getAggregate().collectAggregates(state, new Aggregate.ResultCollector() {
+            @Override
+            public void onResult(Aggregate.NodeIncludeResult result) throws CommitFailedException {
+                boolean dirty = indexAggregatedNode(path, fields, result);
+                if (dirty) {
+                    dirtyFlag.set(true);
+                }
+            }
+
+            @Override
+            public void onResult(Aggregate.PropertyIncludeResult result) throws CommitFailedException {
+                boolean dirty = false;
+                if (result.pd.ordered) {
+                    dirty |= addTypedOrderedFields(fields, result.propertyState,
+                            result.propertyPath, result.pd);
+                }
+                dirty |= indexProperty(path, fields, state, result.propertyState,
+                        result.propertyPath, true, result.pd);
+
+                if (dirty) {
+                    dirtyFlag.set(true);
+                }
+            }
+        });
+        return dirtyFlag.get();
+    }
+
+    /**
+     * Create the fulltext field from the aggregated nodes. If result is for aggregate for a relative node
+     * include then
+     * @param path current node path
+     * @param fields indexed fields
+     * @param result aggregate result
+     * @return true if a field was created for passed node result
+     * @throws CommitFailedException
+     */
+    private boolean indexAggregatedNode(String path, List<Field> fields, Aggregate.NodeIncludeResult result)
+            throws CommitFailedException {
+        //rule for node being aggregated might be null if such nodes
+        //are not indexed on there own. In such cases we rely in current
+        //rule for some checks
+        IndexDefinition.IndexingRule ruleAggNode = context.getDefinition()
+                .getApplicableIndexingRule(getPrimaryTypeName(result.nodeState));
         boolean dirty = false;
-        for (RelativeProperty rp : indexingRule.getRelativeProps()){
-            String pname = rp.propertyPath;
 
-            PropertyState property = rp.getProperty(state);
+        for (PropertyState property : result.nodeState.getProperties()){
+            String pname = property.getName();
 
-            if (property == null){
+            if (!isVisible(pname)) {
                 continue;
             }
 
-            if (rp.getPropertyDefinition().ordered) {
-                dirty |= addTypedOrderedFields(fields, property, pname, rp.getPropertyDefinition());
+            //Check if type is indexed
+            int type = property.getType().tag();
+            if (ruleAggNode != null ) {
+                if (!ruleAggNode.includePropertyType(type)) {
+                    continue;
+                }
+            } else if (!indexingRule.includePropertyType(type)){
+                continue;
             }
 
-            dirty |= indexProperty(path, fields, state, property, pname, rp.getPropertyDefinition());
+            if (Type.BINARY == property.getType()) {
+                String aggreagtedNodePath = PathUtils.concat(path, result.nodePath);
+                this.context.indexUpdate();
+                //Here the fulltext is being created for aggregate root hence nodePath passed
+                //should be null
+                String nodePath = result.isRelativeNode() ? result.rootIncludePath : null;
+                fields.addAll(newBinary(property, result.nodeState, nodePath, aggreagtedNodePath + "@" + pname));
+                dirty = true;
+            } else {
+                PropertyDefinition pd = null;
+                if (ruleAggNode != null){
+                    pd = ruleAggNode.getConfig(pname);
+                }
+
+                if (pd != null && !pd.nodeScopeIndex){
+                    continue;
+                }
+
+                for (String value : property.getValue(Type.STRINGS)) {
+                    this.context.indexUpdate();
+                    Field field = result.isRelativeNode() ?
+                            newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
+                    if (pd != null) {
+                        field.setBoost(pd.boost);
+                    }
+                    fields.add(field);
+                    dirty = true;
+                }
+            }
         }
         return dirty;
     }
 
-    private void checkForRelativePropertyChange(String name) {
-        if (isIndexable() && getDefinition().hasRelativeProperty(name)) {
-            getDefinition().collectRelPropsForName(name, getChangedRelProps());
-        }
-    }
-
-    private void markParentsOnRelPropChange() {
-        for (RelativeProperty rp : changedRelativeProps) {
-            LuceneIndexEditor p = this;
-            for (String parentName : rp.ancestors) {
-                if (p == null || !p.name.equals(parentName)) {
-                    p = null;
-                    break;
-                }
-                p = p.parent;
-            }
-
-            if (p != null) {
-                p.relativePropertyChanged();
+    /**
+     * Determines which all matchers are affected by this property change
+     *
+     * @param name modified property name
+     */
+    private void checkAggregates(String name) {
+        for (Matcher m : matcherState.matched) {
+            if (!matcherState.affectedMatchers.contains(m)
+                    && m.aggregatesProperty(name)) {
+                matcherState.affectedMatchers.add(m);
             }
         }
     }
 
-    private List<RelativeProperty> getChangedRelProps(){
-        if (changedRelativeProps == null) {
-            changedRelativeProps = Lists.newArrayList();
+    private static class MatcherState {
+        final static MatcherState NONE = new MatcherState(Collections.<Matcher>emptyList(),
+                Collections.<Matcher>emptyList());
+
+        final List<Matcher> matched;
+        final List<Matcher> inherited;
+        final Set<Matcher> affectedMatchers;
+
+        public MatcherState(List<Matcher> matched,
+                            List<Matcher> inherited){
+            this.matched = matched;
+            this.inherited = inherited;
+
+            //Affected matches would only be used when there are
+            //some matched matchers
+            if (matched.isEmpty()){
+                affectedMatchers = Collections.emptySet();
+            } else {
+                affectedMatchers = Sets.newIdentityHashSet();
+            }
         }
-        return changedRelativeProps;
+
+        public boolean isEmpty() {
+            return matched.isEmpty() && inherited.isEmpty();
+        }
     }
 
     private void markPropertyChanged(String name) {
@@ -532,10 +659,6 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private boolean isIndexable(){
         return indexingRule != null;
-    }
-
-    private void relativePropertyChanged() {
-        propertiesChanged = true;
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path) {

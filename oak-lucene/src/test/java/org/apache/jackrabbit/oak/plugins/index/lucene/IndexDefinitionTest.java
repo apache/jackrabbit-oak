@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -141,25 +140,12 @@ public class IndexDefinitionTest {
     }
 
     @Test
-    public void relativeProperty() throws Exception{
-        builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo" , "foo1/bar"), STRINGS));
-        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
-        IndexingRule rule = idxDefn.getApplicableIndexingRule(NT_BASE);
-
-        assertEquals(1, rule.getRelativeProps().size());
-        assertEquals("foo1/bar", Iterables.getFirst(rule.getRelativeProps(), null).propertyPath);
-        assertTrue(idxDefn.hasRelativeProperty("bar"));
-        assertFalse(idxDefn.hasRelativeProperty("foo"));
-    }
-
-    @Test
     public void relativePropertyConfig() throws Exception{
         builder.child(PROP_NODE).child("foo1").child("bar").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
         builder.child(PROP_NODE).child("foo2").child("bar2").child("baz").setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_LONG);
         builder.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "foo1/bar", "foo2/bar2/baz"), STRINGS));
         IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
-        assertEquals(2, defn.getRelativeProps().size());
         assertNotNull(rule.getConfig("foo1/bar"));
         assertEquals(PropertyType.DATE, rule.getConfig("foo1/bar").getType());
         assertEquals(PropertyType.LONG, rule.getConfig("foo2/bar2/baz").getType());

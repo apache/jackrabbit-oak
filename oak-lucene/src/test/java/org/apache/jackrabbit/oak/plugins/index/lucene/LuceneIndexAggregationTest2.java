@@ -28,6 +28,8 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.fail;
 
@@ -38,15 +40,16 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.SystemRoot;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
@@ -55,11 +58,13 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +125,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
 
             })
             .with(new OpenSecurityProvider())
-            .with(AggregateIndexProvider.wrap(provider.with(getNodeAggregator())))
+            .with(((QueryIndexProvider)provider.with(getNodeAggregator())))
             .with((Observer) provider).with(new LuceneIndexEditorProvider())
             .createContentRepository();
     }
@@ -144,7 +149,29 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+        //Aggregates
+        newNodeAggregator(indexDefn)
+                .newRuleWithName(NT_FILE, newArrayList("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGE, newArrayList("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGECONTENT, newArrayList("*", "*/*", "*/*/*", "*/*/*/*"))
+                .newRuleWithName(NT_TEST_ASSET, newArrayList("jcr:content"))
+                .newRuleWithName(
+                        NT_TEST_ASSETCONTENT,
+                        newArrayList("metadata", "renditions", "renditions/original", "comments",
+                                "renditions/original/jcr:content"))
+                .newRuleWithName("rep:User", newArrayList("profile"));
+
+        Tree originalInclude = indexDefn.getChild(LuceneIndexConstants.AGGREGATES)
+                .getChild(NT_TEST_ASSET).addChild("includeOriginal");
+        originalInclude.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
+        originalInclude.setProperty(LuceneIndexConstants.AGG_PATH, "jcr:content/renditions/original");
+
+        //Include all properties
+        Tree props = TestUtil.newRulePropTree(indexDefn, "test:Asset");
+        TestUtil.enableForFullText(props, "jcr:content/metadata/format");
+        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
         root.commit();
     }
 
@@ -265,7 +292,41 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         assertQuery(statement, "xpath", expected);
         setTraversalEnabled(true);
     }
-    
+
+    @Test
+    public void indexRelativeNode() throws Exception {
+        setTraversalEnabled(false);
+        final String statement = "//element(*, test:Asset)[ " +
+                "jcr:contains(., 'summer') " +
+                "and jcr:contains(jcr:content/renditions/original, 'fox')" +
+                "and jcr:contains(jcr:content/metadata/@format, 'image') " +
+                "]";
+
+        Tree content = root.getTree("/").addChild("content");
+        List<String> expected = newArrayList();
+
+        Tree metadata = createAssetStructure(content, "tagged");
+        metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+        metadata.setProperty("format", "image/jpeg", STRING);
+
+        Tree original = metadata.getParent().addChild("renditions").addChild("original");
+        original.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_FILE);
+        original.addChild("jcr:content").setProperty(PropertyStates.createProperty("jcr:data", "fox jumps".getBytes()));
+
+        expected.add("/content/tagged");
+        root.commit();
+
+        assertQuery(statement, "xpath", expected);
+
+        //Update the reaggregated node and with that parent should be get updated
+        Tree originalContent = TreeUtil.getTree(root.getTree("/"), "/content/tagged/jcr:content/renditions/original/jcr:content");
+        originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
+        root.commit();
+        assertQuery(statement, "xpath", Collections.<String>emptyList());
+        setTraversalEnabled(true);
+    }
+
+
     /**
      * <p>
      * convenience method that create an "asset" structure like
