@@ -758,7 +758,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
                         TreeLock lock = acquire(entry.getKey());
                         try {
-                            if (entry.getValue() == null) {
+                            if (entry.getValue() == null
+                                    || entry.getValue() == NodeDocument.NULL) {
                                 // make sure concurrently loaded document is invalidated
                                 nodesCache.invalidate(new StringValue(entry.getKey()));
                             } else {
