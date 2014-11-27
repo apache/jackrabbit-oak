@@ -885,6 +885,11 @@ public class QueryImpl implements Query {
         return context.getRoot().getTree(path);
     }
 
+    @Override
+    public boolean isMeasureOrExplainEnabled() {
+        return explain || measure;
+    }
+
     /**
      * Validate the path is syntactically correct, and convert it to an Oak
      * internal path (including namespace remapping if needed).

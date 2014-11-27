@@ -92,4 +92,5 @@ public interface Query {
 
     Tree getTree(String path);
 
+    boolean isMeasureOrExplainEnabled();
 }
