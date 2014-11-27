@@ -84,7 +84,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         LuceneIndexProvider provider = new LuceneIndexProvider();
         return new Oak()
                 .with(new InitialContent())
-                .with(new LuceneInitializerHelper("luceneGlobal", (Set<String>) null))
                 .with(new OpenSecurityProvider())
                 .with((QueryIndexProvider) provider)
                 .with((Observer) provider)
@@ -670,13 +669,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Test
     public void indexTimeFieldBoost() throws Exception {
-
         // Index Definition
         Tree idx = createIndex("test1", of("propa", "propb", "propc"));
         idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
 
-        //TODO Remove compat mode once OAK-2278 resolved
-        idx.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
         Tree propNode = idx.addChild(PROP_NODE);
 
         // property definition for index test1
