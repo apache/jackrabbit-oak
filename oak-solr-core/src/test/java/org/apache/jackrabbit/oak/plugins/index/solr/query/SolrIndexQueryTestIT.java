@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -49,7 +48,7 @@ import static org.junit.Assume.assumeTrue;
 /**
  * General query extensive testcase for {@link SolrQueryIndex}
  */
-public class SolrIndexQueryTest extends AbstractQueryTest {
+public class SolrIndexQueryTestIT extends AbstractQueryTest {
 
     private SolrServer solrServer;
 
@@ -378,9 +377,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         test.addChild("a").setProperty("name", "/parent/child/node");
         root.commit();
 
-        StringBuffer stmt = new StringBuffer();
-        stmt.append("//*[jcr:contains(., '/parent/child')]");
-        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+        assertQuery("//*[jcr:contains(., '/parent/child')]", "xpath", ImmutableList.of("/test/a"));
 
     }
 
@@ -392,9 +389,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         a.setProperty("name", "/segment1/segment2/segment3");
         root.commit();
 
-        StringBuffer stmt = new StringBuffer();
-        stmt.append("//*[jcr:contains(., '/segment1/segment2')]");
-        assertQuery(stmt.toString(), "xpath", ImmutableList.of("/test/a"));
+        assertQuery("//*[jcr:contains(., '/segment1/segment2')]", "xpath", ImmutableList.of("/test/a"));
 
     }
 
@@ -418,9 +413,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
         root.commit();
 
-        StringBuffer stmt = new StringBuffer();
-        stmt.append("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]");
-        assertQuery(stmt.toString(), "xpath",
+        assertQuery("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]", "xpath",
                 ImmutableList.of(one.getPath(), two.getPath()));
     }
 }
