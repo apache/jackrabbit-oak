@@ -53,6 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newLuceneIndexDefinitionV2;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
@@ -80,9 +81,8 @@ public class LuceneIndexEditorTest {
     @Test
     public void testLuceneWithFullText() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder idxnb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder idxnb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-        setCompatVersionToV2(idxnb);
 
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
@@ -101,7 +101,7 @@ public class LuceneIndexEditorTest {
     @Test
     public void testLuceneWithNonFullText() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "price", "weight", "bool", "creationTime"), STRINGS));
@@ -141,7 +141,7 @@ public class LuceneIndexEditorTest {
     @Test
     public void noOfDocsIndexedNonFullText() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"), STRINGS));
@@ -167,7 +167,7 @@ public class LuceneIndexEditorTest {
     @Test
     public void nonIncludedPropertyChange() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo"),
@@ -201,7 +201,7 @@ public class LuceneIndexEditorTest {
     @Test
     public void testLuceneWithRelativeProperty() throws Exception {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "jcr:content/mime",
@@ -286,7 +286,7 @@ public class LuceneIndexEditorTest {
     @Test
     public void autoFormatUpdate() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
-        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+        NodeBuilder nb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
 
         //1. Trigger a index so that next index step does not see it as a fresh index
@@ -389,7 +389,4 @@ public class LuceneIndexEditorTest {
         return FieldFactory.dateToLong(ISO8601.format(createCal(dt)));
     }
 
-    private static void setCompatVersionToV2(NodeBuilder idxNb) {
-        idxNb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
-    }
 }
