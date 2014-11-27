@@ -106,7 +106,7 @@ public class LuceneIndexEditorContext {
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
-        this.definition = new IndexDefinition(root, definitionBuilder.getBaseState());
+        this.definition = new IndexDefinition(root, definition);
         this.config = getIndexWriterConfig(analyzer, this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
@@ -149,6 +149,8 @@ public class LuceneIndexEditorContext {
 
     public void enableReindexMode(){
         reindex = true;
+        definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION,
+                IndexFormatVersion.getCurrent().getVersion());
     }
 
     public long incIndexedNodes() {
