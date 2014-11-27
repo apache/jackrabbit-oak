@@ -349,7 +349,8 @@ public class LuceneIndexEditor implements IndexEditor {
                     //as term field use the same name. For compatibility this should be done
                     //for newer index versions only
                     if (pd.analyzed) {
-                        fields.add(newPropertyField(pname, value, !pd.skipTokenization(pname), pd.stored));
+                        String analyzedPropName = constructAnalyzedPropertyName(pname);
+                        fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
                         //TODO Property field uses OakType which has omitNorms set hence
                         //cannot be boosted
                     }
@@ -364,6 +365,13 @@ public class LuceneIndexEditor implements IndexEditor {
             }
             return dirty;
         }
+    }
+
+    private String constructAnalyzedPropertyName(String pname) {
+        if (context.getDefinition().getVersion().isAtLeast(IndexFormatVersion.V2)){
+            return FieldNames.createAnalyzedFieldName(pname);
+        }
+        return pname;
     }
 
     private boolean addTypedFields(List<Field> fields, PropertyState property, String pname) throws CommitFailedException {
