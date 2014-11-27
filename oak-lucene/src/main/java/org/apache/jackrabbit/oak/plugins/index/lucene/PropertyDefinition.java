@@ -109,6 +109,10 @@ class PropertyDefinition {
         return index && (analyzed || nodeScopeIndex);
     }
 
+    public boolean propertyIndexEnabled(){
+        return index && propertyIndex;
+    }
+
     public boolean isTypeDefined(){
         return propertyType != PropertyType.UNDEFINED;
     }
