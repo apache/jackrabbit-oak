@@ -44,7 +44,7 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
         @Override
         public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
-            String indexPath = new LuceneIndexLookup(rootState).getFullTextIndexPath(filter, tracker);
+            String indexPath = new LuceneIndexLookup(rootState).getOldFullTextIndexPath(filter, tracker);
             return Collections.singletonList(planBuilder(filter)
                     .setCostPerExecution(1e-3)
                     .setAttribute(ATTR_INDEX_PATH, indexPath)

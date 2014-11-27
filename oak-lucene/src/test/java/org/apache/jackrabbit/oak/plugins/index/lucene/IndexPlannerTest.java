@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,12 +44,17 @@ import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
@@ -116,6 +122,22 @@ public class IndexPlannerTest {
         IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
         FilterImpl filter = createFilter("nt:base");
         filter.restrictProperty("bar", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void worksWithIndexFormatV2Onwards() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder nb = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        //Dummy data node to ensure that IndexDefinition does not consider it
+        //as a fresh indexing case
+        nb.child(INDEX_DATA_CHILD_NAME);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, nb.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
         IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
         assertNull(planner.getPlan());
     }

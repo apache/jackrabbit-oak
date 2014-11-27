@@ -42,14 +42,15 @@ class LuceneIndexLookup {
      * Returns the path of the first Lucene index node which supports
      * fulltext search
      */
-    public String getFullTextIndexPath(Filter filter, IndexTracker tracker) {
+    public String getOldFullTextIndexPath(Filter filter, IndexTracker tracker) {
         Collection<String> indexPaths = collectIndexNodePaths(filter, false);
         IndexNode indexNode = null;
         for (String path : indexPaths) {
             try {
                 indexNode = tracker.acquireIndexNode(path);
                 if (indexNode != null
-                        && indexNode.getDefinition().isFullTextEnabled()) {
+                        && indexNode.getDefinition().isFullTextEnabled()
+                        && indexNode.getDefinition().getVersion() == IndexFormatVersion.V1) {
                     return path;
                 }
             } finally {
