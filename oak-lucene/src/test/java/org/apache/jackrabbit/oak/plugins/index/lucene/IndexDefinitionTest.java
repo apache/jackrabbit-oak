@@ -36,14 +36,19 @@ import org.junit.Test;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
+import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_RULES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
@@ -316,6 +321,49 @@ public class IndexDefinitionTest {
         IndexingRule rule = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
         assertFalse(rule.getConfig("foo").skipTokenization("foo"));
         assertTrue(rule.getConfig(JcrConstants.JCR_UUID).skipTokenization(JcrConstants.JCR_UUID));
+    }
+
+    @Test
+    public void versionFullTextIsV1() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+
+        //Simulate condition that index exists
+        defnb.child(INDEX_DATA_CHILD_NAME);
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(IndexFormatVersion.V1, defn.getVersion());
+    }
+
+    @Test
+    public void versionDefnUpdateFulltextIsV1() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+
+        //Simulate condition that index exists
+        defnb.child(INDEX_DATA_CHILD_NAME);
+        defnb = defnb.getNodeState().builder();
+        IndexDefinition.updateDefinition(defnb);
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(IndexFormatVersion.V1, defn.getVersion());
+    }
+
+    @Test
+    public void versionPropertyIsV2() throws Exception{
+        NodeBuilder defnb = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(IndexFormatVersion.V2, defn.getVersion());
+    }
+
+    @Test
+    public void versionFreshIsCurrent() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(IndexFormatVersion.getCurrent(), defn.getVersion());
     }
 
 

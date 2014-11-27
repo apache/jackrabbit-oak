@@ -71,6 +71,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FULL_TEXT_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
@@ -93,6 +94,11 @@ class IndexDefinition {
      * Default entry count to keep estimated entry count low.
      */
     static final long DEFAULT_ENTRY_COUNT = 1000;
+
+    /**
+     * System managed hidden property to record the current index version
+     */
+    static final String INDEX_VERSION = ":version";
 
     private static String TYPES_ALLOW_ALL_NAME = "all";
 
@@ -135,12 +141,23 @@ class IndexDefinition {
 
     private final String indexName;
 
+    private final IndexFormatVersion version;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
 
+    public IndexDefinition(NodeState root, NodeBuilder defn) {
+        this(root, defn.getBaseState(), defn, null);
+    }
+
     public IndexDefinition(NodeState root, NodeState defn, @Nullable String indexPath) {
+        this(root, defn, null, indexPath);
+    }
+
+    public IndexDefinition(NodeState root, NodeState defn, @Nullable NodeBuilder defnb, @Nullable String indexPath) {
         this.root = root;
+        this.version = determineIndexFormatVersion(defn, defnb);
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
@@ -240,6 +257,10 @@ class IndexDefinition {
 
     boolean hasRelativeProperty(String name) {
         return relativePropNames.contains(name);
+    }
+
+    public IndexFormatVersion getVersion() {
+        return version;
     }
 
     @Override
@@ -668,24 +689,26 @@ class IndexDefinition {
 
     //~---------------------------------------------< compatibility >
 
-    public void updateDefinition(NodeBuilder indexDefn){
+    public static void updateDefinition(NodeBuilder indexDefn){
         //TODO Remove existing config once transformed config is persisted
-        NodeState rulesState = definition.getChildNode(LuceneIndexConstants.INDEX_RULES);
-        if (!rulesState.exists()){
-            rulesState = createIndexRules(definition).getNodeState();
+        NodeState defn = indexDefn.getBaseState();
+        if (!hasIndexingRules(defn)){
+            NodeState rulesState = createIndexRules(defn).getNodeState();
             indexDefn.setChildNode(LuceneIndexConstants.INDEX_RULES, rulesState);
-            log.info("Updated index definition for {}", this);
+            indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn).getVersion());
+
             //indexDefn.removeProperty(DECLARING_NODE_TYPES);
             //indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
             //indexDefn.removeProperty(EXCLUDE_PROPERTY_NAMES);
             //indexDefn.removeProperty(ORDERED_PROP_NAMES);
+            log.info("Updated index definition for {}", determineIndexName(defn, null));
         }
     }
 
     /**
      * Constructs IndexingRule based on earlier format of index configuration
      */
-    private NodeBuilder createIndexRules(NodeState defn){
+    private static NodeBuilder createIndexRules(NodeState defn){
         NodeBuilder builder = EMPTY_NODE.builder();
         Set<String> declaringNodeTypes = getMultiProperty(defn, DECLARING_NODE_TYPES);
         Set<String> includes = getMultiProperty(defn, INCLUDE_PROPERTY_NAMES);
@@ -792,7 +815,7 @@ class IndexDefinition {
         return builder;
     }
 
-    private NodeState getPropDefnNode(NodeState defn, String propName){
+    private static NodeState getPropDefnNode(NodeState defn, String propName){
         NodeState propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
         NodeState propDefNode;
         if (RelativeProperty.isRelativeProperty(propName)) {
@@ -934,5 +957,33 @@ class IndexDefinition {
 
     private static void markAsNtUnstructured(NodeBuilder nb){
         nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
+    }
+
+    private static IndexFormatVersion determineIndexFormatVersion(NodeState defn) {
+        return determineIndexFormatVersion(defn, null);
+    }
+
+    private static IndexFormatVersion determineIndexFormatVersion(NodeState defn, NodeBuilder defnb) {
+        if (defnb != null && !defnb.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
+            return IndexFormatVersion.getCurrent();
+        }
+
+        if (defn.hasProperty(INDEX_VERSION)){
+            return IndexFormatVersion.getVersion((int)defn.getLong(INDEX_VERSION));
+        }
+
+        //No existing index data i.e. reindex or fresh index
+        if (!defn.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
+            return IndexFormatVersion.getCurrent();
+        }
+
+        boolean fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
+        //A fulltext index with old indexing format confirms to V1. However
+        //a propertyIndex with old indexing format confirms to V2
+        return fullTextEnabled ? IndexFormatVersion.V1 : IndexFormatVersion.V2;
+    }
+
+    private static boolean hasIndexingRules(NodeState defn) {
+        return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
     }
 }
