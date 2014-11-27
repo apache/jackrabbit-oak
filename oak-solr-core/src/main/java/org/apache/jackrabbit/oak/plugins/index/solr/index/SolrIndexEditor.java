@@ -51,7 +51,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 /**
  * Index editor for keeping a Solr index up to date.
  */
-public class SolrIndexEditor implements IndexEditor {
+class SolrIndexEditor implements IndexEditor {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -88,7 +88,7 @@ public class SolrIndexEditor implements IndexEditor {
     SolrIndexEditor(
             NodeBuilder definition, SolrServer solrServer,
             OakSolrConfiguration configuration,
-            IndexUpdateCallback callback) throws CommitFailedException {
+            IndexUpdateCallback callback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
@@ -108,7 +108,7 @@ public class SolrIndexEditor implements IndexEditor {
         this.updateCallback = parent.updateCallback;
     }
 
-    public String getPath() {
+    String getPath() {
         if (path == null) { // => parent != null
             path = concat(parent.getPath(), name);
         }

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.solr.client.solrj.SolrServer;
 
 /**
@@ -29,5 +31,6 @@ public interface SolrServerProvider {
      * @return a {@link org.apache.solr.client.solrj.SolrServer} instance
      * @throws Exception if anything goes wrong while providing the {@link org.apache.solr.client.solrj.SolrServer}
      */
+    @CheckForNull
     public SolrServer getSolrServer() throws Exception;
 }

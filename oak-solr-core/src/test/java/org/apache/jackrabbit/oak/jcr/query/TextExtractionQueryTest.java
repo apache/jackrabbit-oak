@@ -23,7 +23,6 @@ import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;

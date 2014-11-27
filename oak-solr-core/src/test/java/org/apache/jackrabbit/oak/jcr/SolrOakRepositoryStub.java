@@ -18,9 +18,10 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
 import java.util.Properties;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfigurationProvider;
@@ -52,6 +53,7 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
             throw new RuntimeException();
         }
         SolrServerProvider solrServerProvider = new SolrServerProvider() {
+            @CheckForNull
             @Override
             public SolrServer getSolrServer() throws Exception {
                 return solrServer;
@@ -65,6 +67,7 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
             throw new RuntimeException(e);
         }
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Nonnull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;

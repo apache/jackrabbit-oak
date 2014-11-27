@@ -43,7 +43,7 @@ public abstract class SolrServerConfiguration<S extends SolrServerProvider> {
     }
 
     public S getProvider()
-            throws NoSuchMethodException, IllegalAccessException,
+            throws IllegalAccessException,
             InvocationTargetException, InstantiationException {
         if (constructor == null) {
             Class<?> rawType = type instanceof Class<?>

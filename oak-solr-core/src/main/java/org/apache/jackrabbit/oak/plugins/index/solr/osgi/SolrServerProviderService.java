@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.CheckForNull;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -122,6 +124,7 @@ public class SolrServerProviderService implements SolrServerProvider {
         }
     }
 
+    @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
         synchronized (solrServerConfigurationProviders) {
@@ -133,6 +136,7 @@ public class SolrServerProviderService implements SolrServerProvider {
                             SolrServerConfiguration solrServerConfiguration = solrServerConfigurationProvider.getSolrServerConfiguration();
                             SolrServerProvider solrServerProvider = solrServerConfiguration.getProvider();
                             cachedSolrServer = solrServerProvider.getSolrServer();
+                            log.info("created new SolrServer {}", cachedSolrServer);
                         } catch (Exception e) {
                             log.error("could not get a SolrServerProvider of type {}", serverType, e);
                         }
