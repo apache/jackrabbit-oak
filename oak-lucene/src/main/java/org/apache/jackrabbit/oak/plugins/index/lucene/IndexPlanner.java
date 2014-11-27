@@ -62,6 +62,9 @@ class IndexPlanner {
 
         if (defn.isTestMode()
                 && builder == null){
+            if (notSupportedFeature()) {
+                return null;
+            }
             String msg = String.format("No plan found for filter [%s] " +
                     "while using definition [%s] and testMode is found to be enabled", filter, defn);
             throw new IllegalStateException(msg);
@@ -239,6 +242,17 @@ class IndexPlanner {
             }
         }
         return null;
+    }
+
+    private boolean notSupportedFeature() {
+        if(filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION
+                && filter.matchesAllTypes()
+                && filter.getPropertyRestrictions().isEmpty()){
+            //This mode includes name(), localname() queries
+            //OrImpl [a/name] = 'Hello' or [b/name] = 'World'
+            return true;
+        }
+        return false;
     }
 
     //~--------------------------------------------------------< PlanResult >
