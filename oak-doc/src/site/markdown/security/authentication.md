@@ -447,7 +447,7 @@ There also exists a utility class that allows to obtain different
 The default security setup as present with Oak 1.0 is able to provide custom
 implementation on various levels:
 
-1. The complete authentiction setup can be changed by plugging a different
+1. The complete authentication setup can be changed by plugging a different
    `AuthenticationConfiguration` implementations. In OSGi-base setup this is
    achieved by making the configuration a service. In a non-OSGi-base setup the
    custom configuration must be exposed by the `SecurityProvider` implementation.
