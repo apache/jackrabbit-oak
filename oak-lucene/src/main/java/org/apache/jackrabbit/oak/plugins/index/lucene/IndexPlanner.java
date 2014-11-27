@@ -61,8 +61,12 @@ class IndexPlanner {
     IndexPlan getPlan() {
         IndexPlan.Builder builder = getPlanBuilder();
 
-        checkArgument(defn.isTestMode() && builder != null, "No plan found for filter [%s] " +
-                "while using definition [%s] and testMode is found to be enabled", filter, defn);
+        if (defn.isTestMode()
+                && builder == null){
+            String msg = String.format("No plan found for filter [%s] " +
+                    "while using definition [%s] and testMode is found to be enabled", filter, defn);
+            throw new IllegalStateException(msg);
+        }
 
         return builder != null ? builder.build() : null;
     }
