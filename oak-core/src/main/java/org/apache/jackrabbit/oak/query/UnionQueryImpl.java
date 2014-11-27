@@ -205,7 +205,12 @@ public class UnionQueryImpl implements Query {
     public Tree getTree(String path) {
         return left.getTree(path);
     }
-    
+
+    @Override
+    public boolean isMeasureOrExplainEnabled() {
+        return explain || measure;
+    }
+
     @Override
     public int getColumnIndex(String columnName) {
         if (columns == null) {
