@@ -91,7 +91,8 @@ public class LuceneIndexEditorTest {
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
 
-        assertEquals("/test", query("foo:fox"));
+        //system fields starts with ':' so need to be escaped
+        assertEquals("/test", query("\\"+FieldNames.createAnalyzedFieldName("foo")+":fox"));
         assertNull("Non string properties not indexed by default",
                 getPath(NumericRangeQuery.newLongRange("price", 100L, 100L, true, true)));
     }
