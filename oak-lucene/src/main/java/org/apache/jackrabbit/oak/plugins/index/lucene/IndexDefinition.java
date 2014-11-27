@@ -263,6 +263,10 @@ class IndexDefinition {
         return version;
     }
 
+    public boolean isOfOldFormat(){
+        return !hasIndexingRules(definition);
+    }
+
     @Override
     public String toString() {
         return "IndexDefinition : " + indexName;
@@ -689,20 +693,22 @@ class IndexDefinition {
 
     //~---------------------------------------------< compatibility >
 
-    public static void updateDefinition(NodeBuilder indexDefn){
-        //TODO Remove existing config once transformed config is persisted
+    public static NodeBuilder updateDefinition(NodeBuilder indexDefn){
         NodeState defn = indexDefn.getBaseState();
         if (!hasIndexingRules(defn)){
             NodeState rulesState = createIndexRules(defn).getNodeState();
             indexDefn.setChildNode(LuceneIndexConstants.INDEX_RULES, rulesState);
             indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn).getVersion());
 
-            //indexDefn.removeProperty(DECLARING_NODE_TYPES);
-            //indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
-            //indexDefn.removeProperty(EXCLUDE_PROPERTY_NAMES);
-            //indexDefn.removeProperty(ORDERED_PROP_NAMES);
+            indexDefn.removeProperty(DECLARING_NODE_TYPES);
+            indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
+            indexDefn.removeProperty(EXCLUDE_PROPERTY_NAMES);
+            indexDefn.removeProperty(ORDERED_PROP_NAMES);
+            indexDefn.removeProperty(FULL_TEXT_ENABLED);
+            indexDefn.child(PROP_NODE).remove();
             log.info("Updated index definition for {}", determineIndexName(defn, null));
         }
+        return indexDefn;
     }
 
     /**
@@ -966,6 +972,10 @@ class IndexDefinition {
     private static IndexFormatVersion determineIndexFormatVersion(NodeState defn, NodeBuilder defnb) {
         if (defnb != null && !defnb.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
             return IndexFormatVersion.getCurrent();
+        }
+
+        if (defn.hasProperty(LuceneIndexConstants.COMPAT_MODE)){
+            return IndexFormatVersion.getVersion((int)defn.getLong(LuceneIndexConstants.COMPAT_MODE));
         }
 
         if (defn.hasProperty(INDEX_VERSION)){
