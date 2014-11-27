@@ -234,16 +234,11 @@ public class SolrIndexEditor implements IndexEditor {
         inputDocument.addField(configuration.getPathField(), path);
         for (PropertyState property : state.getProperties()) {
             // try to get the field to use for this property from configuration
-            String fieldName = configuration.getFieldNameFor(property.getType());
-            if (fieldName != null) {
-                inputDocument.addField(
-                        fieldName, property.getValue(property.getType()));
-            } else {
-                // or fallback to adding propertyName:stringValue(s)
-                if (property.isArray()) {
-                    for (String s : property.getValue(Type.STRINGS)) {
-                        inputDocument.addField(property.getName(), s);
-                    }
+            if (!configuration.getIgnoredProperties().contains(property.getName())) {
+                String fieldName = configuration.getFieldNameFor(property.getType());
+                if (fieldName != null) {
+                    inputDocument.addField(
+                            fieldName, property.getValue(property.getType()));
                 } else {
                     if (Type.BINARY.tag() == property.getType().tag()) {
                         inputDocument.addField(property.getName(), extractTextValues(property, state));
