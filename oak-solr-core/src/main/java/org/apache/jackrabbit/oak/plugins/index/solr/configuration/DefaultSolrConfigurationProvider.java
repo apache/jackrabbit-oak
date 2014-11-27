@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 
+import javax.annotation.Nonnull;
+
 /**
  * The default {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
@@ -32,6 +34,7 @@ public class DefaultSolrConfigurationProvider implements OakSolrConfigurationPro
         this.defaultConfiguration = configuration;
     }
 
+    @Nonnull
     @Override
     public OakSolrConfiguration getConfiguration() {
         return defaultConfiguration;
