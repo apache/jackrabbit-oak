@@ -257,6 +257,9 @@ public class LuceneIndexTest {
             }
         });
         builder = nodeStore.getRoot().builder();
+
+        //Also initialize the NodeType registry required for Lucene index to work
+        builder.setChildNode(JCR_SYSTEM, INITIAL_CONTENT.getChildNode(JCR_SYSTEM));
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder idxb = newLuceneIndexDefinition(index, "lucene",
                 ImmutableSet.of(TYPENAME_STRING));

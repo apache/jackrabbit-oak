@@ -29,8 +29,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -41,7 +39,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
+import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -87,9 +85,7 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private boolean propertiesChanged = false;
 
-    private NodeState root;
-
-    private final Predicate<NodeState> typePredicate;
+    private final NodeState root;
 
     private List<RelativeProperty> changedRelativeProps;
 
@@ -100,6 +96,10 @@ public class LuceneIndexEditor implements IndexEditor {
 
     private final int deletedMaxLevels;
 
+    private ImmutableTree current;
+
+    private IndexDefinition.IndexingRule indexingRule;
+
     LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
@@ -108,11 +108,6 @@ public class LuceneIndexEditor implements IndexEditor {
         this.context = new LuceneIndexEditorContext(root, definition, analyzer,
                 updateCallback);
         this.root = root;
-        if (context.getDefinition().hasDeclaredNodeTypes()) {
-            typePredicate = new TypePredicate(root, context.getDefinition().getDeclaringNodeTypes());
-        } else {
-            typePredicate = Predicates.alwaysTrue();
-        }
         this.isDeleted = false;
         this.deletedMaxLevels = -1;
     }
@@ -124,12 +119,12 @@ public class LuceneIndexEditor implements IndexEditor {
         this.path = null;
         this.context = parent.context;
         this.root = parent.root;
-        this.typePredicate = parent.typePredicate;
         this.isDeleted = isDeleted;
         this.deletedMaxLevels = deletedMaxLevels;
     }
 
     public String getPath() {
+        //TODO Use the tree instance to determine path
         if (path == null) { // => parent != null
             path = concat(parent.getPath(), name);
         }
@@ -142,6 +137,16 @@ public class LuceneIndexEditor implements IndexEditor {
         if (EmptyNodeState.MISSING_NODE == before && parent == null){
             context.enableReindexMode();
         }
+
+        //For traversal in deleted sub tree before state has to be used
+        NodeState currentState = after.exists() ? after : before;
+        if (parent == null){
+            current = new ImmutableTree(currentState);
+        } else {
+            current = new ImmutableTree(parent.current, name, currentState);
+        }
+
+        indexingRule = getDefinition().getApplicableIndexingRule(current);
     }
 
     @Override
@@ -223,12 +228,12 @@ public class LuceneIndexEditor implements IndexEditor {
             }
         }
 
-        if (context.getDefinition().hasRelativeProperties()) {
+        if (getDefinition().hasRelativeProperties()) {
             int maxLevelsDown;
             if (isDeleted) {
                 maxLevelsDown = deletedMaxLevels - 1;
             } else {
-                maxLevelsDown = context.getDefinition()
+                maxLevelsDown = getDefinition()
                         .getRelPropertyMaxLevels();
             }
             if (maxLevelsDown > 0) {
@@ -258,11 +263,7 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private Document makeDocument(String path, NodeState state, boolean isUpdate) throws CommitFailedException {
-        //TODO Possibly we can add support for compound properties like foo/bar
-        //i.e. support for relative path restrictions
-
-        // Check for declaringNodeType validity
-        if (!typePredicate.apply(state)) {
+        if (!isIndexable()) {
             return null;
         }
 
@@ -275,23 +276,17 @@ public class LuceneIndexEditor implements IndexEditor {
                 continue;
             }
 
-            if (context.getDefinition().isOrdered(pname)) {
-                dirty |= addTypedOrderedFields(fields, property, pname);
+            PropertyDefinition pd = indexingRule.getConfig(pname);
+
+            if (pd == null || !pd.index){
+                continue;
             }
 
-            if (context.includeProperty(pname)) {
-                //In case of fulltext we also check if given type is enabled for indexing
-                //TODO Use context.includePropertyType however that cause issue. Need
-                //to make filtering based on type consistent both on indexing side and
-                //query size
-                if(context.isFullTextEnabled()
-                        && (context.getPropertyTypes() & (1 << property.getType()
-                        .tag())) == 0){
-                    continue;
-                }
-
-                dirty |= indexProperty(path, fields, state, property, pname);
+            if (pd.ordered) {
+                dirty |= addTypedOrderedFields(fields, property, pname, pd);
             }
+
+            dirty |= indexProperty(path, fields, state, property, pname, pd);
         }
 
         dirty |= indexRelativeProperties(path, fields, state);
@@ -303,7 +298,7 @@ public class LuceneIndexEditor implements IndexEditor {
 
         //For property index no use making an empty document if
         //none of the properties are indexed
-        if(!context.isFullTextEnabled() && !dirty){
+        if(!indexingRule.isFulltextEnabled() && !dirty){
             return null;
         }
 
@@ -312,41 +307,60 @@ public class LuceneIndexEditor implements IndexEditor {
         String name = getName(path);
 
         //TODO Possibly index nodeName without tokenization for node name based queries
-        if (context.isFullTextEnabled()) {
+        if (indexingRule.isFulltextEnabled()) {
             document.add(newFulltextField(name));
         }
         for (Field f : fields) {
             document.add(f);
         }
+
+        //TODO Boost at document level
+
         return document;
     }
 
-    private boolean indexProperty(String path, List<Field> fields, NodeState state,
-                                  PropertyState property, String pname) throws CommitFailedException {
-        if (Type.BINARY.tag() == property.getType().tag()) {
+    private boolean indexProperty(String path,
+                                  List<Field> fields, NodeState state,
+                                  PropertyState property,
+                                  String pname,
+                                  PropertyDefinition pd) throws CommitFailedException {
+        //In case of fulltext we also check if given type is enabled for indexing
+        //TODO Use context.includePropertyType however that cause issue. Need
+        //to make filtering based on type consistent both on indexing side and
+        //query side
+        //TODO Replace with indexRule.includeType
+        boolean includeTypeForFullText = (indexingRule.propertyTypes & (1 << property.getType().tag())) != 0;
+        if (Type.BINARY.tag() == property.getType().tag()
+                && includeTypeForFullText) {
             this.context.indexUpdate();
             fields.addAll(newBinary(property, state, path + "@" + pname));
             return true;
-        } else if(!context.isFullTextEnabled()
-                && FieldFactory.canCreateTypedField(property.getType())){
-            return addTypedFields(fields, property, pname);
-        } else {
+        }  else {
             boolean dirty = false;
-            for (String value : property.getValue(Type.STRINGS)) {
-                this.context.indexUpdate();
-                fields.add(newPropertyField(pname, value,
-                        !context.skipTokenization(pname),
-                        context.isStored(pname)));
-                if (context.isFullTextEnabled()) {
-                    Field field = newFulltextField(value);
-                    boolean hasBoost = context.getDefinition().getPropDefn(pname) != null &&
-                            context.getDefinition().getPropDefn(pname).hasFieldBoost();
-                    if (hasBoost) {
-                        field.setBoost((float)context.getDefinition().getPropDefn(pname).fieldBoost());
+
+            if (pd.propertyIndex){
+                dirty |= addTypedFields(fields, property, pname);
+            }
+
+            if (pd.fulltextEnabled() && includeTypeForFullText) {
+                for (String value : property.getValue(Type.STRINGS)) {
+                    this.context.indexUpdate();
+                    //TODO Analyzed field should be stored against different field name
+                    //as term field use the same name. For compatibility this should be done
+                    //for newer index versions only
+                    if (pd.analyzed) {
+                        fields.add(newPropertyField(pname, value, !pd.skipTokenization(pname), pd.stored));
+                        //TODO Property field uses OakType which has omitNorms set hence
+                        //cannot be boosted
                     }
-                    fields.add(field);
+
+                    if (pd.nodeScopeIndex) {
+                        Field field = newFulltextField(value);
+                        field.setBoost(pd.boost);
+                        fields.add(field);
+                    }
+                    dirty = true;
                 }
-                dirty = true;
             }
             return dirty;
         }
@@ -356,7 +370,7 @@ public class LuceneIndexEditor implements IndexEditor {
         int tag = property.getType().tag();
         boolean fieldAdded = false;
         for (int i = 0; i < property.count(); i++) {
-            Field f = null;
+            Field f;
             if (tag == Type.LONG.tag()) {
                 f = new LongField(pname, property.getValue(Type.LONG, i), Field.Store.NO);
             } else if (tag == Type.DATE.tag()) {
@@ -366,21 +380,23 @@ public class LuceneIndexEditor implements IndexEditor {
                 f = new DoubleField(pname, property.getValue(Type.DOUBLE, i), Field.Store.NO);
             } else if (tag == Type.BOOLEAN.tag()) {
                 f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
+            } else {
+                f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
             }
 
-            if (f != null) {
-                this.context.indexUpdate();
-                fields.add(f);
-                fieldAdded = true;
-            }
+            this.context.indexUpdate();
+            fields.add(f);
+            fieldAdded = true;
         }
         return fieldAdded;
     }
 
-    private boolean addTypedOrderedFields(List<Field> fields, PropertyState property, String pname) throws CommitFailedException {
+    private boolean addTypedOrderedFields(List<Field> fields,
+                                          PropertyState property,
+                                          String pname,
+                                          PropertyDefinition pd) throws CommitFailedException {
         int tag = property.getType().tag();
-
-        int idxDefinedTag = getIndexDefinitionType(pname);
+        int idxDefinedTag = pd.getType();
         // Try converting type to the defined type in the index definition
         if (tag != idxDefinedTag) {
             log.debug(
@@ -429,18 +445,6 @@ public class LuceneIndexEditor implements IndexEditor {
         return fieldAdded;
     }
 
-    private int getIndexDefinitionType(String pname) {
-        int type = Type.UNDEFINED.tag();
-        if (context.getDefinition().hasPropertyDefinition(pname)) {
-            type = context.getDefinition().getPropDefn(pname).getPropertyType();
-        }
-        if (type == Type.UNDEFINED.tag()) {
-            //If no explicit type is defined we assume it to be string
-            type = Type.STRING.tag();
-        }
-        return type;
-    }
-
     private static boolean isVisible(String name) {
         return name.charAt(0) != ':';
     }
@@ -467,9 +471,8 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private boolean indexRelativeProperties(String path, List<Field> fields, NodeState state) throws CommitFailedException {
-        IndexDefinition defn = context.getDefinition();
         boolean dirty = false;
-        for (RelativeProperty rp : defn.getRelativeProps()){
+        for (RelativeProperty rp : indexingRule.getRelativeProps()){
             String pname = rp.propertyPath;
 
             PropertyState property = rp.getProperty(state);
@@ -478,18 +481,18 @@ public class LuceneIndexEditor implements IndexEditor {
                 continue;
             }
 
-            if (defn.isOrdered(pname)) {
-                dirty |= addTypedOrderedFields(fields, property, pname);
+            if (rp.getPropertyDefinition().ordered) {
+                dirty |= addTypedOrderedFields(fields, property, pname, rp.getPropertyDefinition());
             }
 
-            dirty |= indexProperty(path, fields, state, property, pname);
+            dirty |= indexProperty(path, fields, state, property, pname, rp.getPropertyDefinition());
         }
         return dirty;
     }
 
     private void checkForRelativePropertyChange(String name) {
-        if (context.getDefinition().hasRelativeProperty(name)) {
-            context.getDefinition().collectRelPropsForName(name, getChangedRelProps());
+        if (isIndexable() && getDefinition().hasRelativeProperty(name)) {
+            getDefinition().collectRelPropsForName(name, getChangedRelProps());
         }
     }
 
@@ -518,9 +521,19 @@ public class LuceneIndexEditor implements IndexEditor {
     }
 
     private void markPropertyChanged(String name) {
-        if (!propertiesChanged && context.getDefinition().includeProperty(name)) {
+        if (isIndexable()
+                && !propertiesChanged
+                && indexingRule.isIndexed(name)) {
             propertiesChanged = true;
         }
+    }
+
+    private IndexDefinition getDefinition() {
+        return context.getDefinition();
+    }
+
+    private boolean isIndexable(){
+        return indexingRule != null;
     }
 
     private void relativePropertyChanged() {
