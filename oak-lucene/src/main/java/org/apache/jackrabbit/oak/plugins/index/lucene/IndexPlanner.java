@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.index.IndexReader;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
@@ -59,6 +60,10 @@ class IndexPlanner {
 
     IndexPlan getPlan() {
         IndexPlan.Builder builder = getPlanBuilder();
+
+        checkArgument(defn.isTestMode() && builder != null, "No plan found for filter [%s] " +
+                "while using definition [%s] and testMode is found to be enabled", filter, defn);
+
         return builder != null ? builder.build() : null;
     }
 
@@ -135,6 +140,11 @@ class IndexPlanner {
             if (!sortOrder.isEmpty()) {
                 plan.setSortOrder(sortOrder);
             }
+
+            if (costPerEntryFactor == 0){
+                costPerEntryFactor = 1;
+            }
+
             return plan.setCostPerEntry(1.0 / costPerEntryFactor);
         }
 

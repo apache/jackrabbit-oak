@@ -141,6 +141,8 @@ class IndexDefinition {
 
     private final String indexName;
 
+    private final boolean testMode;
+
     private final IndexFormatVersion version;
 
     public IndexDefinition(NodeState root, NodeState defn) {
@@ -161,6 +163,7 @@ class IndexDefinition {
         this.definition = defn;
         this.indexName = determineIndexName(defn, indexPath);
         this.blobSize = getOptionalValue(defn, BLOB_SIZE, DEFAULT_BLOB_SIZE);
+        this.testMode = getOptionalValue(defn, LuceneIndexConstants.TEST_MODE, false);
 
         NodeState rulesState = defn.getChildNode(LuceneIndexConstants.INDEX_RULES);
         if (!rulesState.exists()){
@@ -179,6 +182,9 @@ class IndexDefinition {
         this.relativePropsMaxLevels = getRelPropertyMaxLevels(relativeProperties);
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
+        if (fullTextEnabled && functionName == null){
+            functionName = "lucene";
+        }
         this.funcName = functionName != null ? "native*" + functionName : null;
 
         this.codec = createCodec();
@@ -265,6 +271,10 @@ class IndexDefinition {
 
     public boolean isOfOldFormat(){
         return !hasIndexingRules(definition);
+    }
+
+    public boolean isTestMode() {
+        return testMode;
     }
 
     @Override
