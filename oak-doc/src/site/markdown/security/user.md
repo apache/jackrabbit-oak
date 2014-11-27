@@ -21,7 +21,7 @@ User Management
 ### JCR User Management
 
 JCR itself doesn't come with a dedicated user management API. The only method
-related and ultemately used for user management tasks is `Session.getUserID()`.
+related and ultimately used for user management tasks is `Session.getUserID()`.
 Therefore an API for user and group management has been defined as part of the
 extensions present with Jackrabbit API.
 
@@ -199,20 +199,10 @@ details and examples.
 #### Node Name Generation
 
 The default user management implementation with Oak 1.0 allows to specify how
-the name of a new authorizable node is being generated. As in Jackrabbit 2.x
-the ID is used as name-hint by default. In order to prevent exposing identifier
-related information in the path of the authorizable node, it it's desirable to
-change this default behavior by pluggin a custom implementation of the
-`AuthorizableNodeName` interface.
+the name of a new authorizable node is being generated.
 
-- `AuthorizableNodeName` : Defines the generation of the authorizable node names
-   in case the user management implementation stores user information in the repository.
-
-In the default implementation the corresponding configuration parameter is
-`PARAM_AUTHORIZABLE_NODE_NAME`. The default name generator can be replace
-by installing an OSGi service that implementats the `AuthorizableNodeName` interface.
-In a non-OSGi setup the user configuration must be initialized with configuration
-parameters that provide the custom generator implementation.
+See section [Authorizable Node Name](user/authorizablenodename.html) for further
+details and examples.
 
 #### Password Expiry and Force Initial Password Change
 
@@ -294,44 +284,14 @@ implementation on various levels:
        - `AuthorizableActionProvider`: Defines the authorizable actions, see [Authorizable Actions](user/authorizableaction.html).
        - `AuthorizableNodeName`: Defines the generation of the authorizable node names
           in case the user management implementation stores user information in the repository.
-
-##### Examples
-
-###### Example AuthorizableNodeName
-
-In an OSGi-based setup it's sufficient to make the service available to the repository
-in order to enable this custom node name generator.
-
-    @Component
-    @Service(value = {AuthorizableNodeName.class})
-    /**
-     * Custom implementation of the {@code AuthorizableNodeName} interface
-     * that uses a uuid as authorizable node name.
-     */
-    final class UUIDNodeName implements AuthorizableNodeName {
-
-        @Override
-        @Nonnull
-        public String generateNodeName(@Nonnull String authorizableId) {
-            return UUID.randomUUID().toString();
-        }
-    }
-
-In a non-OSGi setup this custom name generator can be plugged by making it available
-to the user configuration as follows:
-
-    Map<String, Object> userParams = new HashMap<String, Object>();
-    userParams.put(UserConstants.PARAM_AUTHORIZABLE_NODE_NAME, new UUIDNodeName());
-    ConfigurationParameters config =  ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
-    SecurityProvider securityProvider = new SecurityProviderImpl(config));
-    Repository repo = new Jcr(new Oak()).with(securityProvider).createRepository();
-
+          See [Authorizable Node Name Generation](user/authorizablenodename.html).
 
 ### Further Reading
 
 - [Differences wrt Jackrabbit 2.x](user/differences.html)
 - [Group Membership](user/membership.html)
 - [Authorizable Actions](user/authorizableaction.html)
+- [Authorizable Node Name](user/authorizablenodename.html)
 - [Searching Users and Groups](user/query.html)
 - [Password Expiry and Force Initial Password Change](user/expiry.html)
 
