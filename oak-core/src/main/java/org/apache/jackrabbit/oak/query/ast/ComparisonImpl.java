@@ -206,6 +206,9 @@ public class ComparisonImpl extends ConstraintImpl {
                         // path conditions
                         operand1.restrict(f, operator, v);
                     }
+                } else {
+                    // like '%' conditions
+                    operand1.restrict(f, operator, v);
                 }
             } else {
                 operand1.restrict(f, operator, v);
