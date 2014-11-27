@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.Arrays;
 import java.util.Collection;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -136,6 +139,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         oakSolrConfiguration = null;
     }
 
+    @Nonnull
     @Override
     public OakSolrConfiguration getConfiguration() {
         if (oakSolrConfiguration == null) {
@@ -168,11 +172,13 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return null;
                 }
 
+                @Nonnull
                 @Override
                 public String getPathField() {
                     return pathExactFieldName;
                 }
 
+                @CheckForNull
                 @Override
                 public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
                     String fieldName = null;
@@ -202,6 +208,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return fieldName;
                 }
 
+                @Nonnull
                 @Override
                 public CommitPolicy getCommitPolicy() {
                     return commitPolicy;
@@ -232,6 +239,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                     return useForPathRestrictions;
                 }
 
+                @Nonnull
                 @Override
                 public Collection<String> getIgnoredProperties() {
                     return Arrays.asList(ignoredProperties);

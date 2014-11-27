@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
+import javax.annotation.Nonnull;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
@@ -89,6 +91,7 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
     }
 
 
+    @Nonnull
     @Override
     public SolrServerConfiguration<RemoteSolrServerProvider> getSolrServerConfiguration() {
         return remoteSolrServerConfiguration;

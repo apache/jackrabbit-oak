@@ -112,8 +112,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         }
 
         // primary type restriction defined AND primary type restriction handled
-        if (filter.getPrimaryTypes() != null && filter.getPrimaryTypes().size() > 0
-                && configuration.useForPrimaryTypes()) {
+        if (filter.getPrimaryTypes().size() > 0 && configuration.useForPrimaryTypes()) {
             match++;
         }
 
@@ -468,7 +467,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     return endOfData();
                 }
 
-                private SolrResultRow convertToRow(SolrDocument doc) throws IOException {
+                private SolrResultRow convertToRow(SolrDocument doc) {
                     String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
                     if (path != null) {
                         if ("".equals(path)) {

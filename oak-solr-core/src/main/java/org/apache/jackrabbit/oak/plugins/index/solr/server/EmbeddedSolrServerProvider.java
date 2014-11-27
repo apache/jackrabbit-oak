@@ -21,6 +21,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
@@ -199,6 +201,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     }
 
+    @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
         synchronized (this) {

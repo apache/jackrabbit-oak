@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import java.util.Collection;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -31,51 +33,61 @@ public interface OakSolrConfiguration {
      * Provide a field name to be used for indexing / searching a certain {@link org.apache.jackrabbit.oak.api.Type}
      *
      * @param propertyType the {@link org.apache.jackrabbit.oak.api.Type} to be indexed / searched
-     * @return a <code>String</code> representing the Solr field to be used for the given {@link org.apache.jackrabbit.oak.api.Type}.
+     * @return the name of the Solr field to be used for the given {@link org.apache.jackrabbit.oak.api.Type}, or {@code null}
+     * if no specific field has been configured to handle the given {@code Type}.
      */
+    @CheckForNull
     String getFieldNameFor(Type<?> propertyType);
 
     /**
      * Provide the field name for indexing / searching paths
      *
-     * @return a <code>String</code> representing the Solr field to be used for paths.
+     * @return the name of the Solr field to be used for indexing and searching on paths (exact matching).
      */
+    @Nonnull
     String getPathField();
 
     /**
      * Provide a field name to search over for the given {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction}
      *
-     * @param pathRestriction the {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction} used for filtering search results
-     * @return the field name as a <code>String</code> to be used by Solr for the given restriction
+     * @param pathRestriction the {@link org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction} used for filtering
+     *                        search results or {@code null} if no specific field has been configured for it.
+     * @return the name of the Solr field to be used for the given {@code PathRestriction}.
      */
+    @CheckForNull
     String getFieldForPathRestriction(Filter.PathRestriction pathRestriction);
 
     /**
      * Provide a field name to search over for the given {@link org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction}
      *
      * @param propertyRestriction the {@link org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction} used for filtering search results
-     * @return the field name as a <code>String</code> to be used by Solr for the given restriction
+     * @return the name of the Solr field to be used for the given {@code PropertyRestriction} or {@code null} if no specific field
+     * has been configured for it.
      */
+    @CheckForNull
     String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction);
 
     /**
-     * Provide the commit policy to be used with the underlying Solr instance
+     * Provide the commit policy to be used by a given {@link org.apache.solr.client.solrj.SolrServer}
      *
      * @return a {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy}
      */
+    @Nonnull
     CommitPolicy getCommitPolicy();
 
     /**
      * Provide a field name that is used as the default "catch all" field for searching over all the data
      *
-     * @return a <code>String</code> representing the Solr field to be used as "catch all" field
+     * @return the name of the Solr field to be used as "catch all" field, or {@code null} if no specific field
+     * has been configured for it.
      */
+    @CheckForNull
     String getCatchAllField();
 
     /**
      * Provide the number of documents (rows) to be fetched for each Solr query
      *
-     * @return an <code>int</code> for the setting of Solr rows parameter
+     * @return the number of rows to fetch
      */
     int getRows();
 
@@ -104,9 +116,10 @@ public interface OakSolrConfiguration {
     boolean useForPathRestrictions();
 
     /**
-     * Provide the collection of properties that should be neither indexed nor searched by the Solr index
+     * Provide the names of the properties that should be neither indexed nor searched by the Solr index
      *
-     * @return a {@link java.util.Collection} of names of properties to be ignored
+     * @return a {@link java.util.Collection} of property names for properties to be ignored
      */
+    @Nonnull
     Collection<String> getIgnoredProperties();
 }

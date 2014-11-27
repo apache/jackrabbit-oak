@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
@@ -69,10 +71,12 @@ public class SolrIndexEditorTest {
         NodeBuilder builder = mock(NodeBuilder.class);
         SolrServer solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Nonnull
             @Override
             public Collection<String> getIgnoredProperties() {
                 return Arrays.asList("foo2");
             }
+            @Nonnull
             @Override
             public CommitPolicy getCommitPolicy() {
                 return CommitPolicy.HARD;

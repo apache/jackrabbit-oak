@@ -20,6 +20,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
@@ -62,11 +65,13 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return null;
     }
 
+    @Nonnull
     @Override
     public String getPathField() {
         return getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
     }
 
+    @CheckForNull
     @Override
     public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
         String fieldName = null;
@@ -117,6 +122,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return null;
     }
 
+    @Nonnull
     @Override
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
@@ -142,6 +148,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return getBooleanValueFor(Properties.PATH_RESTRICTIONS, SolrServerConfigurationDefaults.PATH_RESTRICTIONS);
     }
 
+    @Nonnull
     @Override
     public Collection<String> getIgnoredProperties() {
         Collection<String> ignoredProperties;
@@ -205,6 +212,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return values;
     }
 
+    @Nonnull
     @Override
     public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
         String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);

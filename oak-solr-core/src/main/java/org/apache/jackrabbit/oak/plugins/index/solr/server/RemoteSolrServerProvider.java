@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.solr.server;
 import java.io.File;
 import java.io.IOException;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -47,6 +49,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         this.remoteSolrServerConfiguration = remoteSolrServerConfiguration;
     }
 
+    @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
         if (solrServer == null && remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
@@ -82,7 +85,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
 
     }
 
-    private SolrServer initializeWithCloudSolrServer() throws IOException, SolrServerException {
+    private SolrServer initializeWithCloudSolrServer() throws IOException {
         // try SolrCloud client
         CloudSolrServer cloudSolrServer = new CloudSolrServer(remoteSolrServerConfiguration.getSolrZkHost());
         cloudSolrServer.setZkConnectTimeout(100);
@@ -150,7 +153,7 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         return connected;
     }
 
-    private void createCollectionIfNeeded(CloudSolrServer cloudSolrServer) throws SolrServerException, IOException {
+    private void createCollectionIfNeeded(CloudSolrServer cloudSolrServer) throws SolrServerException {
         String solrCollection = remoteSolrServerConfiguration.getSolrCollection();
         try {
             ZkStateReader zkStateReader = cloudSolrServer.getZkStateReader();
