@@ -53,8 +53,10 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
@@ -529,6 +531,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             break;
         }
 
+        //Fulltext index definition used by LuceneIndex only works with old format
+        //which is not nodeType based. So just use the nt:base index
+        IndexingRule rule = indexDefinition.getApplicableIndexingRule(JcrConstants.NT_BASE);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
 
             if (pr.first == null && pr.last == null) {
@@ -538,7 +543,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             }
 
             // check excluded properties and types
-            if (isExcludedProperty(pr, indexDefinition)) {
+            if (isExcludedProperty(pr, rule)) {
                 continue;
             }
 
@@ -630,15 +635,16 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     }
 
     private static boolean isExcludedProperty(PropertyRestriction pr,
-            IndexDefinition definition) {
+            IndexingRule rule) {
         String name = pr.propertyName;
         if (name.contains("/")) {
             // lucene cannot handle child-level property restrictions
             return true;
         }
 
+        PropertyDefinition pd = rule.getConfig(name);
         // check name
-        if(!definition.includeProperty(name)){
+        if(pd == null || !pd.index){
             return true;
         }
 
@@ -652,11 +658,18 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             type = pr.list.get(0).getType().tag();
         }
         if (type != null) {
-            if (!definition.includePropertyType(type)) {
+            if (!includePropertyType(type, rule)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean includePropertyType(int type, IndexingRule rule){
+        if(rule.propertyTypes < 0){
+            return false;
+        }
+        return (rule.propertyTypes & (1 << type)) != 0;
     }
 
     private static void addReferenceConstraint(String uuid, List<Query> qs,
