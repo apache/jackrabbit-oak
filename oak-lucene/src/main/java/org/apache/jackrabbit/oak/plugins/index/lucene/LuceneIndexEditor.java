@@ -324,12 +324,7 @@ public class LuceneIndexEditor implements IndexEditor {
                                   PropertyState property,
                                   String pname,
                                   PropertyDefinition pd) throws CommitFailedException {
-        //In case of fulltext we also check if given type is enabled for indexing
-        //TODO Use context.includePropertyType however that cause issue. Need
-        //to make filtering based on type consistent both on indexing side and
-        //query side
-        //TODO Replace with indexRule.includeType
-        boolean includeTypeForFullText = (indexingRule.propertyTypes & (1 << property.getType().tag())) != 0;
+        boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
         if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
             this.context.indexUpdate();
@@ -338,21 +333,16 @@ public class LuceneIndexEditor implements IndexEditor {
         }  else {
             boolean dirty = false;
 
-            if (pd.propertyIndex){
+            if (pd.propertyIndex && pd.includePropertyType(property.getType().tag())){
                 dirty |= addTypedFields(fields, property, pname);
             }
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
                     this.context.indexUpdate();
-                    //TODO Analyzed field should be stored against different field name
-                    //as term field use the same name. For compatibility this should be done
-                    //for newer index versions only
-                    if (pd.analyzed) {
+                    if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
                         String analyzedPropName = constructAnalyzedPropertyName(pname);
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
-                        //TODO Property field uses OakType which has omitNorms set hence
-                        //cannot be boosted
                     }
 
                     if (pd.nodeScopeIndex) {

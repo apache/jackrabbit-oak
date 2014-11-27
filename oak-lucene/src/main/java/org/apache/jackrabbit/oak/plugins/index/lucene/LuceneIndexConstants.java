@@ -142,4 +142,11 @@ public interface LuceneIndexConstants {
     String TEST_MODE = "testMode";
 
     String EVALUATE_PATH_RESTRICTION = "oak.experimental.evaluatePathRestrictions";
+
+    /**
+     * Experimental config to restrict which property type gets indexed at
+     * property definition level. Mostly index rule level #INCLUDE_PROPERTY_TYPES
+     * should be sufficient
+     */
+    String PROP_INCLUDED_TYPE = "oak.experimental.includePropertyTypes";
 }
