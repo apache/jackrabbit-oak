@@ -416,7 +416,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             definedIndexRules.add(rule);
 
             // register under node type and all its sub types
-            log.debug("Found rule '{}' for NodeType '{}'", rule, rule.getNodeTypeName());
+            log.trace("Found rule '{}' for NodeType '{}'", rule, rule.getNodeTypeName());
 
             List<String> ntNames = allNames;
             if (!rule.inherited){
@@ -432,7 +432,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                         perNtConfig = new ArrayList<IndexingRule>();
                         nt2rules.put(ntName, perNtConfig);
                     }
-                    log.debug("Registering it for name '{}'", ntName);
+                    log.trace("Registering rule '{}' for name '{}'", rule, ntName);
                     perNtConfig.add(new IndexingRule(rule, ntName));
                 }
             }
