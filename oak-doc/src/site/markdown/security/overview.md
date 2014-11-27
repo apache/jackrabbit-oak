@@ -58,6 +58,7 @@ The Oak Security Layer
  * [Differences wrt Jackrabbit 2.x](user/differences.html)
  * [Group Membership](user/membership.html)
  * [Authorizable Actions](user/authorizableaction.html)
+ * [Authorizable Node Name Generation](user/authorizablenodename.html)
  * [Searching Users and Groups](user/query.html)
  * [Password Expiry and Force Initial Password Change](user/expiry.html)
 
