@@ -178,4 +178,8 @@ public interface LuceneIndexConstants {
      * node represented by this pattern
      */
     String AGG_RELATIVE_NODE = "relativeNode";
+
+    String COST_PER_ENTRY = "costPerEntry";
+
+    String COST_PER_EXECUTION = "costPerExecution";
 }
