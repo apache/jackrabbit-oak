@@ -140,4 +140,6 @@ public interface LuceneIndexConstants {
      * and it should participate in every test
      */
     String TEST_MODE = "testMode";
+
+    String EVALUATE_PATH_RESTRICTION = "oak.experimental.evaluatePathRestrictions";
 }
