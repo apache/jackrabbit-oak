@@ -53,6 +53,8 @@ public class LuceneIndexExclusionQueryTest extends AbstractQueryTest {
         lucene.setProperty(INCLUDE_PROPERTY_TYPES,
                 of(TYPENAME_BINARY, TYPENAME_STRING), STRINGS);
         lucene.setProperty(EXCLUDE_PROPERTY_NAMES, of(NOT_IN), STRINGS);
+        //TODO Remove compat mode once OAK-2278 resolved
+        lucene.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
         root.commit();
     }
 

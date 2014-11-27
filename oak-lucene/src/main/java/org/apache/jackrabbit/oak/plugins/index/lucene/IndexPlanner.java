@@ -74,6 +74,10 @@ class IndexPlanner {
     private IndexPlan.Builder getPlanBuilder() {
         FullTextExpression ft = filter.getFullTextConstraint();
 
+        if (!defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
+            return null;
+        }
+
         //Query Fulltext and Index does not support fulltext
         if (ft != null && !defn.isFullTextEnabled()) {
             return null;
