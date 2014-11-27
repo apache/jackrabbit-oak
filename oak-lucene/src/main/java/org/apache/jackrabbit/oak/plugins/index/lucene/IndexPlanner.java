@@ -99,11 +99,11 @@ class IndexPlanner {
     }
 
     private IndexPlan.Builder getPlanBuilder() {
-        log.debug("Evaluating plan with index definition {}", defn);
+        log.trace("Evaluating plan with index definition {}", defn);
         FullTextExpression ft = filter.getFullTextConstraint();
 
         if (!defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
-            log.debug("Index is old format. Not supported");
+            log.trace("Index is old format. Not supported");
             return null;
         }
 
@@ -331,11 +331,13 @@ class IndexPlanner {
                     //some condition defined. So again find a rule which applies
                     IndexingRule matchingRule = defn.getApplicableIndexingRule(rule.getNodeTypeName());
                     if (matchingRule != null){
+                        log.debug("Applicable IndexingRule found {}", matchingRule);
                         return rule;
                     }
                 }
             }
-            log.debug("No applicable IndexingRule found for any of the superTypes {}", filter.getSupertypes());
+            log.trace("No applicable IndexingRule found for any of the superTypes {}",
+                filter.getSupertypes());
         }
         return null;
     }
