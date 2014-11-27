@@ -342,7 +342,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
     }
 
-    @Ignore("OAK-2190")
     @Test
     public void likeQueriesWithString() throws Exception {
         Tree idx = createIndex("test1", of("propa", "propb"));
@@ -355,8 +354,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         test.addChild("c").setProperty("propa", "humpy");
         root.commit();
 
-        assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'", asList("/test/a", "test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'", asList("/test/a", "/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
+            asList("/test/a", "/test/c"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
+            asList("/test/a", "/test/b"));
+        assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
+            asList("/test/a", "/test/b", "/test/c"));
     }
 
     @Test
