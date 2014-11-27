@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.collect.ImmutableList.copyOf;
@@ -54,8 +53,8 @@ class RelativeProperty {
     }
 
     @Nonnull
-    public NodeBuilder getPropDefnNode(NodeBuilder propNode) {
-        NodeBuilder result = propNode;
+    public NodeState getPropDefnNode(NodeState propNode) {
+        NodeState result = propNode;
         for (String name : elements(propertyPath)){
             result = result.getChildNode(name);
         }

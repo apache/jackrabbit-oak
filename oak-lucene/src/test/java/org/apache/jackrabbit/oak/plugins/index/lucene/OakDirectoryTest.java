@@ -112,7 +112,7 @@ public class OakDirectoryTest {
     }
 
     private Directory createDir(NodeBuilder builder){
-        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(builder));
+        return new OakDirectory(builder.child(INDEX_DATA_CHILD_NAME), new IndexDefinition(root, builder.getNodeState()));
     }
 
     byte[] randomBytes(int size) {
