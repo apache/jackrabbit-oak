@@ -110,6 +110,10 @@ public class LuceneIndexEditorContext {
         this.config = getIndexWriterConfig(analyzer, this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
+
+        if (this.definition.isOfOldFormat()){
+            IndexDefinition.updateDefinition(definition);
+        }
     }
 
     Parser getParser() {

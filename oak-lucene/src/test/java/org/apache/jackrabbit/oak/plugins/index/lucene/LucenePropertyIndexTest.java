@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -676,7 +675,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree idx = createIndex("test1", of("propa", "propb", "propc"));
         idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
         Tree propNode = idx.addChild(PROP_NODE);
-        root.commit();
 
         // property definition for index test1
         Tree propA = propNode.addChild("propa");
@@ -735,7 +733,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         def.setProperty(REINDEX_PROPERTY_NAME, true);
         def.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         def.setProperty(PropertyStates.createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_NAMES, propNames, Type.STRINGS));
-        root.commit();
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
