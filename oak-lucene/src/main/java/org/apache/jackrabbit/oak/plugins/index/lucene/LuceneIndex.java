@@ -202,24 +202,24 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // "contains(a/x, 'hello') and contains(b/x, 'world')"
             return Collections.emptyList();
         }
-        String parent = relPaths.iterator().next();
-
-        // no relative properties
-        double cost = 10;
-        if (!parent.isEmpty()) {
-            // all relative properties have the same "parent", as in
-            // "contains(a/x, 'hello') and contains(a/y, 'world')" or
-            // "contains(a/x, 'hello') or contains(a/*, 'world')"
-            // TODO: proper cost calculation
-            // we assume this will cause more read operations,
-            // as we need to read the node and then the parent
-            cost = 15;
+        IndexNode node = tracker.acquireIndexNode(indexPath);
+        try{
+            if (node != null){
+                IndexDefinition defn = node.getDefinition();
+                return Collections.singletonList(planBuilder(filter)
+                        .setEstimatedEntryCount(defn.getFulltextEntryCount(node.getSearcher().getIndexReader().numDocs()))
+                        .setCostPerExecution(defn.getCostPerExecution())
+                        .setCostPerEntry(defn.getCostPerEntry())
+                        .setAttribute(ATTR_INDEX_PATH, indexPath)
+                        .build());
+            }
+            //No index node then no plan possible
+            return Collections.emptyList();
+        } finally {
+            if (node != null){
+                node.release();
+            }
         }
-        return Collections.singletonList(planBuilder(filter)
-                .setCostPerExecution(cost)
-                .setAttribute(ATTR_INDEX_PATH, indexPath)
-                .build());
-
     }
 
     @Override

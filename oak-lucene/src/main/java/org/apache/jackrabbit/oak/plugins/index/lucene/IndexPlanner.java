@@ -177,7 +177,7 @@ class IndexPlanner {
                 result.enableNonFullTextConstraints();
             }
 
-            return plan.setCostPerEntry(1.0 / costPerEntryFactor);
+            return plan.setCostPerEntry(defn.getCostPerEntry() / costPerEntryFactor);
         }
 
         //TODO Support for property existence queries
@@ -267,8 +267,8 @@ class IndexPlanner {
 
     private IndexPlan.Builder defaultPlan() {
         return new IndexPlan.Builder()
-                .setCostPerExecution(1) // we're local. Low-cost
-                .setCostPerEntry(1)
+                .setCostPerExecution(defn.getCostPerExecution())
+                .setCostPerEntry(defn.getCostPerEntry())
                 .setFulltextIndex(defn.isFullTextEnabled())
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
@@ -284,7 +284,7 @@ class IndexPlanner {
         //to be compared fairly
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft != null && defn.isFullTextEnabled()){
-            return getReader().numDocs();
+            return defn.getFulltextEntryCount(getReader().numDocs());
         }
         return Math.min(defn.getEntryCount(), getReader().numDocs());
     }

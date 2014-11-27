@@ -47,6 +47,11 @@ public class ConfigUtil {
         return ps == null ? defaultVal : ps.getValue(Type.DOUBLE).floatValue();
     }
 
+    public static double getOptionalValue(NodeState definition, String propName, double defaultVal){
+        PropertyState ps = definition.getProperty(propName);
+        return ps == null ? defaultVal : ps.getValue(Type.DOUBLE);
+    }
+
     public static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
