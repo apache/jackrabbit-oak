@@ -651,6 +651,22 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
     }
 
+    private static int determinePropertyType(PropertyDefinition defn, PropertyRestriction pr) {
+        int typeFromRestriction = pr.propertyType;
+        if (typeFromRestriction == PropertyType.UNDEFINED) {
+            //If no explicit type defined then determine the type from restriction
+            //value
+            if (pr.first != null && pr.first.getType() != Type.UNDEFINED) {
+                typeFromRestriction = pr.first.getType().tag();
+            } else if (pr.last != null && pr.last.getType() != Type.UNDEFINED) {
+                typeFromRestriction = pr.last.getType().tag();
+            } else if (pr.list != null && !pr.list.isEmpty()){
+                typeFromRestriction = pr.list.get(0).getType().tag();
+            }
+        }
+        return getPropertyType(defn, pr.propertyName, typeFromRestriction);
+    }
+
     private static int getPropertyType(PropertyDefinition defn, String name, int defaultVal){
         if (defn.isTypeDefined()) {
             return defn.getType();
@@ -690,7 +706,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     @CheckForNull
     private static Query createQuery(PropertyRestriction pr,
                                      PropertyDefinition defn) {
-        int propType = getPropertyType(defn, pr.propertyName, pr.propertyType);
+        int propType = determinePropertyType(defn, pr);
         switch (propType) {
             case PropertyType.DATE: {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
