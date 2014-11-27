@@ -93,9 +93,13 @@ public class LuceneIndexEditorTest {
         tracker.update(indexed);
 
         //system fields starts with ':' so need to be escaped
-        assertEquals("/test", query("\\"+FieldNames.createAnalyzedFieldName("foo")+":fox"));
+        assertEquals("/test", query(escape(FieldNames.createAnalyzedFieldName("foo"))+":fox"));
         assertNull("Non string properties not indexed by default",
                 getPath(NumericRangeQuery.newLongRange("price", 100L, 100L, true, true)));
+    }
+
+    private String escape(String name) {
+        return name.replace(":", "\\:");
     }
 
     @Test

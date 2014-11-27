@@ -36,15 +36,17 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newNodeAggregator;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState.binaryProperty;
 
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
@@ -56,8 +58,16 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
-        //TODO Remove compat mode once OAK-2278 resolved
-        indexDefn.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+        useV2(indexDefn);
+        //Aggregates
+        newNodeAggregator(indexDefn)
+                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+
+        //Include all properties
+        Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
+        TestUtil.enableForFullText(props, LuceneIndexConstants.REGEX_ALL_PROPS, true);
+
         root.commit();
     }
 
@@ -67,7 +77,7 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
         return new Oak()
                 .with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with(AggregateIndexProvider.wrap(provider.with(getNodeAggregator())))
+                .with((QueryIndexProvider)provider.with(getNodeAggregator()))
                 .with((Observer) provider)
                 .with(new LuceneIndexEditorProvider())
                 .createContentRepository();
