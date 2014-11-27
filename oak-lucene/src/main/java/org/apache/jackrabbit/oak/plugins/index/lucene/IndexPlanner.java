@@ -20,26 +20,37 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.CheckForNull;
 
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.lucene.index.IndexReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 
 class IndexPlanner {
+    private static final Logger log = LoggerFactory.getLogger(IndexPlanner.class);
     private final IndexDefinition defn;
     private final Filter filter;
     private final String indexPath;
@@ -88,9 +99,11 @@ class IndexPlanner {
     }
 
     private IndexPlan.Builder getPlanBuilder() {
+        log.debug("Evaluating plan with index definition {}", defn);
         FullTextExpression ft = filter.getFullTextConstraint();
 
         if (!defn.getVersion().isAtLeast(IndexFormatVersion.V2)){
+            log.debug("Index is old format. Not supported");
             return null;
         }
 
@@ -133,8 +146,11 @@ class IndexPlanner {
         }
 
         boolean evalPathRestrictions = canEvalPathRestrictions();
-        //TODO For the full text case need to determine if all field names
-        //used in fulltext expression are fulltext indexed or not
+        boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
+
+        if (ft != null && !canEvalAlFullText){
+            return null;
+        }
 
         //Fulltext expression can also be like jcr:contains(jcr:content/metadata/@format, 'image')
 
@@ -157,6 +173,10 @@ class IndexPlanner {
                 costPerEntryFactor = 1;
             }
 
+            if (ft == null){
+                result.enableNonFullTextConstraints();
+            }
+
             return plan.setCostPerEntry(1.0 / costPerEntryFactor);
         }
 
@@ -168,6 +188,71 @@ class IndexPlanner {
         //by NodeType index
 
         return null;
+    }
+
+    private boolean canEvalAllFullText(final IndexingRule indexingRule, FullTextExpression ft) {
+        if (ft == null){
+            return false;
+        }
+
+        final HashSet<String> relPaths = new HashSet<String>();
+        final HashSet<String> nonIndexedPaths = new HashSet<String>();
+        final AtomicBoolean relativeParentsFound = new AtomicBoolean();
+        ft.accept(new FullTextVisitor.FullTextVisitorBase() {
+            @Override
+            public boolean visit(FullTextTerm term) {
+                String p = term.getPropertyName();
+                String propertyPath = null;
+                String nodePath = null;
+                if (p == null) {
+                    relPaths.add("");
+                } else if (p.startsWith("../") || p.startsWith("./")) {
+                    relPaths.add(p);
+                    relativeParentsFound.set(true);
+                } else if (getDepth(p) > 1) {
+                    String parent = getParentPath(p);
+                    if (LucenePropertyIndex.isNodePath(p)){
+                        nodePath = parent;
+                    } else {
+                        propertyPath = p;
+                    }
+                    relPaths.add(parent);
+                } else {
+                    propertyPath = p;
+                    relPaths.add("");
+                }
+
+                if (nodePath != null
+                        && !indexingRule.isAggregated(nodePath)){
+                    nonIndexedPaths.add(p);
+                } else if (propertyPath != null
+                        && !indexingRule.isIndexed(propertyPath)){
+                    nonIndexedPaths.add(p);
+                }
+
+                return true;
+            }
+        });
+
+        if (relativeParentsFound.get()){
+            log.debug("Relative parents found {} which are not supported", relPaths);
+            return false;
+        }
+
+        if (!nonIndexedPaths.isEmpty()){
+            if (relPaths.size() > 1){
+                log.debug("Following relative  property paths are not index", relPaths);
+                return false;
+            }
+            result.setParentPath(Iterables.getOnlyElement(relPaths, ""));
+            //Such path translation would only work if index contains
+            //all the nodes
+            return defn.indexesAllTypes();
+        } else {
+            result.setParentPath("");
+        }
+
+        return true;
     }
 
     private boolean canEvalPathRestrictions() {
@@ -250,6 +335,7 @@ class IndexPlanner {
                     }
                 }
             }
+            log.debug("No applicable IndexingRule found for any of the superTypes {}", filter.getSupertypes());
         }
         return null;
     }
@@ -275,6 +361,11 @@ class IndexPlanner {
         private List<PropertyDefinition> sortedProperties = newArrayList();
         private Map<String, PropertyDefinition> propDefns = newHashMap();
 
+        private boolean nonFullTextConstraints;
+        private int parentDepth;
+        private String parentPathSegment;
+        private boolean relativize;
+
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
             this.indexDefinition = defn;
@@ -287,6 +378,52 @@ class IndexPlanner {
 
         public PropertyDefinition getOrderedProperty(int index){
             return sortedProperties.get(index);
+        }
+
+        public boolean isPathTransformed(){
+            return relativize;
+        }
+
+        /**
+         * Transforms the given path if the query involved relative properties and index
+         * is not making use of aggregated properties. If the path
+         *
+         * @param path path to transform
+         * @return transformed path. Returns null if the path does not confirm to relative
+         * path requirements
+         */
+        @CheckForNull
+        public String transformPath(String path){
+            if (isPathTransformed()){
+                // get the base path
+                // ensure the path ends with the given
+                // relative path
+                if (!path.endsWith(parentPathSegment)) {
+                    return null;
+                }
+                return getAncestorPath(path, parentDepth);
+            }
+            return path;
+        }
+
+        public boolean evaluateNonFullTextConstraints(){
+            return nonFullTextConstraints;
+        }
+
+        private void setParentPath(String relativePath){
+            parentPathSegment = "/" + relativePath;
+            if (relativePath.isEmpty()){
+                // we only restrict non-full-text conditions if there is
+                // no relative property in the full-text constraint
+                enableNonFullTextConstraints();
+            } else {
+                relativize = true;
+                parentDepth = getDepth(relativePath);
+            }
+        }
+
+        private void enableNonFullTextConstraints(){
+            nonFullTextConstraints = true;
         }
     }
 }
