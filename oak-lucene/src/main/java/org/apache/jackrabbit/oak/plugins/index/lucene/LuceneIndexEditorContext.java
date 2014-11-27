@@ -153,8 +153,8 @@ public class LuceneIndexEditorContext {
 
     public void enableReindexMode(){
         reindex = true;
-        definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION,
-                IndexFormatVersion.getCurrent().getVersion());
+        IndexFormatVersion version = IndexDefinition.determineVersionForFreshIndex(definitionBuilder);
+        definitionBuilder.setProperty(IndexDefinition.INDEX_VERSION, version.getVersion());
     }
 
     public long incIndexedNodes() {

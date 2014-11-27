@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -65,6 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.BLOB_SIZE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.COMPAT_MODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EVALUATE_PATH_RESTRICTION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.EXPERIMENTAL_STORAGE;
@@ -706,7 +708,7 @@ class IndexDefinition {
         if (!hasIndexingRules(defn)){
             NodeState rulesState = createIndexRules(defn).getNodeState();
             indexDefn.setChildNode(LuceneIndexConstants.INDEX_RULES, rulesState);
-            indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn).getVersion());
+            indexDefn.setProperty(INDEX_VERSION, determineIndexFormatVersion(defn, indexDefn).getVersion());
 
             indexDefn.removeProperty(DECLARING_NODE_TYPES);
             indexDefn.removeProperty(INCLUDE_PROPERTY_NAMES);
@@ -985,32 +987,74 @@ class IndexDefinition {
         nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED, Type.NAME);
     }
 
-    private static IndexFormatVersion determineIndexFormatVersion(NodeState defn) {
-        return determineIndexFormatVersion(defn, null);
-    }
-
     private static IndexFormatVersion determineIndexFormatVersion(NodeState defn, NodeBuilder defnb) {
         if (defnb != null && !defnb.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
-            return IndexFormatVersion.getCurrent();
+            return determineVersionForFreshIndex(defnb);
         }
 
-        if (defn.hasProperty(LuceneIndexConstants.COMPAT_MODE)){
-            return IndexFormatVersion.getVersion((int)defn.getLong(LuceneIndexConstants.COMPAT_MODE));
+        //Compat mode version if specified has highest priority
+        if (defn.hasProperty(COMPAT_MODE)){
+            return versionFrom(defn.getProperty(COMPAT_MODE));
         }
 
         if (defn.hasProperty(INDEX_VERSION)){
-            return IndexFormatVersion.getVersion((int)defn.getLong(INDEX_VERSION));
+            return versionFrom(defn.getProperty(INDEX_VERSION));
         }
 
         //No existing index data i.e. reindex or fresh index
         if (!defn.getChildNode(INDEX_DATA_CHILD_NAME).exists()){
-            return IndexFormatVersion.getCurrent();
+            return determineVersionForFreshIndex(defn);
         }
 
         boolean fullTextEnabled = getOptionalValue(defn, FULL_TEXT_ENABLED, true);
+
         //A fulltext index with old indexing format confirms to V1. However
         //a propertyIndex with old indexing format confirms to V2
         return fullTextEnabled ? IndexFormatVersion.V1 : IndexFormatVersion.V2;
+    }
+
+    static IndexFormatVersion determineVersionForFreshIndex(NodeState defn){
+        return determineVersionForFreshIndex(defn.getProperty(FULL_TEXT_ENABLED),
+                defn.getProperty(COMPAT_MODE), defn.getProperty(INDEX_VERSION));
+    }
+
+    static IndexFormatVersion determineVersionForFreshIndex(NodeBuilder defnb){
+        return determineVersionForFreshIndex(defnb.getProperty(FULL_TEXT_ENABLED),
+                defnb.getProperty(COMPAT_MODE), defnb.getProperty(INDEX_VERSION));
+    }
+
+    private static IndexFormatVersion determineVersionForFreshIndex(PropertyState fulltext,
+                                                                    PropertyState compat,
+                                                                    PropertyState version){
+        if (compat != null){
+            return versionFrom(compat);
+        }
+
+        IndexFormatVersion defaultToUse = IndexFormatVersion.getDefault();
+        IndexFormatVersion existing = version != null ? versionFrom(version) : null;
+
+        //As per OAK-2290 current might be less than current used version. So
+        //set to current only if it is greater than existing
+
+        //Per setting use default configured
+        IndexFormatVersion result = defaultToUse;
+
+        //If default configured is lesser than existing then prefer existing
+        if (existing != null){
+            result = IndexFormatVersion.max(result,existing);
+        }
+
+        //Check if fulltext is false which indicates its a property index and
+        //hence confirm to V2 or above
+        if (fulltext != null && !fulltext.getValue(Type.BOOLEAN)){
+            return IndexFormatVersion.max(result,IndexFormatVersion.V2);
+        }
+
+        return result;
+    }
+
+    private static IndexFormatVersion versionFrom(PropertyState ps){
+        return IndexFormatVersion.getVersion(Ints.checkedCast(ps.getValue(Type.LONG)));
     }
 
     private static boolean hasIndexingRules(NodeState defn) {

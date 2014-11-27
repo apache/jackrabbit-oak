@@ -363,7 +363,7 @@ public class IndexDefinitionTest {
                 "lucene", of(TYPENAME_STRING));
 
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
-        assertEquals(IndexFormatVersion.getCurrent(), defn.getVersion());
+        assertEquals(IndexFormatVersion.getDefault(), defn.getVersion());
     }
 
     @Test
