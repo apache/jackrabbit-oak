@@ -34,7 +34,7 @@ import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +80,9 @@ class IndexDefinition {
 
     private final boolean storageEnabled;
 
-    private final NodeBuilder definition;
+    private final NodeState definition;
+
+    private final NodeState root;
 
     private final Map<String, PropertyDefinition> propDefns;
 
@@ -102,7 +104,8 @@ class IndexDefinition {
      */
     private final long entryCount;
 
-    public IndexDefinition(NodeBuilder defn) {
+    public IndexDefinition(NodeState root, NodeState defn) {
+        this.root = root;
         this.definition = defn;
         PropertyState pst = defn.getProperty(INCLUDE_PROPERTY_TYPES);
         if (pst != null) {
@@ -165,7 +168,7 @@ class IndexDefinition {
         return orderedProps.contains(name);
     }
 
-    public NodeBuilder getDefinition() {
+    public NodeState getDefinition() {
         return definition;
     }
 
@@ -282,12 +285,12 @@ class IndexDefinition {
         return ImmutableMap.copyOf(relProps);
     }
 
-    private Map<String, PropertyDefinition> collectPropertyDefns(NodeBuilder defn) {
+    private Map<String, PropertyDefinition> collectPropertyDefns(NodeState defn) {
         Map<String, PropertyDefinition> propDefns = newHashMap();
-        NodeBuilder propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
+        NodeState propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
         //Include all immediate child nodes to 'properties' node by default
         for (String propName : Iterables.concat(includes, orderedProps, propNode.getChildNodeNames())) {
-            NodeBuilder propDefnNode;
+            NodeState propDefnNode;
             if (relativeProps.containsKey(propName)) {
                 propDefnNode = relativeProps.get(propName).getPropDefnNode(propNode);
             } else {
@@ -332,22 +335,22 @@ class IndexDefinition {
         return codec;
     }
 
-    private static boolean getOptionalValue(NodeBuilder definition, String propName, boolean defaultVal){
+    private static boolean getOptionalValue(NodeState definition, String propName, boolean defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.BOOLEAN);
     }
 
-    private static int getOptionalValue(NodeBuilder definition, String propName, int defaultVal){
+    private static int getOptionalValue(NodeState definition, String propName, int defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : Ints.checkedCast(ps.getValue(Type.LONG));
     }
 
-    private static String getOptionalValue(NodeBuilder definition, String propName, String defaultVal){
+    private static String getOptionalValue(NodeState definition, String propName, String defaultVal){
         PropertyState ps = definition.getProperty(propName);
         return ps == null ? defaultVal : ps.getValue(Type.STRING);
     }
 
-    private static Set<String> getMultiProperty(NodeBuilder definition, String propName){
+    private static Set<String> getMultiProperty(NodeState definition, String propName){
         PropertyState pse = definition.getProperty(propName);
         return pse != null ? ImmutableSet.copyOf(pse.getValue(Type.STRINGS)) : Collections.<String>emptySet();
     }

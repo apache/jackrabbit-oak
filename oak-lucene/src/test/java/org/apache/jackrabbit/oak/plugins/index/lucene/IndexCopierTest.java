@@ -55,7 +55,7 @@ public class IndexCopierTest {
     @Test
     public void basicTest() throws Exception{
         Directory baseDir = new RAMDirectory();
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
         Directory remote = new RAMDirectory();
@@ -81,7 +81,7 @@ public class IndexCopierTest {
     @Test
     public void concurrentRead() throws Exception{
         Directory baseDir = new RAMDirectory();
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         CollectingExecutor executor = new CollectingExecutor();
 
         IndexCopier c1 = new RAMIndexCopier(baseDir, executor, getWorkDir());
@@ -120,7 +120,7 @@ public class IndexCopierTest {
     @Test
     public void reuseLocalDir() throws Exception{
         Directory baseDir = new RAMDirectory();
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
         TestRAMDirectory remote = new TestRAMDirectory();
@@ -161,7 +161,7 @@ public class IndexCopierTest {
         Directory baseDir = new CloseSafeDir();
 
 
-        IndexDefinition defn = new IndexDefinition(builder);
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
         IndexCopier c1 = new RAMIndexCopier(baseDir, sameThreadExecutor(), getWorkDir());
 
         Directory r1 = new RAMDirectory();

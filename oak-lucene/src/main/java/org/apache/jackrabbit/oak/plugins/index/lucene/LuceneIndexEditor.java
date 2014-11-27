@@ -105,7 +105,7 @@ public class LuceneIndexEditor implements IndexEditor {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.context = new LuceneIndexEditorContext(definition, analyzer,
+        this.context = new LuceneIndexEditorContext(root, definition, analyzer,
                 updateCallback);
         this.root = root;
         if (context.getDefinition().hasDeclaredNodeTypes()) {

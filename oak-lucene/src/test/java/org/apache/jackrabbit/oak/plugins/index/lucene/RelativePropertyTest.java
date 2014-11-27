@@ -57,7 +57,7 @@ public class RelativePropertyTest {
     public void getPropDefnNode() throws Exception{
         RelativeProperty rp = new RelativeProperty("foo/bar/baz");
         builder.child("foo").child("bar").child("baz").setProperty("a", "b");
-        NodeBuilder propDefn = rp.getPropDefnNode(builder);
+        NodeState propDefn = rp.getPropDefnNode(builder.getNodeState());
         assertTrue(propDefn.exists());
         assertEquals("b", propDefn.getString("a"));
     }

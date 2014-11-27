@@ -22,20 +22,20 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class PropertyDefinition {
     private static final Logger log = LoggerFactory.getLogger(PropertyDefinition.class);
     private final String name;
-    private final NodeBuilder definition;
+    private final NodeState definition;
 
     private final int propertyType;
     private double fieldBoost;
     private boolean hasFieldBoost;
 
-    public PropertyDefinition(IndexDefinition idxDefn, String name, NodeBuilder defn) {
+    public PropertyDefinition(IndexDefinition idxDefn, String name, NodeState defn) {
         this.name = name;
         this.definition = defn;
 
