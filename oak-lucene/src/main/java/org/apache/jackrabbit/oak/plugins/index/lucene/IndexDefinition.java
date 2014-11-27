@@ -112,8 +112,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final boolean fullTextEnabled;
 
-    private final boolean propertyIndexEnabled;
-
     private final NodeState definition;
 
     private final NodeState root;
@@ -129,6 +127,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
      * Defaults to {#DEFAULT_ENTRY_COUNT}
      */
     private final long entryCount;
+
+    private final boolean entryCountDefined;
+
+    private final double costPerEntry;
+
+    private final double costPerExecution;
 
     /**
      * The {@link IndexingRule}s inside this configuration. Keys being the NodeType names
@@ -181,8 +185,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.definedRules = ImmutableList.copyOf(definedIndexRules);
 
         this.fullTextEnabled = hasFulltextEnabledIndexRule(definedIndexRules);
-        this.propertyIndexEnabled = hasPropertyIndexEnabledIndexRule(definedIndexRules);
-
         this.evaluatePathRestrictions = getOptionalValue(defn, EVALUATE_PATH_RESTRICTION, false);
 
         String functionName = getOptionalValue(defn, LuceneIndexConstants.FUNC_NAME, null);
@@ -194,20 +196,20 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.codec = createCodec();
 
         if (defn.hasProperty(ENTRY_COUNT_PROPERTY_NAME)) {
+            this.entryCountDefined = true;
             this.entryCount = defn.getProperty(ENTRY_COUNT_PROPERTY_NAME).getValue(Type.LONG);
         } else {
+            this.entryCountDefined = false;
             this.entryCount = DEFAULT_ENTRY_COUNT;
         }
 
+        this.costPerEntry = getOptionalValue(defn, LuceneIndexConstants.COST_PER_ENTRY, 1.0);
+        this.costPerExecution = getOptionalValue(defn, LuceneIndexConstants.COST_PER_EXECUTION, 1.0);
         this.indexesAllTypes = areAllTypesIndexed();
     }
 
     public boolean isFullTextEnabled() {
         return fullTextEnabled;
-    }
-
-    public boolean isPropertyIndexEnabled() {
-        return propertyIndexEnabled;
     }
 
     public String getFunctionName(){
@@ -239,6 +241,25 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public long getEntryCount() {
         return entryCount;
+    }
+
+    public boolean isEntryCountDefined() {
+        return entryCountDefined;
+    }
+
+    public double getCostPerEntry() {
+        return costPerEntry;
+    }
+
+    public double getCostPerExecution() {
+        return costPerExecution;
+    }
+
+    public long getFulltextEntryCount(long numOfDocs){
+        if (isEntryCountDefined()){
+            return Math.min(getEntryCount(), numOfDocs);
+        }
+        return numOfDocs;
     }
 
     public IndexFormatVersion getVersion() {
@@ -968,15 +989,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     private static boolean hasFulltextEnabledIndexRule(List<IndexingRule> rules) {
         for (IndexingRule rule : rules){
             if (rule.fulltextEnabled){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean hasPropertyIndexEnabledIndexRule(List<IndexingRule> rules) {
-        for (IndexingRule rule : rules){
-            if (rule.propertyIndexEnabled){
                 return true;
             }
         }

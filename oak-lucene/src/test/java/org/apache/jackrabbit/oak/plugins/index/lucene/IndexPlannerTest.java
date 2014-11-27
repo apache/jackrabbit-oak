@@ -57,6 +57,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProp
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -137,7 +138,6 @@ public class IndexPlannerTest {
         assertTrue(pr(plan).evaluateNonFullTextConstraints());
     }
 
-
     @Test
     public void worksWithIndexFormatV2Onwards() throws Exception{
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
@@ -154,6 +154,66 @@ public class IndexPlannerTest {
         assertNull(planner.getPlan());
     }
 
+    @Test
+    public void propertyIndexCost() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+
+        IndexDefinition idxDefn = new IndexDefinition(root, defn.getNodeState());
+        IndexNode node = createIndexNode(idxDefn, numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        //For propertyIndex if entry count (default to IndexDefinition.DEFAULT_ENTRY_COUNT) is
+        //less than numOfDoc then that would be preferred
+        assertEquals(idxDefn.getEntryCount(), plan.getEstimatedEntryCount());
+        assertEquals(1.0, plan.getCostPerExecution(), 0);
+        assertEquals(1.0, plan.getCostPerEntry(), 0);
+    }
+
+    @Test
+    public void propertyIndexCost2() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.COST_PER_ENTRY, 2.0);
+        defn.setProperty(LuceneIndexConstants.COST_PER_EXECUTION, 3.0);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT - 100;
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        QueryIndex.IndexPlan plan = planner.getPlan();
+
+        assertEquals(numofDocs, plan.getEstimatedEntryCount());
+        assertEquals(3.0, plan.getCostPerExecution(), 0);
+        assertEquals(2.0, plan.getCostPerEntry(), 0);
+        assertNotNull(plan);
+    }
+
+    @Test
+    public void fulltextIndexCost() throws Exception{
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        NodeBuilder defn = newLuceneIndexDefinition(index, "lucene",
+                of(TYPENAME_STRING));
+        TestUtil.useV2(defn);
+
+        long numofDocs = IndexDefinition.DEFAULT_ENTRY_COUNT + 1000;
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()), numofDocs);
+        FilterImpl filter = createFilter("nt:base");
+        filter.setFullTextConstraint(FullTextParser.parse(".", "mountain"));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+        assertEquals(numofDocs, plan.getEstimatedEntryCount());
+    }
+
+    private IndexNode createIndexNode(IndexDefinition defn, long numOfDocs) throws IOException {
+        return new IndexNode("foo", defn, createSampleDirectory(numOfDocs));
+    }
+
     private IndexNode createIndexNode(IndexDefinition defn) throws IOException {
         return new IndexNode("foo", defn, createSampleDirectory());
     }
@@ -167,12 +227,18 @@ public class IndexPlannerTest {
     }
 
     private static Directory createSampleDirectory() throws IOException {
+        return createSampleDirectory(1);
+    }
+
+    private static Directory createSampleDirectory(long numOfDocs) throws IOException {
         Directory dir = new RAMDirectory();
         IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
         IndexWriter writer = new  IndexWriter(dir, config);
-        Document doc = new Document();
-        doc.add(new StringField("foo", "bar", Field.Store.NO));
-        writer.addDocument(doc);
+        for (int i = 0; i < numOfDocs; i++) {
+            Document doc = new Document();
+            doc.add(new StringField("foo", "bar" + i, Field.Store.NO));
+            writer.addDocument(doc);
+        }
         writer.close();
         return dir;
     }
