@@ -20,6 +20,8 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -66,35 +68,61 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     protected static final String ISO_8601_2000 = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"; 
 
     /**
+     * same as {@link #generateOrderedValues(int, int, OrderDirection)} by passing {@code 0} as
+     * {@code offset}
+     * 
+     * @param amount
+     * @param direction
+     * @return
+     */
+    protected static List<String> generateOrderedValues(int amount, OrderDirection direction) {
+        return generateOrderedValues(amount, 0, direction);
+    }
+
+    /**
+     * <p>
      * generate a list of values to be used as ordered set. Will return something like
      * {@code value000, value001, value002, ...}
+     * </p>
      *
-     *
-     * @param amount
+     * @param amount the values to be generated
+     * @param offset move the current counter by this provided amount.
      * @param direction the direction of the sorting
      * @return a list of {@code amount} values ordered as specified by {@code direction}
      */
-    protected static List<String> generateOrderedValues(int amount, OrderDirection direction) {
+    protected static List<String> generateOrderedValues(int amount, int offset , OrderDirection direction) {
         if (amount > 1000) {
             throw new RuntimeException("amount cannot be greater than 1000");
         }
         List<String> values = new ArrayList<String>(amount);
-        NumberFormat nf = new DecimalFormat("000");
+        
 
         if (OrderDirection.DESC.equals(direction)) {
             for (int i = amount; i > 0; i--) {
-                values.add(String.format("value%s", String.valueOf(nf.format(i))));
+                values.add(formatNumber(i + offset));
             }
         } else {
             for (int i = 0; i < amount; i++) {
-                values.add(String.format("value%s", String.valueOf(nf.format(i))));
+                values.add(formatNumber(i + offset));
             }
         }
         return values;
     }
+    
+    /**
+     * formats the provided number for being used by the
+     * {@link #generateOrderedValues(int, OrderDirection)}
+     * 
+     * @param number
+     * @return something in the format {@code value000}
+     */
+    public static String formatNumber(int number) {
+        NumberFormat nf = new DecimalFormat("0000");
+        return String.format("value%s", String.valueOf(nf.format(number)));
+    }
 
     /**
-     * as {@code generateOrderedValues(int, OrderDirection)} by forcing OrderDirection.ASC
+     * as {@link #generateOrderedValues(int, OrderDirection)} by forcing {@link OrderDirection.ASC}
      *
      * @param amount
      * @return
@@ -121,9 +149,13 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     }
 
     /**
+     * <p>
      * convenience method that adds a bunch of nodes in random order and return the order in which
-     * they should be presented by the OrderedIndex
-     *
+     * they should be presented by the OrderedIndex.
+     * </p>
+     * <p>
+     * The nodes will be created using the {@link #ORDERED_PROPERTY} as property for indexing
+     * </p>
      * @param values the values of the property that will be indexed
      * @param father the father under which add the nodes
      * @param direction the direction of the items to be added.
@@ -154,22 +186,27 @@ public abstract class BasicOrderedPropertyIndexQueryTest extends AbstractQueryTe
     /**
      * assert the right order of the returned resultset
      *
-     * @param orderedSequence the right order in which the resultset should be returned
+     * @param expected the right order in which the resultset should be returned
      * @param resultset the resultset
      */
-    protected void assertRightOrder(@Nonnull final List<ValuePathTuple> orderedSequence,
+    protected void assertRightOrder(@Nonnull final List<ValuePathTuple> expected,
                                     @Nonnull final Iterator<? extends ResultRow> resultset) {
-        assertTrue("No results returned", resultset.hasNext());
-        int counter = 0;
-        while (resultset.hasNext() && counter < orderedSequence.size()) {
-            ResultRow row = resultset.next();
-            assertEquals(
-                String.format("Wrong path at the element '%d'", counter),
-                orderedSequence.get(counter).getPath(),
-                row.getPath()
-            );
-            counter++;
-        }
+        if (expected.isEmpty()) {
+            assertFalse("An empty resultset is expected but something has been returned.",
+                resultset.hasNext());
+        } else {
+            assertTrue("No results returned", resultset.hasNext());
+            int counter = 0;
+            while (resultset.hasNext() && counter < expected.size()) {
+                ResultRow row = resultset.next();
+                assertEquals(
+                    String.format("Wrong path at the element '%d'", counter),
+                    expected.get(counter).getPath(),
+                    row.getPath()
+                );
+                counter++;
+            }
+        }        
     }
 
     /**

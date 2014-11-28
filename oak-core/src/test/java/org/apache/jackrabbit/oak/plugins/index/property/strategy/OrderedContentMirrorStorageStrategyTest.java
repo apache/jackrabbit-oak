@@ -17,9 +17,17 @@
 
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.LANES;
+import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection.DESC;
 import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.NEXT;
 import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.START;
+import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.getPropertyNext;
+import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.setPropertyNext;
+import static org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.FixingDanglingLinkCallback;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -47,6 +55,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
+import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.PredicateGreaterThan;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.OrderedContentMirrorStoreStrategy.PredicateLessThan;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.query.ast.Operator;
@@ -56,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3123,7 +3133,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         try {
             item = store.seek(builder,
-                new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+                new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
             fail("With a wrong size for the lane it should have raised an exception");
         } catch (IllegalArgumentException e) {
             // so far so good. It was expected
@@ -3138,7 +3148,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3155,7 +3165,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3172,7 +3182,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3245,7 +3255,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         try {
             item = store.seek(builder,
-                new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+                new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
             fail("With a wrong size for the lane it should have raised an exception");
         } catch (IllegalArgumentException e) {
             // so far so good. It was expected
@@ -3260,7 +3270,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3277,7 +3287,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3294,7 +3304,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         entry = searchFor;
         wl = new String[OrderedIndex.LANES];
         item = store.seek(builder,
-            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl);
+            new OrderedContentMirrorStoreStrategy.PredicateEquals(searchFor), wl, 0, null);
         assertNotNull(wl);
         assertEquals(OrderedIndex.LANES, wl.length);
         assertEquals("Wrong lane", lane0, wl[0]);
@@ -3309,7 +3319,7 @@ public class OrderedContentMirrorStorageStrategyTest {
      * 
      * @param index
      */
-    private static void printSkipList(NodeState index) {
+    public static void printSkipList(NodeState index) {
         final String marker = "->o-";
         final String filler = "----";
         StringBuffer sb = new StringBuffer();
@@ -3658,5 +3668,101 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertEquals("path/e", resultset.next());
         assertEquals("path/f", resultset.next());
         assertFalse("We should have not any results left", resultset.hasNext());
+    }
+    
+    @Test
+    public void oak2077() {
+        NodeBuilder index;
+        MockOrderedContentMirrorStoreStrategy ascending = new MockOrderedContentMirrorStoreStrategy();
+        MockOrderedContentMirrorStoreStrategy descending = new MockOrderedContentMirrorStoreStrategy(DESC);
+        MockOrderedContentMirrorStoreStrategy strategy;
+        OrderedIndex.Predicate<String> condition;
+        String missingEntry, node;
+        
+        
+        // creating a dangling link on each lane one at time. 
+        for (int lane = 0; lane < LANES; lane++) {
+            
+            // ---------------------------------------------------< ascending, plain/inserts case >
+            missingEntry = KEYS[5];
+            strategy = ascending;
+            condition = new PredicateGreaterThan(missingEntry, true);
+            index = EMPTY_NODE.builder();
+            node = oak2077CreateStructure(index, lane, strategy, missingEntry);
+
+            assertOak2077(condition, strategy, index, lane, node);
+
+            // ------------------------------------------------- < descending, plain/inserts case >
+            missingEntry = KEYS[0];
+            strategy = descending;
+            index = EMPTY_NODE.builder();
+            condition = new PredicateLessThan(missingEntry, true);
+            node = oak2077CreateStructure(index, lane, strategy, missingEntry);
+
+            assertOak2077(condition, strategy, index, lane, node);
+        }
+    }
+
+    private static void assertOak2077(@Nonnull final OrderedIndex.Predicate<String> condition, 
+                                      @Nonnull final OrderedContentMirrorStoreStrategy strategy, 
+                                      @Nonnull NodeBuilder index, 
+                                      final int lane, 
+                                      @Nonnull final String node) {
+        
+        checkNotNull(condition);
+        checkNotNull(strategy);
+        checkNotNull(index);
+        checkArgument(lane >= 0 && lane < LANES);
+        checkNotNull(node);
+        
+        NodeState indexState = index.getNodeState();
+        String[] wl = new String[LANES];
+        String entry;
+
+        entry = strategy.seek(index, condition, wl, 0, new FixingDanglingLinkCallback(index));
+        assertNull("the seeked node does not exist and should have been null. lane: " + lane, entry);
+        assertEquals(
+            "As the index is a NodeBuilder we expect the entry to be fixed. lane: " + lane, "",
+            getPropertyNext(index.getChildNode(node), lane));
+
+        index = new ReadOnlyBuilder(indexState);
+        entry = strategy.seek(index, condition);
+        assertNull("the seeked node does not exist and should have been null. lane: " + lane, entry);
+    }
+    
+    /**
+     * <p>
+     * utility method to create the structure for the {@link #oak2077()} test.
+     * </p>
+     * <p>
+     * Create an index according to strategy with nodes from {@code 001} to {@code 004}.
+     * </p>
+     * 
+     * @param lane
+     * @param strategy
+     * @param missingEntry
+     * @return the node name with the wrong lane for testing on it later on.
+     */
+    private static String oak2077CreateStructure(@Nonnull final NodeBuilder index,
+                                                      final int lane, 
+                                                      @Nonnull final MockOrderedContentMirrorStoreStrategy strategy,
+                                                      @Nonnull final String missingEntry) {
+        checkNotNull(index);
+        checkNotNull(strategy);
+        checkArgument(lane >= 0 && lane < LANES);
+        checkNotNull(missingEntry);
+        
+        String node;
+        
+        strategy.setLane(0);
+        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[1]));
+        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[2]));
+        strategy.setLane(lane);
+        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[3]));
+        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[4]));
+        node = KEYS[3];
+        setPropertyNext(index.getChildNode(node), missingEntry, lane); 
+        
+        return node;
     }
 }
