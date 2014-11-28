@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static com.google.common.collect.ImmutableList.of;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newString;
 import static org.junit.Assert.assertNotNull;
 
 import java.text.ParseException;
@@ -143,6 +145,42 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertEquals("wrong path returned", searchfor.getPath(), results.next().getPath());
         assertFalse("there should be not any more items", results.hasNext());
 
+        setTravesalEnabled(true);
+    }
+    
+    /**
+     * checks the {@code OR} and {@code IN} conditions in queries.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void queryOrIn() throws Exception {
+        setTravesalEnabled(false);
+
+        // index automatically created by the framework:
+        // {@code createTestIndexNode()}
+        
+        // generates: 
+        //  /test/n0, /test/n1, /test/n2
+        Tree rTree = root.getTree("/");
+        Tree test = rTree.addChild("test");
+        List<ValuePathTuple> nodes = addChildNodes(generateOrderedValues(3), test,
+            OrderDirection.ASC, Type.STRING);
+        root.commit();
+        
+        String statementOr = "SELECT * FROM [nt:unstructured] " + 
+            "WHERE " + ORDERED_PROPERTY + " = $or1 " + 
+            "OR " + ORDERED_PROPERTY + " = $or2";
+        String statementIn = "SELECT * FROM [nt:unstructured] WHERE " + ORDERED_PROPERTY
+                             + " IN($or1, $or2)";
+        List<ValuePathTuple> expected = of(nodes.get(0), nodes.get(1));
+        Map<String, PropertyValue> bindings = ImmutableMap.of(
+            "or1", newString(expected.get(0).getValue()),
+            "or2", newString(expected.get(1).getValue()));
+        
+        assertRightOrder(expected, executeQuery(statementOr, SQL2, bindings).getRows().iterator());
+        assertRightOrder(expected, executeQuery(statementIn, SQL2, bindings).getRows().iterator());
+        
         setTravesalEnabled(true);
     }
 
