@@ -269,7 +269,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             for (String tname : this.tablesToBeDropped) {
                 Connection con = null;
                 try {
-                    con = getConnection();
+                    con = getRWConnection();
                     try {
                         Statement stmt = con.createStatement();
                         stmt.execute("drop table " + tname);
@@ -680,7 +680,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 String tableName = getTable(collection);
                 boolean success = false;
                 try {
-                    connection = getConnection();
+                    connection = getRWConnection();
                     success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, appendData);
                     connection.commit();
                 } catch (SQLException ex) {
@@ -728,7 +728,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             throw new DocumentStoreException(message);
         }
         try {
-            connection = getConnection();
+            connection = getROConnection();
             long now = System.currentTimeMillis();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
             for (RDBRow r : dbresult) {
@@ -765,7 +765,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (cachedDoc != null && cachedDoc.getModCount() != null) {
                 lastmodcount = cachedDoc.getModCount().longValue();
             }
-            connection = getConnection();
+            connection = getROConnection();
             RDBRow row = dbRead(connection, tableName, id, lastmodcount);
             if (row == null) {
                 return null;
@@ -791,7 +791,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
-            connection = getConnection();
+            connection = getRWConnection();
             dbDelete(connection, tableName, Collections.singletonList(id));
             connection.commit();
         } catch (Exception ex) {
@@ -806,7 +806,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             Connection connection = null;
             String tableName = getTable(collection);
             try {
-                connection = getConnection();
+                connection = getRWConnection();
                 dbDelete(connection, tableName, sublist);
                 connection.commit();
             } catch (Exception ex) {
@@ -822,7 +822,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
-            connection = getConnection();
+            connection = getRWConnection();
             Long modified = (Long) document.get(MODIFIED);
             Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
@@ -901,7 +901,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         List<String> ids = new ArrayList<String>();
         try {
-            connection = getConnection();
+            connection = getRWConnection();
             for (T document : documents) {
                 String data = SR.asString(document);
                 Long modified = (Long) document.get(MODIFIED);
@@ -1389,9 +1389,17 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return (T) fresh;
     }
 
-    private Connection getConnection() throws SQLException {
+    private Connection getROConnection() throws SQLException {
         Connection c = this.ds.getConnection();
         c.setAutoCommit(false);
+        c.setReadOnly(true);
+        return c;
+    }
+
+    private Connection getRWConnection() throws SQLException {
+        Connection c = this.ds.getConnection();
+        c.setAutoCommit(false);
+        c.setReadOnly(false);
         return c;
     }
 
