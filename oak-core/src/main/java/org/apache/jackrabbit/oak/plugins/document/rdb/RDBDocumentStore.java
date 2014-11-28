@@ -685,6 +685,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     connection.commit();
                 } catch (SQLException ex) {
                     success = false;
+                    rollbackConnection(connection);
                 } finally {
                     closeConnection(connection);
                 }
@@ -839,7 +840,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         connection.commit();
                     } catch (SQLException ex) {
                         continueIfStringOverflow(ex);
-                        connection.rollback();
+                        rollbackConnection(connection);
                         success = false;
                     }
                 }
@@ -852,13 +853,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             return success;
         } catch (SQLException ex) {
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException e) {
-                // TODO
-            }
+            rollbackConnection(connection);
             throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
@@ -919,13 +914,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             connection.commit();
         } catch (SQLException ex) {
             LOG.debug("insert of " + ids + " failed", ex);
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException e) {
-                // TODO
-            }
+            rollbackConnection(connection);
             throw new DocumentStoreException(ex);
         } finally {
             closeConnection(connection);
@@ -1011,7 +1000,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             // DB2 throws an SQLException for invalid keys; handle this more
             // gracefully
             if ("22001".equals(ex.getSQLState())) {
-                connection.rollback();
+                rollbackConnection(connection);
                 return null;
             } else {
                 throw (ex);
@@ -1404,6 +1393,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
         Connection c = this.ds.getConnection();
         c.setAutoCommit(false);
         return c;
+    }
+
+    private void rollbackConnection(Connection c) {
+        if (c != null) {
+            try {
+                c.rollback();
+            } catch (SQLException ex) {
+                // log me
+            }
+        }
     }
 
     private void closeConnection(Connection c) {
