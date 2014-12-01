@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -116,6 +117,27 @@ public interface NodeStore {
      * remains valid for at least as long as requested and allows that state
      * of the repository to be retrieved using the returned opaque string
      * reference.
+     * <p>
+     * The {@code properties} passed to this methods are associated with the
+     * checkpoint and can be retrieved through the {@link #checkpointInfo(String)}
+     * method. Its semantics is entirely application specific.
+     *
+     * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
+     *                 should remain available
+     * @param properties properties to associate with the checkpoint
+     * @return string reference of this checkpoint
+     */
+    @Nonnull
+    String checkpoint(long lifetime, @Nonnull Map<String, String> properties);
+
+    /**
+     * Creates a new checkpoint of the latest root of the tree. The checkpoint
+     * remains valid for at least as long as requested and allows that state
+     * of the repository to be retrieved using the returned opaque string
+     * reference.
+     * <p>
+     * This method is a shortcut for {@link #checkpoint(long, Map)} passing
+     * an empty map for its 2nd argument.
      *
      * @param lifetime time (in milliseconds, &gt; 0) that the checkpoint
      *                 should remain available
@@ -123,6 +145,17 @@ public interface NodeStore {
      */
     @Nonnull
     String checkpoint(long lifetime);
+
+    /**
+     * Retrieve the properties associated with a checkpoint.
+     *
+     * @param checkpoint string reference of a checkpoint
+     * @return the properties associated with the checkpoint referenced by
+     *         {@code checkpoint} or an empty map when there is no such
+     *         checkpoint.
+     */
+    @Nonnull
+    Map<String, String> checkpointInfo(@Nonnull String checkpoint);
 
     /**
      * Retrieves the root node from a previously created repository checkpoint.

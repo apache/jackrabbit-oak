@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -62,9 +63,21 @@ public abstract class ProxyNodeStore implements NodeStore {
         return getNodeStore().getBlob(reference);
     }
 
+    @Nonnull
+    @Override
+    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+        return getNodeStore().checkpoint(lifetime, properties);
+    }
+
     @Override
     public String checkpoint(long lifetime) {
         return getNodeStore().checkpoint(lifetime);
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+        return getNodeStore().checkpointInfo(checkpoint);
     }
 
     @Override

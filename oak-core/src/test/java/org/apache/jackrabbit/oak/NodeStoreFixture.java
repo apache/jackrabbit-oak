@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.memory.MemoryStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -89,6 +90,16 @@ public abstract class NodeStoreFixture {
                 ((DocumentNodeStore) nodeStore).dispose();
             }
         }
+    };
+
+    public static final NodeStoreFixture MEMORY_NS = new NodeStoreFixture() {
+        @Override
+        public NodeStore createNodeStore() {
+            return new MemoryNodeStore();
+        }
+
+        @Override
+        public void dispose(NodeStore nodeStore) { }
     };
 
     public abstract NodeStore createNodeStore();
