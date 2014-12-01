@@ -19,11 +19,16 @@
 
 package org.apache.jackrabbit.oak.util;
 
+import static javax.management.openmbean.SimpleType.STRING;
+
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeDataSupport;
 import javax.management.openmbean.CompositeType;
 import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
-import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
@@ -37,14 +42,22 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentCheckpointMBean;
  * into tabular data.
  */
 public abstract class AbstractCheckpointMBean implements CheckpointMBean {
-    private static final String[] FIELD_NAMES = new String[] { "id", "created", "expires"};
+    private static final String[] FIELD_NAMES = new String[] { "id", "created", "expires", "properties"};
     private static final String[] FIELD_DESCRIPTIONS = FIELD_NAMES;
 
     @SuppressWarnings("rawtypes")
     private static final OpenType[] FIELD_TYPES = new OpenType[] {
-            SimpleType.STRING, SimpleType.STRING, SimpleType.STRING };
+            STRING, STRING, STRING, createStringArrayType()};
 
     private static final CompositeType TYPE = createCompositeType();
+
+    private static ArrayType<String> createStringArrayType() {
+        try {
+            return new ArrayType<String>(STRING, false);
+        } catch (OpenDataException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     private static CompositeType createCompositeType() {
         try {
@@ -75,7 +88,6 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
                             "Checkpoints", TYPE, new String[] { "id" }));
 
             collectCheckpoints(tab);
-
             return tab;
         } catch (OpenDataException e) {
             throw new IllegalStateException(e);
@@ -93,9 +105,19 @@ public abstract class AbstractCheckpointMBean implements CheckpointMBean {
      *                  checkpoint
      * @throws OpenDataException
      */
-    protected static CompositeDataSupport toCompositeData(String id, String created, String expires)
-            throws OpenDataException {
-        return new CompositeDataSupport(TYPE, FIELD_NAMES, new String[] { id, created, expires });
+    protected static CompositeDataSupport toCompositeData(String id, String created, String expires,
+            Map<String, String> properties) throws OpenDataException {
+        return new CompositeDataSupport(TYPE, FIELD_NAMES, new Object[] {
+            id, created, expires, toArray(properties) });
+    }
+
+    private static String[] toArray(Map<String, String> properties) {
+        String[] value = new String[properties.size()];
+        int k = 0;
+        for (Entry<String, String> p : properties.entrySet()) {
+            value[k++] = p.getKey() + '=' + p.getValue();
+        }
+        return value;
     }
 
 }

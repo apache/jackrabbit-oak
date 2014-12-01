@@ -47,7 +47,7 @@ public class SegmentCheckpointMBean extends AbstractCheckpointMBean {
             NodeState checkpoint = cne.getNodeState();
             String created = getDate(checkpoint, "created");
             String expires = getDate(checkpoint, "timestamp");
-            tab.put(id, toCompositeData(id, created, expires));
+            tab.put(id, toCompositeData(id, created, expires, store.checkpointInfo(id)));
         }
     }
 

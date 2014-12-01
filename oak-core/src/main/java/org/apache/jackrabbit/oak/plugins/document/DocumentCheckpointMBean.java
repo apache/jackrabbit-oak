@@ -50,7 +50,8 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
             String id = checkpoint.getKey().toString();
             Date created = new Date(checkpoint.getKey().getTimestamp());
             Date expires = new Date(Long.parseLong(checkpoint.getValue()));
-            tab.put(id, toCompositeData(id, created.toString(), expires.toString()));
+            tab.put(id, toCompositeData(
+                    id, created.toString(), expires.toString(), store.checkpointInfo(id)));
         }
     }
 
