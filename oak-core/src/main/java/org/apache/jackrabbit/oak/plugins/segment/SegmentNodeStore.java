@@ -151,6 +151,9 @@ public class SegmentNodeStore implements NodeStore, Observable {
         } catch (InterruptedException e) {
             throw new CommitFailedException(
                     "Segment", 2, "Merge interrupted", e);
+        } catch (SegmentOverflowException e) {
+            throw new CommitFailedException(
+                    "Segment", 3, "Merge failed", e);
         }
     }
 
