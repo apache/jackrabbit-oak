@@ -1364,8 +1364,20 @@ public final class DocumentNodeStore
 
     @Nonnull
     @Override
+    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+        throw new UnsupportedOperationException();  // FIXME implement. See OAK-2291
+    }
+
+    @Nonnull
+    @Override
     public String checkpoint(long lifetime) {
         return checkpoints.create(lifetime).toString();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+        throw new UnsupportedOperationException();  // FIXME implement. See OAK-2291
     }
 
     @CheckForNull

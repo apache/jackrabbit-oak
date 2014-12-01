@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,6 +35,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -56,7 +58,7 @@ public class MemoryNodeStore implements NodeStore, Observable {
 
     private final AtomicReference<NodeState> root;
 
-    private final Map<String, NodeState> checkpoints = newHashMap();
+    private final Map<String, Checkpoint> checkpoints = newHashMap();
 
     private final Map<Closeable, Observer> observers = newHashMap();
 
@@ -187,17 +189,40 @@ public class MemoryNodeStore implements NodeStore, Observable {
         return null;
     }
 
+    @Nonnull
+    @Override
+    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+        checkArgument(lifetime > 0);
+        checkNotNull(properties);
+        String checkpoint = "checkpoint" + checkpoints.size();
+        checkpoints.put(checkpoint, new Checkpoint(getRoot(), properties));
+        return checkpoint;
+    }
+
     @Override @Nonnull
     public synchronized String checkpoint(long lifetime) {
-        checkArgument(lifetime > 0);
-        String checkpoint = "checkpoint" + checkpoints.size();
-        checkpoints.put(checkpoint, getRoot());
-        return checkpoint;
+        return checkpoint(lifetime, Collections.<String, String>emptyMap());
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+        Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
+        if (cp == null) {
+            return Collections.emptyMap();
+        } else {
+            return cp.getProperties();
+        }
     }
 
     @Override @CheckForNull
     public synchronized NodeState retrieve(@Nonnull String checkpoint) {
-        return checkpoints.get(checkNotNull(checkpoint));
+        Checkpoint cp = checkpoints.get(checkNotNull(checkpoint));
+        if (cp == null) {
+            return null;
+        } else {
+            return cp.getRoot();
+        }
     }
 
     @Override
@@ -281,4 +306,21 @@ public class MemoryNodeStore implements NodeStore, Observable {
         }
     }
 
+    private static class Checkpoint {
+        private final NodeState root;
+        private final Map<String, String> properties;
+
+        private Checkpoint(NodeState root, Map<String, String> properties) {
+            this.root = root;
+            this.properties = Maps.newHashMap(properties);
+        }
+
+        public NodeState getRoot() {
+            return root;
+        }
+
+        public Map<String, String> getProperties() {
+            return properties;
+        }
+    }
 }

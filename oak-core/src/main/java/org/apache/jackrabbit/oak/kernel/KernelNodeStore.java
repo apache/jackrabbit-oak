@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -211,10 +213,24 @@ public class KernelNodeStore implements NodeStore, Observable {
         }
     }
 
+
+    @Nonnull
+    @Override
+    public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
+        throw new UnsupportedOperationException("MicroKernel based NodeStore implementations do " +
+                "not support checkpoint metadata");
+    }
+
     @Override @Nonnull
     public String checkpoint(long lifetime) {
         checkArgument(lifetime > 0);
         return kernel.checkpoint(lifetime);
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> checkpointInfo(@Nonnull String checkpoint) {
+        return Collections.emptyMap();
     }
 
     @Override @CheckForNull
