@@ -72,6 +72,7 @@ public class NodeStoreTest {
                 {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
+                {NodeStoreFixture.MEMORY_NS},
         };
         return Arrays.asList(fixtures);
     }
@@ -415,7 +416,7 @@ public class NodeStoreTest {
     public void moveToDescendant() throws CommitFailedException {
         NodeBuilder test = store.getRoot().builder().getChildNode("test");
         NodeBuilder x = test.getChildNode("x");
-        if (fixture == NodeStoreFixture.SEGMENT_MK) {
+        if (fixture == NodeStoreFixture.SEGMENT_MK || fixture == NodeStoreFixture.MEMORY_NS) {
             assertTrue(x.moveTo(x, "xx"));
             assertFalse(x.exists());
             assertFalse(test.hasChildNode("x"));
