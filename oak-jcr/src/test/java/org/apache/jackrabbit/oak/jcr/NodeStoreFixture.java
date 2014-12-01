@@ -77,7 +77,7 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture DOCUMENT_NS = createDocumentFixture("mongodb://localhost:27017/oak");
 
-    public static final NodeStoreFixture DOCUMENT_JDBC = new NodeStoreFixture() {
+    public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
 
         private DataSource ds;
 
