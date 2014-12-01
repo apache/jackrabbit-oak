@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * index node
  */
 public interface IndexStoreStrategy {
-
+    
     /**
      * Updates the index for the given path.
      * 
