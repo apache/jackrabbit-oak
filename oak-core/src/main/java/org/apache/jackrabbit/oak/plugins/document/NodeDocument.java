@@ -545,6 +545,26 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Returns the commit revision for the change with the given revision.
+     *
+     * @param revision the revision of a change.
+     * @return the commit revision of the change or {@code null} if the change
+     *          is not committed or unknown.
+     */
+    @CheckForNull
+    public Revision getCommitRevision(@Nonnull Revision revision) {
+        NodeDocument commitRoot = getCommitRoot(checkNotNull(revision));
+        if (commitRoot == null) {
+            return null;
+        }
+        String value = commitRoot.getCommitValue(revision);
+        if (Utils.isCommitted(value)) {
+            return Utils.resolveCommitRevision(revision, value);
+        }
+        return null;
+    }
+
+    /**
      * Returns <code>true</code> if this document contains an entry for the
      * given <code>revision</code> in the {@link #REVISIONS} map. Please note
      * that an entry in the {@link #REVISIONS} map does not necessarily mean
