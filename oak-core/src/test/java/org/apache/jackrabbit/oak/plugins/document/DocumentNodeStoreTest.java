@@ -677,6 +677,52 @@ public class DocumentNodeStoreTest {
         store.dispose();
     }
 
+    // OAK-2308
+    @Test
+    public void recoverBranchCommit() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+
+        DocumentNodeStore store1 = new DocumentMK.Builder()
+                .setDocumentStore(docStore)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+
+        NodeBuilder builder = store1.getRoot().builder();
+        builder.child("test");
+        merge(store1, builder);
+        // make sure all _lastRevs are written back
+        store1.runBackgroundOperations();
+
+        builder = store1.getRoot().builder();
+        NodeBuilder node = builder.getChildNode("test").child("node");
+        String id = Utils.getIdFromPath("/test/node");
+        int i = 0;
+        // force creation of a branch
+        while (docStore.find(NODES, id) == null) {
+            node.setProperty("foo", i++);
+        }
+        merge(store1, builder);
+
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + store1.getClusterInfo().getLeaseTime() + 1000);
+        // run recovery for this store
+        LastRevRecoveryAgent agent = store1.getLastRevRecoveryAgent();
+        assertTrue(agent.isRecoveryNeeded());
+        agent.recover(store1.getClusterId());
+
+        // start a second store
+        DocumentNodeStore store2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        // must see /test/node
+        assertTrue(store2.getRoot().getChildNode("test").getChildNode("node").exists());
+
+        store2.dispose();
+        store1.dispose();
+    }
+
     private static void merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
