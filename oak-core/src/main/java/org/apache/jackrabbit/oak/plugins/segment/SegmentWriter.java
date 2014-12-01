@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -340,7 +341,10 @@ public class SegmentWriter {
 
     private synchronized int getSegmentRef(SegmentId segmentId) {
         int refcount = segment.getRefCount();
-        checkState(refcount < 256, "Segment cannot have more than 255 references", segment.getSegmentId());
+        if (refcount > SEGMENT_REFERENCE_LIMIT) {
+          throw new SegmentOverflowException(
+                  "Segment cannot have more than 255 references " + segment.getSegmentId());
+        }
         for (int index = 0; index < refcount; index++) {
             if (segmentId == segment.getRefId(index)) {
                 return index;
