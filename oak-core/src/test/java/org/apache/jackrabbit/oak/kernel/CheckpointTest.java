@@ -98,6 +98,7 @@ public class CheckpointTest {
         assertEquals(root, store.retrieve(cp));
 
         assertTrue(store.release(cp));
+        // FIXME See OAK-2311
         if (fixture != NodeStoreFixture.MONGO_MK && fixture != NodeStoreFixture.MONGO_NS) {
             assertNull(store.retrieve(cp));
         }
