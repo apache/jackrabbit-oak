@@ -42,9 +42,9 @@ public class FixturesHelper {
      * default fixtures when no {@code ns-fixtures} is provided
      */
     public static enum Fixture {
-       DOCUMENT_MK, DOCUMENT_NS, SEGMENT_MK, DOCUMENT_JDBC                                          
+       DOCUMENT_MK, DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB
     };
-    
+
     private static final Set<Fixture> FIXTURES;
     static {
         String raw = System.getProperty(NS_FIXTURES, "");

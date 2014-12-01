@@ -78,8 +78,8 @@ public abstract class AbstractRepositoryTest {
         if (FIXTURES.contains(Fixture.SEGMENT_MK)) {
             result.add(new Object[] { NodeStoreFixture.SEGMENT_MK });
         }
-        if (FIXTURES.contains(Fixture.DOCUMENT_JDBC)) {
-            result.add(new Object[] { NodeStoreFixture.DOCUMENT_JDBC });
+        if (FIXTURES.contains(Fixture.DOCUMENT_RDB)) {
+            result.add(new Object[] { NodeStoreFixture.DOCUMENT_RDB });
         }
         return result;
     }

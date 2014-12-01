@@ -58,12 +58,12 @@ public abstract class TCKBase extends TestSuite {
         if (FIXTURES.contains(Fixture.DOCUMENT_NS)) {
             if (OakMongoNSRepositoryStub.isMongoDBAvailable()) {
                 Setup.wrap(this, OakMongoNSRepositoryStub.class.getName());
-            }            
+            }
         }
-        if (FIXTURES.contains(Fixture.DOCUMENT_JDBC)) {
+        if (FIXTURES.contains(Fixture.DOCUMENT_RDB)) {
             if (OakDocumentRDBRepositoryStub.isAvailable()) {
                 Setup.wrap(this, OakDocumentRDBRepositoryStub.class.getName());
-            }            
+            }
         }
     }
 
