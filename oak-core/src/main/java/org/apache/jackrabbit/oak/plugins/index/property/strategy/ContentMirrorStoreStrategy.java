@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.ApproximateCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,8 +90,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     private void remove(NodeBuilder index, String key, String value) {
+        ApproximateCounter.adjustCount(index, -1);
         NodeBuilder builder = index.getChildNode(key);
         if (builder.exists()) {
+            ApproximateCounter.adjustCount(builder, -1);
             // Collect all builders along the given path
             Deque<NodeBuilder> builders = newArrayDeque();
             builders.addFirst(builder);
@@ -112,8 +115,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     private void insert(NodeBuilder index, String key, String value) {
+        ApproximateCounter.adjustCount(index, 1);
         // NodeBuilder builder = index.child(key);
         NodeBuilder builder = fetchKeyNode(index, key);
+        ApproximateCounter.adjustCount(builder, 1);
         for (String name : PathUtils.elements(value)) {
             builder = builder.child(name);
         }

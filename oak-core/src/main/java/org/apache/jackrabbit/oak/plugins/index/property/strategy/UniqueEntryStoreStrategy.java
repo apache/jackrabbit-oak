@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.ApproximateCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
 
     private static void remove(NodeBuilder index, String key, String value) {
+        ApproximateCounter.adjustCount(index, -1);
         NodeBuilder builder = index.getChildNode(key);
         if (builder.exists()) {
             // there could be (temporarily) multiple entries
@@ -77,8 +79,9 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
             }
         }
     }
-
+    
     private static void insert(NodeBuilder index, String key, String value) {
+        ApproximateCounter.adjustCount(index, 1);
         NodeBuilder k = index.child(key);
         ArrayList<String> list = new ArrayList<String>();
         list.add(value);
@@ -170,4 +173,5 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     public long count(final Filter filter, NodeState indexMeta, Set<String> values, int max) {
         return count(indexMeta, values, max);
     }
+    
 }

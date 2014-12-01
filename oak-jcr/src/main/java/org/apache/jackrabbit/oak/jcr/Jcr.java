@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.OrderedPropertyIndexProvider;
@@ -84,6 +85,7 @@ public class Jcr {
         with(new ReferenceIndexProvider());
 
         with(new PropertyIndexEditorProvider());
+        with(new NodeCounterEditorProvider());
 
         with(new PropertyIndexProvider());
         with(new OrderedPropertyIndexProvider());

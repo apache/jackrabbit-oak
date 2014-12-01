@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import com.google.common.collect.ImmutableList;
@@ -24,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
@@ -82,6 +86,12 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             // the cost of using the property index for "@primaryType is not null" is very high
             nt.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.valueOf(Long.MAX_VALUE));
             IndexUtils.createReferenceIndex(index);
+            
+            index.child("counter")
+                    .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                    .setProperty(TYPE_PROPERTY_NAME, NodeCounterEditorProvider.TYPE)
+                    .setProperty(IndexConstants.ASYNC_PROPERTY_NAME, 
+                            IndexConstants.ASYNC_PROPERTY_NAME);
         }
 
         NodeState base = builder.getNodeState();
