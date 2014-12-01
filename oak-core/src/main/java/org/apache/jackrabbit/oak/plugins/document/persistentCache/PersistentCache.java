@@ -58,8 +58,9 @@ public class PersistentCache {
     private MVStore readStore;
     private int maxSizeMB = 1024;
     private int readGeneration = -1;
-    private int writeGeneration = 0;
+    private int writeGeneration;
     private long maxBinaryEntry = 1024 * 1024;
+    private int autoCompact = 50;
     
     public PersistentCache(String url) {
         LOG.info("start version 1");
@@ -89,6 +90,8 @@ public class PersistentCache {
                 maxSizeMB = Integer.parseInt(p.split("=")[1]);
             } else if (p.startsWith("binary=")) {
                 maxBinaryEntry = Long.parseLong(p.split("=")[1]);
+            } else if (p.startsWith("autoCompact=")) {
+                autoCompact = Integer.parseInt(p.split("=")[1]);
             }
         }
         this.directory = dir;
@@ -108,7 +111,7 @@ public class PersistentCache {
         File[] list = dr.listFiles();
         TreeSet<Integer> generations = new TreeSet<Integer>();
         if (list != null) {
-            for(File f : list) {
+            for (File f : list) {
                 String fn = f.getName();
                 if (fn.startsWith(FILE_PREFIX) && fn.endsWith(FILE_SUFFIX)) {
                     String g = fn.substring(FILE_PREFIX.length(), fn.indexOf(FILE_SUFFIX));
@@ -159,6 +162,9 @@ public class PersistentCache {
         }
         if (maxSizeMB < 10) {
             builder.cacheSize(maxSizeMB);
+        }
+        if (autoCompact >= 0) {
+            builder.autoCompactFillRate(autoCompact);
         }
         builder.backgroundExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
@@ -300,12 +306,11 @@ public class PersistentCache {
         return maxBinaryEntry;
     }
 
-    static interface GenerationCache {
+    interface GenerationCache {
 
         void addGeneration(int writeGeneration, boolean b);
 
         void removeGeneration(int oldReadGeneration);
-        
         
     }
 
