@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.security.Principal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -40,13 +40,6 @@ public class OakDocumentRDBRepositoryStub extends OakRepositoryStub {
     protected static final String USERNAME = System.getProperty("rdb.jdbc-user", "sa");
 
     protected static final String PASSWD = System.getProperty("rdb.jdbc-passwd", "");
-
-    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
-        @Override
-        public String getName() {
-            return "an_unknown_user";
-        }
-    };
 
     private final Repository repository;
 
