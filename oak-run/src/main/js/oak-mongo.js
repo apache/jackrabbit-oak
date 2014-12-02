@@ -223,7 +223,7 @@ var oak = (function(global){
         for (r in data) {
             var rev = new Revision(r);
             var exp;
-            if (exp.charAt(0) == '{') {
+            if (data[r].charAt(0) == '{') {
                 exp = JSON.parse(data[r])["expires"];
             } else {
                 exp = data[r];
