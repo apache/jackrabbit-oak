@@ -18,16 +18,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Map;
 import java.util.SortedMap;
+
+import com.google.common.collect.Maps;
+
+import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 
 /**
  * Helper class to access package private functionality.
  */
 public abstract class CheckpointsHelper {
 
-    public static SortedMap<Revision, String> getCheckpoints(
+    public static SortedMap<Revision, Long> getCheckpoints(
             DocumentNodeStore store) {
-        return store.getCheckpoints().getCheckpoints();
+        SortedMap<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
+        SortedMap<Revision, Long> map = Maps.newTreeMap(checkpoints.comparator());
+        for (Map.Entry<Revision, Info> entry : checkpoints.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().getExpiryTime());
+        }
+        return map;
     }
 
     public static long removeAll(DocumentNodeStore store) {
