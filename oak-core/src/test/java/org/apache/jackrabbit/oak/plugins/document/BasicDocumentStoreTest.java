@@ -837,4 +837,60 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     + "/s)");
         }
     }
+
+    // make sure _collisionsModCount property is maintained properly when it exists
+    @Test
+    public void testCollisionsModCount() {
+        String id = this.getClass().getName() + ".testCollisionsModCount";
+
+        // remove if present
+        NodeDocument nd = super.ds.find(Collection.NODES, id);
+        if (nd != null) {
+            super.ds.remove(Collection.NODES, id);
+        }
+
+        // add
+        Revision revision = Revision.fromString("r0-0-1");
+        UpdateOp up = new UpdateOp(id, true);
+        up.set("_id", id);
+        up.setMapEntry("_collisions", revision, "foo");
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
+        // get it
+        nd = super.ds.find(Collection.NODES, id);
+        assertNotNull(nd);
+        Number cmc = (Number)nd.get("_collisionsModCount");
+        if (cmc == null) {
+            // not supported
+        }
+        else {
+            // update 
+            Revision revision2 = Revision.fromString("r0-0-2");
+            UpdateOp up2 = new UpdateOp(id, false);
+            up2.set("_id", id);
+            up2.setMapEntry("_collisions", revision2, "foobar");
+            NodeDocument old = super.ds.findAndUpdate(Collection.NODES, up2);
+            assertNotNull(old);
+
+            nd = super.ds.find(Collection.NODES, id, 0);
+            assertNotNull(nd);
+            Number cmc2 = (Number)nd.get("_collisionsModCount");
+            assertNotNull(cmc2);
+            assertTrue(cmc2.longValue() > cmc.longValue());
+
+            // update 
+            UpdateOp up3 = new UpdateOp(id, false);
+            up3.set("_id", id);
+            up3.set("foo", "bar");
+            old = super.ds.findAndUpdate(Collection.NODES, up3);
+            assertNotNull(old);
+
+            nd = super.ds.find(Collection.NODES, id, 0);
+            assertNotNull(nd);
+            Number cmc3 = (Number)nd.get("_collisionsModCount");
+            assertNotNull(cmc3);
+            assertTrue(cmc2.longValue() == cmc3.longValue());
+        }
+    }
 }

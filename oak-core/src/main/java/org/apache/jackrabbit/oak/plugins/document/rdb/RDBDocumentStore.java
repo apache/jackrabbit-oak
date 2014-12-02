@@ -313,6 +313,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
+
+    /**
+     * Optional counter for changes to {@link #COLLISIONS} map.
+     */
+    private static final String COLLISIONSMODCOUNT = "_collisionsModCount";
+
     private static final String ID = "_id";
 
     private static final Logger LOG = LoggerFactory.getLogger(RDBDocumentStore.class);
@@ -354,7 +360,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // set of properties not serialized to JSON
     private static Set<String> COLUMNPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { ID,
-            NodeDocument.HAS_BINARY_FLAG, MODIFIED, MODCOUNT }));
+            NodeDocument.HAS_BINARY_FLAG, COLLISIONSMODCOUNT, MODIFIED, MODCOUNT }));
 
     private RDBDocumentSerializer SR = new RDBDocumentSerializer(this, COLUMNPROPERTIES);
 
@@ -522,7 +528,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     T doc = collection.newDocument(this);
                     update.increment(MODCOUNT, 1);
                     if (hasChangesToCollisions(update)) {
-                        update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
+                        update.increment(COLLISIONSMODCOUNT, 1);
                     }
                     UpdateUtils.applyChanges(doc, update, comparator);
                     if (!update.getId().equals(doc.getId())) {
@@ -559,7 +565,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             update.increment(MODCOUNT, 1);
             if (hasChangesToCollisions(update)) {
-                update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
+                update.increment(COLLISIONSMODCOUNT, 1);
             }
             UpdateUtils.applyChanges(doc, update, comparator);
             try {
@@ -651,7 +657,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             return null;
         }
         if (hasChangesToCollisions(update)) {
-            update.increment(NodeDocument.COLLISIONSMODCOUNT, 1);
+            update.increment(COLLISIONSMODCOUNT, 1);
         }
         update.increment(MODCOUNT, 1);
         UpdateUtils.applyChanges(doc, update, comparator);
@@ -827,7 +833,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
             Long modcount = (Long) document.get(MODCOUNT);
-            Long cmodcount = (Long) document.get(NodeDocument.COLLISIONSMODCOUNT);
+            Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
             boolean success = false;
 
             // every 16th update is a full rewrite
@@ -884,7 +890,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         return false;
     }
 
-    private static long  getModifiedFromUpdate(UpdateOp update) {
+    private static long getModifiedFromUpdate(UpdateOp update) {
         for (Map.Entry<Key, Operation> change : update.getChanges().entrySet()) {
             Operation op = change.getValue();
             if (op.type == UpdateOp.Operation.Type.MAX || op.type == UpdateOp.Operation.Type.SET) {
@@ -908,7 +914,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
                 Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
                 Long modcount = (Long) document.get(MODCOUNT);
-                Long cmodcount = (Long) document.get(NodeDocument.COLLISIONSMODCOUNT);
+                Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
                 dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, cmodcount, data);
             }
             connection.commit();
@@ -965,13 +971,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
         if (useCaseStatement) {
             // either we don't have a previous version of the document
             // or the database does not support CASE in SELECT
-            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, HASBINARY, DATA, BDATA from " + tableName
+            stmt = connection.prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DATA, BDATA from " + tableName
                     + " where ID = ?");
         } else {
             // the case statement causes the actual row data not to be
             // sent in case we already have it
             stmt = connection
-                    .prepareStatement("select MODIFIED, MODCOUNT, HASBINARY, case MODCOUNT when ? then null else DATA end as DATA, "
+                    .prepareStatement("select MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, case MODCOUNT when ? then null else DATA end as DATA, "
                             + "case MODCOUNT when ? then null else BDATA end as BDATA from " + tableName + " where ID = ?");
         }
 
@@ -988,10 +994,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (rs.next()) {
                 long modified = rs.getLong(1);
                 long modcount = rs.getLong(2);
-                long hasBinary = rs.getLong(3);
-                String data = rs.getString(4);
-                byte[] bdata = rs.getBytes(5);
-                return new RDBRow(id, hasBinary == 1, modified, modcount, data, bdata);
+                long cmodcount = rs.getLong(3);
+                long hasBinary = rs.getLong(4);
+                String data = rs.getString(5);
+                byte[] bdata = rs.getBytes(6);
+                return new RDBRow(id, hasBinary == 1, modified, modcount, cmodcount, data, bdata);
             } else {
                 return null;
             }
@@ -1012,7 +1019,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select ID, MODIFIED, MODCOUNT, HASBINARY, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
+        String t = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
                 t += " and MODIFIED >= ?";
@@ -1047,10 +1054,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
                 long modified = rs.getLong(2);
                 long modcount = rs.getLong(3);
-                long hasBinary = rs.getLong(4);
-                String data = rs.getString(5);
-                byte[] bdata = rs.getBytes(6);
-                result.add(new RDBRow(id, hasBinary == 1, modified, modcount, data, bdata));
+                long cmodcount = rs.getLong(4);
+                long hasBinary = rs.getLong(5);
+                String data = rs.getString(6);
+                byte[] bdata = rs.getBytes(7);
+                result.add(new RDBRow(id, hasBinary == 1, modified, modcount, cmodcount, data, bdata));
             }
         } finally {
             stmt.close();
