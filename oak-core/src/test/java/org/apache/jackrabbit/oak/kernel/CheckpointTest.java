@@ -49,7 +49,6 @@ public class CheckpointTest {
     @Parameters
     public static Collection<Object[]> fixtures() {
         Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
                 {NodeStoreFixture.MEMORY_NS},
@@ -98,16 +97,13 @@ public class CheckpointTest {
         assertEquals(root, store.retrieve(cp));
 
         assertTrue(store.release(cp));
-        // FIXME See OAK-2311
-        if (fixture != NodeStoreFixture.MONGO_MK && fixture != NodeStoreFixture.MONGO_NS) {
-            assertNull(store.retrieve(cp));
-        }
+        assertNull(store.retrieve(cp));
     }
 
     @Test
     public void checkpointInfo() throws CommitFailedException {
         // FIXME implement. See OAK-2291
-        assumeTrue(fixture != NodeStoreFixture.MONGO_MK && fixture != NodeStoreFixture.MONGO_NS);
+        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
         ImmutableMap<String, String> props = ImmutableMap.of(
                 "one", "1", "two", "2", "three", "2");
         String cp = store.checkpoint(Long.MAX_VALUE, props);
