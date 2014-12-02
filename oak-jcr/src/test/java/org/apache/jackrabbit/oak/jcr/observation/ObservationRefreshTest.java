@@ -231,6 +231,10 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
             try {
                 while (events.hasNext()) {
                     Event event = events.nextEvent();
+                    if (event.getPath().startsWith("/oak:index")) {
+                        continue;
+                    }
+
                     if (event.getType() == Event.NODE_ADDED) {
                         numAdded++;
                         if (!observingSession.nodeExists(event.getPath())) {
