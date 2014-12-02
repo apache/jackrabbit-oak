@@ -126,11 +126,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static final String COLLISIONS = "_collisions";
 
     /**
-     * Optional counter for changes to {@link #COLLISIONS} map.
-     */
-    public static final String COLLISIONSMODCOUNT = "_collisionsModCount";
-
-    /**
      * The modified time in seconds (5 second resolution).
      */
     public static final String MODIFIED_IN_SECS = "_modified";
@@ -318,7 +313,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * Properties to ignore when a document is split (see OAK-2044).
      */
     static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
-            ID, MOD_COUNT, COLLISIONSMODCOUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
+            ID, MOD_COUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
             HAS_BINARY_FLAG, PATH, DELETED_ONCE, COLLISIONS);
 
     public static final long HAS_BINARY_VAL = 1;
