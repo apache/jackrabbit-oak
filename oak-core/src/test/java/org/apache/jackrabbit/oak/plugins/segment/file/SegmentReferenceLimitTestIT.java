@@ -39,8 +39,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SegmentReferenceLimitTestIT {
+    private static final Logger LOG = LoggerFactory.getLogger(SegmentReferenceLimitTestIT.class);
 
     private File directory;
 
@@ -52,8 +55,12 @@ public class SegmentReferenceLimitTestIT {
     }
 
     @After
-    public void cleanDir() throws IOException {
-        FileUtils.deleteDirectory(directory);
+    public void cleanDir() {
+        try {
+            FileUtils.deleteDirectory(directory);
+        } catch (IOException e) {
+            LOG.error("Error cleaning directory", e);
+        }
     }
 
     @Test
