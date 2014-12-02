@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 import static org.junit.runners.Parameterized.Parameters;
 
 import java.util.Arrays;
@@ -102,8 +101,6 @@ public class CheckpointTest {
 
     @Test
     public void checkpointInfo() throws CommitFailedException {
-        // FIXME implement. See OAK-2291
-        assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
         ImmutableMap<String, String> props = ImmutableMap.of(
                 "one", "1", "two", "2", "three", "2");
         String cp = store.checkpoint(Long.MAX_VALUE, props);
