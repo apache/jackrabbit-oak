@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -28,9 +30,13 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CheckpointsTest {
 
@@ -146,5 +152,53 @@ public class CheckpointsTest {
 
         assertEquals(1, store.getCheckpoints().size());
         assertEquals(r1, store.getCheckpoints().getOldestRevisionToKeep());
+    }
+
+    @Test
+    public void readOldFormat() throws Exception {
+        clock.waitUntil(System.currentTimeMillis());
+        DocumentStore docStore = store.getDocumentStore();
+        Map<String, String> empty = Collections.emptyMap();
+        Revision r = Revision.fromString(
+                store.checkpoint(Integer.MAX_VALUE, empty));
+
+        Document doc = docStore.find(Collection.SETTINGS, "checkpoint");
+        assertNotNull(doc);
+        @SuppressWarnings("unchecked")
+        Map<Revision, String> data = (Map<Revision, String>) doc.get("data");
+        assertNotNull(data);
+        assertEquals(1, data.size());
+        assertTrue(data.containsKey(r));
+
+        // manually update checkpoint data with old format
+        UpdateOp update = new UpdateOp("checkpoint", false);
+        long expires = clock.getTime() + 1000 + Integer.MAX_VALUE;
+        update.setMapEntry("data", r, String.valueOf(expires));
+        assertNotNull(docStore.findAndUpdate(Collection.SETTINGS, update));
+
+        Checkpoints.Info info = store.getCheckpoints().getCheckpoints().get(r);
+        assertNotNull(info);
+        assertEquals(expires, info.getExpiryTime());
+    }
+
+    @Test
+    public void expiryOverflow() throws Exception {
+        clock.waitUntil(System.currentTimeMillis());
+        Map<String, String> empty = Collections.emptyMap();
+        Revision r = Revision.fromString(
+                store.checkpoint(Long.MAX_VALUE, empty));
+        Checkpoints.Info info = store.getCheckpoints().getCheckpoints().get(r);
+        assertNotNull(info);
+        assertEquals(Long.MAX_VALUE, info.getExpiryTime());
+    }
+
+    @Test
+    public void userInfoNamedExpires() throws Exception {
+        Map<String, String> props = ImmutableMap.of("expires", "today");
+        Revision r = Revision.fromString(
+                store.checkpoint(Integer.MAX_VALUE, props));
+        Map<String, String> info = store.checkpointInfo(r.toString());
+        assertNotNull(info);
+        assertEquals(props, info);
     }
 }

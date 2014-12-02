@@ -19,14 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.CheckForNull;
 
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 
 /**
@@ -37,7 +45,8 @@ class Checkpoints {
     private static final String ID = "checkpoint";
 
     /**
-     * Property name to store all checkpoint data. The data is stored as Revision => expiryTime
+     * Property name to store all checkpoint data. The data is either stored as
+     * Revision => expiryTime or Revision => JSON with expiryTime and info.
      */
     private static final String PROP_CHECKPOINT = "data";
 
@@ -63,13 +72,15 @@ class Checkpoints {
         createIfNotExist();
     }
 
-    public Revision create(long lifetimeInMillis) {
+    public Revision create(long lifetimeInMillis, Map<String, String> info) {
         Revision r = nodeStore.getHeadRevision();
         createCounter.getAndIncrement();
         performCleanupIfRequired();
         UpdateOp op = new UpdateOp(ID, false);
-        long endTime = nodeStore.getClock().getTime() + lifetimeInMillis;
-        op.setMapEntry(PROP_CHECKPOINT, r, Long.toString(endTime));
+        long endTime = BigInteger.valueOf(nodeStore.getClock().getTime())
+                .add(BigInteger.valueOf(lifetimeInMillis))
+                .min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
+        op.setMapEntry(PROP_CHECKPOINT, r, new Info(endTime, info).toString());
         store.createOrUpdate(Collection.SETTINGS, op);
         return r;
     }
@@ -92,7 +103,7 @@ class Checkpoints {
     @CheckForNull
     public Revision getOldestRevisionToKeep() {
         //Get uncached doc
-        SortedMap<Revision, String> checkpoints = getCheckpoints();
+        SortedMap<Revision, Info> checkpoints = getCheckpoints();
 
         if(checkpoints == null){
             log.debug("No checkpoint registered so far");
@@ -104,8 +115,8 @@ class Checkpoints {
         Revision lastAliveRevision = null;
         long oldestExpiryTime = 0;
 
-        for (Map.Entry<Revision, String> e : checkpoints.entrySet()) {
-            final long expiryTime = Long.parseLong(e.getValue());
+        for (Map.Entry<Revision, Info> e : checkpoints.entrySet()) {
+            final long expiryTime = e.getValue().getExpiryTime();
             if (currentTime > expiryTime) {
                 op.removeMapEntry(PROP_CHECKPOINT, e.getKey());
             } else if (expiryTime > oldestExpiryTime) {
@@ -124,13 +135,22 @@ class Checkpoints {
 
     @SuppressWarnings("unchecked")
     @CheckForNull
-    SortedMap<Revision, String> getCheckpoints() {
+    SortedMap<Revision, Info> getCheckpoints() {
         Document cdoc = store.find(Collection.SETTINGS, ID, 0);
-        return (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
+        SortedMap<Revision, String> data =
+                (SortedMap<Revision, String>) cdoc.get(PROP_CHECKPOINT);
+        if (data == null) {
+            return null;
+        }
+        SortedMap<Revision, Info> checkpoints = Maps.newTreeMap(data.comparator());
+        for (Map.Entry<Revision, String> entry : data.entrySet()) {
+            checkpoints.put(entry.getKey(), Info.fromString(entry.getValue()));
+        }
+        return checkpoints;
     }
 
     int size(){
-        SortedMap<Revision, String> checkpoints = getCheckpoints();
+        SortedMap<Revision, Info> checkpoints = getCheckpoints();
         return checkpoints == null ? 0 : checkpoints.size();
     }
 
@@ -154,5 +174,66 @@ class Checkpoints {
         }
     }
 
+    static final class Info {
 
+        private static final String EXPIRES = "expires";
+
+        private final long expiryTime;
+
+        private final Map<String, String> info;
+
+        private Info(long expiryTime, Map<String, String> info) {
+            this.expiryTime = expiryTime;
+            this.info = Collections.unmodifiableMap(info);
+        }
+
+        static Info fromString(String info) {
+            long expiryTime;
+            Map<String, String> map;
+            if (info.startsWith("{")) {
+                map = Maps.newHashMap();
+                JsopReader reader = new JsopTokenizer(info);
+                reader.read('{');
+                String key = reader.readString();
+                if (!EXPIRES.equals(key)) {
+                    throw new IllegalArgumentException("First entry in the " +
+                            "checkpoint info must be the expires date: " + info);
+                }
+                reader.read(':');
+                expiryTime = Long.parseLong(reader.readString());
+                while (reader.matches(',')) {
+                    key = reader.readString();
+                    reader.read(':');
+                    map.put(key, reader.readString());
+                }
+                reader.read('}');
+                reader.read(JsopReader.END);
+            } else {
+                // old format
+                map = Collections.emptyMap();
+                expiryTime = Long.parseLong(info);
+            }
+            return new Info(expiryTime, map);
+        }
+
+        Map<String, String> get() {
+            return info;
+        }
+
+        long getExpiryTime() {
+            return expiryTime;
+        }
+
+        @Override
+        public String toString() {
+            JsopWriter writer = new JsopBuilder();
+            writer.object();
+            writer.key(EXPIRES).value(Long.toString(expiryTime));
+            for (Map.Entry<String, String> entry : info.entrySet()) {
+                writer.key(entry.getKey()).value(entry.getValue());
+            }
+            writer.endObject();
+            return writer.toString();
+        }
+    }
 }

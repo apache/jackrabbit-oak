@@ -222,7 +222,12 @@ var oak = (function(global){
         var r;
         for (r in data) {
             var rev = new Revision(r);
-            var exp = data[r];
+            var exp;
+            if (exp.charAt(0) == '{') {
+                exp = JSON.parse(data[r])["expires"];
+            } else {
+                exp = data[r];
+            }
             result[r] = {created:rev.asDate(), expires:new Date(parseInt(exp, 10))};
         }
         return result;

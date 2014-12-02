@@ -29,6 +29,8 @@ import javax.management.openmbean.TabularDataSupport;
 
 import org.apache.jackrabbit.oak.util.AbstractCheckpointMBean;
 
+import static org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
+
 /**
  * {@code CheckpointMBean} implementation for the {@code DocumentNodeStore}.
  */
@@ -41,17 +43,18 @@ public class DocumentCheckpointMBean extends AbstractCheckpointMBean {
 
     @Override
     protected void collectCheckpoints(TabularDataSupport tab) throws OpenDataException {
-        Map<Revision, String> checkpoints = store.getCheckpoints().getCheckpoints();
+        Map<Revision, Info> checkpoints = store.getCheckpoints().getCheckpoints();
         if (checkpoints == null) {
             checkpoints = Collections.emptyMap();
         }
 
-        for (Entry<Revision, String> checkpoint : checkpoints.entrySet()) {
+        for (Entry<Revision, Info> checkpoint : checkpoints.entrySet()) {
             String id = checkpoint.getKey().toString();
+            Info info = checkpoint.getValue();
             Date created = new Date(checkpoint.getKey().getTimestamp());
-            Date expires = new Date(Long.parseLong(checkpoint.getValue()));
+            Date expires = new Date(info.getExpiryTime());
             tab.put(id, toCompositeData(
-                    id, created.toString(), expires.toString(), store.checkpointInfo(id)));
+                    id, created.toString(), expires.toString(), info.get()));
         }
     }
 

@@ -175,10 +175,10 @@ public abstract class Checkpoints {
         @Override
         public List<CP> list() {
             List<CP> list = Lists.newArrayList();
-            for (Map.Entry<Revision, String> entry : getCheckpoints(store).entrySet()) {
+            for (Map.Entry<Revision, Long> entry : getCheckpoints(store).entrySet()) {
                 list.add(new CP(entry.getKey().toString(),
                         entry.getKey().getTimestamp(),
-                        Long.parseLong(entry.getValue())));
+                        entry.getValue()));
             }
             return list;
         }
