@@ -1383,7 +1383,12 @@ public final class DocumentNodeStore
     @CheckForNull
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
-        return getRoot(Revision.fromString(checkpoint));
+        Revision r = Revision.fromString(checkpoint);
+        if (checkpoints.getCheckpoints().containsKey(r)) {
+            return getRoot(r);
+        } else {
+            return null;
+        }
     }
 
     @Override
