@@ -52,6 +52,7 @@ public class RDBDocumentSerializer {
 
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
+    private static final String CMODCOUNT = "_collisionsModCount";
     private static final String ID = "_id";
     private static final String HASBINARY = NodeDocument.HAS_BINARY_FLAG;
 
@@ -200,6 +201,7 @@ public class RDBDocumentSerializer {
         doc.put(ID, row.getId());
         doc.put(MODIFIED, row.getModified());
         doc.put(MODCOUNT, row.getModcount());
+        doc.put(CMODCOUNT, row.getCollisionsModcount());
         if (row.hasBinaryProperties()) {
             doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
         }
