@@ -102,6 +102,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
                 String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
                 throw constraintViolation(23, msg);
             }
+        } else if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
+            // if primary type changed to authorizable type -> need to perform
+            // validation as if a new authorizable node had been added
+            validateAuthorizable(parentAfter, UserUtil.getType(after.getValue(Type.STRING)));
         }
 
         if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtil.isPlainTextPassword(after.getValue(Type.STRING))) {
@@ -134,30 +138,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         Tree tree = checkNotNull(parentAfter.getChild(name));
 
-        AuthorizableType type = UserUtil.getType(tree);
-        boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
-        String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
-        if (isSystemUser) {
-            String sysRelPath = provider.getConfig().getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
-            authRoot = authRoot + '/' + sysRelPath;
-        }
-        if (authRoot != null) {
-            assertHierarchy(tree, authRoot);
-            // assert rep:principalName is present (that should actually by covered
-            // by node type validator)
-            if (TreeUtil.getString(tree, REP_PRINCIPAL_NAME) == null) {
-                throw constraintViolation(26, "Mandatory property rep:principalName missing.");
-            }
-
-            if (isSystemUser) {
-                if (TreeUtil.getString(tree, REP_PASSWORD) != null) {
-                    throw constraintViolation(27, "Attempt to set password with system user.");
-                }
-                if (tree.hasChild(REP_PWD)) {
-                    throw constraintViolation(28, "Attempt to add rep:pwd node to a system user.");
-                }
-            }
-        }
+        validateAuthorizable(tree, UserUtil.getType(tree));
         return new VisibleValidator(new UserValidator(null, tree, provider), true, true);
     }
 
@@ -202,6 +183,32 @@ class UserValidator extends DefaultValidator implements UserConstants {
             Tree memberTree = mp.getByContentID(memberContentId, AuthorizableType.GROUP);
             if (memberTree != null && mp.isMember(memberTree, groupContentId, true)) {
                 throw constraintViolation(31, "Cyclic group membership detected in group" + UserUtil.getAuthorizableId(parentAfter));
+            }
+        }
+    }
+
+    private void validateAuthorizable(@Nonnull Tree tree, @Nonnull AuthorizableType type) throws CommitFailedException {
+        boolean isSystemUser = (type == AuthorizableType.USER) && UserUtil.isSystemUser(tree);
+        String authRoot = UserUtil.getAuthorizableRootPath(provider.getConfig(), type);
+        if (isSystemUser) {
+            String sysRelPath = provider.getConfig().getConfigValue(PARAM_SYSTEM_RELATIVE_PATH, DEFAULT_SYSTEM_RELATIVE_PATH);
+            authRoot = authRoot + '/' + sysRelPath;
+        }
+        if (authRoot != null) {
+            assertHierarchy(tree, authRoot);
+            // assert rep:principalName is present (that should actually by covered
+            // by node type validator)
+            if (TreeUtil.getString(tree, REP_PRINCIPAL_NAME) == null) {
+                throw constraintViolation(26, "Mandatory property rep:principalName missing.");
+            }
+
+            if (isSystemUser) {
+                if (TreeUtil.getString(tree, REP_PASSWORD) != null) {
+                    throw constraintViolation(27, "Attempt to set password with system user.");
+                }
+                if (tree.hasChild(REP_PWD)) {
+                    throw constraintViolation(28, "Attempt to add rep:pwd node to a system user.");
+                }
             }
         }
     }
