@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
@@ -47,7 +48,9 @@ public class FileStoreBackup {
         long s = System.currentTimeMillis();
 
         // 1. create a new checkpoint with the current state
-        String checkpoint = store.checkpoint(DEFAULT_LIFETIME);
+        String checkpoint = store.checkpoint(DEFAULT_LIFETIME, ImmutableMap.of(
+                "creator", FileStoreBackup.class.getSimpleName(),
+                "thread", Thread.currentThread().getName()));
         NodeState current = store.retrieve(checkpoint);
         if (current == null) {
             // unable to retrieve the checkpoint; use root state instead
