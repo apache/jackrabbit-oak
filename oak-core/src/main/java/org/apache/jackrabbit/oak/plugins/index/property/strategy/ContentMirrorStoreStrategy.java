@@ -213,6 +213,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 // (entryCount could be Long.MAX_VALUE)
                 // the cost is not multiplied by the size, 
                 // otherwise the traversing index might be used
+                keyCount = Math.max(1, keyCount);
                 return (long) ((double) entryCount / keyCount) + size;
             }
             max = Math.max(10, max / size);
