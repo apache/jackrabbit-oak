@@ -272,9 +272,9 @@ public class AsyncIndexUpdateTest {
 
             @Nonnull
             @Override
-            public String checkpoint(long lifetime) {
+            public String checkpoint(long lifetime, @Nonnull Map<String, String> properties) {
                 try {
-                    return super.checkpoint(lifetime);
+                    return super.checkpoint(lifetime, properties);
                 } finally {
                     checkpoint.release();
                 }
