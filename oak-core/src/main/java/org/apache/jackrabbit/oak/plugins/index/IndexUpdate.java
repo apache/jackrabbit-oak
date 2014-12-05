@@ -41,6 +41,7 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -57,11 +58,7 @@ public class IndexUpdate implements Editor {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final IndexEditorProvider provider;
-
-    private final String async;
-
-    private final NodeState root;
+    private final IndexUpdateRootState rootState;
 
     private final NodeBuilder builder;
 
@@ -84,11 +81,6 @@ public class IndexUpdate implements Editor {
      */
     private final Map<String, Editor> reindex = new HashMap<String, Editor>();
 
-    /**
-     * Callback for the update events of the indexing job
-     */
-    private final IndexUpdateCallback updateCallback;
-
     private MissingIndexProviderStrategy missingProvider = new MissingIndexProviderStrategy();
 
     public IndexUpdate(
@@ -98,21 +90,15 @@ public class IndexUpdate implements Editor {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.provider = checkNotNull(provider);
-        this.async = async;
-        this.root = checkNotNull(root);
+        this.rootState = new IndexUpdateRootState(provider, async, root, updateCallback);
         this.builder = checkNotNull(builder);
-        this.updateCallback = checkNotNull(updateCallback);
     }
 
     private IndexUpdate(IndexUpdate parent, String name) {
         this.parent = checkNotNull(parent);
         this.name = name;
-        this.provider = parent.provider;
-        this.async = parent.async;
-        this.root = parent.root;
+        this.rootState = parent.rootState;
         this.builder = parent.builder.getChildNode(checkNotNull(name));
-        this.updateCallback = parent.updateCallback;
     }
 
     @Override
@@ -123,6 +109,7 @@ public class IndexUpdate implements Editor {
         if (!reindex.isEmpty()) {
             log.info("Reindexing will be performed for following indexes: {}",
                     reindex.keySet());
+            rootState.reindexedIndexes.addAll(reindex.keySet());
         }
 
         // no-op when reindex is empty
@@ -135,6 +122,14 @@ public class IndexUpdate implements Editor {
         for (Editor editor : editors) {
             editor.enter(before, after);
         }
+    }
+
+    public boolean isReindexingPerformed(){
+        return !getAllReIndexedIndexes().isEmpty();
+    }
+
+    public Set<String> getAllReIndexedIndexes(){
+        return rootState.reindexedIndexes;
     }
 
     private boolean shouldReindex(NodeBuilder definition, NodeState before,
@@ -157,7 +152,7 @@ public class IndexUpdate implements Editor {
             NodeState before) throws CommitFailedException {
         for (String name : definitions.getChildNodeNames()) {
             NodeBuilder definition = definitions.getChildNode(name);
-            if (Objects.equal(async, definition.getString(ASYNC_PROPERTY_NAME))) {
+            if (Objects.equal(rootState.async, definition.getString(ASYNC_PROPERTY_NAME))) {
                 String type = definition.getString(TYPE_PROPERTY_NAME);
                 if (type == null) {
                     // probably not an index def
@@ -165,7 +160,7 @@ public class IndexUpdate implements Editor {
                 }
                 boolean shouldReindex = shouldReindex(definition,
                         before, name);
-                Editor editor = provider.getIndexEditor(type, definition, root, updateCallback);
+                Editor editor = rootState.provider.getIndexEditor(type, definition, rootState.root, rootState.updateCallback);
                 if (editor == null) {
                     missingProvider.onMissingIndex(type, definition);
                 } else if (shouldReindex) {
@@ -301,6 +296,25 @@ public class IndexUpdate implements Editor {
             MissingIndexProviderStrategy missingProvider) {
         this.missingProvider = missingProvider;
         return this;
+    }
+
+    private static final class IndexUpdateRootState {
+        final IndexEditorProvider provider;
+        final String async;
+        final NodeState root;
+        /**
+         * Callback for the update events of the indexing job
+         */
+        final IndexUpdateCallback updateCallback;
+        final Set<String> reindexedIndexes = Sets.newHashSet();
+
+        private IndexUpdateRootState(IndexEditorProvider provider, String async, NodeState root,
+                                     IndexUpdateCallback updateCallback) {
+            this.provider = checkNotNull(provider);
+            this.async = async;
+            this.root = checkNotNull(root);
+            this.updateCallback = checkNotNull(updateCallback);
+        }
     }
 
 }
