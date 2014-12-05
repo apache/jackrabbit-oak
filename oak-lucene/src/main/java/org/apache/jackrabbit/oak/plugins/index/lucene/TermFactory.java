@@ -39,10 +39,7 @@ public final class TermFactory {
      * @return the path term.
      */
     public static Term newPathTerm(String path) {
-        if (!"/".equals(path) && !path.startsWith("/")) {
-            path = "/" + path;
-        }
-        return new Term(FieldNames.PATH, path);
+        return new Term(FieldNames.PATH, preparePath(path));
     }
 
     public static Term newFulltextTerm(String ft, String field) {
@@ -52,8 +49,18 @@ public final class TermFactory {
         return new Term(field, ft);
     }
 
+    public static Term newAncestorTerm(String path){
+        return new Term(FieldNames.ANCESTORS, preparePath(path));
+    }
+
     public static Term newFulltextTerm(String ft) {
         return new Term(FieldNames.FULLTEXT, ft);
     }
 
+    private static String preparePath(String path) {
+        if (!"/".equals(path) && !path.startsWith("/")) {
+            path = "/" + path;
+        }
+        return path;
+    }
 }
