@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,6 +281,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public boolean indexesAllTypes() {
         return indexesAllTypes;
+    }
+
+    public Analyzer getAnalyzer(){
+        return LuceneIndexConstants.ANALYZER;
     }
 
     @Override

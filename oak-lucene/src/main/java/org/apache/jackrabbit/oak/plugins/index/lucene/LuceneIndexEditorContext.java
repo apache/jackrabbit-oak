@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
@@ -47,13 +46,13 @@ public class LuceneIndexEditorContext {
     private static final Logger log = LoggerFactory
             .getLogger(LuceneIndexEditorContext.class);
 
-    private static IndexWriterConfig getIndexWriterConfig(Analyzer analyzer, IndexDefinition definition) {
+    private static IndexWriterConfig getIndexWriterConfig(IndexDefinition definition) {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
         Thread thread = Thread.currentThread();
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
+            IndexWriterConfig config = new IndexWriterConfig(VERSION, definition.getAnalyzer());
             config.setMergeScheduler(new SerialMergeScheduler());
             if (definition.getCodec() != null) {
                 config.setCodec(definition.getCodec());
@@ -104,10 +103,10 @@ public class LuceneIndexEditorContext {
 
     private boolean reindex;
 
-    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, Analyzer analyzer, IndexUpdateCallback updateCallback) {
+    LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
         this.definition = new IndexDefinition(root, definition);
-        this.config = getIndexWriterConfig(analyzer, this.definition);
+        this.config = getIndexWriterConfig(this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
 

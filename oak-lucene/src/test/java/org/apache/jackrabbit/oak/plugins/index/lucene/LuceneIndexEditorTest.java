@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.test.ISO8601;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
@@ -64,11 +63,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class LuceneIndexEditorTest {
-    private static final Analyzer analyzer = LuceneIndexConstants.ANALYZER;
-
     private static final EditorHook HOOK = new EditorHook(
             new IndexUpdateProvider(
-                    new LuceneIndexEditorProvider().with(analyzer)));
+                    new LuceneIndexEditorProvider()));
 
     private NodeState root = INITIAL_CONTENT;
 
@@ -83,7 +80,7 @@ public class LuceneIndexEditorTest {
         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
         NodeBuilder idxnb = newLuceneIndexDefinitionV2(index, "lucene",
                 of(TYPENAME_STRING));
-
+        IndexDefinition defn = new IndexDefinition(root, idxnb.getNodeState());
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("price", 100);
@@ -93,7 +90,7 @@ public class LuceneIndexEditorTest {
         tracker.update(indexed);
 
         //system fields starts with ':' so need to be escaped
-        assertEquals("/test", query(escape(FieldNames.createAnalyzedFieldName("foo"))+":fox"));
+        assertEquals("/test", query(escape(FieldNames.createAnalyzedFieldName("foo"))+":fox", defn));
         assertNull("Non string properties not indexed by default",
                 getPath(NumericRangeQuery.newLongRange("price", 100L, 100L, true, true)));
     }
@@ -109,7 +106,7 @@ public class LuceneIndexEditorTest {
                 of(TYPENAME_STRING));
         nb.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, false);
         nb.setProperty(createProperty(INCLUDE_PROPERTY_NAMES, of("foo", "price", "weight", "bool", "creationTime"), STRINGS));
-
+        IndexDefinition defn = new IndexDefinition(root, nb.getNodeState());
         NodeState before = builder.getNodeState();
         builder.child("test").setProperty("foo", "fox is jumping");
         builder.child("test").setProperty("bar", "kite is flying");
@@ -123,7 +120,7 @@ public class LuceneIndexEditorTest {
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
         tracker.update(indexed);
 
-        assertNull("Fulltext search should not work", query("foo:fox"));
+        assertNull("Fulltext search should not work", query("foo:fox",defn));
         assertEquals("/test", getPath(new TermQuery(new Term("foo", "fox is jumping"))));
         assertNull("bar must NOT be indexed", getPath(new TermQuery(new Term("bar", "kite is flying"))));
 
@@ -340,8 +337,8 @@ public class LuceneIndexEditorTest {
         indexNode = null;
     }
 
-    private String query(String query) throws IOException, ParseException {
-        QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
+    private String query(String query, IndexDefinition defn) throws IOException, ParseException {
+        QueryParser queryParser = new QueryParser(VERSION, "", defn.getAnalyzer());
         return getPath(queryParser.parse(query));
     }
 
