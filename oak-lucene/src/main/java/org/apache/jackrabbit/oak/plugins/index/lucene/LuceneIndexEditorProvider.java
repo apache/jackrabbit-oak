@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 import org.apache.felix.scr.annotations.Component;
@@ -28,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.analysis.Analyzer;
 
 /**
  * Service that provides Lucene based {@link IndexEditor}s
@@ -41,33 +39,15 @@ import org.apache.lucene.analysis.Analyzer;
 @Service(IndexEditorProvider.class)
 public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
-    /**
-     * TODO how to inject this in an OSGi friendly way?
-     */
-    private Analyzer analyzer = ANALYZER;
-
     @Override
     public Editor getIndexEditor(
             String type, NodeBuilder definition, NodeState root, IndexUpdateCallback callback)
             throws CommitFailedException {
         if (TYPE_LUCENE.equals(type)) {
-            return new LuceneIndexEditor(root, definition, analyzer, callback);
+            return new LuceneIndexEditor(root, definition, callback);
         }
         return null;
     }
 
-    /**
-     * sets the default analyzer that will be used at index time
-     */
-    public void setAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
-    }
-
-    // ----- helper builder method
-
-    public LuceneIndexEditorProvider with(Analyzer analyzer) {
-        this.setAnalyzer(analyzer);
-        return this;
-    }
 
 }

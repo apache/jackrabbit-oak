@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardExecutor;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.util.InfoStream;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -66,19 +65,11 @@ public class LuceneIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final Analyzer defaultAnalyzer = LuceneIndexConstants.ANALYZER;
-
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policyOption = ReferencePolicyOption.GREEDY,
             policy = ReferencePolicy.DYNAMIC
     )
     private NodeAggregator nodeAggregator;
-
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
-            policyOption = ReferencePolicyOption.GREEDY,
-            policy = ReferencePolicy.DYNAMIC
-    )
-    protected Analyzer analyzer;
 
     @Property(
             boolValue = false,
@@ -156,9 +147,6 @@ public class LuceneIndexProviderService {
         }
 
         indexProvider.setAggregator(nodeAggregator);
-
-        Analyzer analyzer = this.analyzer != null ? this.analyzer : defaultAnalyzer;
-        indexProvider.setAnalyzer(analyzer);
     }
 
     private void initializeLogging(Map<String, ?> config) {
@@ -209,16 +197,6 @@ public class LuceneIndexProviderService {
 
     protected void unbindNodeAggregator(NodeAggregator aggregator) {
         this.nodeAggregator = null;
-        initialize();
-    }
-
-    protected void bindAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
-        initialize();
-    }
-
-    protected void unbindAnalyzer(Analyzer analyzer) {
-        this.analyzer = null;
         initialize();
     }
 }
