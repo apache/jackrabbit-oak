@@ -347,6 +347,7 @@ public class AsyncIndexUpdate implements Runnable {
             NodeState before, String beforeCheckpoint,
             NodeState after, String afterCheckpoint, String afterTime)
             throws CommitFailedException {
+        Stopwatch watch = Stopwatch.createStarted();
         // start collecting runtime statistics
         preAsyncRunStatsStats(indexStats);
 
@@ -396,6 +397,9 @@ public class AsyncIndexUpdate implements Runnable {
                 postAsyncRunStatsStatus(indexStats);
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
+            if (indexUpdate.isReindexingPerformed()) {
+                log.info("Reindexing completed for indexes: {} in {}", indexUpdate.getAllReIndexedIndexes(), watch);
+            }
         } finally {
             callback.close();
         }
