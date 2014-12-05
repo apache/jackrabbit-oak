@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
@@ -53,6 +54,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
 import org.apache.lucene.codecs.Codec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,6 +157,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final boolean indexesAllTypes;
 
+    private final Analyzer analyzer;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -207,6 +212,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.costPerEntry = getOptionalValue(defn, LuceneIndexConstants.COST_PER_ENTRY, 1.0);
         this.costPerExecution = getOptionalValue(defn, LuceneIndexConstants.COST_PER_EXECUTION, 1.0);
         this.indexesAllTypes = areAllTypesIndexed();
+        this.analyzer = createAnalyzer();
     }
 
     public boolean isFullTextEnabled() {
@@ -284,12 +290,25 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     public Analyzer getAnalyzer(){
-        return LuceneIndexConstants.ANALYZER;
+        return analyzer;
     }
 
     @Override
     public String toString() {
         return "IndexDefinition : " + indexName;
+    }
+
+    //~---------------------------------------------------< Analyzer >
+
+    private Analyzer createAnalyzer() {
+        if (!evaluatePathRestrictions()){
+            return LuceneIndexConstants.ANALYZER;
+        }
+        Map<String, Analyzer> analyzerMap = ImmutableMap.<String, Analyzer>builder()
+                .put(FieldNames.ANCESTORS,
+                        new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.<String, String>emptyMap())))
+                .build();
+        return new PerFieldAnalyzerWrapper(LuceneIndexConstants.ANALYZER, analyzerMap);
     }
 
     //~---------------------------------------------------< Aggregates >

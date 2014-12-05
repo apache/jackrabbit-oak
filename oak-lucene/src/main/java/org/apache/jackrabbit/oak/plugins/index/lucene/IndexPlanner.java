@@ -290,6 +290,7 @@ class IndexPlanner {
     }
 
     private String getPathPrefix() {
+        // 2 = /oak:index/<index name>
         String parentPath = PathUtils.getAncestorPath(indexPath, 2);
         return PathUtils.denotesRoot(parentPath) ? "" : parentPath;
     }

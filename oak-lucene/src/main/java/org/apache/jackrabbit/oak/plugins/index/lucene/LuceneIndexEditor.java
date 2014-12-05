@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newDepthField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newFulltextField;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newAncestorsField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -313,6 +315,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         if (indexingRule.isFulltextEnabled()) {
             document.add(newFulltextField(name));
         }
+
+        if (getDefinition().evaluatePathRestrictions()){
+            document.add(newAncestorsField(PathUtils.getParentPath(path)));
+            document.add(newDepthField(path));
+        }
+
         for (Field f : fields) {
             document.add(f);
         }
