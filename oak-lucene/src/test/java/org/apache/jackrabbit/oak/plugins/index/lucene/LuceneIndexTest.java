@@ -75,11 +75,9 @@ import com.google.common.collect.ImmutableSet;
 
 public class LuceneIndexTest {
 
-    private static final Analyzer analyzer = LuceneIndexConstants.ANALYZER;
-
     private static final EditorHook HOOK = new EditorHook(
             new IndexUpdateProvider(
-                    new LuceneIndexEditorProvider().with(analyzer)));
+                    new LuceneIndexEditorProvider()));
 
     private NodeState root = INITIAL_CONTENT;
 
@@ -100,7 +98,7 @@ public class LuceneIndexTest {
 
         IndexTracker tracker = new IndexTracker();
         tracker.update(indexed);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, analyzer);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -130,7 +128,7 @@ public class LuceneIndexTest {
 
         IndexTracker tracker = new IndexTracker();
         tracker.update(indexed);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, analyzer);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
@@ -163,7 +161,7 @@ public class LuceneIndexTest {
 
         IndexTracker tracker = new IndexTracker();
         tracker.update(indexed);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, analyzer);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -202,7 +200,7 @@ public class LuceneIndexTest {
 
         IndexTracker tracker = new IndexTracker();
         tracker.update(indexed);
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, analyzer);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
@@ -226,6 +224,7 @@ public class LuceneIndexTest {
 
     @Test
     public void testTokens() {
+        Analyzer analyzer = LuceneIndexConstants.ANALYZER;
         assertEquals(ImmutableList.of("parent", "child"),
                 LuceneIndex.tokenize("/parent/child", analyzer));
         assertEquals(ImmutableList.of("p1234", "p5678"),
@@ -369,7 +368,7 @@ public class LuceneIndexTest {
 
 
     private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
-        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker, analyzer);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty(key, Operator.EQUAL,
