@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import javax.jcr.PropertyType;
 
 import static com.google.common.collect.ImmutableList.copyOf;
 import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
 import static junit.framework.Assert.assertEquals;
@@ -214,12 +216,48 @@ public class LuceneIndexTest {
         assertFalse(cursor.hasNext());
     }
 
-    private FilterImpl createFilter(String nodeTypeName) {
-        NodeState system = root.getChildNode(JCR_SYSTEM);
-        NodeState types = system.getChildNode(JCR_NODE_TYPES);
-        NodeState type = types.getChildNode(nodeTypeName);
-        SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
-        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+    @Test
+    public void testPathRestrictions() throws Exception {
+        NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        idx.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a1").setProperty("foo", "bar");
+        builder.child("a").child("b").setProperty("foo", "bar");
+        builder.child("a").child("b").child("c").setProperty("foo", "bar");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+
+        FilterImpl filter = createTestFilter();
+        filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/"));
+
+        filter = createTestFilter();
+        filter.restrictPath("/", Filter.PathRestriction.DIRECT_CHILDREN);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a", "/a1"));
+
+        filter = createTestFilter();
+        filter.restrictPath("/a", Filter.PathRestriction.DIRECT_CHILDREN);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a/b"));
+
+        filter = createTestFilter();
+        filter.restrictPath("/a", Filter.PathRestriction.ALL_CHILDREN);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/a/b", "/a/b/c"));
+    }
+
+    private FilterImpl createTestFilter(){
+        FilterImpl filter = createFilter(NT_BASE);
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        return filter;
     }
 
     @Test
@@ -366,6 +404,13 @@ public class LuceneIndexTest {
         }
     }
 
+    private FilterImpl createFilter(String nodeTypeName) {
+        NodeState system = root.getChildNode(JCR_SYSTEM);
+        NodeState types = system.getChildNode(JCR_NODE_TYPES);
+        NodeState type = types.getChildNode(nodeTypeName);
+        SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]", new QueryEngineSettings());
+    }
 
     private void assertQuery(IndexTracker tracker, NodeState indexed, String key, String value){
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
@@ -378,6 +423,23 @@ public class LuceneIndexTest {
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
+    }
+
+    private static List<String> assertFilter(Filter filter, AdvancedQueryIndex queryIndex,
+                                             NodeState indexed, List<String> expected) {
+        List<IndexPlan> plans = queryIndex.getPlans(filter, null, indexed);
+        Cursor cursor = queryIndex.query(plans.get(0), indexed);
+
+        List<String> paths = newArrayList();
+        while (cursor.hasNext()) {
+            paths.add(cursor.next().getPath());
+        }
+        Collections.sort(paths);
+        for (String p : expected) {
+            assertTrue("Expected path " + p + " not found", paths.contains(p));
+        }
+        assertEquals("Result set size is different", expected.size(), paths.size());
+        return paths;
     }
 
     private String getIndexDir(){

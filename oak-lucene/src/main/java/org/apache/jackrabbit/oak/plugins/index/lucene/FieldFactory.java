@@ -20,9 +20,11 @@ import java.util.Arrays;
 
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 
@@ -106,6 +108,14 @@ public final class FieldFactory {
 
     public static Field newFulltextField(String name, String value) {
         return new TextField(FieldNames.createFulltextFieldName(name), value, NO);
+    }
+
+    public static Field newAncestorsField(String path){
+        return new TextField(FieldNames.ANCESTORS, path, NO);
+    }
+
+    public static Field newDepthField(String path){
+        return new IntField(FieldNames.PATH_DEPTH, PathUtils.getDepth(path), NO);
     }
 
     /**

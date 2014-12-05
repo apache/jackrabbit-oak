@@ -141,7 +141,7 @@ public interface LuceneIndexConstants {
      */
     String TEST_MODE = "testMode";
 
-    String EVALUATE_PATH_RESTRICTION = "oak.experimental.evaluatePathRestrictions";
+    String EVALUATE_PATH_RESTRICTION = "evaluatePathRestrictions";
 
     /**
      * Experimental config to restrict which property type gets indexed at
