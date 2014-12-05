@@ -264,9 +264,11 @@ public class AsyncIndexUpdate implements Runnable {
 
         // check for concurrent updates
         NodeState async = root.getChildNode(ASYNC);
-        if (async.getLong(name + "-lease") > System.currentTimeMillis()) {
+        long leaseEndTime = async.getLong(name + "-lease");
+        long currentTime = System.currentTimeMillis();
+        if (leaseEndTime > currentTime) {
             log.debug("Another copy of the {} index update is already running;"
-                    + " skipping this update", name);
+                    + " skipping this update. Time left for lease to expire {}s", name, (leaseEndTime - currentTime)/1000);
             return;
         }
 
