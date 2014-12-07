@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoubleField;
@@ -108,12 +107,12 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
     private final MatcherState matcherState;
 
-    LuceneIndexEditor(NodeState root, NodeBuilder definition, Analyzer analyzer,
+    LuceneIndexEditor(NodeState root, NodeBuilder definition,
         IndexUpdateCallback updateCallback) throws CommitFailedException {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.context = new LuceneIndexEditorContext(root, definition, analyzer,
+        this.context = new LuceneIndexEditorContext(root, definition,
                 updateCallback);
         this.root = root;
         this.isDeleted = false;
