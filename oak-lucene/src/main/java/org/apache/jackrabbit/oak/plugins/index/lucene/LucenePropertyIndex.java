@@ -165,12 +165,8 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
     protected final IndexTracker tracker;
 
-    private final Analyzer analyzer;
-
-    public LucenePropertyIndex(
-            IndexTracker tracker, Analyzer analyzer) {
+    public LucenePropertyIndex(IndexTracker tracker) {
         this.tracker = tracker;
-        this.analyzer = analyzer;
     }
 
     @Override
@@ -225,7 +221,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     .append("(")
                     .append(path)
                     .append(") ");
-            sb.append(getQuery(plan, null, analyzer));
+            sb.append(getQuery(plan, null));
             if(plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()){
                 sb.append(" ordering:").append(plan.getSortOrder());
             }
@@ -299,7 +295,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 checkState(indexNode != null);
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
-                    Query query = getQuery(plan, searcher.getIndexReader(), analyzer);
+                    Query query = getQuery(plan, searcher.getIndexReader());
                     TopDocs docs;
                     long time = System.currentTimeMillis();
                     if (lastDoc != null) {
@@ -416,12 +412,13 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
      * @param defn nodestate that contains the index definition
      * @return the Lucene query
      */
-    private static Query getQuery(IndexPlan plan, IndexReader reader, Analyzer analyzer) {
+    private static Query getQuery(IndexPlan plan, IndexReader reader) {
         List<Query> qs = new ArrayList<Query>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
         PlanResult planResult = pr(plan);
         IndexDefinition defn = planResult.indexDefinition;
+        Analyzer analyzer = defn.getAnalyzer();
         if (ft == null) {
             // there might be no full-text constraint
             // when using the LowCostLuceneIndexProvider

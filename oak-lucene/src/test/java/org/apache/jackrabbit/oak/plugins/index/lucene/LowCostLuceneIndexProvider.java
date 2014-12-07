@@ -22,7 +22,6 @@ import java.util.List;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.analysis.Analyzer;
 
 /**
  * A LuceneIndexProvider that return a LuceneIndex with a really low cost, so
@@ -33,13 +32,13 @@ public class LowCostLuceneIndexProvider extends LuceneIndexProvider {
 
     @Override
     protected LuceneIndex newLuceneIndex() {
-        return new LowCostLuceneIndex(tracker, analyzer, aggregator);
+        return new LowCostLuceneIndex(tracker, aggregator);
     }
 
     private static class LowCostLuceneIndex extends LuceneIndex {
 
-        public LowCostLuceneIndex(IndexTracker tracker, Analyzer analyzer, NodeAggregator aggregator) {
-            super(tracker, analyzer, aggregator);
+        public LowCostLuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
+            super(tracker, aggregator);
         }
 
         @Override

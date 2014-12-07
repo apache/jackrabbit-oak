@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.analysis.Analyzer;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,8 +39,6 @@ import com.google.common.collect.ImmutableList;
 public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closeable {
 
     protected final IndexTracker tracker;
-
-    protected volatile Analyzer analyzer = LuceneIndexConstants.ANALYZER;
 
     protected volatile NodeAggregator aggregator = null;
 
@@ -72,18 +69,11 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     protected LuceneIndex newLuceneIndex() {
-        return new LuceneIndex(tracker, analyzer, aggregator);
+        return new LuceneIndex(tracker, aggregator);
     }
 
     protected LucenePropertyIndex newLucenePropertyIndex() {
-        return new LucenePropertyIndex(tracker, analyzer);
-    }
-
-    /**
-     * sets the default analyzer that will be used at query time
-     */
-    public void setAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
+        return new LucenePropertyIndex(tracker);
     }
 
     /**
@@ -94,11 +84,6 @@ public class LuceneIndexProvider implements QueryIndexProvider, Observer, Closea
     }
 
     // ----- helper builder method
-
-    public LuceneIndexProvider with(Analyzer analyzer) {
-        this.setAnalyzer(analyzer);
-        return this;
-    }
 
     public LuceneIndexProvider with(NodeAggregator analyzer) {
         this.setAggregator(analyzer);

@@ -165,15 +165,10 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
     protected final IndexTracker tracker;
 
-    private final Analyzer analyzer;
-
     private final NodeAggregator aggregator;
 
-    public LuceneIndex(
-            IndexTracker tracker, Analyzer analyzer,
-            NodeAggregator aggregator) {
+    public LuceneIndex(IndexTracker tracker, NodeAggregator aggregator) {
         this.tracker = tracker;
-        this.analyzer = analyzer;
         this.aggregator = aggregator;
     }
 
@@ -247,7 +242,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             // we only restrict non-full-text conditions if there is
             // no relative property in the full-text constraint
             boolean nonFullTextConstraints = parent.isEmpty();
-            String planDesc = getQuery(filter, null, nonFullTextConstraints, analyzer, index.getDefinition()) + " ft:(" + ft + ")";
+            String planDesc = getQuery(filter, null, nonFullTextConstraints, index.getDefinition()) + " ft:(" + ft + ")";
             if (!parent.isEmpty()) {
                 planDesc += " parent:" + parent;
             }
@@ -333,7 +328,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 try {
                     IndexSearcher searcher = indexNode.getSearcher();
                     Query query = getQuery(filter, searcher.getIndexReader(),
-                            nonFullTextConstraints, analyzer, indexNode.getDefinition());
+                            nonFullTextConstraints, indexNode.getDefinition());
                     TopDocs docs;
                     long time = System.currentTimeMillis();
                     if (lastDoc != null) {
@@ -440,8 +435,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
      * @return the Lucene query
      */
     private static Query getQuery(Filter filter, IndexReader reader,
-            boolean nonFullTextConstraints, Analyzer analyzer, IndexDefinition indexDefinition) {
+            boolean nonFullTextConstraints, IndexDefinition indexDefinition) {
         List<Query> qs = new ArrayList<Query>();
+        Analyzer analyzer = indexDefinition.getAnalyzer();
         FullTextExpression ft = filter.getFullTextConstraint();
         if (ft == null) {
             // there might be no full-text constraint
@@ -453,7 +449,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
+            QueryParser queryParser = new QueryParser(VERSION, "", indexDefinition.getAnalyzer());
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {
