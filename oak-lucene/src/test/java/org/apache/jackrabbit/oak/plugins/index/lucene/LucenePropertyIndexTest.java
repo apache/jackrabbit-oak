@@ -422,6 +422,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void indexDefinitionBelowRoot() throws Exception {
         Tree parent = root.getTree("/").addChild("test");
         Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+        idx.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
         idx.addChild(PROP_NODE).addChild("propa");
         root.commit();
 
@@ -432,7 +433,21 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test') and propa = 'a'", asList("/test/test2/a"));
     }
 
+    @Test
+    public void indexDefinitionBelowRoot2() throws Exception {
+        Tree parent = root.getTree("/").addChild("test");
+        Tree idx = createIndex(parent, "test1", of("propa", "propb"));
+        idx.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
 
+        Tree test = parent.addChild("test2").addChild("test3");
+        test.addChild("a").setProperty("propa", "a");
+        root.commit();
+
+        assertQuery("select [jcr:path] from [nt:base] as s where ISDESCENDANTNODE(s, '/test/test2') and propa = 'a'",
+                asList("/test/test2/test3/a"));
+    }
     @Test
     public void sortQueriesWithLong() throws Exception {
         Tree idx = createIndex("test1", of("foo", "bar"));
