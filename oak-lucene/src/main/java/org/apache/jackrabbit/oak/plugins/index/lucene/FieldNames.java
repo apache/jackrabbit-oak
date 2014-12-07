@@ -38,6 +38,17 @@ public final class FieldNames {
     public static final String PATH = ":path";
 
     /**
+     * Name of the field that contains all the path hierarchy e.g. for /a/b/c
+     * it would contain /a, /a/b, /a/b/c
+     */
+    public static final String ANCESTORS = ":ancestors";
+
+    /**
+     * Name of the field which refers to the depth of path
+     */
+    public static final String PATH_DEPTH = ":depth";
+
+    /**
      * Name of the field that contains the fulltext index.
      */
     public static final String FULLTEXT = ":fulltext";

@@ -102,6 +102,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.QueryImpl.JCR_PATH;
@@ -500,26 +501,22 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
         }
 
-        String path = filter.getPath();
-        //TODO Readjust path based on pathPrefix of the index
+        String path = getPathRestriction(plan);
         switch (filter.getPathRestriction()) {
         case ALL_CHILDREN:
             if (defn.evaluatePathRestrictions()) {
                 if ("/".equals(path)) {
                     break;
                 }
-                if (!path.endsWith("/")) {
-                    path += "/";
-                }
-                qs.add(new PrefixQuery(newPathTerm(path)));
+                qs.add(new TermQuery(newAncestorTerm(path)));
             }
             break;
         case DIRECT_CHILDREN:
             if (defn.evaluatePathRestrictions()) {
-                if (!path.endsWith("/")) {
-                    path += "/";
-                }
-                qs.add(new PrefixQuery(newPathTerm(path)));
+                BooleanQuery bq = new BooleanQuery();
+                bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
+                bq.add(new BooleanClause(newDepthQuery(path), BooleanClause.Occur.MUST));
+                qs.add(bq);
             }
             break;
         case EXACT:
@@ -1045,6 +1042,21 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             }
         }
         return tokens;
+    }
+
+    private static String getPathRestriction(IndexPlan plan) {
+        Filter f = plan.getFilter();
+        String pathPrefix = plan.getPathPrefix();
+        if (pathPrefix.isEmpty()) {
+            return f.getPath();
+        }
+        String relativePath = PathUtils.relativize(pathPrefix, f.getPath());
+        return "/" + relativePath;
+    }
+
+    private static Query newDepthQuery(String path) {
+        int depth = PathUtils.getDepth(path) + 1;
+        return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
     }
 
     static class LuceneResultRow {
