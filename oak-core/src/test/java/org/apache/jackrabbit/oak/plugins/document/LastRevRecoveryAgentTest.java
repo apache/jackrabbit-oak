@@ -127,8 +127,7 @@ public class LastRevRecoveryAgentTest {
         b2.child("x").child("y").child("z").setProperty("foo", "bar");
         ds2.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        NodeDocument z1 = getDocument(ds1, "/x/y/z");
-        Revision zlastRev2 = z1.getLastRev().get(c2Id);
+        Revision zlastRev2 = ds2.getHeadRevision();
 
         long leaseTime = ds1.getClusterInfo().getLeaseTime();
         ds1.runBackgroundOperations();

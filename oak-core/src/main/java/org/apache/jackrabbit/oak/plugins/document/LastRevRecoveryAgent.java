@@ -155,14 +155,10 @@ public class LastRevRecoveryAgent {
                 if (currentLastRev != null) {
                     knownLastRevs.put(doc.getPath(), currentLastRev);
                 }
-                Revision lostLastRev = determineMissedLastRev(doc, clusterId);
+                // 1. determine last committed modification on document
+                Revision lastModifiedRev = determineLastModification(doc, clusterId);
 
-                //1. Update lastRev for this doc
-                if (lostLastRev != null) {
-                    unsaved.put(doc.getPath(), lostLastRev);
-                }
-
-                Revision lastRevForParents = lostLastRev != null ? lostLastRev : currentLastRev;
+                Revision lastRevForParents = Utils.max(lastModifiedRev, currentLastRev);
 
                 //If both currentLastRev and lostLastRev are null it means
                 //that no change is done by suspect cluster on this document
@@ -257,21 +253,17 @@ public class LastRevRecoveryAgent {
     }
 
     /**
-     * Determines the last revision value which needs to set for given clusterId
-     * on the passed document. If the last rev entries are consisted
+     * Determines the last committed modification to the given document by
+     * a {@code clusterId}.
      * 
-     * @param doc NodeDocument where lastRev entries needs to be fixed
-     * @param clusterId clusterId for which lastRev has to be checked
-     * @return lastRev which needs to be updated. <tt>null</tt> if no
-     *         updated is required i.e. lastRev entries are valid
+     * @param doc a document.
+     * @param clusterId clusterId for which the last committed modification is
+     *                  looked up.
+     * @return the commit revision of the last modification by {@code clusterId}
+     *          to the given document.
      */
     @CheckForNull
-    private Revision determineMissedLastRev(NodeDocument doc, int clusterId) {
-        Revision currentLastRev = doc.getLastRev().get(clusterId);
-        if (currentLastRev == null) {
-            currentLastRev = new Revision(0, 0, clusterId);
-        }
-
+    private Revision determineLastModification(NodeDocument doc, int clusterId) {
         ClusterPredicate cp = new ClusterPredicate(clusterId);
 
         // Merge sort the revs for which changes have been made
@@ -285,22 +277,12 @@ public class LastRevRecoveryAgent {
                 StableRevisionComparator.REVERSE
                 );
 
-        // Look for latest valid revision > currentLastRev
-        // if found then lastRev needs to be fixed
+        Revision lastModified = null;
+        // Look for latest valid revision
         for (Revision rev : revs) {
-            if (rev.compareRevisionTime(currentLastRev) > 0) {
-                rev = doc.getCommitRevision(rev);
-                if (rev != null) {
-                    return rev;
-                }
-            } else {
-                // No valid revision found > currentLastRev
-                // indicates that lastRev is valid for given clusterId
-                // and no further checks are required
-                break;
-            }
+            lastModified = Utils.max(lastModified, doc.getCommitRevision(rev));
         }
-        return null;
+        return lastModified;
     }
 
     /**
