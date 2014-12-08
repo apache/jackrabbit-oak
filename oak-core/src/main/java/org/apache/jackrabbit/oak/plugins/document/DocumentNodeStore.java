@@ -466,8 +466,6 @@ public final class DocumentNodeStore
                 clusterNodeInfo.dispose();
             }
             store.dispose();
-            unsavedLastRevisions.close();
-
             LOG.info("Disposed DocumentNodeStore with clusterNodeId: {}", clusterId);
 
             if (blobStore instanceof Closeable) {
