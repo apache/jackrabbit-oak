@@ -37,7 +37,7 @@ explain select e.[jcr:path]
   inner join [nt:base] as d on ischildnode(d, c)
   inner join [nt:base] as e on ischildnode(e, d)
   where name(a) = 'a'
-  and isdescendantnode(a, '/b')
+  and isdescendantnode(a, '/')
   and name(b) = 'c'
   and name(c) = 'd'
   and name(d) = 'e'
@@ -53,9 +53,9 @@ explain select e.[jcr:path]
   inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
   where name([b]) = 'c' */
   on ischildnode([c], [b])
-  inner join [nt:base] as [a] /* traverse "/b//* && //parent/of/join"
+  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
   where (name([a]) = 'a')
-  and (isdescendantnode([a], [/b])) */
+  and (isdescendantnode([a], [/])) */
   on ischildnode([b], [a])
 
 explain select e.[jcr:path]
@@ -65,7 +65,7 @@ explain select e.[jcr:path]
   inner join [nt:base] as d on ischildnode(d, c)
   inner join [nt:base] as e on ischildnode(e, d)
   where name(a) = 'a'
-  and isdescendantnode(a, '/b')
+  and isdescendantnode(a, '/')
   and name(b) = 'c'
   and name(c) = 'd'
   and name(d) = 'e'
@@ -81,9 +81,9 @@ explain select e.[jcr:path]
   inner join [nt:base] as [b] /* traverse "* && //parent/of/join"
   where name([b]) = 'c' */
   on ischildnode([c], [b])
-  inner join [nt:base] as [a] /* traverse "/b//* && //parent/of/join"
+  inner join [nt:base] as [a] /* traverse "//* && //parent/of/join"
   where (name([a]) = 'a')
-  and (isdescendantnode([a], [/b])) */
+  and (isdescendantnode([a], [/])) */
   on ischildnode([b], [a])
 
 explain select excerpt(.)
