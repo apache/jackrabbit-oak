@@ -258,7 +258,7 @@ public class FilterImpl implements Filter {
         case EXACT:
             return path.matches(this.path);
         case PARENT:
-            return PathUtils.isAncestor(path, this.path);
+            return PathUtils.getParentPath(this.path).equals(path);
         case DIRECT_CHILDREN:
             return PathUtils.getParentPath(path).equals(this.path);
         case ALL_CHILDREN:
