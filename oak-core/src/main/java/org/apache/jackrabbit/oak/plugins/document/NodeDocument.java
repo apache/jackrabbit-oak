@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Queue;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +36,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -308,14 +306,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         }
     }
 
-
-    /**
-     * Properties to ignore when a document is split (see OAK-2044).
-     */
-    static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
-            ID, MOD_COUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
-            HAS_BINARY_FLAG, PATH, DELETED_ONCE, COLLISIONS);
-
     public static final long HAS_BINARY_VAL = 1;
 
     final DocumentStore store;
@@ -359,11 +349,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @Nonnull
     public Map<Revision, String> getValueMap(@Nonnull String key) {
-        if (IGNORE_ON_SPLIT.contains(key)) {
-            return Collections.emptyMap();
-        } else {
-            return ValueMap.create(this, key);
-        }
+        return ValueMap.create(this, key);
     }
 
     /**
@@ -1143,6 +1129,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static boolean isCommitRootEntry(String name) {
         return COMMIT_ROOT.equals(name);
+    }
+
+    public static boolean isDeletedEntry(String name) {
+        return DELETED.equals(name);
     }
 
     public static void removeRevision(@Nonnull UpdateOp op,
