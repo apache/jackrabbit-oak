@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -253,9 +254,11 @@ public class AsyncIndexUpdate implements Runnable {
 
         // check for concurrent updates
         NodeState async = root.getChildNode(ASYNC);
-        if (async.getLong(name + "-lease") > System.currentTimeMillis()) {
+        long leaseEndTime = async.getLong(name + "-lease");
+        long currentTime = System.currentTimeMillis();
+        if (leaseEndTime > currentTime) {
             log.debug("Another copy of the {} index update is already running;"
-                    + " skipping this update", name);
+                    + " skipping this update. Time left for lease to expire {}s", name, (leaseEndTime - currentTime)/1000);
             return;
         }
 
@@ -334,6 +337,7 @@ public class AsyncIndexUpdate implements Runnable {
             NodeState before, String beforeCheckpoint,
             NodeState after, String afterCheckpoint, String afterTime)
             throws CommitFailedException {
+        Stopwatch watch = Stopwatch.createStarted();
         // start collecting runtime statistics
         preAsyncRunStatsStats(indexStats);
 
@@ -383,6 +387,9 @@ public class AsyncIndexUpdate implements Runnable {
                 postAsyncRunStatsStatus(indexStats);
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
+            if (indexUpdate.isReindexingPerformed()) {
+                log.info("Reindexing completed for indexes: {} in {}", indexUpdate.getAllReIndexedIndexes(), watch);
+            }
         } finally {
             callback.close();
         }
