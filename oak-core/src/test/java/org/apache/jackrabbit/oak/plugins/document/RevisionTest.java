@@ -496,4 +496,19 @@ public class RevisionTest {
         assertEquals(7, comp.getMinimumTimestamp(r17, inactive));
     }
 
+    // OAK-2318
+    @Test
+    public void getMinimumTimestampSingleClusterId() {
+        Map<Integer, Long> inactive = Maps.newHashMap();
+        RevisionComparator comp = new RevisionComparator(1);
+
+        Revision r1 = new Revision(1, 0, 1);
+        comp.add(r1, new Revision(1, 0, 0));
+
+        assertEquals(1, comp.getMinimumTimestamp(r1, inactive));
+
+        Revision r2 = new Revision(2, 0, 1);
+        assertEquals(2, comp.getMinimumTimestamp(r2, inactive));
+    }
+
 }
