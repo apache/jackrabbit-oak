@@ -253,11 +253,9 @@ public class DocumentNodeStoreTest {
         String id = Utils.getIdFromPath("/foo/node");
         NodeDocument doc = docStore.find(Collection.NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
-        assertTrue(!doc.getLastRev().isEmpty());
         id = Utils.getIdFromPath("/bar/node");
         doc = docStore.find(Collection.NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
-        assertTrue(!doc.getLastRev().isEmpty());
 
         mk.dispose();
     }
@@ -393,30 +391,6 @@ public class DocumentNodeStoreTest {
         nodeStore1.dispose();
         nodeStore2.dispose();
         nodeStore3.dispose();
-    }
-
-    // OAK-1820
-    @Test
-    public void setLastRevOnCommitForNewNode() throws Exception {
-        DocumentNodeStore ns = new DocumentMK.Builder()
-                .setAsyncDelay(0).getNodeStore();
-        // add a first child node. this will set the children flag on root
-        // and move the commit root to the root
-        NodeBuilder builder = ns.getRoot().builder();
-        builder.child("foo");
-        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // the second time, the added node is also the commit root, this
-        // is the case we are interested in
-        builder = ns.getRoot().builder();
-        builder.child("bar");
-        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        NodeDocument doc = ns.getDocumentStore().find(NODES,
-                Utils.getIdFromPath("/bar"));
-        assertEquals(1, doc.getLastRev().size());
-
-        ns.dispose();
     }
 
     @Test

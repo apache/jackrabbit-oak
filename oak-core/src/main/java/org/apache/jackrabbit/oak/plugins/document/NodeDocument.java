@@ -58,6 +58,7 @@ import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.resolveCommitRevision;
 
 /**
  * A document storing data about a node.
@@ -750,7 +751,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                                @Nonnull Revision readRevision,
                                                @Nullable Revision lastModified) {
         Map<Revision, String> validRevisions = Maps.newHashMap();
-        Revision min = getLiveRevision(nodeStore, readRevision, validRevisions);
+        Branch branch = nodeStore.getBranches().getBranch(readRevision);
+        LastRevs lastRevs = new LastRevs(getLastRev(), readRevision, branch);
+        // overlay with unsaved last modified from this instance
+        lastRevs.update(lastModified);
+
+        Revision min = getLiveRevision(nodeStore, readRevision, validRevisions, lastRevs);
         if (min == null) {
             // deleted
             return null;
@@ -764,7 +770,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             // first check local map, which contains most recent values
             Value value = getLatestValue(nodeStore, getLocalMap(key),
-                    min, readRevision, validRevisions);
+                    min, readRevision, validRevisions, lastRevs);
 
             // check if there may be more recent values in a previous document
             if (value != null && !getPreviousRanges().isEmpty()) {
@@ -784,7 +790,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (value == null && !getPreviousRanges().isEmpty()) {
                 // check complete revision history
                 value = getLatestValue(nodeStore, getValueMap(key),
-                        min, readRevision, validRevisions);
+                        min, readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
             String v = value != null ? value.value : null;
@@ -801,17 +807,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         // _lastRev.
 
         // when was this node last modified?
-        Branch branch = nodeStore.getBranches().getBranch(readRevision);
-        Map<Integer, Revision> lastRevs = Maps.newHashMap(getLastRev());
-        // overlay with unsaved last modified from this instance
-        if (lastModified != null) {
-            lastRevs.put(nodeStore.getClusterId(), lastModified);
-        }
         Revision branchBase = null;
         if (branch != null) {
             branchBase = branch.getBase(readRevision);
         }
-        for (Revision r : lastRevs.values()) {
+        for (Revision r : lastRevs.get().values()) {
             // ignore if newer than readRevision
             if (isRevisionNewer(nodeStore, r, readRevision)) {
                 // the node has a _lastRev which is newer than readRevision
@@ -840,9 +840,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         if (branch != null) {
             // read from a branch
             // -> possibly overlay with unsaved last revs from branch
-            Revision r = branch.getUnsavedLastRevision(path, readRevision);
+            lastRevs.updateBranch(branch.getUnsavedLastRevision(path, readRevision));
+            Revision r = lastRevs.getBranchRevision();
             if (r != null) {
-                lastRevision = r.asBranchRevision();
+                lastRevision = r;
             }
         }
         n.setLastRevision(lastRevision);
@@ -857,19 +858,21 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param maxRev the maximum revision to return
      * @param validRevisions the map of revisions to commit value already
      *                       checked against maxRev and considered valid.
+     * @param lastRevs to keep track of the last modification.
      * @return the earliest revision, or null if the node is deleted at the
      *         given revision
      */
     @CheckForNull
     public Revision getLiveRevision(RevisionContext context, Revision maxRev,
-                                    Map<Revision, String> validRevisions) {
+                                    Map<Revision, String> validRevisions,
+                                    LastRevs lastRevs) {
         // check local deleted map first
         Value value = getLatestValue(context, getLocalDeleted(),
-                null, maxRev, validRevisions);
+                null, maxRev, validRevisions, lastRevs);
         if (value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
             value = getLatestValue(context, getDeleted(),
-                    null, maxRev, validRevisions);
+                    null, maxRev, validRevisions, lastRevs);
         }
 
         return value != null && "false".equals(value.value) ? value.revision : null;
@@ -1158,16 +1161,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 revision.toString());
     }
 
-    public static boolean hasLastRev(@Nonnull UpdateOp op, int clusterId) {
-        return checkNotNull(op).getChanges().containsKey(
-                new Key(LAST_REV, new Revision(0, 0, clusterId)));
-    }
-
-    public static void unsetLastRev(@Nonnull UpdateOp op, int clusterId) {
-        checkNotNull(op).unsetMapEntry(LAST_REV,
-                new Revision(0, 0, clusterId));
-    }
-
     public static void setCommitRoot(@Nonnull UpdateOp op,
                                      @Nonnull Revision revision,
                                      int commitRootDepth) {
@@ -1345,7 +1338,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (context.getBranches().getBranch(readRevision) == null
                     && !readRevision.isBranch()) {
                 // resolve commit revision
-                revision = Utils.resolveCommitRevision(revision, commitValue);
+                revision = resolveCommitRevision(revision, commitValue);
                 // readRevision is not from a branch
                 // compare resolved revision as is
                 return !isRevisionNewer(context, revision, readRevision);
@@ -1364,7 +1357,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                 return false;
             }
         }
-        return includeRevision(context, Utils.resolveCommitRevision(revision, commitValue), readRevision);
+        return includeRevision(context, resolveCommitRevision(revision, commitValue), readRevision);
     }
 
     /**
@@ -1427,6 +1420,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param readRevision the maximum revision
      * @param validRevisions map of revision to commit value considered valid
      *                       against the given readRevision.
+     * @param lastRevs to keep track of the most recent modification.
      * @return the value, or null if not found
      */
     @CheckForNull
@@ -1434,14 +1428,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                  @Nonnull Map<Revision, String> valueMap,
                                  @Nullable Revision min,
                                  @Nonnull Revision readRevision,
-                                 @Nonnull Map<Revision, String> validRevisions) {
+                                 @Nonnull Map<Revision, String> validRevisions,
+                                 @Nonnull LastRevs lastRevs) {
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision propRev = entry.getKey();
-            // ignore revisions newer than readRevision
-            // -> these are not visible anyway
-            if (isRevisionNewer(context, propRev, readRevision)) {
-                continue;
-            }
             String commitValue = validRevisions.get(propRev);
             if (commitValue == null) {
                 // resolve revision
@@ -1454,15 +1444,21 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                     continue;
                 }
             }
-            if (min != null && isRevisionNewer(context, min,
-                    Utils.resolveCommitRevision(propRev, commitValue))) {
+
+            Revision commitRev = resolveCommitRevision(propRev, commitValue);
+            if (Utils.isCommitted(commitValue)) {
+                lastRevs.update(commitRev);
+            } else {
+                // branch commit
+                lastRevs.updateBranch(commitRev.asBranchRevision());
+            }
+
+            if (min != null && isRevisionNewer(context, min, commitRev)) {
                 continue;
             }
             if (isValidRevision(context, propRev, commitValue, readRevision, validRevisions)) {
                 // TODO: need to check older revisions as well?
-                return new Value(
-                        Utils.resolveCommitRevision(propRev, commitValue),
-                        entry.getValue());
+                return new Value(commitRev, entry.getValue());
             }
         }
         return null;

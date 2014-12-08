@@ -932,33 +932,15 @@ public final class DocumentNodeStore
      * @param rev the commit revision
      * @param path the path
      * @param isNew whether this is a new node
-     * @param pendingLastRev whether the node has a pending _lastRev to write
-     * @param isBranchCommit whether this is from a branch commit
      * @param added the list of added child nodes
      * @param removed the list of removed child nodes
      * @param changed the list of changed child nodes.
      *
      */
     public void applyChanges(Revision rev, String path,
-                             boolean isNew, boolean pendingLastRev,
-                             boolean isBranchCommit, List<String> added,
+                             boolean isNew, List<String> added,
                              List<String> removed, List<String> changed,
                              DiffCache.Entry cacheEntry) {
-        LastRevTracker tracker = createTracker(rev);
-        if (disableBranches) {
-            if (pendingLastRev) {
-                tracker.track(path);
-            }
-        } else {
-            if (isBranchCommit) {
-                Revision branchRev = rev.asBranchRevision();
-                tracker = branches.getBranchCommit(branchRev);
-            }
-            if (isBranchCommit || pendingLastRev) {
-                // write back _lastRev with background thread
-                tracker.track(path);
-            }
-        }
         if (isNew) {
             DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet();
@@ -1295,6 +1277,28 @@ public final class DocumentNodeStore
         return writer.toString();
     }
 
+    /**
+     * Creates a tracker for the given commit revision.
+     *
+     * @param r a commit revision.
+     * @param isBranchCommit whether this is a branch commit.
+     * @return a _lastRev tracker for the given commit revision.
+     */
+    LastRevTracker createTracker(final @Nonnull Revision r,
+                                 final boolean isBranchCommit) {
+        if (isBranchCommit && !disableBranches) {
+            Revision branchRev = r.asBranchRevision();
+            return branches.getBranchCommit(branchRev);
+        } else {
+            return new LastRevTracker() {
+                @Override
+                public void track(String path) {
+                    unsavedLastRevisions.put(path, r);
+                }
+            };
+        }
+    }
+
     //------------------------< Observable >------------------------------------
 
     @Override
@@ -1601,21 +1605,6 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
-
-    /**
-     * Creates a tracker for the given commit revision.
-     *
-     * @param r a commit revision.
-     * @return a _lastRev tracker for the given commit revision.
-     */
-    private LastRevTracker createTracker(final @Nonnull Revision r) {
-        return new LastRevTracker() {
-            @Override
-            public void track(String path) {
-                unsavedLastRevisions.put(path, r);
-            }
-        };
-    }
 
     private static void diffProperties(DocumentNodeState from,
                                        DocumentNodeState to,

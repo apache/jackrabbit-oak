@@ -24,6 +24,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -90,5 +91,19 @@ public class UtilsTest {
         }
         time = System.currentTimeMillis() - time;
         System.out.println(time);
+    }
+
+    @Test
+    public void max() {
+        Revision a = new Revision(42, 0, 1);
+        Revision b = new Revision(43, 0, 1);
+        assertSame(b, Utils.max(a, b));
+
+        Revision a1 = new Revision(42, 1, 1);
+        assertSame(a1, Utils.max(a, a1));
+
+        assertSame(a, Utils.max(a, null));
+        assertSame(a, Utils.max(null, a));
+        assertNull(Utils.max(null, null));
     }
 }
