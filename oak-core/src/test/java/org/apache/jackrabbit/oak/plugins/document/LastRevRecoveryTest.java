@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 public class LastRevRecoveryTest {
@@ -87,7 +86,9 @@ public class LastRevRecoveryTest {
         NodeDocument x1 = getDocument(ds1, "/x");
 
         Revision zlastRev2 = z1.getLastRev().get(c2Id);
-        assertNotNull(zlastRev2);
+        // /x/y/z is a new node and does not have a _lastRev
+        assertNull(zlastRev2);
+        Revision head2 = ds2.getHeadRevision();
 
         //lastRev should not be updated for C #2
         assertNull(y1.getLastRev().get(c2Id));
@@ -98,9 +99,9 @@ public class LastRevRecoveryTest {
         recovery.recover(Iterators.forArray(x1,z1), c2Id);
 
         //Post recovery the lastRev should be updated for /x/y and /x
-        assertEquals(zlastRev2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
-        assertEquals(zlastRev2, getDocument(ds1, "/x").getLastRev().get(c2Id));
-        assertEquals(zlastRev2, getDocument(ds1, "/").getLastRev().get(c2Id));
+        assertEquals(head2, getDocument(ds1, "/x/y").getLastRev().get(c2Id));
+        assertEquals(head2, getDocument(ds1, "/x").getLastRev().get(c2Id));
+        assertEquals(head2, getDocument(ds1, "/").getLastRev().get(c2Id));
     }
 
     private NodeDocument getDocument(DocumentNodeStore nodeStore, String path) {

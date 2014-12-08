@@ -30,12 +30,10 @@ import java.util.TreeMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -50,11 +48,11 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_RATIO;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removePrevious;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setHasBinary;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setPrevious;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
@@ -63,14 +61,6 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNe
 class SplitOperations {
 
     private static final DocumentStore STORE = new MemoryDocumentStore();
-
-    private static final Predicate<String> PROPERTY_OR_DELETED =
-            new Predicate<String>() {
-        @Override
-        public boolean apply(@Nullable String input) {
-            return Utils.isPropertyName(input) || isDeletedEntry(input);
-        }
-    };
 
     private final NodeDocument doc;
     private final String path;

@@ -32,17 +32,20 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Predicate;
 import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
+import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 
 /**
  * Utility methods.
@@ -76,6 +79,16 @@ public class Utils {
     private static final int NODE_NAME_LIMIT = Integer.getInteger("oak.nodeNameLimit", 150);
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+    /**
+     * A predicate for property and _deleted names.
+     */
+    public static final Predicate<String> PROPERTY_OR_DELETED = new Predicate<String>() {
+        @Override
+        public boolean apply(@Nullable String input) {
+            return Utils.isPropertyName(input) || isDeletedEntry(input);
+        }
+    };
 
     /**
      * Make sure the name string does not contain unnecessary baggage (shared
@@ -460,6 +473,25 @@ public class Utils {
                                           @Nonnull Revision x,
                                           @Nonnull Revision previous) {
         return context.getRevisionComparator().compare(x, previous) > 0;
+    }
+
+    /**
+     * Returns the revision with the newer timestamp or {@code null} if both
+     * revisions are {@code null}. The implementation will return the first
+     * revision if both have the same timestamp.
+     *
+     * @param a the first revision (or {@code null}).
+     * @param b the second revision (or {@code null}).
+     * @return the revision with the newer timestamp.
+     */
+    @CheckForNull
+    public static Revision max(@Nullable Revision a, @Nullable Revision b) {
+        if (a == null) {
+            return b;
+        } else if (b == null) {
+            return a;
+        }
+        return StableRevisionComparator.INSTANCE.compare(a, b) >= 0 ? a : b;
     }
 
 }

@@ -192,7 +192,8 @@ class Branch {
 
     /**
      * Gets the most recent unsaved last revision at <code>readRevision</code>
-     * or earlier in this branch for the given <code>path</code>.
+     * or earlier in this branch for the given <code>path</code>. Documents with
+     * explicit updates are not tracked and this method may return {@code null}.
      *
      * @param path         the path of a node.
      * @param readRevision the read revision.
