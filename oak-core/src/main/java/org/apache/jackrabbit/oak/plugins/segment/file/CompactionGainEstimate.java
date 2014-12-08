@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 
 import com.google.common.hash.BloomFilter;
@@ -53,27 +54,36 @@ class CompactionGainEstimate implements TarEntryVisitor {
 
     CompactionGainEstimate(SegmentNodeState node, int estimatedBulkCount) {
         uuids = BloomFilter.create(UUID_FUNNEL, estimatedBulkCount);
-        collectBulkSegments(node, new HashSet<ThinRecordId>());
+        collectReferencedSegments(node, new HashSet<ThinRecordId>());
     }
 
-    private void collectBulkSegments(SegmentNodeState node,
+    private void collectReferencedSegments(SegmentNodeState node,
             Set<ThinRecordId> visited) {
         ThinRecordId tr = ThinRecordId.apply(node.getRecordId());
         if (!visited.contains(tr)) {
+            uuids.put(asUUID(node.getRecordId().getSegmentId()));
             for (PropertyState property : node.getProperties()) {
+                if (property instanceof SegmentPropertyState) {
+                    uuids.put(asUUID(((SegmentPropertyState) property)
+                            .getRecordId().getSegmentId()));
+                }
                 for (Blob blob : property.getValue(BINARIES)) {
                     for (SegmentId id : SegmentBlob.getBulkSegmentIds(blob)) {
-                        uuids.put(new UUID(id.getMostSignificantBits(), id
-                                .getLeastSignificantBits()));
+                        uuids.put(asUUID(id));
                     }
                 }
             }
             for (ChildNodeEntry child : node.getChildNodeEntries()) {
-                collectBulkSegments((SegmentNodeState) child.getNodeState(),
+                collectReferencedSegments((SegmentNodeState) child.getNodeState(),
                         visited);
             }
             visited.add(tr);
         }
+    }
+
+    private static UUID asUUID(SegmentId id) {
+        return new UUID(id.getMostSignificantBits(),
+                id.getLeastSignificantBits());
     }
 
     /**
@@ -103,8 +113,7 @@ class CompactionGainEstimate implements TarEntryVisitor {
     public void visit(long msb, long lsb, File file, int offset, int size) {
         int entrySize = TarReader.getEntrySize(size);
         totalSize += entrySize;
-        if (SegmentId.isDataSegmentId(lsb)
-                || uuids.mightContain(new UUID(msb, lsb))) {
+        if (uuids.mightContain(new UUID(msb, lsb))) {
             reachableSize += entrySize;
         }
     }
