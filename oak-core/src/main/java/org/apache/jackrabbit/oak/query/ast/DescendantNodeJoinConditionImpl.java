@@ -67,14 +67,8 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector().equals(ancestorSelector)) {
-            String d = descendantSelector.currentPath();
-            if (d == null && f.isPreparing() && f.isPrepared(descendantSelector)) {
-                // during the prepare phase, if the selector is already
-                // prepared, then we would know the value
-                f.restrictPath(KNOWN_PARENT_PATH, Filter.PathRestriction.PARENT);
-            } else if (d != null) {
-                f.restrictPath(PathUtils.getParentPath(d), Filter.PathRestriction.PARENT);
-            }
+            // we ca not currently optimize this case,
+            // as we would need a path restriction of type "ALL_PARENTS".
         }
         if (f.getSelector().equals(descendantSelector)) {
             String a = ancestorSelector.currentPath();
