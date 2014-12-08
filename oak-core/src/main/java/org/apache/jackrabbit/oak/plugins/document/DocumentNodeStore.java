@@ -114,11 +114,6 @@ public final class DocumentNodeStore
             Integer.getInteger("oak.documentMK.revisionAge", 60 * 1000);
 
     /**
-     * Enable background operations
-     */
-    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.parseBoolean(System.getProperty("oak.documentMK.backgroundOps", "true"));
-
-    /**
      * How long to remember the relative order of old revision of all cluster
      * nodes, in milliseconds. The default is one hour.
      */
@@ -1437,9 +1432,6 @@ public final class DocumentNodeStore
         }
         if (simpleRevisionCounter != null) {
             // only when using timestamp
-            return;
-        }
-        if (!ENABLE_BACKGROUND_OPS) {
             return;
         }
         try {
