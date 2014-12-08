@@ -554,7 +554,14 @@ public class Revision {
                 return timestamp;
             }
             // go through all known cluster nodes
-            for (List<RevisionRange> list : map.values()) {
+            for (Map.Entry<Integer, List<RevisionRange>> e : map.entrySet()) {
+                if (revision.getClusterId() == currentClusterNodeId
+                        && e.getKey() == currentClusterNodeId) {
+                    // range and revision is for current cluster node
+                    // no need to adjust timestamp
+                    continue;
+                }
+                List<RevisionRange> list = e.getValue();
                 RevisionRange range;
                 for (int i = list.size() - 1; i >= 0; i--) {
                     range = list.get(i);
