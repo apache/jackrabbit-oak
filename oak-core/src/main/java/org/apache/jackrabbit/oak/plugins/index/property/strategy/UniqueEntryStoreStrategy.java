@@ -151,7 +151,16 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
         if (values == null) {
             PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
             if (ec != null) {
-                return ec.getValue(Type.LONG);
+                count = ec.getValue(Type.LONG);
+                if (count >= 0) {
+                    return count;
+                }
+            }
+            if (count == 0) {
+                PropertyState ap = index.getProperty(ApproximateCounter.COUNT_PROPERTY_NAME);
+                if (ap != null) {
+                    return ap.getValue(Type.LONG);
+                }
             }
             count = 1 + index.getChildNodeCount(max);
             // "is not null" queries typically read more data

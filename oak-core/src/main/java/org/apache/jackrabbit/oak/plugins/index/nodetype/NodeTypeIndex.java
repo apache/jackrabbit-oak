@@ -71,7 +71,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        return filter.toString();
+        return "nodeType " + filter.toString();
     }
 
     @Override

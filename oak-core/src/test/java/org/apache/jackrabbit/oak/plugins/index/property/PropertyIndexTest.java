@@ -68,8 +68,10 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 true, false, ImmutableSet.of("foo"), null);
+        // disable the estimation
+        index.setProperty("entryCount", -1);        
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -117,8 +119,10 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 true, false, ImmutableSet.of("foo"), null);
+        // disable the estimation
+        index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
         NodeBuilder path1 = builder.child("path1");
@@ -191,6 +195,10 @@ public class PropertyIndexTest {
             NodeBuilder c = data.child("c_" + i);
             c.setProperty("foo", "azerty");
         }
+        // add more nodes (to make traversal more expensive)
+        for (int i = 0; i < 10000; i++) {
+            data.child("cx_" + i);
+        }
         NodeState after = builder.getNodeState();
         NodeState indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
 
@@ -202,7 +210,7 @@ public class PropertyIndexTest {
         double traversal = new TraversingIndex().getCost(f, indexed);
 
         assertTrue("Estimated cost for " + nodes
-                + " nodes should not be higher than traversal (" + cost + ")",
+                + " nodes should not be higher than traversal (" + cost + " < " + traversal + ")",
                 cost < traversal);
     }
 
@@ -212,8 +220,9 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+        NodeBuilder index = createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
                 true, false, ImmutableSet.of("foo"), null);
+        index.setProperty("entryCount", -1);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
