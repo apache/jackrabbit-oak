@@ -144,6 +144,5 @@ class UnmergedBranches {
      */
     void remove(Branch b) {
         branches.remove(b);
-        b.dispose();
     }
 }

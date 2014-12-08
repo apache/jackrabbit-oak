@@ -41,6 +41,7 @@ public class MapDBMapFactory extends MapFactory {
     public MapDBMapFactory() {
         this.db = DBMaker.newTempFileDB()
                 .deleteFilesAfterClose()
+                .closeOnJvmShutdown()
                 .transactionDisable()
                 .asyncWriteEnable()
                 .make();
@@ -52,50 +53,6 @@ public class MapDBMapFactory extends MapFactory {
                 .valueSerializer(new RevisionSerializer())
                 .counterEnable()
                 .makeStringMap();
-    }
-
-    @Override
-    public synchronized BTreeMap<String, Revision> create(
-            Comparator<String> comparator) {
-        return db.createTreeMap(String.valueOf(counter.incrementAndGet()))
-                .valueSerializer(new RevisionSerializer())
-                .keySerializer(new CustomKeySerializer(comparator))
-                .counterEnable()
-                .make();
-    }
-
-    @Override
-    public void dispose() {
-        db.close();
-    }
-
-    private static class CustomKeySerializer extends BTreeKeySerializer<String>
-            implements Serializable {
-
-        private static final long serialVersionUID = -95963379229842881L;
-
-        private final Comparator<String> comparator;
-
-        CustomKeySerializer(Comparator<String> comparator) {
-            this.comparator = comparator;
-        }
-
-        @Override
-        public void serialize(DataOutput out, int start, int end, Object[] keys)
-                throws IOException {
-            BTreeKeySerializer.STRING.serialize(out, start, end, keys);
-        }
-
-        @Override
-        public Object[] deserialize(DataInput in, int start, int end, int size)
-                throws IOException {
-            return BTreeKeySerializer.STRING.deserialize(in, start, end, size);
-        }
-
-        @Override
-        public Comparator<String> getComparator() {
-            return comparator;
-        }
     }
 
     private static class RevisionSerializer implements Serializer<Revision>,
