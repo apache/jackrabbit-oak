@@ -197,6 +197,7 @@ _Optionally_ you can specify
 
 * a uniqueness constraint on a property index by setting the `unique` flag to `true`
 * that the property index only applies to a certain node type by setting the `declaringNodeTypes` property
+* the `entryCount` (a long), which is used for the cost estimation (a high entry count means a high cost)
 * the `reindex` flag which when set to `true`, triggers a full content re-index.
 
 Example:
