@@ -39,6 +39,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A base implementation of a node store branch, which supports partially
@@ -49,6 +51,7 @@ import com.google.common.collect.Maps;
  */
 public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends NodeState>
         implements NodeStoreBranch {
+    private static final Logger log = LoggerFactory.getLogger(AbstractNodeStoreBranch.class);
 
     private static final Random RANDOM = new Random();
 
@@ -307,17 +310,24 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
             if (ex != null) {
                 try {
                     numRetries++;
-                    Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    long sleepStart = System.currentTimeMillis();
+                    Thread.sleep(
+                        backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    log.debug("Merge - Slept '{}' for retrial {}",
+                        (System.currentTimeMillis() - sleepStart), numRetries);
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(
                             MERGE, 3, "Merge interrupted", e);
                 }
             }
             try {
+                long lockTryStart = System.currentTimeMillis();
                 boolean acquired = mergeLock.tryLock(maxLockTryTimeMS, MILLISECONDS);
+                log.debug("Acquired merge lock in '{}'", (System.currentTimeMillis() - lockTryStart));
                 try {
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
                 } catch (CommitFailedException e) {
+                    log.trace("Merge Error", e);
                     ex = e;
                     // only retry on merge failures. these may be caused by
                     // changes introduce by a commit hook and may be resolved
