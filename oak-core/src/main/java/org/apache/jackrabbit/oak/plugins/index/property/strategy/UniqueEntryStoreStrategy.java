@@ -58,7 +58,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
 
     private static void remove(NodeBuilder index, String key, String value) {
-        ApproximateCounter.adjustCount(index, -1);
+        ApproximateCounter.adjustCountSync(index, -1);
         NodeBuilder builder = index.getChildNode(key);
         if (builder.exists()) {
             // there could be (temporarily) multiple entries
@@ -81,7 +81,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
     
     private static void insert(NodeBuilder index, String key, String value) {
-        ApproximateCounter.adjustCount(index, 1);
+        ApproximateCounter.adjustCountSync(index, 1);
         NodeBuilder k = index.child(key);
         ArrayList<String> list = new ArrayList<String>();
         list.add(value);
@@ -157,9 +157,9 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
                 }
             }
             if (count == 0) {
-                PropertyState ap = index.getProperty(ApproximateCounter.COUNT_PROPERTY_NAME);
-                if (ap != null) {
-                    return ap.getValue(Type.LONG);
+                long approxCount = ApproximateCounter.getCountSync(index);
+                if (approxCount != -1) {
+                    return approxCount;
                 }
             }
             count = 1 + index.getChildNodeCount(max);
