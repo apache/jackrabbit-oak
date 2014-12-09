@@ -288,7 +288,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                 });
                 return new ByteArrayInputStream(content);
             } catch (ExecutionException e) {
-                log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId);
+                log.warn("Error occurred while loading bytes from steam while fetching for id {}", encodedBlobId, e);
             }
         }
         return getStream(blobId.blobId);
