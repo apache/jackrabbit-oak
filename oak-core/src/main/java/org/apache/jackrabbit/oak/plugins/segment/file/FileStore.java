@@ -208,16 +208,7 @@ public class FileStore implements SegmentStore {
                 String.format(FILE_NAME_FORMAT, writeNumber, "a"));
         this.writer = new TarWriter(writeFile);
 
-        LinkedList<String> heads = newLinkedList();
-        String line = journalFile.readLine();
-        while (line != null) {
-            int space = line.indexOf(' ');
-            if (space != -1) {
-                heads.add(line.substring(0, space));
-            }
-            line = journalFile.readLine();
-        }
-
+        LinkedList<String> heads = JournalReader.heads(journalFile);
         RecordId id = null;
         while (id == null && !heads.isEmpty()) {
             RecordId last = RecordId.fromString(tracker, heads.removeLast());
@@ -748,4 +739,69 @@ public class FileStore implements SegmentStore {
         this.pauseCompaction = pauseCompaction;
         return this;
     }
+
+    private synchronized void setRevision(String rootRevision) {
+        RecordId id = RecordId.fromString(tracker, rootRevision);
+        head.set(id);
+        persistedHead.set(id);
+    }
+
+    /**
+     * A read only {@link FileStore} implementation that supports
+     * going back to old revisions.
+     * <p>
+     * All write methods are no-ops.
+     */
+    public static class ReadOnlyStore extends FileStore {
+        public ReadOnlyStore(File directory) throws IOException {
+            super(directory, 266);
+            super.flushThread.close();
+            super.compactionThread.close();
+        }
+
+        /**
+         * Go to the specified {@code revision}
+         *
+         * @param revision
+         */
+        public synchronized void setRevision(String revision) {
+            super.setRevision(revision);
+        }
+
+        /**
+         * @return false
+         */
+        @Override
+        public boolean setHead(SegmentNodeState base, SegmentNodeState head) {
+            return false;
+        }
+
+        /**
+         * no-op
+         */
+        @Override
+        public synchronized void writeSegment(SegmentId id, byte[] data, int offset, int length) {
+            // nop
+        }
+
+        /**
+         * no-op
+         */
+        @Override
+        public void flush() { /* nop */ }
+
+        /**
+         * no-op
+         */
+        @Override
+        public synchronized void cleanup() { /* nop */ }
+
+        /**
+         * no-op
+         */
+        @Override
+        public void gc() { /* nop */ }
+
+    }
+
 }

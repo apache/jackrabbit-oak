@@ -14,6 +14,7 @@ The following runmodes are currently available:
     * server      : Run the Oak Server.
     * console     : Start an interactive console.
     * explore     : Starts a GUI browser based on java swing.
+    * check       : Check the FileStore for inconsistencies
     * primary     : Run a TarMK Cold Standby primary instance
     * standby     : Run a TarMK Cold Standby standby instance
     * scalability : Run scalability tests against different Oak repository fixtures.
@@ -87,6 +88,43 @@ The 'explore' mode starts a desktop browser GUI based on java swing which allows
 browsing of an existing oak repository.
 
     $ java -jar oak-run-*.jar explore /path/to/oak/repository [skip-size-check]
+
+Check
+-----
+
+The 'check' mode checks the storage of the FileStore for inconsistencies.
+
+    $ java -jar oak-run-*.jar check <options>
+
+    --deep [Long]  enable deep consistency checking. An
+                     optional long specifies the number
+                     of seconds between progress
+                     notifications (default:
+                     9223372036854775807)
+    --journal      journal file (default: journal.log)
+    --path         path to the segment store (required)
+
+For example
+
+    $ java -jar oak-run-*.jar check -p repository/segmentstore -d
+
+Checks the files in the `repository/segmentstore` directory for inconsistencies.
+It will start with the latest revision in the `journal.log` file going back revision
+by revision until a full traversal succeeds. During the traversal the current path
+will is output to the console every 1 second. When done the latest good revision is
+output.
+
+    Searching for last good revision in journal.log
+    Checking revision b82167c3-1ceb-4404-a67f-9c542e854086:240872
+    Traversing /
+    Error while traversing /home/users/foo: Segment 476e1abd-0ea0-44a8-ac3c-3a3bd
+    Traversed 50048 nodes and 303846 properties
+    Broken revision b82167c3-1ceb-4404-a67f-9c542e854086:240872
+    Checking revision 84d693cb-f214-4d19-a1cd-8b5766d50fdb:250028
+    Checking /home/users/foo
+    Traversed 11612889 nodes and 27511640 properties
+    Found latest good revision 84d693cb-f214-4d19-a1cd-8b5766d50fdb:250028
+    Searched through 2 of 390523 revisions
 
 Primary
 -------
