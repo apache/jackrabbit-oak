@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.run;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.checkpoint.Checkpoints.CP;
+import static org.apache.jackrabbit.oak.plugins.segment.file.tooling.ConsistencyChecker.checkConsistency;
 
 import java.io.Closeable;
 import java.io.File;
@@ -54,6 +55,7 @@ import com.google.common.util.concurrent.AbstractScheduledService;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -146,6 +148,9 @@ public class Main {
                 break;
             case DEBUG:
                 debug(args);
+                break;
+            case CHECK:
+                check(args);
                 break;
             case COMPACT:
                 compact(args);
@@ -643,6 +648,40 @@ public class Main {
         }
     }
 
+    private static void check(String[] args) throws IOException {
+        OptionParser parser = new OptionParser();
+        ArgumentAcceptingOptionSpec<String> path = parser.accepts(
+                "path", "path to the segment store (required)")
+                .withRequiredArg().ofType(String.class);
+        ArgumentAcceptingOptionSpec<String> journal = parser.accepts(
+                "journal", "journal file")
+                .withRequiredArg().ofType(String.class).defaultsTo("journal.log");
+        ArgumentAcceptingOptionSpec<Long> deep = parser.accepts(
+                "deep", "enable deep consistency checking. An optional long " +
+                        "specifies the number of seconds between progress notifications")
+                .withOptionalArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
+
+        OptionSet options = parser.parse(args);
+
+        if (!options.has(path)) {
+            System.err.println("usage: check <options>");
+            parser.printHelpOn(System.err);
+            System.exit(1);
+        }
+
+        if (!isValidFileStore(path.value(options))) {
+            System.err.println("Invalid FileStore directory " + args[0]);
+            System.exit(1);
+        }
+
+        File dir = new File(path.value(options));
+        String journalFileName = journal.value(options);
+        boolean fullTraversal = options.has(deep);
+        long debugLevel = deep.value(options);
+
+         checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
+    }
+
     private static void debugTarFile(FileStore store, String[] args) {
         File root = new File(args[0]);
         for (int i = 1; i < args.length; i++) {
@@ -1075,6 +1114,7 @@ public class Main {
         BENCHMARK("benchmark"),
         CONSOLE("console"),
         DEBUG("debug"),
+        CHECK("check"),
         COMPACT("compact"),
         SERVER("server"),
         UPGRADE("upgrade"),
