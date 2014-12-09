@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter.jmx;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -82,6 +84,12 @@ public class NodeCounter implements NodeCounterMBean {
             // node not found
             return 0;
         }
+        if (!max) {
+            long syncCount = ApproximateCounter.getCountSync(s);
+            if (syncCount != -1) {
+                return syncCount;
+            }
+        }
         PropertyState p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
         if (p != null) {
             long x = p.getValue(Type.LONG);
@@ -91,7 +99,6 @@ public class NodeCounter implements NodeCounterMBean {
             }
             return x;
         }
-        
         // check in the counter index (if it exists)
         s = child(root,
                 IndexConstants.INDEX_DEFINITIONS_NAME,
@@ -107,9 +114,8 @@ public class NodeCounter implements NodeCounterMBean {
             long x = 0;
             if (max) {
                 // in the index, the resolution is lower
-                x += ApproximateCounter.COUNT_RESOLUTION * 10;
+                x += ApproximateCounter.COUNT_RESOLUTION * 20;
             }
-            
             return x;
         }
         p = s.getProperty(NodeCounterEditor.COUNT_PROPERTY_NAME);
@@ -118,7 +124,7 @@ public class NodeCounter implements NodeCounterMBean {
             long x = 0;
             if (max) {
                 // in the index, the resolution is lower
-                x += ApproximateCounter.COUNT_RESOLUTION * 10;
+                x += ApproximateCounter.COUNT_RESOLUTION * 20;
             }
             return x;
         }
@@ -152,8 +158,14 @@ public class NodeCounter implements NodeCounterMBean {
         if (!s.exists()) {
             return;
         }
+        ArrayList<String> names = new ArrayList<String>();
         for (ChildNodeEntry c : s.getChildNodeEntries()) {
-            String child = PathUtils.concat(path, c.getName());
+            names.add(c.getName());
+        }
+        Collections.sort(names);
+        for (String cn : names) {
+            s.getChildNode(cn);
+            String child = PathUtils.concat(path, cn);
             collectCounts(buff, child, level - 1);
         }
     }

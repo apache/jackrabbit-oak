@@ -90,10 +90,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     private void remove(NodeBuilder index, String key, String value) {
-        ApproximateCounter.adjustCount(index, -1);
+        ApproximateCounter.adjustCountSync(index, -1);
         NodeBuilder builder = index.getChildNode(key);
         if (builder.exists()) {
-            ApproximateCounter.adjustCount(builder, -1);
+            ApproximateCounter.adjustCountSync(builder, -1);
             // Collect all builders along the given path
             Deque<NodeBuilder> builders = newArrayDeque();
             builders.addFirst(builder);
@@ -115,10 +115,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     private void insert(NodeBuilder index, String key, String value) {
-        ApproximateCounter.adjustCount(index, 1);
+        ApproximateCounter.adjustCountSync(index, 1);
         // NodeBuilder builder = index.child(key);
         NodeBuilder builder = fetchKeyNode(index, key);
-        ApproximateCounter.adjustCount(builder, 1);
+        ApproximateCounter.adjustCountSync(builder, 1);
         for (String name : PathUtils.elements(value)) {
             builder = builder.child(name);
         }
@@ -191,9 +191,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 }
             }
             if (count == 0) {
-                PropertyState ap = index.getProperty(ApproximateCounter.COUNT_PROPERTY_NAME);
-                if (ap != null) {
-                    return ap.getValue(Type.LONG);
+                long approxCount = ApproximateCounter.getCountSync(index);
+                if (approxCount != -1) {
+                    return approxCount;
                 }
             }
             CountingNodeVisitor v = new CountingNodeVisitor(max);
@@ -229,14 +229,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             long approxMax = 0;
             if (count == 0) {
-                PropertyState ap = index.getProperty(ApproximateCounter.COUNT_PROPERTY_NAME);
-                if (ap != null) {
+                long approxCount = ApproximateCounter.getCountSync(index);
+                if (approxCount != -1) {
                     for (String p : values) {
                         NodeState s = index.getChildNode(p);
                         if (s.exists()) {
-                            ap = s.getProperty(ApproximateCounter.COUNT_PROPERTY_NAME);
-                            if (ap != null) {
-                                approxMax += ap.getValue(Type.LONG);
+                            long a = ApproximateCounter.getCountSync(s);
+                            if (a != -1) {
+                                approxMax += a;
                             }
                         }
                     }

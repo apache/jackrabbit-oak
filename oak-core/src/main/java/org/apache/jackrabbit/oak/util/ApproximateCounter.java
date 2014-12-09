@@ -19,18 +19,21 @@
 package org.apache.jackrabbit.oak.util;
 
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An approximate counter algorithm.
  */
 public class ApproximateCounter {
     
-    public static final String COUNT_PROPERTY_NAME = ":count";
+    public static final String COUNT_PROPERTY_PREFIX = ":count_";
     public static final int COUNT_RESOLUTION = 100;
+    public static final int COUNT_MAX = 10000000;
 
     private static final Random RANDOM = new Random();
     
@@ -97,26 +100,75 @@ public class ApproximateCounter {
     }
     
     /**
-     * Adjust a counter in the given node.
+     * Adjust a counter in the given node. This is less accurate, but can be
+     * used in a multi-threaded environment, as it uses unique property names.
      * 
      * @param builder the node builder
      * @param offset the offset
      */
-    public static void adjustCount(NodeBuilder builder, long offset) {
-        offset = ApproximateCounter.calculateOffset(
-                offset, COUNT_RESOLUTION);
+    public static void adjustCountSync(NodeBuilder builder, long offset) {
         if (offset == 0) {
             return;
         }
-        PropertyState p = builder.getProperty(COUNT_PROPERTY_NAME);
-        long count = p == null ? 0 : p.getValue(Type.LONG);
-        offset = ApproximateCounter.adjustOffset(count,
-                offset, COUNT_RESOLUTION);
-        if (offset == 0) {
+        boolean added = offset > 0;
+        for (long i = 0; i < Math.abs(offset); i++) {
+            adjustCountSync(builder, added);
+        }
+    }
+    
+    public static void adjustCountSync(NodeBuilder builder, boolean added) {
+        if (RANDOM.nextInt(COUNT_RESOLUTION) != 0) {
             return;
         }
-        count += offset;
-        builder.setProperty(COUNT_PROPERTY_NAME, count);
+        int max = getMaxCount(builder, added);
+        if (max >= COUNT_MAX) {
+            return;
+        }
+        // TODO is this the right approach? divide by count_resolution
+        int x = Math.max(COUNT_RESOLUTION, max * 2) / COUNT_RESOLUTION;
+        if (RANDOM.nextInt(x) > 0) {
+            return;
+        }
+        long value = x * COUNT_RESOLUTION;
+        String propertyName = COUNT_PROPERTY_PREFIX + UUID.randomUUID();
+        builder.setProperty(propertyName, added ? value : -value);
+    }
+    
+    public static int getMaxCount(NodeBuilder node, boolean added) {
+        long max = 0;
+        for (PropertyState p : node.getProperties()) {
+            if (!p.getName().startsWith(COUNT_PROPERTY_PREFIX)) {
+                continue;
+            }
+            long x = p.getValue(Type.LONG);
+            if (added == x > 0) {
+                max = Math.max(max, Math.abs(x));
+            }
+        }
+        max = Math.min(Integer.MAX_VALUE, max);
+        return (int) max;
+    }
+    
+    public static long getCountSync(NodeState node) {
+        boolean hasCountProperty = false;
+        long added = 0;
+        long removed = 0;
+        for (PropertyState p : node.getProperties()) {
+            if (!p.getName().startsWith(COUNT_PROPERTY_PREFIX)) {
+                continue;
+            }
+            hasCountProperty = true;
+            long x = p.getValue(Type.LONG);
+            if (x > 0) {
+                added += x;
+            } else {
+                removed -= x;
+            }
+        }
+        if (!hasCountProperty) {
+            return -1;
+        }
+        return Math.max(added / 2, added - removed);
     }
 
 }
