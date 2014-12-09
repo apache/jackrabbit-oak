@@ -126,19 +126,21 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
     }
     
     private static void printWalkedLanes(final String msg, final String[] walked) {
-        String m = (msg == null) ? "" : msg;
-        if (walked == null) {
-            LOG.debug(m + " walked: null");
-        } else {
-            for (int i = 0; i < walked.length; i++) {
-                LOG.debug("{}walked[{}]: {}", new Object[] { m, i, walked[i] });
+        if (LOG.isTraceEnabled()) {
+            String m = (msg == null) ? "" : msg;
+            if (walked == null) {
+                LOG.trace(m + " walked: null");
+            } else {
+                for (int i = 0; i < walked.length; i++) {
+                    LOG.trace("{}walked[{}]: {}", new Object[] { m, i, walked[i] });
+                }
             }
         }
     }
     
     @Override
     NodeBuilder fetchKeyNode(@Nonnull NodeBuilder index, @Nonnull String key) {
-        LOG.debug("fetchKeyNode() - new item '{}' -----------------------------------------", key);
+        LOG.debug("fetchKeyNode() - === new item '{}'", key);
         // this is where the actual adding and maintenance of index's keys happen
         NodeBuilder node = null;
         NodeBuilder start = index.child(START);
@@ -903,7 +905,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                         found = nextkey;
                     } else {
                         currentKey = nextkey;
-                        if (keepWalked && !Strings.isNullOrEmpty(currentKey)) {
+                        if (keepWalked && !Strings.isNullOrEmpty(currentKey) && walkedLanes != null) {
                             walkedLanes[lane] = currentKey;
                         }
                     }
@@ -914,7 +916,11 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
             
             lane = OrderedIndex.LANES - 1;
             NodeBuilder currentNode = null;
+            int iteration = 0;
+            boolean exitCondition = true;
+            
             do {
+                iteration++;
                 stillLaning = lane > 0;
                 if (currentNode == null) {
                     currentNode = index.getChildNode(currentKey);
@@ -941,14 +947,37 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     } else {
                         currentKey = nextkey;
                         currentNode = null;
-                        if (keepWalked && !Strings.isNullOrEmpty(currentKey)) {
+                        if (keepWalked && !Strings.isNullOrEmpty(currentKey) && walkedLanes != null) {
                             for (int l = lane; l >= 0; l--) {
                                 walkedLanes[l] = currentKey;
                             }
                         }
                     }
                 }
-            } while (((!Strings.isNullOrEmpty(nextkey) && walkingPredicate.apply(nextkey)) || stillLaning) && (found == null));
+                
+                exitCondition = ((!Strings.isNullOrEmpty(nextkey) && walkingPredicate
+                    .apply(nextkey)) || stillLaning) && (found == null);
+                
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("seek()::plain case - --- iteration: {}", iteration);
+                    LOG.trace("seek()::plain case - retries: {},  MAX_RETRIES: {}", retries,
+                        MAX_RETRIES);
+                    LOG.trace("seek()::plain case - lane: {}", lane);
+                    LOG.trace("seek()::plain case - currentKey: {}", currentKey);
+                    LOG.trace("seek()::plain case - nextkey: {}", nextkey);
+                    LOG.trace("seek()::plain case - condition.apply(nextkey): {}",
+                        condition.apply(nextkey));
+                    LOG.trace("seek()::plain case - found: {}", found);
+                    LOG.trace("seek()::plain case - !Strings.isNullOrEmpty(nextkey): {}",
+                        !Strings.isNullOrEmpty(nextkey));
+                    LOG.trace("seek()::plain case - walkingPredicate.apply(nextkey): {}",
+                        walkingPredicate.apply(nextkey));
+                    LOG.trace("seek()::plain case - stillLaning: {}", stillLaning);
+                    LOG.trace(
+                        "seek()::plain case - While Condition: {}",
+                        exitCondition);
+                }
+            } while (exitCondition);
         }
         
         return found;
