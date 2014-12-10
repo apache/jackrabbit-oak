@@ -104,7 +104,7 @@ public class TestUtil {
         }
     }
 
-    private static String unique(String name){
+    static String unique(String name){
         return name + COUNTER.getAndIncrement();
     }
 }
