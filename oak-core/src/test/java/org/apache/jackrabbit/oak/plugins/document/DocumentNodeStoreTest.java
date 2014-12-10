@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
@@ -54,6 +55,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
@@ -696,6 +698,59 @@ public class DocumentNodeStoreTest {
         store2.dispose();
         store1.dispose();
     }
+
+    // OAK-2336
+    @Test
+    public void readBranchCommit() throws Exception {
+        final Set<String> readSet = Sets.newHashSet();
+        DocumentStore store = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                readSet.add(key);
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore ns = new DocumentMK.Builder()
+                .setDocumentStore(store).setAsyncDelay(0).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        String testId = Utils.getIdFromPath("/test");
+        NodeBuilder test = builder.child("test");
+        test.setProperty("p", "value");
+        // force creation of branch
+        int q = 0;
+        while (store.find(NODES, testId) == null) {
+            test.setProperty("q", q++);
+        }
+        merge(ns, builder);
+
+        // commit enough changes for a previous doc
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            builder = ns.getRoot().builder();
+            builder.child("test").setProperty("q", i);
+            merge(ns, builder);
+        }
+        // trigger split
+        ns.runBackgroundOperations();
+
+        NodeDocument doc = store.find(NODES, Utils.getIdFromPath("/test"));
+        assertNotNull(doc);
+
+        readSet.clear();
+
+        // must not access previous document of /test
+        doc.getNodeAtRevision(ns, ns.getHeadRevision(), null);
+        for (String id : Sets.newHashSet(readSet)) {
+            doc = store.find(NODES, id);
+            assertNotNull(doc);
+            if (doc.isSplitDocument() && !doc.getMainPath().equals("/")) {
+                fail("must not access previous document: " + id);
+            }
+        }
+
+        ns.dispose();
+    }
+
 
     private static void merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
