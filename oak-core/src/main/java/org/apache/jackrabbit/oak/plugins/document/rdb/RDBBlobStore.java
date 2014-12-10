@@ -69,7 +69,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             for (String tname : this.tablesToBeDropped) {
                 Connection con = null;
                 try {
-                    con = getConnection();
+                    con = this.ch.getRWConnection();
                     try {
                         Statement stmt = con.createStatement();
                         stmt.execute("drop table " + tname);
@@ -91,12 +91,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 }
             }
         }
-        this.ds = null;
+        this.ch = null;
     }
 
     @Override
     public void finalize() {
-        if (this.ds != null && this.callStack != null) {
+        if (this.ch != null && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
     }
@@ -108,7 +108,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     private Exception callStack;
 
-    private DataSource ds;
+    private RDBConnectionHandler ch;
 
     // from options
     private String dataTable;
@@ -124,18 +124,17 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         this.dataTable = tablePrefix + "DATASTORE_DATA";
         this.metaTable = tablePrefix + "DATASTORE_META";
 
-        this.ds = ds;
-        Connection con = getConnection();
+        this.ch = new RDBConnectionHandler(ds);
+        Connection con = this.ch.getRWConnection();
 
         try {
-            con.setAutoCommit(false);
-
             for (String baseName : new String[] { "DATASTORE_META", "DATASTORE_DATA" }) {
                 String tableName = tablePrefix + baseName;
                 try {
                     PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
                     stmt.setString(1, "0");
                     stmt.executeQuery();
+                    con.commit();
                 } catch (SQLException ex) {
                     // table does not appear to exist
                     con.rollback();
@@ -179,7 +178,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 }
             }
         } finally {
-            // con.close();
+            this.ch.closeConnection(con);
         }
 
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBBlobStore creation") : null;
@@ -200,7 +199,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         String id = StringUtils.convertBytesToHex(digest);
         cache.put(id, data);
-        Connection con = getConnection();
+        Connection con = this.ch.getRWConnection();
 
         try {
             long now = System.currentTimeMillis();
@@ -210,7 +209,12 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 prep.setLong(1, now);
                 prep.setString(2, id);
                 count = prep.executeUpdate();
-            } finally {
+            }
+            catch (SQLException ex) {
+                LOG.error("trying to update metadata", ex);
+                throw new RuntimeException("trying to update metadata", ex);
+            }
+            finally {
                 prep.close();
             }
             if (count == 0) {
@@ -245,14 +249,14 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
         } finally {
             con.commit();
-            con.close();
+            this.ch.closeConnection(con);
         }
     }
 
     // needed in test
     protected byte[] readBlockFromBackend(byte[] digest) throws Exception {
         String id = StringUtils.convertBytesToHex(digest);
-        Connection con = getConnection();
+        Connection con = this.ch.getROConnection();
         byte[] data;
 
         try {
@@ -269,7 +273,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
         } finally {
             con.commit();
-            con.close();
+            this.ch.closeConnection(con);
         }
         return data;
     }
@@ -281,7 +285,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         byte[] data = cache.get(id);
 
         if (data == null) {
-            Connection con = getConnection();
+            Connection con = this.ch.getROConnection();
 
             try {
                 PreparedStatement prep = con.prepareStatement("select data from " + dataTable + " where id = ?");
@@ -298,7 +302,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 cache.put(id, data);
             } finally {
                 con.commit();
-                con.close();
+                this.ch.closeConnection(con);
             }
         }
         // System.out.println("    read block " + id + " blockLen: " +
@@ -328,7 +332,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     protected void mark(BlockId blockId) throws Exception {
-        Connection con = getConnection();
+        Connection con = this.ch.getRWConnection();
         try {
             if (minLastModified == 0) {
                 return;
@@ -342,7 +346,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             prep.close();
         } finally {
             con.commit();
-            con.close();
+            this.ch.closeConnection(con);
         }
     }
 
@@ -356,7 +360,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     }
 
     private int sweepFromDatabase() throws SQLException {
-        Connection con = getConnection();
+        Connection con = this.ch.getRWConnection();
         try {
             int count = 0;
             PreparedStatement prep = con.prepareStatement("select id from " + metaTable + " where lastMod < ?");
@@ -381,7 +385,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             return count;
         } finally {
             con.commit();
-            con.close();
+            this.ch.closeConnection(con);
         }
     }
 
@@ -394,7 +398,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             return true;
         }
 
-        Connection con = getConnection();
+        Connection con = this.ch.getRWConnection();
         try {
             PreparedStatement prepMeta = null;
             PreparedStatement prepData = null;
@@ -432,7 +436,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             prepData.close();
         } finally {
             con.commit();
-            con.close();
+            this.ch.closeConnection(con);
         }
 
         return true;
@@ -440,7 +444,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-        return new ChunkIdIterator(this.ds, maxLastModifiedTime, metaTable);
+        return new ChunkIdIterator(this.ch, maxLastModifiedTime, metaTable);
     }
 
     /**
@@ -449,15 +453,15 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     private static class ChunkIdIterator extends AbstractIterator<String> {
 
         private long maxLastModifiedTime;
-        private DataSource ds;
+        private RDBConnectionHandler ch;
         private static int BATCHSIZE = 1024 * 64;
         private List<String> results = new LinkedList<String>();
         private String lastId = null;
         private String metaTable;
 
-        public ChunkIdIterator(DataSource ds, long maxLastModifiedTime, String metaTable) {
+        public ChunkIdIterator(RDBConnectionHandler ch, long maxLastModifiedTime, String metaTable) {
             this.maxLastModifiedTime = maxLastModifiedTime;
-            this.ds = ds;
+            this.ch = ch;
             this.metaTable = metaTable;
         }
 
@@ -492,8 +496,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
             Connection connection = null;
             try {
-                connection = ds.getConnection();
-                connection.setAutoCommit(false);
+                connection = this.ch.getROConnection();
                 try {
                     PreparedStatement prep = connection.prepareStatement(query.toString());
                     int idx = 1;
@@ -512,29 +515,14 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     return !results.isEmpty();
                 } finally {
                     connection.commit();
-                    connection.close();
+                    this.ch.closeConnection(connection);
                 }
             } catch (SQLException ex) {
                 LOG.debug("error executing ID lookup", ex);
-                try {
-                    if (connection != null) {
-                        connection.rollback();
-                        connection.close();
-                    }
-                } catch (SQLException e) {
-                }
+                this.ch.rollbackConnection(connection);
+                this.ch.closeConnection(connection);
                 return false;
             }
         }
-    }
-
-    private Connection getConnection() throws SQLException {
-        DataSource ds = this.ds;
-        if (ds == null) {
-            throw new DocumentStoreException("This instance of the RDBBlobStore has already been closed.");
-        }
-        Connection c = ds.getConnection();
-        c.setAutoCommit(false);
-        return c;
     }
 }

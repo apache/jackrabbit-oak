@@ -489,6 +489,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // create test nodes
         for (int i = 0; i < nodecount; i++) {
             String id = bid + "-" + i;
+            super.ds.remove(Collection.NODES, id);
             removeMe.add(id);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
