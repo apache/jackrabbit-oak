@@ -159,6 +159,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final Analyzer analyzer;
 
+    private final Map<String, Analyzer> analyzers;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -212,6 +214,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.costPerEntry = getOptionalValue(defn, LuceneIndexConstants.COST_PER_ENTRY, 1.0);
         this.costPerExecution = getOptionalValue(defn, LuceneIndexConstants.COST_PER_EXECUTION, 1.0);
         this.indexesAllTypes = areAllTypesIndexed();
+        this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
     }
 
@@ -301,14 +304,28 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     //~---------------------------------------------------< Analyzer >
 
     private Analyzer createAnalyzer() {
+        Analyzer defaultAnalyzer = LuceneIndexConstants.ANALYZER;
+        if (analyzers.containsKey(LuceneIndexConstants.ANL_DEFAULT)){
+            defaultAnalyzer = analyzers.get(LuceneIndexConstants.ANL_DEFAULT);
+        }
         if (!evaluatePathRestrictions()){
-            return LuceneIndexConstants.ANALYZER;
+            return defaultAnalyzer;
         }
         Map<String, Analyzer> analyzerMap = ImmutableMap.<String, Analyzer>builder()
                 .put(FieldNames.ANCESTORS,
                         new TokenizerChain(new PathHierarchyTokenizerFactory(Collections.<String, String>emptyMap())))
                 .build();
-        return new PerFieldAnalyzerWrapper(LuceneIndexConstants.ANALYZER, analyzerMap);
+        return new PerFieldAnalyzerWrapper(defaultAnalyzer, analyzerMap);
+    }
+
+    private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
+        Map<String, Analyzer> analyzerMap = newHashMap();
+        NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(LuceneIndexConstants.VERSION);
+        for (ChildNodeEntry cne : defn.getChildNode(LuceneIndexConstants.ANALYZERS).getChildNodeEntries()) {
+            Analyzer a = factory.createInstance(cne.getNodeState());
+            analyzerMap.put(cne.getName(), a);
+        }
+        return ImmutableMap.copyOf(analyzerMap);
     }
 
     //~---------------------------------------------------< Aggregates >

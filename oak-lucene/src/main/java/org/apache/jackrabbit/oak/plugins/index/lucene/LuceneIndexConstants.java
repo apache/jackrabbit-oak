@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.util.Version;
 
 public interface LuceneIndexConstants {
@@ -182,4 +183,21 @@ public interface LuceneIndexConstants {
     String COST_PER_ENTRY = "costPerEntry";
 
     String COST_PER_EXECUTION = "costPerExecution";
+
+    /**
+     * Node name under which various analyzers are configured
+     */
+    String ANALYZERS = "analyzers";
+
+    /**
+     * Name of the default analyzer definition node under 'analyzers' node
+     */
+    String ANL_DEFAULT = "default";
+    String ANL_FILTERS = "filters";
+    String ANL_STOPWORDS = "stopwords";
+    String ANL_TOKENIZER = "tokenizer";
+    String ANL_CHAR_FILTERS = "charFilters";
+    String ANL_CLASS = "class";
+    String ANL_NAME = "name";
+    String ANL_LUCENE_MATCH_VERSION = AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM;
 }
