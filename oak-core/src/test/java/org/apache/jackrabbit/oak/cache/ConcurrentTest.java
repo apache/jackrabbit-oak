@@ -18,8 +18,12 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
+import static org.junit.Assert.assertFalse;
+
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
@@ -28,6 +32,58 @@ import org.junit.Test;
  * Tests the LIRS cache by concurrently reading and writing.
  */
 public class ConcurrentTest {
+    
+    @Test
+    public void testCacheAccessInLoaderDeadlock() throws Exception {
+        final Random r = new Random(1);
+        final CacheLIRS<Integer, Integer> cache = new CacheLIRS.Builder().
+                maximumWeight(100).averageWeight(10).build();
+        final Exception[] ex = new Exception[1];
+        final int entryCount = 100;
+        int size = 3;
+        Thread[] threads = new Thread[size];
+        final AtomicBoolean stop = new AtomicBoolean();
+        for (int i = 0; i < size; i++) {
+            Thread t = new Thread() {
+                @Override
+                public void run() {
+                    Callable<Integer> callable = new Callable<Integer>() {
+                        @Override
+                        public Integer call() throws ExecutionException {
+                            cache.get(r.nextInt(entryCount));
+                            return 1;
+                        }
+                    };
+                    while (!stop.get()) {
+                        Integer key = r.nextInt(entryCount);
+                        try {
+                            cache.get(key, callable);
+                        } catch (Exception e) {
+                            ex[0] = e;
+                        }
+                        cache.remove(key);
+                    }
+                }
+            };
+            t.start();
+            threads[i] = t;
+        }
+        // test for 100 ms
+        Thread.sleep(100);
+        stop.set(true);
+        for (Thread t : threads) {
+            t.join(1000);
+            // if the thread is still alive after 1 second, we assume
+            // there is a deadlock - we just let the threads alive,
+            // but report a failure (what else could we do?)
+            if (t.isAlive()) {
+                assertFalse("Deadlock detected!", t.isAlive());
+            }
+        }
+        if (ex[0] != null) {
+            throw ex[0];
+        }
+    }
 
     @Test
     public void testRandomOperations() throws Exception {
