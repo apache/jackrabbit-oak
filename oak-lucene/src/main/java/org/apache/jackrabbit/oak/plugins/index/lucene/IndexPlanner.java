@@ -336,6 +336,12 @@ class IndexPlanner {
                         return rule;
                     }
                 }
+                //nt:base is applicable for all. This specific condition is
+                //required to support mixin case as filter.getSupertypes() for mixin based
+                //query only includes the mixin type and not nt:base
+                if (rule.getNodeTypeName().equals(JcrConstants.NT_BASE)){
+                    return rule;
+                }
             }
             log.trace("No applicable IndexingRule found for any of the superTypes {}",
                 filter.getSupertypes());
