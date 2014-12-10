@@ -61,6 +61,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.junit.Assert.assertEquals;
@@ -743,6 +744,49 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         // verify results ordering
         // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
         assertOrderedQuery(queryString, asList("/test/c", "/test/a", "/test/b"), XPATH, true);
+    }
+
+    @Test
+    public void indexTimeFieldBoostAndRelativeProperty() throws Exception {
+        // Index Definition
+        Tree index = root.getTree("/");
+        Tree indexDefn = createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
+        useV2(indexDefn);
+
+        addPropertyDefn(indexDefn, "jcr:content/metadata/title", 4.0);
+        addPropertyDefn(indexDefn, "jcr:content/metadata/title2", 2.0);
+        addPropertyDefn(indexDefn, "propa", 1.0);
+
+        root.commit();
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        usc(test, "a").setProperty("propa", "foo foo foo");
+        usc(test, "b").addChild("jcr:content").addChild("metadata").setProperty("title", "foo");
+        usc(test, "c").addChild("jcr:content").addChild("metadata").setProperty("title2", "foo");
+        root.commit();
+
+        String queryString = "//element(*, oak:Unstructured)[jcr:contains(., 'foo' )]";
+        // verify results ordering
+        // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
+        assertOrderedQuery(queryString, asList("/test/b", "/test/c", "/test/a"), XPATH, true);
+    }
+
+    private Tree usc(Tree parent, String childName){
+        Tree child = parent.addChild(childName);
+        child.setProperty(JcrConstants.JCR_PRIMARYTYPE, "oak:Unstructured", Type.NAME);
+        return child;
+    }
+
+    private Tree addPropertyDefn(Tree indexDefn, String propName, double boost){
+        Tree props = TestUtil.newRulePropTree(indexDefn, "oak:Unstructured");
+        Tree prop = props.addChild(TestUtil.unique("prop"));
+        prop.setProperty(LuceneIndexConstants.PROP_NAME, propName);
+        prop.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
+        prop.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        prop.setProperty(LuceneIndexConstants.FIELD_BOOST, boost);
+        return prop;
     }
 
     private void assertOrderedQuery(String sql, List<String> paths) {
