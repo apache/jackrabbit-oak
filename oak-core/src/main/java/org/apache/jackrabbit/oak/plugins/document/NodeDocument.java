@@ -583,7 +583,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * @param context the revision context.
      * @return count of the revision entries purged
      */
-    public int purgeUncommittedRevisions(RevisionContext context) {
+    int purgeUncommittedRevisions(RevisionContext context) {
         // only look at revisions in this document.
         // uncommitted revisions are not split off
         Map<Revision, String> valueMap = getLocalRevisions();
@@ -596,6 +596,31 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                     purgeCount++;
                     op.removeMapEntry(REVISIONS, r);
                 }
+            }
+        }
+
+        if (op.hasChanges()) {
+            store.findAndUpdate(Collection.NODES, op);
+        }
+        return purgeCount;
+    }
+
+    /**
+     * Purge collision markers with the local clusterId on this document. Use
+     * only on start when there are no ongoing or pending commits.
+     *
+     * @param context the revision context.
+     * @return the number of removed collision markers.
+     */
+    int purgeCollisionMarkers(RevisionContext context) {
+        Map<Revision, String> valueMap = getLocalMap(COLLISIONS);
+        UpdateOp op = new UpdateOp(getId(), false);
+        int purgeCount = 0;
+        for (Map.Entry<Revision, String> commit : valueMap.entrySet()) {
+            Revision r = commit.getKey();
+            if (r.getClusterId() == context.getClusterId()) {
+                purgeCount++;
+                removeCollision(op, r);
             }
         }
 
