@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -165,7 +166,13 @@ final class NodeStateAnalyzerFactory{
                 c = analyzerClazz.getConstructor(Version.class);
                 return c.newInstance(matchVersion);
             }
-        } catch (ReflectiveOperationException e) {
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
+        } catch (InvocationTargetException e) {
             throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         }
     }
