@@ -19,13 +19,15 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import static com.google.common.io.ByteStreams.newDataInput;
+import static java.io.File.createTempFile;
+import static org.apache.commons.io.FileUtils.write;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.DataInput;
+import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.Iterator;
 
 import org.junit.Test;
 
@@ -33,49 +35,82 @@ public class JournalReaderTest {
 
     @Test
     public void testEmpty() throws IOException {
-        assertTrue(JournalReader.heads(getJournal("")).isEmpty());
+        JournalReader journalReader = createJournalReader("");
+        try {
+            assertFalse(journalReader.iterator().hasNext());
+        } finally {
+            journalReader.close();
+        }
     }
 
     @Test
     public void testSingleton() throws IOException {
-        String journal = "one 1";
-        LinkedList<String> heads = JournalReader.heads(getJournal(journal));
-        assertEquals(1, heads.size());
-        assertEquals("one", heads.get(0));
+        JournalReader journalReader = createJournalReader("one 1");
+        try {
+            Iterator<String> journal = journalReader.iterator();
+            assertTrue(journal.hasNext());
+            assertEquals("one", journal.next());
+            assertFalse(journal.hasNext());
+        } finally {
+            journalReader.close();
+        }
     }
 
     @Test
     public void testMultiple() throws IOException {
-        String journal = "one 1\ntwo 2\nthree 3";
-        LinkedList<String> heads = JournalReader.heads(getJournal(journal));
-        assertEquals(3, heads.size());
-        assertEquals("one", heads.get(0));
-        assertEquals("two", heads.get(1));
-        assertEquals("three", heads.get(2));
+        JournalReader journalReader = createJournalReader("one 1\ntwo 2\nthree 3");
+        try {
+            Iterator<String> journal = journalReader.iterator();
+            assertTrue(journal.hasNext());
+            assertEquals("three", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("two", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("one", journal.next());
+            assertFalse(journal.hasNext());
+        } finally {
+            journalReader.close();
+        }
     }
 
     @Test
     public void testSpaces() throws IOException {
-        String journal = "\n \n  \n   ";
-        LinkedList<String> heads = JournalReader.heads(getJournal(journal));
-        assertEquals(3, heads.size());
-        assertEquals("", heads.get(0));
-        assertEquals("", heads.get(1));
-        assertEquals("", heads.get(2));
+        JournalReader journalReader = createJournalReader("\n \n  \n   ");
+        try {
+            Iterator<String> journal = journalReader.iterator();
+            assertTrue(journal.hasNext());
+            assertEquals("", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("", journal.next());
+            assertFalse(journal.hasNext());
+        } finally {
+            journalReader.close();
+        }
     }
 
     @Test
     public void testIgnoreInvalid() throws IOException {
-        String journal = "one 1\ntwo 2\ninvalid\nthree 3";
-        LinkedList<String> heads = JournalReader.heads(getJournal(journal));
-        assertEquals(3, heads.size());
-        assertEquals("one", heads.get(0));
-        assertEquals("two", heads.get(1));
-        assertEquals("three", heads.get(2));
+        JournalReader journalReader = createJournalReader("one 1\ntwo 2\ninvalid\nthree 3");
+        try {
+            Iterator<String> journal = journalReader.iterator();
+            assertTrue(journal.hasNext());
+            assertEquals("three", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("two", journal.next());
+            assertTrue(journal.hasNext());
+            assertEquals("one", journal.next());
+            assertFalse(journal.hasNext());
+        } finally {
+            journalReader.close();
+        }
     }
 
-    private static DataInput getJournal(String s) {
-        return newDataInput(s.getBytes());
+    private static JournalReader createJournalReader(String s) throws IOException {
+        File journalFile = createTempFile("jrt", null);
+        write(journalFile, s);
+        return new JournalReader(journalFile);
     }
 
 }

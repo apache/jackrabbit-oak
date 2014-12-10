@@ -19,36 +19,56 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
-import java.io.DataInput;
+import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.Iterator;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.AbstractIterator;
+import org.apache.commons.io.input.ReversedLinesFileReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reader for journal files of the SegmentMK.
  */
-public final class JournalReader {
+public final class JournalReader implements Closeable, Iterable<String> {
+    private static final Logger LOG = LoggerFactory.getLogger(JournalReader.class);
 
-    private JournalReader() { }
+    private final ReversedLinesFileReader journal;
 
-    /**
-     * Read a journal file
-     * @param journal  name of the journal file
-     * @return  list of revisions listed in the journal. Oldest revision first.
-     * @throws IOException
-     */
-    public static LinkedList<String> heads(DataInput journal) throws IOException {
-        LinkedList<String> heads = Lists.newLinkedList();
-        String line = journal.readLine();
-        while (line != null) {
-            int space = line.indexOf(' ');
-            if (space != -1) {
-                heads.add(line.substring(0, space));
-            }
-            line = journal.readLine();
-        }
-        return heads;
+    public JournalReader(File journalFile) throws IOException {
+        journal = new ReversedLinesFileReader(journalFile);
     }
 
+    /**
+     * @return Iterator over the revisions in the journal in reverse order
+     *         (end of the file to beginning).
+     */
+    @Override
+    public Iterator<String> iterator() {
+        return new AbstractIterator<String>() {
+            @Override
+            protected String computeNext() {
+                try {
+                    String line = journal.readLine();
+                    while (line != null) {
+                        int space = line.indexOf(' ');
+                        if (space != -1) {
+                            return line.substring(0, space);
+                        }
+                        line = journal.readLine();
+                    }
+                } catch (IOException e) {
+                    LOG.error("Error reading journal file", e);
+                }
+                return endOfData();
+            }
+        };
+    }
+
+    @Override
+    public void close() throws IOException {
+        journal.close();
+    }
 }
