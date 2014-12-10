@@ -262,6 +262,51 @@ var oak = (function(global){
         }
     }
 
+    /**
+     * Removes all collision markers on the document with the given path and
+     * clusterId.
+     */
+    api.removeCollisions = function(path, clusterId) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (clusterId === undefined) {
+            print("No clusterId specified");
+            return;
+        }
+        // refuse to remove when clusterId is marked active
+        var clusterNode = db.clusterNodes.findOne({_id: clusterId.toString()});
+        if (clusterNode && clusterNode.state == "ACTIVE") {
+            print("Cluster node with id " + clusterId + " is active!");
+            print("Can only remove collisions for inactive cluster node.");
+            return;
+        }
+
+        var doc = db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var unset = {};
+        var r;
+        var num = 0;
+        for (r in doc._collisions) {
+            if (new Revision(r).getClusterId() == clusterId) {
+                unset["_collisions." + r] = "";
+                num++;
+            }
+        }
+        if (num > 0) {
+            var update = {};
+            update["$inc"] = {_modCount: 1};
+            update["$unset"] = unset;
+            return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
+        } else {
+            print("No collisions found for clusterId " + clusterId);
+        }
+    }
+
     //~--------------------------------------------------< internal >
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
@@ -339,6 +384,10 @@ var oak = (function(global){
 
     Revision.prototype.asDate = function() {
         return new Date(this.timestamp);
+    }
+
+    Revision.prototype.getClusterId = function() {
+        return this.clusterId;
     }
 
     var pathDepth = function(path){
