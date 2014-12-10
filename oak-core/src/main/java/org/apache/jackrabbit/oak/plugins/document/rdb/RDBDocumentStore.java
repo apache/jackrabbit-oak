@@ -269,7 +269,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             for (String tname : this.tablesToBeDropped) {
                 Connection con = null;
                 try {
-                    con = getRWConnection();
+                    con = this.ch.getRWConnection();
                     try {
                         Statement stmt = con.createStatement();
                         stmt.execute("drop table " + tname);
@@ -291,7 +291,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
             }
         }
-        this.ds = null;
+        this.ch = null;
     }
 
     @Override
@@ -327,7 +327,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private Exception callStack;
 
-    private DataSource ds;
+    private RDBConnectionHandler ch;
 
     // from options
     private String tablePrefix = "";
@@ -371,13 +371,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
             tablePrefix += "_";
         }
 
-        this.ds = ds;
+        this.ch = new RDBConnectionHandler(ds);
         this.callStack = LOG.isDebugEnabled() ? new Exception("call stack of RDBDocumentStore creation") : null;
 
         this.nodesCache = builder.buildDocumentCache(this);
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
 
-        Connection con = ds.getConnection();
+        Connection con = this.ch.getRWConnection();
         String dbtype = con.getMetaData().getDatabaseProductName();
 
         if ("Oracle".equals(dbtype)) {
@@ -393,12 +393,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
 
         try {
-            con.setAutoCommit(false);
-
             createTableFor(con, dbtype, Collection.CLUSTER_NODES, options.isDropTablesOnClose());
             createTableFor(con, dbtype, Collection.NODES, options.isDropTablesOnClose());
             createTableFor(con, dbtype, Collection.SETTINGS, options.isDropTablesOnClose());
         } finally {
+            con.commit();
             con.close();
         }
     }
@@ -461,7 +460,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     @Override
     public void finalize() {
-        if (this.ds != null && this.callStack != null) {
+        if (this.ch != null && this.callStack != null) {
             LOG.debug("finalizing RDBDocumentStore that was not disposed", this.callStack);
         }
     }
@@ -686,14 +685,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 String tableName = getTable(collection);
                 boolean success = false;
                 try {
-                    connection = getRWConnection();
+                    connection = this.ch.getRWConnection();
                     success = dbBatchedAppendingUpdate(connection, tableName, chunkedIds, modified, appendData);
                     connection.commit();
                 } catch (SQLException ex) {
                     success = false;
-                    rollbackConnection(connection);
+                    this.ch.rollbackConnection(connection);
                 } finally {
-                    closeConnection(connection);
+                    this.ch.closeConnection(connection);
                 }
                 if (success) {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
@@ -734,9 +733,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
             throw new DocumentStoreException(message);
         }
         try {
-            connection = getROConnection();
             long now = System.currentTimeMillis();
+            connection = this.ch.getROConnection();
             List<RDBRow> dbresult = dbQuery(connection, tableName, fromKey, toKey, indexedProperty, startValue, limit);
+            connection.commit();
             for (RDBRow r : dbresult) {
                 T doc = runThroughCache(collection, r, now);
                 result.add(doc);
@@ -745,7 +745,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             LOG.error("SQL exception on query", ex);
             throw new DocumentStoreException(ex);
         } finally {
-            closeConnection(connection);
+            this.ch.closeConnection(connection);
         }
         return result;
     }
@@ -771,8 +771,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
             if (cachedDoc != null && cachedDoc.getModCount() != null) {
                 lastmodcount = cachedDoc.getModCount().longValue();
             }
-            connection = getROConnection();
+            connection = this.ch.getROConnection();
             RDBRow row = dbRead(connection, tableName, id, lastmodcount);
+            connection.commit();
             if (row == null) {
                 return null;
             }
@@ -789,7 +790,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
-            closeConnection(connection);
+            this.ch.closeConnection(connection);
         }
     }
 
@@ -797,13 +798,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
-            connection = getRWConnection();
+            connection = this.ch.getRWConnection();
             dbDelete(connection, tableName, Collections.singletonList(id));
             connection.commit();
         } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         } finally {
-            closeConnection(connection);
+            this.ch.closeConnection(connection);
         }
     }
 
@@ -812,13 +813,13 @@ public class RDBDocumentStore implements CachingDocumentStore {
             Connection connection = null;
             String tableName = getTable(collection);
             try {
-                connection = getRWConnection();
+                connection = this.ch.getRWConnection();
                 dbDelete(connection, tableName, sublist);
                 connection.commit();
             } catch (Exception ex) {
                 throw new DocumentStoreException(ex);
             } finally {
-                closeConnection(connection);
+                this.ch.closeConnection(connection);
             }
         }
     }
@@ -828,7 +829,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         Connection connection = null;
         String tableName = getTable(collection);
         try {
-            connection = getRWConnection();
+            connection = this.ch.getRWConnection();
             Long modified = (Long) document.get(MODIFIED);
             Number flag = (Number) document.get(NodeDocument.HAS_BINARY_FLAG);
             Boolean hasBinary = flag == null ? false : flag.intValue() == NodeDocument.HAS_BINARY_VAL;
@@ -846,7 +847,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         connection.commit();
                     } catch (SQLException ex) {
                         continueIfStringOverflow(ex);
-                        rollbackConnection(connection);
+                        this.ch.rollbackConnection(connection);
                         success = false;
                     }
                 }
@@ -859,10 +860,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             return success;
         } catch (SQLException ex) {
-            rollbackConnection(connection);
+            this.ch.rollbackConnection(connection);
             throw new DocumentStoreException(ex);
         } finally {
-            closeConnection(connection);
+            this.ch.closeConnection(connection);
         }
     }
 
@@ -907,7 +908,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         String tableName = getTable(collection);
         List<String> ids = new ArrayList<String>();
         try {
-            connection = getRWConnection();
+            connection = this.ch.getRWConnection();
             for (T document : documents) {
                 String data = SR.asString(document);
                 Long modified = (Long) document.get(MODIFIED);
@@ -920,10 +921,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
             connection.commit();
         } catch (SQLException ex) {
             LOG.debug("insert of " + ids + " failed", ex);
-            rollbackConnection(connection);
+            this.ch.rollbackConnection(connection);
             throw new DocumentStoreException(ex);
         } finally {
-            closeConnection(connection);
+            this.ch.closeConnection(connection);
         }
     }
 
@@ -1007,7 +1008,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             // DB2 throws an SQLException for invalid keys; handle this more
             // gracefully
             if ("22001".equals(ex.getSQLState())) {
-                rollbackConnection(connection);
+                this.ch.rollbackConnection(connection);
                 return null;
             } else {
                 throw (ex);
@@ -1395,40 +1396,6 @@ public class RDBDocumentStore implements CachingDocumentStore {
             lock.unlock();
         }
         return (T) fresh;
-    }
-
-    private Connection getROConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
-        c.setAutoCommit(false);
-        c.setReadOnly(true);
-        return c;
-    }
-
-    private Connection getRWConnection() throws SQLException {
-        Connection c = this.ds.getConnection();
-        c.setAutoCommit(false);
-        c.setReadOnly(false);
-        return c;
-    }
-
-    private void rollbackConnection(Connection c) {
-        if (c != null) {
-            try {
-                c.rollback();
-            } catch (SQLException ex) {
-                // log me
-            }
-        }
-    }
-
-    private void closeConnection(Connection c) {
-        if (c != null) {
-            try {
-                c.close();
-            } catch (SQLException ex) {
-                // log me
-            }
-        }
     }
 
     private boolean hasChangesToCollisions(UpdateOp update) {
