@@ -33,13 +33,16 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -326,6 +329,49 @@ public class UserValidatorTest extends AbstractSecurityTest implements UserConst
             if (group2 != null) group2.remove();
             if (group3 != null) group3.remove();
             root.commit();
+        }
+    }
+
+    @Test
+    public void testCreateNestedUser() throws Exception {
+        Tree userTree = root.getTree(getTestUser().getPath());
+        NodeUtil userNode = new NodeUtil(userTree);
+        NodeUtil profile = userNode.addChild("profile", JcrConstants.NT_UNSTRUCTURED);
+        NodeUtil nested = profile.addChild("nested", UserConstants.NT_REP_USER);
+        nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
+        nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
+        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        try {
+            root.commit();
+            fail("Creating nested users must be detected.");
+        } catch (CommitFailedException e) {
+            // success
+            assertEquals(29, e.getCode());
+        } finally {
+            root.refresh();
+        }
+    }
+
+    @Test
+    public void testCreateNestedUser2Steps() throws Exception {
+        Tree userTree = root.getTree(getTestUser().getPath());
+        NodeUtil userNode = new NodeUtil(userTree);
+        NodeUtil profile = userNode.addChild("profile", JcrConstants.NT_UNSTRUCTURED);
+        NodeUtil nested = profile.addChild("nested", JcrConstants.NT_UNSTRUCTURED);
+        nested.setString(UserConstants.REP_PRINCIPAL_NAME, "nested");
+        nested.setString(UserConstants.REP_AUTHORIZABLE_ID, "nested");
+        nested.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID("nested"));
+        root.commit();
+
+        try {
+            nested.setString(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
+            root.commit();
+            fail("Creating nested users must be detected.");
+        } catch (CommitFailedException e) {
+            // success
+            assertEquals(29, e.getCode());
+        } finally {
+            root.refresh();
         }
     }
 
