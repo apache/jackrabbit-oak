@@ -80,6 +80,10 @@ class UnmergedBranches {
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
+        purgeCount = doc.purgeCollisionMarkers(context);
+        if (purgeCount > 0) {
+            log.info("Purged [{}] collision markers", purgeCount);
+        }
     }
 
     /**
