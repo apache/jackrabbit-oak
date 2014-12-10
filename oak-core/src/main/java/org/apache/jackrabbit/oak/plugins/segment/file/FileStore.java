@@ -186,8 +186,8 @@ public class FileStore implements SegmentStore {
         this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
 
-        journalFile = new RandomAccessFile(
-                new File(directory, JOURNAL_FILE_NAME), "rw");
+        journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME), "rw");
+        journalFile.seek(journalFile.length());
         journalLock = journalFile.getChannel().lock();
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
@@ -208,18 +208,23 @@ public class FileStore implements SegmentStore {
                 String.format(FILE_NAME_FORMAT, writeNumber, "a"));
         this.writer = new TarWriter(writeFile);
 
-        LinkedList<String> heads = JournalReader.heads(journalFile);
         RecordId id = null;
-        while (id == null && !heads.isEmpty()) {
-            RecordId last = RecordId.fromString(tracker, heads.removeLast());
-            SegmentId segmentId = last.getSegmentId();
-            if (containsSegment(
-                    segmentId.getMostSignificantBits(),
-                    segmentId.getLeastSignificantBits())) {
-                id = last;
-            } else {
-                log.warn("Unable to access revision {}, rewinding...", last);
+        JournalReader journalReader = new JournalReader(new File(directory, JOURNAL_FILE_NAME));
+        try {
+            Iterator<String> heads = journalReader.iterator();
+            while (id == null && heads.hasNext()) {
+                RecordId last = RecordId.fromString(tracker, heads.next());
+                SegmentId segmentId = last.getSegmentId();
+                if (containsSegment(
+                        segmentId.getMostSignificantBits(),
+                        segmentId.getLeastSignificantBits())) {
+                    id = last;
+                } else {
+                    log.warn("Unable to access revision {}, rewinding...", last);
+                }
             }
+        } finally {
+            journalReader.close();
         }
 
         if (id != null) {

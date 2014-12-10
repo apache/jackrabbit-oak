@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.segment.file.tooling;
 
-import static com.google.common.collect.Lists.reverse;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
@@ -29,8 +28,6 @@ import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -67,22 +64,13 @@ public class ConsistencyChecker {
      */
     public static String checkConsistency(File directory, String journalFileName,
             boolean fullTraversal, long debugInterval) throws IOException {
-        RandomAccessFile journalFile = new RandomAccessFile(
-            new File(directory, journalFileName), "r");
-
-        List<String> revisions;
-        try {
-            revisions = reverse(JournalReader.heads(journalFile));
-        } finally {
-            journalFile.close();
-        }
-
         print("Searching for last good revision in {}", journalFileName);
+        JournalReader journal = new JournalReader(new File(directory, journalFileName));
         Set<String> badPaths = newHashSet();
         ConsistencyChecker checker = new ConsistencyChecker(directory, debugInterval);
         try {
             int revisionCount = 0;
-            for (String revision : revisions) {
+            for (String revision : journal) {
                 print("Checking revision {}", revision);
                 revisionCount++;
                 String badPath = checker.check(revision, badPaths);
@@ -91,7 +79,7 @@ public class ConsistencyChecker {
                 }
                 if (badPath == null) {
                     print("Found latest good revision {}", revision);
-                    print("Searched through {} of {} revisions", revisionCount, revisions.size());
+                    print("Searched through {} revisions", revisionCount);
                     return revision;
                 } else {
                     badPaths.add(badPath);
@@ -100,6 +88,7 @@ public class ConsistencyChecker {
             }
         } finally {
             checker.close();
+            journal.close();
         }
 
         print("No good revision found");
