@@ -26,6 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,6 +42,8 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -443,6 +446,17 @@ public class IndexDefinitionTest {
         defn = new IndexDefinition(root, defnb.getNodeState());
         assertEquals(100, defn.getFulltextEntryCount(300));
         assertEquals(50, defn.getFulltextEntryCount(50));
+    }
+
+    @Test
+    public void customAnalyzer() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+        defnb.child(ANALYZERS).child(ANL_DEFAULT)
+                .child(LuceneIndexConstants.ANL_TOKENIZER)
+                .setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertEquals(TokenizerChain.class.getName(), defn.getAnalyzer().getClass().getName());
     }
 
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
