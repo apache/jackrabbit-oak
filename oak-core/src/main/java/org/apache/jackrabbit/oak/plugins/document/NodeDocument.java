@@ -775,7 +775,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             // check if there may be more recent values in a previous document
             if (value != null && !getPreviousRanges().isEmpty()) {
                 Revision newest = getLocalMap(key).firstKey();
-                if (!value.revision.equals(newest)) {
+                if (isRevisionNewer(nodeStore, newest, value.revision)) {
                     // not reading the most recent value, we may need to
                     // consider previous documents as well
                     Revision newestPrev = getPreviousRanges().firstKey();
