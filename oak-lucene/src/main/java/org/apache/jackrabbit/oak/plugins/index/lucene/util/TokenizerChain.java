@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.Reader;
+import java.util.Arrays;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -61,6 +62,20 @@ public final class TokenizerChain extends Analyzer {
             reader = cs;
         }
         return reader;
+    }
+
+    //Mostly required for testing purpose
+
+    public CharFilterFactory[] getCharFilters() {
+        return Arrays.copyOf(charFilters, charFilters.length);
+    }
+
+    public TokenizerFactory getTokenizer() {
+        return tokenizer;
+    }
+
+    public TokenFilterFactory[] getFilters() {
+        return Arrays.copyOf(filters, filters.length);
     }
 
     @Override
