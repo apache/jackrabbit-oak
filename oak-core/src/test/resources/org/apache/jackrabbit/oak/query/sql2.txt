@@ -51,18 +51,20 @@ select [jcr:path]
 /test/b
 
 select [jcr:path]
-  from [nt:base]
-  where [name] is not null union select [jcr:path]
-  from [nt:base]
-  where [name] is not null
+  from [nt:base] as a
+  where a.[name] is not null and isdescendantnode(a, '/test') union select b.[jcr:path]
+  from [nt:base] as b
+  where b.[name] is not null
+  and isdescendantnode(b, '/test')
 /test/a
 /test/b
 
 select [jcr:path]
-  from [nt:base]
-  where [name] is not null union all select [jcr:path]
-  from [nt:base]
-  where [name] is not null
+  from [nt:base] as a
+  where a.[name] is not null and isdescendantnode(a, '/test') union all select b.[jcr:path]
+  from [nt:base] as b
+  where b.[name] is not null
+  and isdescendantnode(b, '/test')
 /test/a
 /test/a
 /test/b
@@ -395,9 +397,9 @@ commit /testRoot + "test3": { "name": "Hallo" }
 commit /testRoot + "test4": { "name": "10%" }
 commit /testRoot + "test5": { "name": "10 percent" }
 
-select name
-  from [nt:base]
-  where name is not null order by upper(name)
+select a.name
+  from [nt:base] as a
+  where a.name is not null and isdescendantnode(a , '/testRoot') order by upper(a.name)
 10 percent
 10%
 Hallo
