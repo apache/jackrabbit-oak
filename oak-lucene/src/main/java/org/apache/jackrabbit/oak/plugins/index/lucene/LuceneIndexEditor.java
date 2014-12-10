@@ -291,7 +291,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 dirty |= addTypedOrderedFields(fields, property, pname, pd);
             }
 
-            dirty |= indexProperty(path, fields, state, property, pname, false, pd);
+            dirty |= indexProperty(path, fields, state, property, pname, pd);
         }
 
         dirty |= indexAggregates(path, fields, state);
@@ -335,7 +335,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                                   NodeState state,
                                   PropertyState property,
                                   String pname,
-                                  boolean aggregateMode,
                                   PropertyDefinition pd) throws CommitFailedException {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
         if (Type.BINARY.tag() == property.getType().tag()
@@ -358,7 +357,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
                     }
 
-                    if (pd.nodeScopeIndex && !aggregateMode) {
+                    if (pd.nodeScopeIndex) {
                         Field field = newFulltextField(value);
                         field.setBoost(pd.boost);
                         fields.add(field);
@@ -533,7 +532,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                             result.propertyPath, result.pd);
                 }
                 dirty |= indexProperty(path, fields, state, result.propertyState,
-                        result.propertyPath, true, result.pd);
+                        result.propertyPath, result.pd);
 
                 if (dirty) {
                     dirtyFlag.set(true);
