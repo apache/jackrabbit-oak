@@ -616,12 +616,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public String getCommitRootPath(Revision revision) {
         String depth = getCommitRootDepth(revision);
         if (depth != null) {
-            if (depth.equals("0")) {
-                return "/";
-            }
-            String p = getPath();
-            return PathUtils.getAncestorPath(p,
-                    PathUtils.getDepth(p) - Integer.parseInt(depth));
+            return getPathAtDepth(depth);
         }
         return null;
     }
@@ -774,7 +769,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             // check if there may be more recent values in a previous document
             if (value != null && !getPreviousRanges().isEmpty()) {
                 Revision newest = getLocalMap(key).firstKey();
-                if (!value.revision.equals(newest)) {
+                if (isRevisionNewer(nodeStore, newest, value.revision)) {
                     // not reading the most recent value, we may need to
                     // consider previous documents as well
                     Revision newestPrev = getPreviousRanges().firstKey();
@@ -1408,17 +1403,46 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @CheckForNull
     private NodeDocument getCommitRoot(@Nonnull Revision rev) {
-        if (containsRevision(rev)) {
+        // check local revisions and commitRoot first
+        if (getLocalRevisions().containsKey(rev)) {
             return this;
         }
-        String commitRootPath = getCommitRootPath(rev);
-        if (commitRootPath == null) {
-            // may happen for a commit root document, which hasn't been
-            // updated with the commit revision yet
-            return null;
+        String commitRootPath;
+        String depth = getLocalCommitRoot().get(rev);
+        if (depth != null) {
+            commitRootPath = getPathAtDepth(depth);
+        } else {
+            // fall back to complete check, including previous documents
+            if (containsRevision(rev)) {
+                return this;
+            }
+            commitRootPath = getCommitRootPath(rev);
+            if (commitRootPath == null) {
+                // may happen for a commit root document, which hasn't been
+                // updated with the commit revision yet
+                return null;
+            }
         }
         // get root of commit
         return store.find(Collection.NODES, Utils.getIdFromPath(commitRootPath));
+    }
+
+    /**
+     * Returns the path at the given {@code depth} based on the path of this
+     * document.
+     *
+     * @param depth the depth as a string.
+     * @return the path.
+     * @throws NumberFormatException if {@code depth} cannot be parsed as an
+     *              integer.
+     */
+    @Nonnull
+    private String getPathAtDepth(@Nonnull String depth) {
+        if (checkNotNull(depth).equals("0")) {
+            return "/";
+        }
+        String p = getPath();
+        return PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - Integer.parseInt(depth));
     }
 
     /**
