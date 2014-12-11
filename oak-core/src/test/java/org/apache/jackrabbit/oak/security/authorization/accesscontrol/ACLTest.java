@@ -800,5 +800,11 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
             throw new UnsupportedOperationException();
         }
+
+        @Nonnull
+        @Override
+        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+            throw new UnsupportedOperationException();
+        }
     }
 }

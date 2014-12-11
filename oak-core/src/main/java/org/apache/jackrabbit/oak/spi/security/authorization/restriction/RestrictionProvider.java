@@ -134,6 +134,20 @@ public interface RestrictionProvider {
     RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree);
 
     /**
+     * Creates the {@link RestrictionPattern} for the specified restrictions.
+     * The implementation should ignore all restrictions present in the specified
+     * set that it doesn't support.
+     *
+     * @param oakPath The path of the access controlled tree or {@code null} if
+     * the target policies applies to the repository level.
+     * @param restrictions the restrictions.
+     * @return A new {@link RestrictionPattern} representing those restrictions
+     * of the specified set that are supported by this implementation.
+     */
+    @Nonnull
+    RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions);
+
+    /**
      * Empty restriction provider implementation that doesn't support any
      * restrictions.
      */
@@ -176,6 +190,12 @@ public interface RestrictionProvider {
         @Nonnull
         @Override
         public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+            return RestrictionPattern.EMPTY;
+        }
+
+        @Nonnull
+        @Override
+        public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
             return RestrictionPattern.EMPTY;
         }
     };

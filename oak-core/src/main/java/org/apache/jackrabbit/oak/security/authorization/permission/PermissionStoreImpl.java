@@ -25,10 +25,15 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +41,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code PermissionStoreImpl}...
  */
-public class PermissionStoreImpl implements PermissionStore {
+public class PermissionStoreImpl implements PermissionStore, PermissionConstants {
 
     /**
      * default logger
@@ -49,17 +54,25 @@ public class PermissionStoreImpl implements PermissionStore {
 
     private final RestrictionProvider restrictionProvider;
 
+    private final PrivilegeBitsProvider privilegeBitsProvider;
+
+    private PrivilegeBits allBits;
+
     private final Map<String, Tree> principalTreeMap = new HashMap<String, Tree>();
 
     public PermissionStoreImpl(Root root, String workspaceName, RestrictionProvider restrictionProvider) {
         this.permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         this.workspaceName = workspaceName;
         this.restrictionProvider = restrictionProvider;
+        this.privilegeBitsProvider = new PrivilegeBitsProvider(root);
+
+        allBits = privilegeBitsProvider.getBits(PrivilegeConstants.JCR_ALL);
     }
 
     protected void flush(Root root) {
         this.permissionsTree = PermissionUtil.getPermissionsRoot(root, workspaceName);
         this.principalTreeMap.clear();
+        allBits = privilegeBitsProvider.getBits(PrivilegeConstants.JCR_ALL);
     }
 
     @CheckForNull
@@ -85,12 +98,12 @@ public class PermissionStoreImpl implements PermissionStore {
             if (principalRoot.hasChild(name)) {
                 Tree child = principalRoot.getChild(name);
                 if (PermissionUtil.checkACLPath(child, path)) {
-                    entries = loadPermissionEntries(path, entries, child, restrictionProvider);
+                    entries = loadPermissionEntries(path, entries, child);
                 } else {
                     // check for child node
                     for (Tree node : child.getChildren()) {
                         if (PermissionUtil.checkACLPath(node, path)) {
-                            entries = loadPermissionEntries(path, entries, node, restrictionProvider);
+                            entries = loadPermissionEntries(path, entries, node);
                         }
                     }
                 }
@@ -104,7 +117,7 @@ public class PermissionStoreImpl implements PermissionStore {
         Tree principalRoot = getPrincipalRoot(principalName);
         if (principalRoot != null) {
             for (Tree entryTree : principalRoot.getChildren()) {
-                loadPermissionEntries(entryTree, entries, restrictionProvider);
+                loadPermissionEntries(entryTree, entries);
             }
         }
     }
@@ -124,7 +137,7 @@ public class PermissionStoreImpl implements PermissionStore {
         Tree principalRoot = getPrincipalRoot(principalName);
         if (principalRoot != null) {
             for (Tree entryTree : principalRoot.getChildren()) {
-                loadPermissionEntries(entryTree, ret.getEntries(), restrictionProvider);
+                loadPermissionEntries(entryTree, ret.getEntries());
             }
         }
         ret.setFullyLoaded(true);
@@ -135,9 +148,8 @@ public class PermissionStoreImpl implements PermissionStore {
         return ret;
     }
 
-    private static void loadPermissionEntries(@Nonnull Tree tree,
-                                              @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap,
-                                              @Nonnull RestrictionProvider restrictionProvider) {
+    private void loadPermissionEntries(@Nonnull Tree tree,
+                                       @Nonnull Map<String, Collection<PermissionEntry>> pathEntryMap) {
         String path = TreeUtil.getString(tree, PermissionConstants.REP_ACCESS_CONTROLLED_PATH);
         Collection<PermissionEntry> entries = pathEntryMap.get(path);
         if (entries == null) {
@@ -146,26 +158,40 @@ public class PermissionStoreImpl implements PermissionStore {
         }
         for (Tree child : tree.getChildren()) {
             if (child.getName().charAt(0) == 'c') {
-                loadPermissionEntries(child, pathEntryMap, restrictionProvider);
+                loadPermissionEntries(child, pathEntryMap);
             } else {
-                entries.add(new PermissionEntry(path, child, restrictionProvider));
+                entries.add(createPermissionEntry(path, child));
             }
         }
     }
 
     @CheckForNull
-    private static Collection<PermissionEntry> loadPermissionEntries(@Nonnull String path,
-                                              @Nullable Collection<PermissionEntry> ret,
-                                              @Nonnull Tree tree,
-                                              @Nonnull RestrictionProvider restrictionProvider) {
+    private Collection<PermissionEntry> loadPermissionEntries(@Nonnull String path,
+                                                              @Nullable Collection<PermissionEntry> ret,
+                                                              @Nonnull Tree tree) {
         for (Tree ace : tree.getChildren()) {
             if (ace.getName().charAt(0) != 'c') {
                 if (ret == null) {
                     ret = new TreeSet<PermissionEntry>();
                 }
-                ret.add(new PermissionEntry(path, ace, restrictionProvider));
+                ret.add(createPermissionEntry(path, ace));
             }
         }
         return ret;
+    }
+
+    private PermissionEntry createPermissionEntry(@Nonnull String path,
+                                                  @Nonnull Tree entryTree) {
+        PropertyState ps = entryTree.getProperty(REP_PRIVILEGE_BITS);
+        PrivilegeBits bits = (isJcrAll(ps)) ? allBits : PrivilegeBits.getInstance(ps);
+        return new PermissionEntry(path,
+                entryTree.getProperty(REP_IS_ALLOW).getValue(Type.BOOLEAN),
+                Integer.parseInt(entryTree.getName()),
+                bits,
+                restrictionProvider.getPattern(path, entryTree));
+    }
+
+    private static boolean isJcrAll(PropertyState property) {
+        return property.count() == 1 && property.getValue(Type.LONG, 0) == DYNAMIC_ALL_BITS;
     }
 }

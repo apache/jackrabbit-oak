@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.privilege;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
@@ -33,6 +34,8 @@ import javax.jcr.Workspace;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
@@ -412,5 +415,27 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         } finally {
             superuser.refresh(false);
         }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2015">OAK-2015</a>
+     */
+    @Test
+    public void testJcrAllWithCustomPrivileges() throws Exception {
+        Node testNode = session.getRootNode().addNode("test");
+        String testPath = testNode.getPath();
+
+        AccessControlUtils.grantAllToEveryone(session, testPath);
+        session.save();
+
+        JackrabbitAccessControlManager acMgr = (JackrabbitAccessControlManager) session.getAccessControlManager();
+        Privilege[] allPrivileges = AccessControlUtils.privilegesFromNames(session, Privilege.JCR_ALL);
+        Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+
+        assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
+
+        privilegeManager.registerPrivilege("customPriv", false, null);
+
+        assertTrue(acMgr.hasPrivileges(testPath, principalSet, allPrivileges));
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -43,6 +44,17 @@ final class TestProvider extends AbstractRestrictionProvider {
             }
         }
         return (hasRestriction) ? new MatchingPattern() : RestrictionPattern.EMPTY;
+    }
+
+    @Nonnull
+    @Override
+    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        for (Restriction r : restrictions) {
+            if (getSupportedRestrictions(oakPath).contains(r.getDefinition())) {
+                return new MatchingPattern();
+            }
+        }
+        return RestrictionPattern.EMPTY;
     }
 
     private static final class MatchingPattern implements RestrictionPattern {

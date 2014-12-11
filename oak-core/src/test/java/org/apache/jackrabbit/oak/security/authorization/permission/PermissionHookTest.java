@@ -20,22 +20,28 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -346,5 +352,59 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         // session wasn't able to access them.
         principalRoot = getPrincipalRoot(EveryonePrincipal.NAME);
         assertEquals(2, cntEntries(principalRoot));
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2015">OAK-2015</a>
+     */
+    @Test
+    public void testDynamicJcrAll() throws Exception {
+        AccessControlManager acMgr = getAccessControlManager(root);
+
+        // grant 'everyone' jcr:all at the child path.
+        JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), privilegesFromNames(JCR_ALL));
+        acMgr.setPolicy(childPath, acl);
+        root.commit();
+
+        // verify that the permission store contains an entry for everyone at childPath
+        // and the privilegeBits for jcr:all are reflect with a placeholder value.
+        Tree allEntry = getEntry(EveryonePrincipal.NAME, childPath, 0);
+        assertTrue(allEntry.exists());
+        PropertyState ps = allEntry.getProperty(PermissionConstants.REP_PRIVILEGE_BITS);
+        assertEquals(1, ps.count());
+        assertEquals(PermissionStore.DYNAMIC_ALL_BITS, ps.getValue(Type.LONG, 0).longValue());
+
+        // verify that the permission provider still exposes the correct privilege
+        // (jcr:all) for the given childPath irrespective of the dynamic nature of
+        // the privilege bits in the persisted permission entry.
+        Set<Principal> principalSet = ImmutableSet.<Principal>of(EveryonePrincipal.getInstance());
+        PermissionProvider permissionProvider = getConfig(AuthorizationConfiguration.class).getPermissionProvider(root, root.getContentSession().getWorkspaceName(), principalSet);
+        Tree childTree = root.getTree(childPath);
+        assertTrue(permissionProvider.hasPrivileges(childTree, PrivilegeConstants.JCR_ALL));
+        assertTrue(permissionProvider.getPrivileges(childTree).contains(PrivilegeConstants.JCR_ALL));
+
+        // also verify the permission evaluation
+        long diff = Permissions.diff(Permissions.ALL, Permissions.REMOVE_NODE|Permissions.ADD_NODE);
+        assertFalse(permissionProvider.isGranted(childTree, null, Permissions.REMOVE_NODE));
+        assertFalse(permissionProvider.isGranted(childTree, null, Permissions.ADD_NODE));
+        assertTrue(permissionProvider.isGranted(childTree, null, diff));
+
+        // remove the ACE again
+        acl = AccessControlUtils.getAccessControlList(acMgr, childPath);
+        for (AccessControlEntry ace : acl.getAccessControlEntries()) {
+            if (EveryonePrincipal.NAME.equals(ace.getPrincipal().getName())) {
+                acl.removeAccessControlEntry(ace);
+            }
+        }
+        acMgr.setPolicy(childPath, acl);
+        root.commit();
+
+        // verify that the corresponding permission entry has been removed.
+        Tree everyoneRoot = getPrincipalRoot(EveryonePrincipal.NAME);
+        Tree parent = everyoneRoot.getChild(PermissionUtil.getEntryName(childPath));
+        if (parent.exists()) {
+            assertFalse(parent.getChild("0").exists());
+        }
     }
 }
