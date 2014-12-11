@@ -75,7 +75,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         test("sql1.txt");
     }
 
-    @Ignore("OAK-2296")
     @Test
     public void sql2() throws Exception {
         test("sql2.txt");
