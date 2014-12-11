@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * A diff cache implementation, which immediately forgets the diff.
@@ -32,7 +33,11 @@ class AmnesiaDiffCache implements DiffCache {
     @Override
     public String getChanges(@Nonnull Revision from,
                              @Nonnull Revision to,
-                             @Nonnull String path) {
+                             @Nonnull String path,
+                             @Nullable Loader loader) {
+        if (loader != null) {
+            return loader.call();
+        }
         return null;
     }
 

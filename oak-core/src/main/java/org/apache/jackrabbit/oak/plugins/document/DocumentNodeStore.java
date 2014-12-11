@@ -1241,12 +1241,14 @@ public final class DocumentNodeStore
         if (node.hasNoChildren() && base.hasNoChildren()) {
             return "";
         }
-        String diff = diffCache.getChanges(base.getLastRevision(),
-                node.getLastRevision(), node.getPath());
-        if (diff == null) {
-            diff = diffImpl(base, node);
-        }
-        return diff;
+        return diffCache.getChanges(base.getLastRevision(),
+                node.getLastRevision(), node.getPath(),
+                new DiffCache.Loader() {
+                    @Override
+                    public String call() {
+                        return diffImpl(base, node);
+                    }
+                });
     }
 
     String diff(@Nonnull final String fromRevisionId,
@@ -1260,17 +1262,20 @@ public final class DocumentNodeStore
         final DocumentNodeState from = getNode(path, fromRev);
         final DocumentNodeState to = getNode(path, toRev);
         if (from == null || to == null) {
-            // TODO implement correct behavior if the node does't/didn't exist
+            // TODO implement correct behavior if the node doesn't/didn't exist
             String msg = String.format("Diff is only supported if the node exists in both cases. " +
                     "Node [%s], fromRev [%s] -> %s, toRev [%s] -> %s",
                     path, fromRev, from != null, toRev, to != null);
             throw new MicroKernelException(msg);
         }
-        String compactDiff = diffCache.getChanges(fromRev, toRev, path);
-        if (compactDiff == null) {
-            // calculate the diff
-            compactDiff = diffImpl(from, to);
-        }
+        String compactDiff = diffCache.getChanges(fromRev, toRev, path,
+                new DiffCache.Loader() {
+            @Override
+            public String call() {
+                // calculate the diff
+                return diffImpl(from, to);
+            }
+        });
         JsopWriter writer = new JsopStream();
         diffProperties(from, to, writer);
         JsopTokenizer t = new JsopTokenizer(compactDiff);
