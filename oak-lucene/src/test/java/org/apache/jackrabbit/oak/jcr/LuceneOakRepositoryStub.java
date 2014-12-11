@@ -18,8 +18,14 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
 import java.util.Properties;
 import java.util.Set;
@@ -74,12 +80,29 @@ public class LuceneOakRepositoryStub extends OakTarMKRepositoryStub {
                     && builder.getChildNode(INDEX_DEFINITIONS_NAME).hasChildNode(name)) {
                 // do nothing
             } else {
-                super.initialize(builder);
-                builder.getChildNode(INDEX_DEFINITIONS_NAME)
-                        .getChildNode(name)
-                         //TODO Remove compat mode once OAK-2278 resolved
-                        .setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
+                NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME).child(name);
+                index.setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
+                        .setProperty(TYPE_PROPERTY_NAME, TYPE_LUCENE)
+                        .setProperty(REINDEX_PROPERTY_NAME, true)
+                        .setProperty(LuceneIndexConstants.TEST_MODE, true)
+                        .setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true)
+                        .setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
+
+                NodeBuilder props = index.child(LuceneIndexConstants.INDEX_RULES)
+                        .child("nt:base")
+                        .child(LuceneIndexConstants.PROP_NODE);
+
+                enableFulltextIndex(props.child("allProps"));
             }
+        }
+
+        private void enableFulltextIndex(NodeBuilder propNode){
+            propNode.setProperty(LuceneIndexConstants.PROP_ANALYZED, true)
+                    .setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true)
+                    .setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true)
+                    .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)
+                    .setProperty(LuceneIndexConstants.PROP_NAME, LuceneIndexConstants.REGEX_ALL_PROPS)
+                    .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
         }
     }
 }
