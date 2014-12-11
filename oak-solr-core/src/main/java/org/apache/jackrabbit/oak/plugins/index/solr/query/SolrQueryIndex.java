@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
@@ -316,6 +317,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 fullTextString.append(')');
                 fullTextString.append(' ');
                 return true;
+            }
+
+            @Override
+            public boolean visit(FullTextContains contains) {
+                return contains.getBase().accept(this);
             }
 
             @Override
