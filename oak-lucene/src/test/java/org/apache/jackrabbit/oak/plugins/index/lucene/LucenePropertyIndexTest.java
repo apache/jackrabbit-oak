@@ -92,23 +92,32 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
     }
-    
-    // TODO OAK-2301
-//    @Test
-//    public void fulltextSearchWithCustomAnalyzer() throws Exception{
-//        Tree idx = createFulltextIndex(root.getTree("/"), "test");
-//        TestUtil.useV2(idx);
-//
-//        Tree anl = idx.addChild(ANALYZERS).addChild(ANL_DEFAULT);
-//        anl.addChild(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
-//        anl.addChild(ANL_FILTERS).addChild("stop");
-//
-//        Tree test = root.getTree("/").addChild("test");
-//        test.setProperty("foo", "fox jumping");
-//        root.commit();
-//
-//        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
-//    }
+
+    @Test
+    public void fulltextSearchWithCustomAnalyzer() throws Exception {
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree anl = idx.addChild(LuceneIndexConstants.ANALYZERS).addChild(LuceneIndexConstants.ANL_DEFAULT);
+        anl.addChild(LuceneIndexConstants.ANL_TOKENIZER).setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
+        anl.addChild(LuceneIndexConstants.ANL_FILTERS).addChild("stop");
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("foo", "fox jumping");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
+    }
+
+    private Tree createFulltextIndex(Tree index, String name) throws CommitFailedException {
+        Tree def = index.addChild(INDEX_DEFINITIONS_NAME).addChild(name);
+        def.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
+        def.setProperty(REINDEX_PROPERTY_NAME, true);
+        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES, of(PropertyType.TYPENAME_STRING), STRINGS));
+        return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
+    }
 
     @Test
     public void indexSelection() throws Exception {
