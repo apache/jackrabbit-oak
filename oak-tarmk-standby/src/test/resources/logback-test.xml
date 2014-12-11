@@ -22,6 +22,9 @@
         </encoder>
     </appender>
 
+    <logger name="org.apache.jackrabbit.oak.plugins.segment.standby" level="ERROR"/>
+    <logger name="org.apache.jackrabbit.oak.plugins.blob.datastore" level="ERROR"/>
+
     <root level="INFO">
         <appender-ref ref="console"/>
     </root>

@@ -26,17 +26,18 @@ import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdDecoder;
-import org.apache.jackrabbit.oak.plugins.segment.standby.codec.SegmentDecoder;
+import org.apache.jackrabbit.oak.plugins.segment.standby.codec.ReplyDecoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.store.CommunicationObserver;
 import org.apache.jackrabbit.oak.plugins.segment.standby.store.StandbyStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandbyClientHandler extends
-        SimpleChannelInboundHandler<RecordId> implements Closeable {
+public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
+        implements Closeable {
 
     private static final Logger log = LoggerFactory
             .getLogger(StandbyClientHandler.class);
@@ -44,16 +45,18 @@ public class StandbyClientHandler extends
     private final StandbyStore store;
     private final EventExecutorGroup executor;
     private final CommunicationObserver observer;
-    private EventExecutorGroup preloaderExecutor;
-    private EventExecutorGroup loaderExecutor;
+    private final AtomicBoolean running;
 
+    private EventExecutorGroup loaderExecutor;
     private ChannelHandlerContext ctx;
 
     public StandbyClientHandler(final StandbyStore store,
-            EventExecutorGroup executor, CommunicationObserver observer) {
+            EventExecutorGroup executor, CommunicationObserver observer,
+            AtomicBoolean running) {
         this.store = store;
         this.executor = executor;
         this.observer = observer;
+        this.running = running;
     }
 
     @Override
@@ -87,20 +90,22 @@ public class StandbyClientHandler extends
         log.debug("updating current head to " + head);
         ctx.pipeline().remove(RecordIdDecoder.class);
         ctx.pipeline().remove(this);
-        ctx.pipeline().addLast(new SegmentDecoder(store));
-
-        preloaderExecutor = new DefaultEventExecutorGroup(4);
-        SegmentPreLoaderHandler h1 = new SegmentPreLoaderHandler();
-        ctx.pipeline().addLast(preloaderExecutor, h1);
+        ctx.pipeline().addLast(new ReplyDecoder(store));
 
         loaderExecutor = new DefaultEventExecutorGroup(4);
         SegmentLoaderHandler h2 = new SegmentLoaderHandler(store, head,
-                preloaderExecutor, loaderExecutor, this.observer.getID());
+                loaderExecutor, this.observer.getID(), running);
         ctx.pipeline().addLast(loaderExecutor, h2);
 
-        h1.channelActive(ctx);
         h2.channelActive(ctx);
         log.debug("updating current head finished");
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
+            throws Exception {
+        log.error("Exception caught, closing channel.", cause);
+        close();
     }
 
     @Override
@@ -108,10 +113,6 @@ public class StandbyClientHandler extends
         ctx.close();
         if (!executor.isShuttingDown()) {
             executor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
-                    .syncUninterruptibly();
-        }
-        if (preloaderExecutor != null && !preloaderExecutor.isShuttingDown()) {
-            preloaderExecutor.shutdownGracefully(1, 2, TimeUnit.SECONDS)
                     .syncUninterruptibly();
         }
         if (loaderExecutor != null && !loaderExecutor.isShuttingDown()) {

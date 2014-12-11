@@ -1,0 +1,127 @@
+package org.apache.jackrabbit.oak.plugins.segment.standby;
+
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
+import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.common.io.ByteStreams;
+
+public class ExternalSharedStoreIT extends TestBase {
+
+    private File externalStore;
+
+    @Before
+    public void setUp() throws Exception {
+        setUpServerAndClient();
+    }
+
+    @After
+    public void after() {
+        closeServerAndClient();
+        try {
+            FileUtils.deleteDirectory(externalStore);
+        } catch (IOException e) {
+        }
+    }
+
+    @Override
+    protected FileStore setupPrimary(File d) throws IOException {
+        externalStore = getPrimaryStoreDir();
+        FileDataStore fds = new FileDataStore();
+        fds.setMinRecordLength(4092);
+        fds.init(externalStore.getAbsolutePath());
+        DataStoreBlobStore blobStore = new DataStoreBlobStore(fds);
+        return new FileStore(blobStore, d, 1, false);
+    }
+
+    private static File getPrimaryStoreDir() throws IOException {
+        return createTmpTargetDir("ExternalCommonStoreIT");
+    }
+
+    @Override
+    protected FileStore setupSecondary(File d) throws IOException {
+        FileDataStore fds = new FileDataStore();
+        fds.setMinRecordLength(4092);
+        fds.init(externalStore.getAbsolutePath());
+        DataStoreBlobStore blobStore = new DataStoreBlobStore(fds);
+        return new FileStore(blobStore, d, 1, false);
+    }
+
+    @Test
+    public void testSync() throws Exception {
+        final int mb = 1 * 1024 * 1024;
+        final int blobSize = 5 * mb;
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = new SegmentNodeStore(primary);
+        final StandbyServer server = new StandbyServer(getPort(), primary);
+        server.start();
+        byte[] data = addTestContent(store, "server", blobSize);
+
+        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+        cl.run();
+
+        try {
+            assertEquals(primary.getHead(), secondary.getHead());
+        } finally {
+            server.close();
+            cl.close();
+        }
+
+        assertTrue(primary.size() < mb);
+        assertTrue(secondary.size() < mb);
+
+        PropertyState ps = secondary.getHead().getChildNode("root")
+                .getChildNode("server").getProperty("testBlob");
+        assertNotNull(ps);
+        assertEquals(Type.BINARY.tag(), ps.getType().tag());
+        Blob b = ps.getValue(Type.BINARY);
+        assertEquals(blobSize, b.length());
+        byte[] testData = new byte[blobSize];
+        ByteStreams.readFully(b.getNewStream(), testData);
+        assertArrayEquals(data, testData);
+    }
+
+    private static byte[] addTestContent(NodeStore store, String child, int size)
+            throws CommitFailedException, IOException {
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child(child).setProperty("ts", System.currentTimeMillis());
+
+        byte[] data = new byte[size];
+        new Random().nextBytes(data);
+        Blob blob = store.createBlob(new ByteArrayInputStream(data));
+
+        builder.child(child).setProperty("testBlob", blob);
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        return data;
+    }
+
+}

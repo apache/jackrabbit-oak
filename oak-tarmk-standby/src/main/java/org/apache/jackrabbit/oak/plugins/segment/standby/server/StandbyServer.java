@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.segment.standby.server;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -33,15 +34,15 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.CharsetUtil;
+import io.netty.util.concurrent.Future;
 
 import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
-import io.netty.util.concurrent.Future;
-
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.standby.codec.BlobEncoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.RecordIdEncoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.codec.SegmentEncoder;
 import org.apache.jackrabbit.oak.plugins.segment.standby.jmx.StandbyStatusMBean;
@@ -129,6 +130,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
                 p.addLast(new SnappyFramedEncoder());
                 p.addLast(new RecordIdEncoder());
                 p.addLast(new SegmentEncoder());
+                p.addLast(new BlobEncoder());
                 p.addLast(handler);
             }
         });
@@ -169,9 +171,28 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
             public void run() {
                 try {
                     running = true;
+                    handler.state = STATUS_RUNNING;
                     channelFuture.sync().channel().closeFuture().sync();
                 } catch (InterruptedException e) {
                     StandbyServer.this.stop();
+                }
+            }
+        };
+        final ChannelFutureListener bindListener = new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) {
+                if (future.isSuccess()) {
+                    close.start();
+                } else {
+                    log.error("Server failed to start, will be canceled",
+                            future.cause());
+                    future.channel().close();
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            close();
+                        }
+                    }.start();
                 }
             }
         };
@@ -184,7 +205,7 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
                 //the channel registration synchronous.
                 //Note that now this method will return immediately.
                 channelFuture = b.bind(port);
-                close.start();
+                channelFuture.addListener(bindListener);
             }
         });
         if (!startup.awaitUninterruptibly(10000)) {
