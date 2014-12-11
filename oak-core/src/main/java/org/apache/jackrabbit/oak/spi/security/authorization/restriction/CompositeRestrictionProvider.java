@@ -128,18 +128,20 @@ public class CompositeRestrictionProvider implements RestrictionProvider {
     @Nonnull
     @Override
     public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        return getPattern(oakPath, readRestrictions(oakPath, tree));
+    }
+
+    @Nonnull
+    @Override
+    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
         List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>();
         for (RestrictionProvider rp : providers) {
-            RestrictionPattern pattern = rp.getPattern(oakPath, tree);
+            RestrictionPattern pattern = rp.getPattern(oakPath, restrictions);
             if (pattern != RestrictionPattern.EMPTY) {
                 patterns.add(pattern);
             }
         }
-        switch (patterns.size()) {
-            case 0 : return RestrictionPattern.EMPTY;
-            case 1 : return patterns.iterator().next();
-            default : return new CompositePattern(patterns);
-        }
+        return CompositePattern.create(patterns);
     }
 
     //------------------------------------------------------------< private >---

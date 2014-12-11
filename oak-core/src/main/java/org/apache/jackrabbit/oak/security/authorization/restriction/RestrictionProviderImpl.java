@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableMap;
@@ -29,10 +32,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.AbstractRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.CompositePattern;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default restriction provider implementation that supports the following
@@ -50,6 +56,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 @Component
 @Service(RestrictionProvider.class)
 public class RestrictionProviderImpl extends AbstractRestrictionProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(RestrictionProviderImpl.class);
 
     public RestrictionProviderImpl() {
         super(supportedRestrictions());
@@ -69,9 +77,8 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
         if (oakPath == null) {
             return RestrictionPattern.EMPTY;
         } else {
+            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(3);
             PropertyState glob = tree.getProperty(REP_GLOB);
-
-            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(2);
             if (glob != null) {
                 patterns.add(GlobPattern.create(oakPath, glob.getValue(Type.STRING)));
             }
@@ -79,17 +86,34 @@ public class RestrictionProviderImpl extends AbstractRestrictionProvider {
             if (ntNames != null) {
                 patterns.add(new NodeTypePattern(ntNames.getValue(Type.NAMES)));
             }
-
             PropertyState prefixes = tree.getProperty(REP_PREFIXES);
             if (prefixes != null) {
                 patterns.add(new PrefixPattern(prefixes.getValue(Type.STRINGS)));
             }
+            return CompositePattern.create(patterns);
+        }
+    }
 
-            switch (patterns.size()) {
-                case 1 : return patterns.get(0);
-                case 2 : return new CompositePattern(patterns);
-                default : return  RestrictionPattern.EMPTY;
+    @Nonnull
+    @Override
+    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Set<Restriction> restrictions) {
+        if (oakPath == null || restrictions.isEmpty()) {
+            return RestrictionPattern.EMPTY;
+        } else {
+            List<RestrictionPattern> patterns = new ArrayList<RestrictionPattern>(3);
+            for (Restriction r : restrictions) {
+                String name = r.getDefinition().getName();
+                if (REP_GLOB.equals(name)) {
+                    patterns.add(GlobPattern.create(oakPath, r.getProperty().getValue(Type.STRING)));
+                } else if (REP_NT_NAMES.equals(name)) {
+                    patterns.add(new NodeTypePattern(r.getProperty().getValue(Type.NAMES)));
+                } else if (REP_PREFIXES.equals(name)) {
+                    patterns.add(new PrefixPattern(r.getProperty().getValue(Type.STRINGS)));
+                } else {
+                    log.debug("Ignoring unsupported restriction " + name);
+                }
             }
+            return CompositePattern.create(patterns);
         }
     }
 
