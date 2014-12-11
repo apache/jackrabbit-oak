@@ -24,6 +24,14 @@ package org.apache.jackrabbit.oak.query.fulltext;
  * likely visit(FullTextTerm).
  */
 public interface FullTextVisitor {
+    
+    /**
+     * Visit an "contains" expression.
+     * 
+     * @param contains the "contains" expression
+     * @return true if visiting should continue
+     */
+    boolean visit(FullTextContains contains);
 
     /**
      * Visit an "and" expression.
@@ -53,6 +61,11 @@ public interface FullTextVisitor {
      * The base implementation of a full-text visitor.
      */
     public abstract static class FullTextVisitorBase implements FullTextVisitor {
+
+        @Override
+        public boolean visit(FullTextContains contains) {
+            return contains.getBase().accept(this);
+        }
 
         @Override
         public boolean visit(FullTextAnd and) {

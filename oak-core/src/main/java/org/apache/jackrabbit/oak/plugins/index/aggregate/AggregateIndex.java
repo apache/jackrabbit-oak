@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
@@ -112,6 +113,11 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         composite.set(false);
 
         ft.accept(new FullTextVisitor() {
+            
+            @Override
+            public boolean visit(FullTextContains contains) {
+                return contains.getBase().accept(this);
+            }
 
             @Override
             public boolean visit(FullTextTerm term) {
@@ -163,6 +169,11 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
         }
         final AtomicReference<Cursor> result = new AtomicReference<Cursor>();
         constraint.accept(new FullTextVisitor() {
+            
+            @Override
+            public boolean visit(FullTextContains contains) {
+                return contains.getBase().accept(this);
+            }
 
             @Override
             public boolean visit(FullTextTerm term) {
@@ -216,6 +227,11 @@ public class AggregateIndex implements AdvanceFulltextQueryIndex {
             final String path) {
         
         constraint.accept(new FullTextVisitor() {
+            
+            @Override
+            public boolean visit(FullTextContains contains) {
+                return contains.getBase().accept(this);
+            }
 
             @Override
             public boolean visit(FullTextTerm term) {

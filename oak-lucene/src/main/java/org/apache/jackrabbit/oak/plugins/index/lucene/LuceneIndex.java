@@ -61,6 +61,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
@@ -701,6 +702,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         // (a "non-local return")
         final AtomicReference<Query> result = new AtomicReference<Query>();
         ft.accept(new FullTextVisitor() {
+            
+            @Override
+            public boolean visit(FullTextContains contains) {
+                return contains.getBase().accept(this);
+            }
 
             @Override
             public boolean visit(FullTextOr or) {
@@ -734,19 +740,22 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
             @Override
             public boolean visit(FullTextTerm term) {
-                String p = term.getPropertyName();
+                return visitTerm(term.getPropertyName(), term.getText(), term.getBoost(), term.isNot());
+            }
+            
+            private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
+                String p = propertyName;
                 if (p != null && p.indexOf('/') >= 0) {
                     p = getName(p);
                 }
-                Query q = tokenToQuery(term.getText(), p, analyzer, reader);
+                Query q = tokenToQuery(text, p, analyzer, reader);
                 if (q == null) {
                     return false;
                 }
-                String boost = term.getBoost();
                 if (boost != null) {
                     q.setBoost(Float.parseFloat(boost));
                 }
-                if (term.isNot()) {
+                if (not) {
                     BooleanQuery bq = new BooleanQuery();
                     bq.add(q, MUST_NOT);
                     result.set(bq);

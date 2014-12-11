@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -138,7 +139,9 @@ public class FullTextSearchImpl extends ConstraintImpl {
                 p = PathUtils.concat(relativePath, p);
             }
             String p2 = normalizePropertyName(p);
-            return FullTextParser.parse(p2, v.getValue(Type.STRING));
+            String rawText = v.getValue(Type.STRING);
+            FullTextExpression e = FullTextParser.parse(p2, rawText);
+            return new FullTextContains(p2, rawText, e);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Invalid expression: " + fullTextSearchExpression, e);
         }

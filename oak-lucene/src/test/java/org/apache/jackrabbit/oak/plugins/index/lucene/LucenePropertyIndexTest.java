@@ -92,6 +92,23 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 .with(new NodeTypeIndexProvider())
                 .createContentRepository();
     }
+    
+    // TODO OAK-2301
+//    @Test
+//    public void fulltextSearchWithCustomAnalyzer() throws Exception{
+//        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+//        TestUtil.useV2(idx);
+//
+//        Tree anl = idx.addChild(ANALYZERS).addChild(ANL_DEFAULT);
+//        anl.addChild(ANL_TOKENIZER).setProperty(ANL_NAME, "whitespace");
+//        anl.addChild(ANL_FILTERS).addChild("stop");
+//
+//        Tree test = root.getTree("/").addChild("test");
+//        test.setProperty("foo", "fox jumping");
+//        root.commit();
+//
+//        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox was jumping')", asList("/test"));
+//    }
 
     @Test
     public void indexSelection() throws Exception {
