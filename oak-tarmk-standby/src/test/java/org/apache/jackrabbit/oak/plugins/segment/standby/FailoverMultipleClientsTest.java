@@ -66,12 +66,14 @@ public class FailoverMultipleClientsTest extends TestBase {
 
             cl1.stop();
             SegmentTestUtils.addTestContent(store, "test");
+            cl1.run();
             cl2.run();
 
             assertEquals(storeS.getHead(), storeC2.getHead());
             assertFalse("first client updated in stopped state!", storeS.getHead().equals(storeC.getHead()));
 
             cl1.start();
+            cl1.run();
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
             server.close();

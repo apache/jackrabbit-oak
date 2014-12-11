@@ -16,14 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.store;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 
 public interface RemoteSegmentLoader {
 
     Segment readSegment(String id);
 
+    Blob readBlob(String blobId);
+
     void close();
 
     boolean isClosed();
+
+    boolean isRunning();
 
 }
