@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,6 +57,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -790,6 +792,73 @@ public class DocumentNodeStoreTest {
         // now r is considered old and revisionSeen is null
         assertNull(ns2.getRevisionComparator().getRevisionSeen(r));
         ns2.dispose();
+    }
+
+    // OAK-1782
+    @Test
+    public void diffOnce() throws Exception {
+        final AtomicInteger numQueries = new AtomicInteger();
+        MemoryDocumentStore store = new MemoryDocumentStore() {
+            @Nonnull
+            @Override
+            public <T extends Document> List<T> query(Collection<T> collection,
+                                                      String fromKey,
+                                                      String toKey,
+                                                      String indexedProperty,
+                                                      long startValue,
+                                                      int limit) {
+                numQueries.getAndIncrement();
+                return super.query(collection, fromKey, toKey,
+                        indexedProperty, startValue, limit);
+            }
+        };
+        final DocumentNodeStore ns = new DocumentMK.Builder()
+                .setDocumentStore(store).getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        // make sure we have enough children to trigger diffManyChildren
+        for (int i = 0; i < DocumentMK.MANY_CHILDREN_THRESHOLD * 2; i++) {
+            builder.child("node-" + i);
+        }
+        merge(ns, builder);
+
+        final Revision head = ns.getHeadRevision();
+        final Revision to = new Revision(
+                head.getTimestamp() + 1000, 0, head.getClusterId());
+        int numReaders = 10;
+        final CountDownLatch ready = new CountDownLatch(numReaders);
+        final CountDownLatch go = new CountDownLatch(1);
+        List<Thread> readers = Lists.newArrayList();
+        for (int i = 0; i < numReaders; i++) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ready.countDown();
+                        go.await();
+                        ns.diff(head.toString(), to.toString(), "/");
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }
+            });
+            readers.add(t);
+            t.start();
+        }
+
+        ready.await();
+        numQueries.set(0);
+        go.countDown();
+
+        for (Thread t : readers) {
+            t.join();
+        }
+
+        // must not perform more than two queries
+        // 1) query the first 50 children to find out there are many
+        // 2) query for the changed children between the two revisions
+        assertTrue(numQueries.get() <= 2);
+
+        store.dispose();
     }
 
     private static void merge(NodeStore store, NodeBuilder root)

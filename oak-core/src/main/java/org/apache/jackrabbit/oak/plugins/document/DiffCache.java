@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * A cache for child node diffs.
@@ -38,12 +39,14 @@ public interface DiffCache {
      * @param from the from revision.
      * @param to the to revision.
      * @param path the path of the parent node.
-     * @return the diff or {@code null} if unknown.
+     * @param loader an optional loader for the cache entry.
+     * @return the diff or {@code null} if unknown and no loader was passed.
      */
     @CheckForNull
     String getChanges(@Nonnull Revision from,
-                             @Nonnull Revision to,
-                             @Nonnull String path);
+                      @Nonnull Revision to,
+                      @Nonnull String path,
+                      @Nullable Loader loader);
 
     /**
      * Starts a new cache entry for the diff cache. Actual changes are added
@@ -55,7 +58,7 @@ public interface DiffCache {
      */
     @Nonnull
     Entry newEntry(@Nonnull Revision from,
-                          @Nonnull Revision to);
+                   @Nonnull Revision to);
 
     public interface Entry {
 
@@ -66,12 +69,17 @@ public interface DiffCache {
          * @param changes the child node changes.
          */
         void append(@Nonnull String path,
-                           @Nonnull String changes);
+                    @Nonnull String changes);
 
         /**
          * Called when all changes have been appended and the entry is ready
          * to be used by the cache.
          */
         void done();
+    }
+
+    public interface Loader {
+
+        String call();
     }
 }
