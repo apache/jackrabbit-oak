@@ -1532,6 +1532,13 @@ public final class DocumentNodeStore
             Revision last = lastKnownRevision.get(machineId);
             if (last == null || r.compareRevisionTime(last) > 0) {
                 lastKnownRevision.put(machineId, r);
+                // OAK-2345
+                // only consider as external change if
+                // - the revision changed for the machineId
+                // or
+                // - the revision is within the time frame we remember revisions
+                if (last != null
+                        || r.getTimestamp() > revisionPurgeMillis())
                 externalChanges.put(r, otherSeen);
             }
         }
@@ -1562,7 +1569,17 @@ public final class DocumentNodeStore
                 backgroundOperationLock.writeLock().unlock();
             }
         }
-        revisionComparator.purge(Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS);
+        revisionComparator.purge(revisionPurgeMillis());
+    }
+
+    /**
+     * Returns the time in milliseconds when revisions can be purged from the
+     * revision comparator.
+     *
+     * @return time in milliseconds.
+     */
+    private static long revisionPurgeMillis() {
+        return Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS;
     }
 
     private void backgroundSplit() {
