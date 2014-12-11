@@ -187,8 +187,6 @@ public class FileStore implements SegmentStore {
         this.memoryMapping = memoryMapping;
 
         journalFile = new RandomAccessFile(new File(directory, JOURNAL_FILE_NAME), "rw");
-        journalFile.seek(journalFile.length());
-        journalLock = journalFile.getChannel().lock();
 
         Map<Integer, Map<Character, File>> map = collectFiles(directory);
         this.readers = newArrayListWithCapacity(map.size());
@@ -226,6 +224,9 @@ public class FileStore implements SegmentStore {
         } finally {
             journalReader.close();
         }
+
+        journalFile.seek(journalFile.length());
+        journalLock = journalFile.getChannel().lock();
 
         if (id != null) {
             head = new AtomicReference<RecordId>(id);
