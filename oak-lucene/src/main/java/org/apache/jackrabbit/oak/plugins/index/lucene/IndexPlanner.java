@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
@@ -200,8 +201,19 @@ class IndexPlanner {
         final AtomicBoolean relativeParentsFound = new AtomicBoolean();
         ft.accept(new FullTextVisitor.FullTextVisitorBase() {
             @Override
+            public boolean visit(FullTextContains contains) {
+                visitTerm(contains.getPropertyName());
+                return true;
+            }
+
+            @Override
             public boolean visit(FullTextTerm term) {
-                String p = term.getPropertyName();
+                visitTerm(term.getPropertyName());
+                return true;
+            }
+                
+            private void visitTerm(String propertyName) {
+                String p = propertyName;
                 String propertyPath = null;
                 String nodePath = null;
                 if (p == null) {
@@ -229,8 +241,6 @@ class IndexPlanner {
                         && !indexingRule.isIndexed(propertyPath)){
                     nonIndexedPaths.add(p);
                 }
-
-                return true;
             }
         });
 
