@@ -86,6 +86,22 @@
       org.apache.jackrabbit.core.query.SimpleQueryTest#testNegativeNumber                            <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SQL2OrderByTest#testOrderByScore
       org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- TODO -->
+
+      org.apache.jackrabbit.core.query.SQL2QueryResultTest#testSQL2SelectColums                      <!-- OAK-2340 -->
+
+      org.apache.jackrabbit.core.query.JoinTest#testMultiValuedReferenceJoin                         <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR                                       <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR2                                      <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR3                                      <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.SQL2OuterJoinTest#testOuterJoin                               <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.SQL2OuterJoinTest#testOuterJoinMissingNode                    <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.SQL2OuterJoinTest#testOuterJoinExtraNode                      <!-- OAK-2338 -->
+      org.apache.jackrabbit.core.query.SimpleQueryTest#testLogicalExpression                         <!-- OAK-2338 -->
+
+      org.apache.jackrabbit.core.query.OrderByTest#testOrderByScore                                  <!-- OAK-2339 -->
+      org.apache.jackrabbit.core.query.OrderByTest#testOrderByMVP                                    <!-- OAK-2339 -->
+      org.apache.jackrabbit.core.query.SimpleQueryTest#testSimpleQuerySQL4                           <!-- OAK-2339 -->
+      org.apache.jackrabbit.core.query.SimpleQueryTest#testIsNull                                    <!-- OAK-2339 -->
     </known.issues>
   </properties>
 
