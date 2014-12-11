@@ -20,14 +20,47 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 
 public class SegmentReply {
 
+    public static final int SEGMENT = 0;
+    public static final int BLOB = 1;
+
+    public static SegmentReply empty() {
+        return new SegmentReply();
+    }
+
+    private final int type;
+
     private final Segment segment;
 
+    private final IdArrayBasedBlob blob;
+
     public SegmentReply(Segment segment) {
+        this.type = SEGMENT;
         this.segment = segment;
+        this.blob = null;
+    }
+
+    public SegmentReply(IdArrayBasedBlob blob) {
+        this.type = BLOB;
+        this.segment = null;
+        this.blob = blob;
+    }
+
+    private SegmentReply() {
+        this.type = -1;
+        this.segment = null;
+        this.blob = null;
     }
 
     public Segment getSegment() {
         return this.segment;
+    }
+
+    public IdArrayBasedBlob getBlob() {
+        return blob;
+    }
+
+    public int getType() {
+        return type;
     }
 
 }

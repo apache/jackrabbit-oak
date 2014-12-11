@@ -45,4 +45,11 @@ public interface ObservablePartnerMBean {
 
     @Description("Number of bytes stored in transferred segments")
     long getTransferredSegmentBytes();
+
+    @Description("Number of transferred binaries")
+    long getTransferredBinaries();
+
+    @Description("Number of bytes stored in transferred binaries")
+    long getTransferredBinariesBytes();
+
 }

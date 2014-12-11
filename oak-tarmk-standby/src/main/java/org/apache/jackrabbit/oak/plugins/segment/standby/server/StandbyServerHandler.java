@@ -29,6 +29,7 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -158,7 +159,7 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
                     } catch (IllegalStateException e) {
                         // segment not found
                         log.debug("waiting for segment. Got exception: " + e.getMessage());
-                        TimeUnit.MILLISECONDS.sleep(1000);
+                        TimeUnit.MILLISECONDS.sleep(2000);
                     }
                     if (s != null) break;
                 }
@@ -169,6 +170,15 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
                     observer.didSendSegmentBytes(clientID, s.size());
                     return;
                 }
+            } else if (request.startsWith(Messages.GET_BLOB)) {
+                String bid = request.substring(Messages.GET_BLOB.length());
+                log.debug("request blob id {}", bid);
+                Blob b = store.readBlob(bid);
+                log.debug("sending blob " + bid + " to " + client);
+                ctx.writeAndFlush(b);
+                observer.didSendBinariesBytes(clientID,
+                        Math.max(0, (int) b.length()));
+                return;
             } else {
                 log.warn("Unknown request {}, ignoring.", request);
             }
