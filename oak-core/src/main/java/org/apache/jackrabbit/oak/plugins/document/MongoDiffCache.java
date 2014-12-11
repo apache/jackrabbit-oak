@@ -21,6 +21,7 @@ import java.util.concurrent.locks.Lock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -77,59 +78,18 @@ public class MongoDiffCache extends MemoryDiffCache {
     @Override
     public String getChanges(@Nonnull Revision from,
                              @Nonnull Revision to,
-                             @Nonnull String path) {
+                             @Nonnull String path,
+                             @Nullable Loader loader) {
         Lock lock = locks.get(from);
         lock.lock();
         try {
-            // first try to serve from cache
-            String diff = super.getChanges(from, to, path);
-            if (diff != null) {
-                return diff;
+            String changes = getChangesInternal(from, to, path);
+            if (changes == null && loader != null) {
+                changes = loader.call();
+                // put into memory cache
+                super.newEntry(from, to).append(path, changes);
             }
-            if (from.getClusterId() != to.getClusterId()) {
-                return null;
-            }
-            // check blacklist
-            if (blacklist.getIfPresent(from + "/" + to) != null) {
-                return null;
-            }
-            Revision id = to;
-            Diff d = null;
-            int numCommits = 0;
-            for (;;) {
-                // grab from mongo
-                DBObject obj = changes.findOne(new BasicDBObject("_id", id.toString()));
-                if (obj == null) {
-                    return null;
-                }
-                numCommits++;
-                if (numCommits > 32) {
-                    // do not merge more than 32 commits
-                    blacklist.put(from + "/" + to, "");
-                    return null;
-                }
-                if (d == null) {
-                    d = new Diff(obj);
-                } else {
-                    d.mergeBeforeDiff(new Diff(obj));
-                }
-
-                // the from revision of the current diff
-                id = Revision.fromString((String) obj.get("_b"));
-                if (from.equals(id)) {
-                    // diff is complete
-                    LOG.debug("Built diff from {} commits", numCommits);
-                    // apply to diff cache and serve later requests from cache
-                    d.applyToEntry(super.newEntry(from, to)).done();
-                    // return changes
-                    return d.getChanges(path);
-                }
-
-                if (StableRevisionComparator.INSTANCE.compare(id, from) < 0) {
-                    break;
-                }
-            }
-            return null;
+            return changes;
         } finally {
             lock.unlock();
         }
@@ -159,6 +119,60 @@ public class MongoDiffCache extends MemoryDiffCache {
                 }
             }
         };
+    }
+
+    private String getChangesInternal(@Nonnull Revision from,
+                                      @Nonnull Revision to,
+                                      @Nonnull String path) {
+        // first try to serve from cache
+        String diff = super.getChanges(from, to, path, null);
+        if (diff != null) {
+            return diff;
+        }
+        if (from.getClusterId() != to.getClusterId()) {
+            return null;
+        }
+        // check blacklist
+        if (blacklist.getIfPresent(from + "/" + to) != null) {
+            return null;
+        }
+        Revision id = to;
+        Diff d = null;
+        int numCommits = 0;
+        for (;;) {
+            // grab from mongo
+            DBObject obj = changes.findOne(new BasicDBObject("_id", id.toString()));
+            if (obj == null) {
+                return null;
+            }
+            numCommits++;
+            if (numCommits > 32) {
+                // do not merge more than 32 commits
+                blacklist.put(from + "/" + to, "");
+                return null;
+            }
+            if (d == null) {
+                d = new Diff(obj);
+            } else {
+                d.mergeBeforeDiff(new Diff(obj));
+            }
+
+            // the from revision of the current diff
+            id = Revision.fromString((String) obj.get("_b"));
+            if (from.equals(id)) {
+                // diff is complete
+                LOG.debug("Built diff from {} commits", numCommits);
+                // apply to diff cache and serve later requests from cache
+                d.applyToEntry(super.newEntry(from, to)).done();
+                // return changes
+                return d.getChanges(path);
+            }
+
+            if (StableRevisionComparator.INSTANCE.compare(id, from) < 0) {
+                break;
+            }
+        }
+        return null;
     }
 
     static class Diff {
