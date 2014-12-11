@@ -43,7 +43,6 @@
       org.apache.jackrabbit.core.query.ExcerptTest#testPunctuationStartsFragmentEndsWithDots         <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.ExcerptTest#testPreferPhrase                                  <!-- OAK-318 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testSkip                                      <!-- OAK-484 -->
-      org.apache.jackrabbit.core.query.SimilarQueryTest#testSimilar                                  <!-- OAK-319 -->
       org.apache.jackrabbit.core.query.DerefTest#testDeref                                           <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testDerefInPredicate                                <!-- OAK-321 -->
       org.apache.jackrabbit.core.query.DerefTest#testRewrite                                         <!-- OAK-321 -->
@@ -68,8 +67,6 @@
       org.apache.jackrabbit.core.query.SelectClauseTest#testSameNameSiblingSQL                       <!-- OAK-203 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testName                                    <!-- OAK-118 -->
       org.apache.jackrabbit.core.query.ShareableNodeTest#testPathConstraint                          <!-- OAK-118 -->
-      org.apache.jackrabbit.core.observation.ShareableNodesTest#testAddShare                         <!-- OAK-118 workspace support needed -->
-      org.apache.jackrabbit.core.observation.ShareableNodesTest#testRemoveShare                      <!-- OAK-118 workspace support needed -->
       org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR4                                      <!-- OAK-955 -->
       org.apache.jackrabbit.core.query.JoinTest#testJoinWithOR5                                      <!-- OAK-955 -->
       org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest#testLowerLocalNameOrContains            <!-- OAK-957 -->
@@ -78,13 +75,8 @@
       org.apache.jackrabbit.core.query.QueryResultTest#testIteratorNext                              <!-- OAK-484 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testIteratorNextOrderByScore                  <!-- OAK-484 -->
       org.apache.jackrabbit.core.query.QueryResultTest#testSkipOrderByProperty                       <!-- OAK-484 -->
-      org.apache.jackrabbit.core.query.QueryResultTest#testGetSize                                   <!-- OAK-484 -->
-      org.apache.jackrabbit.core.query.SimpleQueryTest#testDoubleField                               <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testBigDecimalField                           <!-- OAK-327 -->
-      org.apache.jackrabbit.core.query.SimpleQueryTest#testLongField                                 <!-- OAK-327 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testLikePatternEscaped                        <!-- OAK-327 -->
-      org.apache.jackrabbit.core.query.SimpleQueryTest#testNegativeNumber                            <!-- OAK-327 -->
-      org.apache.jackrabbit.core.query.SQL2OrderByTest#testOrderByScore
       org.apache.jackrabbit.core.query.FulltextQueryTest#testMultipleOrExpressions                   <!-- TODO -->
 
       org.apache.jackrabbit.core.query.SQL2QueryResultTest#testSQL2SelectColums                      <!-- OAK-2340 -->
