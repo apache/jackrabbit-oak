@@ -1538,8 +1538,9 @@ public final class DocumentNodeStore
                 // or
                 // - the revision is within the time frame we remember revisions
                 if (last != null
-                        || r.getTimestamp() > revisionPurgeMillis())
-                externalChanges.put(r, otherSeen);
+                        || r.getTimestamp() > revisionPurgeMillis()) {
+                    externalChanges.put(r, otherSeen);
+                }
             }
         }
 
