@@ -61,12 +61,14 @@ import com.google.common.collect.Sets;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -376,7 +378,7 @@ public class DocumentNodeStoreTest {
         assertEquals(1, created.getClusterId());
 
         clock.waitUntil(System.currentTimeMillis() +
-                DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS / 2);
+                REMEMBER_REVISION_ORDER_MILLIS / 2);
 
         NodeBuilder builder = nodeStore2.getRoot().builder();
         builder.setProperty("prop", "value");
@@ -384,7 +386,7 @@ public class DocumentNodeStoreTest {
         nodeStore2.runBackgroundOperations();
 
         clock.waitUntil(System.currentTimeMillis() +
-                DocumentNodeStore.REMEMBER_REVISION_ORDER_MILLIS + 1000);
+                REMEMBER_REVISION_ORDER_MILLIS + 1000);
         nodeStore3.runBackgroundOperations();
 
         doc = docStore.find(NODES, Utils.getIdFromPath("/"));
@@ -754,6 +756,41 @@ public class DocumentNodeStoreTest {
         ns.dispose();
     }
 
+    // OAK-2345
+    @Test
+    public void inactiveClusterId() throws Exception {
+        Clock clock = new Clock.Virtual();
+        clock.waitUntil(System.currentTimeMillis());
+        Revision.setClock(clock);
+        MemoryDocumentStore docStore = new MemoryDocumentStore();
+        DocumentNodeStore ns1 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(1)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        NodeBuilder builder = ns1.getRoot().builder();
+        builder.child("test");
+        merge(ns1, builder);
+        Revision r = ns1.getHeadRevision();
+        ns1.dispose();
+
+        // start other cluster node
+        DocumentNodeStore ns2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(2)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        assertNotNull(ns2.getRevisionComparator().getRevisionSeen(r));
+        ns2.dispose();
+
+        // wait until revision is old
+        clock.waitUntil(System.currentTimeMillis()
+                + REMEMBER_REVISION_ORDER_MILLIS + 1000);
+
+        // start cluster 2 again
+        ns2 = new DocumentMK.Builder()
+                .setDocumentStore(docStore).setClusterId(2)
+                .setAsyncDelay(0).clock(clock).getNodeStore();
+        // now r is considered old and revisionSeen is null
+        assertNull(ns2.getRevisionComparator().getRevisionSeen(r));
+        ns2.dispose();
+    }
 
     private static void merge(NodeStore store, NodeBuilder root)
             throws CommitFailedException {
