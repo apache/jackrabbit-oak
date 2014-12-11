@@ -107,7 +107,7 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         String name = after.getName();
-        if (!TreeConstants.OAK_CHILD_ORDER.equals(name)) {
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name, parentAfter)) {
             checkPermissions(parentAfter, after, Permissions.ADD_PROPERTY);
         }
     }
@@ -120,7 +120,7 @@ class PermissionValidator extends DefaultValidator {
             if (childName != null) {
                 checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
-        } else if (isImmutableProperty(name)) {
+        } else if (isImmutableProperty(name, parentAfter)) {
             // parent node has been removed and and re-added as
             checkPermissions(parentAfter, false, Permissions.ADD_NODE|Permissions.REMOVE_NODE);
         } else {
@@ -130,7 +130,8 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        if (!TreeConstants.OAK_CHILD_ORDER.equals(before.getName())) {
+        String name = before.getName();
+        if (!TreeConstants.OAK_CHILD_ORDER.equals(name) && !isImmutableProperty(name, parentBefore)) {
             checkPermissions(parentBefore, before, Permissions.REMOVE_PROPERTY);
         }
     }
@@ -250,10 +251,9 @@ class PermissionValidator extends DefaultValidator {
             return permission;
         }
         long perm;
-        if (provider.getAccessControlContext().definesTree(tree)) {
+        if (testAccessControlPermission(tree)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (provider.getUserContext().definesTree(tree)
-                && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT)) {
+        } else if (testUserPermission(tree)) {
             perm = Permissions.USER_MANAGEMENT;
         } else if (isIndexDefinition(tree)) {
             perm = Permissions.INDEX_DEFINITION_MANAGEMENT;
@@ -271,7 +271,7 @@ class PermissionValidator extends DefaultValidator {
         long perm;
         if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
             if (defaultPermission == Permissions.MODIFY_PROPERTY) {
-                perm = Permissions.NODE_TYPE_MANAGEMENT;
+                perm = getPermission(parent, Permissions.NODE_TYPE_MANAGEMENT);
             } else {
                 // can't determine if this was  a user supplied modification of
                 // the primary type -> omit permission check.
@@ -281,18 +281,6 @@ class PermissionValidator extends DefaultValidator {
             }
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
-        } else if (JcrConstants.JCR_UUID.equals(name)) {
-            if (isReferenceable.apply(parent.getNodeState())) {
-                // property added or removed: jcr:uuid is autocreated in
-                // JCR, thus can't determine here if this was a user supplied
-                // modification or not.
-                perm = Permissions.NO_PERMISSION;
-            } else {
-                /* the parent is not referenceable -> check regular permissions
-                   as this instance of jcr:uuid is not the mandatory/protected
-                   property defined by mix:referenceable */
-                perm = defaultPermission;
-            }
         } else if (LockConstants.LOCK_PROPERTY_NAMES.contains(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
         } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {
@@ -321,18 +309,26 @@ class PermissionValidator extends DefaultValidator {
         }
     }
 
-    private boolean isImmutableProperty(String name) {
+    private boolean isImmutableProperty(@Nonnull String name, @Nonnull ImmutableTree parent) {
         // NOTE: we cannot rely on autocreated/protected definition as this
         // doesn't reveal if a given property is expected to be never modified
         // after creation.
-        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parentAfter.getNodeState())) {
+        if (JcrConstants.JCR_UUID.equals(name) && isReferenceable.apply(parent.getNodeState())) {
             return true;
         } else if ((JCR_CREATED.equals(name) || JCR_CREATEDBY.equals(name))
-                && isCreated.apply(parentAfter.getNodeState())) {
+                && isCreated.apply(parent.getNodeState())) {
             return true;
         } else {
             return false;
         }
+    }
+
+    private boolean testUserPermission(@Nonnull Tree tree) {
+        return provider.getUserContext().definesTree(tree) && !provider.requiresJr2Permissions(Permissions.USER_MANAGEMENT);
+    }
+
+    private boolean testAccessControlPermission(@Nonnull Tree tree) {
+        return provider.getAccessControlContext().definesTree(tree);
     }
 
     private boolean isVersionstorageTree(Tree tree) {
