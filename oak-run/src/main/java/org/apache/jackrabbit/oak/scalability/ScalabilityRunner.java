@@ -126,7 +126,8 @@ public class ScalabilityRunner {
                                         new LastModifiedSearcher(Date.LAST_24_HRS),
                                         new LastModifiedSearcher(Date.LAST_7_DAYS),
                                         new LastModifiedSearcher(Date.LAST_MONTH),
-                                        new LastModifiedSearcher(Date.LAST_YEAR)),
+                                        new LastModifiedSearcher(Date.LAST_YEAR),
+                                        new OrderByDate()),
                         new ScalabilityNodeSuite(withStorage.value(options))
                                 .addBenchmarks(new OrderBySearcher(),
                                         new SplitOrderBySearcher(),
