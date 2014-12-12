@@ -195,6 +195,23 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeFactoryClassLoaders(ClassLoader classLoader) {
+        ClassLoader originalClassLoader = Thread.currentThread()
+                .getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(classLoader);
+            //Access TokenizerFactory etc trigger a static initialization
+            //so switch the TCCL so that static initializer picks up the right
+            //classloader
+            initializeFactoryClassLoaders0(classLoader);
+        } catch (Throwable t) {
+            log.warn("Error occurred while initializing the Lucene " +
+                    "Factories", t);
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalClassLoader);
+        }
+    }
+
+    private void initializeFactoryClassLoaders0(ClassLoader classLoader) {
         //Factories use the Threads context classloader to perform SPI classes
         //lookup by default which would not work in OSGi world. So reload the
         //factories by providing the bundle classloader
@@ -213,4 +230,5 @@ public class LuceneIndexProviderService {
         this.nodeAggregator = null;
         initialize();
     }
+
 }
