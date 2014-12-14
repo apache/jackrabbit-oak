@@ -481,8 +481,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final List<NamePattern> namePatterns;
         final float boost;
         final boolean inherited;
-        final boolean defaultFulltextEnabled;
-        final boolean defaultStorageEnabled;
         final int propertyTypes;
         final boolean fulltextEnabled;
         final boolean propertyIndexEnabled;
@@ -496,9 +494,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.baseNodeType = nodeTypeName;
             this.boost = getOptionalValue(config, FIELD_BOOST, DEFAULT_BOOST);
             this.inherited = getOptionalValue(config, LuceneIndexConstants.RULE_INHERITED, true);
-            this.defaultFulltextEnabled = getOptionalValue(config, LuceneIndexConstants.FULL_TEXT_ENABLED, false);
-            //TODO Provide a new proper propertyName for enabling storage
-            this.defaultStorageEnabled = getOptionalValue(config, LuceneIndexConstants.EXPERIMENTAL_STORAGE, false);
             this.propertyTypes = getSupportedTypes(config, INCLUDE_PROPERTY_TYPES, TYPES_ALLOW_ALL);
 
             List<NamePattern> namePatterns = newArrayList();
@@ -525,8 +520,6 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propConfigs = original.propConfigs;
             this.namePatterns = original.namePatterns;
             this.boost = original.boost;
-            this.defaultFulltextEnabled = original.defaultFulltextEnabled;
-            this.defaultStorageEnabled = original.defaultStorageEnabled;
             this.inherited = original.inherited;
             this.propertyTypes = original.propertyTypes;
             this.propertyIndexEnabled = original.propertyIndexEnabled;
