@@ -41,7 +41,10 @@ import javax.swing.JTextArea;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
-import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.ReadOnlyStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.JournalReader;
+
+import com.google.common.collect.Lists;
 
 /**
  * NodeStore explorer
@@ -64,7 +67,7 @@ public class Explorer {
         }
 
         final String path = args[0];
-        final FileStore store = new FileStore(new File(path), 256);
+        final ReadOnlyStore store = new ReadOnlyStore(new File(path));
         final boolean skipSizeCheck = args.length == 2
                 && skip.equalsIgnoreCase(args[1]);
 
@@ -90,8 +93,8 @@ public class Explorer {
         }
     }
 
-    private void createAndShowGUI(final String path, final FileStore store, boolean skipSizeCheck) {
-        final JFrame frame = new JFrame("Explore " + path);
+    private void createAndShowGUI(final String path, final ReadOnlyStore store, boolean skipSizeCheck) {
+        final JFrame frame = new JFrame("Explore " + path + " @head");
         frame.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent windowEvent) {
@@ -123,22 +126,50 @@ public class Explorer {
         JMenuBar menuBar = new JMenuBar();
         menuBar.setMargin(new Insets(2, 2, 2, 2));
 
-        JMenuItem menuCompaction = new JMenuItem("Tar Compaction");
-        menuCompaction.setMnemonic(KeyEvent.VK_C);
+        JMenuItem menuCompaction = new JMenuItem("Time Machine");
+        menuCompaction.setMnemonic(KeyEvent.VK_T);
         menuCompaction.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
-                int run = JOptionPane.showConfirmDialog(frame,
-                        "Run compaction on the tar files", "Tar Compaction",
-                        JOptionPane.WARNING_MESSAGE, JOptionPane.YES_NO_OPTION);
-                if (run == JOptionPane.YES_OPTION) {
-                    treePanel.compact();
+                List<String> revs = new ArrayList<String>();
+
+                File journal = new File(path, "journal.log");
+                if (!journal.exists()) {
+                    return;
+                }
+
+                JournalReader journalReader = null;
+                try {
+                    journalReader = new JournalReader(journal);
+                    try {
+                        revs = Lists.newArrayList(journalReader.iterator());
+                    } finally {
+                        journalReader.close();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return;
+                } finally {
+                    try {
+                        if (journalReader != null) {
+                            journalReader.close();
+                        }
+                    } catch (IOException e) {
+                    }
+                }
+
+                String s = (String) JOptionPane.showInputDialog(frame,
+                        "Revert to a specified revision", "Time Machine",
+                        JOptionPane.PLAIN_MESSAGE, null, revs.toArray(),
+                        revs.get(0));
+                if (s != null && treePanel.revert(s)) {
+                    frame.setTitle("Explore " + path + " @" + s);
                 }
             }
         });
 
         JMenuItem menuRefs = new JMenuItem("Tar File Info");
-        menuRefs.setMnemonic(KeyEvent.VK_R);
+        menuRefs.setMnemonic(KeyEvent.VK_I);
         menuRefs.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
@@ -161,7 +192,7 @@ public class Explorer {
         });
 
         JMenuItem menuSCR = new JMenuItem("Segment Content Refs");
-        menuSCR.setMnemonic(KeyEvent.VK_S);
+        menuSCR.setMnemonic(KeyEvent.VK_R);
         menuSCR.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ev) {
