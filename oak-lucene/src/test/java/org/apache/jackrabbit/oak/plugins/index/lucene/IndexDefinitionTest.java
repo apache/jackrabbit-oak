@@ -260,6 +260,32 @@ public class IndexDefinitionTest {
     }
 
     @Test
+    public void indexRuleWithPropertyRegEx2() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child("nt:folder");
+        child(rules, "nt:folder/properties/prop1")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
+        child(rules, "nt:folder/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "metadata/.*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
+
+
+        IndexDefinition defn = new IndexDefinition(root, builder.getNodeState());
+
+        IndexingRule rule1 = defn.getApplicableIndexingRule(newTree(newNode("nt:folder")));
+        assertNotNull(rule1);
+
+        assertTrue(rule1.isIndexed("prop1"));
+        assertTrue(rule1.isIndexed("prop2"));
+        assertFalse(rule1.isIndexed("jcr:content/prop1"));
+
+        assertTrue(rule1.isIndexed("metadata/foo"));
+        assertFalse(rule1.isIndexed("metadata/foo/bar"));
+    }
+
+    @Test
     public void indexRuleWithPropertyOrdering() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
