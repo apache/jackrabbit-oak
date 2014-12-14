@@ -31,7 +31,6 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <skip.deployment>true</skip.deployment>
     <jetty.version>8.1.2.v20120308</jetty.version>
     <groovy.version>2.3.1</groovy.version>
   </properties>
