@@ -77,12 +77,12 @@ class PropertyDefinition {
 
         //By default if a property is defined it is indexed
         this.index = getOptionalValue(defn, LuceneIndexConstants.PROP_INDEX, true);
-        this.stored = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, idxDefn.defaultStorageEnabled);
-        this.nodeScopeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, idxDefn.defaultFulltextEnabled);
-        this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, idxDefn.defaultFulltextEnabled);
+        this.stored = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_EXCERPT, false);
+        this.nodeScopeIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, false);
+        this.analyzed = getOptionalValue(defn, LuceneIndexConstants.PROP_ANALYZED, false);
 
         //If node is not set for full text then a property definition indicates that definition is for property index
-        this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, !idxDefn.defaultFulltextEnabled);
+        this.propertyIndex = getOptionalValue(defn, LuceneIndexConstants.PROP_PROPERTY_INDEX, false);
         this.ordered = getOptionalValue(defn, LuceneIndexConstants.PROP_ORDERED, false);
         this.includedPropertyTypes = IndexDefinition.getSupportedTypes(defn, LuceneIndexConstants.PROP_INCLUDED_TYPE,
                 IndexDefinition.TYPES_ALLOW_ALL);
