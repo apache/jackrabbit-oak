@@ -66,6 +66,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
@@ -721,6 +722,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
      * A property name pattern.
      */
     private static final class NamePattern {
+        private final String parentPath;
         /**
          * The pattern to match.
          */
@@ -740,7 +742,16 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private NamePattern(String pattern,
                             PropertyDefinition config){
 
-            this.pattern = Pattern.compile(pattern);
+            //Special handling for all props regex as its already being used
+            //and use of '/' in regex would confuse the parent path calculation
+            //logic
+            if (LuceneIndexConstants.REGEX_ALL_PROPS.equals(pattern)){
+                this.parentPath = "";
+                this.pattern = Pattern.compile(pattern);
+            } else {
+                this.parentPath = getParentPath(pattern);
+                this.pattern = Pattern.compile(PathUtils.getName(pattern));
+            }
             this.config = config;
         }
 
@@ -750,7 +761,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
          *         pattern; <code>false</code> otherwise.
          */
         boolean matches(String propertyPath) {
-            return pattern.matcher(propertyPath).matches();
+            String parentPath = getParentPath(propertyPath);
+            String propertyName = PathUtils.getName(propertyPath);
+            if (!this.parentPath.equals(parentPath)) {
+                return false;
+            }
+            return pattern.matcher(propertyName).matches();
         }
 
         PropertyDefinition getConfig() {
