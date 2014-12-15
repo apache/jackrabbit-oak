@@ -26,7 +26,10 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -60,9 +63,14 @@ public class HeavyWriteIT {
     @Test
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
         final FileStore store = new FileStore(directory, 128, false);
-        store.setCompactionStrategy(new CompactionStrategy(false, false,
-                CLEAN_OLD, 30000, (byte) 0));
         final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
+        store.setCompactionStrategy(new CompactionStrategy(false, false,
+                CLEAN_OLD, 30000, (byte) 0) {
+            @Override
+            public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+                return nodeStore.locked(setHead);
+            }
+        });
 
         int writes = 100;
         final AtomicBoolean run = new AtomicBoolean(true);
