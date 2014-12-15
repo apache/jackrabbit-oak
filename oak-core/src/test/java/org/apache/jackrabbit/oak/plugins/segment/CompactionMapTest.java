@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ALIGN_BITS;
 import static org.junit.Assert.assertFalse;
 
 import java.util.Map;
@@ -39,8 +39,8 @@ public class CompactionMapTest {
         System.gc();
         System.out.println((runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024));
 
-        CompactionMap map = new CompactionMap(100000);
         SegmentTracker factory = new MemoryStore().getTracker();
+        CompactionMap map = new CompactionMap(100000, factory);
         for (int i = 0; i < 1000000; i++) {
             if (i % 1000 == 0) {
                 System.gc();
@@ -65,7 +65,7 @@ public class CompactionMapTest {
         Random r = new Random(seed);
 
         SegmentTracker factory = new MemoryStore().getTracker();
-        CompactionMap map = new CompactionMap(r.nextInt(maxSegments / 2));
+        CompactionMap map = new CompactionMap(r.nextInt(maxSegments / 2), factory);
         Map<RecordId, RecordId> entries = newHashMap();
 
         int segments = r.nextInt(maxSegments);
@@ -101,7 +101,7 @@ public class CompactionMapTest {
      * Returns a new valid record offset, between {@code a} and {@code b},
      * exclusive.
      */
-    private int newValidOffset(Random random, int a, int b) {
+    private static int newValidOffset(Random random, int a, int b) {
         int p = (a >> RECORD_ALIGN_BITS) + 1;
         int q = (b >> RECORD_ALIGN_BITS);
         return (p + random.nextInt(q - p)) << RECORD_ALIGN_BITS;

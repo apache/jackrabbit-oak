@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.blob.ReferenceCollector;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +74,7 @@ public class SegmentTracker {
      * identifiers and identifiers of the corresponding records
      * after compaction.
      */
-    private final AtomicReference<CompactionMap> compactionMap =
-            new AtomicReference<CompactionMap>(new CompactionMap(1));
+    private final AtomicReference<CompactionMap> compactionMap;
 
     private final long cacheSize;
 
@@ -101,6 +101,8 @@ public class SegmentTracker {
         this.store = store;
         this.writer = new SegmentWriter(store, this);
         this.cacheSize = cacheSizeMB * MB;
+        this.compactionMap = new AtomicReference<CompactionMap>(
+                new CompactionMap(1, this));
     }
 
     public SegmentTracker(SegmentStore store) {
@@ -116,9 +118,16 @@ public class SegmentTracker {
     }
 
     Segment getSegment(SegmentId id) {
-        Segment segment = store.readSegment(id);
-        setSegment(id, segment);
-        return segment;
+        try {
+            Segment segment = store.readSegment(id);
+            setSegment(id, segment);
+            return segment;
+        } catch (SegmentNotFoundException snfe) {
+            long delta = System.currentTimeMillis() - id.getCreationTime();
+            log.error("Segment not found: {}. Creation date delta is {} ms.",
+                    id, delta);
+            throw snfe;
+        }
     }
 
     void setSegment(SegmentId id, Segment segment) {
@@ -157,11 +166,12 @@ public class SegmentTracker {
     }
 
     public void setCompactionMap(CompactionMap compaction) {
+        compaction.merge(compactionMap.get());
         compactionMap.set(compaction);
     }
 
     @Nonnull
-    CompactionMap getCompactionMap() {
+    public CompactionMap getCompactionMap() {
         return compactionMap.get();
     }
 
@@ -232,6 +242,12 @@ public class SegmentTracker {
         long msb = (random.nextLong() & MSB_MASK) | VERSION;
         long lsb = (random.nextLong() & LSB_MASK) | type;
         return getSegmentId(msb, lsb);
+    }
+
+    public synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
+        for (int i = 0; i < tables.length; i++) {
+            tables[i].clearSegmentIdTables(strategy);
+        }
     }
 
 }
