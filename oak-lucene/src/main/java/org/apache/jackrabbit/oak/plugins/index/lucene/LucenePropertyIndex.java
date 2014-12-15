@@ -95,6 +95,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -103,6 +104,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
@@ -368,17 +370,35 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         if (sortOrder == null || sortOrder.isEmpty()) {
             return null;
         }
-        SortField[] fields = new SortField[sortOrder.size()];
+
+        List<SortField> fieldsList = newArrayListWithCapacity(sortOrder.size());
         PlanResult planResult = pr(plan);
         for (int i = 0; i < sortOrder.size(); i++) {
-            PropertyDefinition pd = planResult.getOrderedProperty(i);
             OrderEntry oe = sortOrder.get(i);
-            boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
-            String propName = oe.getPropertyName();
-            propName = FieldNames.createDocValFieldName(propName);
-            fields[i] = new SortField(propName, toLuceneSortType(oe, pd), reverse);
+            if (!isNativeSort(oe)) {
+                PropertyDefinition pd = planResult.getOrderedProperty(i);
+                boolean reverse = oe.getOrder() != OrderEntry.Order.ASCENDING;
+                String propName = oe.getPropertyName();
+                propName = FieldNames.createDocValFieldName(propName);
+                fieldsList.add(new SortField(propName, toLuceneSortType(oe, pd), reverse));
+            }
         }
-        return new Sort(fields);
+
+        if (fieldsList.isEmpty()) {
+            return null;
+        } else {
+            return new Sort(fieldsList.toArray(new SortField[0]));
+        }
+    }
+
+    /**
+     * Identifies the default sort order used by the index (@jcr:score descending)
+     *
+     * @param oe order entry
+     * @return
+     */
+    private static boolean isNativeSort(OrderEntry oe) {
+        return oe.getPropertyName().equals(NATIVE_SORT_ORDER.getPropertyName());
     }
 
     private static SortField.Type toLuceneSortType(OrderEntry oe, PropertyDefinition defn) {
@@ -468,12 +488,14 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             List<OrderEntry> orders = plan.getSortOrder();
             for (int i = 0; i < orders.size(); i++) {
                 OrderEntry oe = orders.get(i);
-                PropertyDefinition pd = planResult.getOrderedProperty(i);
-                PropertyRestriction orderRest = new PropertyRestriction();
-                orderRest.propertyName = oe.getPropertyName();
-                Query q = createQuery(orderRest, pd);
-                if (q != null) {
-                    qs.add(q);
+                if (!isNativeSort(oe)) {
+                    PropertyDefinition pd = planResult.getOrderedProperty(i);
+                    PropertyRestriction orderRest = new PropertyRestriction();
+                    orderRest.propertyName = oe.getPropertyName();
+                    Query q = createQuery(orderRest, pd);
+                    if (q != null) {
+                        qs.add(q);
+                    }
                 }
             }
         }
