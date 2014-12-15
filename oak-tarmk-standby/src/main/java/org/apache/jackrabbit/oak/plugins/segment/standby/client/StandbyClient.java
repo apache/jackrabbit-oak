@@ -81,7 +81,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
     public StandbyClient(String host, int port, SegmentStore store) throws SSLException {
-        this(host, port, store, false, 5000);
+        this(host, port, store, false, 10000);
     }
 
     public StandbyClient(String host, int port, SegmentStore store, boolean secure, int readTimeoutMs) throws SSLException {
