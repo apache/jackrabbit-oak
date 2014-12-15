@@ -69,7 +69,7 @@ public class Segment {
      * The number of bytes (or bits of address space) to use for the
      * alignment boundary of segment records.
      */
-    static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
+    public static final int RECORD_ALIGN_BITS = 2; // align at the four-byte boundary
 
     /**
      * Maximum segment size. Record identifiers are stored as three-byte
@@ -193,8 +193,10 @@ public class Segment {
             if (!id.isDataSegmentId()) {
                 type = "bulk";
             }
+            long delta = System.currentTimeMillis() - id.getCreationTime();
             throw new IllegalStateException("RefId '" + index
-                    + "' doesn't exist in " + type + " segment " + id);
+                    + "' doesn't exist in " + type + " segment " + id
+                    + ". Creation date delta is " + delta + " ms.");
         }
         SegmentId refid = refids[index];
         if (refid == null) {

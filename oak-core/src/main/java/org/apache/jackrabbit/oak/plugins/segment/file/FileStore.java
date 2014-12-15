@@ -26,10 +26,10 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -53,6 +54,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.Compactor;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
@@ -63,6 +65,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -86,7 +89,7 @@ public class FileStore implements SegmentStore {
 
     private static final String JOURNAL_FILE_NAME = "journal.log";
 
-    private static final boolean MEMORY_MAPPING_DEFAULT =
+    static final boolean MEMORY_MAPPING_DEFAULT =
             "64".equals(System.getProperty("sun.arch.data.model", "32"));
 
     private final SegmentTracker tracker;
@@ -134,15 +137,13 @@ public class FileStore implements SegmentStore {
      */
     private final BackgroundThread compactionThread;
 
+    private CompactionStrategy compactionStrategy = new CompactionStrategy(
+            true, false, CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT);
+
     /**
      * Flag to request revision cleanup during the next flush.
      */
     private final AtomicBoolean cleanupNeeded = new AtomicBoolean(false);
-
-    /**
-     * Flag to set the compaction on pause.
-     */
-    private volatile boolean pauseCompaction = true;
 
     /**
      * List of old tar file generations that are waiting to be removed. They can
@@ -257,37 +258,66 @@ public class FileStore implements SegmentStore {
                 new Runnable() {
                     @Override
                     public void run() {
-                        log.info("TarMK compaction started");
-                        Stopwatch watch = Stopwatch.createStarted();
-                        CompactionGainEstimate estimate = estimateCompactionGain();
-                        long gain = estimate.estimateCompactionGain();
-                        if (gain >= 10) {
-                            log.info(
-                                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
-                                    watch, gain,
-                                    estimate.getReachableSize(),
-                                    estimate.getTotalSize(),
-                                    humanReadableByteCount(estimate.getReachableSize()),
-                                    humanReadableByteCount(estimate.getTotalSize()));
-                            if (!pauseCompaction) {
-                                compact();
-                            } else {
-                                log.info("TarMK compaction paused");
-                            }
-                        } else {
-                            log.info(
-                                    "Estimated compaction in {}ms, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
-                                    watch, gain,
-                                    estimate.getReachableSize(),
-                                    estimate.getTotalSize(),
-                                    humanReadableByteCount(estimate.getReachableSize()),
-                                    humanReadableByteCount(estimate.getTotalSize()));
-                        }
-                        cleanupNeeded.set(true);
+                        maybeCompact(true);
                     }
                 });
 
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
+    }
+
+    public boolean maybeCompact(boolean cleanup) {
+        log.info("TarMK compaction started");
+
+        Runtime runtime = Runtime.getRuntime();
+        long avail = runtime.totalMemory() - runtime.freeMemory();
+        long delta = 0;
+        if (compactionStrategy.getCompactionMap() != null) {
+            delta = compactionStrategy.getCompactionMap().getLastMergeWeight();
+        }
+        long needed = delta * compactionStrategy.getMemoryThreshold();
+        if (needed >= avail) {
+            log.info(
+                    "Not enough available memory {}, needed {}, last merge delta {}, so skipping compaction for now",
+                    humanReadableByteCount(avail),
+                    humanReadableByteCount(needed),
+                    humanReadableByteCount(delta));
+            if (cleanup) {
+                cleanupNeeded.set(true);
+            }
+            return false;
+        }
+
+        Stopwatch watch = Stopwatch.createStarted();
+        compactionStrategy.setCompactionStart(System.currentTimeMillis());
+        boolean compacted = false;
+
+        CompactionGainEstimate estimate = estimateCompactionGain();
+        long gain = estimate.estimateCompactionGain();
+        if (gain >= 10) {
+            log.info(
+                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
+                    watch, gain, estimate.getReachableSize(),
+                    estimate.getTotalSize(),
+                    humanReadableByteCount(estimate.getReachableSize()),
+                    humanReadableByteCount(estimate.getTotalSize()));
+            if (!compactionStrategy.isPaused()) {
+                compact();
+                compacted = true;
+            } else {
+                log.info("TarMK compaction paused");
+            }
+        } else {
+            log.info(
+                    "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
+                    watch, gain, estimate.getReachableSize(),
+                    estimate.getTotalSize(),
+                    humanReadableByteCount(estimate.getReachableSize()),
+                    humanReadableByteCount(estimate.getTotalSize()));
+        }
+        if (cleanup) {
+            cleanupNeeded.set(true);
+        }
+        return compacted;
     }
 
     static Map<Integer, Map<Character, File>> collectFiles(File directory)
@@ -461,10 +491,10 @@ public class FileStore implements SegmentStore {
         }
         writer.cleanup(ids);
 
-        List<TarReader> list =
-                newArrayListWithCapacity(readers.size());
+        CompactionMap cm = tracker.getCompactionMap();
+        List<TarReader> list = newArrayListWithCapacity(readers.size());
         for (TarReader reader : readers) {
-            TarReader cleaned = reader.cleanup(ids);
+            TarReader cleaned = reader.cleanup(ids, cm);
             if (cleaned == reader) {
                 list.add(reader);
             } else {
@@ -490,12 +520,11 @@ public class FileStore implements SegmentStore {
      * reference to them).
      */
     public void compact() {
-        long start = System.nanoTime();
-        log.info("TarMK compaction running");
+        log.info("TarMK compaction running, strategy={}", compactionStrategy);
 
+        long start = System.currentTimeMillis();
         SegmentWriter writer = new SegmentWriter(this, tracker);
-        Compactor compactor = new Compactor(writer);
-
+        final Compactor compactor = new Compactor(writer, compactionStrategy.cloneBinaries());
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
@@ -506,26 +535,22 @@ public class FileStore implements SegmentStore {
         }
 
         SegmentNodeState after = compactor.compact(EMPTY_NODE, before);
-        writer.flush();
-        while (!setHead(before, after)) {
-            // Some other concurrent changes have been made.
-            // Rebase (and compact) those changes on top of the
-            // compacted state before retrying to set the head.
-            SegmentNodeState head = getHead();
-            after = compactor.compact(before, head);
-            before = head;
-            writer.flush();
+
+        Callable<Boolean> setHead = new SetHead(before, after, compactor);
+        try {
+            while(!compactionStrategy.compacted(setHead)) {
+                // Some other concurrent changes have been made.
+                // Rebase (and compact) those changes on top of the
+                // compacted state before retrying to set the head.
+                SegmentNodeState head = getHead();
+                after = compactor.compact(after, head);
+                setHead = new SetHead(head, after, compactor);
+            }
+            log.info("TarMK compaction completed in {}ms",
+                    System.currentTimeMillis() - start);
+        } catch (Exception e) {
+            log.error("Error while running TarMK compaction", e);
         }
-        tracker.setCompactionMap(compactor.getCompactionMap());
-
-        // Drop the SegmentWriter caches and flush any existing state
-        // in an attempt to prevent new references to old pre-compacted
-        // content. TODO: There should be a cleaner way to do this.
-        tracker.getWriter().dropCache();
-        tracker.getWriter().flush();
-
-        log.info("TarMK compaction completed in {}ms", MILLISECONDS
-                .convert(System.nanoTime() - start, NANOSECONDS));
     }
 
     public synchronized Iterable<SegmentId> getSegmentIds() {
@@ -741,8 +766,8 @@ public class FileStore implements SegmentStore {
         return emptyMap();
     }
 
-    public FileStore setPauseCompaction(boolean pauseCompaction) {
-        this.pauseCompaction = pauseCompaction;
+    public FileStore setCompactionStrategy(CompactionStrategy strategy) {
+        this.compactionStrategy = strategy;
         return this;
     }
 
@@ -810,4 +835,37 @@ public class FileStore implements SegmentStore {
 
     }
 
+    private class SetHead implements Callable<Boolean> {
+        private final SegmentNodeState before;
+        private final SegmentNodeState after;
+        private final Compactor compactor;
+
+        public SetHead(SegmentNodeState before, SegmentNodeState after, Compactor compactor) {
+            this.before = before;
+            this.after = after;
+            this.compactor = compactor;
+        }
+
+        @Override
+        public Boolean call() throws Exception {
+            // When used in conjunction with the SegmentNodeStore, this method
+            // needs to be called inside the commitSemaphore as doing otherwise
+            // might result in mixed segments. See OAK-2192.
+            if (setHead(before, after)) {
+                CompactionMap cm = compactor.getCompactionMap();
+                tracker.setCompactionMap(cm);
+                compactionStrategy.setCompactionMap(cm);
+
+                // Drop the SegmentWriter caches and flush any existing state
+                // in an attempt to prevent new references to old pre-compacted
+                // content. TODO: There should be a cleaner way to do this.
+                tracker.getWriter().dropCache();
+                tracker.getWriter().flush();
+                tracker.clearSegmentIdTables(compactionStrategy);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
 }
