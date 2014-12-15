@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -64,6 +65,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newHashMap;
 import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -114,6 +116,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     static final int TYPES_ALLOW_NONE = PropertyType.UNDEFINED;
 
     static final int TYPES_ALLOW_ALL = -1;
+
+    /**
+     * native sort order
+     */
+    static final OrderEntry NATIVE_SORT_ORDER = new OrderEntry(JCR_SCORE, Type.UNDEFINED,
+        OrderEntry.Order.DESCENDING);
 
     private final boolean fullTextEnabled;
 
