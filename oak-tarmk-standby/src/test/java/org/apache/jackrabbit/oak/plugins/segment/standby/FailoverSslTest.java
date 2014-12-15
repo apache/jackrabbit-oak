@@ -51,7 +51,7 @@ public class FailoverSslTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC, true);
+        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC, true, 5000);
         cl.run();
 
         try {
@@ -91,7 +91,7 @@ public class FailoverSslTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC, true);
+        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC, true, 5000);
         cl.run();
 
         try {

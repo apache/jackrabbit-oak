@@ -126,7 +126,7 @@ public class BrokenNetworkTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = new StandbyClient(LOCALHOST, PROXY_PORT, storeC, ssl);
+        StandbyClient cl = new StandbyClient(LOCALHOST, PROXY_PORT, storeC, ssl, 5000);
         cl.run();
 
         try {
