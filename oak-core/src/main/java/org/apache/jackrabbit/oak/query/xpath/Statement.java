@@ -183,7 +183,9 @@ public class Statement {
         // leave original xpath string as a comment
         if (xpathQuery != null) {
             buff.append(" /* xpath: ");
-            buff.append(xpathQuery);
+            // the xpath query may not contain the "end comment" marker
+            String xpathEscaped = xpathQuery.replaceAll("\\*\\/", "* /");
+            buff.append(xpathEscaped);
             buff.append(" */");
         }
         
