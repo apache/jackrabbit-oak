@@ -323,8 +323,12 @@ class IndexPlanner {
                     && !o.getPropertyType().isArray()) {
                 orderEntries.add(o); //Lucene can manage any order desc/asc
                 result.sortedProperties.add(pd);
+            } else if (o.getPropertyName().equals(IndexDefinition.NATIVE_SORT_ORDER.getPropertyName())) {
+                // Supports jcr:score descending natively
+                orderEntries.add(IndexDefinition.NATIVE_SORT_ORDER);
             }
         }
+
         //TODO Should we return order entries only when all order clauses are satisfied
         return orderEntries;
     }
