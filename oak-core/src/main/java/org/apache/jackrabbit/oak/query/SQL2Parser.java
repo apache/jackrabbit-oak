@@ -63,7 +63,8 @@ public class SQL2Parser {
     private static final Logger LOG = LoggerFactory.getLogger(SQL2Parser.class);
 
     // Character types, used during the tokenizer phase
-    private static final int CHAR_END = -1, CHAR_VALUE = 2, CHAR_QUOTED = 3;
+    private static final int CHAR_END = -1, CHAR_IGNORE = 0;
+    private static final int CHAR_VALUE = 2, CHAR_QUOTED = 3;
     private static final int CHAR_NAME = 4, CHAR_SPECIAL_1 = 5, CHAR_SPECIAL_2 = 6;
     private static final int CHAR_STRING = 7, CHAR_DECIMAL = 8, CHAR_BRACKETED = 9;
 
@@ -155,7 +156,6 @@ public class SQL2Parser {
             read("BY");
             orderings = parseOrder();
         }
-        parseComment();
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
@@ -920,18 +920,6 @@ public class SQL2Parser {
         }
     }
 
-    private void parseComment() throws ParseException {
-        if (readIf("/") && readIf("*")) {
-            //skip to the end directly
-            parseIndex = characterTypes.length - 3;
-            read();
-            boolean endComment = readIf("*") && readIf("/");
-            if (!endComment) {
-                throw getSyntaxError("end of comment");
-            }
-        }
-    }
-
     private boolean readIf(String token) throws ParseException {
         if (isToken(token)) {
             read();
@@ -987,7 +975,6 @@ public class SQL2Parser {
             char c = command[i];
             int type = 0;
             switch (c) {
-            case '/':
             case '-':
             case '(':
             case ')':
@@ -1012,6 +999,21 @@ public class SQL2Parser {
                 break;
             case '.':
                 type = CHAR_DECIMAL;
+                break;
+            case '/':
+                if (command[i + 1] != '*') {
+                    type = CHAR_SPECIAL_1;
+                    break;
+                }
+                types[i] = type = CHAR_IGNORE;                
+                startLoop = i;
+                i += 2;
+                checkRunOver(i, len, startLoop);
+                while (command[i] != '*' || command[i + 1] != '/') {
+                    i++;
+                    checkRunOver(i, len, startLoop);
+                }
+                i++;          
                 break;
             case '[':
                 types[i] = type = CHAR_BRACKETED;

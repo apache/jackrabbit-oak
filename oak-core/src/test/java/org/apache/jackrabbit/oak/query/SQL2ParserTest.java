@@ -41,6 +41,9 @@ public class SQL2ParserTest {
     public void testIgnoreSqlComment() throws ParseException {
         p.parse("select * from [nt:unstructured] /* sql comment */");
         p.parse("select [jcr:path], [jcr:score], * from [nt:base] as a /* xpath: //* */");
+        p.parse("/* begin query */ select [jcr:path] /* this is the path */, " + 
+                "[jcr:score] /* the score */, * /* everything*/ " + 
+                "from [nt:base] /* all node types */ as a /* an identifier */");
     }
 
     @Test(expected = ParseException.class)
