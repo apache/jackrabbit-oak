@@ -40,6 +40,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -79,11 +81,16 @@ public class CompactionAndCleanupTest {
         final int dataNodes = 10000;
 
         // really long time span, no binary cloning
-        CompactionStrategy custom = new CompactionStrategy(false,
-                false, CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0);
 
         FileStore fileStore = new FileStore(directory, 1);
-        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+        final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+                CompactionStrategy custom = new CompactionStrategy(false,
+                false, CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0) {
+                    @Override
+                    public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+                        return nodeStore.locked(setHead);
+                    }
+                };
         fileStore.setCompactionStrategy(custom);
 
         // 1a. Create a bunch of data
