@@ -110,6 +110,10 @@ public class FileStoreTest {
         SegmentNodeState head = builder.getNodeState();
         assertTrue(store.setHead(base, head));
         assertEquals("bar", store.getHead().getString("foo"));
+
+        Compactor compactor = new Compactor(writer);
+        SegmentNodeState compacted =
+                compactor.compact(EmptyNodeState.EMPTY_NODE, head);
         store.close();
 
         // First simulate the case where during compaction a reference to the
@@ -117,9 +121,6 @@ public class FileStoreTest {
         store = new FileStore(directory, 1, false);
         head = store.getHead();
         assertTrue(store.size() > largeBinarySize);
-        Compactor compactor = new Compactor(writer);
-        SegmentNodeState compacted =
-                compactor.compact(EmptyNodeState.EMPTY_NODE, head);
         builder = head.builder();
         builder.setChildNode("old", head); // reference to pre-compacted state
         builder.getNodeState();

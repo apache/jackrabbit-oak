@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+
 /**
  * Hash table of weak references to segment identifiers.
  */
@@ -143,4 +145,24 @@ public class SegmentIdTable {
         return ((int) lsb) & (references.size() - 1);
     }
 
+    synchronized void clearSegmentIdTables(CompactionStrategy strategy) {
+        int size = references.size();
+        boolean dirty = false;
+        for (int i = 0; i < size; i++) {
+            WeakReference<SegmentId> reference = references.get(i);
+            if (reference != null) {
+                SegmentId id = reference.get();
+                if (id != null) {
+                    if (strategy.canRemove(id)) {
+                        reference.clear();
+                        references.set(i, null);
+                        dirty = true;
+                    }
+                }
+            }
+        }
+        if (dirty) {
+            refresh();
+        }
+    }
 }

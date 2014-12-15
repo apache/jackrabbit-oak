@@ -17,9 +17,13 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.segment.file;
+package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
+import static org.apache.commons.io.FileUtils.deleteDirectory;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,17 +36,17 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.commons.io.FileUtils;
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.segment.Compactor;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentPropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -68,79 +72,113 @@ public class CompactionAndCleanupTest {
 
     @Test
     @Ignore("OAK-2045")
-    public void compactionAndWeakReferenceMagic() throws Exception{
+    public void compactionAndWeakReferenceMagic() throws Exception {
         final int MB = 1024 * 1024;
         final int blobSize = 5 * MB;
 
-        FileStore fileStore = new FileStore(directory, 1, 1, false);
-        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+        final int dataNodes = 10000;
 
-        //1. Create a property with 5 MB blob
+        // really long time span, no binary cloning
+        CompactionStrategy custom = new CompactionStrategy(false,
+                false, CLEAN_OLD, TimeUnit.HOURS.toMillis(1), (byte) 0);
+
+        FileStore fileStore = new FileStore(directory, 1);
+        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+        fileStore.setCompactionStrategy(custom);
+
+        // 1a. Create a bunch of data
+        NodeBuilder extra = nodeStore.getRoot().builder();
+        NodeBuilder content = extra.child("content");
+        for (int i = 0; i < dataNodes; i++) {
+            NodeBuilder c = content.child("c" + i);
+            for (int j = 0; j < 1000; j++) {
+                c.setProperty("p" + i, "v" + i);
+            }
+        }
+        nodeStore.merge(extra, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // ----
+
+        final long dataSize = fileStore.size();
+        System.out.printf("File store dataSize %s%n",
+                byteCountToDisplaySize(dataSize));
+
+        // 1. Create a property with 5 MB blob
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setProperty("a1", createBlob(nodeStore, blobSize));
         builder.setProperty("b", "foo");
 
-        //Keep a reference to this nodeState to simulate long
-        //running session
-        NodeState ns1 = nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // Keep a reference to this nodeState to simulate long
+        // running session
+        NodeState ns1 = nodeStore.merge(builder, EmptyHook.INSTANCE,
+                CommitInfo.EMPTY);
 
-        System.out.printf("File store pre removal %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), mb(blobSize));
+        System.out.printf("File store pre removal %s expecting %s %n",
+                byteCountToDisplaySize(fileStore.size()),
+                byteCountToDisplaySize(blobSize + dataSize));
+        assertEquals(mb(blobSize + dataSize), mb(fileStore.size()));
 
-
-        //2. Now remove the property
+        // 2. Now remove the property
         builder = nodeStore.getRoot().builder();
         builder.removeProperty("a1");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        //Size remains same
-        System.out.printf("File store pre compaction %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), mb(blobSize));
+        // Size remains same
+        System.out.printf("File store pre compaction %s expecting %s%n",
+                byteCountToDisplaySize(fileStore.size()),
+                byteCountToDisplaySize(blobSize + dataSize));
+        assertEquals(mb(blobSize + dataSize), mb(fileStore.size()));
 
-        //3. Compact
-        fileStore.compact();
+        // 3. Compact
+        assertTrue(fileStore.maybeCompact(false));
+        // fileStore.cleanup();
 
-        //Size still remains same
-        System.out.printf("File store post compaction %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), mb(blobSize));
+        // Size still remains same
+        System.out.printf("File store post compaction %s expecting %s%n",
+                byteCountToDisplaySize(fileStore.size()),
+                byteCountToDisplaySize(blobSize + dataSize));
+        assertEquals("File store post compaction size",
+                mb(blobSize + dataSize), mb(fileStore.size()));
 
-        //4. Add some more property to flush the current TarWriter
+        // 4. Add some more property to flush the current TarWriter
         builder = nodeStore.getRoot().builder();
         builder.setProperty("a2", createBlob(nodeStore, blobSize));
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        //Size is double
-        System.out.printf("File store pre cleanup %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), 2 * mb(blobSize));
+        // Size is double
+        System.out.printf("File store pre cleanup %s expecting %s%n",
+                byteCountToDisplaySize(fileStore.size()),
+                byteCountToDisplaySize(2 * blobSize + dataSize));
+        assertEquals(mb(2 * blobSize + dataSize), mb(fileStore.size()));
 
-        //5. Cleanup
-        cleanup(fileStore);
+        // 5. Cleanup
+        assertTrue(fileStore.maybeCompact(false));
+        fileStore.cleanup();
 
-        //Size is still double. Deleted space not reclaimed
-        System.out.printf("File store post cleanup %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), 2 * mb(blobSize));
+        System.out.printf(
+                "File store post cleanup %s expecting between [%s,%s]%n",
+                byteCountToDisplaySize(fileStore.size()),
+                byteCountToDisplaySize(blobSize + dataSize),
+                byteCountToDisplaySize(blobSize + 2 * dataSize));
 
-        //6. Null out any hard reference
-        ns1 = null;
-        builder = null;
-        cleanup(fileStore);
+        // 0 data size: fileStore.size() == blobSize
+        // >0 data size: fileStore.size() in [blobSize + dataSize, blobSize +
+        // 2xdataSize]
+        assertTrue(mb(fileStore.size()) >= mb(blobSize + dataSize)
+                && mb(fileStore.size()) <= mb(blobSize + 2 * dataSize));
 
-        //Size should not come back to 5 and deleted data
-        //space reclaimed
-        System.out.printf("File store post cleanup and nullification %d%n", mb(fileStore.size()));
-        assertEquals(mb(fileStore.size()), mb(blobSize));
+        // refresh the ts ref, to simulate a long wait time
+        custom.setOlderThan(0);
+        assertFalse(fileStore.maybeCompact(false));
+
+        // no data loss happened
+        byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
+                .getProperty("a2").getValue(Type.BINARY).getNewStream());
+        assertEquals(blobSize, blob.length);
     }
 
     @After
     public void cleanDir() throws IOException {
-        FileUtils.deleteDirectory(directory);
-    }
-
-    private static void cleanup(FileStore fileStore) throws IOException {
-        fileStore.getTracker().setCompactionMap(new Compactor(null).getCompactionMap());
-        fileStore.getTracker().getWriter().dropCache();
-
-        fileStore.cleanup();
+        deleteDirectory(directory);
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
@@ -154,50 +192,15 @@ public class CompactionAndCleanupTest {
     }
 
     @Test
-    public void testGainEstimator() throws Exception {
-        final int MB = 1024 * 1024;
-        final int blobSize = 2 * MB;
-
-        FileStore fileStore = new FileStore(directory, 2, false);
-        SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
-
-        // 1. Create some blob properties
-        NodeBuilder builder = nodeStore.getRoot().builder();
-
-        NodeBuilder c1 = builder.child("c1");
-        c1.setProperty("a", createBlob(nodeStore, blobSize));
-        c1.setProperty("b", "foo");
-
-        NodeBuilder c2 = builder.child("c2");
-        c2.setProperty("a", createBlob(nodeStore, blobSize));
-        c2.setProperty("b", "foo");
-
-        NodeBuilder c3 = builder.child("c3");
-        c3.setProperty("a", createBlob(nodeStore, blobSize));
-        c3.setProperty("b", "foo");
-        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // 2. Now remove the property
-        builder = nodeStore.getRoot().builder();
-        builder.child("c1").remove();
-        builder.child("c2").remove();
-        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        fileStore.flush();
-        try {
-            // should be at 66%
-            assertTrue(fileStore.estimateCompactionGain()
-                    .estimateCompactionGain() > 60);
-        } finally {
-            fileStore.close();
-        }
-    }
-
-    @Ignore("OAK-2192")  // FIXME OAK-2192
-    @Test
     public void testMixedSegments() throws Exception {
         FileStore store = new FileStore(directory, 2, false);
         final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
+        store.setCompactionStrategy(new CompactionStrategy(true, false, CLEAN_NONE, 0, (byte) 5) {
+            @Override
+            public boolean compacted(Callable<Boolean> setHead) throws Exception {
+                return nodeStore.locked(setHead);
+            }
+        });
 
         NodeBuilder root = nodeStore.getRoot().builder();
         createNodes(root.setChildNode("test"), 10, 3);
@@ -276,6 +279,4 @@ public class CompactionAndCleanupTest {
             builder.setProperty("property-" + UUID.randomUUID().toString(), "value-" + UUID.randomUUID().toString());
         }
     }
-
-
 }
