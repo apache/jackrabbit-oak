@@ -27,8 +27,7 @@ import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
-import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.MEMORY_THRESHOLD_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.NO_COMPACTION;
 
 import java.io.File;
 import java.io.IOException;
@@ -132,8 +131,7 @@ public class FileStore implements SegmentStore {
      */
     private final BackgroundThread compactionThread;
 
-    private CompactionStrategy compactionStrategy = new CompactionStrategy(
-            true, false, CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT);
+    private CompactionStrategy compactionStrategy = NO_COMPACTION;
 
     /**
      * Flag to request revision cleanup during the next flush.
@@ -726,6 +724,9 @@ public class FileStore implements SegmentStore {
 
     @Override
     public void gc() {
+        if (compactionStrategy == NO_COMPACTION) {
+            log.warn("Call to gc while compaction strategy set to {}. ", NO_COMPACTION);
+        }
         compactionThread.trigger();
     }
 

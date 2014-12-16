@@ -30,7 +30,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 
-public class CompactionStrategy {
+public abstract class CompactionStrategy {
 
     public enum CleanupType {
 
@@ -76,6 +76,17 @@ public class CompactionStrategy {
 
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
+    /**
+     * No compaction at all
+     */
+    public static CompactionStrategy NO_COMPACTION = new CompactionStrategy(
+            true, false, CleanupType.CLEAN_NONE, 0, MEMORY_THRESHOLD_DEFAULT) {
+        @Override
+        public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+            return false;
+        }
+    };
+
     private boolean paused;
 
     private boolean cloneBinaries;
@@ -97,7 +108,7 @@ public class CompactionStrategy {
 
     private long compactionStart = currentTimeMillis();
 
-    public CompactionStrategy(boolean paused,
+    protected CompactionStrategy(boolean paused,
             boolean cloneBinaries, @Nonnull CleanupType cleanupType, long olderThan, byte memoryThreshold) {
         checkArgument(olderThan >= 0);
         this.paused = paused;
@@ -180,7 +191,6 @@ public class CompactionStrategy {
         this.memoryThreshold = memoryThreshold;
     }
 
-    public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
-        return checkNotNull(setHead).call();
-    }
+    public abstract boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception;
+
 }
