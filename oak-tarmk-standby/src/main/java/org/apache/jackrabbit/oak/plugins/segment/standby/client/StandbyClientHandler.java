@@ -46,17 +46,19 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
     private final EventExecutorGroup executor;
     private final CommunicationObserver observer;
     private final AtomicBoolean running;
+    private final int readTimeoutMs;
 
     private EventExecutorGroup loaderExecutor;
     private ChannelHandlerContext ctx;
 
     public StandbyClientHandler(final StandbyStore store,
             EventExecutorGroup executor, CommunicationObserver observer,
-            AtomicBoolean running) {
+            AtomicBoolean running, int readTimeoutMs) {
         this.store = store;
         this.executor = executor;
         this.observer = observer;
         this.running = running;
+        this.readTimeoutMs = readTimeoutMs;
     }
 
     @Override
@@ -94,7 +96,7 @@ public class StandbyClientHandler extends SimpleChannelInboundHandler<RecordId>
 
         loaderExecutor = new DefaultEventExecutorGroup(4);
         SegmentLoaderHandler h2 = new SegmentLoaderHandler(store, head,
-                loaderExecutor, this.observer.getID(), running);
+                loaderExecutor, this.observer.getID(), running, readTimeoutMs);
         ctx.pipeline().addLast(loaderExecutor, h2);
 
         h2.channelActive(ctx);

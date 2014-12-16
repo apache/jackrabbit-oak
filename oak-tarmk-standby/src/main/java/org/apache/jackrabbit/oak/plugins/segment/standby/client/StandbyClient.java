@@ -64,7 +64,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
 
     private final String host;
     private final int port;
-    private int readTimeoutMs = 10000;
+    private final int readTimeoutMs;
 
     private final StandbyStore store;
     private final CommunicationObserver observer;
@@ -81,10 +81,10 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
     public StandbyClient(String host, int port, SegmentStore store) throws SSLException {
-        this(host, port, store, false);
+        this(host, port, store, false, 10000);
     }
 
-    public StandbyClient(String host, int port, SegmentStore store, boolean secure) throws SSLException {
+    public StandbyClient(String host, int port, SegmentStore store, boolean secure, int readTimeoutMs) throws SSLException {
         this.state = STATUS_INITIALIZING;
         this.lastSuccessfulRequest = -1;
         this.failedRequests = 0;
@@ -93,6 +93,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         if (secure) {
             this.sslContext = SslContext.newClientContext(InsecureTrustManagerFactory.INSTANCE);
         }
+        this.readTimeoutMs = readTimeoutMs;
         this.store = new StandbyStore(store);
         String s = System.getProperty(CLIENT_ID_PROPERTY_NAME);
         this.observer = new CommunicationObserver((s == null || s.length() == 0) ? UUID.randomUUID().toString() : s);
@@ -138,7 +139,8 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
             }
             state = STATUS_STARTING;
             executor = new DefaultEventExecutorGroup(4);
-            handler = new StandbyClientHandler(this.store, executor, this.observer, this.running);
+            handler = new StandbyClientHandler(this.store, executor, observer,
+                    running, readTimeoutMs);
             group = new NioEventLoopGroup();
 
             b = new Bootstrap();
