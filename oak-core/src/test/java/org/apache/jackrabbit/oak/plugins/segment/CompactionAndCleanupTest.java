@@ -194,8 +194,12 @@ public class CompactionAndCleanupTest {
     }
 
     @After
-    public void cleanDir() throws IOException {
-        deleteDirectory(directory);
+    public void cleanDir() {
+        try {
+            deleteDirectory(directory);
+        } catch (IOException e) {
+            log.error("Error cleaning directory", e);
+        }
     }
 
     private static Blob createBlob(NodeStore nodeStore, int size) throws IOException {
