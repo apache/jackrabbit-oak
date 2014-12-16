@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -92,6 +93,17 @@ public class SegmentNodeStore implements NodeStore, Observable {
 
     void setMaximumBackoff(long max) {
         this.maximumBackoff = max;
+    }
+
+    boolean locked(Callable<Boolean> c) throws Exception {
+        if (commitSemaphore.tryAcquire()) {
+            try {
+                return c.call();
+            } finally {
+                commitSemaphore.release();
+            }
+        }
+        return false;
     }
 
     /**
