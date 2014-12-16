@@ -54,8 +54,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     private final RecordId head;
     private final EventExecutorGroup loaderExecutor;
     private final AtomicBoolean running;
-
-    private int timeoutMs = 120000;
+    private final int readTimeoutMs;
 
     private ChannelHandlerContext ctx;
 
@@ -63,12 +62,13 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     public SegmentLoaderHandler(final StandbyStore store, RecordId head,
             EventExecutorGroup loaderExecutor,
-            String clientID, AtomicBoolean running) {
+            String clientID, AtomicBoolean running, int readTimeoutMs) {
         this.store = store;
         this.head = head;
         this.loaderExecutor = loaderExecutor;
         this.clientID = clientID;
         this.running = running;
+        this.readTimeoutMs = readTimeoutMs;
     }
 
     @Override
@@ -161,7 +161,8 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
         try {
             for (;;) {
                 try {
-                    SegmentReply r = segment.poll(timeoutMs, TimeUnit.MILLISECONDS);
+                    SegmentReply r = segment.poll(readTimeoutMs,
+                            TimeUnit.MILLISECONDS);
                     if (r == null) {
                         log.warn("timeout waiting for {}", id);
                         return SegmentReply.empty();
