@@ -23,7 +23,14 @@ import com.google.common.base.Stopwatch
 import org.apache.jackrabbit.oak.commons.PathUtils
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakDirectory
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider
+import org.apache.jackrabbit.oak.Oak
+import org.apache.jackrabbit.oak.api.Tree
+import org.apache.jackrabbit.oak.api.Root
+import org.apache.jackrabbit.oak.api.ContentSession
 import org.apache.jackrabbit.oak.spi.state.NodeState
+import org.apache.jackrabbit.oak.spi.state.NodeStore
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.store.Directory
@@ -38,7 +45,7 @@ class LuceneCommand extends ComplexCommandSupport {
     public static final String COMMAND_NAME = 'lucene'
 
     public LuceneCommand(final Groovysh shell) {
-        super(shell, COMMAND_NAME, 'lc', ['info', 'dump'], 'info')
+        super(shell, COMMAND_NAME, 'lc', ['info', 'dump','rmdata'], 'info')
     }
 
     def do_info = { args ->
@@ -62,6 +69,12 @@ class LuceneCommand extends ComplexCommandSupport {
             dir.close()
         }
     }
+
+    def do_rmdata = { args ->
+        String idxPath = args ? args[0] : '/oak:index/lucene'
+		removeIndexDataNode(idxPath)
+    }
+
 
     def do_dump = { args ->
         String idxPath = args && args.size() == 2 ? args[1] : '/oak:index/lucene'
@@ -101,6 +114,30 @@ class LuceneCommand extends ComplexCommandSupport {
         }
         return null
     }
+
+    private Directory removeIndexDataNode(String path) {
+        NodeStore delegate = variables.session.getStore();
+        Oak oak = new Oak(delegate).with("default").with(new OpenSecurityProvider());
+		ContentSession csession = oak.createContentSession();
+		Root root = csession.getLatestRoot();
+		String dataPath = path+"/"+INDEX_DATA_CHILD_NAME;
+		String[] pdata = dataPath.split("/");
+		io.out.println(pdata[1]);
+		Tree data = root.getTree("/"+pdata[1]);
+        for (int i=2;i<pdata.length;i++) {
+        	data = data.getChild(pdata[i]);
+        }
+        
+        if (data.exists()) {
+        	data.remove();
+        	root.commit();
+            io.out.println("Index data node removed at path "+data.getPath())
+        } else {
+            io.out.println("No Index data node found at path "+data.getPath())
+        }
+        return null
+    }
+
 
     private static long dirSize(Directory dir) {
         dir.listAll().inject(0L, { sum, fileName -> sum + dir.fileLength(fileName) })
