@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+@Deprecated
 public class SegmentDecoder extends LengthFieldBasedFrameDecoder {
 
     private static final Logger log = LoggerFactory

@@ -47,6 +47,8 @@ public class CommunicationObserver {
         public int remotePort;
         public long segmentsSent;
         public long segmentBytesSent;
+        public long binariesSent;
+        public long binariesBytesSent;
 
         public CommunicationPartnerMBean(String clientName) throws MalformedObjectNameException {
             this.clientName = clientName;
@@ -90,6 +92,16 @@ public class CommunicationObserver {
         @Override
         public long getTransferredSegmentBytes() {
             return this.segmentBytesSent;
+        }
+
+        @Override
+        public long getTransferredBinaries() {
+            return this.binariesSent;
+        }
+
+        @Override
+        public long getTransferredBinariesBytes() {
+            return this.binariesBytesSent;
         }
     }
 
@@ -150,6 +162,14 @@ public class CommunicationObserver {
         CommunicationPartnerMBean m = this.partnerDetails.get(client);
         m.segmentsSent++;
         m.segmentBytesSent += size;
+        this.partnerDetails.put(client, m);
+    }
+
+    public void didSendBinariesBytes(String client, int size) {
+        log.debug("did send binary with " + size + " bytes to client " + client);
+        CommunicationPartnerMBean m = this.partnerDetails.get(client);
+        m.binariesSent++;
+        m.binariesBytesSent += size;
         this.partnerDetails.put(client, m);
     }
 
