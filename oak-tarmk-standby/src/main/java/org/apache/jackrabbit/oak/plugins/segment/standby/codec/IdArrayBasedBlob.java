@@ -16,30 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.segment.standby.client;
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+package org.apache.jackrabbit.oak.plugins.segment.standby.codec;
 
-import org.apache.jackrabbit.oak.plugins.segment.Segment;
-import org.apache.jackrabbit.oak.plugins.segment.standby.codec.SegmentReply;
+import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 
-public class SegmentPreLoaderHandler extends
-        SimpleChannelInboundHandler<Segment> {
+public class IdArrayBasedBlob extends ArrayBasedBlob {
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Segment msg)
-            throws Exception {
-        ctx.fireUserEventTriggered(new SegmentReply(msg));
+    private final String blobId;
+
+    public IdArrayBasedBlob(byte[] value, String blobId) {
+        super(value);
+        this.blobId = blobId;
     }
 
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        ctx.flush();
+    public String getBlobId() {
+        return blobId;
     }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-    }
-
 }

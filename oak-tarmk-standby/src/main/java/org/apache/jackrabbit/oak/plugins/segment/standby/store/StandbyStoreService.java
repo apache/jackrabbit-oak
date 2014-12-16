@@ -144,7 +144,7 @@ public class StandbyStoreService {
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
-        dictionary.put("scheduler.runOn", "SINGLE");
+        // dictionary.put("scheduler.runOn", "SINGLE");
 
         syncReg = context.getBundleContext().registerService(
                 Runnable.class.getName(), sync, dictionary);

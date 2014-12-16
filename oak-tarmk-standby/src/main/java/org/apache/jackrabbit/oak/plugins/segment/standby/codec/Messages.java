@@ -22,9 +22,11 @@ public class Messages {
 
     public static final byte HEADER_RECORD = 0x00;
     public static final byte HEADER_SEGMENT = 0x01;
+    public static final byte HEADER_BLOB = 0x02;
 
     public static final String GET_HEAD = "h";
     public static final String GET_SEGMENT = "s.";
+    public static final String GET_BLOB = "b.";
 
     private static final String MAGIC = "Standby-CMD@";
     private static final String SEPARATOR = ":";
@@ -39,6 +41,10 @@ public class Messages {
 
     public static String newGetSegmentReq(String clientID, String sid) {
         return newRequest(clientID, GET_SEGMENT + sid);
+    }
+
+    public static String newGetBlobReq(String clientID, String blobId) {
+        return newRequest(clientID, GET_BLOB + blobId);
     }
 
     public static String extractMessageFrom(String payload) {
