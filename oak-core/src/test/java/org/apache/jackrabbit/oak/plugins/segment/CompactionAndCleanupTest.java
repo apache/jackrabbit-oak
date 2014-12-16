@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
@@ -42,7 +41,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,12 +51,12 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.io.ByteStreams;
 
 public class CompactionAndCleanupTest {
 
@@ -73,11 +71,9 @@ public class CompactionAndCleanupTest {
     }
 
     @Test
-    @Ignore("OAK-2045")
-    public void compactionAndWeakReferenceMagic() throws Exception {
-        final int MB = 1024 * 1024;
-        final int blobSize = 5 * MB;
-
+    public void compactionNoBinaryClone() throws Exception {
+        // 2MB data, 5MB blob
+        final int blobSize = 5 * 1024 * 1024;
         final int dataNodes = 10000;
 
         // really long time span, no binary cloning
@@ -106,22 +102,19 @@ public class CompactionAndCleanupTest {
         // ----
 
         final long dataSize = fileStore.size();
-        System.out.printf("File store dataSize %s%n",
-                byteCountToDisplaySize(dataSize));
+        // System.out.printf("File store dataSize %s%n",
+        // byteCountToDisplaySize(dataSize));
 
         // 1. Create a property with 5 MB blob
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setProperty("a1", createBlob(nodeStore, blobSize));
         builder.setProperty("b", "foo");
 
-        // Keep a reference to this nodeState to simulate long
-        // running session
-        NodeState ns1 = nodeStore.merge(builder, EmptyHook.INSTANCE,
-                CommitInfo.EMPTY);
+        nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        System.out.printf("File store pre removal %s expecting %s %n",
-                byteCountToDisplaySize(fileStore.size()),
-                byteCountToDisplaySize(blobSize + dataSize));
+        // System.out.printf("File store pre removal %s expecting %s %n",
+        // byteCountToDisplaySize(fileStore.size()),
+        // byteCountToDisplaySize(blobSize + dataSize));
         assertEquals(mb(blobSize + dataSize), mb(fileStore.size()));
 
         // 2. Now remove the property
@@ -129,20 +122,20 @@ public class CompactionAndCleanupTest {
         builder.removeProperty("a1");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // Size remains same
-        System.out.printf("File store pre compaction %s expecting %s%n",
-                byteCountToDisplaySize(fileStore.size()),
-                byteCountToDisplaySize(blobSize + dataSize));
+        // Size remains same, no cleanup happened yet
+        // System.out.printf("File store pre compaction %s expecting %s%n",
+        // byteCountToDisplaySize(fileStore.size()),
+        // byteCountToDisplaySize(blobSize + dataSize));
         assertEquals(mb(blobSize + dataSize), mb(fileStore.size()));
 
         // 3. Compact
         assertTrue(fileStore.maybeCompact(false));
-        // fileStore.cleanup();
 
-        // Size still remains same
-        System.out.printf("File store post compaction %s expecting %s%n",
-                byteCountToDisplaySize(fileStore.size()),
-                byteCountToDisplaySize(blobSize + dataSize));
+        // Size still remains same: ran compaction with a '1 Hour' cleanup
+        // strategy
+        // System.out.printf("File store post compaction %s expecting %s%n",
+        // byteCountToDisplaySize(fileStore.size()),
+        // byteCountToDisplaySize(blobSize + dataSize));
         assertEquals("File store post compaction size",
                 mb(blobSize + dataSize), mb(fileStore.size()));
 
@@ -152,29 +145,39 @@ public class CompactionAndCleanupTest {
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // Size is double
-        System.out.printf("File store pre cleanup %s expecting %s%n",
-                byteCountToDisplaySize(fileStore.size()),
-                byteCountToDisplaySize(2 * blobSize + dataSize));
+        // System.out.printf("File store pre cleanup %s expecting %s%n",
+        // byteCountToDisplaySize(fileStore.size()),
+        // byteCountToDisplaySize(2 * blobSize + dataSize));
         assertEquals(mb(2 * blobSize + dataSize), mb(fileStore.size()));
 
-        // 5. Cleanup
-        assertTrue(fileStore.maybeCompact(false));
-        fileStore.cleanup();
-
-        System.out.printf(
-                "File store post cleanup %s expecting between [%s,%s]%n",
-                byteCountToDisplaySize(fileStore.size()),
-                byteCountToDisplaySize(blobSize + dataSize),
-                byteCountToDisplaySize(blobSize + 2 * dataSize));
-
-        // 0 data size: fileStore.size() == blobSize
-        // >0 data size: fileStore.size() in [blobSize + dataSize, blobSize +
-        // 2xdataSize]
+        // 5. Cleanup, expecting store size:
+        // no data content =>
+        // fileStore.size() == blobSize
+        // some data content =>
+        // fileStore.size() in [blobSize + dataSize, blobSize + 2xdataSize]
+        assertTrue(fileStore.maybeCompact(true));
+        fileStore.flush();
+        // System.out.printf(
+        // "File store post cleanup %s expecting between [%s,%s]%n",
+        // byteCountToDisplaySize(fileStore.size()),
+        // byteCountToDisplaySize(blobSize + dataSize),
+        // byteCountToDisplaySize(blobSize + 2 * dataSize));
         assertTrue(mb(fileStore.size()) >= mb(blobSize + dataSize)
                 && mb(fileStore.size()) <= mb(blobSize + 2 * dataSize));
 
         // refresh the ts ref, to simulate a long wait time
         custom.setOlderThan(0);
+        TimeUnit.MILLISECONDS.sleep(5);
+
+        // gain is 33%
+        assertTrue(fileStore.maybeCompact(false));
+        fileStore.cleanup();
+
+        // gain is 19%
+        assertTrue(fileStore.maybeCompact(false));
+        fileStore.cleanup();
+
+        // gain is 0%
         assertFalse(fileStore.maybeCompact(false));
 
         // no data loss happened
