@@ -109,7 +109,6 @@ public class CompactionAndCleanupTest {
         NodeBuilder builder = nodeStore.getRoot().builder();
         builder.setProperty("a1", createBlob(nodeStore, blobSize));
         builder.setProperty("b", "foo");
-
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // System.out.printf("File store pre removal %s expecting %s %n",
@@ -131,13 +130,13 @@ public class CompactionAndCleanupTest {
         // 3. Compact
         assertTrue(fileStore.maybeCompact(false));
 
-        // Size still remains same: ran compaction with a '1 Hour' cleanup
+        // Size doesn't shrink: ran compaction with a '1 Hour' cleanup
         // strategy
         // System.out.printf("File store post compaction %s expecting %s%n",
         // byteCountToDisplaySize(fileStore.size()),
         // byteCountToDisplaySize(blobSize + dataSize));
-        assertEquals("File store post compaction size",
-                mb(blobSize + dataSize), mb(fileStore.size()));
+        assertSize("post compaction", fileStore.size(), blobSize + dataSize,
+                blobSize + 2 * dataSize);
 
         // 4. Add some more property to flush the current TarWriter
         builder = nodeStore.getRoot().builder();
@@ -148,42 +147,47 @@ public class CompactionAndCleanupTest {
         // System.out.printf("File store pre cleanup %s expecting %s%n",
         // byteCountToDisplaySize(fileStore.size()),
         // byteCountToDisplaySize(2 * blobSize + dataSize));
-        assertEquals(mb(2 * blobSize + dataSize), mb(fileStore.size()));
+        assertSize("post compaction", fileStore.size(),
+                2 * blobSize + dataSize, 2 * blobSize + 2 * dataSize);
 
         // 5. Cleanup, expecting store size:
         // no data content =>
         // fileStore.size() == blobSize
         // some data content =>
         // fileStore.size() in [blobSize + dataSize, blobSize + 2xdataSize]
-        assertTrue(fileStore.maybeCompact(true));
-        fileStore.flush();
+        assertTrue(fileStore.maybeCompact(false));
+        fileStore.cleanup();
         // System.out.printf(
         // "File store post cleanup %s expecting between [%s,%s]%n",
         // byteCountToDisplaySize(fileStore.size()),
         // byteCountToDisplaySize(blobSize + dataSize),
         // byteCountToDisplaySize(blobSize + 2 * dataSize));
-        assertTrue(mb(fileStore.size()) >= mb(blobSize + dataSize)
-                && mb(fileStore.size()) <= mb(blobSize + 2 * dataSize));
+        assertSize("post cleanup", fileStore.size(),
+                blobSize + dataSize, blobSize + 2 * dataSize);
 
         // refresh the ts ref, to simulate a long wait time
         custom.setOlderThan(0);
         TimeUnit.MILLISECONDS.sleep(5);
 
-        // gain is 33%
-        assertTrue(fileStore.maybeCompact(false));
-        fileStore.cleanup();
+        boolean needsCompaction = true;
+        for (int i = 0; i < 3 && needsCompaction; i++) {
+            needsCompaction = fileStore.maybeCompact(false);
+            fileStore.cleanup();
+        }
 
-        // gain is 19%
-        assertTrue(fileStore.maybeCompact(false));
-        fileStore.cleanup();
-
-        // gain is 0%
+        // gain is finally 0%
         assertFalse(fileStore.maybeCompact(false));
 
         // no data loss happened
         byte[] blob = ByteStreams.toByteArray(nodeStore.getRoot()
                 .getProperty("a2").getValue(Type.BINARY).getNewStream());
         assertEquals(blobSize, blob.length);
+    }
+
+    private static void assertSize(String log, long size, long lower, long upper) {
+        assertTrue("File Store " + log + " size expected in interval ["
+                + mb(lower) + "," + mb(upper) + "] but was: " + mb(size),
+                mb(size) >= mb(lower) && mb(size) <= mb(upper));
     }
 
     @After
