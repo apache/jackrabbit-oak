@@ -44,17 +44,21 @@ public class SegmentId implements Comparable<SegmentId> {
 
     private final long lsb;
 
+    private final long creationTime;
+
     private volatile Segment segment;
 
-    public SegmentId(SegmentTracker tracker, long msb, long lsb, Segment segment) {
+    private SegmentId(SegmentTracker tracker, long msb, long lsb,
+            Segment segment, long creationTime) {
         this.tracker = tracker;
         this.msb = msb;
         this.lsb = lsb;
         this.segment = segment;
+        this.creationTime = creationTime;
     }
 
     public SegmentId(SegmentTracker tracker, long msb, long lsb) {
-        this(tracker, msb, lsb, null);
+        this(tracker, msb, lsb, null, System.currentTimeMillis());
     }
 
     /**
@@ -72,7 +76,7 @@ public class SegmentId implements Comparable<SegmentId> {
      * @return {@code true} for a bulk segment, {@code false} otherwise
      */
     public boolean isBulkSegmentId() {
-        return (lsb >>> 60) == 0xBL; 
+        return (lsb >>> 60) == 0xBL;
     }
 
     public boolean equals(long msb, long lsb) {
@@ -110,18 +114,22 @@ public class SegmentId implements Comparable<SegmentId> {
         return tracker;
     }
 
-    //--------------------------------------------------------< Comparable >--
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    // --------------------------------------------------------< Comparable >--
 
     @Override
     public int compareTo(SegmentId that) {
         int d = Long.valueOf(this.msb).compareTo(Long.valueOf(that.msb));
         if (d == 0) {
-            d = Long.valueOf(this.lsb).compareTo(Long.valueOf(that.lsb)); 
+            d = Long.valueOf(this.lsb).compareTo(Long.valueOf(that.lsb));
         }
         return d;
     }
 
-    //------------------------------------------------------------< Object >--
+    // ------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
@@ -130,7 +138,13 @@ public class SegmentId implements Comparable<SegmentId> {
 
     @Override
     public boolean equals(Object object) {
-        return this == object;
+        if (this == object) {
+            return true;
+        } else if (object instanceof SegmentId) {
+            SegmentId that = (SegmentId) object;
+            return msb == that.msb && lsb == that.lsb;
+        }
+        return false;
     }
 
     @Override

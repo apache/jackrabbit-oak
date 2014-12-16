@@ -1061,4 +1061,8 @@ public class SegmentWriter {
         }
     }
 
+    public SegmentTracker getTracker() {
+        return tracker;
+    }
+
 }

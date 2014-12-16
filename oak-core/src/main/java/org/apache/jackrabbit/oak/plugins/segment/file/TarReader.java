@@ -45,6 +45,7 @@ import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +147,7 @@ class TarReader {
         if (reader != null) {
             return reader;
         } else {
-            throw new IOException("Failed to open recoved tar file " + file);
+            throw new IOException("Failed to open recovered tar file " + file);
         }
     }
 
@@ -584,12 +585,15 @@ class TarReader {
         return -1;
     }
 
-    synchronized TarReader cleanup(Set<UUID> referencedIds) throws IOException {
+    synchronized TarReader cleanup(Set<UUID> referencedIds, CompactionMap cm) throws IOException {
+        if (referencedIds.isEmpty()) {
+            return null;
+        }
+
         Map<UUID, List<UUID>> graph = null;
         if (this.graph != null) {
             graph = parseGraph();
         }
-
         TarEntry[] sorted = new TarEntry[index.remaining() / 24];
         int position = index.position();
         for (int i = 0; position < index.limit(); i++) {
@@ -611,16 +615,27 @@ class TarReader {
                 // this segment is not referenced anywhere
                 sorted[i] = null;
             } else {
-                size += getEntrySize(entry.size());
-                count += 1;
-
                 if (isDataSegmentId(entry.lsb())) {
+                    size += getEntrySize(entry.size());
+                    count += 1;
+
                     // this is a referenced data segment, so follow the graph
                     if (graph != null) {
                         List<UUID> refids = graph.get(
                                 new UUID(entry.msb(), entry.lsb()));
                         if (refids != null) {
-                            referencedIds.addAll(refids);
+                            for (UUID r : refids) {
+                                if (isDataSegmentId(r.getLeastSignificantBits())) {
+                                    referencedIds.add(r);
+                                } else {
+                                    if (cm != null && cm.wasCompacted(id)) {
+                                        // skip bulk compacted segment
+                                        // references
+                                    } else {
+                                        referencedIds.add(r);
+                                    }
+                                }
+                            }
                         }
                     } else {
                         // a pre-compiled graph is not available, so read the
@@ -632,10 +647,26 @@ class TarReader {
                         int refcount = segment.get(pos + REF_COUNT_OFFSET) & 0xff;
                         int refend = pos + 16 * (refcount + 1);
                         for (int refpos = pos + 16; refpos < refend; refpos += 16) {
-                            referencedIds.add(new UUID(
-                                    segment.getLong(refpos),
-                                    segment.getLong(refpos + 8)));
+                            UUID r = new UUID(segment.getLong(refpos),
+                                    segment.getLong(refpos + 8));
+                            if (isDataSegmentId(r.getLeastSignificantBits())) {
+                                referencedIds.add(r);
+                            } else {
+                                if (cm != null && cm.wasCompacted(id)) {
+                                    // skip bulk compacted segment references
+                                } else {
+                                    referencedIds.add(r);
+                                }
+                            }
                         }
+                    }
+                } else {
+                    // bulk segments compaction check
+                    if (cm != null && cm.wasCompacted(id)) {
+                        sorted[i] = null;
+                    } else {
+                        size += getEntrySize(entry.size());
+                        count += 1;
                     }
                 }
             }
