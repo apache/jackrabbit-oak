@@ -23,43 +23,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.runners.Parameterized.Parameters;
-
-import java.util.Arrays;
-import java.util.Collection;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(value = Parameterized.class)
-public class CheckpointTest {
-
-    @Parameters
-    public static Collection<Object[]> fixtures() {
-        Object[][] fixtures = new Object[][] {
-                {NodeStoreFixture.MONGO_NS},
-                {NodeStoreFixture.SEGMENT_MK},
-                {NodeStoreFixture.MEMORY_NS},
-        };
-        return Arrays.asList(fixtures);
-    }
-
-    private final NodeStoreFixture fixture;
-
+public class CheckpointTest extends OakBaseTest {
     private NodeStore store;
-
     private NodeState root;
 
     public CheckpointTest(NodeStoreFixture fixture) {
-        this.fixture = fixture;
+        super(fixture);
+        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);  // FIXME test fail on MONGO_MK fixture
     }
 
     @Before

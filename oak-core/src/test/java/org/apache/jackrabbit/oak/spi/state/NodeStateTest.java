@@ -29,6 +29,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -37,13 +39,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class NodeStateTest extends AbstractKernelTest {
-
+public class NodeStateTest extends OakBaseTest {
     private NodeState state;
+
+    public NodeStateTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void setUp() throws CommitFailedException {
-        NodeStore store = createNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1);
         builder.setProperty("b", 2);
