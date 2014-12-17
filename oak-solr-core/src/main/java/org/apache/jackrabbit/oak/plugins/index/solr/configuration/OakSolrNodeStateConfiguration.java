@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,9 +47,17 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
-        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
-            // TODO : use Tika / SolrCell here
-            return propertyType.toString() + "_bin";
+        Iterable<String> typeMappings = getStringValuesFor(Properties.TYPE_MAPPINGS);
+        if (typeMappings != null) {
+            for (String typeMapping : typeMappings) {
+                String[] mapping = typeMapping.split("=");
+                if (mapping.length == 2 && mapping[0] != null && mapping[1] != null) {
+                    Type<?> type = Type.fromString(mapping[0]);
+                    if (type != null && type.tag() == propertyType.tag()) {
+                        return mapping[1];
+                    }
+                }
+            }
         }
         return null;
     }
@@ -95,6 +103,17 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
 
     @Override
     public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
+        Iterable<String> propertyMappings = getStringValuesFor(Properties.PROPERTY_MAPPINGS);
+        if (propertyMappings != null) {
+            for (String propertyMapping : propertyMappings) {
+                String[] mapping = propertyMapping.split("=");
+                if (mapping.length == 2 && mapping[0] != null && mapping[1] != null) {
+                    if (propertyRestriction.propertyName.equals(mapping[0])) {
+                        return mapping[1];
+                    }
+                }
+            }
+        }
         return null;
     }
 
@@ -126,9 +145,12 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     @Override
     public Collection<String> getIgnoredProperties() {
         Collection<String> ignoredProperties;
-        String ignoredPropertiesString = getStringValueFor(Properties.IGNORED_PROPERTIES, SolrServerConfigurationDefaults.IGNORED_PROPERTIES);
-        if (ignoredPropertiesString != null) {
-            ignoredProperties = Arrays.asList(ignoredPropertiesString.split(","));
+        Iterable<String> ignoredPropertiesValues = getStringValuesFor(Properties.IGNORED_PROPERTIES);
+        if (ignoredPropertiesValues != null) {
+            ignoredProperties = new LinkedList<String>();
+            for (String ignoredProperty : ignoredPropertiesValues) {
+                ignoredProperties.add(ignoredProperty);
+            }
         } else {
             ignoredProperties = Collections.emptyList();
         }
@@ -171,6 +193,18 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return value;
     }
 
+    private Iterable<String> getStringValuesFor(String propertyName) {
+        Iterable<String> values = null;
+        NodeState configurationNodeState = getConfigurationNodeState();
+        if (configurationNodeState.exists()) {
+            PropertyState property = configurationNodeState.getProperty(propertyName);
+            if (property != null && property.isArray()) {
+                values = property.getValue(Type.STRINGS);
+            }
+        }
+        return values;
+    }
+
     @Override
     public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
         String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
@@ -204,5 +238,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String PRIMARY_TYPES = "primaryTypes";
         public static final String PATH_RESTRICTIONS = "pathRestrictions";
         public static final String IGNORED_PROPERTIES = "ignoredProperties";
+        public static final String TYPE_MAPPINGS = "typeMappings";
+        public static final String PROPERTY_MAPPINGS = "propertyMappings";
     }
 }
