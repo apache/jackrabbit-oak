@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
@@ -40,7 +39,6 @@ public class CheckpointTest extends OakBaseTest {
 
     public CheckpointTest(NodeStoreFixture fixture) {
         super(fixture);
-        assumeTrue(fixture != NodeStoreFixture.MONGO_MK);  // FIXME test fail on MONGO_MK fixture
     }
 
     @Before
