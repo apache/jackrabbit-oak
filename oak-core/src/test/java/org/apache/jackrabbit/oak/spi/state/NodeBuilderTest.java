@@ -23,17 +23,22 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.junit.Test;
 
-public class NodeBuilderTest extends AbstractKernelTest {
+public class NodeBuilderTest extends OakBaseTest {
+
+    public NodeBuilderTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Test
     public void deletesKernelNodeStore() throws CommitFailedException {
-        NodeStore store = createNodeStore();
         init(store);
         run(store);
     }
@@ -47,7 +52,6 @@ public class NodeBuilderTest extends AbstractKernelTest {
 
     @Test
     public void rebasePreservesNew() {
-        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
         assertTrue(root.hasChildNode("added"));
@@ -60,7 +64,6 @@ public class NodeBuilderTest extends AbstractKernelTest {
 
     @Test
     public void rebaseInvariant() {
-        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder added = root.setChildNode("added");
         NodeState base = root.getBaseState();
@@ -70,7 +73,6 @@ public class NodeBuilderTest extends AbstractKernelTest {
 
     @Test
     public void rebase() throws CommitFailedException {
-        NodeStore store = createNodeStore();
         NodeBuilder root = store.getRoot().builder();
         modify(store);
         store.rebase(root);

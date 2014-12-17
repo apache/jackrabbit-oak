@@ -22,6 +22,8 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -30,16 +32,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LargeNodeStateTest extends AbstractKernelTest {
-
+public class LargeNodeStateTest extends OakBaseTest {
     private static final int N = KernelNodeState.MAX_CHILD_NAMES;
 
     private NodeState state;
 
+    public LargeNodeStateTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
+
     @Before
     public void setUp() throws CommitFailedException {
-        NodeStore store = createNodeStore();
-
         NodeBuilder builder = store.getRoot().builder();
         builder.setProperty("a", 1);
         for (int i = 0; i <= N; i++) {
