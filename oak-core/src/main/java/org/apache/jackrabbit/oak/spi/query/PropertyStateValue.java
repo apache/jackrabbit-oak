@@ -170,6 +170,8 @@ public class PropertyStateValue implements PropertyValue {
     }
 
     private static int compareAsDate(Iterable<String> p1, Iterable<String> p2) {
+        final char plus = '+';
+        final char minus = '-';
         Iterator<String> i1 = p1.iterator();
         Iterator<String> i2 = p2.iterator();
         while (i1.hasNext() || i2.hasNext()) {
@@ -182,16 +184,35 @@ public class PropertyStateValue implements PropertyValue {
             String v1 = i1.next();
             String v2 = i2.next();
 
-            Calendar c1 = ISO8601.parse(v1);
-            Calendar c2 = ISO8601.parse(v2);
-            int compare = -1;
-            if (c1 != null && c2 != null) {
-                compare = c1.compareTo(c2);
-            } else {
-                compare = v1.compareTo(v2);
+            char v1sign = v1.charAt(0);
+            char v2sign = v2.charAt(0);
+            boolean processStringLiterals = false;
+            
+            if (v1sign != plus && v1sign != minus && v2sign != plus && v2sign != minus) {
+                // if both the dates don't start with a sign
+                String tz1 = v1.substring(23);
+                String tz2 = v2.substring(23);
+                if (tz1.equals(tz2)) {
+                    // if we're on the same time zone we should be able to process safely a String
+                    // literal of ISO8601 dates (2014-12-12T16:29:10.012Z)
+                    processStringLiterals = true;
+                }
             }
-            if (compare != 0) {
-                return compare;
+            
+            if (processStringLiterals) {
+                return v1.compareTo(v2);
+            } else {
+                Calendar c1 = ISO8601.parse(v1);
+                Calendar c2 = ISO8601.parse(v2);
+                int compare = -1;
+                if (c1 != null && c2 != null) {
+                    compare = c1.compareTo(c2);
+                } else {
+                    compare = v1.compareTo(v2);
+                }
+                if (compare != 0) {
+                    return compare;
+                }                
             }
         }
         return 0;
