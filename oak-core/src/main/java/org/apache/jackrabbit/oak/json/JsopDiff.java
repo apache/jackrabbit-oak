@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.json;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,19 +53,19 @@ public class JsopDiff implements NodeStateDiff {
         }
     }
 
-    JsopDiff(BlobSerializer blobs, String path) {
+    public JsopDiff(BlobSerializer blobs, String path) {
         this(new JsopBuilder(), blobs, path, Integer.MAX_VALUE);
     }
 
-    JsopDiff(BlobSerializer blobs) {
+    public JsopDiff(BlobSerializer blobs) {
         this(blobs, "/");
     }
 
-    JsopDiff(String path, int depth) {
+    public JsopDiff(String path, int depth) {
         this(new JsopBuilder(), new BlobSerializer(), path, depth);
     }
 
-    JsopDiff() {
+    public JsopDiff() {
         this("/", Integer.MAX_VALUE);
     }
 
