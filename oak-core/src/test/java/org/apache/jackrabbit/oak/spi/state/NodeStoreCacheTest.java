@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.spi.state;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -27,12 +27,11 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +39,7 @@ import org.junit.Test;
  * Tests if cache is used for repeated reads on unmodified subtree.
  * See also OAK-591.
  */
-public class KernelNodeStoreCacheTest extends AbstractKernelTest {
+public class NodeStoreCacheTest extends AbstractKernelTest {
 
     private static final String PROP_FILTER = "{\"properties\":[\"*\"]}";
     private static final String PROP_FILTER_WITH_HASH = "{\"properties\":[\"*\",\":hash\"]}";
