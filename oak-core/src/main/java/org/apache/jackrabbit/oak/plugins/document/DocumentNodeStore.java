@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.toArray;
+import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
@@ -29,6 +31,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -50,6 +54,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.management.NotCompliantMBeanException;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
@@ -60,6 +65,7 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.commons.jmx.AnnotatedStandardMBean;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
@@ -326,6 +332,8 @@ public final class DocumentNodeStore
 
     private PersistentCache persistentCache;
 
+    private final DocumentNodeStoreMBean mbean;
+
     public DocumentNodeStore(DocumentMK.Builder builder) {
         this.blobStore = builder.getBlobStore();
         if (builder.isUseSimpleRevision()) {
@@ -429,6 +437,7 @@ public final class DocumentNodeStore
             leaseUpdateThread.start();
         }
 
+        this.mbean = createMBean();
         LOG.info("Initialized DocumentNodeStore with clusterNodeId: {}", clusterId);
     }
 
@@ -854,7 +863,7 @@ public final class DocumentNodeStore
             docChildrenCache.put(key, clone);
             c = clone;
         }
-        Iterable<NodeDocument> it = Iterables.transform(c.childNames, new Function<String, NodeDocument>() {
+        Iterable<NodeDocument> it = transform(c.childNames, new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
                 String p = PathUtils.concat(path, name);
@@ -894,7 +903,7 @@ public final class DocumentNodeStore
         }
 
         final Revision readRevision = parent.getLastRevision();
-        return Iterables.transform(getChildren(parent, name, limit).children,
+        return transform(getChildren(parent, name, limit).children,
                 new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
@@ -1874,6 +1883,81 @@ public final class DocumentNodeStore
             }
         }
         return blobGC;
+    }
+
+    //-----------------------------< DocumentNodeStoreMBean >---------------------------------
+
+    public DocumentNodeStoreMBean getMBean() {
+        return mbean;
+    }
+
+    private DocumentNodeStoreMBean createMBean(){
+        try {
+            return new MBeanImpl();
+        } catch (NotCompliantMBeanException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private class MBeanImpl extends AnnotatedStandardMBean implements DocumentNodeStoreMBean {
+        private final String ISO_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS zzz";
+        private final TimeZone TZ_UTC = TimeZone.getTimeZone("UTC");
+
+        protected MBeanImpl() throws NotCompliantMBeanException {
+            super(DocumentNodeStoreMBean.class);
+        }
+
+        @Override
+        public String getRevisionComparatorState() {
+            return revisionComparator.toString();
+        }
+
+        @Override
+        public String getHead(){
+            return headRevision.toString();
+        }
+
+        @Override
+        public int getClusterId() {
+            return clusterId;
+        }
+
+        @Override
+        public int getUnmergedBranchCount() {
+            return branches.size();
+        }
+
+        @Override
+        public String[] getInactiveClusterNodes() {
+            return toArray(transform(inactiveClusterNodes.entrySet(),
+                    new Function<Map.Entry<Integer, Long>, String>() {
+                        @Override
+                        public String apply(Map.Entry<Integer, Long> input) {
+                            return input.toString();
+                        }
+                    }), String.class);
+        }
+
+        @Override
+        public String[] getLastKnownRevisions() {
+            return toArray(transform(lastKnownRevision.entrySet(),
+                    new Function<Map.Entry<Integer, Revision>, String>() {
+                        @Override
+                        public String apply(Map.Entry<Integer, Revision> input) {
+                            return input.toString();
+                        }
+                    }), String.class);
+        }
+
+        @Override
+        public String formatRevision(String rev, boolean utc){
+            Revision r = Revision.fromString(rev);
+            final SimpleDateFormat sdf = new SimpleDateFormat(ISO_FORMAT);
+            if (utc) {
+                sdf.setTimeZone(TZ_UTC);
+            }
+            return sdf.format(r.getTimestamp());
+        }
     }
 
     static abstract class NodeStoreTask implements Runnable {

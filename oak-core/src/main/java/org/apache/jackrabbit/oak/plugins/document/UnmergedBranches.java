@@ -149,4 +149,11 @@ class UnmergedBranches {
     void remove(Branch b) {
         branches.remove(b);
     }
+
+    /**
+     * Count of currently unmerged branches
+     */
+    int size(){
+        return branches.size();
+    }
 }
