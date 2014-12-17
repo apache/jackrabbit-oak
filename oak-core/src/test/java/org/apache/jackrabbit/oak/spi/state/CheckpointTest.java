@@ -36,7 +36,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class CheckpointTest extends OakBaseTest {
-    private NodeStore store;
     private NodeState root;
 
     public CheckpointTest(NodeStoreFixture fixture) {
@@ -46,7 +45,6 @@ public class CheckpointTest extends OakBaseTest {
 
     @Before
     public void setUp() throws Exception {
-        store = fixture.createNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder test = builder.child("test");
         test.setProperty("a", 1);
