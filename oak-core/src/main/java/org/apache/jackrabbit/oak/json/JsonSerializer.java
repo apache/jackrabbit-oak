@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.json;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
@@ -68,7 +68,7 @@ public class JsonSerializer {
         this.blobs = checkNotNull(blobs);
     }
 
-    JsonSerializer(
+    public JsonSerializer(
             int depth, long offset, int maxChildNodes,
             String filter, BlobSerializer blobs) {
         this(new JsopBuilder(), depth, offset, maxChildNodes,
@@ -85,7 +85,7 @@ public class JsonSerializer {
                 json, depth - 1, 0, maxChildNodes, filter, blobs);
     }
 
-    void serialize(NodeState node) {
+    public void serialize(NodeState node) {
         json.object();
 
         for (PropertyState property : node.getProperties()) {
@@ -144,7 +144,7 @@ public class JsonSerializer {
         }
     }
 
-    void serialize(PropertyState property, Type<?> type, int index) {
+    public void serialize(PropertyState property, Type<?> type, int index) {
         if (type == BOOLEAN) {
             json.value(property.getValue(BOOLEAN, index).booleanValue());
         } else if (type == LONG) {
@@ -217,7 +217,7 @@ public class JsonSerializer {
             }
         }
 
-        private void readPatterns(JsopTokenizer tokenizer, List<Pattern> includes,
+        private static void readPatterns(JsopTokenizer tokenizer, List<Pattern> includes,
                 List<Pattern> excludes) {
             tokenizer.read('[');
             for (boolean first = true; !tokenizer.matches(']'); first = false) {
@@ -261,7 +261,7 @@ public class JsonSerializer {
             return include(name, propertyIncludes, propertyExcludes);
         }
 
-        private boolean include(
+        private static boolean include(
                 String name, List<Pattern> includes, List<Pattern> excludes) {
             for (Pattern include : includes) {
                 if (include.matcher(name).matches()) {

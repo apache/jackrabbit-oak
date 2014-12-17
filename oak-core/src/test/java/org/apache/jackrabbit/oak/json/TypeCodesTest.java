@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.kernel;
+package org.apache.jackrabbit.oak.json;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.json.TypeCodes;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

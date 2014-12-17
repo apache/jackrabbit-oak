@@ -22,8 +22,8 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.kernel.BlobSerializer;
-import org.apache.jackrabbit.oak.kernel.JsonSerializer;
+import org.apache.jackrabbit.oak.json.BlobSerializer;
+import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 

@@ -53,6 +53,7 @@
               org.apache.jackrabbit.oak.api,
               org.apache.jackrabbit.oak.api.jmx,
               org.apache.jackrabbit.oak.stats,
+              org.apache.jackrabbit.oak.json,
               org.apache.jackrabbit.oak.kernel,
               org.apache.jackrabbit.oak.management,
               org.apache.jackrabbit.oak.util,
