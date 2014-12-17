@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,6 +71,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
@@ -1404,7 +1406,8 @@ public final class DocumentNodeStore
     @Override
     public NodeState retrieve(@Nonnull String checkpoint) {
         Revision r = Revision.fromString(checkpoint);
-        if (checkpoints.getCheckpoints().containsKey(r)) {
+        SortedMap<Revision, Info> checkpoints = this.checkpoints.getCheckpoints();
+        if (checkpoints != null && checkpoints.containsKey(r)) {
             return getRoot(r);
         } else {
             return null;
