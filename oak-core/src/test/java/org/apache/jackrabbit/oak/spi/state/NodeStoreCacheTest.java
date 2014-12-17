@@ -21,18 +21,23 @@ package org.apache.jackrabbit.oak.spi.state;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.io.Closer;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +50,10 @@ public class NodeStoreCacheTest extends OakBaseTest {
     private static final String PROP_FILTER_WITH_HASH = "{\"properties\":[\"*\",\":hash\"]}";
     private static final String PROP_FILTER_WITH_ID = "{\"properties\":[\"*\",\":id\"]}";
 
+    private final Closer closer = Closer.create();
+
     private MicroKernelWrapper wrapper;
+    private NodeStore store;
 
     public NodeStoreCacheTest(NodeStoreFixture fixture) {
         super(fixture);
@@ -53,8 +61,15 @@ public class NodeStoreCacheTest extends OakBaseTest {
 
     @Before
     public void setUp() throws Exception {
-        wrapper = new MicroKernelWrapper(new Builder().open());
-        store = new KernelNodeStore(wrapper);
+        final DocumentMK documentMK = new Builder().open();
+        closer.register(new Closeable() {
+            @Override
+            public void close() {
+                documentMK.dispose();
+            }
+        });
+        wrapper = new MicroKernelWrapper(documentMK);
+        this.store = new KernelNodeStore(wrapper);
 
         NodeBuilder builder = store.getRoot().builder();
         builder.child("a");
@@ -63,6 +78,11 @@ public class NodeStoreCacheTest extends OakBaseTest {
         b.child("d");
         b.child("e");
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        closer.close();
     }
 
     /**
