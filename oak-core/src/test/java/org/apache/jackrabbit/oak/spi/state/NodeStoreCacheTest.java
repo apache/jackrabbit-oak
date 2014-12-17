@@ -27,7 +27,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
+import org.apache.jackrabbit.oak.NodeStoreFixture;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -39,15 +40,16 @@ import org.junit.Test;
  * Tests if cache is used for repeated reads on unmodified subtree.
  * See also OAK-591.
  */
-public class NodeStoreCacheTest extends AbstractKernelTest {
-
+public class NodeStoreCacheTest extends OakBaseTest {
     private static final String PROP_FILTER = "{\"properties\":[\"*\"]}";
     private static final String PROP_FILTER_WITH_HASH = "{\"properties\":[\"*\",\":hash\"]}";
     private static final String PROP_FILTER_WITH_ID = "{\"properties\":[\"*\",\":id\"]}";
 
-    private KernelNodeStore store;
-
     private MicroKernelWrapper wrapper;
+
+    public NodeStoreCacheTest(NodeStoreFixture fixture) {
+        super(fixture);
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -132,7 +134,7 @@ public class NodeStoreCacheTest extends AbstractKernelTest {
     private int readTreeWithCleanedCache() {
         // start with virgin store / empty cache
         store = new KernelNodeStore(wrapper);
-        KernelNodeState root = store.getRoot();
+        NodeState root = store.getRoot();
         int uncachedReads = wrapper.numGetNodes;
         readTree(root);
         return wrapper.numGetNodes - uncachedReads;
@@ -144,7 +146,7 @@ public class NodeStoreCacheTest extends AbstractKernelTest {
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private void readTree(NodeState root) {
+    private static void readTree(NodeState root) {
         for (ChildNodeEntry cne : root.getChildNodeEntries()) {
             readTree(cne.getNodeState());
         }
