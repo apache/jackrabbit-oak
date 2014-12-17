@@ -37,6 +37,7 @@ public abstract class OakBaseTest {
                 {NodeStoreFixture.MONGO_MK},
                 {NodeStoreFixture.MONGO_NS},
                 {NodeStoreFixture.SEGMENT_MK},
+                {NodeStoreFixture.MEMORY_NS},
         };
         return Arrays.asList(fixtures);
     }
