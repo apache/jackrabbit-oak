@@ -18,10 +18,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.io.Closeable;
-import java.io.IOException;
-
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -57,18 +53,14 @@ public abstract class NodeStoreFixture {
         }
 
         @Override
-        public NodeStore createNodeStore() {
-            return new CloseableNodeStore(new DocumentMK.Builder().open());
+        public DocumentNodeStore createNodeStore() {
+            return new DocumentMK.Builder().getNodeStore();
         }
 
         @Override
         public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof Closeable) {
-                try {
-                    ((Closeable) nodeStore).close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore) nodeStore).dispose();
             }
         }
     };
@@ -106,19 +98,4 @@ public abstract class NodeStoreFixture {
 
     public abstract void dispose(NodeStore nodeStore);
 
-    private static class CloseableNodeStore
-            extends KernelNodeStore implements Closeable {
-
-        private final DocumentMK kernel;
-
-        public CloseableNodeStore(DocumentMK kernel) {
-            super(kernel, DEFAULT_CACHE_SIZE);
-            this.kernel = kernel;
-        }
-
-        @Override
-        public void close() throws IOException {
-            kernel.dispose();
-        }
-    }
 }
