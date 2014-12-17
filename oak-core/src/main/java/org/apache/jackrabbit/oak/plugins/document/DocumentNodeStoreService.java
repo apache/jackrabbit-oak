@@ -324,6 +324,15 @@ public class DocumentNodeStoreService {
                         CacheStatsMBean.TYPE,
                         store.getDocChildrenCacheStats().getName())
         );
+
+        registrations.add(
+                registerMBean(whiteboard,
+                        DocumentNodeStoreMBean.class,
+                        store.getMBean(),
+                        DocumentNodeStoreMBean.TYPE,
+                        "Document node store management")
+        );
+
         DiffCache cl = store.getDiffCache();
         if (cl instanceof MemoryDiffCache) {
             MemoryDiffCache mcl = (MemoryDiffCache) cl;
