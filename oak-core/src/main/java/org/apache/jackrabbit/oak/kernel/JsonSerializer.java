@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+
+import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
 
@@ -29,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -167,4 +172,109 @@ public class JsonSerializer {
         return json.toString();
     }
 
+    /**
+     * Utility class for deciding which nodes and properties to serialize.
+     */
+    private static class JsonFilter {
+
+        private static final Pattern EVERYTHING = Pattern.compile(".*");
+
+        private final List<Pattern> nodeIncludes = newArrayList(EVERYTHING);
+
+        private final List<Pattern> nodeExcludes = newArrayList();
+
+        private final List<Pattern> propertyIncludes = newArrayList(EVERYTHING);
+
+        private final List<Pattern> propertyExcludes = newArrayList();
+
+        JsonFilter(String filter) {
+            JsopTokenizer tokenizer = new JsopTokenizer(filter);
+            tokenizer.read('{');
+            for (boolean first = true; !tokenizer.matches('}'); first = false) {
+                if (!first) {
+                    tokenizer.read(',');
+                }
+                String key = tokenizer.readString();
+                tokenizer.read(':');
+
+                List<Pattern> includes = newArrayList();
+                List<Pattern> excludes = newArrayList();
+                readPatterns(tokenizer, includes, excludes);
+
+                if (key.equals("nodes")) {
+                    nodeIncludes.clear();
+                    nodeIncludes.addAll(includes);
+                    nodeExcludes.clear();
+                    nodeExcludes.addAll(excludes);
+                } else if (key.equals("properties")) {
+                    propertyIncludes.clear();
+                    propertyIncludes.addAll(includes);
+                    propertyExcludes.clear();
+                    propertyExcludes.addAll(excludes);
+                } else {
+                    throw new IllegalStateException(key);
+                }
+            }
+        }
+
+        private void readPatterns(JsopTokenizer tokenizer, List<Pattern> includes,
+                List<Pattern> excludes) {
+            tokenizer.read('[');
+            for (boolean first = true; !tokenizer.matches(']'); first = false) {
+                if (!first) {
+                    tokenizer.read(',');
+                }
+                String pattern = tokenizer.readString();
+                if (pattern.startsWith("-")) {
+                    excludes.add(glob(pattern.substring(1)));
+                } else if (pattern.startsWith("\\-")) {
+                    includes.add(glob(pattern.substring(1)));
+                } else {
+                    includes.add(glob(pattern));
+                }
+            }
+        }
+
+        private static Pattern glob(String pattern) {
+            StringBuilder builder = new StringBuilder();
+            int star = pattern.indexOf('*');
+            while (star != -1) {
+                if (star > 0 && pattern.charAt(star - 1) == '\\') {
+                    builder.append(Pattern.quote(pattern.substring(0, star - 1)));
+                    builder.append(Pattern.quote("*"));
+                } else {
+                    builder.append(Pattern.quote(pattern.substring(0, star)));
+                    builder.append(".*");
+                }
+                pattern = pattern.substring(star + 1);
+                star = pattern.indexOf('*');
+            }
+            builder.append(Pattern.quote(pattern));
+            return Pattern.compile(builder.toString());
+        }
+
+        boolean includeNode(String name) {
+            return include(name, nodeIncludes, nodeExcludes);
+        }
+
+        boolean includeProperty(String name) {
+            return include(name, propertyIncludes, propertyExcludes);
+        }
+
+        private boolean include(
+                String name, List<Pattern> includes, List<Pattern> excludes) {
+            for (Pattern include : includes) {
+                if (include.matcher(name).matches()) {
+                    for (Pattern exclude : excludes) {
+                        if (exclude.matcher(name).matches()) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+    }
 }
