@@ -107,4 +107,9 @@ public class CheckpointTest {
         assertEquals(props, store.checkpointInfo(cp));
     }
 
+    @Test
+    public void retrieveAny() {
+        assertTrue(store.retrieve("r42-0-0") == null);
+    }
+
 }
