@@ -72,7 +72,7 @@ public abstract class CompactionStrategy {
 
     public static final CleanupType CLEANUP_DEFAULT = CleanupType.CLEAN_OLD;
 
-    public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 60 + 10;  // 10h
+    public static final long TIMESTAMP_DEFAULT = 1000 * 60 * 60 * 10;  // 10h
 
     public static final byte MEMORY_THRESHOLD_DEFAULT = 5;
 
