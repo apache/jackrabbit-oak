@@ -14,18 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.kernel;
+@Version("1.0")
+@Export(optional = "provide:=true")
+package org.apache.jackrabbit.oak.json;
 
-import org.apache.jackrabbit.oak.api.Blob;
-
-/**
- * Customizable mechanism for mapping {@link Blob} instances to corresponding
- * serialization identifiers.
- */
-public class BlobSerializer {
-
-    public String serialize(Blob blob) {
-        return "Blob{" + blob + '}';
-    }
-
-}
+import aQute.bnd.annotation.Version;
+import aQute.bnd.annotation.Export;
