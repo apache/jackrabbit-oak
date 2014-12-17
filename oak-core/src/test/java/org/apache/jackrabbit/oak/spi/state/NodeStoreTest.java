@@ -58,7 +58,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class NodeStoreTest extends OakBaseTest {
-    private NodeStore store;
     private NodeState root;
 
     public NodeStoreTest(NodeStoreFixture fixture) {
@@ -67,7 +66,6 @@ public class NodeStoreTest extends OakBaseTest {
 
     @Before
     public void setUp() throws Exception {
-        store = fixture.createNodeStore();
         NodeBuilder builder = store.getRoot().builder();
         NodeBuilder test = builder.child("test");
         test.setProperty("a", 1);

@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -42,13 +41,8 @@ public abstract class OakBaseTest {
         return Arrays.asList(fixtures);
     }
 
-    protected NodeStoreFixture fixture;
-    protected NodeStore store;
-
-    @Before
-    public void setup() {
-        store = fixture.createNodeStore();
-    }
+    protected final NodeStoreFixture fixture;
+    protected final NodeStore store;
 
     @After
     public void teardown() {
@@ -57,6 +51,7 @@ public abstract class OakBaseTest {
 
     protected OakBaseTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
+        this.store = fixture.createNodeStore();
     }
 
     protected ContentRepository createContentRepository() {
