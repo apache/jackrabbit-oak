@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -54,16 +52,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
-import static java.util.Collections.disjoint;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
  * A document storing data about a node.
@@ -147,7 +143,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * revision is actually committed. Depth 0 means the commit is in the root node,
      * depth 1 means one node below the root, and so on.
      */
-    private static final String COMMIT_ROOT = "_commitRoot";
+    static final String COMMIT_ROOT = "_commitRoot";
 
     /**
      * The number of previous documents (documents that contain old revisions of
@@ -258,17 +254,35 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
          * A split document which contains all types of data. In addition
          * when the split document was created the main document did not had
          * any child.
+         * This type is deprecated because these kind of documents cannot be
+         * garbage collected independently. The main document may still
+         * reference _commitRoot entries in the previous document. See OAK-1794
          */
+        @Deprecated
         DEFAULT_NO_CHILD(20),
         /**
-         * A split document which does not contain REVISIONS history
+         * A split document which does not contain REVISIONS history.
+         * This type is deprecated because these kind of documents cannot be
+         * garbage collected independently. The main document may still
+         * reference _commitRoot entries in the previous document. See OAK-1794
          */
+        @Deprecated
         PROP_COMMIT_ONLY(30),
         /**
          * Its an intermediate split document which only contains version ranges
          * and does not contain any other attributes
          */
-        INTERMEDIATE(40)
+        INTERMEDIATE(40),
+        /**
+         * A split document which contains all types of data. In addition
+         * when the split document was created the main document did not had
+         * any child.
+         */
+        DEFAULT_LEAF(50),
+        /**
+         * A split document which does not contain REVISIONS history.
+         */
+        COMMIT_ROOT_ONLY(60),
         ;
 
         final int type;
@@ -298,7 +312,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     /**
      * Properties to ignore when a document is split.
      */
-    private static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
+    static final Set<String> IGNORE_ON_SPLIT = ImmutableSet.of(
             ID, MOD_COUNT, MODIFIED_IN_SECS, PREVIOUS, LAST_REV, CHILDREN_FLAG,
             HAS_BINARY_FLAG, PATH, DELETED_ONCE, COLLISIONS);
 
@@ -896,7 +910,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             value = getLatestValue(context, getDeleted(),
                     null, maxRev, validRevisions);
         }
-        return value != null && value.value.equals("false") ? value.revision : null;
+
+        return value != null && "false".equals(value.value) ? value.revision : null;
     }
 
     /**
@@ -961,156 +976,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     @Nonnull
     public Iterable<UpdateOp> split(@Nonnull RevisionContext context) {
-        SortedMap<Revision, Range> previous = getPreviousRanges();
-        // only consider if there are enough commits,
-        // unless document is really big
-        if (getLocalRevisions().size() + getLocalCommitRoot().size() <= NUM_REVS_THRESHOLD
-                && getMemory() < DOC_SIZE_THRESHOLD
-                && previous.size() < PREV_SPLIT_FACTOR) {
-            return Collections.emptyList();
-        }
-        String path = getPath();
-        String id = getId();
-        if (id == null) {
-            throw new IllegalStateException("document does not have an id: " + this);
-        }
-        // collect ranges and create a histogram of the height
-        Map<Integer, List<Range>> prevHisto = Maps.newHashMap();
-        for (Map.Entry<Revision, Range> entry : previous.entrySet()) {
-            Revision rev = entry.getKey();
-            if (rev.getClusterId() != context.getClusterId()) {
-                continue;
-            }
-            Range r = entry.getValue();
-            List<Range> list = prevHisto.get(r.getHeight());
-            if (list == null) {
-                list = new ArrayList<Range>();
-                prevHisto.put(r.getHeight(), list);
-            }
-            list.add(r);
-        }
-        Map<String, NavigableMap<Revision, String>> splitValues
-                = new HashMap<String, NavigableMap<Revision, String>>();
-        for (String property : data.keySet()) {
-            if (IGNORE_ON_SPLIT.contains(property)) {
-                continue;
-            }
-            NavigableMap<Revision, String> splitMap
-                    = new TreeMap<Revision, String>(context.getRevisionComparator());
-            splitValues.put(property, splitMap);
-            Map<Revision, String> valueMap = getLocalMap(property);
-            // collect committed changes of this cluster node after the
-            // most recent previous split revision
-            for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
-                Revision rev = entry.getKey();
-                if (rev.getClusterId() != context.getClusterId()) {
-                    continue;
-                }
-                if (isCommitted(rev)) {
-                    splitMap.put(rev, entry.getValue());
-                }
-            }
-        }
-
-        List<UpdateOp> splitOps = Lists.newArrayList();
-        int numValues = 0;
-        Revision high = null;
-        Revision low = null;
-        for (NavigableMap<Revision, String> splitMap : splitValues.values()) {
-            // keep the most recent in the main document
-            if (!splitMap.isEmpty()) {
-                splitMap.remove(splitMap.lastKey());
-            }
-            if (splitMap.isEmpty()) {
-                continue;
-            }
-            // remember highest / lowest revision
-            if (high == null || isRevisionNewer(context, splitMap.lastKey(), high)) {
-                high = splitMap.lastKey();
-            }
-            if (low == null || isRevisionNewer(context, low, splitMap.firstKey())) {
-                low = splitMap.firstKey();
-            }
-            numValues += splitMap.size();
-        }
-        UpdateOp main = null;
-        if (high != null && low != null
-                && (numValues >= NUM_REVS_THRESHOLD
-                    || getMemory() > DOC_SIZE_THRESHOLD)) {
-            // enough revisions to split off
-            // move to another document
-            main = new UpdateOp(id, false);
-            setPrevious(main, new Range(high, low, 0));
-            String oldPath = Utils.getPreviousPathFor(path, high, 0);
-            UpdateOp old = new UpdateOp(Utils.getIdFromPath(oldPath), true);
-            old.set(ID, old.getId());
-            if (Utils.isLongPath(oldPath)) {
-                old.set(PATH, oldPath);
-            }
-            for (String property : splitValues.keySet()) {
-                NavigableMap<Revision, String> splitMap = splitValues.get(property);
-                for (Map.Entry<Revision, String> entry : splitMap.entrySet()) {
-                    Revision r = entry.getKey();
-                    main.removeMapEntry(property, r);
-                    old.setMapEntry(property, r, entry.getValue());
-                }
-            }
-            // check size of old document
-            NodeDocument oldDoc = new NodeDocument(store);
-            UpdateUtils.applyChanges(oldDoc, old, context.getRevisionComparator());
-            setSplitDocProps(this, oldDoc, old, high);
-            // only split if enough of the data can be moved to old document
-            if (oldDoc.getMemory() > getMemory() * SPLIT_RATIO
-                    || numValues >= NUM_REVS_THRESHOLD) {
-                splitOps.add(old);
-            } else {
-                main = null;
-            }
-        }
-
-        // check if we need to create intermediate previous documents
-        for (Map.Entry<Integer, List<Range>> entry : prevHisto.entrySet()) {
-            if (entry.getValue().size() >= PREV_SPLIT_FACTOR) {
-                if (main == null) {
-                    main = new UpdateOp(id, false);
-                }
-                // calculate range new range
-                Revision h = null;
-                Revision l = null;
-                for (Range r : entry.getValue()) {
-                    if (h == null || isRevisionNewer(context, r.high, h)) {
-                        h = r.high;
-                    }
-                    if (l == null || isRevisionNewer(context, l, r.low)) {
-                        l = r.low;
-                    }
-                    removePrevious(main, r);
-                }
-                if (h == null || l == null) {
-                    throw new IllegalStateException();
-                }
-                String prevPath = Utils.getPreviousPathFor(path, h, entry.getKey() + 1);
-                String prevId = Utils.getIdFromPath(prevPath);
-                UpdateOp intermediate = new UpdateOp(prevId, true);
-                intermediate.set(ID, prevId);
-                if (Utils.isLongPath(prevPath)) {
-                    intermediate.set(PATH, prevPath);
-                }
-                setPrevious(main, new Range(h, l, entry.getKey() + 1));
-                for (Range r : entry.getValue()) {
-                    setPrevious(intermediate, r);
-                }
-                setIntermediateDocProps(intermediate, h);
-                splitOps.add(intermediate);
-            }
-        }
-
-        // main document must be updated last
-        if (main != null && !splitOps.isEmpty()) {
-            splitOps.add(main);
-        }
-
-        return splitOps;
+        return SplitOperations.forDocument(this, context);
     }
 
     /**
@@ -1300,6 +1166,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
         return REVISIONS.equals(name);
     }
 
+    public static boolean isCommitRootEntry(String name) {
+        return COMMIT_ROOT.equals(name);
+    }
+
     public static void removeRevision(@Nonnull UpdateOp op,
                                       @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(REVISIONS, checkNotNull(revision));
@@ -1375,18 +1245,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void setHasBinary(@Nonnull UpdateOp op) {
         checkNotNull(op).set(HAS_BINARY_FLAG, HAS_BINARY_VAL);
-    }
-
-    //----------------------------< internal modifiers >------------------------
-
-    private static void setSplitDocType(@Nonnull UpdateOp op,
-                                        @Nonnull SplitDocType type) {
-        checkNotNull(op).set(SD_TYPE, type.type);
-    }
-
-    private static void setSplitDocMaxRev(@Nonnull UpdateOp op,
-                                          @Nonnull Revision maxRev) {
-        checkNotNull(op).set(SD_MAX_REV_TIME_IN_SECS, getModifiedInSecs(maxRev.getTimestamp()));
     }
 
     //----------------------------< internal >----------------------------------
@@ -1496,82 +1354,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
-     * Set various split document related flag/properties
-     *
-     * @param mainDoc main document from which split document is being created
-     * @param old updateOp of the old document created via split
-     * @param oldDoc old document created via split
-     * @param maxRev max revision stored in the split document oldDoc
-     */
-    private static void setSplitDocProps(NodeDocument mainDoc, NodeDocument oldDoc,
-                                         UpdateOp old, Revision maxRev) {
-        setSplitDocMaxRev(old, maxRev);
-
-        SplitDocType type = SplitDocType.DEFAULT;
-        if(!mainDoc.hasChildren() && !referencesOldDocAfterSplit(mainDoc, oldDoc)){
-            type = SplitDocType.DEFAULT_NO_CHILD;
-        } else if (oldDoc.getLocalRevisions().isEmpty()){
-            type = SplitDocType.PROP_COMMIT_ONLY;
-        }
-
-        //Copy over the hasBinary flag
-        if(mainDoc.hasBinary()){
-            setHasBinary(old);
-        }
-
-        setSplitDocType(old,type);
-    }
-
-    /**
-     * Checks if the main document has changes referencing {@code oldDoc} after
-     * the split.
-     *
-     * @param mainDoc the main document before the split.
-     * @param oldDoc  the old document created by the split.
-     * @return {@code true} if the main document contains references to the
-     *         old document after the split; {@code false} otherwise.
-     */
-    private static boolean referencesOldDocAfterSplit(NodeDocument mainDoc,
-                                                      NodeDocument oldDoc) {
-        Set<Revision> revs = oldDoc.getLocalRevisions().keySet();
-        for (String property : mainDoc.data.keySet()) {
-            if (IGNORE_ON_SPLIT.contains(property)) {
-                continue;
-            }
-            Set<Revision> changes = Sets.newHashSet(mainDoc.getLocalMap(property).keySet());
-            changes.removeAll(oldDoc.getLocalMap(property).keySet());
-            if (!disjoint(changes, revs)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Set various properties for intermediate split document
-     *
-     * @param intermediate updateOp of the intermediate doc getting created
-     * @param maxRev max revision stored in the intermediate
-     */
-    private static void setIntermediateDocProps(UpdateOp intermediate, Revision maxRev) {
-        setSplitDocMaxRev(intermediate, maxRev);
-        setSplitDocType(intermediate,SplitDocType.INTERMEDIATE);
-    }
-
-    /**
-     * Checks that revision x is newer than another revision.
-     *
-     * @param x the revision to check
-     * @param previous the presumed earlier revision
-     * @return true if x is newer
-     */
-    private static boolean isRevisionNewer(@Nonnull RevisionContext context,
-                                           @Nonnull Revision x,
-                                           @Nonnull Revision previous) {
-        return context.getRevisionComparator().compare(x, previous) > 0;
-    }
-
-    /**
      * Returns <code>true</code> if the given revision
      * {@link Utils#isCommitted(String)} in the revisions map (including
      * revisions split off to previous documents) and is visible from the
@@ -1670,7 +1452,10 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Get the latest property value that is larger or equal the min revision,
-     * and smaller or equal the readRevision revision.
+     * and smaller or equal the readRevision revision. A {@code null} return
+     * value indicates that the property was not set or removed within the given
+     * range. A non-null value means the the property was either set or removed
+     * depending on {@link Value#value}.
      *
      * @param valueMap the sorted revision-value map
      * @param min the minimum revision (null meaning unlimited)
@@ -1685,8 +1470,6 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
                                  @Nullable Revision min,
                                  @Nonnull Revision readRevision,
                                  @Nonnull Map<Revision, String> validRevisions) {
-        String value = null;
-        Revision latestRev = null;
         for (Map.Entry<Revision, String> entry : valueMap.entrySet()) {
             Revision propRev = entry.getKey();
             // ignore revisions newer than readRevision
@@ -1712,12 +1495,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             }
             if (isValidRevision(context, propRev, commitValue, readRevision, validRevisions)) {
                 // TODO: need to check older revisions as well?
-                latestRev = Utils.resolveCommitRevision(propRev, commitValue);
-                value = entry.getValue();
-                break;
+                return new Value(
+                        Utils.resolveCommitRevision(propRev, commitValue),
+                        entry.getValue());
             }
         }
-        return value != null ? new Value(value, latestRev) : null;
+        return null;
     }
 
     @Override
@@ -1901,12 +1684,16 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      */
     private static final class Value {
 
-        final String value;
         final Revision revision;
+        /**
+         * The value of a property at the given revision. A {@code null} value
+         * indicates the property was removed.
+         */
+        final String value;
 
-        Value(@Nonnull String value, @Nonnull Revision revision) {
-            this.value = checkNotNull(value);
+        Value(@Nonnull Revision revision, @Nullable String value) {
             this.revision = checkNotNull(revision);
+            this.value = value;
         }
     }
 }
