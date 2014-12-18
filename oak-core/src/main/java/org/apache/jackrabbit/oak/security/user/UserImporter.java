@@ -308,7 +308,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 // since group-members are references to user/groups that potentially
                 // are to be imported later on -> postpone processing to the end.
                 // see -> process References
-                getMembership(a.getID()).addMembers(propInfo.getTextValues());
+                getMembership(a.getPath()).addMembers(propInfo.getTextValues());
                 return true;
 
             } // another protected property -> return false
@@ -386,7 +386,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
             } else {
-                currentMembership = getMembership(auth.getID());
+                currentMembership = getMembership(auth.getPath());
                 return true;
             }
         } else if (isMemberReferencesListNode(protectedParent)) {
@@ -395,7 +395,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
             } else {
-                currentMembership = getMembership(auth.getID());
+                currentMembership = getMembership(auth.getPath());
                 return true;
             }
         } // else: parent node is not of type rep:Members or rep:MemberReferencesList
@@ -538,11 +538,12 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
      */
     private final class Membership {
 
-        private final String groupId;
+        private final String authorizablePath;
+
         private final Set<String> members = new TreeSet<String>();
 
-        Membership(String groupId) {
-            this.groupId = groupId;
+        Membership(String authorizablePath) {
+            this.authorizablePath = authorizablePath;
         }
 
         void addMember(String id) {
@@ -556,9 +557,9 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         }
 
         void process() throws RepositoryException {
-            Authorizable a = userManager.getAuthorizable(groupId);
+            Authorizable a = userManager.getAuthorizableByPath(authorizablePath);
             if (a == null || !a.isGroup()) {
-                throw new RepositoryException(groupId + " does not represent a valid group.");
+                throw new RepositoryException(authorizablePath + " does not represent a valid group.");
             }
             Group gr = (Group) a;
 
