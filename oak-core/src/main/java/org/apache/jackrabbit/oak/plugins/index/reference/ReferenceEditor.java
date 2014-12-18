@@ -52,7 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class ReferenceEditor extends DefaultEditor implements IndexEditor {
 
-    private static ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
+    private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
     /** Parent editor, or {@code null} if this is the root editor. */
     private final ReferenceEditor parent;
@@ -338,11 +338,11 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         NodeBuilder index = child.child(name);
         Set<String> empty = of();
         for (String p : rm) {
-            STORE.update(index, p, of(key), empty);
+            STORE.update(index, p, name, child, of(key), empty);
         }
         for (String p : add) {
             // TODO do we still need to encode the values?
-            STORE.update(index, p, empty, of(key));
+            STORE.update(index, p, name, child, empty, of(key));
         }
     }
 
