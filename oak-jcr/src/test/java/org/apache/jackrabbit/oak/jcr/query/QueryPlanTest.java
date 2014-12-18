@@ -214,6 +214,8 @@ public class QueryPlanTest extends AbstractRepositoryTest {
     public void nodeType() throws Exception {
         Session session = getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
+        Node nodetype = session.getRootNode().getNode("oak:index").getNode("nodetype");
+        nodetype.setProperty("entryCount", 100000);
         Node testRootNode = session.getRootNode().addNode("testroot");
         Node n1 = testRootNode.addNode("node1");
         Node n2 = n1.addNode("node2");

@@ -80,11 +80,8 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
 
             IndexUtils.createIndexDefinition(index, "uuid", true, true,
                     ImmutableList.<String>of(JCR_UUID), null);
-            NodeBuilder nt = 
-                    IndexUtils.createIndexDefinition(index, "nodetype", true, false,
+            IndexUtils.createIndexDefinition(index, "nodetype", true, false,
                     ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
-            // the cost of using the property index for "@primaryType is not null" is very high
-            nt.setProperty(IndexConstants.ENTRY_COUNT_PROPERTY_NAME, Long.valueOf(Long.MAX_VALUE));
             IndexUtils.createReferenceIndex(index);
             
             index.child("counter")

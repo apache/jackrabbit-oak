@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -80,8 +81,8 @@ public class QueryTest extends AbstractRepositoryTest {
         
         // disable the nodetype index
         Node nodeTypeIndex = root.getNode("oak:index").getNode("nodetype");
-        nodeTypeIndex.setProperty("declaringNodeTypes", new String[] {
-            }, PropertyType.NAME);
+        nodeTypeIndex.setProperty("declaringNodeTypes", new String[] { NT_FOLDER },
+            PropertyType.NAME);
 
         // add 10 nodes
         Node test = root.addNode("test");
