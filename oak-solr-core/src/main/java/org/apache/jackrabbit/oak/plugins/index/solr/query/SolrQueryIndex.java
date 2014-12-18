@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -29,6 +28,7 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -77,12 +77,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     private final NodeAggregator aggregator;
 
-    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator) {
         this.name = name;
         this.solrServer = solrServer;
         this.configuration = configuration;
-        // TODO this index should support aggregation in the same way as the Lucene index
-        this.aggregator = null;
+        this.aggregator = aggregator;
+    }
+
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
+        this(name, solrServer, configuration, null);
     }
 
     @Override
@@ -93,7 +96,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     @Override
     public double getCost(Filter filter, NodeState root) {
         // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
-        return 10d / getMatchingFilterRestrictions(filter);
+        double cost = 10d / getMatchingFilterRestrictions(filter);
+        log.debug("Solr: cost for {} is {}", name, cost);
+        return cost;
     }
 
     private int getMatchingFilterRestrictions(Filter filter) {
@@ -450,14 +455,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     @Override
-    public Cursor query(final Filter filter, NodeState root) {
+    public Cursor query(final Filter filter, final NodeState root) {
         Cursor cursor;
         try {
-            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint()) : Collections.<String>emptySet();
+            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint())
+                    : Collections.<String>emptySet();
             final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
 
             final int parentDepth = getDepth(parent);
-
 
             cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
                 private final Set<String> seenPaths = Sets.newHashSet();
@@ -476,6 +481,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 private SolrResultRow convertToRow(SolrDocument doc) {
                     String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
                     if (path != null) {
+                        log.debug("converting path {}", path);
                         if ("".equals(path)) {
                             path = "/";
                         }
@@ -493,6 +499,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         if (scoreObj != null) {
                             score = (Float) scoreObj;
                         }
+                        log.debug("converted to {}", path);
                         return new SolrResultRow(path, score, doc);
                     }
                     return null;
@@ -550,14 +557,28 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return cursor;
     }
 
+    private boolean exists(SolrResultRow row, NodeState root) {
+        boolean result = true;
+        NodeState nodeState = root;
+        for (String n : PathUtils.elements(row.path)) {
+            if (nodeState.hasChildNode(n)) {
+                nodeState = nodeState.getChildNode(n);
+            }
+            else {
+                result = false;
+                break;
+            }
+        }
+        return result;
+    }
+
     static class SolrResultRow {
         final String path;
         final double score;
-        SolrDocument doc;
+        final SolrDocument doc;
 
         SolrResultRow(String path, double score) {
-            this.path = path;
-            this.score = score;
+            this(path, score, null);
         }
 
         SolrResultRow(String path, double score, SolrDocument doc) {
