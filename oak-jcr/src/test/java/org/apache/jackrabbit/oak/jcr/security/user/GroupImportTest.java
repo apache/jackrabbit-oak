@@ -279,7 +279,6 @@ public class GroupImportTest extends AbstractImportTest {
     }
 
     @Test
-    @Ignore("OAK-2367")
     public void testImportMembersWithIdDifferentFromNodeName() throws Exception {
         Authorizable admin = checkNotNull(userMgr.getAuthorizable(UserConstants.DEFAULT_ADMIN_ID));
         String uuid = adminSession.getNode(admin.getPath()).getUUID();
