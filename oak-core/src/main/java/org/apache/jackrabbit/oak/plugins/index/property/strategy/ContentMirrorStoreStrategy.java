@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -80,6 +81,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     @Override
     public void update(
             NodeBuilder index, String path,
+            @Nullable final String indexName,
+            @Nullable final NodeBuilder indexMeta,
             Set<String> beforeKeys, Set<String> afterKeys) {
         for (String key : beforeKeys) {
             remove(index, key, path);

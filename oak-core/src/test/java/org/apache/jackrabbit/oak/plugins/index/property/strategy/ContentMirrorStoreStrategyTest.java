@@ -62,7 +62,7 @@ public class ContentMirrorStoreStrategyTest {
         NodeBuilder index = root.builder();
 
         for (String path : asList("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f")) {
-            store.update(index, path, EMPTY, KEY);
+            store.update(index, path, null, null, EMPTY, KEY);
         }
         checkPath(index, "key", "", true);
         checkPath(index, "key", "a/b/c", true);
@@ -73,30 +73,30 @@ public class ContentMirrorStoreStrategyTest {
 
         // remove the root key, removes just the "match" property, when the
         // index is not empty
-        store.update(index, "/", KEY, EMPTY);
+        store.update(index, "/", null, null, KEY, EMPTY);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.update(index, "d/e", KEY, EMPTY);
+        store.update(index, "d/e", null, null, KEY, EMPTY);
         checkPath(index, "key", "d/e/f", true);
 
         // removing intermediary path doesn't remove the entire subtree
-        store.update(index, "d/e/f", KEY, EMPTY);
+        store.update(index, "d/e/f", null, null, KEY, EMPTY);
         checkNotPath(index, "key", "d");
 
         // brother segment removed
-        store.update(index, "a/b/d", KEY, EMPTY);
-        store.update(index, "a/b", KEY, EMPTY);
+        store.update(index, "a/b/d", null, null, KEY, EMPTY);
+        store.update(index, "a/b", null, null, KEY, EMPTY);
         checkPath(index, "key", "a/b/c", true);
 
         // reinsert root and remove everything else
-        store.update(index, "", EMPTY, KEY);
-        store.update(index, "d/e/f", KEY, EMPTY);
-        store.update(index, "b", KEY, EMPTY);
-        store.update(index, "a/b/c", KEY, EMPTY);
+        store.update(index, "", null, null, EMPTY, KEY);
+        store.update(index, "d/e/f", null, null, KEY, EMPTY);
+        store.update(index, "b", null, null, KEY, EMPTY);
+        store.update(index, "a/b/c", null, null, KEY, EMPTY);
 
         // remove the root key when the index is empty
-        store.update(index, "", KEY, EMPTY);
+        store.update(index, "", null, null, KEY, EMPTY);
         Assert.assertEquals(0, index.getChildNodeCount(1));
     }
 
@@ -133,8 +133,8 @@ public class ContentMirrorStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         NodeBuilder indexMeta = root.builder();
         NodeBuilder index = indexMeta.child(INDEX_CONTENT_NODE_NAME);
-        store.update(index, "a", EMPTY, KEY);
-        store.update(index, "b", EMPTY, KEY);
+        store.update(index, "a", null, null, EMPTY, KEY);
+        store.update(index, "b", null, null, EMPTY, KEY);
         Assert.assertTrue(
                 "ContentMirrorStoreStrategy should guarantee uniqueness on insert",
                 store.count(indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
