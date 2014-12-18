@@ -152,7 +152,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
         NodeBuilder node = null;
 
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(no));
+        store.update(index, path, null, null, EMPTY_KEY_SET, newHashSet(no));
 
         assertFalse(":index should be left alone with not changes", index.hasProperty(NEXT));
         node = index.getChildNode(START);
@@ -197,7 +197,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder node = null;
 
         // first node arrives
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path, null, null, EMPTY_KEY_SET, newHashSet(n0));
 
         node = index.getChildNode(START);
         assertTrue(":index should have :start", node.exists());
@@ -210,7 +210,7 @@ public class OrderedContentMirrorStorageStrategyTest {
             Iterables.toArray(node.getProperty(NEXT).getValue(Type.STRINGS), String.class).length);
 
         // second node arrives
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, path, null, null, EMPTY_KEY_SET, newHashSet(n1));
 
         node = index.getChildNode(START);
         assertTrue(":index should still have :start", node.exists());
@@ -494,7 +494,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeState ns = null;
 
         // Stage 1
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(key1st));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(key1st));
         ns = index.getChildNode(START).getNodeState();
         assertEquals(":start is expected to point to the 1st node", key1st,
             Iterables.toArray(ns.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
@@ -503,7 +503,7 @@ public class OrderedContentMirrorStorageStrategyTest {
                         Strings.isNullOrEmpty(ns.getString(NEXT)));
 
         // Stage 2
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(key2nd));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(key2nd));
         ns = index.getChildNode(START).getNodeState();
         assertEquals(":start is expected to point to the 2nd node", key2nd,
             Iterables.toArray(ns.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
@@ -589,14 +589,14 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[3];
 
         // Stage 1
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         NodeState n = index.getChildNode(START).getNodeState();
         assertEquals(":start should point to the first node", n0, 
             Iterables.toArray(n.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
         assertTrue("the first node should point nowhere", Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
 
         // Stage 2
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
         n = index.getChildNode(START).getNodeState();
         assertEquals(":start should point to n1", n1, 
             Iterables.toArray(n.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
@@ -606,7 +606,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("n0 should still be point nowhere", Strings.isNullOrEmpty(index.getChildNode(n0).getString(NEXT)));
 
         // Stage 3
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
         n = index.getChildNode(START).getNodeState();
         assertEquals(":start should point to n1", n1, 
             Iterables.toArray(n.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
@@ -621,7 +621,7 @@ public class OrderedContentMirrorStorageStrategyTest {
             Iterables.toArray(n.getProperty(NEXT).getValue(Type.STRINGS), String.class).length);
 
         // Stage 4
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
         n = index.getChildNode(START).getNodeState();
         assertEquals(":start should point to n1", n1, 
             Iterables.toArray(n.getProperty(NEXT).getValue(Type.STRINGS), String.class)[0]);
@@ -685,7 +685,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder node = null;
 
         // Stage 1
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path, null, null, EMPTY_KEY_SET, newHashSet(n0));
         node = index.getChildNode(START);
         assertTrue(":start should exists", node.exists());
         assertEquals(":start should point to n0", n0, getNext(node));
@@ -702,7 +702,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue("/foobar should have match=true", node.getBoolean("match"));
 
         // Stage 2
-        store.update(index, path, newHashSet(n0), newHashSet(n1));
+        store.update(index, path, null, null, newHashSet(n0), newHashSet(n1));
         node = index.getChildNode(START);
         assertEquals(":start should now point to n1", n1, getNext(node));
 
@@ -772,8 +772,8 @@ public class OrderedContentMirrorStorageStrategyTest {
         IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy();
 
         // Stage 1 - initialising the index
-        store.update(index, path0, EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, path1, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path0, null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path1, null, null, EMPTY_KEY_SET, newHashSet(n0));
 
         // ensuring the right structure
         assertTrue(index.hasChildNode(START));
@@ -802,7 +802,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         assertTrue(node.getBoolean("match"));
 
         // Stage 2
-        store.update(index, path1, newHashSet(n0), newHashSet(n1));
+        store.update(index, path1, null, null, newHashSet(n0), newHashSet(n1));
         assertTrue(index.hasChildNode(START));
         assertTrue(index.hasChildNode(n0));
         assertTrue(index.hasChildNode(n1));
@@ -869,13 +869,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy();
 
         // Stage 1 - initialising the index
-        store.update(index, path, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path, null, null, EMPTY_KEY_SET, newHashSet(n0));
 
         // we assume it works and therefore not checking the status of the index
         // let's go straight to Stage 2
 
         // Stage 2
-        store.update(index, path, newHashSet(n0), EMPTY_KEY_SET);
+        store.update(index, path, null, null, newHashSet(n0), EMPTY_KEY_SET);
         assertFalse("The node should have been removed", index.hasChildNode(n0));
         assertTrue("as the index should be empty, :start should point nowhere",
                         Strings.isNullOrEmpty(index.getChildNode(START).getString(NEXT)));
@@ -925,13 +925,13 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
         IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy();
 
-        store.update(index, path1, EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, path2, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path1, null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path2, null, null, EMPTY_KEY_SET, newHashSet(n0));
 
         // we trust the store at this point and skip a double-check. Let's move
         // to Stage 2!
 
-        store.update(index, path1, newHashSet(n0), EMPTY_KEY_SET);
+        store.update(index, path1, null, null, newHashSet(n0), EMPTY_KEY_SET);
 
         assertTrue(index.hasChildNode(START));
         assertTrue(index.hasChildNode(n0));
@@ -1012,14 +1012,14 @@ public class OrderedContentMirrorStorageStrategyTest {
         IndexStoreStrategy store = new OrderedContentMirrorStoreStrategy();
 
         // Stage 1
-        store.update(index, path0, EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, path1, EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, path2, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, path0, null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path1, null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, path2, null, null, EMPTY_KEY_SET, newHashSet(n2));
 
         // as we trust the store we skip the check and goes straight to Stage 2.
 
         // Stage 2
-        store.update(index, path2, newHashSet(n2), EMPTY_KEY_SET);
+        store.update(index, path2, null, null, newHashSet(n2), EMPTY_KEY_SET);
 
         // checking key nodes
         assertTrue(index.hasChildNode(START));
@@ -1064,8 +1064,8 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n0 = KEYS[1];
         String n1 = KEYS[0];
 
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
         assertEquals(":start should point to the first node", n0,
             getNext(index.getChildNode(START)));
         assertEquals("n0 should point to n1", n1, getNext(index.getChildNode(n0)));
@@ -1127,20 +1127,20 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[3];
 
         // Stage 1
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         assertEquals(":start should point to n0", n0, getNext(index.getChildNode(START)));
         assertTrue("n0 should point nowhere",
                    Strings.isNullOrEmpty(getNext(index.getChildNode(n0))));
 
         // Stage 2
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
         assertEquals(":start should point to n1", n1, getNext(index.getChildNode(START)));
         assertEquals("n1 should point to n0", n0, getNext(index.getChildNode(n1)));
         assertTrue("n0 should point nowhere",
                    Strings.isNullOrEmpty(getNext(index.getChildNode(n0))));
 
         // Stage 3
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
         assertEquals(":start should point to n2", n2, getNext(index.getChildNode(START)));
         assertEquals("n2 should point to n1", n1, getNext(index.getChildNode(n2)));
         assertEquals("n1 should point to n0", n0, getNext(index.getChildNode(n1)));
@@ -1148,7 +1148,7 @@ public class OrderedContentMirrorStorageStrategyTest {
                    Strings.isNullOrEmpty(getNext(index.getChildNode(n0))));
 
         // Stage 4
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
         assertEquals(":start should point to n3", n3, getNext(index.getChildNode(START)));
         assertEquals("n3 should point to n2", n2, getNext(index.getChildNode(n3)));
         assertEquals("n2 should point to n1", n1, getNext(index.getChildNode(n2)));
@@ -1176,7 +1176,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         NodeBuilder index = EmptyNodeState.EMPTY_NODE.builder();
         String n0 = KEYS[1];
 
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         assertEquals(":start should point to the first node", n0,
             getNext(index.getChildNode(START)));
         assertTrue("the first node should point nowhere",
@@ -1207,10 +1207,10 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n2 = KEYS[2];
         String n3 = KEYS[0];
 
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
         assertEquals(":start should point to n1", n1, getNext(index.getChildNode(START)));
         assertEquals("n0 should point to n3", n3, getNext(index.getChildNode(n0)));
         assertEquals("n1 should point to n2", n2, getNext(index.getChildNode(n1)));
@@ -1239,8 +1239,8 @@ public class OrderedContentMirrorStorageStrategyTest {
         final String n1 = KEYS[1];
 
         // setting-up the index structure
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
 
         NodeState indexState = index.getNodeState();
         NodeState node0 = indexState.getChildNode(n0);
@@ -1291,8 +1291,10 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         // adding some content under the index
         for (int i = 0; i < numberOfNodes; i++) {
-            store.update(ascendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
-            descendingStore.update(descendingContent, "/foo/bar", EMPTY_KEY_SET, newHashSet("x" + NF.format(i)));
+            store.update(ascendingContent, "/foo/bar", null, null, EMPTY_KEY_SET,
+                newHashSet("x" + NF.format(i)));
+            descendingStore.update(descendingContent, "/foo/bar", null, null, EMPTY_KEY_SET,
+                newHashSet("x" + NF.format(i)));
         }
 
         assertEquals("wrong number of nodes encountered", numberOfNodes,
@@ -1380,10 +1382,10 @@ public class OrderedContentMirrorStorageStrategyTest {
         String nonExisting = "dsrfgdrtfhg";
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         assertNull("The item should have not been found", store.seek(
             index,
@@ -1400,10 +1402,10 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = n1;
 
@@ -1424,10 +1426,10 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = n1;
 
@@ -1447,10 +1449,10 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         printSkipList(index.getNodeState());
         
@@ -1472,9 +1474,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = KEYS[3];
 
@@ -1493,9 +1495,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = n2;
 
@@ -1516,9 +1518,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = n3;
 
@@ -1538,9 +1540,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n3 = KEYS[0];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n3));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n3));
 
         String searchFor = n2;
 
@@ -1561,9 +1563,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n2 = KEYS[2];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
 
         String searchFor = KEYS[0];
 
@@ -1583,9 +1585,9 @@ public class OrderedContentMirrorStorageStrategyTest {
         String n2 = KEYS[2];
 
         // initialising the store
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n2));
 
         String searchFor = n2;
 
@@ -1812,7 +1814,7 @@ public class OrderedContentMirrorStorageStrategyTest {
          *  }
          */
         store.setLane(0);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         
         NodeBuilder n = index.getChildNode(START);
         assertNotNull("There should always be a :start", n);
@@ -1836,7 +1838,7 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(1);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         
         n = index.getChildNode(START);
         assertNotNull("There should always be a :start", n);
@@ -1860,7 +1862,7 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(2);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         
         n = index.getChildNode(START);
         assertNotNull("There should always be a :start", n);
@@ -1884,7 +1886,7 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(3);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         
         n = index.getChildNode(START);
         assertNotNull("There should always be a :start", n);
@@ -1924,8 +1926,8 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(0);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
         printSkipList(index.getNodeState());
         n = index.getChildNode(START); 
         assertNotNull(n);
@@ -1954,9 +1956,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(0);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n0));
         store.setLane(1);
-        store.update(index, "/a/b", EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, "/a/b", null, null, EMPTY_KEY_SET, newHashSet(n1));
         printSkipList(index.getNodeState());
         n = index.getChildNode(START); 
         assertNotNull(n);
@@ -2019,9 +2021,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 0
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n06));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n06));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n06));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n06));
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
         assertEquals(ImmutableList.of(n06),
@@ -2043,9 +2045,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 1
          */
         ascStore.setLane(1);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n05));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n05));
         descStore.setLane(1);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n05));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n05));
 
         index = ascIndex;
         node = index.getChildNode(START);
@@ -2079,9 +2081,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 2
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n09));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n09));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n09));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n09));
         
         index = ascIndex;
         node = index.getChildNode(START);
@@ -2123,9 +2125,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 3
          */
         ascStore.setLane(2);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n07));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n07));
         descStore.setLane(2);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n07));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n07));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2174,10 +2176,10 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 4
          */
         ascStore.setLane(2);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n03));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n03));
 
         descStore.setLane(2);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n03));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n03));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2239,9 +2241,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 5
          */
         ascStore.setLane(1);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n01));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n01));
         descStore.setLane(1);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n01));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n01));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2312,9 +2314,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 6
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n02));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n02));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n02));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n02));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2394,9 +2396,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 7
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n04));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n04));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n04));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n04));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2485,9 +2487,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 8
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n12));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n12));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n12));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n12));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2585,9 +2587,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 9
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n00));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n00));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n00));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n00));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2694,9 +2696,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 10
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n08));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n08));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n08));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n08));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2812,9 +2814,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 11
          */
         ascStore.setLane(0);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n11));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n11));
         descStore.setLane(0);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n11));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n11));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -2939,9 +2941,9 @@ public class OrderedContentMirrorStorageStrategyTest {
          * Stage 12
          */
         ascStore.setLane(3);
-        ascStore.update(ascIndex, "/a", EMPTY_KEY_SET, newHashSet(n10));
+        ascStore.update(ascIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n10));
         descStore.setLane(3);
-        descStore.update(descIndex, "/a", EMPTY_KEY_SET, newHashSet(n10));
+        descStore.update(descIndex, "/a", null, null, EMPTY_KEY_SET, newHashSet(n10));
 
         node = ascIndex.getChildNode(START);
         assertNotNull(node);
@@ -3410,14 +3412,14 @@ public class OrderedContentMirrorStorageStrategyTest {
 
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(0);
-        store.update(index, path0, EMPTY_KEY_SET, newHashSet(n0));
-        store.update(index, path1, EMPTY_KEY_SET, newHashSet(n1));
-        store.update(index, path2, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, path0, null, null, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path1, null, null, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, path2, null, null, EMPTY_KEY_SET, newHashSet(n2));
 
         // as we trust the store we skip the check and goes straight to Stage 2.
 
         // removing n2
-        store.update(index, path2, newHashSet(n2), EMPTY_KEY_SET);
+        store.update(index, path2, null, null, newHashSet(n2), EMPTY_KEY_SET);
 
         node = index.getChildNode(START);
         assertTrue(node.exists());
@@ -3442,11 +3444,11 @@ public class OrderedContentMirrorStorageStrategyTest {
         //  |---------->o-->|
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(0);
-        store.update(index, path0, EMPTY_KEY_SET, newHashSet(n0));
+        store.update(index, path0, null, null, EMPTY_KEY_SET, newHashSet(n0));
         store.setLane(1);
-        store.update(index, path1, EMPTY_KEY_SET, newHashSet(n1));
+        store.update(index, path1, null, null, EMPTY_KEY_SET, newHashSet(n1));
         store.setLane(3);
-        store.update(index, path2, EMPTY_KEY_SET, newHashSet(n2));
+        store.update(index, path2, null, null, EMPTY_KEY_SET, newHashSet(n2));
 
         // and after this update we should have
         // STR 000 001 NIL
@@ -3454,7 +3456,7 @@ public class OrderedContentMirrorStorageStrategyTest {
         //  |------>o-->|
         //  |---------->|
         //  |---------->|
-        store.update(index, path2, newHashSet(n2), EMPTY_KEY_SET);
+        store.update(index, path2, null, null, newHashSet(n2), EMPTY_KEY_SET);
 
         // checking key nodes
         node = index.getChildNode(START);
@@ -3473,24 +3475,24 @@ public class OrderedContentMirrorStorageStrategyTest {
         
         index = EmptyNodeState.EMPTY_NODE.builder();
         store.setLane(0);
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[0]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[2]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[4]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[6]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[8]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[9]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[11]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[12]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[0]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[2]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[4]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[6]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[8]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[9]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[11]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[12]));
         store.setLane(1);
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[1]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[5]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[1]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[5]));
         store.setLane(2);
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[3]));
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[7]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[3]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[7]));
         store.setLane(3);
-        store.update(index, "/foo/bar", EMPTY_KEY_SET, newHashSet(KEYS[10]));
+        store.update(index, "/foo/bar", null, null, EMPTY_KEY_SET, newHashSet(KEYS[10]));
 
-        store.update(index, "/foo/bar", newHashSet(KEYS[5]), EMPTY_KEY_SET);
+        store.update(index, "/foo/bar", null, null, newHashSet(KEYS[5]), EMPTY_KEY_SET);
 
         node = index.getChildNode(START);
         assertTrue(node.exists());
@@ -3572,16 +3574,16 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         ascending.setLane(0);
-        ascending.update(index, "/path/a", EMPTY_KEY_SET, newHashSet(KEYS[0]));
+        ascending.update(index, "/path/a", null, null, EMPTY_KEY_SET, newHashSet(KEYS[0]));
         ascending.setLane(1);
-        ascending.update(index, "/path/b", EMPTY_KEY_SET, newHashSet(KEYS[1]));
+        ascending.update(index, "/path/b", null, null, EMPTY_KEY_SET, newHashSet(KEYS[1]));
         ascending.setLane(0);
-        ascending.update(index, "/path/c", EMPTY_KEY_SET, newHashSet(KEYS[2]));
+        ascending.update(index, "/path/c", null, null, EMPTY_KEY_SET, newHashSet(KEYS[2]));
         ascending.setLane(2);
-        ascending.update(index, "/path/d", EMPTY_KEY_SET, newHashSet(KEYS[3]));
+        ascending.update(index, "/path/d", null, null, EMPTY_KEY_SET, newHashSet(KEYS[3]));
         ascending.setLane(0);
-        ascending.update(index, "/path/e", EMPTY_KEY_SET, newHashSet(KEYS[4]));
-        ascending.update(index, "/path/f", EMPTY_KEY_SET, newHashSet(KEYS[5]));
+        ascending.update(index, "/path/e", null, null, EMPTY_KEY_SET, newHashSet(KEYS[4]));
+        ascending.update(index, "/path/f", null, null, EMPTY_KEY_SET, newHashSet(KEYS[5]));
 
         printSkipList(index.getNodeState());
         
@@ -3626,16 +3628,16 @@ public class OrderedContentMirrorStorageStrategyTest {
          */
         index = EmptyNodeState.EMPTY_NODE.builder();
         descending.setLane(0);
-        descending.update(index, "/path/a", EMPTY_KEY_SET, newHashSet(KEYS[5]));
+        descending.update(index, "/path/a", null, null, EMPTY_KEY_SET, newHashSet(KEYS[5]));
         descending.setLane(1);
-        descending.update(index, "/path/b", EMPTY_KEY_SET, newHashSet(KEYS[4]));
+        descending.update(index, "/path/b", null, null, EMPTY_KEY_SET, newHashSet(KEYS[4]));
         descending.setLane(0);
-        descending.update(index, "/path/c", EMPTY_KEY_SET, newHashSet(KEYS[3]));
+        descending.update(index, "/path/c", null, null, EMPTY_KEY_SET, newHashSet(KEYS[3]));
         descending.setLane(2);
-        descending.update(index, "/path/d", EMPTY_KEY_SET, newHashSet(KEYS[2]));
+        descending.update(index, "/path/d", null, null, EMPTY_KEY_SET, newHashSet(KEYS[2]));
         descending.setLane(0);
-        descending.update(index, "/path/e", EMPTY_KEY_SET, newHashSet(KEYS[1]));
-        descending.update(index, "/path/f", EMPTY_KEY_SET, newHashSet(KEYS[0]));
+        descending.update(index, "/path/e", null, null, EMPTY_KEY_SET, newHashSet(KEYS[1]));
+        descending.update(index, "/path/f", null, null, EMPTY_KEY_SET, newHashSet(KEYS[0]));
         
         printSkipList(index.getNodeState());
         
@@ -3755,11 +3757,11 @@ public class OrderedContentMirrorStorageStrategyTest {
         String node;
         
         strategy.setLane(0);
-        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[1]));
-        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[2]));
+        strategy.update(index, "/we/dont/care", null, null, EMPTY_KEY_SET, newHashSet(KEYS[1]));
+        strategy.update(index, "/we/dont/care", null, null, EMPTY_KEY_SET, newHashSet(KEYS[2]));
         strategy.setLane(lane);
-        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[3]));
-        strategy.update(index, "/we/dont/care", EMPTY_KEY_SET, newHashSet(KEYS[4]));
+        strategy.update(index, "/we/dont/care", null, null, EMPTY_KEY_SET, newHashSet(KEYS[3]));
+        strategy.update(index, "/we/dont/care", null, null, EMPTY_KEY_SET, newHashSet(KEYS[4]));
         node = KEYS[3];
         setPropertyNext(index.getChildNode(node), missingEntry, lane); 
         
