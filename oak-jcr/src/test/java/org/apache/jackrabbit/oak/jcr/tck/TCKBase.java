@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.jcr.FixturesHelper;
-import org.apache.jackrabbit.oak.jcr.FixturesHelper.Fixture;
+import org.apache.jackrabbit.oak.commons.FixturesHelper;
+import org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture;
 import org.apache.jackrabbit.oak.jcr.OakDocumentRDBRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakMongoNSRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakTarMKRepositoryStub;
