@@ -402,7 +402,7 @@ defaults to 5
             - path = "renditions/original"
             - relativeNode = true
 
-#### Analyzers
+#### Analyzers (1.0.10)
 
 Analyzers can be configured as part of index definition via `analyzers` node.
 The default analyzer can be configured via `analyzers/default` node
