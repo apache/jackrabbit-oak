@@ -16,45 +16,44 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import static java.util.Collections.unmodifiableSet;
+
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
  * helper class that return the list of available fixtures based on the {@code ns-fixtures} system
  * property ({@code -Dns-fixtures=SEGMENT_MK}).
  * 
- * See {@link FixturesHelper#Fixture} for a list of available fixtures
+ * See {@link FixturesHelper.Fixture} for a list of available fixtures
  */
-public class FixturesHelper {
+public final class FixturesHelper {
     /**
      * splitter for specifying multiple fixtures
      */
-    
     private static final String SPLIT_ON = ","; 
     /**
      * System property to be used.
      */
     public static final String NS_FIXTURES = "ns-fixtures";
-    
+
+    private FixturesHelper() { }
+
     /**
      * default fixtures when no {@code ns-fixtures} is provided
      */
-    public static enum Fixture {
-       DOCUMENT_MK, DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB
-    };
+    public enum Fixture {
+       DOCUMENT_MK, DOCUMENT_NS, SEGMENT_MK, DOCUMENT_RDB, MEMORY_NS
+    }
 
     private static final Set<Fixture> FIXTURES;
     static {
         String raw = System.getProperty(NS_FIXTURES, "");
         if (raw.trim().isEmpty()) {
-            FIXTURES = Collections.unmodifiableSet(new HashSet<Fixture>(Arrays.asList(Fixture
-                .values())));
+            FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
         } else {
-            String[] fs = raw.split(SPLIT_ON);
-            Set<Fixture> tmp = new HashSet<Fixture>();
-            for (String f : fs) {
+            Set<Fixture> tmp = EnumSet.noneOf(Fixture.class);
+            for (String f : raw.split(SPLIT_ON)) {
                 String x = f.trim();
                 Fixture fx = Fixture.valueOf(x.toUpperCase());
                 if (fx != null) {
@@ -63,10 +62,9 @@ public class FixturesHelper {
             }
             
             if (tmp.isEmpty()) {
-                FIXTURES = Collections.unmodifiableSet(new HashSet<Fixture>(Arrays.asList(Fixture
-                    .values())));
+                FIXTURES = unmodifiableSet(EnumSet.allOf(Fixture.class));
             } else {
-                FIXTURES = Collections.unmodifiableSet(tmp);
+                FIXTURES = unmodifiableSet(tmp);
             }
             
         }
