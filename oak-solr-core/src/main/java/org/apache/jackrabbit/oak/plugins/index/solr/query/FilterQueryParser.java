@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 
 /**
  * the {@link org.apache.jackrabbit.oak.plugins.index.solr.query.FilterQueryParser} can parse {@link org.apache.jackrabbit.oak.spi.query.Filter}s
- * and transform them into Solr query {@code String}s.
+ * and transform them into {@link org.apache.solr.client.solrj.SolrQuery}s and / or Solr query {@code String}s.
  */
 class FilterQueryParser {
 

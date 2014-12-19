@@ -94,7 +94,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     public double getCost(Filter filter, NodeState root) {
         // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
         double cost = 10d / getMatchingFilterRestrictions(filter);
-        log.debug("Solr: cost for {} is {}", name, cost);
+        if (log.isDebugEnabled()) {
+            log.debug("Solr: cost for {} is {}", name, cost);
+        }
         return cost;
     }
 
@@ -192,7 +194,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 private final Set<String> seenPaths = Sets.newHashSet();
                 private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
                 private SolrDocument lastDoc;
-                public int offset = 0;
+                private int offset = 0;
 
                 @Override
                 protected SolrResultRow computeNext() {
@@ -249,6 +251,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         }
                         SolrDocumentList docs = solrServer.query(query).getResults();
 
+                        onRetrievedResults(filter, docs);
+
                         if (log.isDebugEnabled()) {
                             log.debug("getting docs {}", docs);
                         }
@@ -257,7 +261,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             SolrResultRow row = convertToRow(doc);
                             if (row != null) {
                                 queue.add(row);
-                                log.debug("added {}", row.path);
                             }
                             lastDocToRecord = doc;
                         }
@@ -278,6 +281,10 @@ public class SolrQueryIndex implements FulltextQueryIndex {
             throw new RuntimeException(e);
         }
         return cursor;
+    }
+
+    void onRetrievedResults(Filter filter, SolrDocumentList docs) {
+        // do nothing
     }
 
     private boolean exists(SolrResultRow row, NodeState root) {

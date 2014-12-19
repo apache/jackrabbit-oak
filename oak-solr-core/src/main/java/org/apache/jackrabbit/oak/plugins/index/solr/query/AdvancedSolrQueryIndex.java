@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
+import org.apache.solr.common.SolrDocumentList;
 
 /**
  * {@link org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex} implementation of a Solr
@@ -70,20 +71,20 @@ public class AdvancedSolrQueryIndex extends SolrQueryIndex implements QueryIndex
         String key = filter.toString();
         long cachedEstimate = cache.get(key) != null ? cache.get(key) : -1;
         long estimatedEntryCount;
-        if (cachedEstimate > 0) {
+        if (cachedEstimate >= 0) {
             estimatedEntryCount = cachedEstimate;
         } else {
-            Long updatedEstimation = updateEstimation();
+            Long updatedEstimation = initializeEstimation(filter);
             cache.put(key, updatedEstimation);
             estimatedEntryCount = updatedEstimation;
         }
         return estimatedEntryCount;
     }
 
-    private Long updateEstimation() {
+    private Long initializeEstimation(Filter filter) {
         SolrQuery solrQuery = new SolrQuery("*:*");
         try {
-            return solrServer.query(solrQuery).getResults().getNumFound();
+            return solrServer.query(solrQuery).getResults().getNumFound() / 3; // 33% of the docs is a reasonable worst case
         } catch (Exception e) {
             return Long.MAX_VALUE;
         }
@@ -97,6 +98,12 @@ public class AdvancedSolrQueryIndex extends SolrQueryIndex implements QueryIndex
                 .setFulltextIndex(true)
                 .setIncludesNodeData(true) // we currently include node data
                 .setDelayed(true); //Solr is most usually async
+    }
+
+    @Override
+    void onRetrievedResults(Filter filter, SolrDocumentList docs) {
+        // update estimates cache
+        cache.put(filter.toString(), docs.getNumFound());
     }
 
     @Override
