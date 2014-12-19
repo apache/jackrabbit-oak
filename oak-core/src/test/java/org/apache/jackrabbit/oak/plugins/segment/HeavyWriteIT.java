@@ -46,7 +46,6 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -57,7 +56,8 @@ public class HeavyWriteIT {
 
     @BeforeClass
     public static void checkFixtures() {
-        Assume.assumeTrue(FIXTURES.contains(SEGMENT_MK));
+        assumeTrue(!travisIntegrationTesting());  // FIXME OAK-2375. Often fails on Travis
+        assumeTrue(FIXTURES.contains(SEGMENT_MK));
     }
     
     @Before
@@ -75,7 +75,6 @@ public class HeavyWriteIT {
 
     @Test
     public void heavyWrite() throws IOException, CommitFailedException, InterruptedException {
-        assumeTrue(!travisIntegrationTesting());  // FIXME OAK-2375. Often fails on Travis
         final FileStore store = new FileStore(directory, 128, false);
         final SegmentNodeStore nodeStore = new SegmentNodeStore(store);
         store.setCompactionStrategy(new CompactionStrategy(false, false,
