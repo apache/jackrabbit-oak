@@ -17,12 +17,13 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotTrunkWin7;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.jackrabbit.oak.stats.Clock.Fast;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -47,7 +48,7 @@ public class ClockTest {
     @Test
     public void testClockDrift() throws InterruptedException {
         // FIXME OAK-1904 temporary hack to disable this test on Apache buildbot
-        Assume.assumeTrue(!onBuildbot());
+        assumeTrue(!buildBotTrunkWin7());
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
 
@@ -90,11 +91,6 @@ public class ClockTest {
         }
     }
 
-    private static boolean onBuildbot() {
-        String user = System.getenv("USERDOMAIN");
-        return user != null && user.startsWith("bb-win7");
-    }
-
     private static long getGranularity(Clock clock) {
         return clock instanceof Fast
             ? FAST_CLOCK_GRANULARITY
@@ -126,11 +122,11 @@ public class ClockTest {
     }
 
     /**
-     * On some systems (for instance Windows), the granularity of {@link System.currentTimeMillis} depends
+     * On some systems (for instance Windows), the granularity of {@code System.currentTimeMillis} depends
      * on system-wide settings that can change depending on what applications are running
      * (see, for instance <a href="http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/">http://www.lifehacker.com.au/2009/05/hidden-windows-7-tool-troubleshoots-sleep-mode-problems/</a>).
      * This method tries to measure the granularity.
-     * @return average granularity of {@link System.currentTimeMillis} in 1/1000 of milliseconds
+     * @return average granularity of {@code System.currentTimeMillis} in 1/1000 of milliseconds
      */
     private static long getAverageClockGranularity() {
         long sum = 0;
