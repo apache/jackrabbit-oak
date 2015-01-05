@@ -249,62 +249,7 @@ public class RDBDocumentSerializer {
                 JSONArray update = (JSONArray) ob;
                 for (int o = 0; o < update.size(); o++) {
                     JSONArray op = (JSONArray) update.get(o);
-                    String opcode = op.get(0).toString();
-                    String key = op.get(1).toString();
-                    Revision rev = null;
-                    Object value = null;
-                    if (op.size() == 3) {
-                        value = op.get(2);
-                    } else {
-                        rev = Revision.fromString(op.get(2).toString());
-                        value = op.get(3);
-                    }
-                    Object old = doc.get(key);
-
-                    if ("=".equals(opcode)) {
-                        if (rev == null) {
-                            doc.put(key, value);
-                        } else {
-                            @SuppressWarnings("unchecked")
-                            Map<Revision, Object> m = (Map<Revision, Object>) old;
-                            if (m == null) {
-                                m = new TreeMap<Revision, Object>(comparator);
-                                doc.put(key, m);
-                            }
-                            m.put(rev, value);
-                        }
-                    } else if ("*".equals(opcode)) {
-                        if (rev == null) {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        } else {
-                            @SuppressWarnings("unchecked")
-                            Map<Revision, Object> m = (Map<Revision, Object>) old;
-                            if (m != null) {
-                                m.remove(rev);
-                            }
-                        }
-                    } else if ("+".equals(opcode)) {
-                        if (rev == null) {
-                            Long x = (Long) value;
-                            if (old == null) {
-                                old = 0L;
-                            }
-                            doc.put(key, ((Long) old) + x);
-                        } else {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        }
-                    } else if ("M".equals(opcode)) {
-                        if (rev == null) {
-                            Comparable newValue = (Comparable) value;
-                            if (old == null || newValue.compareTo(old) > 0) {
-                                doc.put(key, value);
-                            }
-                        } else {
-                            throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                        }
-                    } else {
-                        throw new RuntimeException("unexpected operation " + op + "in: " + ob);
-                    }
+                    applyUpdate(doc, update, op);
                 }
             } else if (ob.toString().equals("blob") && u == 0) {
                 // expected placeholder
@@ -313,6 +258,65 @@ public class RDBDocumentSerializer {
             }
         }
         return doc;
+    }
+
+    private <T extends Document> void applyUpdate(T doc, JSONArray update, JSONArray op) {
+        String opcode = op.get(0).toString();
+        String key = op.get(1).toString();
+        Revision rev = null;
+        Object value = null;
+        if (op.size() == 3) {
+            value = op.get(2);
+        } else {
+            rev = Revision.fromString(op.get(2).toString());
+            value = op.get(3);
+        }
+        Object old = doc.get(key);
+
+        if ("=".equals(opcode)) {
+            if (rev == null) {
+                doc.put(key, value);
+            } else {
+                @SuppressWarnings("unchecked")
+                Map<Revision, Object> m = (Map<Revision, Object>) old;
+                if (m == null) {
+                    m = new TreeMap<Revision, Object>(comparator);
+                    doc.put(key, m);
+                }
+                m.put(rev, value);
+            }
+        } else if ("*".equals(opcode)) {
+            if (rev == null) {
+                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+            } else {
+                @SuppressWarnings("unchecked")
+                Map<Revision, Object> m = (Map<Revision, Object>) old;
+                if (m != null) {
+                    m.remove(rev);
+                }
+            }
+        } else if ("+".equals(opcode)) {
+            if (rev == null) {
+                Long x = (Long) value;
+                if (old == null) {
+                    old = 0L;
+                }
+                doc.put(key, ((Long) old) + x);
+            } else {
+                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+            }
+        } else if ("M".equals(opcode)) {
+            if (rev == null) {
+                Comparable newValue = (Comparable) value;
+                if (old == null || newValue.compareTo(old) > 0) {
+                    doc.put(key, value);
+                }
+            } else {
+                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+            }
+        } else {
+            throw new RuntimeException("unexpected operation " + op + "in: " + update);
+        }
     }
 
     @Nonnull
