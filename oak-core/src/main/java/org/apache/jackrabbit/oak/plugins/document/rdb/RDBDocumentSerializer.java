@@ -63,6 +63,10 @@ public class RDBDocumentSerializer {
         this.columnProperties = columnProperties;
     }
 
+    /**
+     * Serializes all non-column properties of the {@link Document} into
+     * a JSON string.
+     */
     public String asString(@Nonnull Document doc) {
         StringBuilder sb = new StringBuilder(32768);
         sb.append("{");
@@ -184,19 +188,10 @@ public class RDBDocumentSerializer {
         sb.append('"');
     }
 
-    // JSON simple serializer
-    // private static String asString(@Nonnull Document doc) {
-    // JSONObject obj = new JSONObject();
-    // for (String key : doc.keySet()) {
-    // if (! COLUMNPROPERTIES.contains(key)) {
-    // Object value = doc.get(key);
-    // obj.put(key, value);
-    // }
-    // }
-    // return obj.toJSONString();
-    // }
-
-    public <T extends Document> T fromRow(Collection<T> collection, RDBRow row) throws DocumentStoreException {
+    /**
+     * Reconstructs a {@link Document) based on the persisted {@link DBRow}.
+     */
+    public <T extends Document> T fromRow(@Nonnull Collection<T> collection, @Nonnull RDBRow row) throws DocumentStoreException {
         T doc = collection.newDocument(store);
         doc.put(ID, row.getId());
         doc.put(MODIFIED, row.getModified());
@@ -211,7 +206,10 @@ public class RDBDocumentSerializer {
         Map<String, Object> baseData = null;
         byte[] bdata = row.getBdata();
         JSONArray arr = null;
+        int updatesStartAt = 0;
 
+        // case #1: BDATA (blob) contains base data, DATA (string) contains
+        // update operations
         try {
             if (bdata != null && bdata.length != 0) {
                 baseData = (Map<String, Object>) jp.parse(fromBlobData(bdata));
@@ -222,19 +220,19 @@ public class RDBDocumentSerializer {
             throw new DocumentStoreException(ex);
         }
 
-        int updatesStartAt = 0;
+        // case #2: if we do not have BDATA (blob), the first part of DATA
+        // (string) already is the base data, and update operations can follow
         if (baseData == null) {
-            // if we do not have a blob, the first part of the string data is
-            // the base JSON
             baseData = (Map<String, Object>) arr.get(0);
             updatesStartAt = 1;
         }
 
+        // process the base data
         for (Map.Entry<String, Object> entry : baseData.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
             if (value == null) {
-                // ???
+                // TODO ???
                 doc.put(key, value);
             } else if (value instanceof Boolean || value instanceof Long || value instanceof String) {
                 doc.put(key, value);
@@ -320,9 +318,7 @@ public class RDBDocumentSerializer {
     @Nonnull
     private Map<Revision, Object> convertJsonObject(@Nonnull JSONObject obj) {
         Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
-        Set<Map.Entry> entries = obj.entrySet();
-        for (Map.Entry entry : entries) {
-            // not clear why every persisted map is a revision map
+        for (Map.Entry entry : (Set<Map.Entry>)obj.entrySet()) {
             map.put(Revision.fromString(entry.getKey().toString()), entry.getValue());
         }
         return map;
