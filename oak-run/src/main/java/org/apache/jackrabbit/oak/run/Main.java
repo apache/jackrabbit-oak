@@ -974,10 +974,6 @@ public class Main {
                         host.value(options), port.value(options),
                         db, false,
                         cacheSize * MB);
-            } else if (OakFixture.OAK_MONGO_MK.equals(fix)) {
-                oakFixture = OakFixture.getMongoMK(
-                        host.value(options), port.value(options),
-                        db, false, cacheSize * MB);
             } else {
                 oakFixture = OakFixture.getMongo(
                         host.value(options), port.value(options),

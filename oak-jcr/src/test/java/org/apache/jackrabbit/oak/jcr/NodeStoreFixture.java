@@ -25,7 +25,6 @@ import java.util.UUID;
 import javax.sql.DataSource;
 
 import com.mongodb.DB;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -45,19 +44,18 @@ public abstract class NodeStoreFixture {
 
     public static final NodeStoreFixture DOCUMENT_MK = new NodeStoreFixture() {
         @Override
-        public NodeStore createNodeStore() {
-            return new CloseableNodeStore(new DocumentMK.Builder().open());
+        public DocumentNodeStore createNodeStore() {
+            return new DocumentMK.Builder().getNodeStore();
         }
 
         @Override
-        public NodeStore createNodeStore(int clusterNodeId) {
+        public DocumentNodeStore createNodeStore(int clusterNodeId) {
             MongoConnection connection;
             try {
                 connection = new MongoConnection("mongodb://localhost:27017/oak");
-                DB mongoDB = connection.getDB();
-                DocumentMK mk = new DocumentMK.Builder()
-                                .setMongoDB(mongoDB).open();
-                return new CloseableNodeStore(mk);
+                return new DocumentMK.Builder()
+                        .setMongoDB(connection.getDB())
+                        .getNodeStore();
             } catch (Exception e) {
                 return null;
             }
@@ -65,12 +63,8 @@ public abstract class NodeStoreFixture {
 
         @Override
         public void dispose(NodeStore nodeStore) {
-            if (nodeStore instanceof Closeable) {
-                try {
-                    ((Closeable) nodeStore).close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+            if (nodeStore instanceof DocumentNodeStore) {
+                ((DocumentNodeStore) nodeStore).dispose();
             }
         }
     };
@@ -140,22 +134,6 @@ public abstract class NodeStoreFixture {
 
     public boolean isAvailable() {
         return true;
-    }
-
-    private static class CloseableNodeStore
-            extends KernelNodeStore implements Closeable {
-
-        private final DocumentMK kernel;
-
-        public CloseableNodeStore(DocumentMK kernel) {
-            super(kernel);
-            this.kernel = kernel;
-        }
-
-        @Override
-        public void close() throws IOException {
-            kernel.dispose();
-        }
     }
 
     public static class SegmentFixture extends NodeStoreFixture {

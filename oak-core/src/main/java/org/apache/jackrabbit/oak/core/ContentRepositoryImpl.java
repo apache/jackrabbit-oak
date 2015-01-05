@@ -89,7 +89,6 @@ import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Descriptors;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -226,8 +225,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                 // locking support added via JCR layer
                 .put(OPTION_LOCKING_SUPPORTED, falseValue, true, true)
                 .put(OPTION_OBSERVATION_SUPPORTED, trueValue, true, true)
-                .put(OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED,
-                        supportsSameNameNodeAndProperties() ? trueValue : falseValue, true, true)
+                .put(OPTION_NODE_AND_PROPERTY_WITH_SAME_NAME_SUPPORTED, trueValue, true, true)
                 .put(OPTION_QUERY_SQL_SUPPORTED, falseValue, true, true)
                 .put(OPTION_RETENTION_SUPPORTED, falseValue, true, true)
                 .put(OPTION_SHAREABLE_NODES_SUPPORTED, falseValue, true, true)
@@ -276,16 +274,6 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
             }
         }
         return gd;
-    }
-
-    /**
-     * Checks if this repository supports same name node and properties. currently this is tied to the underlying
-     * node store implementation class.
-     *
-     * @return {@code true} if this repository supports SNNP.
-     */
-    private boolean supportsSameNameNodeAndProperties() {
-        return !(nodeStore instanceof KernelNodeStore);
     }
 
     /**

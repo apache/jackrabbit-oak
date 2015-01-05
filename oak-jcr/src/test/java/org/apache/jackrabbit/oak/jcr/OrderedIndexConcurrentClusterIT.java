@@ -78,7 +78,7 @@ public class OrderedIndexConcurrentClusterIT {
     
     @BeforeClass
     public static void mongoDBAvailable() {
-        final boolean mongoAvailable = OakMongoMKRepositoryStub.isMongoDBAvailable();
+        final boolean mongoAvailable = OakMongoNSRepositoryStub.isMongoDBAvailable();
         if (!mongoAvailable) {
             LOG.warn("Mongo DB is not available. Skipping the test");
         }
@@ -86,7 +86,7 @@ public class OrderedIndexConcurrentClusterIT {
     }
     
     private static MongoConnection createConnection() throws Exception {
-        return OakMongoMKRepositoryStub.createConnection(
+        return OakMongoNSRepositoryStub.createConnection(
             OrderedIndexConcurrentClusterIT.class.getSimpleName());
     }
 

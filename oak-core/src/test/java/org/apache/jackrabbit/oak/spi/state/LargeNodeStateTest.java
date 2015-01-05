@@ -25,7 +25,6 @@ import static junit.framework.Assert.assertTrue;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.junit.After;
@@ -33,7 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class LargeNodeStateTest extends OakBaseTest {
-    private static final int N = KernelNodeState.MAX_CHILD_NAMES;
+    private static final int N = 100;
 
     private NodeState state;
 
