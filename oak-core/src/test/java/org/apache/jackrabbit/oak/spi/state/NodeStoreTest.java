@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
@@ -228,7 +227,7 @@ public class NodeStoreTest extends OakBaseTest {
     public void manyChildNodes() throws CommitFailedException {
         NodeBuilder root = store.getRoot().builder();
         NodeBuilder parent = root.child("parent");
-        for (int i = 0; i <= KernelNodeState.MAX_CHILD_NAMES; i++) {
+        for (int i = 0; i <= 100; i++) {
             parent.child("child-" + i);
         }
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -455,7 +454,7 @@ public class NodeStoreTest extends OakBaseTest {
 
     @Test
     public void compareAgainstBaseState100() throws CommitFailedException {
-        compareAgainstBaseState(KernelNodeState.MAX_CHILD_NAMES);
+        compareAgainstBaseState(100);
     }
 
     @Test // OAK-1320

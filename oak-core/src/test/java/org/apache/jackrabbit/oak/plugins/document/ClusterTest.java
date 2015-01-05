@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.junit.Assert.assertEquals;
@@ -27,12 +24,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import com.google.common.collect.Sets;
+import com.mongodb.DB;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -41,9 +42,6 @@ import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
-import com.mongodb.DB;
 
 /**
  * A set of simple cluster tests.
@@ -214,7 +212,7 @@ public class ClusterTest {
         DocumentMK mk2 = createMK(2, 0);
         DocumentMK mk3 = createMK(3, 0);
 
-        KernelNodeStore ns3 = new KernelNodeStore(mk3);
+        DocumentNodeStore ns3 = mk3.getNodeStore();
         // the next line is required for the test even if it
         // just reads from the node store. do not remove!
         traverse(ns3.getRoot(), "/");
@@ -237,9 +235,9 @@ public class ClusterTest {
 
         mk3.runBackgroundOperations(); // pick up changes from mk2
 
-        NodeState base = ns3.retrieve(base3); // branch base
+        DocumentNodeState base = ns3.getNode("/", Revision.fromString(base3));
         assertNotNull(base);
-        NodeState branchHead = ns3.retrieve(b3);
+        NodeState branchHead = ns3.getNode("/", Revision.fromString(b3));
         assertNotNull(branchHead);
         TrackingDiff diff = new TrackingDiff();
         branchHead.compareAgainstBaseState(base, diff);

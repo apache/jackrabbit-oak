@@ -50,7 +50,6 @@ import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.ObserverTracker;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
@@ -97,11 +96,6 @@ public class DocumentNodeStoreService {
      * to use
      */
     private static final String FWK_PROP_DB = "oak.mongo.db";
-
-    //DocumentMK would be done away with so better not
-    //to expose this setting in config ui
-    @Property(boolValue = false, propertyPrivate = true)
-    private static final String PROP_USE_MK = "useMK";
 
     @Property(value = DEFAULT_URI)
     private static final String PROP_URI = "mongouri";
@@ -244,7 +238,6 @@ public class DocumentNodeStoreService {
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
-        boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
@@ -280,10 +273,9 @@ public class DocumentNodeStoreService {
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
-                String type = useMK ? "MK" : "NodeStore";
-                log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
+                log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
                                 "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
+                        mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -303,15 +295,9 @@ public class DocumentNodeStoreService {
         registerLastRevRecoveryJob(mk.getNodeStore());
 
         NodeStore store;
-        if (useMK) {
-            KernelNodeStore kns = new KernelNodeStore(mk);
-            store = kns;
-            observerTracker = new ObserverTracker(kns);
-        } else {
-            DocumentNodeStore mns = mk.getNodeStore();
-            store = mns;
-            observerTracker = new ObserverTracker(mns);
-        }
+        DocumentNodeStore mns = mk.getNodeStore();
+        store = mns;
+        observerTracker = new ObserverTracker(mns);
 
         observerTracker.start(context.getBundleContext());
 

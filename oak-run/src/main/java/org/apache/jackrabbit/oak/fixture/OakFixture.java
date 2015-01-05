@@ -24,7 +24,6 @@ import javax.sql.DataSource;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
@@ -45,7 +44,6 @@ public abstract class OakFixture {
     public static final String OAK_MONGO = "Oak-Mongo";
     public static final String OAK_MONGO_FDS = "Oak-Mongo-FDS";
     public static final String OAK_MONGO_NS = "Oak-MongoNS";
-    public static final String OAK_MONGO_MK = "Oak-MongoMK";
 
     public static final String OAK_RDB = "Oak-RDB";
 
@@ -120,23 +118,17 @@ public abstract class OakFixture {
 
     public static OakFixture getMongo(String host, int port, String database,
                                       boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO, false, host, port, database,
-                dropDBAfterTest, cacheSize, false, null, 0);
-    }
-
-    public static OakFixture getMongoMK(String host, int port, String database,
-                                        boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO_MK, true, host, port, database,
+        return getMongo(OAK_MONGO, host, port, database,
                 dropDBAfterTest, cacheSize, false, null, 0);
     }
 
     public static OakFixture getMongoNS(String host, int port, String database,
                                         boolean dropDBAfterTest, long cacheSize) {
-        return getMongo(OAK_MONGO_NS, false, host, port, database,
+        return getMongo(OAK_MONGO_NS, host, port, database,
                 dropDBAfterTest, cacheSize, false, null, 0);
     }
 
-    public static OakFixture getMongo(String name, final boolean useMk, final String host,
+    public static OakFixture getMongo(String name, final String host,
                                       final int port, String database,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
@@ -146,11 +138,10 @@ public abstract class OakFixture {
             database = getUniqueDatabaseName(name);
         }
         String uri = "mongodb://" + host + ":" + port + "/" + database;
-        return getMongo(name, uri, useMk, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
+        return getMongo(name, uri, dropDBAfterTest, cacheSize, useFileDataStore, base, fdsCacheInMB);
     }
 
     public static OakFixture getMongo(final String name, final String uri,
-                                      final boolean useMk,
                                       final boolean dropDBAfterTest, final long cacheSize,
                                       final boolean useFileDataStore,
                                       final File base, final int fdsCacheInMB) {
@@ -186,13 +177,7 @@ public abstract class OakFixture {
                         setClusterId(clusterId).setLogging(false);
                 setupBlobStore(mkBuilder);
                 DocumentMK dmk = mkBuilder.open();
-                Oak oak;
-                if (useMk) {
-                    oak = new Oak(new KernelNodeStore(dmk, cacheSize));
-                } else {
-                    oak = new Oak(dmk.getNodeStore());
-                }
-                return oak;
+                return new Oak(dmk.getNodeStore());
             }
 
             @Override
@@ -207,13 +192,7 @@ public abstract class OakFixture {
                             setClusterId(i).setLogging(false);
                     setupBlobStore(mkBuilder);
                     kernels[i] = mkBuilder.open();
-                    Oak oak;
-                    if (useMk) {
-                        oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
-                    } else {
-                        oak = new Oak(kernels[i].getNodeStore());
-                    }
-                    cluster[i] = oak;
+                    cluster[i] = new Oak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
@@ -247,7 +226,7 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-                                    final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
+                                    final boolean dropDBAfterTest, final long cacheSize) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStore blobStore;
@@ -285,13 +264,7 @@ public abstract class OakFixture {
                     mkBuilder.setBlobStore(blobStore);
                 }
                 DocumentMK dmk = mkBuilder.open();
-                Oak oak;
-                if (useMk) {
-                    oak = new Oak(new KernelNodeStore(dmk, cacheSize));
-                } else {
-                    oak = new Oak(dmk.getNodeStore());
-                }
-                return oak;
+                return new Oak(dmk.getNodeStore());
             }
 
             @Override
@@ -307,13 +280,7 @@ public abstract class OakFixture {
                         mkBuilder.setBlobStore(blobStore);
                     }
                     kernels[i] = mkBuilder.open();
-                    Oak oak;
-                    if (useMk) {
-                        oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
-                    } else {
-                        oak = new Oak(kernels[i].getNodeStore());
-                    }
-                    cluster[i] = oak;
+                    cluster[i] = new Oak(kernels[i].getNodeStore());
                 }
                 return cluster;
             }
