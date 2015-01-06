@@ -66,11 +66,11 @@ public class TypePredicate implements Predicate<NodeState> {
 
     private final Iterable<String> names;
 
-    private boolean initialized = false;
+    private boolean initialized;
 
-    private Set<String> primaryTypes = null;
+    private Set<String> primaryTypes;
 
-    private Set<String> mixinTypes = null;
+    private Set<String> mixinTypes;
 
     /**
      * Creates a predicate for checking whether a node state is an instance of
@@ -159,11 +159,11 @@ public class TypePredicate implements Predicate<NodeState> {
         init();
         if (primaryTypes != null && primaryTypes.contains(primary)) {
             return true;
-        } else if (mixinTypes != null && any(mixins, in(mixinTypes))) {
-            return true;
-        } else {
-            return false;
         }
+        if (mixinTypes != null && any(mixins, in(mixinTypes))) {
+            return true;
+        }
+        return false;
     }
 
     //---------------------------------------------------------< Predicate >--
@@ -174,12 +174,12 @@ public class TypePredicate implements Predicate<NodeState> {
         if (primaryTypes != null
                 && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
             return true;
-        } else if (mixinTypes != null
+        }
+        if (mixinTypes != null
                 && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     //------------------------------------------------------------< Object >--
