@@ -295,7 +295,7 @@ These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
 WikipediaImport test case and the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
-controls the bundle cache size in Jackrabbit, the KernelNodeState
+controls the bundle cache size in Jackrabbit, the NodeState
 cache size in MongoMK, and the segment cache size in SegmentMK.
 
 The `--concurrency` levels can be specified as comma separated list of values,
@@ -482,8 +482,8 @@ The following scalability options (with default values) are currently supported:
 These options are passed to the various suites and repository fixtures
 that need them. For example the the MongoDB address information by the
 MongoMK and SegmentMK -based repository fixtures. The cache setting
-controls the KernelNodeState cache size in MongoMK, and the segment
-cache size in SegmentMK.
+controls the NodeState cache size in MongoMK, and the segment cache
+size in SegmentMK.
 
 You can use extra JVM options like `-Xmx` settings to better control the
 scalability suite test environment. It's also possible to attach the JVM to a
