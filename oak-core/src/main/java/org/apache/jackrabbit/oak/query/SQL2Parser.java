@@ -30,6 +30,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -169,6 +170,7 @@ public class SQL2Parser {
             e2.initCause(e);
             throw e2;
         }
+        q.setInternal(isInternal(query));
         return q;
     }
     
@@ -1240,9 +1242,9 @@ public class SQL2Parser {
     }
 
     private void checkLiterals(boolean text) throws ParseException {
-        if (LOG.isDebugEnabled() && !literalUsageLogged) {
+        if (LOG.isTraceEnabled() && !literalUsageLogged) {
             literalUsageLogged = true;
-            LOG.debug("Literal used");
+            LOG.trace("Literal used");
         }
         if (text && !allowTextLiterals || !text && !allowNumberLiterals) {
             throw getSyntaxError("bind variable (literals of this type not allowed)");
@@ -1351,6 +1353,16 @@ public class SQL2Parser {
 
     public void setIncludeSelectorNameInWildcardColumns(boolean value) {
         this.includeSelectorNameInWildcardColumns = value;
+    }
+
+    /**
+     * Whether the given statement is an internal query.
+     *  
+     * @param statement the statement
+     * @return true for an internal query
+     */
+    public static boolean isInternal(String statement) {
+        return statement.indexOf(QueryEngine.INTERNAL_SQL2_QUERY) >= 0;
     }
 
 }

@@ -142,6 +142,8 @@ public class QueryImpl implements Query {
 
     private boolean warnedHidden;
 
+    private boolean isInternal;
+
     QueryImpl(String statement, SourceImpl source, ConstraintImpl constraint,
             ColumnImpl[] columns, NamePathMapper mapper, QueryEngineSettings settings) {
         this.statement = statement;
@@ -437,8 +439,8 @@ public class QueryImpl implements Query {
             return Arrays.asList(r).iterator();
         }
         if (LOG.isDebugEnabled()) {
-            LOG.debug("query execute {} ", statement);
-            LOG.debug("query plan {}", getPlan());
+            logDebug("query execute " + statement);
+            logDebug("query plan " + getPlan());
         }
         RowIterator rowIt = new RowIterator(context.getBaseState());
         Comparator<ResultRowImpl> orderBy;
@@ -771,7 +773,7 @@ public class QueryImpl implements Query {
             QueryIndexProvider indexProvider, boolean traversalEnabled) {
         QueryIndex bestIndex = null;
         if (LOG.isDebugEnabled()) {
-            LOG.debug("cost using filter " + filter);
+            logDebug("cost using filter " + filter);
         }
 
         double bestCost = Double.POSITIVE_INFINITY;
@@ -832,7 +834,7 @@ public class QueryImpl implements Query {
                 cost = index.getCost(filter, rootState);
             }
             if (LOG.isDebugEnabled()) {
-                LOG.debug("cost for " + index.getIndexName() + " is " + cost);
+                logDebug("cost for " + index.getIndexName() + " is " + cost);
             }
             if (cost < 0) {
                 LOG.error("cost below 0 for " + index.getIndexName() + " is " + cost);
@@ -848,7 +850,7 @@ public class QueryImpl implements Query {
             QueryIndex traversal = new TraversingIndex();
             double cost = traversal.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("cost for " + traversal.getIndexName() + " is " + cost);
+                logDebug("cost for " + traversal.getIndexName() + " is " + cost);
             }
             if (cost < bestCost || bestCost == Double.POSITIVE_INFINITY) {
                 bestCost = cost;
@@ -857,6 +859,14 @@ public class QueryImpl implements Query {
             }
         }
         return new SelectorExecutionPlan(filter.getSelector(), bestIndex, bestPlan, bestCost);
+    }
+    
+    private void logDebug(String msg) {
+        if (isInternal) {
+            LOG.trace(msg);
+        } else {
+            LOG.debug(msg);
+        }
     }
 
     @Override
@@ -950,6 +960,11 @@ public class QueryImpl implements Query {
 
     public QueryEngineSettings getSettings() {
         return settings;
+    }
+    
+    @Override
+    public void setInternal(boolean isInternal) {
+        this.isInternal = isInternal;
     }
 
 }

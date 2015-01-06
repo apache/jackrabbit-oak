@@ -34,6 +34,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -219,7 +220,8 @@ public class IdentifierManager {
 
         try {
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
+                    "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid" +
+                    QueryEngine.INTERNAL_SQL2_QUERY,
                     Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
             return findPaths(result, uuid, propertyName, nodeTypeNames,
                     weak ? Type.WEAKREFERENCE : Type.REFERENCE,
@@ -310,7 +312,9 @@ public class IdentifierManager {
         try {
             Map<String, PropertyValue> bindings = Collections.singletonMap("id", uuid);
             Result result = root.getQueryEngine().executeQuery(
-                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id", Query.JCR_SQL2,
+                    "SELECT * FROM [nt:base] WHERE [jcr:uuid] = $id" + 
+                    QueryEngine.INTERNAL_SQL2_QUERY, 
+                    Query.JCR_SQL2,
                     Long.MAX_VALUE, 0, bindings, NO_MAPPINGS);
 
             String path = null;
