@@ -26,7 +26,6 @@ import static org.junit.Assert.assertEquals;
 import org.apache.jackrabbit.oak.NodeStoreFixture;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.junit.Test;
@@ -38,16 +37,29 @@ public class NodeBuilderTest extends OakBaseTest {
     }
 
     @Test
-    public void deletesKernelNodeStore() throws CommitFailedException {
-        init(store);
-        run(store);
-    }
+    public void deletes() throws CommitFailedException {
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("x").child("y").child("z");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-    @Test
-    public void deletesMemoryNodeStore() throws CommitFailedException {
-        NodeStore store = new MemoryNodeStore();
-        init(store);
-        run(store);
+        builder = store.getRoot().builder();
+        assertTrue("child node x should be present", builder.hasChildNode("x"));
+        assertTrue("child node x/y should be present", builder.child("x")
+                .hasChildNode("y"));
+        assertTrue("child node x/y/z should be present", builder.child("x")
+                .child("y").hasChildNode("z"));
+
+        builder.getChildNode("x").remove();
+        assertFalse("child node x not should be present",
+                builder.hasChildNode("x"));
+        assertFalse("child node x/y not should be present", builder.child("x")
+                .hasChildNode("y"));
+
+        // See OAK-531
+        assertFalse("child node x/y/z not should not be present", builder
+                .child("x").child("y").hasChildNode("z"));
+
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     @Test
@@ -83,34 +95,6 @@ public class NodeBuilderTest extends OakBaseTest {
         NodeBuilder root = store.getRoot().builder();
         root.setChildNode("added");
         store.merge(root, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    private static void init(NodeStore store) throws CommitFailedException {
-        NodeBuilder builder = store.getRoot().builder();
-        builder.child("x").child("y").child("z");
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    private static void run(NodeStore store) throws CommitFailedException {
-        NodeBuilder builder = store.getRoot().builder();
-
-        assertTrue("child node x should be present", builder.hasChildNode("x"));
-        assertTrue("child node x/y should be present", builder.child("x")
-                .hasChildNode("y"));
-        assertTrue("child node x/y/z should be present", builder.child("x")
-                .child("y").hasChildNode("z"));
-
-        builder.getChildNode("x").remove();
-        assertFalse("child node x not should be present",
-                builder.hasChildNode("x"));
-        assertFalse("child node x/y not should be present", builder.child("x")
-                .hasChildNode("y"));
-
-        // See OAK-531
-        assertFalse("child node x/y/z not should not be present", builder
-                .child("x").child("y").hasChildNode("z"));
-
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 }
