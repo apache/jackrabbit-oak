@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore.REMEM
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -255,10 +256,10 @@ public class DocumentNodeStoreTest {
         assertEquals("expected exception", 1, exceptions.size());
 
         String id = Utils.getIdFromPath("/foo/node");
-        NodeDocument doc = docStore.find(Collection.NODES, id);
+        NodeDocument doc = docStore.find(NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
         id = Utils.getIdFromPath("/bar/node");
-        doc = docStore.find(Collection.NODES, id);
+        doc = docStore.find(NODES, id);
         assertNotNull("document with id " + id + " does not exist", doc);
 
         mk.dispose();
@@ -457,7 +458,7 @@ public class DocumentNodeStoreTest {
                                                       String fromKey,
                                                       String toKey,
                                                       int limit) {
-                if (collection == Collection.NODES) {
+                if (collection == NODES) {
                     maxLimit.set(Math.max(limit, maxLimit.get()));
                 }
                 return super.query(collection, fromKey, toKey, limit);
@@ -505,7 +506,7 @@ public class DocumentNodeStoreTest {
         ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         Revision rev = ns.getHeadRevision();
-        NodeDocument doc = docStore.find(Collection.NODES, Utils.getIdFromPath("/test"));
+        NodeDocument doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         DocumentNodeState state = doc.getNodeAtRevision(ns, rev, null);
         assertNotNull(state);
@@ -520,7 +521,7 @@ public class DocumentNodeStoreTest {
         ns.runBackgroundOperations();
 
         // must still return the same value as before the split
-        doc = docStore.find(Collection.NODES, Utils.getIdFromPath("/test"));
+        doc = docStore.find(NODES, Utils.getIdFromPath("/test"));
         assertNotNull(doc);
         state = doc.getNodeAtRevision(ns, rev, null);
         assertNotNull(state);
@@ -854,6 +855,63 @@ public class DocumentNodeStoreTest {
         assertTrue(numQueries.get() <= 2);
 
         store.dispose();
+    }
+
+    // OAK-2359
+    @Test
+    public void readNullEntry() throws CommitFailedException {
+        final Set<String> reads = Sets.newHashSet();
+        MemoryDocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                reads.add(key);
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setClusterId(1).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").setProperty("foo", "bar");
+        merge(store, builder);
+
+        builder = store.getRoot().builder();
+        builder.child("test").remove();
+        merge(store, builder);
+
+        Revision removedAt = store.getHeadRevision();
+
+        String id = Utils.getIdFromPath("/test");
+        int count = 0;
+        // update node until we have at least two levels of split documents
+        while (docStore.find(NODES, id).getPreviousRanges().size() <= PREV_SPLIT_FACTOR) {
+            builder = store.getRoot().builder();
+            builder.child("test").setProperty("count", count++);
+            merge(store, builder);
+            store.runBackgroundOperations();
+        }
+
+        NodeDocument doc = docStore.find(NODES, id);
+        assertNotNull(doc);
+        reads.clear();
+        doc.getNodeAtRevision(store, store.getHeadRevision(), null);
+        assertNoPreviousDocs(reads);
+
+        reads.clear();
+        doc.getValueMap("foo").get(removedAt);
+        assertNoPreviousDocs(reads);
+
+        store.dispose();
+    }
+
+    private static void assertNoPreviousDocs(Set<String> ids) {
+        for (String id : ids) {
+            assertFalse("must not read previous document: " +
+                            id + " (all: " + ids + ")",
+                    Utils.getPathFromId(id).startsWith("p"));
+        }
     }
 
     private static void merge(NodeStore store, NodeBuilder root)
