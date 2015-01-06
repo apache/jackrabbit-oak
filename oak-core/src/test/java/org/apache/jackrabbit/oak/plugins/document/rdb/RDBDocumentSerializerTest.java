@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -71,7 +70,7 @@ public class RDBDocumentSerializerTest  {
     public void testSimpleBoth() throws UnsupportedEncodingException {
         try {
             RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{}", "{}".getBytes("UTF-8"));
-            NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
+            this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
         }
         catch (DocumentStoreException expected) {
@@ -96,5 +95,13 @@ public class RDBDocumentSerializerTest  {
         }
         catch (DocumentStoreException expected) {
         }
+    }
+
+    @Test
+    public void testSimpleStringNonAscii() {
+        RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{\"x\":\"\u20ac\uD834\uDD1E\"}", null);
+        NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
+        assertEquals("_foo", doc.getId());
+        assertEquals("\u20ac\uD834\uDD1E", doc.get("x"));
     }
 }
