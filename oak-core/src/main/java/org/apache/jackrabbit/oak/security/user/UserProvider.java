@@ -31,6 +31,7 @@ import javax.jcr.query.Query;
 
 import com.google.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
@@ -227,7 +228,8 @@ class UserProvider extends AuthorizableBaseProvider {
         try {
             StringBuilder stmt = new StringBuilder();
             stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
-            stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+            stmt.append(" WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+            stmt.append(QueryEngine.INTERNAL_SQL2_QUERY);
 
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
