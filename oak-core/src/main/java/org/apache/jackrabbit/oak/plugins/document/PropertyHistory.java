@@ -69,7 +69,7 @@ class PropertyHistory implements Iterable<NodeDocument> {
                 String prevId = Utils.getPreviousIdFor(mainPath, r, h);
                 NodeDocument prev = doc.getPreviousDocument(prevId);
                 if (prev == null) {
-                    LOG.warn("Document with previous revisions not found: " + prevId);
+                    LOG.debug("Document with previous revisions not found: " + prevId);
                     return null;
                 }
                 return new SimpleImmutableEntry<Revision, NodeDocument>(r, prev);
