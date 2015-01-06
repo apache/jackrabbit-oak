@@ -106,7 +106,8 @@ public class PropertyIndexPlan {
         this.filter = filter;
 
         Iterable<String> types = definition.getNames(DECLARING_NODE_TYPES);
-        this.matchesAllTypes = isEmpty(types);
+        // if there is no such property, then all nodetypes are matched
+        this.matchesAllTypes = !definition.hasProperty(DECLARING_NODE_TYPES);
         this.matchesNodeTypes =
                 matchesAllTypes || any(types, in(filter.getSupertypes()));
 
