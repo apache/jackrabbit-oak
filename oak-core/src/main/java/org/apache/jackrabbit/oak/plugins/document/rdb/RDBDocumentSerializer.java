@@ -239,7 +239,7 @@ public class RDBDocumentSerializer {
             } else if (value instanceof JSONObject) {
                 doc.put(key, convertJsonObject((JSONObject) value));
             } else {
-                throw new RuntimeException("unexpected type: " + value.getClass());
+                throw new DocumentStoreException("unexpected type: " + value.getClass());
             }
         }
 
@@ -254,7 +254,7 @@ public class RDBDocumentSerializer {
             } else if (ob.toString().equals("blob") && u == 0) {
                 // expected placeholder
             } else {
-                throw new RuntimeException("unexpected: " + ob);
+                throw new DocumentStoreException("unexpected JSON in DATA column: " + ob);
             }
         }
         return doc;
@@ -287,7 +287,7 @@ public class RDBDocumentSerializer {
             }
         } else if ("*".equals(opcode)) {
             if (rev == null) {
-                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
             } else {
                 @SuppressWarnings("unchecked")
                 Map<Revision, Object> m = (Map<Revision, Object>) old;
@@ -303,7 +303,7 @@ public class RDBDocumentSerializer {
                 }
                 doc.put(key, ((Long) old) + x);
             } else {
-                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
             }
         } else if ("M".equals(opcode)) {
             if (rev == null) {
@@ -312,10 +312,10 @@ public class RDBDocumentSerializer {
                     doc.put(key, value);
                 }
             } else {
-                throw new RuntimeException("unexpected operation " + op + "in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
             }
         } else {
-            throw new RuntimeException("unexpected operation " + op + "in: " + update);
+            throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
         }
     }
 
