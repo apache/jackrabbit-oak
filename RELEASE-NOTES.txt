@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.1.3
+Release Notes -- Apache Jackrabbit Oak -- Version 1.1.4
 
 Introduction
 ------------
@@ -7,107 +7,100 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.1.3 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.1.4 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other improvements.
 For production use we recommend the latest stable 1.0.7 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.1.3
+Changes in Oak 1.1.4
 ---------------------
 
 Sub-task
 
-    [OAK-2270] - Resolve usage of ImmutableTree wrt OSGi constraints
-    [OAK-2272] - Compatibility support for pre index rule
-    configuration
-    [OAK-2276] - Support for index format version
-    [OAK-2277] - Field for analyzed field should use different name
-    [OAK-2279] - Add testMode support in IndexPlanner
-    [OAK-2280] - Support path restriction in IndexPlanner
-    [OAK-2283] - Fix inconsistent handling of includedPropertyTypes
-    [OAK-2286] - Extract text from binaries in SolrIndexEditor if no
-    binary specific field is provided
-    [OAK-2298] - LuceneIndex should provide correct cost based on
-    index size
+    [OAK-2282] - Make current testcases pass with new index
+    implementation
+    [OAK-2337] - improve connection handling
+    [OAK-2353] - Support for "order by jcr:score descending" in lucene
+    property index
+    [OAK-2377] - Change log level in PropertyHistory
 
 Bug
 
-    [OAK-1870] - Lucene blob size different in trunk and 1.0 branch
-    [OAK-2077] - Improve the resilence of the OrderedIndex for
-    dangling links
-    [OAK-2107] - Remove the MongoGridFSBlobStore implementation
-    [OAK-2140] - Segment Compactor will not compact binaries > 16k
-    [OAK-2164] - Only enforce uniqueness of jcr:uuid for referenceable
-    nodes
-    [OAK-2238] - Session.getItem violates JCR Spec
-    [OAK-2254] - Observation events accessibility check should respect
-    session refresh settings
-    [OAK-2256] - MemoryNodeBuilder NPE on base() following root
-    refresh
-    [OAK-2259] - SegmentBlob equals check should verify compaction in
-    both directions
-    [OAK-2260] - TarMK Cold Standby can corrupt bulk segments
-    [OAK-2266] - UserQueryManager: Sort Ignore Case Reversed
-    [OAK-2271] - Compaction estimation time should not depend on
-    number of checkpoints
-    [OAK-2275] - mvn site and site-deploy does not work as expected
-    [OAK-2288] - DocumentNS may expose branch commit on earlier
-    revision
-    [OAK-2289] - Async indexer checkpoints not cleaned up under heavy
-    load
-    [OAK-2297] - Update for absent document may throw NPE
-    [OAK-2299] - oak.removeDescendantsAndSelf() does not remove
-    descendants with long paths
-    [OAK-2308] - Incorrect recovery of _lastRev for branch commit
-    [OAK-2311] - Released checkpoint can still be retrieved
-    [OAK-2315] - Index cost is sometimes negative
-    [OAK-2317] - UserValidator: Detect nested authorizables introduced
-    by change of primary type
-    [OAK-2318] - DocumentNodeStore.diffManyChildren() reads too many
-    nodes
-    [OAK-2320] - Wrong optimization for joins with ISDESCENDANTNODE
-    conditions
-    [OAK-2322] - Compaction estimation includes all data segments
-    [OAK-2327] - DataStoreBlobStore should log exception thrown while
-    reading inputstream
+    [OAK-1782] - DiffCache not populated after cache miss
+    [OAK-2056] - Optimize orderings by date fields
+    [OAK-2192] - Concurrent commit during compaction results in mixed
+    segments
+    [OAK-2285] - Builder does not exist error during async index
+    update
+    [OAK-2312] - NodeStoreTest.moveToDescendant fails on
+    MemoryNodeStore
+    [OAK-2319] - UserProvider does not install autocreated items
+    [OAK-2328] - add logging in OrderedContentMirrorStorateStrategy
+    for better investigation
+    [OAK-2330] - Field boost not working if the property for indexing
+    is picked using aggregate index rules
+    [OAK-2332] - LIRS cache: deadlock if a value loader access the
+    cache
+    [OAK-2335] - IndexPlanner does not return plan for mixin based
+    queries
+    [OAK-2336] - NodeDocument.getNodeAtRevision() may read too many
+    revisions
+    [OAK-2343] - Wrong handling of InterruptedException in
+    BackgroundThread
+    [OAK-2345] - Diff reads too many nodes
+    [OAK-2346] -
+    InitializerTest.testInitializerMongoWithoutInitialContent() fails
+    [OAK-2347] - TarMK Cold Standby FSDS mirroring
+    [OAK-2354] - Support comments anywhere in a SQL-2 statement
+    [OAK-2355] - TarMK Cold Standby expose standby read timeout value
+    [OAK-2356] - Logic for writing properties in
+    SegmentWriter.writeNode looks off
+    [OAK-2359] - read is inefficient when there are many split
+    documents
+    [OAK-2363] - NPE in DocumentNodeStore#retrieve for non existing
+    checkpoint
+    [OAK-2367] - Importing a group with random node name and members
+    fails.
+    [OAK-2368] - Property index: setting declaringNodeTypes to an
+    empty array can break queries
+    [OAK-2375] - Sporadic test failure of HeavyWriteIT.heavyWrite on
+    Travis
+    [OAK-2380] - SegmentReferenceLimitTestIT does not close FileStore
 
 Improvement
 
-    [OAK-1447] - Offline tool to repair MongoMK documents
-    [OAK-1907] - Better cost estimates for traversal, property, and
-    ordered indexes
-    [OAK-2044] - DocumentSplit should allow properties added by
-    persistence
-    [OAK-2131] - Reduce usage of _lastRev
-    [OAK-2178] - Lucene index boosting on certain fields
-    [OAK-2190] - Support for like query for string
-    [OAK-2218] - Allow SegmentNodeBuilder to provide child builders of
-    the same type
-    [OAK-2228] - Changing the query traversal limit should affect
-    already started queries
-    [OAK-2274] - XD Logo for Oak Apache
-    [OAK-2291] - Associate user defined values with checkpoint
-    [OAK-2293] - Add checkpoint management for MongoMK
-    [OAK-2302] - Simplify query debugging with MDC
-    [OAK-2303] - Add jsr305 annotations to Solr index code
-    [OAK-2306] - Path restriction evaluation support within LucenIndex
-    [OAK-2309] - Persistent cache: config option for autoCompact
-    [OAK-2313] - Better handling for external binaries in the segment
-    explorer
-    [OAK-2314] - Mark checkpoints with relevant metadata
-    [OAK-2321] - Provide details in log when reindexing is completed
-    by AsyncIndexUpdate
-    [OAK-2324] - Remove dependency to MapDB
-    [OAK-2325] - Remove option to disable background operations
-    [OAK-2326] - Debug logging for merge failures
+    [OAK-1723] - Text content should not be stored as part of Index
+    data
+    [OAK-2205] - Allow native query to be run against specifc property
+    index
+    [OAK-2304] - Not log very common queries
+    [OAK-2333] - SegmentMK startup slow with large journals
+    [OAK-2334] - Inspect any revision with SegmentMK explorer
+    [OAK-2342] - Clean up collision markers
+    [OAK-2344] - Permission validation with Node.setPrimaryType
+    [OAK-2348] - Pass over name and definitions to
+    StoreStrategy.update
+    [OAK-2350] - Improve performance of user query with scope set
+    [OAK-2351] - Property name regex should only be applied on
+    property name
+    [OAK-2361] - MBean to expose DocumentNodeStore runtime state
+    [OAK-2362] - Remove entryCount from NodeType Index
+    [OAK-2365] - Refactor node store tests
+    [OAK-2373] - Move FixturesHelper into common
 
 New Feature
 
-    [OAK-2261] - Enable support for NodeType based indexing rules
-    [OAK-2267] - Expose checkpoints through JMX
-    [OAK-2268] - Support index time Aggregation of repository nodes
+    [OAK-2278] - Same Lucene index to support both property
+    restrictions and fulltext constraints
+    [OAK-2323] - SegmentMK consistency check
+    [OAK-2371] - Helper class for CI configurations
+
+Task
+
+    [OAK-2168] - Make SolrIndex implement AdvanceQueryIndex
+    [OAK-2352] - Release oak-run as part of Oak release
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
