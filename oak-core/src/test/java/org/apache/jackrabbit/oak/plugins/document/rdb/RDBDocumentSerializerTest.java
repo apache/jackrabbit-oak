@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class RDBDocumentSerializerTest  {
@@ -90,6 +91,18 @@ public class RDBDocumentSerializerTest  {
     public void testBlobAndDiffBorked() throws UnsupportedEncodingException {
         try {
             RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "[[\"\", \"\", \"\"]]", "{}".getBytes("UTF-8"));
+            this.ser.fromRow(Collection.NODES, row);
+            fail("should fail");
+        }
+        catch (DocumentStoreException expected) {
+        }
+    }
+
+    @Ignore("known problem is json.simple")
+    @Test
+    public void testBrokenJSONTrailingComma() throws UnsupportedEncodingException {
+        try {
+            RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{ \"x\" : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
         }
