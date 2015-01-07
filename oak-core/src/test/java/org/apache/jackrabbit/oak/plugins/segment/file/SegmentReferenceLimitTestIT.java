@@ -85,6 +85,8 @@ public class SegmentReferenceLimitTestIT {
         } catch (ExecutionException e) {
             assertTrue(valueOf(e.getCause()), e.getCause() instanceof CommitFailedException);
             assertTrue(valueOf(e.getCause()), e.getCause().getCause() instanceof SegmentOverflowException);
+        } finally {
+            fileStore.close();
         }
     }
 
