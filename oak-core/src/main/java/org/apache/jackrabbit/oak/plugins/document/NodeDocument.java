@@ -1223,7 +1223,12 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     public static void removePrevious(@Nonnull UpdateOp op,
                                       @Nonnull Range range) {
-        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(range).high);
+        removePrevious(op, checkNotNull(range).high);
+    }
+
+    public static void removePrevious(@Nonnull UpdateOp op,
+                                      @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
     }
 
     public static void setHasBinary(@Nonnull UpdateOp op) {

@@ -38,9 +38,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -49,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -97,6 +101,7 @@ public class VersionGarbageCollectorTest {
     @After
     public void tearDown() throws Exception {
         store.dispose();
+        Revision.resetClockToDefault();
     }
 
     @Test
@@ -330,6 +335,55 @@ public class VersionGarbageCollectorTest {
         DocumentNodeState state = doc.getNodeAtRevision(
                 store, store.getHeadRevision(), null);
         assertNotNull(state);
+    }
+
+    // OAK-1791
+    @Ignore
+    @Test
+    public void gcDefaultLeafSplitDocs() throws Exception {
+        Revision.setClock(clock);
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("test").setProperty("prop", -1);
+        merge(store, builder);
+
+        String id = Utils.getIdFromPath("/test");
+        long start = Revision.getCurrentTimestamp();
+        // simulate continuous writes once a second for one day
+        // collect garbage older than one hour
+        int hours = 24;
+        if (fixture instanceof DocumentStoreFixture.MongoFixture) {
+            // only run for 6 hours on MongoDB to
+            // keep time to run on a reasonable level
+            hours = 6;
+        }
+        for (int i = 0; i < 3600 * hours; i++) {
+            clock.waitUntil(start + i * 1000);
+            builder = store.getRoot().builder();
+            builder.child("test").setProperty("prop", i);
+            merge(store, builder);
+            if (i % 10 == 0) {
+                store.runBackgroundOperations();
+            }
+            // trigger GC twice an hour
+            if (i % 1800 == 0) {
+                gc.gc(1, TimeUnit.HOURS);
+                NodeDocument doc = store.getDocumentStore().find(NODES, id);
+                assertNotNull(doc);
+                int numPrevDocs = Iterators.size(doc.getAllPreviousDocs());
+                assertTrue("too many previous docs: " + numPrevDocs,
+                        numPrevDocs < 70);
+            }
+        }
+        NodeDocument doc = store.getDocumentStore().find(NODES, id);
+        assertNotNull(doc);
+        System.out.println("number of revisions: " +
+                Iterables.size(doc.getValueMap("prop").entrySet()));
+    }
+
+    private void merge(DocumentNodeStore store, NodeBuilder builder)
+            throws CommitFailedException {
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private NodeDocument getDoc(String path){

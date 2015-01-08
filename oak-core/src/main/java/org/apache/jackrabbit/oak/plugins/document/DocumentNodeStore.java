@@ -366,7 +366,8 @@ public final class DocumentNodeStore
         this.revisionComparator = new Revision.RevisionComparator(clusterId);
         this.branches = new UnmergedBranches(getRevisionComparator());
         this.asyncDelay = builder.getAsyncDelay();
-        this.versionGarbageCollector = new VersionGarbageCollector(this);
+        this.versionGarbageCollector = new VersionGarbageCollector(
+                this, builder.createVersionGCSupport());
         this.lastRevRecoveryAgent = new LastRevRecoveryAgent(this);
         this.disableBranches = builder.isDisableBranches();
         this.missing = new DocumentNodeState(this, "MISSING", new Revision(0, 0, 0)) {
