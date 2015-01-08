@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -33,10 +34,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.AbstractIterator;
 import com.mongodb.BasicDBObject;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContext;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
@@ -492,6 +497,53 @@ public class Utils {
             return a;
         }
         return StableRevisionComparator.INSTANCE.compare(a, b) >= 0 ? a : b;
+    }
+
+    /**
+     * Returns an iterable over all {@code NodeDocument}s in the given store.
+     * The returned iterable does not guarantee a consistent view on the store.
+     * The iterator may return documents that have been added to the store after
+     * this method had been called.
+     *
+     * @param store a document store.
+     * @return an iterable over all documents in the store.
+     */
+    public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
+        return new Iterable<NodeDocument>() {
+            @Override
+            public Iterator<NodeDocument> iterator() {
+                return new AbstractIterator<NodeDocument>() {
+
+                    private static final int BATCH_SIZE = 100;
+                    private String startId = NodeDocument.MIN_ID_VALUE;
+
+                    private Iterator<NodeDocument> batch = nextBatch();
+
+                    @Override
+                    protected NodeDocument computeNext() {
+                        // read next batch if necessary
+                        if (!batch.hasNext()) {
+                            batch = nextBatch();
+                        }
+
+                        NodeDocument doc;
+                        if (batch.hasNext()) {
+                            doc = batch.next();
+                            // remember current id
+                            startId = doc.getId();
+                        } else {
+                            doc = endOfData();
+                        }
+                        return doc;
+                    }
+
+                    private Iterator<NodeDocument> nextBatch() {
+                        return store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE).iterator();
+                    }
+                };
+            }
+        };
     }
 
 }

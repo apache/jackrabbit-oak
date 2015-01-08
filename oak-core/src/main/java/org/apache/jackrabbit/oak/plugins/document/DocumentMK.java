@@ -32,26 +32,27 @@ import com.mongodb.DB;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
-import org.apache.jackrabbit.oak.commons.json.JsopReader;
-import org.apache.jackrabbit.oak.commons.json.JsopStream;
-import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.cache.EmpiricalWeigher;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState.Children;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -808,6 +809,15 @@ public class DocumentMK implements MicroKernel {
 
         public boolean isDisableBranches() {
             return disableBranches;
+        }
+
+        VersionGCSupport createVersionGCSupport() {
+            DocumentStore store = getDocumentStore();
+            if (store instanceof MongoDocumentStore) {
+                return new MongoVersionGCSupport((MongoDocumentStore) store);
+            } else {
+                return new VersionGCSupport(store);
+            }
         }
 
         /**
