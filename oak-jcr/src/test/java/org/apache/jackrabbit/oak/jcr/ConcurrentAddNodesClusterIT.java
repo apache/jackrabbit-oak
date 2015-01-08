@@ -164,6 +164,8 @@ public class ConcurrentAddNodesClusterIT {
                             exceptions.put(Thread.currentThread().getName(), r);
                             stop.set(true);
                             mainThread.interrupt();
+                        } finally {
+                            session.logout();
                         }
                     }
                 };
@@ -434,9 +436,13 @@ public class ConcurrentAddNodesClusterIT {
         public void run() {
             try {
                 Session session = createAdminSession(repo);
-                ensureIndex(session.getRootNode(), PROP_NAME);
-                String nodeName = "testroot-" + Thread.currentThread().getName();
-                createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
+                try {
+                    ensureIndex(session.getRootNode(), PROP_NAME);
+                    String nodeName = "testroot-" + Thread.currentThread().getName();
+                    createNodes(session, nodeName, LOOP_COUNT, NODE_COUNT, exceptions);
+                } finally {
+                    session.logout();
+                }
             } catch (Exception e) {
                 exceptions.put(Thread.currentThread().getName(), e);
             }
