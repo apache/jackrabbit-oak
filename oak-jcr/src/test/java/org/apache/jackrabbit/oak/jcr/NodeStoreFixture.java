@@ -19,12 +19,14 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import com.mongodb.DB;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
@@ -74,18 +76,19 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
 
         private DataSource ds;
+        String folder = (new File("target")).isDirectory() ? "target/" : "";
 
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:" + id, "sa", "");
+            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + id, "sa", "");
             return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:mem:oaknodes-" + clusterNodeId, "sa", "");
+                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "");
                 return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
             } catch (Exception e) {
                 return null;
