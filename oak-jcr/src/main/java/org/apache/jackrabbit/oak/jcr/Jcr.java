@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler.createJcrConflictHandler;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,7 +28,6 @@ import javax.jcr.Repository;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -47,11 +47,12 @@ import org.apache.jackrabbit.oak.plugins.version.VersionEditorProvider;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.CompositeConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.commit.PartialConflictHandler;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -61,6 +62,7 @@ public class Jcr {
     public static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
 
     private final Oak oak;
+    private final CompositeConflictHandler conflictHandler = createJcrConflictHandler();
 
     private SecurityProvider securityProvider;
     private int observationQueueLength = DEFAULT_OBSERVATION_QUEUE_LENGTH;
@@ -71,7 +73,7 @@ public class Jcr {
 
         with(new InitialContent());
 
-        with(JcrConflictHandler.JCR_CONFLICT_HANDLER);
+        oak.with(conflictHandler);
         with(new EditorHook(new VersionEditorProvider()));
 
         with(new SecurityProviderImpl());
@@ -146,8 +148,8 @@ public class Jcr {
     }
 
     @Nonnull
-    public final Jcr with(@Nonnull ConflictHandler conflictHandler) {
-        oak.with(checkNotNull(conflictHandler));
+    public final Jcr with(@Nonnull PartialConflictHandler conflictHandler) {
+        this.conflictHandler.addHandler(checkNotNull(conflictHandler));
         return this;
     }
 

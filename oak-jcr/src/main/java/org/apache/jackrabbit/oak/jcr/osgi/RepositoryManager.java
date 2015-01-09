@@ -147,7 +147,7 @@ public class RepositoryManager {
     private ServiceRegistration registerRepository(BundleContext bundleContext) {
         Oak oak = new Oak(store)
                 .with(new InitialContent())
-                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
+                .with(JcrConflictHandler.createJcrConflictHandler())
                 .with(whiteboard)
                 .with(securityProvider)
                 .with(editorProvider)

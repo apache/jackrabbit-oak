@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.Nonnull;
+import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A {@code ConflictHandler} is responsible for handling conflicts which happen
+ * A {@code PartialConflictHandler} is responsible for handling conflicts which happen
  * on {@link org.apache.jackrabbit.oak.api.Root#rebase()} and on the implicit rebase operation which
  * takes part on {@link org.apache.jackrabbit.oak.api.Root#commit()}.
- *
+ * <p>
  * This interface contains one method per type of conflict which might occur.
- * Each of these methods must return a {@link Resolution} for the current conflict.
+ * Each of these methods may return a {@link Resolution} for the current conflict or
+ * {@code null} if it cannot resolve the conflict.
  * The resolution indicates to use the changes in the current {@code Root} instance
  * ({@link Resolution#OURS}) or to use the changes from the underlying persistence
  * store ({@link Resolution#THEIRS}). Alternatively the resolution can also indicate
@@ -39,7 +41,27 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *
  * @see ConflictHandler
  */
-public interface ConflictHandler extends PartialConflictHandler {
+public interface PartialConflictHandler {
+
+    /**
+     * Resolutions for conflicts
+     */
+    enum Resolution {
+        /**
+         * Use the changes from the current {@link org.apache.jackrabbit.oak.api.Root} instance
+         */
+        OURS,
+
+        /**
+         * Use the changes from the underlying persistence store
+         */
+        THEIRS,
+
+        /**
+         * Indicated changes have been merged by this {@code ConflictHandler} instance.
+         */
+        MERGED
+    }
 
     /**
      * The property {@code ours} has been added to {@code parent} which conflicts
@@ -48,10 +70,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @param parent  root of the conflict
      * @param ours  our version of the property
      * @param theirs  their version of the property
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution addExistingProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -60,10 +81,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      *
      * @param parent  root of the conflict
      * @param ours  our version of the property
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution changeDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -73,10 +93,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @param parent  root of the conflict
      * @param ours  our version of the property
      * @param theirs  their version of the property
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution changeChangedProperty(NodeBuilder parent, PropertyState ours, PropertyState theirs);
 
     /**
@@ -85,10 +104,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      *
      * @param parent  root of the conflict
      * @param ours  our version of the property
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution deleteDeletedProperty(NodeBuilder parent, PropertyState ours);
 
     /**
@@ -97,10 +115,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      *
      * @param parent  root of the conflict
      * @param theirs  their version of the property
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution deleteChangedProperty(NodeBuilder parent, PropertyState theirs);
 
     /**
@@ -111,10 +128,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @param name  name of the node
      * @param ours  our version of the node
      * @param theirs  their version of the node
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs);
 
     /**
@@ -124,10 +140,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @param parent  root of the conflict
      * @param name  name of the node
      * @param ours  our version of the node
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours);
 
     /**
@@ -137,10 +152,9 @@ public interface ConflictHandler extends PartialConflictHandler {
      * @param parent  root of the conflict
      * @param name  name of the node
      * @param theirs  their version of the node
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution deleteChangedNode(NodeBuilder parent, String name, NodeState theirs);
 
     /**
@@ -149,9 +163,8 @@ public interface ConflictHandler extends PartialConflictHandler {
      *
      * @param parent  root of the conflict
      * @param name  name of the node
-     * @return  {@link Resolution} of the conflict
+     * @return  {@link Resolution} of the conflict or {@code null}
      */
-    @Override
-    @Nonnull
+    @CheckForNull
     Resolution deleteDeletedNode(NodeBuilder parent, String name);
 }
