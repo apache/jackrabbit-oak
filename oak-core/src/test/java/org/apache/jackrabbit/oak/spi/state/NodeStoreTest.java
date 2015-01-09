@@ -102,7 +102,7 @@ public class NodeStoreTest extends OakBaseTest {
         assumeTrue(fixture != NodeStoreFixture.MONGO_NS);
 
         CommitHook hook = new CompositeHook(
-                new ConflictHook(JcrConflictHandler.JCR_CONFLICT_HANDLER),
+                new ConflictHook(JcrConflictHandler.createJcrConflictHandler()),
                 new EditorHook(new ConflictValidatorProvider())
         );
 
