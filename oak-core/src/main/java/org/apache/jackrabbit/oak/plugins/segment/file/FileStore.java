@@ -174,8 +174,21 @@ public class FileStore implements SegmentStore {
             BlobStore blobStore, final File directory, NodeState initial,
             int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping)
             throws IOException {
+        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, false);
+    }
+
+    FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, false);
+    }
+
+    private FileStore(
+            BlobStore blobStore, final File directory, NodeState initial,
+            int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping, boolean noCache)
+            throws IOException {
         checkNotNull(directory).mkdirs();
-        if (cacheSizeMB > 0) {
+        if (cacheSizeMB < 0) {
+            this.tracker = new SegmentTracker(this, 0);
+        } else if (cacheSizeMB > 0) {
             this.tracker = new SegmentTracker(this, cacheSizeMB);
         } else {
             this.tracker = new SegmentTracker(this);

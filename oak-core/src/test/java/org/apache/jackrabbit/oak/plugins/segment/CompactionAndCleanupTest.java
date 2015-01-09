@@ -22,11 +22,14 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.commons.io.FileUtils.deleteDirectory;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_ALL;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_OLD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -42,24 +45,26 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.NonCachingFileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.io.ByteStreams;
 
 public class CompactionAndCleanupTest {
 
@@ -189,7 +194,7 @@ public class CompactionAndCleanupTest {
                 byteCountToDisplaySize(size), byteCountToDisplaySize(lower),
                 byteCountToDisplaySize(upper));
         assertTrue("File Store " + log + " size expected in interval ["
-                + mb(lower) + "," + mb(upper) + "] but was: " + mb(size),
+                        + mb(lower) + "," + mb(upper) + "] but was: " + mb(size),
                 mb(size) >= mb(lower) && mb(size) <= mb(upper));
     }
 
@@ -298,6 +303,62 @@ public class CompactionAndCleanupTest {
     private static void createProperties(NodeBuilder builder, int count) {
         for (int k = 0; k < count; k++) {
             builder.setProperty("property-" + UUID.randomUUID().toString(), "value-" + UUID.randomUUID().toString());
+        }
+    }
+
+    @Test
+    @Ignore("OAK-2384")  // FIXME OAK-2384
+    public void propertyRetention() throws IOException, CommitFailedException, InterruptedException {
+        FileStore fileStore = new NonCachingFileStore(directory, 1);
+        try {
+            final SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
+            fileStore.setCompactionStrategy(new CompactionStrategy(false, false, CLEAN_ALL, 0, (byte) 0) {
+                @Override
+                public boolean compacted(@Nonnull Callable<Boolean> setHead)
+                        throws Exception {
+                    return nodeStore.locked(setHead);
+                }
+            });
+
+            // Add a property
+            NodeBuilder builder = nodeStore.getRoot().builder();
+            builder.setChildNode("test").setProperty("property", "value");
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // Segment id of the current segment
+            NodeState test = nodeStore.getRoot().getChildNode("test");
+            SegmentId id = ((SegmentNodeState) test).getRecordId().getSegmentId();
+            assertTrue(fileStore.containsSegment(id));
+
+            // Add enough content to fill up the current tar file
+            builder = nodeStore.getRoot().builder();
+            addContent(builder.setChildNode("dump"));
+            nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            // Segment and property still there
+            assertTrue(fileStore.containsSegment(id));
+            PropertyState property = test.getProperty("property");
+            assertEquals("value", property.getValue(STRING));
+
+            // GC should remove the segment
+            fileStore.flush();
+            fileStore.compact();
+            fileStore.cleanup();
+
+            try {
+                fileStore.readSegment(id);
+                fail("Segment " + id + "should be gc'ed");
+            } catch (SegmentNotFoundException ignore) {}
+
+            assertEquals("Property should still be accessible", "value", property.getValue(STRING));
+        } finally {
+            fileStore.close();
+        }
+    }
+
+    private static void addContent(NodeBuilder builder) {
+        for (int k = 0; k < 10000; k++) {
+            builder.setProperty(UUID.randomUUID().toString(), UUID.randomUUID().toString());
         }
     }
 }
