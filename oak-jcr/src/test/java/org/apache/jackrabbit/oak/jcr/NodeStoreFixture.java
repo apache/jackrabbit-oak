@@ -76,19 +76,19 @@ public abstract class NodeStoreFixture {
     public static final NodeStoreFixture DOCUMENT_RDB = new NodeStoreFixture() {
 
         private DataSource ds;
-        String folder = (new File("target")).isDirectory() ? "target/" : "";
+        private String fname = (new File("target")).isDirectory() ? "target/" : "";
 
         @Override
         public NodeStore createNodeStore() {
             String id = UUID.randomUUID().toString();
-            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + id, "sa", "");
+            this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + id, "sa", "");
             return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
         }
 
         @Override
         public NodeStore createNodeStore(int clusterNodeId) {
             try {
-                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:" + folder + "oaknodes-" + clusterNodeId, "sa", "");
+                this.ds = RDBDataSourceFactory.forJdbcUrl("jdbc:h2:file:./" + fname + "oaknodes-" + clusterNodeId, "sa", "");
                 return new DocumentMK.Builder().setRDBConnection(this.ds).getNodeStore();
             } catch (Exception e) {
                 return null;
