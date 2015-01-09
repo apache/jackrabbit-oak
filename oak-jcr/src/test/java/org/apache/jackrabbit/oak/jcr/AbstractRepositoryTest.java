@@ -51,7 +51,8 @@ import org.junit.runners.Parameterized;
 @Ignore("This abstract base class does not have any tests")
 public abstract class AbstractRepositoryTest {
 
-    protected NodeStoreFixture fixture;
+    protected final NodeStoreFixture fixture;
+
     private NodeStore nodeStore;
     private Repository repository;
     private Session adminSession;
@@ -64,7 +65,7 @@ public abstract class AbstractRepositoryTest {
      */
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();
 
-    public AbstractRepositoryTest(NodeStoreFixture fixture) {
+    protected AbstractRepositoryTest(NodeStoreFixture fixture) {
         this.fixture = fixture;
     }
 
@@ -110,19 +111,25 @@ public abstract class AbstractRepositoryTest {
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
             nodeStore = createNodeStore(fixture);
-            QueryEngineSettings qs = new QueryEngineSettings();
-            qs.setFullTextComparisonWithoutIndex(true);
-            repository  = new Jcr(nodeStore)
-                    .withObservationQueueLength(observationQueueLength)
-                    .withAsyncIndexing()
-                    .with(qs)
-                    .createRepository();
+            repository = createRepository(nodeStore);
         }
         return repository;
     }
 
     protected NodeStore createNodeStore(NodeStoreFixture fixture) throws RepositoryException {
         return fixture.createNodeStore();
+    }
+
+    protected Repository createRepository(NodeStore nodeStore) {
+        return initJcr(new Jcr(nodeStore)).createRepository();
+    }
+
+    protected Jcr initJcr(Jcr jcr) {
+        QueryEngineSettings qs = new QueryEngineSettings();
+        qs.setFullTextComparisonWithoutIndex(true);
+        return jcr.withObservationQueueLength(observationQueueLength)
+                  .withAsyncIndexing()
+                  .with(qs);
     }
 
     protected Session getAdminSession() throws RepositoryException {
