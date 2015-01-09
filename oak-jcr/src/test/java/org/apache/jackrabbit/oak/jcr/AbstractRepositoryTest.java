@@ -56,7 +56,6 @@ public abstract class AbstractRepositoryTest {
     private NodeStore nodeStore;
     private Repository repository;
     private Session adminSession;
-    protected int observationQueueLength = Jcr.DEFAULT_OBSERVATION_QUEUE_LENGTH;
 
     /**
      * The system property "ns-fixtures" can be used to provide a
@@ -127,9 +126,7 @@ public abstract class AbstractRepositoryTest {
     protected Jcr initJcr(Jcr jcr) {
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFullTextComparisonWithoutIndex(true);
-        return jcr.withObservationQueueLength(observationQueueLength)
-                  .withAsyncIndexing()
-                  .with(qs);
+        return jcr.withAsyncIndexing().with(qs);
     }
 
     protected Session getAdminSession() throws RepositoryException {
