@@ -48,6 +48,7 @@ import javax.jcr.observation.ObservationManager;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.test.api.util.Text;
@@ -76,12 +77,16 @@ public class ObservationRefreshTest extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Before
-    public void setup() throws RepositoryException {
+    @Override
+    protected Jcr initJcr(Jcr jcr) {
         // Ensure the observation revision queue is sufficiently large to hold
         // all revisions. Otherwise waiting for events might block since pending
         // events would only be released on a subsequent commit. See OAK-1491
-        observationQueueLength = 1000000;
+        return jcr.withObservationQueueLength(1000000);
+    }
+
+    @Before
+    public void setup() throws RepositoryException {
         Session session = getAdminSession();
 
         NodeTypeManager ntMgr = session.getWorkspace().getNodeTypeManager();
