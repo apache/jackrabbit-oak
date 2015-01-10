@@ -35,7 +35,4 @@
         -->
         <appender-ref ref="file"/>
     </root>
-
-  <logger name="org.apache.jackrabbit.oak.plugins.document" level="TRACE" />
-
 </configuration>
