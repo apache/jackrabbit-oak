@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotTrunkLinux;
+import static org.junit.Assume.assumeTrue;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
@@ -88,6 +91,8 @@ public abstract class AbstractRepositoryTest {
 
     @Before
     public void checkAssumptions() {
+        // FIXME OAK-2379. Don't run the tests for now on the Linux BuildBot for DOCUMENT_RDB
+        assumeTrue(!buildBotTrunkLinux() || fixture != NodeStoreFixture.DOCUMENT_RDB);
     }
 
     @After
