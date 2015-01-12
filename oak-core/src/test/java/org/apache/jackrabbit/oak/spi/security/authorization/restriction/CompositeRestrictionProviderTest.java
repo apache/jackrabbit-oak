@@ -30,7 +30,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
@@ -83,7 +82,7 @@ public class CompositeRestrictionProviderTest extends AbstractSecurityTest imple
 
     @Test
     public void testSingle() {
-        RestrictionProvider rp = new RestrictionProviderImpl();
+        RestrictionProvider rp = new TestProvider(Collections.<String, RestrictionDefinition>emptyMap());
         assertSame(rp, CompositeRestrictionProvider.newInstance(Collections.singleton(rp)));
     }
 

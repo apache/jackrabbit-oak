@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.composite.CompositeAuthorizationConfiguration;
 
 /**
  * Base class for CUG related test that setup the authorization configuration
