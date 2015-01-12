@@ -107,7 +107,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 })
 public class UserConfigurationImpl extends ConfigurationBase implements UserConfiguration, SecurityConfiguration {
 
-    private final UserAuthenticationFactory defaultAuthFactory = new UserAuthenticationFactoryImpl();
+    private static final UserAuthenticationFactory DEFAULT_AUTH_FACTORY = new UserAuthenticationFactoryImpl();
 
     public UserConfigurationImpl() {
         super();
@@ -115,6 +115,10 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
 
     public UserConfigurationImpl(SecurityProvider securityProvider) {
         super(securityProvider, securityProvider.getParameters(NAME));
+    }
+
+    public static UserAuthenticationFactory getDefaultAuthenticationFactory() {
+        return DEFAULT_AUTH_FACTORY;
     }
 
     @Activate
@@ -136,7 +140,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         if (!params.containsKey(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY)) {
             return ConfigurationParameters.of(
                     params,
-                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, defaultAuthFactory));
+                    ConfigurationParameters.of(UserConstants.PARAM_USER_AUTHENTICATION_FACTORY, DEFAULT_AUTH_FACTORY));
         } else {
             return params;
         }

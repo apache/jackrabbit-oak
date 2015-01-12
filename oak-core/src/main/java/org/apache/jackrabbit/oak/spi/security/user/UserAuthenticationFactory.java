@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.user;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -35,11 +36,13 @@ public interface UserAuthenticationFactory {
      * Returns an implementation {@link org.apache.jackrabbit.oak.spi.security.authentication.Authentication}
      * for the specified {@code userId}.
      *
-     * @param userConfiguration The user configuration.
+     * @param configuration The user configuration.
      * @param root   The {@link org.apache.jackrabbit.oak.api.Root} that provides repository access.
      * @param userId The userId for which a user authentication is provided.
-     * @return The authentication object specific to the provided user.
+     * @return The authentication object for the given {@code configuration} and
+     * {@code userId} or {@code null} if this implementation cannot not handle the
+     * specified parameters.
      */
-    @Nonnull
-    Authentication getAuthentication(@Nonnull UserConfiguration userConfiguration, @Nonnull Root root, @Nullable String userId);
+    @CheckForNull
+    Authentication getAuthentication(@Nonnull UserConfiguration configuration, @Nonnull Root root, @Nullable String userId);
 }
