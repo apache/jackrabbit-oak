@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.permission;
+package org.apache.jackrabbit.oak.security.composite;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -32,6 +32,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,7 +49,7 @@ import org.apache.jackrabbit.util.Text;
  * the {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider}
  * interface.
  */
-public class CompositePermissionProvider implements PermissionProvider {
+class CompositePermissionProvider implements PermissionProvider {
 
     private final Root root;
     private final List<AggregatedPermissionProvider> pps;

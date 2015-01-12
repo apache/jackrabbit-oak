@@ -26,8 +26,6 @@ import javax.jcr.security.AccessControlPolicy;
  * {@link javax.jcr.security.AccessControlManager#setPolicy(String, javax.jcr.security.AccessControlPolicy) setPolicy}
  * and
  * {@link javax.jcr.security.AccessControlManager#removePolicy(String, javax.jcr.security.AccessControlPolicy) removePolicy}.
- *
- * @see org.apache.jackrabbit.oak.spi.security.authorization.CompositeAuthorizationConfiguration
  */
 public interface PolicyOwner {
 
