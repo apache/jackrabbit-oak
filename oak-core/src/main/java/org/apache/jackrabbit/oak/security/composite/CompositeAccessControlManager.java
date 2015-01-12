@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
+package org.apache.jackrabbit.oak.security.composite;
 
 import java.security.Principal;
 import java.util.List;
@@ -36,6 +36,8 @@ import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AbstractAccessControlManager;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 
 /**
  * Access control manager that aggregates a list of different access control
@@ -44,7 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  * interface in order to be able to set and remove individual access control
  * policies.
  */
-public class CompositeAccessControlManager extends AbstractAccessControlManager {
+class CompositeAccessControlManager extends AbstractAccessControlManager {
 
     private final List<AccessControlManager> acMgrs;
 
