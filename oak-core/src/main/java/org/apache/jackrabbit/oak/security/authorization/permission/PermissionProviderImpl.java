@@ -26,7 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
@@ -52,7 +52,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final CompiledPermissions compiledPermissions;
 
-    private ImmutableRoot immutableRoot;
+    private Root immutableRoot;
 
     private ControlFlag flag;
 
@@ -62,7 +62,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         this.workspaceName = workspaceName;
         this.acConfig = acConfig;
 
-        immutableRoot = getImmutableRoot(root);
+        immutableRoot = RootFactory.createReadOnlyRoot(root);
 
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
@@ -75,7 +75,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public void refresh() {
-        immutableRoot = getImmutableRoot(root);
+        immutableRoot = RootFactory.createReadOnlyRoot(root);
         compiledPermissions.refresh(immutableRoot, workspaceName);
     }
 
@@ -169,12 +169,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (tree instanceof ImmutableTree) {
             return (ImmutableTree) tree;
         } else {
-            return (tree == null) ? null : immutableRoot.getTree(tree.getPath());
+            return (tree == null) ? null : (ImmutableTree) immutableRoot.getTree(tree.getPath());
         }
-    }
-
-    private static ImmutableRoot getImmutableRoot(@Nonnull Root base) {
-        return ImmutableRoot.getInstance(base);
     }
 
     private static boolean isVersionStorePath(@Nonnull String oakPath) {

@@ -40,9 +40,9 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
 import org.apache.jackrabbit.oak.plugins.observation.filter.UniversalFilter.Selector;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -429,7 +429,7 @@ public final class FilterBuilder {
         @Override
         public EventFilter createFilter(NodeState before, NodeState after) {
             return new ACFilter(before, after,
-                    permissionProviderFactory.create(new ImmutableRoot(after)));
+                    permissionProviderFactory.create(RootFactory.createReadOnlyRoot(after)));
         }
     }
 

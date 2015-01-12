@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
@@ -210,7 +210,7 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
         ContentSession testSession = createTestSession();
         try {
             Root r = testSession.getLatestRoot();
-            Root immutableRoot = new ImmutableRoot(r);
+            Root immutableRoot = RootFactory.createReadOnlyRoot(r);
 
             PermissionProvider pp = createPermissionProvider(testSession) ;
             assertTrue(r.getTree("/").exists());

@@ -22,8 +22,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 
@@ -42,7 +42,7 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public void refresh(@Nonnull ImmutableRoot root, @Nonnull String workspaceName) {
+    public void refresh(@Nonnull Root root, @Nonnull String workspaceName) {
         // nop
     }
 
@@ -52,12 +52,12 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public TreePermission getTreePermission(@Nonnull ImmutableTree tree, @Nonnull TreePermission parentPermission) {
+    public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
         return TreePermission.EMPTY;
     }
 
     @Override
-    public boolean isGranted(@Nonnull ImmutableTree tree, @Nullable PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         return false;
     }
 
@@ -67,12 +67,12 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public Set<String> getPrivileges(@Nullable ImmutableTree tree) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
         return Collections.emptySet();
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable ImmutableTree tree, String... privilegeNames) {
+    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
         return false;
     }
 }

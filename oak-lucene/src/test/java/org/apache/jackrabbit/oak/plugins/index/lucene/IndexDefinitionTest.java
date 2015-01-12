@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.codecs.Codec;
@@ -490,7 +490,7 @@ public class IndexDefinitionTest {
     }
 
     private static Tree newTree(NodeBuilder nb){
-        return new ImmutableTree(nb.getNodeState());
+        return TreeFactory.createReadOnlyTree(nb.getNodeState());
     }
 
     private static NodeBuilder newNode(String typeName){
