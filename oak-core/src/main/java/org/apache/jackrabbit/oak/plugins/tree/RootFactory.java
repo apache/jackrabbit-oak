@@ -14,30 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.commit;
+package org.apache.jackrabbit.oak.plugins.tree;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * TODO document
+ * Factory to obtain immutable {@code Tree} objects from {@code NodeState}s.
  */
-@Component
-@Service(EditorProvider.class)
-public class ConflictValidatorProvider extends ValidatorProvider {
+public final class RootFactory {
 
-    @Override
-    public Validator getRootValidator(
-            NodeState before, NodeState after, CommitInfo info) {
-        Tree rootAfter = new ImmutableTree(after);
-        return new ConflictValidator(rootAfter);
+    private RootFactory() {}
+
+    public static Root createReadOnlyRoot(@Nonnull NodeState rootState) {
+        return new ImmutableRoot(rootState);
     }
 
+    public static Root createReadOnlyRoot(@Nonnull Root root) {
+        return ImmutableRoot.getInstance(root);
+    }
 }
