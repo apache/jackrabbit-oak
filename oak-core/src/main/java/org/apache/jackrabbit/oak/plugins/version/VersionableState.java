@@ -32,12 +32,14 @@ import javax.jcr.version.OnParentVersionAction;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -572,7 +574,7 @@ class VersionableState {
             // quick check without looking at type hierarchy
             return false;
         }
-        ImmutableTree tree = new ImmutableTree(node.getNodeState());
+        Tree tree = TreeFactory.createReadOnlyTree(node.getNodeState());
         return ntMgr.isNodeType(tree, MIX_REFERENCEABLE);
     }
 
@@ -597,8 +599,7 @@ class VersionableState {
         } else {
             childState = child.getNodeState();
         }
-        ImmutableTree childTree = new ImmutableTree(
-                parentTree, childName, childState);
+        ImmutableTree childTree = new ImmutableTree(parentTree, childName, childState);
         return ntMgr.getDefinition(parentTree, childTree).getOnParentVersion();
     }
 
@@ -608,7 +609,7 @@ class VersionableState {
             // FIXME: handle child order properly
             return OnParentVersionAction.COPY;
         } else {
-            return ntMgr.getDefinition(new ImmutableTree(node.getNodeState()),
+            return ntMgr.getDefinition(TreeFactory.createReadOnlyTree(node.getNodeState()),
                     property, false).getOnParentVersion();
         }
     }

@@ -79,8 +79,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         this.isAccessControllable = new TypePredicate(parentAfter.getNodeState(), MIX_REP_ACCESS_CONTROLLABLE);
     }
 
-    private AccessControlValidator(
-            AccessControlValidator parent, ImmutableTree parentAfter) {
+    private AccessControlValidator(AccessControlValidator parent, ImmutableTree parentAfter) {
         this.parentAfter = parentAfter;
         this.privilegeBitsProvider = parent.privilegeBitsProvider;
         this.privilegeManager = parent.privilegeManager;

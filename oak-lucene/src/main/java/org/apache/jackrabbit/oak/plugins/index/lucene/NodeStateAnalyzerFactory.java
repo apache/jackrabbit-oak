@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
@@ -101,7 +101,7 @@ final class NodeStateAnalyzerFactory{
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
         List<TokenFilterFactory> result = newArrayList();
 
-        ImmutableTree tree = new ImmutableTree(tokenFiltersState);
+        Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = tokenFiltersState.getChildNode(t.getName());
 
@@ -119,7 +119,7 @@ final class NodeStateAnalyzerFactory{
         List<CharFilterFactory> result = newArrayList();
 
         //Need to read children in order
-        ImmutableTree tree = new ImmutableTree(charFiltersState);
+        Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = charFiltersState.getChildNode(t.getName());
 

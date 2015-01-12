@@ -48,7 +48,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -456,10 +456,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         }
 
         Map<String, List<IndexingRule>> nt2rules = newHashMap();
-        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(new ImmutableTree(root));
+        ReadOnlyNodeTypeManager ntReg = createNodeTypeManager(TreeFactory.createReadOnlyTree(root));
 
         //Use Tree API to read ordered child nodes
-        ImmutableTree ruleTree = new ImmutableTree(indexRules);
+        Tree ruleTree = TreeFactory.createReadOnlyTree(indexRules);
         final List<String> allNames = getAllNodeTypes(ntReg);
         for (Tree ruleEntry : ruleTree.getChildren()) {
             IndexingRule rule = new IndexingRule(ruleEntry.getName(), indexRules.getChildNode(ruleEntry.getName()));
@@ -665,7 +665,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             }
 
             //Include all immediate child nodes to 'properties' node by default
-            Tree propTree = new ImmutableTree(propNode);
+            Tree propTree = TreeFactory.createReadOnlyTree(propNode);
             for (Tree prop : propTree.getChildren()) {
                 String propName = prop.getName();
                 NodeState propDefnNode = propNode.getChildNode(propName);
