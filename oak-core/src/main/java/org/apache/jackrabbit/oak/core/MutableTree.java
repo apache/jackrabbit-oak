@@ -25,7 +25,7 @@ import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
+import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.util.List;
@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.tree.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.tree.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 class MutableTree extends AbstractTree {
