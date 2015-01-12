@@ -38,8 +38,8 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -80,7 +80,7 @@ public class GlobalNameMapper implements NameMapper {
     }
 
     public GlobalNameMapper(NodeState root) {
-        this(new ImmutableRoot(root));
+        this(RootFactory.createReadOnlyRoot(root));
     }
 
     public GlobalNameMapper(Map<String, String> mappings) {
@@ -98,8 +98,8 @@ public class GlobalNameMapper implements NameMapper {
         reverse.setProperty(REP_PREFIXES, mappings.keySet(), STRINGS);
         reverse.setProperty(REP_URIS, mappings.values(), STRINGS);
 
-        this.namespaces = new ImmutableTree(forward.getNodeState());
-        this.nsdata = new ImmutableTree(reverse.getNodeState());
+        this.namespaces = TreeFactory.createReadOnlyTree(forward.getNodeState());
+        this.nsdata = TreeFactory.createReadOnlyTree(reverse.getNodeState());
     }
 
     @Override @Nonnull

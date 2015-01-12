@@ -33,10 +33,10 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -121,7 +121,7 @@ public abstract class NodeObserver implements Observer {
         if (previousRoot != null) {
             try {
                 NamePathMapper namePathMapper = new NamePathMapperImpl(
-                        new GlobalNameMapper(new ImmutableRoot(root)));
+                        new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
 
                 Set<String> oakPropertyNames = Sets.newHashSet();
                 for (String name : propertyNames) {

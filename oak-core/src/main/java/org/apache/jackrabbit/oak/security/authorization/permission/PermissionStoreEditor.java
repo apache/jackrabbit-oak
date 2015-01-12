@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypePredicate;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -85,7 +85,7 @@ final class PermissionStoreEditor implements AccessControlConstants, PermissionC
             if (isACE.apply(ace)) {
                 boolean isAllow = isGrantACE.apply(ace);
                 PrivilegeBits privilegeBits = bitsProvider.getBits(ace.getNames(REP_PRIVILEGES));
-                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), new ImmutableTree(ace));
+                Set<Restriction> restrictions = restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), TreeFactory.createReadOnlyTree(ace));
 
                 AcEntry entry = (privilegeBits.equals(jcrAll)) ?
                         new JcrAllAcEntry(ace, accessControlledPath, index, isAllow, privilegeBits, restrictions) :

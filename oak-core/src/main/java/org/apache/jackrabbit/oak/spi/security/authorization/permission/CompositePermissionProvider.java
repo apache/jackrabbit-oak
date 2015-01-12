@@ -30,7 +30,7 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBitsProvider;
@@ -49,7 +49,7 @@ public class CompositePermissionProvider implements PermissionProvider {
     private final List<AggregatedPermissionProvider> pps;
     private final CompositeRepositoryPermission repositoryPermission;
 
-    private ImmutableRoot immutableRoot;
+    private Root immutableRoot;
     private PrivilegeBitsProvider pbp;
 
     public CompositePermissionProvider(@Nonnull Root root, @Nonnull List<AggregatedPermissionProvider> pps) {
@@ -57,13 +57,13 @@ public class CompositePermissionProvider implements PermissionProvider {
         this.pps = pps;
 
         repositoryPermission = new CompositeRepositoryPermission();
-        immutableRoot = (root instanceof ImmutableRoot) ? (ImmutableRoot) root : new ImmutableRoot(root);
+        immutableRoot = RootFactory.createReadOnlyRoot(root);
         pbp = new PrivilegeBitsProvider(immutableRoot);
     }
 
     @Override
     public void refresh() {
-        immutableRoot = (root instanceof ImmutableRoot) ? (ImmutableRoot) root : new ImmutableRoot(root);
+        immutableRoot = RootFactory.createReadOnlyRoot(root);
         pbp = new PrivilegeBitsProvider(immutableRoot);
 
         for (PermissionProvider pp : pps) {
@@ -88,7 +88,7 @@ public class CompositePermissionProvider implements PermissionProvider {
 
     @Override
     public TreePermission getTreePermission(@Nonnull Tree tree, @Nonnull TreePermission parentPermission) {
-        ImmutableTree immTree = (tree instanceof ImmutableTree) ? (ImmutableTree) tree : immutableRoot.getTree(tree.getPath());
+        ImmutableTree immTree = (tree instanceof ImmutableTree) ? (ImmutableTree) tree : (ImmutableTree) immutableRoot.getTree(tree.getPath());
         if (tree.isRoot()) {
             return new CompositeTreePermission(immTree, new CompositeTreePermission());
         } else {
