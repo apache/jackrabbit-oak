@@ -36,6 +36,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.WriteResult;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.SplitDocumentCleanUp;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
@@ -86,6 +87,35 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         return new MongoSplitDocCleanUp(gcTypes, oldestRevTimeStamp, stats);
     }
 
+    @Override
+    protected Iterable<NodeDocument> identifyGarbage(final Set<SplitDocType> gcTypes,
+                                                     final long oldestRevTimeStamp) {
+        return transform(getNodeCollection().find(createQuery(gcTypes, oldestRevTimeStamp)),
+                new Function<DBObject, NodeDocument>() {
+            @Override
+            public NodeDocument apply(DBObject input) {
+                return store.convertFromDBObject(NODES, input);
+            }
+        });
+    }
+
+    private DBObject createQuery(Set<SplitDocType> gcTypes,
+                                 long oldestRevTimeStamp) {
+        //OR condition has to be first as we have a index for that
+        //((type == DEFAULT_NO_CHILD || type == PROP_COMMIT_ONLY ..) && _sdMaxRevTime < oldestRevTimeStamp(in secs)
+        QueryBuilder orClause = start();
+        for(SplitDocType type : gcTypes){
+            orClause.or(start(NodeDocument.SD_TYPE).is(type.typeCode()).get());
+        }
+        return start()
+                .and(
+                        orClause.get(),
+                        start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
+                                .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
+                                .get()
+                ).get();
+    }
+
     private void logSplitDocIdsTobeDeleted(DBObject query) {
         // Fetch only the id
         final BasicDBObject keys = new BasicDBObject(Document.ID, 1);
@@ -113,15 +143,21 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     private class MongoSplitDocCleanUp extends SplitDocumentCleanUp {
 
+        protected final Set<SplitDocType> gcTypes;
+        protected final long oldestRevTimeStamp;
+
         protected MongoSplitDocCleanUp(Set<SplitDocType> gcTypes,
                                        long oldestRevTimeStamp,
                                        VersionGCStats stats) {
-            super(gcTypes, oldestRevTimeStamp, stats);
+            super(MongoVersionGCSupport.this.store, stats,
+                    identifyGarbage(gcTypes, oldestRevTimeStamp));
+            this.gcTypes = gcTypes;
+            this.oldestRevTimeStamp = oldestRevTimeStamp;
         }
 
         @Override
         protected int deleteSplitDocuments() {
-            DBObject query = createQuery();
+            DBObject query = createQuery(gcTypes, oldestRevTimeStamp);
 
             if(LOG.isDebugEnabled()){
                 //if debug level logging is on then determine the id of documents to be deleted
@@ -135,33 +171,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 LOG.warn("Error occurred while deleting old split documents from Mongo {}", writeResult.getError());
             }
             return writeResult.getN();
-        }
-
-        @Override
-        protected Iterable<NodeDocument> identifyGarbage() {
-            return transform(getNodeCollection().find(createQuery()),
-                    new Function<DBObject, NodeDocument>() {
-                @Override
-                public NodeDocument apply(DBObject input) {
-                    return store.convertFromDBObject(NODES, input);
-                }
-            });
-        }
-
-        private DBObject createQuery() {
-            //OR condition has to be first as we have a index for that
-            //((type == DEFAULT_NO_CHILD || type == PROP_COMMIT_ONLY ..) && _sdMaxRevTime < oldestRevTimeStamp(in secs)
-            QueryBuilder orClause = start();
-            for(SplitDocType type : gcTypes){
-                orClause.or(start(NodeDocument.SD_TYPE).is(type.typeCode()).get());
-            }
-            return start()
-                    .and(
-                            orClause.get(),
-                            start(NodeDocument.SD_MAX_REV_TIME_IN_SECS)
-                                    .lessThan(NodeDocument.getModifiedInSecs(oldestRevTimeStamp))
-                                    .get()
-                    ).get();
         }
     }
 }

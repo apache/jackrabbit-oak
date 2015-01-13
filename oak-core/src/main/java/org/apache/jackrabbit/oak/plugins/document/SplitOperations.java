@@ -33,6 +33,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -53,6 +55,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.removePrev
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setHasBinary;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setPrevious;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PROPERTY_OR_DELETED;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getPreviousIdFor;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
 
 /**
@@ -60,6 +63,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNe
  */
 class SplitOperations {
 
+    private static final Logger LOG = LoggerFactory.getLogger(SplitOperations.class);
     private static final DocumentStore STORE = new MemoryDocumentStore();
 
     private final NodeDocument doc;
@@ -128,8 +132,11 @@ class SplitOperations {
         // create intermediate docs if needed
         createIntermediateDocs();
 
+        // remove stale references to previous docs
+        disconnectStalePrevDocs();
+
         // main document must be updated last
-        if (main != null && !splitOps.isEmpty()) {
+        if (main != null) {
             splitOps.add(main);
         }
 
@@ -142,7 +149,8 @@ class SplitOperations {
         // unless document is really big
         return doc.getLocalRevisions().size() + doc.getLocalCommitRoot().size() > NUM_REVS_THRESHOLD
                 || doc.getMemory() >= DOC_SIZE_THRESHOLD
-                || previous.size() >= PREV_SPLIT_FACTOR;
+                || previous.size() >= PREV_SPLIT_FACTOR
+                || !doc.getStalePrev().isEmpty();
     }
 
     /**
@@ -362,6 +370,41 @@ class SplitOperations {
             }
         }
         return committedLocally;
+    }
+
+    private void disconnectStalePrevDocs() {
+        NavigableMap<Revision, Range> ranges = doc.getPreviousRanges(true);
+        for (Map.Entry<Revision, String> entry : doc.getStalePrev().entrySet()) {
+            Revision r = entry.getKey();
+            if (r.getClusterId() != context.getClusterId()) {
+                // only process revisions of this cluster node
+                continue;
+            }
+            if (main == null) {
+                main = new UpdateOp(id, false);
+            }
+            NodeDocument.removeStalePrevious(main, r);
+
+            if (ranges.containsKey(r)
+                    && entry.getValue().equals(String.valueOf(ranges.get(r).height))) {
+                NodeDocument.removePrevious(main, r);
+            } else {
+                // reference was moved to an intermediate doc
+                // while the last GC was running
+                // -> need to locate intermediate doc and disconnect from there
+                int height = Integer.parseInt(entry.getValue());
+                NodeDocument intermediate = doc.findPrevReferencingDoc(r, height);
+                if (intermediate == null) {
+                    LOG.warn("Split document {} not referenced anymore. Main document is {}",
+                            getPreviousIdFor(doc.getPath(), r, height), id);
+                } else {
+                    UpdateOp op = new UpdateOp(intermediate.getId(), false);
+                    NodeDocument.removePrevious(op, r);
+                    splitOps.add(op);
+                }
+            }
+
+        }
     }
 
     private void trackHigh(Revision r) {
