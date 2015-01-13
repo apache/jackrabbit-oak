@@ -852,7 +852,9 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 Object o = n.get(key);
                 if (o instanceof String) {
                     copy.put(key, o);
-                } else if (o instanceof Number) {
+                } else if (o instanceof Long) {
+                    copy.put(key, o);
+                } else if (o instanceof Integer) {
                     copy.put(key, o);
                 } else if (o instanceof Boolean) {
                     copy.put(key, o);
