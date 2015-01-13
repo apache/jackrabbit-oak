@@ -29,8 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
+
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,15 +49,10 @@ public class VersionGarbageCollector {
     private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
             DEFAULT_LEAF, COMMIT_ROOT_ONLY);
 
-    VersionGarbageCollector(DocumentNodeStore nodeStore) {
+    VersionGarbageCollector(DocumentNodeStore nodeStore,
+                            VersionGCSupport gcSupport) {
         this.nodeStore = nodeStore;
-
-        if(nodeStore.getDocumentStore() instanceof MongoDocumentStore){
-            this.versionStore =
-                    new MongoVersionGCSupport((MongoDocumentStore) nodeStore.getDocumentStore());
-        }else {
-            this.versionStore = new VersionGCSupport(nodeStore.getDocumentStore());
-        }
+        this.versionStore = gcSupport;
     }
 
     public VersionGCStats gc(long maxRevisionAge, TimeUnit unit) {
@@ -91,8 +85,7 @@ public class VersionGarbageCollector {
     }
 
     private void collectSplitDocuments(VersionGCStats stats, long oldestRevTimeStamp) {
-        int count = versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp);
-        stats.splitDocGCCount += count;
+        versionStore.deleteSplitDocuments(GC_TYPES, oldestRevTimeStamp, stats);
     }
 
     private void collectDeletedDocuments(VersionGCStats stats, Revision headRevision, long oldestRevTimeStamp) {
@@ -130,6 +123,7 @@ public class VersionGarbageCollector {
         boolean ignoredGCDueToCheckPoint;
         int deletedDocGCCount;
         int splitDocGCCount;
+        int intermediateSplitDocGCCount;
 
 
         @Override
@@ -138,6 +132,7 @@ public class VersionGarbageCollector {
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
+                    ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     '}';
         }
     }
