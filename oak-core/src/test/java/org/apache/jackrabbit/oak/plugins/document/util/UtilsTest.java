@@ -17,8 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -90,5 +98,22 @@ public class UtilsTest {
         }
         time = System.currentTimeMillis() - time;
         System.out.println(time);
+    }
+
+    @Test
+    public void getAllDocuments() throws CommitFailedException {
+        DocumentNodeStore store = new DocumentMK.Builder().getNodeStore();
+        try {
+            NodeBuilder builder = store.getRoot().builder();
+            for (int i = 0; i < 1000; i++) {
+                builder.child("test-" + i);
+            }
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+            assertEquals(1001 /* root + 1000 children */, Iterables.size(
+                    Utils.getAllDocuments(store.getDocumentStore())));
+        } finally {
+            store.dispose();
+        }
     }
 }

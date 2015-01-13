@@ -805,6 +805,8 @@ public class MongoDocumentStore implements CachingDocumentStore {
                     copy.put(key, o);
                 } else if (o instanceof Long) {
                     copy.put(key, o);
+                } else if (o instanceof Integer) {
+                    copy.put(key, o);
                 } else if (o instanceof Boolean) {
                     copy.put(key, o);
                 } else if (o instanceof BasicDBObject) {
