@@ -201,8 +201,6 @@ class MutableRoot implements Root {
 
         boolean success = source.moveTo(newParent, newName);
         if (success) {
-            getTree(getParentPath(sourcePath)).updateChildOrder(false);
-            getTree(getParentPath(destPath)).updateChildOrder(false);
             lastMove = lastMove.setMove(sourcePath, newParent, newName);
             updated();
             // remember all move operations for further processing in the commit hooks.

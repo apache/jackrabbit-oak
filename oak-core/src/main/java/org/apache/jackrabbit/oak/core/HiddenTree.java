@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -91,11 +92,13 @@ public class HiddenTree implements Tree {
     }
 
     @Override
+    @CheckForNull
     public PropertyState getProperty(@Nonnull String name) {
         return null;
     }
 
     @Override
+    @CheckForNull
     public Status getPropertyStatus(@Nonnull String name) {
         return null;
     }
@@ -170,7 +173,7 @@ public class HiddenTree implements Tree {
     }
 
     @Override
-    public <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type) {
+    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type) {
         throw nonExistingTree();
     }
 
