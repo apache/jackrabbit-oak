@@ -33,18 +33,18 @@ public final class CIHelper {
      * @return  {@code true} iff running on
      * http://ci.apache.org/builders/oak-trunk-win7
      */
-    public static boolean buildBotTrunkWin7() {
-        String user = getenv("USERDOMAIN");
-        return user != null && user.startsWith("bb-win7");
+    public static boolean buildBotWin7Trunk() {
+        String build = getenv("BUILD_NAME");
+        return build != null && build.startsWith("buildbot-win7-oak-trunk");
     }
 
     /**
      * @return  {@code true} iff running on
      * http://ci.apache.org/builders/oak-trunk
      */
-    public static boolean buildBotTrunkLinux() {
-        String user = getenv("USER");
-        return user != null && user.startsWith("buildslave3");
+    public static boolean buildBotLinuxTrunk() {
+        String build = getenv("BUILD_NAME");
+        return build != null && build.startsWith("buildbot-linux-oak-trunk");
     }
 
     /**

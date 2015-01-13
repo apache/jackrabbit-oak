@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.stats;
 
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotTrunkWin7;
+import static org.apache.jackrabbit.oak.commons.CIHelper.buildBotWin7Trunk;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.concurrent.Executors;
@@ -48,7 +48,7 @@ public class ClockTest {
     @Test
     public void testClockDrift() throws InterruptedException {
         // FIXME OAK-1904 temporary hack to disable this test on Apache buildbot
-        assumeTrue(!buildBotTrunkWin7());
+        assumeTrue(!buildBotWin7Trunk());
         ScheduledExecutorService executor =
                 Executors.newSingleThreadScheduledExecutor();
 
