@@ -498,7 +498,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get(), WriteConcern.SAFE);
+            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get());
             invalidateCache(collection, key);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
@@ -514,7 +514,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         for(List<String> keyBatch : Lists.partition(keys, IN_CLAUSE_BATCH_SIZE)){
             DBObject query = QueryBuilder.start(Document.ID).in(keyBatch).get();
-            WriteResult writeResult = dbCollection.remove(query, WriteConcern.SAFE);
+            WriteResult writeResult = dbCollection.remove(query);
             invalidateCache(collection, keyBatch);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
@@ -660,7 +660,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
         long start = start();
         try {
             try {
-                WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
+                WriteResult writeResult = dbCollection.insert(inserts);
                 if (writeResult.getError() != null) {
                     return false;
                 }
@@ -703,7 +703,7 @@ public class MongoDocumentStore implements CachingDocumentStore {
                 }
             }
             try {
-                WriteResult writeResult = dbCollection.update(query.get(), update, false, true, WriteConcern.SAFE);
+                WriteResult writeResult = dbCollection.update(query.get(), update, false, true);
                 if (writeResult.getError() != null) {
                     throw new MicroKernelException("Update failed: " + writeResult.getError());
                 }
