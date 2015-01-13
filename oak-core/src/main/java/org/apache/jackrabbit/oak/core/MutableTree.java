@@ -20,29 +20,21 @@ package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
-
-import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.MutableRoot.Move;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractTree;
-import org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants;
+import org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
-class MutableTree extends AbstractTree {
+final class MutableTree extends AbstractMutableTree {
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance
@@ -54,44 +46,71 @@ class MutableTree extends AbstractTree {
      */
     private MutableTree parent;
 
+    /**
+     * Name of the tree
+     */
+    private String name;
+
+    private NodeBuilder nodeBuilder;
+
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    MutableTree(MutableRoot root, NodeBuilder builder, Move pendingMoves) {
-        super("", builder);
+    MutableTree(@Nonnull MutableRoot root, @Nonnull NodeBuilder nodeBuilder,
+            @Nonnull Move pendingMoves) {
+        this(root, pendingMoves, null, nodeBuilder, "");
+    }
+
+    private MutableTree(@Nonnull MutableRoot root, @Nonnull Move pendingMoves,
+            @Nullable MutableTree parent, @Nonnull NodeBuilder nodeBuilder, @Nonnull String name) {
         this.root = checkNotNull(root);
+        this.parent = parent;
+        this.name = checkNotNull(name);
+        this.nodeBuilder = nodeBuilder;
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
-    private MutableTree(MutableRoot root, MutableTree parent, String name, Move pendingMoves) {
-        super(name, parent.nodeBuilder.getChildNode(name));
-        this.root = checkNotNull(root);
-        this.parent = checkNotNull(parent);
-        this.pendingMoves = checkNotNull(pendingMoves);
+    //------------------------------------------------------------< AbstractMutableTree >---
+
+    @Override
+    @CheckForNull
+    protected AbstractMutableTree getParentOrNull() {
+        return parent;
+    }
+
+    @Nonnull
+    @Override
+    protected NodeBuilder getNodeBuilder() {
+        return nodeBuilder;
     }
 
     //-----------------------------------------------------< AbstractTree >---
 
     @Override
+    @Nonnull
     protected MutableTree createChild(String name) throws IllegalArgumentException {
-        return new MutableTree(root, this, name, pendingMoves);
+        return new MutableTree(root, pendingMoves, this,
+                nodeBuilder.getChildNode(checkNotNull(name)), name);
     }
 
     //------------------------------------------------------------< Tree >---
 
     @Override
+    @Nonnull
     public String getName() {
         beforeRead();
         return name;
     }
 
     @Override
+    @Nonnull
     public String getPath() {
         beforeRead();
         return super.getPath();
     }
 
     @Override
+    @Nonnull
     public Status getStatus() {
         beforeRead();
         return super.getStatus();
@@ -104,20 +123,13 @@ class MutableTree extends AbstractTree {
     }
 
     @Override
-    public MutableTree getParent() {
-        beforeRead();
-        checkState(parent != null, "root tree does not have a parent");
-        return parent;
-    }
-
-    @Override
-    public PropertyState getProperty(String name) {
+    public PropertyState getProperty(@Nonnull String name) {
         beforeRead();
         return super.getProperty(name);
     }
 
     @Override
-    public boolean hasProperty(String name) {
+    public boolean hasProperty(@Nonnull String name) {
         beforeRead();
         return super.hasProperty(name);
     }
@@ -129,29 +141,28 @@ class MutableTree extends AbstractTree {
     }
 
     @Override
-    public Status getPropertyStatus(String name) {
+    @CheckForNull
+    public Status getPropertyStatus(@Nonnull String name) {
         beforeRead();
         return super.getPropertyStatus(name);
     }
 
     @Override
+    @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
         beforeRead();
         return super.getProperties();
     }
 
     @Override
-    public Tree getChild(String name) {
+    @Nonnull
+    public Tree getChild(@Nonnull String name) {
         beforeRead();
-        if (!isHidden(name)) {
-            return createChild(name);
-        } else {
-            return new HiddenTree(this, name);
-        }
+        return super.getChild(name);
     }
 
     @Override
-    public boolean hasChild(String name) {
+    public boolean hasChild(@Nonnull String name) {
         beforeRead();
         return super.hasChild(name);
     }
@@ -163,6 +174,7 @@ class MutableTree extends AbstractTree {
     }
 
     @Override
+    @Nonnull
     public Iterable<Tree> getChildren() {
         beforeRead();
         return super.getChildren();
@@ -171,141 +183,68 @@ class MutableTree extends AbstractTree {
     @Override
     public boolean remove() {
         beforeWrite();
-        if (parent != null && parent.hasChild(name)) {
-            nodeBuilder.remove();
-            PropertyState order = parent.nodeBuilder.getProperty(OAK_CHILD_ORDER);
-            if (order != null) {
-                List<String> names = newArrayListWithCapacity(order.count());
-                for (String n : order.getValue(NAMES)) {
-                    if (!n.equals(name)) {
-                        names.add(n);
-                    }
-                }
-                parent.nodeBuilder.setProperty(OAK_CHILD_ORDER, names, NAMES);
-            }
+        boolean success = super.remove();
+        if (success) {
             root.updated();
-            return true;
-        } else {
-            return false;
         }
+        return success;
     }
 
     @Override
-    public Tree addChild(String name) {
-        checkArgument(!isHidden(name));
+    @Nonnull
+    public Tree addChild(@Nonnull String name) {
         beforeWrite();
-        if (!super.hasChild(name)) {
-            nodeBuilder.setChildNode(name);
-            PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
-            if (order != null) {
-                List<String> names = newArrayListWithCapacity(order.count() + 1);
-                for (String n : order.getValue(NAMES)) {
-                    if (!n.equals(name)) {
-                        names.add(n);
-                    }
-                }
-                names.add(name);
-                nodeBuilder.setProperty(OAK_CHILD_ORDER, names, NAMES);
-            }
+        Tree child;
+        if (hasChild(name)) {
+            child = createChild(name);
+        } else {
+            child = super.addChild(name);
             root.updated();
         }
-        return createChild(name);
+        return child;
     }
 
     @Override
     public void setOrderableChildren(boolean enable) {
         beforeWrite();
-        if (enable) {
-            updateChildOrder(true);
-        } else {
-            nodeBuilder.removeProperty(OAK_CHILD_ORDER);
-        }
+        super.setOrderableChildren(enable);
     }
 
     @Override
-    public boolean orderBefore(final String name) {
+    public boolean orderBefore(@Nullable String name) {
         beforeWrite();
-        if (parent == null) {
-            return false; // root does not have siblings
-        } else if (this.name.equals(name)) {
-            return false; // same node
-        }
-
-        // perform the reorder
-        List<String> names = newArrayListWithCapacity(10000);
-        NodeBuilder builder = parent.nodeBuilder;
-        boolean found = false;
-
-        // first try reordering based on the (potentially out-of-sync)
-        // child order property in the parent node
-        for (String n : builder.getNames(OAK_CHILD_ORDER)) {
-            if (n.equals(name) && parent.hasChild(name)) {
-                names.add(this.name);
-                found = true;
-            }
-            if (!n.equals(this.name)) {
-                names.add(n);
-            }
-        }
-
-        // if the target node name was not found in the parent's child order
-        // property, we need to fall back to recreating the child order list
-        if (!found) {
-            names.clear();
-            for (String n : parent.getChildNames()) {
-                if (n.equals(name)) {
-                    names.add(this.name);
-                    found = true;
-                }
-                if (!n.equals(this.name)) {
-                    names.add(n);
-                }
-            }
-        }
-
-        if (name == null) {
-            names.add(this.name);
-            found = true;
-        }
-
-        if (found) {
-            builder.setProperty(OAK_CHILD_ORDER, names, NAMES);
+        boolean success = super.orderBefore(name);
+        if (success) {
             root.updated();
-            return true;
-        } else {
-            // no such sibling (not existing or not accessible)
-            return false;
         }
+        return success;
     }
 
     @Override
-    public void setProperty(PropertyState property) {
-        checkArgument(!isHidden(property.getName()));
+    public void setProperty(@Nonnull PropertyState property) {
         beforeWrite();
-        nodeBuilder.setProperty(property);
+        super.setProperty(property);
         root.updated();
     }
 
     @Override
-    public <T> void setProperty(String name, T value) {
-        checkArgument(!isHidden(name));
+    public <T> void setProperty(@Nonnull String name, @Nonnull T value) {
         beforeWrite();
-        nodeBuilder.setProperty(name, value);
+        super.setProperty(name, value);
         root.updated();
     }
 
     @Override
-    public <T> void setProperty(String name, T value, Type<T> type) {
-        checkArgument(!isHidden(name));
+    public <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type) {
         beforeWrite();
-        nodeBuilder.setProperty(name, value, type);
+        super.setProperty(name, value, type);
         root.updated();
     }
 
     @Override
-    public void removeProperty(String name) {
+    public void removeProperty(@Nonnull String name) {
         beforeWrite();
-        nodeBuilder.removeProperty(name);
+        super.removeProperty(name);
         root.updated();
     }
 
@@ -315,9 +254,9 @@ class MutableTree extends AbstractTree {
      * @param parent  parent of this tree
      * @param name  name of this tree
      */
-    void setParentAndName(MutableTree parent, String name) {
-        this.name = name;
-        this.parent = parent;
+    void setParentAndName(@Nonnull MutableTree parent, @Nonnull String name) {
+        this.name = checkNotNull(name);
+        this.parent = checkNotNull(parent);
     }
 
     /**
@@ -326,10 +265,15 @@ class MutableTree extends AbstractTree {
      * @param newParent new parent for this tree
      * @param newName   new name for this tree
      */
-    boolean moveTo(MutableTree newParent, String newName) {
-        name = newName;
-        parent = newParent;
-        return nodeBuilder.moveTo(newParent.nodeBuilder, newName);
+    boolean moveTo(@Nonnull MutableTree newParent, @Nonnull String newName) {
+        name = checkNotNull(newName);
+        parent = checkNotNull(newParent);
+        boolean success = nodeBuilder.moveTo(newParent.nodeBuilder, newName);
+        if (success) {
+            parent.updateChildOrder(false);
+            newParent.updateChildOrder(false);
+        }
+        return success;
     }
 
     /**
@@ -343,26 +287,12 @@ class MutableTree extends AbstractTree {
         beforeRead();
         MutableTree child = this;
         for (String name : elements(path)) {
-            child = new MutableTree(root, child, name, pendingMoves);
+            child = new MutableTree(root, pendingMoves, child, child.nodeBuilder.getChildNode(name), name);
         }
         return child;
     }
 
-    /**
-     * Updates the child order to match any added or removed child nodes that
-     * are not yet reflected in the {@link TreeConstants#OAK_CHILD_ORDER}
-     * property. If the {@code force} flag is set, the child order is set
-     * in any case, otherwise only if the node already is orderable.
-     *
-     * @param force whether to add child order information if it doesn't exist
-     */
-    void updateChildOrder(boolean force) {
-        if (force || hasOrderableChildren()) {
-            nodeBuilder.setProperty(PropertyStates.createProperty(
-                    OAK_CHILD_ORDER, getChildNames(), Type.NAMES));
-        }
-    }
-
+    @Nonnull
     String getPathInternal() {
         if (parent == null) {
             return "/";
@@ -374,9 +304,9 @@ class MutableTree extends AbstractTree {
     }
 
     @Override
-    protected void buildPath(StringBuilder sb) {
+    protected void buildPath(@Nonnull StringBuilder sb) {
         if (parent != null) {
-            parent.buildPath(sb);
+            parent.buildPath(checkNotNull(sb));
             sb.append('/').append(name);
         }
     }

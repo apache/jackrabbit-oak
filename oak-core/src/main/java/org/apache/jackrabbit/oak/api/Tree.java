@@ -333,7 +333,7 @@ public interface Tree {
      * @param <T>   The type of this property.
      * @throws IllegalArgumentException if {@code name} is not valid.
      */
-    <T> void setProperty(@Nonnull String name, @Nonnull T value, Type<T> type)
+    <T> void setProperty(@Nonnull String name, @Nonnull T value, @Nonnull Type<T> type)
             throws IllegalArgumentException;
 
     /**
