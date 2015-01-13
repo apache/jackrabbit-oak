@@ -55,6 +55,7 @@ import com.google.common.collect.Maps;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNewer;
@@ -152,7 +153,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * <p>
      * Key: high revision
      * <p>
-     * Value: low revision
+     * Value: low revision / height (see {@link Range#getLowValue()}
      */
     private static final String PREVIOUS = "_prev";
 
@@ -206,6 +207,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static final String PATH = "_path";
 
     public static final String HAS_BINARY_FLAG = "_bin";
+
+    /**
+     * Contains {@link #PREVIOUS} entries that are considered stale (pointing
+     * to a previous document that had been deleted) and should be removed
+     * during the next split run.
+     */
+    private static final String STALE_PREV = "_stalePrev";
 
     //~----------------------------< Split Document Types >
 
@@ -312,7 +320,8 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     final DocumentStore store;
 
     /**
-     * Parsed and sorted set of previous revisions.
+     * Parsed and sorted set of previous revisions (without stale references
+     * to removed previous documents).
      */
     private NavigableMap<Revision, Range> previous;
 
@@ -970,27 +979,67 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
 
     /**
      * Returns previous revision ranges for this document. The revision keys are
-     * sorted descending, newest first!
+     * sorted descending, newest first! The returned map does not include stale
+     * entries.
+     * This method is equivalent to calling {@link #getPreviousRanges(boolean)}
+     * with {@code includeStale} set to false.
      *
      * @return the previous ranges for this document.
      */
     @Nonnull
     NavigableMap<Revision, Range> getPreviousRanges() {
-        if (previous == null) {
-            Map<Revision, String> map = getLocalMap(PREVIOUS);
-            if (map.isEmpty()) {
-                previous = EMPTY_RANGE_MAP;
-            } else {
-                NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
-                        StableRevisionComparator.REVERSE);
-                for (Map.Entry<Revision, String> entry : map.entrySet()) {
-                    Range r = Range.fromEntry(entry.getKey(), entry.getValue());
-                    transformed.put(r.high, r);
-                }
-                previous = Maps.unmodifiableNavigableMap(transformed);
+        return getPreviousRanges(false);
+    }
+
+    /**
+     * Returns previous revision ranges for this document. The revision keys are
+     * sorted descending, newest first!
+     *
+     * @param includeStale whether stale revision ranges are included or not.
+     * @return the previous ranges for this document.
+     */
+    @Nonnull
+    NavigableMap<Revision, Range> getPreviousRanges(boolean includeStale) {
+        if (includeStale) {
+            return createPreviousRanges(true);
+        } else {
+            if (previous == null) {
+                previous = createPreviousRanges(false);
             }
+            return previous;
         }
-        return previous;
+    }
+
+    /**
+     * Creates a map with previous revision ranges for this document. The
+     * revision keys are sorted descending, newest first!
+     *
+     * @param includeStale whether stale revision ranges are included or not.
+     * @return the previous ranges for this document.
+     */
+    @Nonnull
+    private NavigableMap<Revision, Range> createPreviousRanges(boolean includeStale) {
+        NavigableMap<Revision, Range> ranges;
+        Map<Revision, String> map = getLocalMap(PREVIOUS);
+        if (map.isEmpty()) {
+            ranges = EMPTY_RANGE_MAP;
+        } else {
+            Map<Revision, String> stale = Collections.emptyMap();
+            if (!includeStale) {
+                stale = getLocalMap(STALE_PREV);
+            }
+            NavigableMap<Revision, Range> transformed = new TreeMap<Revision, Range>(
+                    StableRevisionComparator.REVERSE);
+            for (Map.Entry<Revision, String> entry : map.entrySet()) {
+                Range r = Range.fromEntry(entry.getKey(), entry.getValue());
+                if (String.valueOf(r.height).equals(stale.get(r.high))) {
+                    continue;
+                }
+                transformed.put(r.high, r);
+            }
+            ranges = Maps.unmodifiableNavigableMap(transformed);
+        }
+        return ranges;
     }
 
     /**
@@ -1094,6 +1143,40 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     }
 
     /**
+     * Returns the document that contains a reference to the previous document
+     * identified by {@code revision} and {@code height}. This is either the
+     * current document or an intermediate split document. This method returns
+     * {@code null} if there is no such reference.
+     *
+     * @param revision the high revision of a range entry in {@link #PREVIOUS}.
+     * @param height the height of the entry in {@link #PREVIOUS}.
+     * @return the document with the entry or {@code null} if not found.
+     */
+    @Nullable
+    NodeDocument findPrevReferencingDoc(Revision revision, int height) {
+        for (Range range : getPreviousRanges().values()) {
+            if (range.getHeight() == height && range.high.equals(revision)) {
+                return this;
+            } else if (range.includes(revision)) {
+                String prevId = Utils.getPreviousIdFor(
+                        getMainPath(), range.high, range.height);
+                NodeDocument prev = store.find(NODES, prevId);
+                if (prev == null) {
+                    LOG.warn("Split document {} does not exist anymore. Main document is {}",
+                            prevId, Utils.getIdFromPath(getMainPath()));
+                    continue;
+                }
+                // recurse into the split hierarchy
+                NodeDocument doc = prev.findPrevReferencingDoc(revision, height);
+                if (doc != null) {
+                    return doc;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns the local value map for the given key.
      *
      * @param key the key.
@@ -1125,6 +1208,11 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     @Nonnull
     SortedMap<Revision, String> getLocalDeleted() {
         return getLocalMap(DELETED);
+    }
+
+    @Nonnull
+    SortedMap<Revision, String> getStalePrev() {
+        return getLocalMap(STALE_PREV);
     }
 
     //-------------------------< UpdateOp modifiers >---------------------------
@@ -1229,6 +1317,18 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
     public static void removePrevious(@Nonnull UpdateOp op,
                                       @Nonnull Revision revision) {
         checkNotNull(op).removeMapEntry(PREVIOUS, checkNotNull(revision));
+    }
+
+    public static void setStalePrevious(@Nonnull UpdateOp op,
+                                        @Nonnull Revision revision,
+                                        int height) {
+        checkNotNull(op).setMapEntry(STALE_PREV,
+                checkNotNull(revision), String.valueOf(height));
+    }
+
+    public static void removeStalePrevious(@Nonnull UpdateOp op,
+                                           @Nonnull Revision revision) {
+        checkNotNull(op).removeMapEntry(STALE_PREV, checkNotNull(revision));
     }
 
     public static void setHasBinary(@Nonnull UpdateOp op) {
