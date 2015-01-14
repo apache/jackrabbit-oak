@@ -22,7 +22,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -73,13 +72,10 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     public Validator getRootValidator(
             NodeState before, NodeState after, CommitInfo info) {
         PermissionProvider pp = acConfig.getPermissionProvider(RootFactory.createReadOnlyRoot(before), workspaceName, principals);
-
-        ImmutableTree rootBefore = new ImmutableTree(before);
-        ImmutableTree rootAfter = new ImmutableTree(after);
         if (moveTracker.isEmpty()) {
-            return new PermissionValidator(rootBefore, rootAfter, pp, this);
+            return new PermissionValidator(before, after, pp, this);
         } else {
-            return new MoveAwarePermissionValidator(rootBefore, rootAfter, pp, this, moveTracker);
+            return new MoveAwarePermissionValidator(before, after, pp, this, moveTracker);
         }
     }
 
