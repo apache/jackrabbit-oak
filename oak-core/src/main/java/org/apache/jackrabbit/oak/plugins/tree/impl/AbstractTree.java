@@ -111,7 +111,7 @@ public abstract class AbstractTree implements Tree {
      */
     @Nonnull
     protected Iterable<String> getChildNames() {
-        NodeBuilder nodeBuilder =getNodeBuilder();
+        NodeBuilder nodeBuilder = getNodeBuilder();
         PropertyState order = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (order != null && order.getType() == NAMES) {
             Set<String> names = newLinkedHashSet(nodeBuilder.getChildNodeNames());
