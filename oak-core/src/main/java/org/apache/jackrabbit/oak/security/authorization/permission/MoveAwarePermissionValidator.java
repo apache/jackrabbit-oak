@@ -40,8 +40,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
 
     private final MoveContext moveCtx;
 
-    MoveAwarePermissionValidator(@Nonnull ImmutableTree rootBefore,
-                                 @Nonnull ImmutableTree rootAfter,
+    MoveAwarePermissionValidator(@Nonnull NodeState rootBefore,
+                                 @Nonnull NodeState rootAfter,
                                  @Nonnull PermissionProvider permissionProvider,
                                  @Nonnull PermissionValidatorProvider provider,
                                  @Nonnull MoveTracker moveTracker) {
@@ -49,10 +49,10 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         moveCtx = new MoveContext(moveTracker, rootBefore, rootAfter);
     }
 
-    MoveAwarePermissionValidator(@Nullable ImmutableTree parentBefore,
-                                 @Nullable ImmutableTree parentAfter,
-                                 @Nonnull TreePermission parentPermission,
-                                 @Nonnull PermissionValidator parentValidator) {
+    private MoveAwarePermissionValidator(@Nullable Tree parentBefore,
+                                         @Nullable Tree parentAfter,
+                                         @Nonnull TreePermission parentPermission,
+                                         @Nonnull PermissionValidator parentValidator) {
         super(parentBefore, parentAfter, parentPermission, parentValidator);
 
         MoveAwarePermissionValidator pv = (MoveAwarePermissionValidator) parentValidator;
@@ -60,8 +60,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
     }
 
     @Override
-    PermissionValidator createValidator(@Nullable ImmutableTree parentBefore,
-                                        @Nullable ImmutableTree parentAfter,
+    PermissionValidator createValidator(@Nullable Tree parentBefore,
+                                        @Nullable Tree parentAfter,
                                         @Nonnull TreePermission parentPermission,
                                         @Nonnull PermissionValidator parentValidator) {
         if (moveCtx.containsMove(parentBefore, parentAfter)) {
@@ -71,8 +71,8 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         }
     }
 
-    private Validator visibleValidator(@Nonnull ImmutableTree source,
-                                       @Nonnull ImmutableTree dest) {
+    private Validator visibleValidator(@Nonnull Tree source,
+                                       @Nonnull Tree dest) {
         // TODO improve: avoid calculating the 'before' permissions in case the current parent permissions already point to the correct tree.
         ImmutableTree parent = (ImmutableTree) moveCtx.rootBefore.getTree("/");
         TreePermission tp = getPermissionProvider().getTreePermission(parent, TreePermission.EMPTY);
@@ -111,11 +111,11 @@ public class MoveAwarePermissionValidator extends PermissionValidator {
         private final Root rootAfter;
 
         private MoveContext(@Nonnull MoveTracker moveTracker,
-                            @Nonnull ImmutableTree before,
-                            @Nonnull ImmutableTree after) {
+                            @Nonnull NodeState before,
+                            @Nonnull NodeState after) {
             this.moveTracker = moveTracker;
-            rootBefore = RootFactory.createReadOnlyRoot(before.getNodeState());
-            rootAfter = RootFactory.createReadOnlyRoot(after.getNodeState());
+            rootBefore = RootFactory.createReadOnlyRoot(before);
+            rootAfter = RootFactory.createReadOnlyRoot(after);
         }
 
         private boolean containsMove(Tree parentBefore, Tree parentAfter) {
