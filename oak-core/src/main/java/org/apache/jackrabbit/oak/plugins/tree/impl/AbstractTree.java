@@ -31,7 +31,6 @@ import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.apache.jackrabbit.oak.api.Tree.Status.UNCHANGED;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
-import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.isHidden;
 
 import java.util.List;
 import java.util.Set;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.index.reference.NodeReferenceConstants;
 import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
  * {@code AbstractTree} provides default implementations for most
@@ -86,6 +86,17 @@ public abstract class AbstractTree implements Tree {
      */
     @Nonnull
     protected abstract NodeBuilder getNodeBuilder();
+
+    /**
+     * Determine whether an item should be hidden. I.e. not exposed through this
+     * tree.
+     *
+     * @param name  name of an item
+     * @return  {@code true} if the item is hidden, {@code false} otherwise.
+     */
+    protected boolean isHidden(String name) {
+        return NodeStateUtils.isHidden(name);
+    }
 
     /**
      * @return  the underlying {@code NodeState} of this tree
