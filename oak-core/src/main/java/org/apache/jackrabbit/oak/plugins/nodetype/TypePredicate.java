@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -48,7 +49,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_P
  */
 public class TypePredicate implements Predicate<NodeState> {
 
-    public static TypePredicate isOrderable(NodeState root) {
+    @Nonnull
+    public static TypePredicate isOrderable(@Nonnull NodeState root) {
         Set<String> orderable = newHashSet();
         NodeState types = checkNotNull(root)
                 .getChildNode(JCR_SYSTEM)
@@ -92,8 +94,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(
-            @Nonnull NodeState root, @Nonnull Iterable<String> names) {
+    public TypePredicate(@Nonnull NodeState root, @Nonnull Iterable<String> names) {
         this.root = root;
         this.names = names;
     }
@@ -106,8 +107,7 @@ public class TypePredicate implements Predicate<NodeState> {
      * @param root root node state
      * @param names Oak names of the node types to check for
      */
-    public TypePredicate(
-            @Nonnull NodeState root, @Nonnull String[] names) {
+    public TypePredicate(@Nonnull NodeState root, @Nonnull String[] names) {
         this(root, Arrays.asList(names));
     }
 
@@ -169,15 +169,17 @@ public class TypePredicate implements Predicate<NodeState> {
     //---------------------------------------------------------< Predicate >--
 
     @Override
-    public boolean apply(NodeState input) {
-        init();
-        if (primaryTypes != null
-                && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
-            return true;
-        }
-        if (mixinTypes != null
-                && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
-            return true;
+    public boolean apply(@Nullable NodeState input) {
+        if (input != null) {
+            init();
+            if (primaryTypes != null
+                    && primaryTypes.contains(input.getName(JCR_PRIMARYTYPE))) {
+                return true;
+            }
+            if (mixinTypes != null
+                    && any(input.getNames(JCR_MIXINTYPES), in(mixinTypes))) {
+                return true;
+            }
         }
         return false;
     }
