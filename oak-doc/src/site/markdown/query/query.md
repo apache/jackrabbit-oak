@@ -196,8 +196,8 @@ To define a property index on a subtree you have to add an index definition node
 _Optionally_ you can specify
 
 * a uniqueness constraint on a property index by setting the `unique` flag to `true`,
-* that the property index only applies to a certain node type by setting the `declaringNodeTypes` property
-  (where setting it to an empty array means all node types are indexed),
+* that the property index only applies to a certain node type by setting the 
+  `declaringNodeTypes` property,
 * the `entryCount` (a long), the estimated number of path entries in the index, 
   which is used for the cost estimation (a high entry count means a high cost)
 * the `keyCount` (a long), the estimated number of keys in the index,
