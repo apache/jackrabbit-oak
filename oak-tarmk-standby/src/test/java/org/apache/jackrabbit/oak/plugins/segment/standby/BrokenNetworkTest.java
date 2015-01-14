@@ -32,7 +32,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 public class BrokenNetworkTest extends TestBase {
-    final static int PROXY_PORT = 4711;
 
     @Before
     public void setUp() throws Exception {
@@ -115,7 +114,8 @@ public class BrokenNetworkTest extends TestBase {
     }
 
     private void useProxy(boolean ssl, int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        NetworkErrorProxy p = new NetworkErrorProxy(PROXY_PORT, LOCALHOST, port);
+        int proxyPort = Integer.valueOf(System.getProperty("standby.proxy.port", "4711"));
+        NetworkErrorProxy p = new NetworkErrorProxy(proxyPort, LOCALHOST, port);
         p.skipBytes(skipPosition, skipBytes);
         p.flipByte(flipPosition);
         p.run();
@@ -126,7 +126,7 @@ public class BrokenNetworkTest extends TestBase {
         addTestContent(store, "server");
         storeS.flush();  // this speeds up the test a little bit...
 
-        StandbyClient cl = new StandbyClient(LOCALHOST, PROXY_PORT, storeC, ssl, 5000);
+        StandbyClient cl = new StandbyClient(LOCALHOST, proxyPort, storeC, ssl, 5000);
         cl.run();
 
         try {
