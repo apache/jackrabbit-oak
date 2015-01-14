@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
 import com.google.common.io.ByteStreams;
+
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,11 +43,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.*;
 
 public class DataStoreTestBase extends TestBase {
-    final static int PROXY_PORT = 4711;
+
     protected boolean storesCanBeEqual = false;
 
     @Before
@@ -149,14 +148,14 @@ public class DataStoreTestBase extends TestBase {
         useProxy(0, 0, 150000, true);
     }
 
-
     private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
+        int proxyPort = Integer.valueOf(System.getProperty("standby.proxy.port", "4711"));
         final int mb = 1 * 1024 * 1024;
         int blobSize = 5 * mb;
         FileStore primary = getPrimary();
         FileStore secondary = getSecondary();
 
-        NetworkErrorProxy p = new NetworkErrorProxy(PROXY_PORT, LOCALHOST, port);
+        NetworkErrorProxy p = new NetworkErrorProxy(proxyPort, LOCALHOST, port);
         p.skipBytes(skipPosition, skipBytes);
         p.flipByte(flipPosition);
         p.run();
@@ -166,7 +165,7 @@ public class DataStoreTestBase extends TestBase {
         server.start();
         byte[] data = addTestContent(store, "server", blobSize);
 
-        StandbyClient cl = new StandbyClient("127.0.0.1", PROXY_PORT, secondary);
+        StandbyClient cl = new StandbyClient("127.0.0.1", proxyPort, secondary);
         cl.run();
 
         try {
