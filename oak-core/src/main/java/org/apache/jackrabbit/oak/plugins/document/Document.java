@@ -32,14 +32,19 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import com.google.common.collect.Maps;
 
 /**
- * A document corresponds to a node stored in the DocumentMK. A document contains
- * all the revisions of a node stored in the {@link DocumentStore}.
+ * A document corresponds to a node stored in the DocumentNodeStore. A document
+ * contains all the revisions of a node stored in the {@link DocumentStore}.
  */
 public class Document implements CacheValue {
 
     /**
-     * The node id, which contains the depth of the path
-     * (0 for root, 1 for children of the root), and then the path.
+     * The name of the field that contains the document id (the primary key /
+     * the key). The id uniquely identifies a document within a collection. The
+     * requirements and limits of the id are documented in the
+     * {@link DocumentStore} class.
+     * 
+     * For nodes, the document id contains the depth of the path (0 for root, 1
+     * for children of the root), and then the path.
      */
     public static final String ID = "_id";
 
@@ -60,7 +65,9 @@ public class Document implements CacheValue {
     private AtomicBoolean sealed = new AtomicBoolean(false);
 
     /**
-     * @return the id of this document or <code>null</code> if none is set.
+     * Get the id (the primary key) of this document.
+     * 
+     * @return the id or <code>null</code> if none is set.
      */
     @CheckForNull
     public String getId() {
@@ -68,7 +75,9 @@ public class Document implements CacheValue {
     }
 
     /**
-     * @return the modification count of this document or <code>null</code> if
+     * Get the modification count of this document.
+     * 
+     * @return the count or <code>null</code> if
      *         none is set.
      */
     @CheckForNull
