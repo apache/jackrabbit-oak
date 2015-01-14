@@ -40,7 +40,8 @@ public interface TreePermission {
      * @return The tree permission for the child tree identified by {@code childName}
      * and {@code childState}.
      */
-    TreePermission getChildPermission(String childName, NodeState childState);
+    @Nonnull
+    TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState);
 
     /**
      * Return if read access is granted for the {@code Tree} associated with
@@ -111,7 +112,7 @@ public interface TreePermission {
      */
     TreePermission EMPTY = new TreePermission() {
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return EMPTY;
         }
 
@@ -152,7 +153,7 @@ public interface TreePermission {
      */
     TreePermission ALL = new TreePermission() {
         @Override
-        public TreePermission getChildPermission(String childName, NodeState childState) {
+        public TreePermission getChildPermission(@Nonnull String childName, @Nonnull NodeState childState) {
             return ALL;
         }
 
