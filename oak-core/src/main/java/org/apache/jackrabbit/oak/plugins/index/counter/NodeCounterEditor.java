@@ -36,7 +36,7 @@ public class NodeCounterEditor implements Editor {
 
     public static final String DATA_NODE_NAME = ":index";
     public static final String COUNT_PROPERTY_NAME = ":count";
-    private static final int DEFAULT_RESOLUTION = 1000;
+    public static final int DEFAULT_RESOLUTION = 1000;
     
     private final NodeCounterRoot root;
     private final NodeCounterEditor parent;
