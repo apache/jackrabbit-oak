@@ -259,6 +259,18 @@ public class JsopTest extends TestCase {
 
     }
 
+    public void testSurrogates() {
+        String[][] tests = { { "surrogate-ok: \uD834\uDD1E", "surrogate-ok: \uD834\uDD1E" },
+                { "surrogate-broken: \ud800 ", "surrogate-broken: \\ud800 " },
+                { "surrogate-truncated: \ud800", "surrogate-truncated: \\ud800" } };
+
+        for (String[] test : tests) {
+            StringBuilder buff = new StringBuilder();
+            JsopBuilder.escape(test[0], buff);
+            assertEquals(test[1], buff.toString());
+        }
+    }
+
     static void test(String expected, String json) {
         String j2 = prettyPrintWithErrors(json);
         assertEquals(expected, j2);
