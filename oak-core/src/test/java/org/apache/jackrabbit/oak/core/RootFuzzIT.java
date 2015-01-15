@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootFuzzIT.Operation.Rebase;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -77,10 +78,10 @@ public class RootFuzzIT {
     private final NodeStoreFixture fixture;
 
     private NodeStore store1;
-    private SystemRoot root1;
+    private Root root1;
 
     private NodeStore store2;
-    private SystemRoot root2;
+    private Root root2;
 
     private int counter;
 
@@ -97,12 +98,12 @@ public class RootFuzzIT {
         counter = 0;
 
         store1 = fixture.createNodeStore();
-        root1 = new SystemRoot(store1);
+        root1 = RootFactory.createSystemRoot(store1, null, null, null, null, null);
         root1.getTree("/").addChild("root");
         root1.commit();
 
         store2 = fixture.createNodeStore();
-        root2 = new SystemRoot(store2);
+        root2 = RootFactory.createSystemRoot(store2, null, null, null, null, null);
         root2.getTree("/").addChild("root");
         root2.commit();
     }

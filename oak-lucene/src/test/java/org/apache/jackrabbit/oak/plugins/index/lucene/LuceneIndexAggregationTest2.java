@@ -45,7 +45,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.SimpleNodeAggregator;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
@@ -54,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -99,9 +99,9 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
                         NodeState base = builder.getNodeState();
                         NodeStore store = new MemoryNodeStore(base);
 
-                        Root root = new SystemRoot(store, new EditorHook(
+                        Root root = RootFactory.createSystemRoot(store, new EditorHook(
                             new CompositeEditorProvider(new NamespaceEditorProvider(),
-                                new TypeEditorProvider())));
+                                new TypeEditorProvider())), null, null, null, null);
 
                         NodeTypeRegistry.register(root, stream, "testing node types");
 
