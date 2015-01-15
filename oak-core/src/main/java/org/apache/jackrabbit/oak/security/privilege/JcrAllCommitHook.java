@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
@@ -28,10 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.util.Text;
-
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * JcrAllCommitHook is responsible for updating the jcr:all privilege definition
@@ -91,7 +90,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
             } else {
                 String p = path  + '/' + name;
                 if (Text.isDescendantOrEqual(p, PRIVILEGES_PATH)) {
-                    after.compareAgainstBaseState(EMPTY_NODE, new PrivilegeDiff(this, name, nodeBuilder.child(name)));
+                    EmptyNodeState.compareAgainstEmptyState(after, new PrivilegeDiff(this, name, nodeBuilder.child(name)));
                 }
             }
             return true;
