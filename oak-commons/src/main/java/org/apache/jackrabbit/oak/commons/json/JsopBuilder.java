@@ -285,6 +285,7 @@ public class JsopBuilder implements JsopWriter {
     private static void escape(String s, int length, StringBuilder buff) {
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
+            int ic = (int)c;
             switch (c) {
             case '"':
                 // quotation mark
@@ -316,10 +317,18 @@ public class JsopBuilder implements JsopWriter {
                 break;
             default:
                 if (c < ' ') {
-                    buff.append("\\u00");
-                    // guaranteed to be 1 or 2 hex digits only
-                    buff.append(Character.forDigit(c >>> 4, 16));
-                    buff.append(Character.forDigit(c & 15, 16));
+                    buff.append(String.format("\\u%04x", ic));
+                } else if (ic >= 0xD800 && ic <= 0xDBFF) {
+                    // isSurrogate(), only available in Java 7
+                    if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
+                        // ok surrogate
+                        buff.append(c);
+                        buff.append(s.charAt(i + 1));
+                        i += 1;
+                    } else {
+                        // broken surrogate -> escape
+                        buff.append(String.format("\\u%04x", ic));
+                    }
                 } else {
                     buff.append(c);
                 }
