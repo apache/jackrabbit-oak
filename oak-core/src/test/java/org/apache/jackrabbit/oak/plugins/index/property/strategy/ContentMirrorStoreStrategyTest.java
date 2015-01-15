@@ -137,7 +137,7 @@ public class ContentMirrorStoreStrategyTest {
         store.update(index, "b", null, null, EMPTY, KEY);
         Assert.assertTrue(
                 "ContentMirrorStoreStrategy should guarantee uniqueness on insert",
-                store.count(indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
+                store.count(root, indexMeta.getNodeState(), Collections.singleton("key"), 2) > 1);
     }
 
 }

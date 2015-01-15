@@ -167,21 +167,21 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public long count(NodeState indexMeta, Set<String> values, int max) {
-        return count(indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+    public long count(NodeState root, NodeState indexMeta, Set<String> values, int max) {
+        return count(root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
     @Override
-    public long count(final Filter filter, NodeState indexMeta, Set<String> values, int max) {
-        return count(filter, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
+    public long count(final Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max) {
+        return count(filter, root, indexMeta, INDEX_CONTENT_NODE_NAME, values, max);
     }
 
-    public long count(NodeState indexMeta, final String indexStorageNodeName,
+    public long count(NodeState root, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
-        return count(null, indexMeta, indexStorageNodeName, values, max);
+        return count(null, root, indexMeta, indexStorageNodeName, values, max);
     }
 
-    public long count(Filter filter, NodeState indexMeta, final String indexStorageNodeName,
+    public long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
         long count = 0;

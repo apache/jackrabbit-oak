@@ -298,7 +298,7 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         String uuid = before.getString(JCR_UUID);
-        if (uuid != null && check(definition.getNodeState(), REF_NAME, uuid)) {
+        if (uuid != null && check(root, definition.getNodeState(), REF_NAME, uuid)) {
             rmIds.add(uuid);
         }
         return new ReferenceEditor(this, name, uuid);
@@ -346,9 +346,9 @@ class ReferenceEditor extends DefaultEditor implements IndexEditor {
         }
     }
 
-    private static boolean check(NodeState definition, String name, String key) {
+    private static boolean check(NodeState root, NodeState definition, String name, String key) {
         return definition.hasChildNode(name)
-                && STORE.count(definition, name, of(key), 1) > 0;
+                && STORE.count(root, definition, name, of(key), 1) > 0;
     }
 
 }
