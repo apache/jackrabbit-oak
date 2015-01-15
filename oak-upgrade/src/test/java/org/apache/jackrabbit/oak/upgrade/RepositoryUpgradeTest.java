@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.upgrade;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
@@ -61,6 +62,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -249,7 +251,8 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
                         JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
                         JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
                         JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-                        REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE});
+                        REP_INDEX_DEFINITION_MANAGEMENT, JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE,
+                        "test:privilege", "test:aggregate"});
 
         JackrabbitSession session = createAdminSession();
         try {
@@ -309,6 +312,11 @@ public class RepositoryUpgradeTest extends AbstractRepositoryUpgradeTest {
             assertFalse(aggregate.isAbstract());
             assertTrue(aggregate.isAggregate());
             assertEquals(2, aggregate.getDeclaredAggregatePrivileges().length);
+
+            Privilege jcrAll = manager.getPrivilege("jcr:all");
+            List<Privilege> privileges = asList(jcrAll.getAggregatePrivileges());
+            assertTrue(privileges.contains(privilege));
+            assertTrue(privileges.contains(aggregate));
         } finally {
             session.logout();
         }
