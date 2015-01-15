@@ -18,6 +18,7 @@
  */
 /*global print, _, db, Object, ObjectId */
 
+/** @namespace */
 var oak = (function(global){
     "use strict";
 
@@ -28,7 +29,11 @@ var oak = (function(global){
     };
 
     /**
-     * Collects various stats related to Oak usage of Mongo
+     * Collects various stats related to Oak usage of Mongo.
+     *
+     * @memberof oak
+     * @method oak.systemStats
+     * @returns {object} system stats.
      */
     api.systemStats = function () {
         var result = {};
@@ -41,6 +46,13 @@ var oak = (function(global){
         return result;
     };
 
+    /**
+     * Collects various stats related to Oak indexes stored under /oak:index.
+     *
+     * @memberof oak
+     * @method indexStats
+     * @returns {Array} index stats.
+     */
     api.indexStats = function () {
         var result = [];
         var totalCount = 0;
@@ -68,8 +80,10 @@ var oak = (function(global){
      * and countChildren('/') as split docs, intermediate docs are not
      * accounted for
      *
-     * @param path
-     * @returns {number}
+     * @memberof oak
+     * @method countChildren
+     * @param {string} path the path of a node.
+     * @returns {number} the number of children, including all descendant nodes.
      */
     api.countChildren = function(path){
         var depth = pathDepth(path);
@@ -86,10 +100,13 @@ var oak = (function(global){
 
     /**
      * Provides stats related to number of child nodes
-     * below given path or total size taken by such nodes
+     * below given path or total size taken by such nodes.
      *
-     * @param path
-     * @returns {{count: number, size: number}}
+     * @memberof oak
+     * @method getChildStats
+     * @param {string} path the path of a node.
+     * @returns {{count: number, size: number}} statistics about the child nodes
+     *          including all descendants.
      */
     api.getChildStats = function(path){
         var count = 0;
@@ -103,10 +120,14 @@ var oak = (function(global){
 
     /**
      * Performs a breadth first traversal for nodes under given path
-     * and invokes the passed function for each child node
+     * and invokes the passed function for each child node.
      *
-     * @param path
-     * @param callable
+     * @memberof oak
+     * @method forEachChild
+     * @param {string} path the path of a node.
+     * @param callable a function to be called for each child node including all
+     *        descendant nodes. The MongoDB document is passed as the single
+     *        parameter of the function.
      */
     api.forEachChild = function(path, callable) {
         var depth = pathDepth(path);
@@ -119,6 +140,14 @@ var oak = (function(global){
         }
     };
 
+    /**
+     * Returns the path part of the given id.
+     *
+     * @memberof oak
+     * @method pathFromId
+     * @param {string} id the id of a Document in the nodes collection.
+     * @returns {string} the path derived from the id.
+     */
     api.pathFromId = function(id) {
         var index = id.indexOf(':');
         return id.substring(index + 1);
@@ -128,8 +157,11 @@ var oak = (function(global){
      * Checks the _lastRev for a given clusterId. The checks starts with the
      * given path and walks up to the root node.
      *
-     * @param path the path of a node to check
-     * @param clusterId the id of an oak cluster node.
+     * @memberof oak
+     * @method checkLastRevs
+     * @param {string} path the path of a node to check
+     * @param {number} clusterId the id of an oak cluster node.
+     * @returns {object} the result of the check.
      */
     api.checkLastRevs = function(path, clusterId) {
         return checkOrFixLastRevs(path, clusterId, true);
@@ -139,8 +171,11 @@ var oak = (function(global){
      * Fixes the _lastRev for a given clusterId. The fix starts with the
      * given path and walks up to the root node.
      *
-     * @param path the path of a node to fix
-     * @param clusterId the id of an oak cluster node.
+     * @memberof oak
+     * @method fixLastRevs
+     * @param {string} path the path of a node to fix
+     * @param {number} clusterId the id of an oak cluster node.
+     * @returns {object} the result of the fix.
      */
     api.fixLastRevs = function(path, clusterId) {
         return checkOrFixLastRevs(path, clusterId, false);
@@ -150,6 +185,10 @@ var oak = (function(global){
      * Returns statistics about the blobs collection in the current database.
      * The stats include the combined BSON size of all documents. The time to
      * run this command therefore heavily depends on the size of the collection.
+     *
+     * @memberof oak
+     * @method blobStats
+     * @returns {object} statistics about the blobs collection.
      */
     api.blobStats = function() {
         var result = {};
@@ -168,7 +207,10 @@ var oak = (function(global){
      * Converts the given Revision String into a more human readable version,
      * which also prints the date.
      *
-     * @param rev a revision string.
+     * @memberof oak
+     * @method formatRevision
+     * @param {string} rev a revision string.
+     * @returns {string} a human readable string representation of the revision.
      */
     api.formatRevision = function(rev) {
         return new Revision(rev).toReadableString();
@@ -177,7 +219,9 @@ var oak = (function(global){
     /**
      * Removes the complete subtree rooted at the given path.
      *
-     * @param path the path of the subtree to remove.
+     * @memberof oak
+     * @method removeDescendantsAndSelf
+     * @param {string} path the path of the subtree to remove.
      */
     api.removeDescendantsAndSelf = function(path) {
         var count = 0;
@@ -214,6 +258,10 @@ var oak = (function(global){
 
     /**
      * List all checkpoints.
+     *
+     * @memberof oak
+     * @method listCheckpoints
+     * @returns {object} all checkpoints
      */
     api.listCheckpoints = function() {
         var result = {};
@@ -240,7 +288,10 @@ var oak = (function(global){
     /**
      * Removes all checkpoints older than a given Revision.
      *
-     * @param rev checkpoints older than this revision are removed.
+     * @memberof oak
+     * @method removeCheckpointsOlderThan
+     * @param {string} rev checkpoints older than this revision are removed.
+     * @returns {object} the result of the MongoDB update.
      */
     api.removeCheckpointsOlderThan = function(rev) {
         if (rev === undefined) {
@@ -273,8 +324,11 @@ var oak = (function(global){
      * clusterId. This method will only remove collisions when the clusterId
      * is inactive.
      *
-     * @param path the path of a document
-     * @param clusterId collision markers for this clusterId will be removed.
+     * @memberof oak
+     * @method removeCollisions
+     * @param {string} path the path of a document
+     * @param {number} clusterId collision markers for this clusterId will be removed.
+     * @returns {object} the result of the MongoDB update.
      */
     api.removeCollisions = function(path, clusterId) {
         if (path === undefined) {
@@ -320,8 +374,10 @@ var oak = (function(global){
     /**
      * Finds the document with the given path.
      *
-     * @param path the path of the document.
-     * @returns the document or null if it doesn't exist.
+     * @memberof oak
+     * @method findOne
+     * @param {string} path the path of the document.
+     * @returns {object} the document or null if it doesn't exist.
      */
     api.findOne = function(path) {
         if (path === undefined) {
@@ -335,9 +391,12 @@ var oak = (function(global){
      * references to removed previous documents are counted and listed when
      * run with verbose set to true.
      *
-     * @param path the path of the document.
-     * @param verbose if true, the result object will contain a list of dangling
-     *        references to previous documents.
+     * @memberof oak
+     * @method checkHistory
+     * @param {string} path the path of the document.
+     * @param {boolean} [verbose=false] if true, the result object will contain a list
+     *        of dangling references to previous documents.
+     * @returns {object} the result of the check.
      */
     api.checkHistory = function(path, verbose) {
         return checkOrFixHistory(path, false, verbose);
@@ -348,9 +407,12 @@ var oak = (function(global){
      * references to removed previous documents are cleaned up and listed when
      * run with verbose set to true.
      *
-     * @param path the path of the document.
-     * @param verbose if true, the result object will contain a list of removed
-     *        references to previous documents.
+     * @memberof oak
+     * @method fixHistory
+     * @param {string} path the path of the document.
+     * @param {boolean} [verbose=false] if true, the result object will contain a list
+     *        of removed references to previous documents.
+     * @returns {object} the result of the fix.
      */
     api.fixHistory = function(path, verbose) {
         return checkOrFixHistory(path, true, verbose);
