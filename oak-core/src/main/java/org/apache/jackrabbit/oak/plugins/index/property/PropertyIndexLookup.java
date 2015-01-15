@@ -129,7 +129,7 @@ public class PropertyIndexLookup {
             return Double.POSITIVE_INFINITY;
         }
         return COST_OVERHEAD +
-                getStrategy(indexMeta).count(filter, indexMeta, encode(value), MAX_COST);
+                getStrategy(indexMeta).count(filter, root, indexMeta, encode(value), MAX_COST);
     }
 
     /**

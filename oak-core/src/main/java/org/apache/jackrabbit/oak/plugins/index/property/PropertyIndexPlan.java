@@ -72,6 +72,8 @@ public class PropertyIndexPlan {
     private static final IndexStoreStrategy UNIQUE =
             new UniqueEntryStoreStrategy();
 
+    private final NodeState root;
+
     private final NodeState definition;
 
     private final String name;
@@ -92,8 +94,9 @@ public class PropertyIndexPlan {
 
     private final int depth;
 
-    PropertyIndexPlan(String name, NodeState definition, Filter filter) {
+    PropertyIndexPlan(String name, NodeState root, NodeState definition, Filter filter) {
         this.name = name;
+        this.root = root;
         this.definition = definition;
         this.properties = newHashSet(definition.getNames(PROPERTY_NAMES));
 
@@ -136,7 +139,7 @@ public class PropertyIndexPlan {
 
                 if (restriction != null) {
                     Set<String> values = getValues(restriction);
-                    double cost = strategy.count(filter, definition, values, MAX_COST);
+                    double cost = strategy.count(filter, root, definition, values, MAX_COST);
                     if (cost < bestCost) {
                         bestDepth = depth;
                         bestValues = values;
@@ -153,7 +156,7 @@ public class PropertyIndexPlan {
                 if (constraint instanceof OrImpl) {
                     Set<String> values = findMultiProperty((OrImpl) constraint);
                     if (values != null) {
-                        double cost = strategy.count(filter, definition, values, MAX_COST);
+                        double cost = strategy.count(filter, root, definition, values, MAX_COST);
                         if (cost < bestCost) {
                             bestDepth = 1;
                             bestValues = values;
