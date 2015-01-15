@@ -63,9 +63,13 @@ public class MongoBlobStore extends CachingBlobStore {
         this(db, DEFAULT_CACHE_SIZE);
     }
 
-    public MongoBlobStore(DB db, long cacheSize){
+    public MongoBlobStore(DB db, long cacheSize) {
         super(cacheSize);
         this.db = db;
+        // use a block size of 2 MB - 1 KB, because MongoDB rounds up the
+        // space allocated for a record to the next power of two
+        // (there is an overhead per record, let's assume it is 1 KB at most)
+        setBlockSize(2 * 1024 * 1024 - 1024);
         initBlobCollection();
     }
 
