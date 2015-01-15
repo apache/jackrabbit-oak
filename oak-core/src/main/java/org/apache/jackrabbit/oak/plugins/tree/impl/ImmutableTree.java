@@ -71,7 +71,8 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  * {@code org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHidden(String)}.
  *
  * <h3>Equality and hash code</h3>
- * In contrast to {@link org.apache.jackrabbit.oak.core.MutableTree} the {@code ImmutableTree} implements
+ * In contrast to {@link org.apache.jackrabbit.oak.plugins.tree.impl.AbstractMutableTree}
+ * the {@code ImmutableTree} implements
  * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s
  * are consider equal if their name and the underlying {@code NodeState}s are equal. Note
  * however, that according to the contract defined in {@code NodeState} these

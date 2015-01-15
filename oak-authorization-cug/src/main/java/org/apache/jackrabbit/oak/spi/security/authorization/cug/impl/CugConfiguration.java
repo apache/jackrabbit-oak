@@ -41,11 +41,11 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -153,10 +153,9 @@ public class CugConfiguration extends ConfigurationBase implements Authorization
                 NodeState base = builder.getNodeState();
                 NodeStore store = new MemoryNodeStore(base);
 
-                Root root = new SystemRoot(store,
-                        new EditorHook(new CompositeEditorProvider(
-                                new NamespaceEditorProvider(),
-                                new TypeEditorProvider())));
+                Root root = RootFactory.createSystemRoot(store,
+                        new EditorHook(new CompositeEditorProvider(new NamespaceEditorProvider(), new TypeEditorProvider())),
+                        null, null, null, null);
                 if (CugUtil.registerCugNodeTypes(root)) {
                     NodeState target = store.getRoot();
                     target.compareAgainstBaseState(base, new ApplyDiff(builder));
