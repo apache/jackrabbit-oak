@@ -172,15 +172,28 @@ public class RDBDocumentSerializer {
             "\\u001c", "\\u001d", "\\u001e", "\\u001f" };
 
     private static void appendString(StringBuilder sb, String s) {
+        int length = s.length();
         sb.append('"');
-        for (int i = 0; i < s.length(); i++) {
+        for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
+            int ic = (int) c;
             if (c == '"') {
                 sb.append("\\\"");
             } else if (c == '\\') {
                 sb.append("\\\\");
             } else if (c >= 0 && c < 0x20) {
                 sb.append(JSONCONTROLS[c]);
+            } else if (ic >= 0xD800 && ic <= 0xDBFF) {
+                // isSurrogate(), only available in Java 7
+                if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
+                    // ok surrogate
+                    sb.append(c);
+                    sb.append(s.charAt(i + 1));
+                    i += 1;
+                } else {
+                    // broken surrogate -> escape
+                    sb.append(String.format("\\u%04X", ic));
+                }
             } else {
                 sb.append(c);
             }

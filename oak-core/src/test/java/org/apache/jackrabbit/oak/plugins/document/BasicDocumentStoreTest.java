@@ -191,7 +191,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
         String[] tests = new String[] {
-            "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E", "tab:a\tb", "nul:a\u0000b"
+            "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E", "tab:a\tb", "nul:a\u0000b",
+            "brokensurrogate:\ud800"
         };
 
         for (String t : tests) {
@@ -199,10 +200,10 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String testname = t.substring(0, pos);
             String test = t.substring(pos + 1);
             String id = this.getClass().getName() + ".testInterestingStrings-" + testname;
+            super.ds.remove(Collection.NODES, id);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             up.set("foo", test);
-            super.ds.remove(Collection.NODES, id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
             assertTrue("failed to insert a document with property value of " + test + " in " + super.dsname, success);
             // re-read from persistence
