@@ -149,7 +149,7 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public long count(NodeState indexMeta, Set<String> values, int max) {
+    public long count(NodeState root, NodeState indexMeta, Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(INDEX_CONTENT_NODE_NAME);
         long count = 0;
         if (values == null) {
@@ -183,8 +183,8 @@ public class UniqueEntryStoreStrategy implements IndexStoreStrategy {
     }
 
     @Override
-    public long count(final Filter filter, NodeState indexMeta, Set<String> values, int max) {
-        return count(indexMeta, values, max);
+    public long count(final Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max) {
+        return count(root, indexMeta, values, max);
     }
     
 }

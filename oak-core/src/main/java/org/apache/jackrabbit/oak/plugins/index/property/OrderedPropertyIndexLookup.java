@@ -177,7 +177,7 @@ public class OrderedPropertyIndexLookup {
         if (indexMeta != null) {
             // we relay then on the standard property index for the cost
             cost = COST_OVERHEAD
-                   + getStrategy(indexMeta).count(indexMeta, PropertyIndex.encode(value), MAX_COST);
+                   + getStrategy(indexMeta).count(root, indexMeta, PropertyIndex.encode(value), MAX_COST);
         }
         return cost;
     }

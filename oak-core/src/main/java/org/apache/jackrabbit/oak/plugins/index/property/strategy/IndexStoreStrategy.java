@@ -57,24 +57,26 @@ public interface IndexStoreStrategy {
     /**
      * Count the occurrence of a given set of values. Used in calculating the
      * cost of an index.
-     * 
+     *
+     * @param root the root node (may not be null)
      * @param indexMeta the index metadata node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @param max the maximum value to return
      * @return the aggregated count of occurrences for each provided value
      */
-    long count(NodeState indexMeta, Set<String> values, int max);
+    long count(NodeState root, NodeState indexMeta, Set<String> values, int max);
 
     /**
      * Count the occurrence of a given set of values. Used in calculating the
      * cost of an index.
      *
      * @param filter the filter which can be used to estimate better cost
+     * @param root the root node (may not be null)
      * @param indexMeta the index metadata node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @param max the maximum value to return
      * @return the aggregated count of occurrences for each provided value
      */
-    long count(Filter filter, NodeState indexMeta, Set<String> values, int max);
+    long count(Filter filter, NodeState root, NodeState indexMeta, Set<String> values, int max);
 
 }
