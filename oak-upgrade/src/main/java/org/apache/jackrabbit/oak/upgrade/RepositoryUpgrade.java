@@ -499,6 +499,7 @@ public class RepositoryUpgrade {
                 def.setProperty(REP_AGGREGATES, names, NAMES);
             }
 
+            // FIXME: the privilege bits of aggregated privileges is not just 'next' but must be properly calculated from the aggregates
             PrivilegeBits bits = PrivilegeBits.BUILT_IN.get(name);
             if (bits != null) {
                 def.setProperty(bits.asPropertyState(REP_BITS));
