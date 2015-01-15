@@ -27,6 +27,7 @@ import java.util.zip.GZIPInputStream;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -166,38 +167,9 @@ public class RDBDocumentSerializer {
         sb.append("}");
     }
 
-    private static String[] JSONCONTROLS = new String[] { "\\u0000", "\\u0001", "\\u0002", "\\u0003", "\\u0004", "\\u0005",
-            "\\u0006", "\\u0007", "\\b", "\\t", "\\n", "\\u000b", "\\f", "\\r", "\\u000e", "\\u000f", "\\u0010", "\\u0011",
-            "\\u0012", "\\u0013", "\\u0014", "\\u0015", "\\u0016", "\\u0017", "\\u0018", "\\u0019", "\\u001a", "\\u001b",
-            "\\u001c", "\\u001d", "\\u001e", "\\u001f" };
-
     private static void appendString(StringBuilder sb, String s) {
-        int length = s.length();
         sb.append('"');
-        for (int i = 0; i < length; i++) {
-            char c = s.charAt(i);
-            int ic = (int) c;
-            if (c == '"') {
-                sb.append("\\\"");
-            } else if (c == '\\') {
-                sb.append("\\\\");
-            } else if (c >= 0 && c < 0x20) {
-                sb.append(JSONCONTROLS[c]);
-            } else if (ic >= 0xD800 && ic <= 0xDBFF) {
-                // isSurrogate(), only available in Java 7
-                if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
-                    // ok surrogate
-                    sb.append(c);
-                    sb.append(s.charAt(i + 1));
-                    i += 1;
-                } else {
-                    // broken surrogate -> escape
-                    sb.append(String.format("\\u%04X", ic));
-                }
-            } else {
-                sb.append(c);
-            }
-        }
+        JsopBuilder.escape(s, sb);
         sb.append('"');
     }
 
