@@ -26,7 +26,7 @@ import com.google.common.cache.Weigher;
  */
 public abstract class CachingBlobStore extends AbstractBlobStore {
 
-    protected static final long DEFAULT_CACHE_SIZE = 16*1024*1024;
+    protected static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 
     protected final CacheLIRS<String, byte[]> cache;
 
