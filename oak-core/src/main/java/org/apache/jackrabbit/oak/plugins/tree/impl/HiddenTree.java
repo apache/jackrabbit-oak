@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.core;
+package org.apache.jackrabbit.oak.plugins.tree.impl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -39,11 +39,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * Calls to any of the mutator methods on this class throws an
  * {@code IllegalStateException}.
  */
-public class HiddenTree implements Tree {
+class HiddenTree implements Tree {
     private final Tree parent;
     private final String name;
 
-    public HiddenTree(Tree parent, String name) {
+    HiddenTree(Tree parent, String name) {
         this.parent = parent;
         this.name = name;
     }
