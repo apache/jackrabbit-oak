@@ -217,7 +217,7 @@ public class JsopStreamTest extends TestCase {
         String json = buff.toString();
         assertEquals("+{\"foo\":\"bar\",\"int\":3,\"decimal\":3.0," +
                 "\"obj\":{\"boolean\":true,\"null\":null," +
-                "\"arr\":[[1,\"\\u001f ~ \\u007f \\u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
+                "\"arr\":[[1,\"\\u001f ~ \u007f \u0080\",\"42\"],[]]},\"some\":\"more\"}", json);
 
         buff.resetWriter();
         buff.array().
