@@ -214,6 +214,7 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     @Override
     public void start() {
         running.set(true);
+        state = STATUS_RUNNING;
     }
 
     @Override
