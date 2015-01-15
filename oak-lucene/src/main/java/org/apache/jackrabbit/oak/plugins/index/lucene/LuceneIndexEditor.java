@@ -43,13 +43,14 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.lucene.Aggregate.Matcher;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.tree.impl.ImmutableTree;
+import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -101,7 +102,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
      */
     private final boolean isDeleted;
 
-    private ImmutableTree current;
+    private Tree afterTree;
+
+    private Tree beforeTree;
 
     private IndexDefinition.IndexingRule indexingRule;
 
@@ -148,14 +151,16 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             context.enableReindexMode();
         }
 
-        //For traversal in deleted sub tree before state has to be used
-        NodeState currentState = after.exists() ? after : before;
         if (parent == null){
-            current = new ImmutableTree(currentState);
+            afterTree = TreeFactory.createReadOnlyTree(after);
+            beforeTree = TreeFactory.createReadOnlyTree(before);
         } else {
-            current = new ImmutableTree(parent.current, name, currentState);
+            afterTree = parent.afterTree.getChild(name);
+            beforeTree = parent.beforeTree.getChild(name);
         }
 
+        //For traversal in deleted sub tree before state has to be used
+        Tree current = afterTree.exists() ? afterTree : beforeTree;
         indexingRule = getDefinition().getApplicableIndexingRule(current);
 
         if (indexingRule != null) {

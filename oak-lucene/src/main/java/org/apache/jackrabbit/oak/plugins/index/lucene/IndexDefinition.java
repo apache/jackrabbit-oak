@@ -90,9 +90,14 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
 
 class IndexDefinition implements Aggregate.AggregateMapper{
+    /**
+     * Name of the internal property that contains the child order defined in
+     * org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants
+     */
+    private static final String OAK_CHILD_ORDER = ":childOrder";
+
     private static final Logger log = LoggerFactory.getLogger(IndexDefinition.class);
 
     /**
