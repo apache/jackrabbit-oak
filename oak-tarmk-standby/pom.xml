@@ -83,7 +83,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <systemPropertyVariables combine.children="append">
+          <systemPropertyVariables>
             <standby.server.port>${standby.server.port}</standby.server.port>
             <standby.proxy.port>${standby.poxy.port}</standby.proxy.port>
           </systemPropertyVariables>
