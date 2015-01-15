@@ -254,7 +254,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ' || c >= 127) {
+            if (c == '\"' || c == '\\' || c < ' ') {
                 StringBuilder buff = new StringBuilder(length + 2 + length / 8);
                 buff.append('\"');
                 escape(s, length, buff);
@@ -269,13 +269,20 @@ public class JsopBuilder implements JsopWriter {
      * Escape a string into the target buffer.
      *
      * @param s      the string to escape
+     * @param buff   the target buffer
+     */
+    public static void escape(String s, StringBuilder buff) {
+        escape(s, s.length(), buff);
+    }
+
+    /**
+     * Escape a string into the target buffer.
+     *
+     * @param s      the string to escape
      * @param length the number of characters.
      * @param buff   the target buffer
      */
-    public static void escape(String s, int length, StringBuilder buff) {
-        // TODO only backslashes, double quotes, and characters < 32 need to be
-        // escaped - but currently all special characters are escaped, which
-        // needs more time, memory, and storage space
+    private static void escape(String s, int length, StringBuilder buff) {
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
             switch (c) {
@@ -309,21 +316,10 @@ public class JsopBuilder implements JsopWriter {
                 break;
             default:
                 if (c < ' ') {
-                    // guaranteed to be 1 or 2 hex digits only
                     buff.append("\\u00");
-                    String hex = Integer.toHexString(c);
-                    if (hex.length() == 1) {
-                        buff.append('0');
-                    }
-                    buff.append(hex);
-                } else if (c >= 127) {
-                    // ascii only mode
-                    buff.append("\\u");
-                    String hex = Integer.toHexString(c);
-                    for (int len = hex.length(); len < 4; len++) {
-                        buff.append('0');
-                    }
-                    buff.append(hex);
+                    // guaranteed to be 1 or 2 hex digits only
+                    buff.append(Character.forDigit(c >>> 4, 16));
+                    buff.append(Character.forDigit(c & 15, 16));
                 } else {
                     buff.append(c);
                 }
