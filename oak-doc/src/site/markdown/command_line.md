@@ -49,3 +49,14 @@ Example:
 
     java -Dtar.memoryMapped=true -mx4g -jar oak-run-*.jar checkpoint <repository>
 
+### MongoDB Shell with oak-mongo.js
+
+MongoDB comes with a command line shell that can be extended with custom
+JavaScript. Oak provides a oak-mongo.js file with MongoMK specific extensions.
+You first need to download the JavaScript file and then start the MongoDB shell
+with the file.
+
+    wget http://s.apache.org/oak-mongo.js
+    mongo --shell oak-mongo.js
+    
+Now the MongoDB shell has an `oak` namespace with [additional functions](oak-mongo-js/oak.html).

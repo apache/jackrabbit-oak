@@ -196,6 +196,26 @@
           </systemPropertyVariables>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>com.phasebash.jsdoc</groupId>
+        <artifactId>jsdoc3-maven-plugin</artifactId>
+        <version>1.1.0</version>
+        <executions>
+          <execution>
+            <id>generate-jsdoc</id>
+            <phase>site</phase>
+            <goals>
+              <goal>jsdoc3</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <outputDirectory>../oak-doc/target/site/oak-mongo-js</outputDirectory>
+          <sourceFiles>
+            <sourceFile>src/main/js/oak-mongo.js</sourceFile>
+          </sourceFiles>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
