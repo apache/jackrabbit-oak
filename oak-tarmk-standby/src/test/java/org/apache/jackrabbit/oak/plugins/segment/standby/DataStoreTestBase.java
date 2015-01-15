@@ -149,7 +149,7 @@ public class DataStoreTestBase extends TestBase {
     }
 
     private void useProxy(int skipPosition, int skipBytes, int flipPosition, boolean intermediateChange) throws Exception {
-        int proxyPort = Integer.valueOf(System.getProperty("standby.proxy.port", "4711"));
+        int proxyPort = Integer.valueOf(System.getProperty("standby.proxy.port", "51913"));
         final int mb = 1 * 1024 * 1024;
         int blobSize = 5 * mb;
         FileStore primary = getPrimary();
