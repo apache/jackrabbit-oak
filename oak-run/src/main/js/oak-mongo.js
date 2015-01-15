@@ -133,7 +133,7 @@ var oak = (function(global){
      */
     api.checkLastRevs = function(path, clusterId) {
         return checkOrFixLastRevs(path, clusterId, true);
-    }
+    };
 
     /**
      * Fixes the _lastRev for a given clusterId. The fix starts with the
@@ -144,7 +144,7 @@ var oak = (function(global){
      */
     api.fixLastRevs = function(path, clusterId) {
         return checkOrFixLastRevs(path, clusterId, false);
-    }
+    };
 
     /**
      * Returns statistics about the blobs collection in the current database.
@@ -162,18 +162,22 @@ var oak = (function(global){
         result.bsonSize = Math.round(bsonSize / (1024 * 1024));
         result.indexSize = stats.totalIndexSize;
         return result;
-    }
+    };
 
     /**
      * Converts the given Revision String into a more human readable version,
      * which also prints the date.
+     *
+     * @param rev a revision string.
      */
     api.formatRevision = function(rev) {
         return new Revision(rev).toReadableString();
-    }
+    };
 
     /**
      * Removes the complete subtree rooted at the given path.
+     *
+     * @param path the path of the subtree to remove.
      */
     api.removeDescendantsAndSelf = function(path) {
         var count = 0;
@@ -206,7 +210,7 @@ var oak = (function(global){
             count += result.nRemoved;
         }
         return {nRemoved : count};
-    }
+    };
 
     /**
      * List all checkpoints.
@@ -231,10 +235,12 @@ var oak = (function(global){
             result[r] = {created:rev.asDate(), expires:new Date(parseInt(exp, 10))};
         }
         return result;
-    }
+    };
 
     /**
      * Removes all checkpoints older than a given Revision.
+     *
+     * @param rev checkpoints older than this revision are removed.
      */
     api.removeCheckpointsOlderThan = function(rev) {
         if (rev === undefined) {
@@ -260,11 +266,15 @@ var oak = (function(global){
         } else {
             print("No checkpoint older than " + rev);
         }
-    }
+    };
 
     /**
      * Removes all collision markers on the document with the given path and
-     * clusterId.
+     * clusterId. This method will only remove collisions when the clusterId
+     * is inactive.
+     *
+     * @param path the path of a document
+     * @param clusterId collision markers for this clusterId will be removed.
      */
     api.removeCollisions = function(path, clusterId) {
         if (path === undefined) {
@@ -283,7 +293,7 @@ var oak = (function(global){
             return;
         }
 
-        var doc = db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+        var doc = this.findOne(path);
         if (!doc) {
             print("No document for path: " + path);
             return;
@@ -305,9 +315,140 @@ var oak = (function(global){
         } else {
             print("No collisions found for clusterId " + clusterId);
         }
-    }
+    };
+
+    /**
+     * Finds the document with the given path.
+     *
+     * @param path the path of the document.
+     * @returns the document or null if it doesn't exist.
+     */
+    api.findOne = function(path) {
+        if (path === undefined) {
+            return null;
+        }
+        return db.nodes.findOne({_id: pathDepth(path) + ":" + path});
+    };
+
+    /**
+     * Checks the history of previous documents at the given path. Orphaned
+     * references to removed previous documents are counted and listed when
+     * run with verbose set to true.
+     *
+     * @param path the path of the document.
+     * @param verbose if true, the result object will contain a list of dangling
+     *        references to previous documents.
+     */
+    api.checkHistory = function(path, verbose) {
+        return checkOrFixHistory(path, false, verbose);
+    };
+
+    /**
+     * Repairs the history of previous documents at the given path. Orphaned
+     * references to removed previous documents are cleaned up and listed when
+     * run with verbose set to true.
+     *
+     * @param path the path of the document.
+     * @param verbose if true, the result object will contain a list of removed
+     *        references to previous documents.
+     */
+    api.fixHistory = function(path, verbose) {
+        return checkOrFixHistory(path, true, verbose);
+    };
 
     //~--------------------------------------------------< internal >
+
+    var checkOrFixHistory = function(path, fix, verbose) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (path.length > 165) {
+            print("Path too long");
+            return;
+        }
+
+        var doc = api.findOne(path);
+        if (!doc) {
+            return null;
+        }
+
+        var result = {};
+        result._id = pathDepth(path) + ":" + path;
+        if (verbose) {
+            result.prevDocs = [];
+            if (fix) {
+                result.prevLinksRemoved = [];
+            } else {
+                result.prevLinksDangling = [];
+            }
+        }
+        result.numPrevDocs = 0;
+        if (fix) {
+            result.numPrevLinksRemoved = 0;
+        } else {
+            result.numPrevLinksDangling = 0;
+        }
+
+
+        forEachPrev(doc, function traverse(d, high, low, height) {
+            var p = "p" + path;
+            if (p.charAt(p.length - 1) != "/") {
+                p += "/";
+            }
+            p += high + "/" + height;
+            var id = (pathDepth(path) + 2) + ":" + p;
+            var prev = db.nodes.findOne({_id: id });
+            if (prev) {
+                if (result.prevDocs) {
+                    result.prevDocs.push(high + "/" + height);
+                }
+                result.numPrevDocs++;
+                if (parseInt(height) > 0) {
+                    forEachPrev(prev, traverse);
+                }
+            } else if (fix) {
+                if (result.prevLinksRemoved) {
+                    result.prevLinksRemoved.push(high + "/" + height);
+                }
+                result.numPrevLinksRemoved++;
+                var update = {};
+                update.$inc = {_modCount : 1};
+                if (d._sdType == 40) { // intermediate split doc type
+                    update.$unset = {};
+                    update.$unset["_prev." + high] = 1;
+                } else {
+                    update.$set = {};
+                    update.$set["_stalePrev." + high] = height;
+                }
+                db.nodes.update({_id: d._id}, update);
+            } else {
+                if (result.prevLinksDangling) {
+                    result.prevLinksDangling.push(high + "/" + height);
+                }
+                result.numPrevLinksDangling++;
+            }
+        });
+        return result;
+    };
+
+    var forEachPrev = function(doc, callable) {
+        var stalePrev = doc._stalePrev;
+        if (!stalePrev) {
+            stalePrev = {};
+        }
+        var r;
+        for (r in doc._prev) {
+            var value = doc._prev[r];
+            var idx = value.lastIndexOf("/");
+            var height = value.substring(idx + 1);
+            var low = value.substring(0, idx);
+            if (stalePrev[r] == height) {
+                continue;
+            }
+            callable.call(this, doc, r, low, height);
+        }
+    };
 
     var checkOrFixLastRevs = function(path, clusterId, dryRun) {
          if (path === undefined) {
@@ -354,7 +495,7 @@ var oak = (function(global){
             }
          }
          return result;
-    }
+    };
 
     var Revision = function(rev) {
         var dashIdx = rev.indexOf("-");
@@ -362,11 +503,11 @@ var oak = (function(global){
         this.timestamp = parseInt(rev.substring(1, dashIdx), 16);
         this.counter = parseInt(rev.substring(dashIdx + 1, rev.indexOf("-", dashIdx + 1)), 16);
         this.clusterId = parseInt(rev.substring(rev.lastIndexOf("-") + 1), 16);
-    }
+    };
 
     Revision.prototype.toString = function () {
         return this.rev;
-    }
+    };
 
     Revision.prototype.isNewerThan = function(other) {
         if (this.timestamp > other.timestamp) {
@@ -376,19 +517,19 @@ var oak = (function(global){
         } else {
             return this.counter > other.counter;
         }
-    }
+    };
 
     Revision.prototype.toReadableString = function () {
         return this.rev + " (" + this.asDate().toString() + ")"
-    }
+    };
 
     Revision.prototype.asDate = function() {
         return new Date(this.timestamp);
-    }
+    };
 
     Revision.prototype.getClusterId = function() {
         return this.clusterId;
-    }
+    };
 
     var pathDepth = function(path){
         if(path === '/'){
