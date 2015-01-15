@@ -83,8 +83,6 @@ public class OSGiIT {
     @Inject
     private BundleContext context;
 
-    // FIXME remove the ignore
-    @Ignore("OAK-2402")
     @Test
     public void bundleStates() {
         assumeTrue(!buildBotTrunkLinux());
