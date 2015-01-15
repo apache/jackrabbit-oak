@@ -64,6 +64,12 @@ import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
  *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()}</li>
  * </ul>
  *
+ * <h3>Filtering 'hidden' items</h3>
+ * This {@code Tree} implementation reflects the item hierarchy as exposed by the
+ * underlying {@code NodeState}. In contrast to the mutable implementations it
+ * does not filter out 'hidden' items as identified by
+ * {@code org.apache.jackrabbit.oak.spi.state.NodeStateUtils#isHidden(String)}.
+ *
  * <h3>Equality and hash code</h3>
  * In contrast to {@link org.apache.jackrabbit.oak.core.MutableTree} the {@code ImmutableTree} implements
  * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s
@@ -76,7 +82,7 @@ public final class ImmutableTree extends AbstractTree {
     /**
      * Underlying node state
      */
-    private final NodeState state;
+    private final NodeBuilder nodeBuilder;
 
     /**
      * Name of this tree
@@ -96,15 +102,16 @@ public final class ImmutableTree extends AbstractTree {
     }
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name, @Nonnull NodeState state) {
-        this.state = state;
+        this.nodeBuilder = new ReadOnlyBuilder(state);
         this.name = name;
         this.parentProvider = checkNotNull(parentProvider);
     }
 
+    //-------------------------------------------------------< AbstractTree >---
     @Override
     @Nonnull
     protected ImmutableTree createChild(String name) {
-        return new ImmutableTree(this, name, state.getChildNode(name));
+        return new ImmutableTree(this, name, nodeBuilder.getNodeState().getChildNode(name));
     }
 
     @Override
@@ -116,7 +123,18 @@ public final class ImmutableTree extends AbstractTree {
     @Nonnull
     @Override
     protected NodeBuilder getNodeBuilder() {
-        return new ReadOnlyBuilder(state);
+        return nodeBuilder;
+    }
+
+    @Override
+    protected boolean isHidden(String name) {
+        return false;
+    }
+
+    @Nonnull
+    @Override
+    protected String[] getInternalNodeNames() {
+        return new String[0];
     }
 
     //---------------------------------------------------------------< Tree >---
@@ -136,31 +154,11 @@ public final class ImmutableTree extends AbstractTree {
         return path;
     }
 
-    @Override
-    public boolean hasChild(@Nonnull String name) {
-        return state.hasChildNode(checkNotNull(name));
-    }
-
-    @Override
     @Nonnull
-    public Status getStatus() {
-        return Status.UNCHANGED;
-    }
-
     @Override
-    @CheckForNull
-    public Status getPropertyStatus(@Nonnull String name) {
-        if (hasProperty(name)) {
-            return Status.UNCHANGED;
-        } else {
-            return null;
-        }
-    }
+    public ImmutableTree getChild(@Nonnull String name) throws IllegalArgumentException {
+        return createChild(name);
 
-    @Override
-    @Nonnull
-    public ImmutableTree getChild(@Nonnull String name) {
-        return createChild(checkNotNull(name));
     }
 
     @Override
@@ -208,7 +206,7 @@ public final class ImmutableTree extends AbstractTree {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName(), state);
+        return Objects.hashCode(getName(), nodeBuilder.getNodeState());
     }
 
     @Override
@@ -218,7 +216,7 @@ public final class ImmutableTree extends AbstractTree {
         }
         if (o instanceof ImmutableTree) {
             ImmutableTree other = (ImmutableTree) o;
-            return getName().equals(other.getName()) && state.equals(other.state);
+            return getName().equals(other.getName()) && nodeBuilder.getNodeState().equals(other.nodeBuilder.getNodeState());
         }
         return false;
     }
