@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.osgi;
 
 import static java.lang.System.getenv;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
@@ -33,6 +34,7 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -81,6 +83,18 @@ public class OSGiIT {
     @Inject
     private BundleContext context;
 
+    // FIXME remove the ignore
+    @Ignore("OAK-2402")
+    @Test
+    public void bundleStates() {
+        assumeTrue(!buildBotTrunkLinux());
+        for (Bundle bundle : context.getBundles()) {
+            assertEquals(
+                String.format("Bundle %s not active. have a look at the logs", bundle.toString()), 
+                Bundle.ACTIVE, bundle.getState());
+        }
+    }
+    
     @Test
     public void listBundles() {
         assumeTrue(!buildBotTrunkLinux());  // FIXME OAK-2374: fails often on http://ci.apache.org/builders/oak-trunk.
