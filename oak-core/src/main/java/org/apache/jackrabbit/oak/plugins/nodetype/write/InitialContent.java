@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import com.google.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
@@ -93,10 +93,10 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
 
         NodeState base = builder.getNodeState();
         NodeStore store = new MemoryNodeStore(base);
-        NodeTypeRegistry.registerBuiltIn(new SystemRoot(
+        NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
                 new NamespaceEditorProvider(),
-                new TypeEditorProvider()))));
+                new TypeEditorProvider())), null, null, null, null));
         NodeState target = store.getRoot();
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }

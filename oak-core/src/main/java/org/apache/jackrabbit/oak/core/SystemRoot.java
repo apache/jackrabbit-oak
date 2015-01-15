@@ -16,16 +16,13 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
@@ -50,19 +47,19 @@ public class SystemRoot extends MutableRoot {
         }
     };
 
-    private SystemRoot(
-            NodeStore store, CommitHook hook, String workspaceName,
-            SecurityProvider securityProvider, 
-            QueryEngineSettings queryEngineSettings,
-            QueryIndexProvider indexProvider,
-            ContentSessionImpl session) {
+    private SystemRoot(@Nonnull NodeStore store, @Nonnull CommitHook hook,
+                       @Nonnull String workspaceName, @Nonnull SecurityProvider securityProvider,
+                       @Nonnull QueryEngineSettings queryEngineSettings,
+                       @Nonnull QueryIndexProvider indexProvider,
+                       @Nonnull ContentSessionImpl session) {
         super(store, hook, workspaceName, SystemSubject.INSTANCE,
                 securityProvider, queryEngineSettings, indexProvider, session);
     }
 
-    public SystemRoot(final NodeStore store, final CommitHook hook, final String workspaceName,
-            final SecurityProvider securityProvider, final QueryEngineSettings queryEngineSettings, 
-            final QueryIndexProvider indexProvider) {
+    public SystemRoot(@Nonnull final NodeStore store, @Nonnull final CommitHook hook,
+                      @Nonnull final String workspaceName, @Nonnull final SecurityProvider securityProvider,
+                      @Nonnull final QueryEngineSettings queryEngineSettings,
+                      @Nonnull final QueryIndexProvider indexProvider) {
         this(store, hook, workspaceName, securityProvider, queryEngineSettings, indexProvider,
                 new ContentSessionImpl(
                         LOGIN_CONTEXT, securityProvider, workspaceName,
@@ -76,16 +73,4 @@ public class SystemRoot extends MutableRoot {
                     }
                 });
     }
-
-    public SystemRoot(NodeStore store) {
-        this(store, EmptyHook.INSTANCE);
-    }
-
-    public SystemRoot(NodeStore store, CommitHook hook) {
-        // FIXME: define proper default or pass workspace name with the constructor
-        this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, new OpenSecurityProvider(),
-                new QueryEngineSettings(),
-                new CompositeQueryIndexProvider());
-    }
-
 }
