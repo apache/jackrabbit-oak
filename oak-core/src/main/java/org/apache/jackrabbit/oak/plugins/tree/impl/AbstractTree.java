@@ -98,6 +98,11 @@ public abstract class AbstractTree implements Tree {
         return NodeStateUtils.isHidden(name);
     }
 
+    @Nonnull
+    protected String[] getInternalNodeNames() {
+        return INTERNAL_NODE_NAMES;
+    }
+
     /**
      * @return  the underlying {@code NodeState} of this tree
      */
@@ -278,17 +283,19 @@ public abstract class AbstractTree implements Tree {
 
     @Override
     public long getChildrenCount(long max) {
-        if (max + INTERNAL_NODE_NAMES.length < 0) {
+        String[] internalNodeNames = getInternalNodeNames();
+        int len = internalNodeNames.length;
+        if (max + len < 0) {
             // avoid overflow (if max is near Long.MAX_VALUE)
             max = Long.MAX_VALUE;
         } else {
             // fetch a few more
-            max += INTERNAL_NODE_NAMES.length;
+            max += len;
         }
         NodeBuilder nodeBuilder = getNodeBuilder();
         long count = nodeBuilder.getChildNodeCount(max);
         if (count > 0) {
-            for (String name : INTERNAL_NODE_NAMES) {
+            for (String name : internalNodeNames) {
                 if (nodeBuilder.hasChildNode(name)) {
                     count--;
                 }
