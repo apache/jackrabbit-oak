@@ -114,10 +114,7 @@
                 *
             </Import-Package>
             <Embed-Dependency>
-                lucene-*;inline=true,
-                <!-- TODO FIXME OAK-2270 -->
-                oak-core;inline="org/apache/jackrabbit/oak/plugins/tree/AbstractTree*|org/apache/jackrabbit/oak/plugins/tree/ImmutableTree*"
-                <!-- TODO FIXME OAK-2270 -->
+                lucene-*;inline=true
             </Embed-Dependency>
           </instructions>
         </configuration>
