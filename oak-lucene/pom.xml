@@ -101,12 +101,16 @@
         <configuration>
           <instructions>
             <!-- TODO: Should only provide services, not export packages  -->
+            <_exportcontents>
+              org.apache.lucene.*;version=${lucene.version}
+            </_exportcontents>
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.index.lucene,
               org.apache.jackrabbit.oak.plugins.index.lucene.util
             </Export-Package>
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
+                !org.apache.lucene.*,
                 *
             </Import-Package>
             <Embed-Dependency>
