@@ -18,7 +18,9 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -28,6 +30,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopReader;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -38,10 +42,6 @@ import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 /**
  * Serialization/Parsing of documents.
@@ -65,8 +65,8 @@ public class RDBDocumentSerializer {
     }
 
     /**
-     * Serializes all non-column properties of the {@link Document} into
-     * a JSON string.
+     * Serializes all non-column properties of the {@link Document} into a JSON
+     * string.
      */
     public String asString(@Nonnull Document doc) {
         StringBuilder sb = new StringBuilder(32768);
@@ -186,66 +186,85 @@ public class RDBDocumentSerializer {
             doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
         }
 
-        JSONParser jp = new JSONParser();
-
-        Map<String, Object> baseData = null;
         byte[] bdata = row.getBdata();
-        JSONArray arr = null;
-        int updatesStartAt = 0;
+        boolean blobInUse = false;
+        JsopTokenizer json;
 
         // case #1: BDATA (blob) contains base data, DATA (string) contains
         // update operations
         try {
             if (bdata != null && bdata.length != 0) {
-                baseData = (Map<String, Object>) jp.parse(fromBlobData(bdata));
+                String s = fromBlobData(bdata);
+                json = new JsopTokenizer(s);
+                json.read('{');
+                if (!json.matches('}')) {
+                    do {
+                        String key = json.readString();
+                        json.read(':');
+                        Object value = fromJson(json);
+                        doc.put(key, value);
+                    } while (json.matches(','));
+                    json.read('}');
+                    json.read(JsopReader.END);
+                }
+                blobInUse = true;
             }
-            // TODO figure out a faster way
-            arr = (JSONArray) new JSONParser().parse("[" + row.getData() + "]");
-        } catch (ParseException ex) {
+        } catch (Exception ex) {
             throw new DocumentStoreException(ex);
         }
 
-        // case #2: if we do not have BDATA (blob), the first part of DATA
-        // (string) already is the base data, and update operations can follow
-        if (baseData == null) {
-            baseData = (Map<String, Object>) arr.get(0);
-            updatesStartAt = 1;
-        }
+        // start processing the VARCHAR data
+        try {
+            json = new JsopTokenizer(row.getData());
 
-        // process the base data
-        for (Map.Entry<String, Object> entry : baseData.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            if (value == null) {
-                // TODO ???
-                doc.put(key, value);
-            } else if (value instanceof Boolean || value instanceof Long || value instanceof String) {
-                doc.put(key, value);
-            } else if (value instanceof JSONObject) {
-                doc.put(key, convertJsonObject((JSONObject) value));
-            } else {
-                throw new DocumentStoreException("unexpected type: " + value.getClass());
-            }
-        }
+            int next = json.read();
 
-        for (int u = updatesStartAt; u < arr.size(); u++) {
-            Object ob = arr.get(u);
-            if (ob instanceof JSONArray) {
-                JSONArray update = (JSONArray) ob;
-                for (int o = 0; o < update.size(); o++) {
-                    JSONArray op = (JSONArray) update.get(o);
-                    applyUpdate(doc, update, op);
+            if (next == '{') {
+                if (blobInUse) {
+                    throw new DocumentStoreException("expected literal \"blob\" but found: " + row.getData());
                 }
-            } else if (ob.toString().equals("blob") && u == 0) {
-                // expected placeholder
+                if (!json.matches('}')) {
+                    do {
+                        String key = json.readString();
+                        json.read(':');
+                        Object value = fromJson(json);
+                        doc.put(key, value);
+                    } while (json.matches(','));
+                    json.read('}');
+                }
+            } else if (next == JsopReader.STRING) {
+                if (!blobInUse) {
+                    throw new DocumentStoreException("did not expect \"blob\" here: " + row.getData());
+                }
+                if (!json.getToken().equals("blob")) {
+                    throw new DocumentStoreException("expected string literal \"blob\"");
+                }
             } else {
-                throw new DocumentStoreException("unexpected JSON in DATA column: " + ob);
+                throw new DocumentStoreException("unexpected token " + next + " in " + row.getData());
             }
+
+            next = json.read();
+            if (next == ',') {
+                do {
+                    Object ob = fromJson(json);
+                    List update = (List) ob;
+                    for (int o = 0; o < update.size(); o++) {
+                        List op = (List) update.get(o);
+                        applyUpdate(doc, update, op);
+                    }
+
+                } while (json.matches(','));
+            }
+
+            json.read(JsopReader.END);
+
+            return doc;
+        } catch (Exception ex) {
+            throw new DocumentStoreException(ex);
         }
-        return doc;
     }
 
-    private <T extends Document> void applyUpdate(T doc, JSONArray update, JSONArray op) {
+    private <T extends Document> void applyUpdate(T doc, List update, List op) {
         String opcode = op.get(0).toString();
         String key = op.get(1).toString();
         Revision rev = null;
@@ -305,12 +324,43 @@ public class RDBDocumentSerializer {
     }
 
     @Nonnull
-    private Map<Revision, Object> convertJsonObject(@Nonnull JSONObject obj) {
-        Map<Revision, Object> map = new TreeMap<Revision, Object>(comparator);
-        for (Map.Entry entry : (Set<Map.Entry>)obj.entrySet()) {
-            map.put(Revision.fromString(entry.getKey().toString()), entry.getValue());
+    private static Object fromJson(@Nonnull JsopTokenizer json) {
+        switch (json.read()) {
+            case JsopReader.NULL:
+                return null;
+            case JsopReader.TRUE:
+                return true;
+            case JsopReader.FALSE:
+                return false;
+            case JsopReader.NUMBER:
+                return Long.parseLong(json.getToken());
+            case JsopReader.STRING:
+                return json.getToken();
+            case '{':
+                TreeMap<Revision, Object> map = new TreeMap<Revision, Object>(StableRevisionComparator.REVERSE);
+                while (true) {
+                    if (json.matches('}')) {
+                        break;
+                    }
+                    String k = json.readString();
+                    json.read(':');
+                    map.put(Revision.fromString(k), fromJson(json));
+                    json.matches(',');
+                }
+                return map;
+            case '[':
+                List<Object> list = new ArrayList<Object>();
+                while (true) {
+                    if (json.matches(']')) {
+                        break;
+                    }
+                    list.add(fromJson(json));
+                    json.matches(',');
+                }
+                return list;
+            default:
+                throw new IllegalArgumentException(json.readRawValue());
         }
-        return map;
     }
 
     // low level operations

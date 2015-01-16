@@ -68,6 +68,18 @@ public class RDBDocumentSerializerTest  {
     }
 
     @Test
+    public void testSimpleBlob2() throws UnsupportedEncodingException {
+        RDBRow row = new RDBRow("_foo", false, 1, 2, 3, "\"blob\"", "{\"s\":\"string\", \"b\":true, \"i\":1}".getBytes("UTF-8"));
+        NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
+        assertEquals("_foo", doc.getId());
+        assertEquals(false, doc.hasBinary());
+        assertEquals(2L, doc.getModCount());
+        assertEquals("string", doc.get("s"));
+        assertEquals(Boolean.TRUE, doc.get("b"));
+        assertEquals(1L, doc.get("i"));
+    }
+
+    @Test
     public void testSimpleBoth() throws UnsupportedEncodingException {
         try {
             RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{}", "{}".getBytes("UTF-8"));
@@ -80,7 +92,7 @@ public class RDBDocumentSerializerTest  {
 
     @Test
     public void testBlobAndDiff() throws UnsupportedEncodingException {
-        RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "[[\"=\", \"foo\", \"bar\"],[\"M\", \"m1\", 1],[\"M\", \"m2\", 3]]", "{\"m1\":2, \"m2\":2}".getBytes("UTF-8"));
+        RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "\"blob\", [[\"=\", \"foo\", \"bar\"],[\"M\", \"m1\", 1],[\"M\", \"m2\", 3]]", "{\"m1\":2, \"m2\":2}".getBytes("UTF-8"));
         NodeDocument doc = this.ser.fromRow(Collection.NODES, row);
         assertEquals("bar", doc.get("foo"));
         assertEquals(2L, doc.get("m1"));
@@ -98,11 +110,21 @@ public class RDBDocumentSerializerTest  {
         }
     }
 
-    @Ignore("known problem is json.simple")
     @Test
     public void testBrokenJSONTrailingComma() throws UnsupportedEncodingException {
         try {
             RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{ \"x\" : 1, }", null);
+            this.ser.fromRow(Collection.NODES, row);
+            fail("should fail");
+        }
+        catch (DocumentStoreException expected) {
+        }
+    }
+
+    @Test
+    public void testBrokenJSONUnquotedIdentifier() throws UnsupportedEncodingException {
+        try {
+            RDBRow row = new RDBRow("_foo", true, 1, 2, 3, "{ x : 1, }", null);
             this.ser.fromRow(Collection.NODES, row);
             fail("should fail");
         }

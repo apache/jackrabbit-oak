@@ -40,7 +40,7 @@
           <instructions>
             <Embed-Dependency>
               <!-- OAK-1708 TODO: temporary workaround for embedding code for DocumentNodeStoreService-->
-              commons-dbcp,commons-pool,h2,json-simple,
+              commons-dbcp,commons-pool,h2
               <!-- OAK-1708 TODO: note these below will only embedded when build with the respective profiles from oak-parent -->
               postgresql,db2,db2-license,mysql-connector-java,ojdbc6
             </Embed-Dependency>
