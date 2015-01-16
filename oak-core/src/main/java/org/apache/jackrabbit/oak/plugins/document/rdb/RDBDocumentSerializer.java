@@ -197,16 +197,8 @@ public class RDBDocumentSerializer {
                 String s = fromBlobData(bdata);
                 json = new JsopTokenizer(s);
                 json.read('{');
-                if (!json.matches('}')) {
-                    do {
-                        String key = json.readString();
-                        json.read(':');
-                        Object value = fromJson(json);
-                        doc.put(key, value);
-                    } while (json.matches(','));
-                    json.read('}');
-                    json.read(JsopReader.END);
-                }
+                readDocumentFromJson(json, doc);
+                json.read(JsopReader.END);
                 blobInUse = true;
             }
         } catch (Exception ex) {
@@ -223,15 +215,7 @@ public class RDBDocumentSerializer {
                 if (blobInUse) {
                     throw new DocumentStoreException("expected literal \"blob\" but found: " + row.getData());
                 }
-                if (!json.matches('}')) {
-                    do {
-                        String key = json.readString();
-                        json.read(':');
-                        Object value = fromJson(json);
-                        doc.put(key, value);
-                    } while (json.matches(','));
-                    json.read('}');
-                }
+                readDocumentFromJson(json, doc);
             } else if (next == JsopReader.STRING) {
                 if (!blobInUse) {
                     throw new DocumentStoreException("did not expect \"blob\" here: " + row.getData());
@@ -246,16 +230,17 @@ public class RDBDocumentSerializer {
             next = json.read();
             if (next == ',') {
                 do {
-                    Object ob = fromJson(json);
-                    List update = (List) ob;
-                    for (int o = 0; o < update.size(); o++) {
-                        List op = (List) update.get(o);
+                    Object ob = readValueFromJson(json);
+                    if (!(ob instanceof List)) {
+                        throw new DocumentStoreException("expected array but got: " + ob);
+                    }
+                    List<List<Object>> update = (List<List<Object>>) ob;
+                    for (List<Object> op : update) {
                         applyUpdate(doc, update, op);
                     }
 
                 } while (json.matches(','));
             }
-
             json.read(JsopReader.END);
 
             return doc;
@@ -264,7 +249,7 @@ public class RDBDocumentSerializer {
         }
     }
 
-    private <T extends Document> void applyUpdate(T doc, List update, List op) {
+    private <T extends Document> void applyUpdate(T doc, List updateString, List<Object> op) {
         String opcode = op.get(0).toString();
         String key = op.get(1).toString();
         Revision rev = null;
@@ -291,7 +276,7 @@ public class RDBDocumentSerializer {
             }
         } else if ("*".equals(opcode)) {
             if (rev == null) {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
             } else {
                 @SuppressWarnings("unchecked")
                 Map<Revision, Object> m = (Map<Revision, Object>) old;
@@ -307,7 +292,7 @@ public class RDBDocumentSerializer {
                 }
                 doc.put(key, ((Long) old) + x);
             } else {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
             }
         } else if ("M".equals(opcode)) {
             if (rev == null) {
@@ -316,15 +301,30 @@ public class RDBDocumentSerializer {
                     doc.put(key, value);
                 }
             } else {
-                throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
+                throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
             }
         } else {
-            throw new DocumentStoreException("unexpected operation " + op + " in: " + update);
+            throw new DocumentStoreException("unexpected operation " + op + " in: " + updateString);
+        }
+    }
+
+    /**
+     * Reads from an opened JSON stream ("{" already consumed) into a document.
+     */
+    private static <T extends Document> void readDocumentFromJson(@Nonnull JsopTokenizer json, @Nonnull T doc) {
+        if (!json.matches('}')) {
+            do {
+                String key = json.readString();
+                json.read(':');
+                Object value = readValueFromJson(json);
+                doc.put(key, value);
+            } while (json.matches(','));
+            json.read('}');
         }
     }
 
     @Nonnull
-    private static Object fromJson(@Nonnull JsopTokenizer json) {
+    private static Object readValueFromJson(@Nonnull JsopTokenizer json) {
         switch (json.read()) {
             case JsopReader.NULL:
                 return null;
@@ -344,7 +344,7 @@ public class RDBDocumentSerializer {
                     }
                     String k = json.readString();
                     json.read(':');
-                    map.put(Revision.fromString(k), fromJson(json));
+                    map.put(Revision.fromString(k), readValueFromJson(json));
                     json.matches(',');
                 }
                 return map;
@@ -354,7 +354,7 @@ public class RDBDocumentSerializer {
                     if (json.matches(']')) {
                         break;
                     }
-                    list.add(fromJson(json));
+                    list.add(readValueFromJson(json));
                     json.matches(',');
                 }
                 return list;
