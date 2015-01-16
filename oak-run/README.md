@@ -672,9 +672,9 @@ Oak Mongo Shell Helpers
 =======================
 
 To simplify making sense of data created by Oak in Mongo a javascript file oak-mongo.js
-is provided. It includes some useful function to navigate the data in Mongo
+is provided. It includes [some useful function][1] to navigate the data in Mongo
 
-    $ wget https://svn.apache.org/repos/asf/jackrabbit/oak/trunk/oak-run/src/main/js/oak-mongo.js
+    $ wget https://s.apache.org/oak-mongo.js
     $ mongo localhost/oak --shell oak-mongo.js
     MongoDB shell version: 2.6.3
     connecting to: localhost/oak
@@ -691,3 +691,5 @@ For reporting any issue related to Oak the script provides a function to collect
 can be dumped to a file
 
     $ mongo localhost/oak --eval "load('/path/to/oak-mongo.js');printjson(oak.systemStats());" --quiet > oak-stats.json
+
+[1]: http://jackrabbit.apache.org/oak/docs/oak-mongo-js/oak.html
