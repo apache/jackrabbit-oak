@@ -53,7 +53,7 @@ public class OakDirectoryTest {
 
     private NodeBuilder builder = root.builder();
 
-    int fileSize = OakDirectory.DEFAULT_BLOB_SIZE + rnd.nextInt(1000);
+    int fileSize = IndexDefinition.DEFAULT_BLOB_SIZE * 2 + rnd.nextInt(1000);
 
     @Test
     public void writes_DefaultSetup() throws Exception{
