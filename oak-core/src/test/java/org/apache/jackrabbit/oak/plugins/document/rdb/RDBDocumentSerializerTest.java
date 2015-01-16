@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class RDBDocumentSerializerTest  {
