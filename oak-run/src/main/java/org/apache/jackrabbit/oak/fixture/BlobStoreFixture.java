@@ -188,9 +188,7 @@ public abstract class BlobStoreFixture implements Closeable{
 
             @Override
             public void tearDown() {
-                if (blobStore instanceof CloudBlobStore) {
-                    ((CloudBlobStore) blobStore).deleteBucket();
-                } else if (blobStore instanceof DataStoreBlobStore) {
+                if (blobStore instanceof DataStoreBlobStore) {
                     ((DataStoreBlobStore) blobStore).clearInUse();
                     try {
                         ((DataStoreBlobStore) blobStore).deleteAllOlderThan(
