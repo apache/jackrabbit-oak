@@ -71,6 +71,11 @@ public class VersionablePathHook implements CommitHook {
         return rootBuilder.getNodeState();
     }
 
+    @Override
+    public String toString() {
+        return "VersionablePathHook : workspaceName = " + workspaceName;
+    }
+
     private final class Diff extends DefaultNodeStateDiff implements VersionConstants {
 
         private final ReadWriteVersionManager versionManager;

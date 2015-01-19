@@ -104,6 +104,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return rootAfter.getNodeState();
     }
 
+    @Override
+    public String toString() {
+        return "PermissionHook";
+    }
+
     private void apply() {
         for (Map.Entry<String, PermissionStoreEditor> entry : deleted.entrySet()) {
             entry.getValue().removePermissionEntries();

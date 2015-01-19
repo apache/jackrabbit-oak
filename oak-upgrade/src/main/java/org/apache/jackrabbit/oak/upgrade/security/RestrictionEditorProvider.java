@@ -39,4 +39,8 @@ public class RestrictionEditorProvider implements EditorProvider {
         return new RestrictionEditor(builder, isACE);
     }
 
+    @Override
+    public String toString() {
+        return "RestrictionEditorProvider";
+    }
 }
