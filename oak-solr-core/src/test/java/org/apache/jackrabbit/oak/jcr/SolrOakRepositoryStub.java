@@ -59,6 +59,16 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
             public SolrServer getSolrServer() throws Exception {
                 return solrServer;
             }
+
+            @Override
+            public SolrServer getIndexingSolrServer() throws Exception {
+                return solrServer;
+            }
+
+            @Override
+            public SolrServer getSearchingSolrServer() throws Exception {
+                return solrServer;
+            }
         };
         try {
             // safely remove any previous document on the index
