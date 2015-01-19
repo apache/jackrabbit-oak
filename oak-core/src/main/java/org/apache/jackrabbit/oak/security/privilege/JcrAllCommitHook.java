@@ -96,4 +96,9 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
             return true;
         }
     }
+
+    @Override
+    public String toString() {
+        return "JcrAllCommitHook";
+    }
 }
