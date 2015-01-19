@@ -91,7 +91,8 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
                             IndexConstants.ASYNC_PROPERTY_NAME);
         }
 
-        NodeState base = builder.getNodeState();
+        // squeeze node state before it is passed to store (OAK-2411)
+        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
         NodeTypeRegistry.registerBuiltIn(RootFactory.createSystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(

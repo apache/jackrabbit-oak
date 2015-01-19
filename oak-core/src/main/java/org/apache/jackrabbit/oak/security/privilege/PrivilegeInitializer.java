@@ -22,6 +22,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -52,7 +53,8 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeBuilder privileges = system.child(REP_PRIVILEGES);
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
-            NodeState base = builder.getNodeState();
+            // squeeze node state before it is passed to store (OAK-2411)
+            NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
             NodeStore store = new MemoryNodeStore(base);
             try {
                 Root systemRoot = RootFactory.createSystemRoot(store, null, null, null, null, null);
