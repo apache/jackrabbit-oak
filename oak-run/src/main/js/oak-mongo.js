@@ -418,7 +418,125 @@ var oak = (function(global){
         return checkOrFixHistory(path, true, verbose);
     };
 
+    /**
+     * Returns the commit value entry for the change with the given revision.
+     * *
+     * @memberof oak
+     * @method getCommitValue
+     * @param {string} path the path of a document.
+     * @param {string} revision the revision of a change on the document.
+     * @returns {object} the commit entry for the given revision or null if
+     *          there is none.
+     */
+    api.getCommitValue = function(path, revision) {
+        var doc = this.findOne(path);
+        if (!doc) {
+            return null;
+        }
+        if (revision === undefined) {
+            print("No revision specified");
+        }
+        // check _revisions
+        var entry = getRevisionEntry(doc, path, revision);
+        if (entry) {
+            return entry;
+        }
+
+        // get commit root
+        entry = getEntry(doc, "_commitRoot", revision);
+        if (!entry) {
+            var prev = findPreviousDocument(path, "_commitRoot", revision);
+            if (prev) {
+                entry = getEntry(prev, "_commitRoot", revision);
+            }
+        }
+        if (!entry) {
+            return null;
+        }
+        var commitRootPath = getCommitRootPath(path, parseInt(entry[revision]));
+        doc = this.findOne(commitRootPath);
+        if (!doc) {
+            return null;
+        }
+        return getRevisionEntry(doc, commitRootPath, revision);
+    };
+    
     //~--------------------------------------------------< internal >
+    
+    var getRevisionEntry = function (doc, path, revision) {
+        var entry = getEntry(doc, "_revisions", revision);
+        if (entry) {
+            return entry;
+        }
+        var prev = findPreviousDocument(path, "_revisions", revision);
+        if (prev) {
+            entry = getEntry(prev, "_revisions", revision);
+            if (entry) {
+                return entry;
+            }
+        }
+    };
+    
+    var getCommitRootPath = function(path, depth) {
+        if (depth == 0) {
+            return "/";
+        }
+        var idx = 0;
+        while (depth-- > 0 && idx != -1) {
+            idx = path.indexOf("/", idx + 1);
+        }
+        if (idx == -1) {
+            idx = path.length;
+        }
+        return path.substring(0, idx);
+    };
+    
+    var getEntry = function(doc, name, revision) {
+        var result = null;
+        if (doc && doc[name] && doc[name][revision]) {
+            result = {};
+            result[revision] = doc[name][revision];
+        }
+        return result;
+    };
+    
+    var findPreviousDocument = function(path, name, revision) {
+        var rev = new Revision(revision);
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (path.length > 165) {
+            print("Path too long");
+            return;
+        }
+        var doc = api.findOne(path);
+        if (!doc) {
+            return null;
+        }
+        var result = null;
+        forEachPrev(doc, function traverse(d, high, low, height) {
+            var highRev = new Revision(high);
+            var lowRev = new Revision(low);
+            if (highRev.getClusterId() != rev.getClusterId() 
+                    || lowRev.isNewerThan(rev) 
+                    || rev.isNewerThan(highRev)) {
+                return;
+            }
+            
+            var id = prevDocIdFor(path, high, height);
+
+            var prev = db.nodes.findOne({_id: id });
+            if (prev) {
+                if (prev[name] && prev[name][revision]) {
+                    result = prev;
+                } else {
+                    forEachPrev(prev, traverse);
+                }
+            }
+        });
+        return result;
+    };
 
     var checkOrFixHistory = function(path, fix, verbose) {
         if (path === undefined) {
@@ -454,12 +572,7 @@ var oak = (function(global){
 
 
         forEachPrev(doc, function traverse(d, high, low, height) {
-            var p = "p" + path;
-            if (p.charAt(p.length - 1) != "/") {
-                p += "/";
-            }
-            p += high + "/" + height;
-            var id = (pathDepth(path) + 2) + ":" + p;
+            var id = prevDocIdFor(path, high, height);
             var prev = db.nodes.findOne({_id: id });
             if (prev) {
                 if (result.prevDocs) {
@@ -604,6 +717,15 @@ var oak = (function(global){
             }
         }
         return depth;
+    };
+    
+    var prevDocIdFor = function(path, high, height) {
+        var p = "p" + path;
+        if (p.charAt(p.length - 1) != "/") {
+            p += "/";
+        }
+        p += high + "/" + height;
+        return (pathDepth(path) + 2) + ":" + p;
     };
 
     var pathFilter = function (depth, prefix){
