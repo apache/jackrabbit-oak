@@ -85,4 +85,8 @@ public class CompositeEditorProvider implements EditorProvider {
         return CompositeEditor.compose(list);
     }
 
+    @Override
+    public String toString() {
+        return "CompositeEditorProvider : (" + providers.toString() + ")";
+    }
 }

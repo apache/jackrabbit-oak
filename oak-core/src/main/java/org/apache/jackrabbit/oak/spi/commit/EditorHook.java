@@ -60,4 +60,8 @@ public class EditorHook implements CommitHook {
         }
     }
 
+    @Override
+    public String toString() {
+        return "EditorHook : (" + provider + ")";
+    }
 }
