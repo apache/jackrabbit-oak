@@ -84,7 +84,8 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             IndexUtils.createReferenceIndex(index);
         }
 
-        NodeState base = builder.getNodeState();
+        // squeeze node state before it is passed to store (OAK-2411)
+        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
         NodeStore store = new MemoryNodeStore(base);
         BuiltInNodeTypes.register(new SystemRoot(
                 store, new EditorHook(new CompositeEditorProvider(
