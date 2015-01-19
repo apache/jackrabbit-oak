@@ -79,11 +79,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.annotation.Nonnull;
 import javax.jcr.NamespaceException;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -92,6 +94,7 @@ import javax.jcr.security.Privilege;
 import javax.jcr.version.OnParentVersionAction;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -126,7 +129,6 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
@@ -306,7 +308,7 @@ public class RepositoryUpgrade {
                 createIndexEditorProvider()
             )));
 
-            target.merge(builder, CompositeHook.compose(hooks), CommitInfo.EMPTY);
+            target.merge(builder, new LoggingCompositeHook(hooks), CommitInfo.EMPTY);
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
@@ -320,6 +322,11 @@ public class RepositoryUpgrade {
                 Editor rootEditor = new TypeEditorProvider(false)
                         .getRootEditor(before, after, builder, info);
                 return ProgressNotificationEditor.wrap(rootEditor, logger, "Checking node types:");
+            }
+
+            @Override
+            public String toString() {
+                return "TypeEditorProvider";
             }
         };
     }
@@ -345,6 +352,11 @@ public class RepositoryUpgrade {
                         }
                     }
                 });
+            }
+
+            @Override
+            public String toString() {
+                return "IndexEditorProvider";
             }
         };
     }
@@ -854,4 +866,25 @@ public class RepositoryUpgrade {
         }
     }
 
+    private static class LoggingCompositeHook implements CommitHook {
+        private final Collection<CommitHook> hooks;
+
+        public LoggingCompositeHook(Collection<CommitHook> hooks) {
+            this.hooks = hooks;
+        }
+
+        @Nonnull
+        @Override
+        public NodeState processCommit(NodeState before, NodeState after, CommitInfo info) throws CommitFailedException {
+            NodeState newState = after;
+            Stopwatch watch = Stopwatch.createStarted();
+            for (CommitHook hook : hooks) {
+                logger.info("Processing commit via {}", hook);
+                newState = hook.processCommit(before, newState, info);
+                logger.info("Commit hook {} processed commit in {}", hook, watch);
+                watch.reset().start();
+            }
+            return newState;
+        }
+    }
 }

@@ -41,4 +41,9 @@ public class GroupEditorProvider implements EditorProvider {
             NodeBuilder builder, CommitInfo info) {
         return new GroupEditor(builder, groupsPath);
     }
+
+    @Override
+    public String toString() {
+        return "GroupEditorProvider : groupsPath = " + groupsPath;
+    }
 }
