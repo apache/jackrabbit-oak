@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.AbstractIterator;
 
-import static com.google.common.base.Charsets.UTF_8;
-
 public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     /**
@@ -108,122 +106,6 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     // blob size we need to support
     private static final int MINBLOB = 2 * 1024 * 1024;
 
-    /**
-     * Defines variation in the capabilities of different RDBs.
-     */
-    enum DB {
-        H2("H2"),
-
-        POSTGRES("PostgreSQL") {
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName +
-                    " (ID varchar(767) not null primary key, DATA bytea)";
-            }
-        },
-
-        DB2("DB2") {
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName + " "
-                    + "(ID varchar(767) not null primary key, DATA blob(" + MINBLOB + "))";
-            }
-        },
-
-        ORACLE("Oracle") {
-            @Override
-            public String getMetaTableCreationStatement(String tableName) {
-                return "create table " + tableName
-                    + " (ID varchar(767) not null primary key, LVL number, LASTMOD number)";
-            }
-        },
-
-        MYSQL("MySQL") {
-            @Override
-            public boolean isPrimaryColumnByteEncoded() {
-                return true;
-            }
-
-            @Override
-            public String getMetaTableCreationStatement(String tableName) {
-                return "create table " + tableName
-                    + " (ID varbinary(767) not null primary key, LVL int, LASTMOD bigint)";
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName +
-                    " (ID varbinary(767) not null primary key, DATA mediumblob)";
-            }
-        },
-
-        MSSQL("Microsoft SQL Server") {
-            @Override
-            public String getMetaTableCreationStatement(String tableName) {
-                return "create table " + tableName +
-                    " (ID nvarchar(767) not null primary key, LVL int, LASTMOD bigint)";
-            }
-
-            @Override
-            public String getDataTableCreationStatement(String tableName) {
-                return "create table " + tableName +
-                    " (ID nvarchar(767) not null primary key, DATA varbinary(max))";
-            }
-        };
-
-        /**
-         * If the primary column is encoded in bytes.
-         * Default false
-         * @return boolean
-         */
-        public boolean isPrimaryColumnByteEncoded() {
-            return false;
-        }
-
-
-        /**
-         * Table creation statement string for metadata
-         *
-         * @param tableName
-         * @return the table creation string
-         */
-        public String getMetaTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)";
-        }
-
-        /**
-         * Table creation statement string for data
-         *
-         * @param tableName
-         * @return the table creation string
-         */
-        public String getDataTableCreationStatement(String tableName) {
-            return "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob)";
-        }
-
-        private final String description;
-
-        private DB(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return this.description;
-        }
-
-        public static DB getValue(String desc) {
-            for (DB db : DB.values()) {
-                if (db.toString().equalsIgnoreCase(desc)) {
-                    return db;
-                }
-            }
-            return null;
-        }
-    }
-
-    private DB db;
-
     private Exception callStack;
 
     private RDBConnectionHandler ch;
@@ -244,33 +126,50 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         this.ch = new RDBConnectionHandler(ds);
         Connection con = this.ch.getRWConnection();
-        db = DB.getValue(con.getMetaData().getDatabaseProductName());
 
         try {
             for (String baseName : new String[] { "DATASTORE_META", "DATASTORE_DATA" }) {
                 String tableName = tablePrefix + baseName;
                 try {
                     PreparedStatement stmt = con.prepareStatement("select ID from " + tableName + " where ID = ?");
-                    setIdInStatement(db, stmt, 1, "0");
+                    stmt.setString(1, "0");
                     stmt.executeQuery();
                     con.commit();
                 } catch (SQLException ex) {
                     // table does not appear to exist
                     con.rollback();
 
-                    LOG.info("Attempting to create table " + tableName + " in " + db);
+                    String dbtype = con.getMetaData().getDatabaseProductName();
+                    LOG.info("Attempting to create table " + tableName + " in " + dbtype);
 
                     Statement stmt = con.createStatement();
 
                     if (baseName.equals("DATASTORE_META")) {
-                        String ct = db.getMetaTableCreationStatement(tableName);
+                        String ct;
+                        if ("Oracle".equals(dbtype)) {
+                            ct = "create table " + tableName
+                                    + " (ID varchar(767) not null primary key, LVL number, LASTMOD number)";
+                        } else {
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)";
+                        }
                         stmt.execute(ct);
                     } else {
-                        String ct = db.getDataTableCreationStatement(tableName);
+                        String ct;
+                        if ("PostgreSQL".equals(dbtype)) {
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA bytea)";
+                        } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob(" + MINBLOB
+                                    + "))";
+                        } else if ("MySQL".equals(dbtype)) {
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA mediumblob)";
+                        } else {
+                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob)";
+                        }
                         stmt.execute(ct);
                     }
 
                     stmt.close();
+
                     con.commit();
 
                     if (options.isDropTablesOnClose()) {
@@ -308,7 +207,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             int count;
             try {
                 prep.setLong(1, now);
-                setIdInStatement(db, prep, 2, id);
+                prep.setString(2, id);
                 count = prep.executeUpdate();
             }
             catch (SQLException ex) {
@@ -322,7 +221,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 try {
                     prep = con.prepareStatement("insert into " + dataTable + "(id, data) values(?, ?)");
                     try {
-                        setIdInStatement(db, prep, 1, id);
+                        prep.setString(1, id);
                         prep.setBytes(2, data);
                         prep.execute();
                     } finally {
@@ -337,7 +236,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 try {
                     prep = con.prepareStatement("insert into " + metaTable + "(id, lvl, lastMod) values(?, ?, ?)");
                     try {
-                        setIdInStatement(db, prep, 1, id);
+                        prep.setString(1, id);
                         prep.setInt(2, level);
                         prep.setLong(3, now);
                         prep.execute();
@@ -363,7 +262,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         try {
             PreparedStatement prep = con.prepareStatement("select data from " + dataTable + " where id = ?");
             try {
-                setIdInStatement(db, prep, 1, id);
+                prep.setString(1, id);
                 ResultSet rs = prep.executeQuery();
                 if (!rs.next()) {
                     throw new IOException("Datastore block " + id + " not found");
@@ -391,7 +290,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             try {
                 PreparedStatement prep = con.prepareStatement("select data from " + dataTable + " where id = ?");
                 try {
-                    setIdInStatement(db, prep, 1, id);
+                    prep.setString(1, id);
                     ResultSet rs = prep.executeQuery();
                     if (!rs.next()) {
                         throw new IOException("Datastore block " + id + " not found");
@@ -441,7 +340,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             String id = StringUtils.convertBytesToHex(blockId.getDigest());
             PreparedStatement prep = con.prepareStatement("update " + metaTable + " set lastMod = ? where id = ? and lastMod < ?");
             prep.setLong(1, System.currentTimeMillis());
-            setIdInStatement(db, prep, 2, id);
+            prep.setString(2, id);
             prep.setLong(3, minLastModified);
             prep.executeUpdate();
             prep.close();
@@ -469,14 +368,14 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             ResultSet rs = prep.executeQuery();
             ArrayList<String> ids = new ArrayList<String>();
             while (rs.next()) {
-                ids.add(getIdFromRS(db, rs, 1));
+                ids.add(rs.getString(1));
             }
             prep = con.prepareStatement("delete from " + metaTable + " where id = ?");
             PreparedStatement prepData = con.prepareStatement("delete from " + dataTable + " where id = ?");
             for (String id : ids) {
-                setIdInStatement(db, prep, 1, id);
-                setIdInStatement(db, prepData, 1, id);
+                prep.setString(1, id);
                 prep.execute();
+                prepData.setString(1, id);
                 prepData.execute();
                 count++;
             }
@@ -527,8 +426,8 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
 
             for (int idx = 0; idx < batch; idx++) {
-                setIdInStatement(db, prepMeta, idx + 1, chunkIds.get(idx));
-                setIdInStatement(db, prepData, idx + 1, chunkIds.get(idx));
+                prepMeta.setString(idx + 1, chunkIds.get(idx));
+                prepData.setString(idx + 1, chunkIds.get(idx));
             }
 
             prepMeta.execute();
@@ -545,7 +444,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
     @Override
     public Iterator<String> getAllChunkIds(long maxLastModifiedTime) throws Exception {
-        return new ChunkIdIterator(this.ch, maxLastModifiedTime, metaTable, db);
+        return new ChunkIdIterator(this.ch, maxLastModifiedTime, metaTable);
     }
 
     /**
@@ -559,14 +458,11 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         private List<String> results = new LinkedList<String>();
         private String lastId = null;
         private String metaTable;
-        private DB db;
 
-        public ChunkIdIterator(RDBConnectionHandler ch, long maxLastModifiedTime, String metaTable,
-            DB db) {
+        public ChunkIdIterator(RDBConnectionHandler ch, long maxLastModifiedTime, String metaTable) {
             this.maxLastModifiedTime = maxLastModifiedTime;
             this.ch = ch;
             this.metaTable = metaTable;
-            this.db = db;
         }
 
         @Override
@@ -608,7 +504,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         prep.setLong(idx++, maxLastModifiedTime);
                     }
                     if (lastId != null) {
-                        setIdInStatement(db, prep, idx++, lastId);
+                        prep.setString(idx++, lastId);
                     }
                     prep.setFetchSize(BATCHSIZE);
                     ResultSet rs = prep.executeQuery();
@@ -628,25 +524,5 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 return false;
             }
         }
-    }
-
-    // Helper Methods
-
-    private static void setIdInStatement(DB db, PreparedStatement stmt, int idx, String id) throws SQLException {
-        if (db.isPrimaryColumnByteEncoded()) {
-            stmt.setBytes(idx, id.getBytes(UTF_8));
-        } else {
-            stmt.setString(idx, id);
-        }
-    }
-
-    private static String getIdFromRS(DB db, ResultSet rs, int idx) throws SQLException {
-        String id;
-        if (db.isPrimaryColumnByteEncoded()) {
-            id = new String(rs.getBytes(idx), UTF_8);
-        } else {
-            id = rs.getString(idx);
-        }
-        return id;
     }
 }
