@@ -730,7 +730,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             byte bdata[] = new byte[65536];
             String sdata = appendString;
             boolean needsConcat = super.dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName());
-            int dataInChars = ((super.dsname.contains(DocumentStoreFixture.RDB_ORACLE.getName())) ? 4000 : 16384);
+            int dataInChars = ((super.dsname.contains(DocumentStoreFixture.RDB_ORACLE.getName()) ||
+                super.dsname.contains(DocumentStoreFixture.RDB_MSSQL.getName())) ? 4000 : 16384);
             int dataInBytes = dataInChars / 3;
 
             while (System.currentTimeMillis() < end) {
@@ -790,10 +791,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     } else if (mode == 3) {
                         PreparedStatement stmt = connection.prepareStatement("update "
                             + table
-                            + " set " +
+                            + " set "
+                            + (super.dsname.contains(DocumentStoreFixture.RDB_MSSQL.getName()) ?
+                                "DATA = CASE WHEN LEN(DATA) <= " + (dataInChars - appendString.length())
+                                    + " THEN (DATA + CAST(? AS nvarchar(" + dataInChars + ")))"
+                                    + " ELSE DATA + CAST(DATA AS nvarchar(max)) END " :
                             (needsConcat ?
                                 "DATA = CONCAT(DATA, ?)" :
-                                "DATA = DATA || CAST(? as varchar(" + dataInChars + "))")
+                                "DATA = DATA || CAST(? as varchar(" + dataInChars + "))"))
                             + " where ID = ?");
                         try {
                             stmt.setString(1, appendString);
