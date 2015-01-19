@@ -74,7 +74,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
             if (type != null
                     && SolrQueryIndex.TYPE.equals(type.getValue(Type.STRING))) {
                 try {
-                    SolrServer solrServer = solrServerProvider.getSolrServer();
+                    SolrServer solrServer = solrServerProvider.getSearchingSolrServer();
                     // the query engine should be returned only if the server is alive, otherwise other indexes should be used
                     if (solrServer != null && 0 == solrServer.ping().getStatus()) {
                         tempIndexes.add(new AdvancedSolrQueryIndex(
