@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -54,6 +55,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testAddAndRemove() {
+        LOG.info("Starting test testAddAndRemove");
         String id = this.getClass().getName() + ".testAddAndRemove";
 
         // remove if present
@@ -67,10 +69,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         up.set("_id", id);
         assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
         removeMe.add(id);
+        LOG.info("Finished test testAddAndRemove");
     }
 
     @Test
     public void testMaxId() {
+        LOG.info("Starting test testMaxId");
         // TODO see OAK-1589
         Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
         int min = 0;
@@ -95,10 +99,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         LOG.info("max id length for " + super.dsname + " was " + test);
+        LOG.info("Finished test testMaxId");
     }
 
     @Test
     public void testMaxProperty() {
+        LOG.info("Starting test testMaxProperty");
         int min = 0;
         int max = 1024 * 1024 * 4; // 32M
         int test = 0;
@@ -123,10 +129,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
 
         LOG.info("max prop length for " + super.dsname + " was " + test);
+        LOG.info("Finished test testMaxProperty");
     }
 
     @Test
     public void testInterestingPropLengths() {
+        LOG.info("Starting test testInterestingPropLengths");
         int lengths[] = { 1, 10, 100, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000,
                 15000, 16000, 20000 };
 
@@ -159,10 +167,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
             super.ds.remove(Collection.NODES, id);
         }
+        LOG.info("Finished test testInterestingPropLengths");
     }
 
     @Test
     public void testModifiedMaxUpdate() {
+        LOG.info("Starting test testModifiedMaxUpdate");
         String id = this.getClass().getName() + ".testModifiedMaxUpdate";
         // create a test node
         UpdateOp up = new UpdateOp(id, true);
@@ -183,12 +193,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // this should find the document; will fail if the MAX operation wasn't applied to the indexed property
         List<NodeDocument> results = super.ds.query(Collection.NODES, this.getClass().getName() + ".testModifiedMaxUpdatd", this.getClass().getName() + ".testModifiedMaxUpdatf", "_modified", 1000, 1);
         assertEquals("document not found, maybe indexed _modified property not properly updated", 1, results.size());
+        LOG.info("Finished test testModifiedMaxUpdate");
     }
 
     @Test
     public void testInterestingStrings() {
-        // TODO see OAK-1913
-        Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
+        LOG.info("Starting test testInterestingStrings");
 
         String[] tests = new String[] {
             "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E", "tab:a\tb", "nul:a\u0000b",
@@ -205,24 +215,28 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("_id", id);
             up.set("foo", test);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property value of " + test + " in " + super.dsname, success);
+            assertTrue("failed to insert a document with property value of " + testname + " in " + super.dsname, success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
             assertEquals("failure to round-trip " + testname + " through " + super.dsname, test, nd.get("foo"));
             super.ds.remove(Collection.NODES, id);
         }
+        LOG.info("Finished test testInterestingStrings");
     }
 
     @Test
     public void testDeleteNonExisting() {
+        LOG.info("Starting test testDeleteNonExisting");
         String id = this.getClass().getName() + ".testDeleteNonExisting-" + UUID.randomUUID();
         // delete is best effort
         ds.remove(Collection.NODES, id);
+        LOG.info("Finished test testDeleteNonExisting");
     }
 
     @Test
     public void testDeleteNonExistingMultiple() {
+        LOG.info("Starting test testDeleteNonExistingMultiple");
         String id = this.getClass().getName() + ".testDeleteNonExistingMultiple-" + UUID.randomUUID();
         // create a test node
         UpdateOp up = new UpdateOp(id + "-2", true);
@@ -236,10 +250,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // id-2 should be removed
         Document d = ds.find(Collection.NODES, id + "-2");
         assertTrue(d == null);
+        LOG.info("Finished test testDeleteNonExistingMultiple");
     }
 
     @Test
     public void testUpdateMultiple() {
+        LOG.info("Starting test testUpdateMultiple");
         String id = this.getClass().getName() + ".testUpdateMultiple";
         // create a test node
         super.ds.remove(Collection.NODES, id);
@@ -264,10 +280,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertNotNull(d);
         assertEquals(id, d.getId());
         assertEquals("bar", d.get("foo").toString());
+        LOG.info("Finished test testUpdateMultiple");
     }
 
     @Test
     public void testQuery() {
+        LOG.info("Starting test testQuery");
         // create ten documents
         String base = this.getClass().getName() + ".testQuery-";
         for (int i = 0; i < 10; i++) {
@@ -288,10 +306,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(10, result.size());
         assertTrue(result.contains(base + "0"));
         assertTrue(result.contains(base + "9"));
+        LOG.info("Finished test testQuery");
     }
 
     @Test
     public void testQueryBinary() {
+        LOG.info("Starting test testQueryBinary");
         // create ten documents
         String base = this.getClass().getName() + ".testQueryBinary-";
         for (int i = 0; i < 10; i++) {
@@ -309,10 +329,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "1"));
         assertFalse(result.contains(base + "0"));
+        LOG.info("Finished test testQueryBinary");
     }
 
     @Test
     public void testQueryCollation() {
+        LOG.info("Starting test testQueryCollation");
         // create ten documents
         String base = "2:/" + this.getClass().getName() + ".testQueryCollation";
         List<UpdateOp> creates = new ArrayList<UpdateOp>();
@@ -351,6 +373,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             fail("missing query results (broken collation handling in persistence?): " + diff);
         }
         assertEquals("incorrect result ordering in query result (broken collation handling in persistence?)", expected, result);
+        LOG.info("Finished test testQueryCollation");
     }
 
     private List<String> getKeys(List<NodeDocument> docs) {
@@ -377,6 +400,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private void createPerf(int size, int amount) {
+        LOG.info("Starting test createPerf");
         String pval = generateString(size, true);
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
@@ -401,19 +425,25 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         LOG.info("document creation with property of size " + size + " and batch size " + amount + " for " + super.dsname + " was "
                 + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("Finished test createPerf");
     }
 
     @Test
     public void testPerfCollectionPaging() {
+        LOG.info("Starting test testPerfCollectionPaging");
         testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPaging", false);
+        LOG.info("Finished test testPerfCollectionPaging");
     }
 
     @Test
     public void testPerfCollectionPagingUnCached() {
+        LOG.info("Starting test testPerfCollectionPagingUnCached");
         testPerfCollectionPaging(this.getClass().getName() + ".testPerfCollectionPagingUnCached", true);
+        LOG.info("Finished test testPerfCollectionPagingUnCached");
     }
 
     private void testPerfCollectionPaging(String name, boolean invalidateCache) {
+        LOG.info("Starting test testPerfCollectionPaging");
         String cid = name;
         int nodecount = 20000;
         int initialFetchCount = 100;
@@ -476,10 +506,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         LOG.info("collection lookups " + (invalidateCache ? "(uncached) " : "") + super.dsname + " was " + cnt + " in " + duration
                 + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("Finished test testPerfCollectionPaging");
     }
 
     @Test
     public void testPerfLastRevBatch() {
+        LOG.info("Starting test testPerfLastRevBatch");
         String bid = this.getClass().getName() + ".testPerfLastRevBatch";
         int nodecount = 100;
         long duration = 5000;
@@ -522,10 +554,12 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         LOG.info("batch update for _lastRev for " + super.dsname + " was "
                 + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("Finished test testPerfLastRevBatch");
     }
 
     @Test
     public void testPerfReadBigDoc() {
+        LOG.info("Starting test testPerfReadBigDoc");
         String id = this.getClass().getName() + ".testReadBigDoc";
         long duration = 1000;
         int cnt = 0;
@@ -547,6 +581,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         LOG.info("big doc read from " + super.dsname + " was "
                 + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("Finished test testPerfReadBigDoc");
     }
 
     @Test
@@ -565,6 +600,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private void updatePerf(int size, boolean growing) {
+        LOG.info("Starting test updatePerf " + size);
         String pval = generateString(size, true);
         long duration = 1000;
         long end = System.currentTimeMillis() + duration;
@@ -605,6 +641,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         LOG.info("document updates with property of size " + size + (growing ? " (growing)" : "") + " for " + super.dsname
                 + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("Finished test updatePerf " + size);
     }
 
     private static String generateString(int length, boolean ascii) {
@@ -645,6 +682,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     private void internalTestPerfUpdateLimit(String name, String desc, int mode) throws SQLException, UnsupportedEncodingException {
+        LOG.info("Starting test " + name);
         if (super.rdbDataSource != null) {
             String key = name;
             Connection connection = null;
@@ -657,7 +695,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 PreparedStatement stmt = connection.prepareStatement("insert into " + table
                         + " (ID, MODCOUNT, DATA) values (?, ?, ?)");
                 try {
-                    stmt.setString(1, key);
+                    if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                        stmt.setBytes(1, key.getBytes(UTF_8));
+                    } else {
+                        stmt.setString(1, key);
+                    }
                     stmt.setLong(2, 0);
                     stmt.setString(3, "X");
                     stmt.executeUpdate();
@@ -680,19 +722,18 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             removeMe.add(key);
             StringBuffer expect = new StringBuffer("X");
 
-            String appendString = generateString(512, true);
+            String appendString = generateString(2048, true);
 
             long duration = 1000;
             long end = System.currentTimeMillis() + duration;
             long cnt = 0;
             byte bdata[] = new byte[65536];
             String sdata = appendString;
-            boolean needsConcat = super.dsname.contains("MySQL");
-            int dataInChars = (super.dsname.contains("Oracle") ? 4000 : 16384);
+            boolean needsConcat = super.dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName());
+            int dataInChars = ((super.dsname.contains(DocumentStoreFixture.RDB_ORACLE.getName())) ? 4000 : 16384);
             int dataInBytes = dataInChars / 3;
 
             while (System.currentTimeMillis() < end) {
-
                 try {
                     connection = super.rdbDataSource.getConnection();
                     connection.setAutoCommit(false);
@@ -701,7 +742,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         PreparedStatement stmt = connection.prepareStatement("update " + table + " set MODCOUNT = ? where ID = ?");
                         try {
                             stmt.setLong(1, cnt);
-                            stmt.setString(2, key);
+                            if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                stmt.setBytes(2, key.getBytes(UTF_8));
+                            } else {
+                                stmt.setString(2, key);
+                            }
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -713,7 +758,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         try {
                             stmt.setLong(1, cnt);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
-                            stmt.setString(3, key);
+                            if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                stmt.setBytes(3, key.getBytes(UTF_8));
+                            } else {
+                                stmt.setString(3, key);
+                            }
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -728,7 +777,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             bdata[(int) cnt % bdata.length] = (byte) (cnt & 0xff);
                             stmt.setString(2, "JSON data " + UUID.randomUUID());
                             stmt.setBytes(3, bdata);
-                            stmt.setString(4, key);
+                            if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                stmt.setBytes(4, key.getBytes(UTF_8));
+                            } else {
+                                stmt.setString(4, key);
+                            }
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                         } finally {
@@ -736,13 +789,19 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                         }
                     } else if (mode == 3) {
                         PreparedStatement stmt = connection.prepareStatement("update "
-                                + table
-                                + " set "
-                                + (needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || CAST(? as varchar(" + dataInChars
-                                        + "))") + " where ID = ?");
+                            + table
+                            + " set " +
+                            (needsConcat ?
+                                "DATA = CONCAT(DATA, ?)" :
+                                "DATA = DATA || CAST(? as varchar(" + dataInChars + "))")
+                            + " where ID = ?");
                         try {
                             stmt.setString(1, appendString);
-                            stmt.setString(2, key);
+                            if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                stmt.setBytes(2, key.getBytes(UTF_8));
+                            } else {
+                                stmt.setString(2, key);
+                            }
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             expect.append(appendString);
@@ -754,7 +813,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt = connection.prepareStatement("update " + table
                                         + " set MODCOUNT = MODCOUNT + 1, DATA = ? where ID = ?");
                                 stmt.setString(1, "X");
-                                stmt.setString(2, key);
+                                if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                    stmt.setBytes(2, key.getBytes(UTF_8));
+                                } else {
+                                    stmt.setString(2, key);
+                                }
                                 assertEquals(1, stmt.executeUpdate());
                                 connection.commit();
                                 expect = new StringBuffer("X");
@@ -783,7 +846,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                                 stmt.setString(si++, "null");
                                 stmt.setBytes(si++, sdata.getBytes("UTF-8"));
                             }
-                            stmt.setString(si++, key);
+                            if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                                stmt.setBytes(si++, key.getBytes(UTF_8));
+                            } else {
+                                stmt.setString(si++, key);
+                            }
                             assertEquals(1, stmt.executeUpdate());
                             connection.commit();
                             sdata += appendString;
@@ -814,7 +881,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                     connection.setAutoCommit(false);
                     PreparedStatement stmt = connection.prepareStatement("select DATA, MODCOUNT from " + table + " where ID = ?");
                     try {
-                        stmt.setString(1, key);
+                        if (dsname.contains(DocumentStoreFixture.RDB_MYSQL.getName())) {
+                            stmt.setBytes(1, key.getBytes(UTF_8));
+                        } else {
+                            stmt.setString(1, key);
+                        }
                         ResultSet rs = stmt.executeQuery();
                         assertTrue(rs.next());
                         String got = rs.getString(1);
@@ -837,12 +908,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
             LOG.info(desc + " for " + super.dsname + " was " + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f))
                     + "/s)");
+            LOG.info("Finished test " + name);
         }
     }
 
     // make sure _collisionsModCount property is maintained properly when it exists
     @Test
     public void testCollisionsModCount() {
+        LOG.info("Starting test testCollisionsModCount");
         String id = this.getClass().getName() + ".testCollisionsModCount";
 
         // remove if present
@@ -894,5 +967,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(cmc3);
             assertTrue(cmc2.longValue() == cmc3.longValue());
         }
+        LOG.info("Finished test testCollisionsModCount");
     }
 }
