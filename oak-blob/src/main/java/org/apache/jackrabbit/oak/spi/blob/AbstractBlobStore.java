@@ -379,13 +379,13 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
     /**
      * Store a block of data.
      * 
-     * @param digest the content hash
+     * @param digest the content hash (32 bytes)
      * @param level the indirection level (0 is for user data, 1 is a list of
      *            digests that point to user data, 2 is a list of digests that
      *            point to digests, and so on). This parameter is for
      *            informational use only, and it is not required to store it
      *            unless that's easy to achieve
-     * @param data the data to be stored
+     * @param data the data to be stored (the number of bytes is at most the block size)
      */
     protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws IOException;
 
@@ -580,7 +580,11 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      */
     public static class BlockId {
 
+        /**
+         * The digest (32 bytes).
+         */
         final byte[] digest;
+
         final long pos;
 
         BlockId(byte[] digest, long pos) {
