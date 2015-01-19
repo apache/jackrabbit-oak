@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,6 +37,8 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
+import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,6 +110,18 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
     // blob size we need to support
     private static final int MINBLOB = 2 * 1024 * 1024;
 
+    // ID size we need to support; is 2 * (hex) size of digest length
+    private static final int IDSIZE;
+    static {
+        try {
+            MessageDigest md = MessageDigest.getInstance(AbstractBlobStore.HASH_ALGORITHM);
+            IDSIZE = md.getDigestLength() * 2;
+        } catch (NoSuchAlgorithmException ex) {
+            LOG.error ("can't determine digest length for blob store", ex);
+            throw new RuntimeException(ex);
+        }
+    }
+
     private Exception callStack;
 
     private RDBConnectionHandler ch;
@@ -147,23 +163,25 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     if (baseName.equals("DATASTORE_META")) {
                         String ct;
                         if ("Oracle".equals(dbtype)) {
-                            ct = "create table " + tableName
-                                    + " (ID varchar(767) not null primary key, LVL number, LASTMOD number)";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
+                                    + ") not null primary key, LVL number, LASTMOD number)";
                         } else {
-                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, LVL int, LASTMOD bigint)";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
+                                    + ") not null primary key, LVL int, LASTMOD bigint)";
                         }
                         stmt.execute(ct);
                     } else {
                         String ct;
                         if ("PostgreSQL".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA bytea)";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA bytea)";
                         } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob(" + MINBLOB
-                                    + "))";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob("
+                                    + MINBLOB + "))";
                         } else if ("MySQL".equals(dbtype)) {
-                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA mediumblob)";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
+                                    + ") not null primary key, DATA mediumblob)";
                         } else {
-                            ct = "create table " + tableName + " (ID varchar(767) not null primary key, DATA blob)";
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob)";
                         }
                         stmt.execute(ct);
                     }
