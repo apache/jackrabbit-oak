@@ -94,6 +94,18 @@ public class TestUtils
         return solrServer;
     }
 
+    @CheckForNull
+    @Override
+    public SolrServer getIndexingSolrServer() throws Exception {
+        return solrServer;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getSearchingSolrServer() throws Exception {
+        return solrServer;
+    }
+
     @Nonnull
     @Override
     public OakSolrConfiguration getConfiguration() {
