@@ -155,6 +155,20 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 return "create table " + tableName +
                     " (ID varbinary(767) not null primary key, DATA mediumblob)";
             }
+        },
+
+        MSSQL("Microsoft SQL Server") {
+            @Override
+            public String getMetaTableCreationStatement(String tableName) {
+                return "create table " + tableName +
+                    " (ID nvarchar(767) not null primary key, LVL int, LASTMOD bigint)";
+            }
+
+            @Override
+            public String getDataTableCreationStatement(String tableName) {
+                return "create table " + tableName +
+                    " (ID nvarchar(767) not null primary key, DATA varbinary(max))";
+            }
         };
 
         /**

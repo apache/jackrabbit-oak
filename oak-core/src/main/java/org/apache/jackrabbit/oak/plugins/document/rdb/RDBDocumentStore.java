@@ -371,7 +371,39 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
             @Override
             public String instrumentLimitQuery(String query, int limit) {
-                return query + (" LIMIT " + limit);
+                return String.format(query, "") + (" LIMIT " + limit);
+            }
+        },
+
+        MSSQL("Microsoft SQL Server") {
+            public int getDataOctetLimit() {
+                return 4000;
+            }
+
+            @Override
+            public String getTableCreationStatement(String tableName) {
+                return ("create table " + tableName
+                    + " (ID nvarchar(512) COLLATE Latin1_General_BIN2 not null primary key, "
+                    + "MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, "
+                    + "DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))"); }
+
+            @Override
+            public String getGreatestQueryString() {
+                return "(select MAX(mod) from (VALUES (MODIFIED), (?)) AS ALLMOD(mod))";
+            }
+
+            @Override
+            public String getConcatQueryString(int dataLength) {
+                /* To avoid truncation when concatenating force an error when limit is above the octet limit */
+                return  "CASE WHEN LEN(DATA) <= " + (getDataOctetLimit() - dataLength)
+                    + " THEN (DATA + CAST(? AS nvarchar(" + getDataOctetLimit() + ")))"
+                    + " ELSE DATA + CAST(DATA AS nvarchar(max)) END ";
+
+            }
+
+            @Override
+            public String instrumentLimitQuery(String query, int limit) {
+                return String.format(query, " TOP " + limit);
             }
         };
 
@@ -427,7 +459,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
          * @return the instrumented query string
          */
         public String instrumentLimitQuery(String query, int limit) {
-            return query + (" FETCH FIRST " + limit + " ROWS ONLY");
+            return String.format(query, "") + (" FETCH FIRST " + limit + " ROWS ONLY");
         }
 
         /**
@@ -1149,7 +1181,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
+        /* Substitutions required
+            %1$s - TOP parameter to limit rows if supported
+        */
+        String t = "select %s ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DATA, BDATA from " + tableName + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
                 t += " and MODIFIED >= ?";
@@ -1163,6 +1198,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
         t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
             t = db.instrumentLimitQuery(t, limit);
+        } else {
+            t = String.format(t, "");
         }
 
         PreparedStatement stmt = connection.prepareStatement(t);
