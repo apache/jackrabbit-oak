@@ -194,7 +194,12 @@ public class StandbyServerHandler extends SimpleChannelInboundHandler<String> {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         state = "exception occurred: " + cause.getMessage();
-        log.error(cause.getMessage(), cause);
-        ctx.fireExceptionCaught(cause);
+        boolean isReadTimeout = cause.getMessage() != null
+                && cause.getMessage().contains("Connection reset by peer");
+        if (isReadTimeout) {
+            log.warn("Exception occurred: " + cause.getMessage(), cause);
+        } else {
+            log.error("Exception occurred: " + cause.getMessage(), cause);
+        }
     }
 }
