@@ -181,11 +181,10 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     }
 
     public boolean isGranted(Tree tree, PropertyState property, long permissions) {
-        long diff = Permissions.diff(permissions, Permissions.READ);
-        if (diff != Permissions.NO_PERMISSION) {
-            return false;
-        } else {
+        if (isRead(permissions)) {
             return canRead(tree);
+        } else {
+            return false;
         }
     }
 
@@ -194,17 +193,19 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         boolean isAcContent = ctx.definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
-        PropertyState property = location.getProperty();
-        Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
-        while (tree == null && !PathUtils.denotesRoot(location.getPath())) {
-            location = location.getParent();
-            tree = location.getTree();
+        if (isRead(permissions)) {
+            PropertyState property = location.getProperty();
+            Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+            while (tree == null && !PathUtils.denotesRoot(location.getPath())) {
+                location = location.getParent();
+                tree = location.getTree();
+            }
+            if (tree != null) {
+                return isGranted(tree, property, permissions);
+            }
         }
-        if (tree != null) {
-            return isGranted(tree, property, permissions);
-        } else {
-            return false;
-        }
+
+        return false;
     }
 
     //--------------------------------------------------------------------------
@@ -269,6 +270,7 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
     private boolean canRead(@Nonnull Tree tree) {
         Tree immutableTree = getImmutableTree(tree);
         if (ctx.definesTree(immutableTree)) {
+            // cug defining access control content is not accessible
             return false;
         }
         Tree cugRoot = getCugRoot(immutableTree, immutableTree.getPath());
