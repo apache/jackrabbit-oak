@@ -166,6 +166,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     }
 
+    @Ignore("OAK-2424")
     @Test
     public void containsDash() throws Exception {
         Tree test = root.getTree("/").addChild("test");
@@ -181,11 +182,18 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     }
 
+    @Ignore("OAK-2424")
     @Test
     public void multiPhraseQuery() throws Exception {
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("dc:format", "type:application/pdf");
+        test.addChild("b").setProperty("dc:format", "progress");
         root.commit();
+
+        assertQuery(
+                "/jcr:root//*[jcr:contains(@dc:format, 'pro*')]",
+                "xpath", ImmutableList.of("/test/b"));
+
 
         assertQuery(
                 "/jcr:root//*[jcr:contains(@dc:format, 'type:appli*')]",
