@@ -74,7 +74,7 @@ public class FullTextSearchTest extends AbstractTest<FullTextSearchTest.TestCont
     /**
      * null means true; true means true
      */
-    private Boolean storageEnabled;
+    protected Boolean storageEnabled;
 
     public FullTextSearchTest(File dump, boolean flat, boolean doReport, Boolean storageEnabled) {
         this.importer = new WikipediaImport(dump, flat, doReport) {
