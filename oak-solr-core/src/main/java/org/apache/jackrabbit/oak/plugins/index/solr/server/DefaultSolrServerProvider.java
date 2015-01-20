@@ -20,17 +20,19 @@ import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.impl.ConcurrentUpdateSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 
 public class DefaultSolrServerProvider implements SolrServerProvider {
 
     private SolrServer solrServer;
+    private SolrServer indexingSolrServer;
 
     @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
         if (solrServer == null) {
-            initializeSolrServer();
+            solrServer = new HttpSolrServer(getUrl());
         }
         return solrServer;
     }
@@ -38,7 +40,10 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getIndexingSolrServer() throws Exception {
-        return getSolrServer();
+        if (indexingSolrServer == null) {
+            indexingSolrServer = new ConcurrentUpdateSolrServer(getUrl(), 1000, 4);
+        }
+        return indexingSolrServer;
     }
 
     @CheckForNull
@@ -47,10 +52,9 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
         return getSolrServer();
     }
 
-    private void initializeSolrServer() {
-        String url = SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
+    private String getUrl() {
+        return SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
                 SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
                 '/' + SolrServerConfigurationDefaults.CORE_NAME;
-        solrServer = new HttpSolrServer(url);
     }
 }
