@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -206,7 +205,6 @@ public class ContentMirrorStoreStrategyTest {
     }
 
     @Test
-    @Ignore("OAK-2341")
     public void testIndexCountersUsageWithPathRestriction() {
         final String subPathName = "sub-path";
         final int filteredNodeFactor = 2;

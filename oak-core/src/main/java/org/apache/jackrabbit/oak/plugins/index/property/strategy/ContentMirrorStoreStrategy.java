@@ -31,6 +31,8 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditor;
+import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.FilterIterators;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -184,29 +186,28 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     public long count(Filter filter, NodeState root, NodeState indexMeta, final String indexStorageNodeName,
             Set<String> values, int max) {
         NodeState index = indexMeta.getChildNode(indexStorageNodeName);
-        long count = 0;
+        long count = -1;
         if (values == null) {
+            // property is not null
             PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
             if (ec != null) {
+                // negative value implies fall-back to counting
                 count = ec.getValue(Type.LONG);
-                if (count >= 0) {
-                    return count;
-                }
+            } else {
+                // negative value means that approximation isn't available
+                count = ApproximateCounter.getCountSync(index);
             }
-            if (count == 0) {
-                long approxCount = ApproximateCounter.getCountSync(index);
-                if (approxCount != -1) {
-                    return approxCount;
+            if (count < 0) {
+                CountingNodeVisitor v = new CountingNodeVisitor(max);
+                v.visit(index);
+                count = v.getEstimatedCount();
+                if (count >= max) {
+                    // "is not null" queries typically read more data
+                    count *= 10;
                 }
-            }
-            CountingNodeVisitor v = new CountingNodeVisitor(max);
-            v.visit(index);
-            count = v.getEstimatedCount();
-            if (count >= max) {
-                // "is not null" queries typically read more data
-                count *= 10;
             }
         } else {
+            // property = x, or property in (x, y, z)
             int size = values.size();
             if (size == 0) {
                 return 0;
@@ -215,9 +216,9 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             if (ec != null) {
                 count = ec.getValue(Type.LONG);
                 if (count >= 0) {
-                    // assume 10000 entries per key, so that this index is used
+                    // assume 10*NodeCounterEditor.DEFAULT_RESOLUTION entries per key, so that this index is used
                     // instead of traversal, but not instead of a regular property index
-                    long keyCount = count / 10000;
+                    long keyCount = count / (10 * NodeCounterEditor.DEFAULT_RESOLUTION);
                     ec = indexMeta.getProperty(KEY_COUNT_PROPERTY_NAME);
                     if (ec != null) {
                         keyCount = ec.getValue(Type.LONG);
@@ -227,67 +228,70 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     // the cost is not multiplied by the size, 
                     // otherwise the traversing index might be used              
                     keyCount = Math.max(1, keyCount);
-                    return (long) ((double) count / keyCount) + size;
+                    count = (long) ((double) count / keyCount) + size;
                 }
-            }
-            long approxMax = 0;
-            if (count == 0) {
+            } else {
+                // for this index, property "entryCount" is not set
+                long approxMax = 0;
                 long approxCount = ApproximateCounter.getCountSync(index);
                 if (approxCount != -1) {
+                    // approximate count is available for the index:
+                    // check approximate counts for each value
                     for (String p : values) {
                         NodeState s = index.getChildNode(p);
                         if (s.exists()) {
                             long a = ApproximateCounter.getCountSync(s);
                             if (a != -1) {
                                 approxMax += a;
+                            } else if (approxMax > 0) {
+                                // in absence of approx count for a key we should be conservative
+                                approxMax += 10 * NodeCounterEditor.DEFAULT_RESOLUTION;
                             }
                         }
                     }
-                }
-            }
-            count = 0;
-            max = Math.max(10, max / size);
-            int i = 0;
-            String filterRootPath = null;
-            if (filter != null &&
-                    filter.getPathRestriction().equals(Filter.PathRestriction.ALL_CHILDREN)) {
-                filterRootPath = filter.getPath();
-            }
-            if (filterRootPath == null && approxMax > 0) {
-                // we do have an approximation, and
-                // there is no path filter
-                return approxMax;
-            }
-            for (String p : values) {
-                if (count > max && i > 3) {
-                    // the total count is extrapolated from the the number 
-                    // of values counted so far to the total number of values
-                    count = count * size / i;
-                    break;
-                }
-                NodeState s = index.getChildNode(p);
-                if (filterRootPath != null && s.exists()) {
-                    // Descend directly to path restriction inside index tree
-                    for (String pathFragment : PathUtils
-                            .elements(filterRootPath)) {
-                        s = s.getChildNode(pathFragment);
-                        if (!s.exists()) {
-                            break;
-                        }
+                    if (approxMax > 0) {
+                        count = approxMax;
                     }
                 }
-                if (s.exists()) {
-                    CountingNodeVisitor v = new CountingNodeVisitor(max);
-                    v.visit(s);
-                    count += v.getEstimatedCount();
-                }
-                i++;
             }
-            if (approxMax > 0 && approxMax > count) {
-                // we do have an approximation, and
-                // it is higher than what we counted
-                // (we don't count that far)
-                count = approxMax;
+            // still, property = x, or property in (x, y, z),
+            // and we don't know the count ("entryCount" = -1)
+            if (count < 0) {
+                count = 0;
+                max = Math.max(10, max / size);
+                int i = 0;
+                for (String p : values) {
+                    if (count > max && i > 3) {
+                        // the total count is extrapolated from the the number
+                        // of values counted so far to the total number of values
+                        count = count * size / i;
+                        break;
+                    }
+                    NodeState s = index.getChildNode(p);
+                    if (s.exists()) {
+                        CountingNodeVisitor v = new CountingNodeVisitor(max);
+                        v.visit(s);
+                        count += v.getEstimatedCount();
+                    }
+                    i++;
+                }
+            }
+        }
+
+        String filterRootPath = null;
+        if (filter != null &&
+                filter.getPathRestriction().equals(Filter.PathRestriction.ALL_CHILDREN)) {
+            filterRootPath = filter.getPath();
+        }
+
+        if (filterRootPath != null) {
+            // scale cost according to path restriction
+            long totalNodesCount = NodeCounter.getEstimatedNodeCount(root, "/", true);
+            if (totalNodesCount != -1) {
+                long filterPathCount = NodeCounter.getEstimatedNodeCount(root, filterRootPath, true);
+                if (filterPathCount != -1) {
+                    count = (long) ((double) count / totalNodesCount * filterPathCount);
+                }
             }
         }
         return count;
