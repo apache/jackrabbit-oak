@@ -90,6 +90,7 @@
       org.apache.jackrabbit.core.query.OrderByTest#testOrderByMVP                                    <!-- OAK-2339 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testSimpleQuerySQL4                           <!-- OAK-2339 -->
       org.apache.jackrabbit.core.query.SimpleQueryTest#testIsNull                                    <!-- OAK-2339 -->
+      org.apache.jackrabbit.core.query.FulltextQueryTest#testMultiByte                               <!-- OAK-2424 -->
     </known.issues>
   </properties>
 
