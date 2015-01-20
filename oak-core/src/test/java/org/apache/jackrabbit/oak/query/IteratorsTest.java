@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
@@ -95,6 +97,51 @@ public class IteratorsTest {
         assertEquals("1, 2", toString(FilterIterators.newSort(it(1, 2, 3), INT_COMP, 2, settings)));
         assertEquals("1, 2", toString(FilterIterators.newSort(it(3, 2, 1), INT_COMP, 2, settings)));
         assertEquals("1, 1, 2", toString(FilterIterators.newSort(it(3, 3, 2, 1, 1), INT_COMP, 3, settings)));
+    }
+
+    @Test
+    public void sortCompareCalls() {
+        sortCompareCalls(10000, 0);
+        sortCompareCalls(10000, 1);
+        sortCompareCalls(10000, 10);
+        sortCompareCalls(10000, 100);
+        sortCompareCalls(10000, 1000);
+        sortCompareCalls(10000, 10000);
+        sortCompareCalls(10000, 100000);
+        sortCompareCalls(10000, 1000000);
+        sortCompareCalls(10000, Integer.MAX_VALUE);
+    }
+    
+    private void sortCompareCalls(int count, int keep) {
+        
+        int len = 1000;
+        Random r = new Random(1);
+        Integer[] list = new Integer[len];
+        for (int i = 0; i < len; i++) {
+            list[i] = r.nextInt();
+        }
+        final AtomicInteger compareCalls = new AtomicInteger();
+        Comparator<Integer> comp = new Comparator<Integer>() {
+
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                compareCalls.incrementAndGet();
+                return o1.compareTo(o2);
+            }
+            
+        };
+        Iterator<Integer> it = FilterIterators.newSort(it(list), comp, keep, settings);
+        int old = Integer.MIN_VALUE;
+        while (it.hasNext()) {
+            int x = it.next();
+            assertTrue(x >= old);
+            old = x;
+        }
+        // n * log2(n)
+        int maxCompAll = (int) (len * Math.log(len) / Math.log(2));
+        int maxCompKeep = (int) (len * Math.log(3.0 * keep) / Math.log(2));
+        int maxComp = Math.min(maxCompAll, Math.max(0, maxCompKeep));
+        assertTrue(compareCalls.get() <= maxComp);
     }
 
     @Test
