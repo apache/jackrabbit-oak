@@ -257,6 +257,27 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-solr-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-solrj</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.solr</groupId>
+      <artifactId>solr-core</artifactId>
+      <version>${lucene.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-mk-remote</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -403,6 +424,17 @@
           <artifactId>lucene-queries</artifactId>
           <version>${lucene.version}</version>
         </dependency>
+        <dependency>
+          <groupId>org.apache.lucene</groupId>
+          <artifactId>lucene-suggest</artifactId>
+          <version>${lucene.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.jackrabbit</groupId>
+          <artifactId>oak-solr-osgi</artifactId> <!-- this is declared here to avoid having it in the jr2 profile too -->
+          <version>${project.version}</version>
+        </dependency>
+
       </dependencies>
     </profile>
   </profiles>

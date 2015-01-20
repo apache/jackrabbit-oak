@@ -77,6 +77,9 @@ public class BenchmarkRunner {
         OptionSpec<Boolean> withStorage = parser
                 .accepts("storage", "Index storage enabled").withOptionalArg()
                 .ofType(Boolean.class);
+        OptionSpec<String> withServer = parser
+                .accepts("server", "Solr server host").withOptionalArg()
+                .ofType(String.class);
         OptionSpec<Boolean> runAsAdmin = parser.accepts("runAsAdmin", "Run test using admin session")
                 .withRequiredArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<String> runAsUser = parser.accepts("runAsUser", "Run test using admin, anonymous or a test user")
@@ -263,6 +266,10 @@ public class BenchmarkRunner {
                     wikipedia.value(options),
                     flatStructure.value(options),
                     report.value(options), withStorage.value(options)),
+            new FullTextSolrSearchTest(
+                    wikipedia.value(options),
+                    flatStructure.value(options),
+                    report.value(options), withStorage.value(options), withServer.value(options)),
             new FindAuthorizableWithScopeTest(numberOfUsers.value(options), setScope.value(options))
         };
 
