@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
-import org.apache.jackrabbit.oak.security.composite.CompositeAuthorizationConfiguration;
+import org.apache.jackrabbit.oak.security.authorization.composite.CompositeAuthorizationConfiguration;
 
 /**
  * Base class for CUG related test that setup the authorization configuration
@@ -38,22 +38,19 @@ public class AbstractCugTest extends AbstractSecurityTest {
     @Override
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new CugSecurityProvider(getSecurityConfigParameters(), super.getSecurityProvider());
+            securityProvider = new CugSecurityProvider(super.getSecurityProvider());
         }
         return securityProvider;
     }
 
     final class CugSecurityProvider implements SecurityProvider {
 
-        private final ConfigurationParameters configuration;
         private final SecurityProvider base;
 
         private final CugConfiguration cugConfiguration;
 
-        private CugSecurityProvider(@Nonnull ConfigurationParameters configuration, @Nonnull SecurityProvider base) {
-            this.configuration = configuration;
+        private CugSecurityProvider(@Nonnull SecurityProvider base) {
             this.base = base;
-
             cugConfiguration = new CugConfiguration(this);
         }
 
@@ -77,7 +74,7 @@ public class AbstractCugTest extends AbstractSecurityTest {
                     it.remove();
                 }
             }
-            composite.addConfiguration(new CugConfiguration(this));
+            composite.addConfiguration(cugConfiguration);
             configs.add(composite);
 
             return configs;
@@ -90,7 +87,7 @@ public class AbstractCugTest extends AbstractSecurityTest {
             if (AuthorizationConfiguration.class == configClass) {
                 CompositeAuthorizationConfiguration composite = new CompositeAuthorizationConfiguration(this);
                 composite.addConfiguration((AuthorizationConfiguration) c);
-                composite.addConfiguration(new CugConfiguration(this));
+                composite.addConfiguration(cugConfiguration);
                 return (T) composite;
             } else {
                 return c;
