@@ -100,7 +100,8 @@ public class ApproximateCounter {
     }
     
     /**
-     * Adjust a counter in the given node. This is less accurate, but can be
+     * Adjust a counter in the given node. This method supports concurrent
+     * changes. It uses multiple properties, and is less accurate, but can be
      * used in a multi-threaded environment, as it uses unique property names.
      * 
      * @param builder the node builder
@@ -116,7 +117,7 @@ public class ApproximateCounter {
         }
     }
     
-    public static void adjustCountSync(NodeBuilder builder, boolean added) {
+    private static void adjustCountSync(NodeBuilder builder, boolean added) {
         if (RANDOM.nextInt(COUNT_RESOLUTION) != 0) {
             return;
         }
@@ -134,7 +135,7 @@ public class ApproximateCounter {
         builder.setProperty(propertyName, added ? value : -value);
     }
     
-    public static int getMaxCount(NodeBuilder node, boolean added) {
+    private static int getMaxCount(NodeBuilder node, boolean added) {
         long max = 0;
         for (PropertyState p : node.getProperties()) {
             if (!p.getName().startsWith(COUNT_PROPERTY_PREFIX)) {
@@ -149,6 +150,12 @@ public class ApproximateCounter {
         return (int) max;
     }
     
+    /**
+     * Get the count estimation.
+     *
+     * @param node the node
+     * @return the estimation (-1 if no estimation is available)
+     */
     public static long getCountSync(NodeState node) {
         boolean hasCountProperty = false;
         long added = 0;
