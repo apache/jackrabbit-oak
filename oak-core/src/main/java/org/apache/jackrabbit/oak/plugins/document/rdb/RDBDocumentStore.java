@@ -929,7 +929,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 Boolean hasBinary = flag != null && flag.intValue() == NodeDocument.HAS_BINARY_VAL;
                 Long modcount = (Long) document.get(MODCOUNT);
                 Long cmodcount = (Long) document.get(COLLISIONSMODCOUNT);
-                dbInsert(connection, tableName, document.getId(), modified, hasBinary, modcount, cmodcount, data);
+                String id = document.getId();
+                ids.add(id);
+                dbInsert(connection, tableName, id, modified, hasBinary, modcount, cmodcount, data);
             }
             connection.commit();
         } catch (SQLException ex) {
