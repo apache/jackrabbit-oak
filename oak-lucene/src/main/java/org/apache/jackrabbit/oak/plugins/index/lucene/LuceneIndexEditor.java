@@ -259,6 +259,9 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         try {
             Document d = makeDocument(path, state, isUpdate);
             if (d != null) {
+                if (log.isTraceEnabled()){
+                    log.trace("Indexed document for {} is {}", path, d);
+                }
                 context.getWriter().updateDocument(newPathTerm(path), d);
                 return true;
             }
