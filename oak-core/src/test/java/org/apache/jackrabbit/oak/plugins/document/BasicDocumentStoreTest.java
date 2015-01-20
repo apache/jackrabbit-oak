@@ -70,7 +70,16 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testMaxId() {
+    public void testMaxIdAscii() {
+        testMaxId(true);
+    }
+
+    @Test
+    public void testMaxIdNonAscii() {
+        testMaxId(false);
+    }
+
+    private void testMaxId(boolean ascii) {
         // TODO see OAK-1589
         Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
         int min = 0;
@@ -79,7 +88,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         while (max - min >= 2) {
             test = (max + min) / 2;
-            String id = generateString(test, true);
+            String id = generateId(test, ascii);
             UpdateOp up = new UpdateOp(id, true);
             up.set("_id", id);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
@@ -87,6 +96,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 // check that we really can read it
                 NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
                 assertNotNull("failed to retrieve previously stored document", findme);
+                assertEquals(id, findme.getId());
                 super.ds.remove(Collection.NODES, id);
                 min = test;
             } else {
@@ -94,7 +104,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
         }
 
-        LOG.info("max id length for " + super.dsname + " was " + test);
+        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for " + super.dsname + " was " + test);
     }
 
     @Test
@@ -617,6 +627,19 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             }
         }
         return new String(s);
+    }
+
+    private static String generateId(int length, boolean ascii) {
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < length; i++) {
+            if (ascii) {
+                sb.append("0");
+            }
+            else {
+                sb.append(Character.toChars(0x1F4A9));
+            }
+        }
+        return sb.toString();
     }
 
     @Test
