@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.transform;
 
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -49,21 +52,40 @@ class Branch {
     private final Revision base;
 
     /**
+     * The branch reference.
+     */
+    private final BranchReference ref;
+
+    /**
      * Create a new branch instance with an initial set of commits and a given
-     * base revision.
+     * base revision. The life time of this branch can be controlled with
+     * the {@code guard} parameter. Once the {@code guard} object becomes weakly
+     * reachable, the {@link BranchReference} for this branch is appended to
+     * the passed {@code queue}. No {@link BranchReference} is appended if the
+     * passed {@code guard} is {@code null}.
      *
      * @param commits the initial branch commits.
      * @param base the base commit.
+     * @param queue a {@link BranchReference} to this branch will be appended to
+     *              this queue when {@code guard} becomes weakly reachable.
+     * @param guard controls the life time of this branch.
      * @throws IllegalArgumentException if base is a branch revision.
      */
     Branch(@Nonnull SortedSet<Revision> commits,
-           @Nonnull Revision base) {
+           @Nonnull Revision base,
+           @Nonnull ReferenceQueue<Object> queue,
+           @Nullable Object guard) {
         checkArgument(!checkNotNull(base).isBranch(), "base is not a trunk revision: %s", base);
         this.base = base;
         this.commits = new ConcurrentSkipListMap<Revision, BranchCommit>(commits.comparator());
         for (Revision r : commits) {
             this.commits.put(r.asBranchRevision(),
                     new BranchCommitImpl(base, r.asBranchRevision()));
+        }
+        if (guard != null) {
+            this.ref = new BranchReference(queue, this, guard);
+        } else {
+            this.ref = null;
         }
     }
 
@@ -158,6 +180,15 @@ class Branch {
     @CheckForNull
     BranchCommit getCommit(@Nonnull Revision r) {
         return commits.get(checkNotNull(r).asBranchRevision());
+    }
+
+    /**
+     * @return the branch reference or {@code null} if no guard object was
+     *         passed to the constructor of this branch. 
+     */
+    @CheckForNull
+    BranchReference getRef() {
+        return ref;
     }
 
     /**
@@ -328,6 +359,22 @@ class Branch {
         @Override
         public void track(String path) {
             throw new UnsupportedOperationException("RebaseCommit is read-only");
+        }
+    }
+
+    final static class BranchReference extends WeakReference<Object> {
+
+        private final Branch branch;
+
+        private BranchReference(@Nonnull ReferenceQueue<Object> queue,
+                                @Nonnull Branch branch,
+                                @Nonnull Object referent) {
+            super(checkNotNull(referent), queue);
+            this.branch = checkNotNull(branch);
+        }
+
+        Branch getBranch() {
+            return branch;
         }
     }
 }
