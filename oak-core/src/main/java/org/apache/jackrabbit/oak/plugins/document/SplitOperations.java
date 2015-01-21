@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +75,7 @@ class SplitOperations {
     private Revision low;
     private int numValues;
     private Map<String, NavigableMap<Revision, String>> committedChanges;
+    private Map<String, Set<Revision>> garbage;
     private Set<Revision> mostRecentRevs;
     private Set<Revision> splitRevs;
     private List<UpdateOp> splitOps;
@@ -116,6 +118,7 @@ class SplitOperations {
         splitOps = Lists.newArrayList();
         mostRecentRevs = Sets.newHashSet();
         splitRevs = Sets.newHashSet();
+        garbage = Maps.newHashMap();
         committedChanges = getCommittedLocalChanges();
 
         // revisions of the most recent committed changes on this document
@@ -134,6 +137,9 @@ class SplitOperations {
 
         // remove stale references to previous docs
         disconnectStalePrevDocs();
+        
+        // remove garbage
+        removeGarbage();
 
         // main document must be updated last
         if (main != null) {
@@ -366,10 +372,32 @@ class SplitOperations {
                 }
                 if (doc.isCommitted(rev)) {
                     splitMap.put(rev, entry.getValue());
+                } else if (isGarbage(rev)) {
+                    addGarbage(rev, property);
                 }
             }
         }
         return committedLocally;
+    }
+    
+    private boolean isGarbage(Revision rev) {
+        Revision head = context.getHeadRevision();
+        Comparator<Revision> comp = context.getRevisionComparator();
+        if (comp.compare(head, rev) <= 0) {
+            // this may be an in-progress commit
+            return false;
+        }
+        // garbage if not part of an active branch
+        return context.getBranches().getBranchCommit(rev) == null;
+    }
+    
+    private void addGarbage(Revision rev, String property) {
+        Set<Revision> revisions = garbage.get(property);
+        if (revisions == null) {
+            revisions = Sets.newHashSet();
+            garbage.put(property, revisions);
+        }
+        revisions.add(rev);
     }
 
     private void disconnectStalePrevDocs() {
@@ -404,6 +432,21 @@ class SplitOperations {
                 }
             }
 
+        }
+    }
+    
+    private void removeGarbage() {
+        if (garbage.isEmpty()) {
+            return;
+        } else if (main == null) {
+            main = new UpdateOp(id, false);
+        }
+        for (Map.Entry<String, Set<Revision>> entry : garbage.entrySet()) {
+            for (Revision r : entry.getValue()) {
+                main.removeMapEntry(entry.getKey(), r);
+                NodeDocument.removeCommitRoot(main, r);
+                NodeDocument.removeRevision(main, r);
+            }
         }
     }
 

@@ -195,8 +195,6 @@ public final class DocumentNodeStore
     /**
      * Unmerged branches of this DocumentNodeStore instance.
      */
-    // TODO at some point, open (unmerged) branches
-    // need to be garbage collected (in-memory and on disk)
     private final UnmergedBranches branches;
 
     /**
@@ -398,7 +396,7 @@ public final class DocumentNodeStore
         if (store.find(Collection.NODES, Utils.getIdFromPath("/")) == null) {
             // root node is missing: repository is not initialized
             Revision head = newRevision();
-            Commit commit = new Commit(this, null, head);
+            Commit commit = new Commit(this, head, null, null);
             DocumentNodeState n = new DocumentNodeState(this, "/", head);
             commit.addNode(n);
             commit.applyToDocumentStore();
@@ -488,11 +486,6 @@ public final class DocumentNodeStore
         }
     }
 
-    @Nonnull
-    Revision getHeadRevision() {
-        return headRevision;
-    }
-
     Revision setHeadRevision(@Nonnull Revision newHead) {
         checkArgument(!newHead.isBranch());
         Revision previous = headRevision;
@@ -528,10 +521,16 @@ public final class DocumentNodeStore
      *
      * @param base the base revision for the commit or <code>null</code> if the
      *             commit should use the current head revision as base.
+     * @param branch the branch instance if this is a branch commit. The life
+     *               time of this branch commit is controlled by the
+     *               reachability of this parameter. Once {@code branch} is
+     *               weakly reachable, the document store implementation is
+     *               free to remove the commits associated with the branch.
      * @return a new commit.
      */
     @Nonnull
-    Commit newCommit(@Nullable Revision base) {
+    Commit newCommit(@Nullable Revision base,
+                     @Nullable DocumentNodeStoreBranch branch) {
         if (base == null) {
             base = headRevision;
         }
@@ -539,7 +538,7 @@ public final class DocumentNodeStore
         boolean success = false;
         Commit c;
         try {
-            c = new Commit(this, base, commitQueue.createRevision());
+            c = new Commit(this, commitQueue.createRevision(), base, branch);
             success = true;
         } finally {
             if (!success) {
@@ -1099,7 +1098,9 @@ public final class DocumentNodeStore
     }
 
     @Nonnull
-    Revision reset(@Nonnull Revision branchHead, @Nonnull Revision ancestor) {
+    Revision reset(@Nonnull Revision branchHead,
+                   @Nonnull Revision ancestor,
+                   @Nullable DocumentNodeStoreBranch branch) {
         checkNotNull(branchHead);
         checkNotNull(ancestor);
         Branch b = getBranches().getBranch(branchHead);
@@ -1119,7 +1120,7 @@ public final class DocumentNodeStore
             return branchHead;
         }
         boolean success = false;
-        Commit commit = newCommit(branchHead);
+        Commit commit = newCommit(branchHead, branch);
         try {
             Iterator<Revision> it = b.getCommits().tailSet(ancestor).iterator();
             // first revision is the ancestor (tailSet is inclusive)
@@ -1443,6 +1444,11 @@ public final class DocumentNodeStore
         return clusterId;
     }
 
+    @Nonnull
+    public Revision getHeadRevision() {
+        return headRevision;
+    }
+
     //----------------------< background operations >---------------------------
 
     public synchronized void runBackgroundOperations() {
@@ -1456,6 +1462,11 @@ public final class DocumentNodeStore
         try {
             long start = clock.getTime();
             long time = start;
+            // clean orphaned branches and collisions
+            cleanOrphanedBranches();
+            cleanCollisions();
+            long cleanTime = clock.getTime() - time;
+            time = clock.getTime();
             // split documents (does not create new revisions)
             backgroundSplit();
             long splitTime = clock.getTime() - time;
@@ -1467,12 +1478,12 @@ public final class DocumentNodeStore
             // pull in changes from other cluster nodes
             backgroundRead(true);
             long readTime = clock.getTime() - time;
-            String msg = "Background operations stats (split:{}, write:{}, read:{})";
+            String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{})";
             if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
                 // log as info if it took more than 10 seconds
-                LOG.info(msg, splitTime, writeTime, readTime);
+                LOG.info(msg, cleanTime, splitTime, writeTime, readTime);
             } else {
-                LOG.debug(msg, splitTime, writeTime, readTime);
+                LOG.debug(msg, cleanTime, splitTime, writeTime, readTime);
             }
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
@@ -1600,6 +1611,47 @@ public final class DocumentNodeStore
      */
     private static long revisionPurgeMillis() {
         return Revision.getCurrentTimestamp() - REMEMBER_REVISION_ORDER_MILLIS;
+    }
+
+    private void cleanOrphanedBranches() {
+        Branch b;
+        while ((b = branches.pollOrphanedBranch()) != null) {
+            LOG.debug("Cleaning up orphaned branch with base revision: {}, " + 
+                    "commits: {}", b.getBase(), b.getCommits());
+            UpdateOp op = new UpdateOp(Utils.getIdFromPath("/"), false);
+            for (Revision r : b.getCommits()) {
+                r = r.asTrunkRevision();
+                NodeDocument.removeRevision(op, r);
+            }
+            store.findAndUpdate(NODES, op);
+        }
+    }
+    
+    private void cleanCollisions() {
+        String id = Utils.getIdFromPath("/");
+        NodeDocument root = store.find(NODES, id);
+        if (root == null) {
+            return;
+        }
+        Revision head = getHeadRevision();
+        Map<Revision, String> map = root.getLocalMap(NodeDocument.COLLISIONS);
+        UpdateOp op = new UpdateOp(id, false);
+        for (Revision r : map.keySet()) {
+            if (r.getClusterId() == clusterId) {
+                // remove collision if there is no active branch with
+                // this revision and the revision is before the current
+                // head. That is, the collision cannot be related to commit
+                // which is progress.
+                if (branches.getBranchCommit(r) == null 
+                        && isRevisionNewer(head, r)) {
+                    NodeDocument.removeCollision(op, r);
+                }
+            }
+        }
+        if (op.hasChanges()) {
+            LOG.debug("Removing collisions {}", op.getChanges().keySet());
+            store.findAndUpdate(NODES, op);
+        }
     }
 
     private void backgroundSplit() {

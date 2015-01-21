@@ -269,7 +269,7 @@ public class DocumentMK implements MicroKernel {
         boolean success = false;
         boolean isBranch = false;
         Revision rev;
-        Commit commit = nodeStore.newCommit(baseRevId != null ? Revision.fromString(baseRevId) : null);
+        Commit commit = nodeStore.newCommit(baseRevId != null ? Revision.fromString(baseRevId) : null, null);
         try {
             Revision baseRev = commit.getBaseRevision();
             isBranch = baseRev != null && baseRev.isBranch();
@@ -340,7 +340,7 @@ public class DocumentMK implements MicroKernel {
             throw new MicroKernelException("Not a branch revision: " + ancestorRevisionId);
         }
         try {
-            return nodeStore.reset(branch, ancestor).toString();
+            return nodeStore.reset(branch, ancestor, null).toString();
         } catch (DocumentStoreException e) {
             throw new MicroKernelException(e);
         }
