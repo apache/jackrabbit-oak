@@ -409,7 +409,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
     
     @Test
     public void queryNotNullAscending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = ASC;
         final String inexistent  = formatNumber(numberOfNodes + 1);
@@ -428,12 +428,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(statement, expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     @Test
     public void queryNotNullDescending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = DESC; //changed
         final String inexistent  = formatNumber(0); //changed
@@ -455,7 +455,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // as the full iterable used in `property IS NOT NULL` cases walk the index on lane 0, any
         // other lanes doesn't matter.
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     // As of OAK-2202 we don't use the skip list for returning a specific key item, so we're not
@@ -467,7 +467,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
 
     @Test
     public void queryGreaterThanAscending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = ASC;
         final String inexistent  = formatNumber(numberOfNodes + 1);
@@ -489,7 +489,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /*
@@ -498,7 +498,7 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
      */
     @Test
     public void queryGreaterThanAscendingLane1() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = ASC;
         String inexistent  = formatNumber(numberOfNodes + 1);
@@ -521,12 +521,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         Result result = executeQuery(st, SQL2, null);
         assertRightOrder(expected, result.getRows().iterator());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     @Test
     public void queryGreaterThenDescending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final int offset = 5;
         final OrderDirection direction = DESC;
@@ -548,12 +548,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     @Test
     public void queryGreaterThanEqualAscending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = ASC;
         final String inexistent  = formatNumber(numberOfNodes + 1);
@@ -574,12 +574,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     @Test
     public void queryGreaterThanEqualDescending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final int offset = 5;
         final OrderDirection direction = DESC;
@@ -601,12 +601,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     @Test
     public void queryLessThanAscending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final OrderDirection direction = ASC;
         final String inexistent  = formatNumber(numberOfNodes + 1);
@@ -626,12 +626,12 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     @Test
     public void queryLessThanDescending() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final int numberOfNodes = 20;
         final int offset = 5;
         final OrderDirection direction = DESC;
@@ -652,6 +652,6 @@ public class Oak2077QueriesTest extends BasicOrderedPropertyIndexQueryTest {
         // pointing to a non-existent node in lane 0 we expect the result to be truncated
         assertLogAndQuery(String.format(statement, whereCondition), expected);
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 }

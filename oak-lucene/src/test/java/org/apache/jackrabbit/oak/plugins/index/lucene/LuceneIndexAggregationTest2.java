@@ -300,7 +300,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
 
     @Test
     public void indexRelativeNode() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(., 'summer') " +
                 "and jcr:contains(jcr:content/renditions/original, 'fox')" +
@@ -328,7 +328,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
         root.commit();
         assertQuery(statement, "xpath", Collections.<String>emptyList());
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     @Test

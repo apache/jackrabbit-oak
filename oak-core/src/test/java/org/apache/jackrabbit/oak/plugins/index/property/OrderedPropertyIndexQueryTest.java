@@ -93,7 +93,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryAllEntries() throws CommitFailedException, ParseException, RepositoryException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -110,7 +110,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .getRows().iterator();
         assertRightOrder(nodes, results);
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -121,7 +121,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryOneKey() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -145,7 +145,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertEquals("wrong path returned", searchfor.getPath(), results.next().getPath());
         assertFalse("there should be not any more items", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
     
     /**
@@ -155,7 +155,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryOrIn() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -181,7 +181,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(expected, executeQuery(statementOr, SQL2, bindings).getRows().iterator());
         assertRightOrder(expected, executeQuery(statementIn, SQL2, bindings).getRows().iterator());
         
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -192,7 +192,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryGreaterThan() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] AS n WHERE n.%s > $%s";
@@ -221,7 +221,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -231,7 +231,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryGreaterEqualThan() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] AS n WHERE n.%s >= $%s";
@@ -261,7 +261,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -272,7 +272,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
     @Test
     public void queryLessThan() throws Exception {
         initWithProperProvider();
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final OrderDirection direction = OrderDirection.DESC;
         final String query = "SELECT * FROM [nt:base] AS n WHERE n.%s < $%s";
 
@@ -314,7 +314,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throught all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -328,7 +328,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
     public void queryLessEqualThan() throws Exception {
         initWithProperProvider();
         initWithProperProvider();
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
         final OrderDirection direction = OrderDirection.DESC;
         final String query = "SELECT * FROM [nt:base] AS n WHERE n.%s <= $%s";
 
@@ -361,12 +361,12 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throught all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     @Test
     public void queryAllEntriesWithOrderBy() throws CommitFailedException, ParseException, RepositoryException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -387,12 +387,12 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .getRows().iterator();
         assertRightOrder(nodes, results);
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     @Test
     public void orderByQueryNoWhere() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -412,7 +412,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .getRows().iterator();
         assertRightOrder(nodes, results);
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     @Test
@@ -459,7 +459,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
 
     @Test
     public void queryOrderByNonIndexedProperty() throws CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -477,7 +477,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .getRows().iterator();
         assertFalse("An empty resultset is expected", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     private static FilterImpl createFilter(NodeState indexed, String nodeTypeName) {
@@ -584,7 +584,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
      */
     @Test
     public void queryOrderAndWhereMixed() throws IllegalArgumentException, RepositoryException, CommitFailedException, ParseException {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         // index automatically created by the framework:
         // {@code createTestIndexNode()}
@@ -621,7 +621,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
             .getRows().iterator();
         assertTrue(results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
     }
 
     /**
@@ -633,7 +633,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
     @Test
     public void queryGreaterThenWithCast() throws CommitFailedException, ParseException {
 
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY
@@ -660,13 +660,13 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
 
     }
 
     @Test
     public void queryBetweenNoIncludes() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY + "> $start AND "
@@ -706,13 +706,13 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
 
     }
 
     @Test
     public void queryBetweenIncludeLower() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY + ">= $start AND "
@@ -752,13 +752,13 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
 
     }
     
     @Test
     public void queryBetweenIncludeHigher() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY + "> $start AND "
@@ -798,13 +798,13 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
 
     }
 
     @Test
     public void queryBetweenIncludeBoth() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
 
         final OrderDirection direction = OrderDirection.ASC;
         final String query = "SELECT * FROM [nt:base] WHERE " + ORDERED_PROPERTY + ">= $start AND "
@@ -844,7 +844,7 @@ public class OrderedPropertyIndexQueryTest extends BasicOrderedPropertyIndexQuer
         assertRightOrder(Lists.newArrayList(filtered), results);
         assertFalse("We should have looped throuhg all the results", results.hasNext());
 
-        setTravesalEnabled(true);
+        setTraversalEnabled(true);
 
     }
 }
