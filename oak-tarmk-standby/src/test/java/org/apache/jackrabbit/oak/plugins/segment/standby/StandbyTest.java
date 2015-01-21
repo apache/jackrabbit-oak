@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -47,7 +48,7 @@ import org.junit.Test;
 
 import com.google.common.io.ByteStreams;
 
-public class FailoverTest extends TestBase {
+public class StandbyTest extends TestBase {
 
     @Before
     public void setUp() throws Exception {
@@ -60,7 +61,7 @@ public class FailoverTest extends TestBase {
     }
 
     @Test
-    public void testFailover() throws Exception {
+    public void testSync() throws Exception {
         final int mb = 1 * 1024 * 1024;
         final int blobSize = 5 * mb;
         FileStore primary = getPrimary();
@@ -69,9 +70,12 @@ public class FailoverTest extends TestBase {
         NodeStore store = new SegmentNodeStore(primary);
         final StandbyServer server = new StandbyServer(getPort(), primary);
         server.start();
-        byte[] data = addTestContent(store, "server", blobSize);
+        byte[] data = addTestContent(store, "server", blobSize, 150);
 
         StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+        cl.run();
+
+        addTestContent(store, "server2", 50, 15);
         cl.run();
 
         try {
@@ -97,22 +101,80 @@ public class FailoverTest extends TestBase {
 
     }
 
-    private static byte[] addTestContent(NodeStore store, String child, int size)
+    private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes)
             throws CommitFailedException, IOException {
         NodeBuilder builder = store.getRoot().builder();
-        builder.child(child).setProperty("ts", System.currentTimeMillis());
+        NodeBuilder content = builder.child(child);
+        content.setProperty("ts", System.currentTimeMillis());
 
         byte[] data = new byte[size];
         new Random().nextBytes(data);
         Blob blob = store.createBlob(new ByteArrayInputStream(data));
-        builder.child(child).setProperty("testBlob", blob);
+        content.setProperty("testBlob", blob);
+
+        for (int i = 0; i < dataNodes; i++) {
+            NodeBuilder c = content.child("c" + i);
+            for (int j = 0; j < 1000; j++) {
+                c.setProperty("p" + i, "v" + i);
+            }
+        }
 
         store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         return data;
     }
 
+    @Test
+    public void testSyncLoop() throws Exception {
+        final int mb = 1 * 1024 * 1024;
+        final int blobSize = 5 * mb;
+        final int dataNodes = 5000;
+
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = new SegmentNodeStore(primary);
+        final StandbyServer server = new StandbyServer(getPort(), primary);
+        server.start();
+        byte[] data = addTestContent(store, "server", blobSize, dataNodes);
+
+        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+
+        try {
+
+            for (int i = 0; i < 10; i++) {
+                String cp = store.checkpoint(Long.MAX_VALUE);
+                cl.run();
+                assertEquals(primary.getHead(), secondary.getHead());
+                assertTrue(store.release(cp));
+            }
+
+        } finally {
+            server.close();
+            cl.close();
+        }
+
+        assertTrue(primary.size() > blobSize);
+        assertTrue(secondary.size() > blobSize);
+
+        long primaryFs = FileUtils.sizeOf(directoryS);
+        long secondaryFs = FileUtils.sizeOf(directoryC);
+        assertTrue(secondaryFs < primaryFs * 1.15);
+
+        PropertyState ps = secondary.getHead().getChildNode("root")
+                .getChildNode("server").getProperty("testBlob");
+        assertNotNull(ps);
+        assertEquals(Type.BINARY.tag(), ps.getType().tag());
+        Blob b = ps.getValue(Type.BINARY);
+        assertEquals(blobSize, b.length());
+
+        byte[] testData = new byte[blobSize];
+        ByteStreams.readFully(b.getNewStream(), testData);
+        assertArrayEquals(data, testData);
+
+    }
+
     public static void main(String[] args) throws Exception {
-        File d = createTmpTargetDir("FailoverLiveTest");
+        File d = createTmpTargetDir("StandbyLiveTest");
         d.delete();
         d.mkdir();
         FileStore s = new FileStore(d, 256, false);
