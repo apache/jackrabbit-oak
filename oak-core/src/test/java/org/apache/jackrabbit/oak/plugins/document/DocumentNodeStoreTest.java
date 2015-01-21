@@ -232,7 +232,7 @@ public class DocumentNodeStoreTest {
             public void run() {
                 try {
                     Revision r = store.newRevision();
-                    Commit c = new Commit(store, Revision.fromString(head), r);
+                    Commit c = new Commit(store, r, Revision.fromString(head), null);
                     c.addNode(new DocumentNodeState(store, "/foo/node", r));
                     c.addNode(new DocumentNodeState(store, "/bar/node", r));
                     c.apply();
@@ -249,7 +249,7 @@ public class DocumentNodeStoreTest {
         created.acquireUninterruptibly();
         // commit will succeed and add collision marker to writer commit
         Revision r = store.newRevision();
-        Commit c = new Commit(store, Revision.fromString(head), r);
+        Commit c = new Commit(store, r, Revision.fromString(head), null);
         c.addNode(new DocumentNodeState(store, "/foo/node", r));
         c.addNode(new DocumentNodeState(store, "/bar/node", r));
         c.apply();
