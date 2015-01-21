@@ -283,7 +283,7 @@ public abstract class AbstractQueryTest {
 
     }
 
-    protected void setTravesalEnabled(boolean traversalEnabled) {
+    protected void setTraversalEnabled(boolean traversalEnabled) {
         ((QueryEngineImpl) qe).setTraversalEnabled(traversalEnabled);
     }
 

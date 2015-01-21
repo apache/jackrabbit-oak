@@ -80,7 +80,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        setTravesalEnabled(false);
+        setTraversalEnabled(false);
     }
 
     @Override
