@@ -258,6 +258,28 @@ public class AggregateTest {
         assertEquals(1, col.getRelativeNodeResults("b/jcr:content", "b").size());
     }
 
+    @Test
+    public void testRelativeNodeInclude() throws Exception{
+        //Enable relative include for all child nodes of nt:folder
+        //So indexing would create fulltext field for each relative nodes
+        Aggregate agContent = new Aggregate("app:Page", of(ni(null, "jcr:content", true)));
+
+        mapper.add("app:Page", agContent);
+
+        NodeBuilder nb = newNode("app:Page");
+        nb.child("jcr:content").setProperty("foo", "bar");
+
+        agContent.collectAggregates(nb.getNodeState(), col);
+        assertEquals(1, col.getNodePaths().size());
+        assertThat(col.getNodePaths(), hasItems("jcr:content"));
+
+        assertEquals(2, col.nodeResults.get("jcr:content").size());
+
+        //Check that a result is provided for relative node 'b'. Actual node provided
+        //is b/jcr:content
+        assertEquals(1, col.getRelativeNodeResults("jcr:content", "jcr:content").size());
+    }
+
     private static void createFile(NodeBuilder nb, String fileName, String content){
         nb.child(fileName).setProperty(JCR_PRIMARYTYPE, "nt:file")
                 .child("jcr:content").setProperty("jcr:data", content.getBytes());
