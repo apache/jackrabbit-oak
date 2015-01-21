@@ -317,6 +317,127 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // implementation
 
+
+    /**
+     * Defines variation in the capabilities of different RDBs.
+     */
+    enum DB {
+        DEFAULT("default") {
+        },
+
+        H2("H2"),
+
+        POSTGRES("PostgreSQL") {
+            @Override
+            public String getTableCreationStatement(String tableName) {
+                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
+            }
+        },
+
+        DB2("DB2"),
+
+        ORACLE("Oracle") {
+            @Override
+            public String getInitializationStatement() {
+                // see https://issues.apache.org/jira/browse/OAK-1914
+                // for some reason, the default for NLS_SORT is incorrect
+                return ("ALTER SESSION SET NLS_SORT='BINARY'");
+            }
+
+            @Override
+            public String getTableCreationStatement(String tableName) {
+                // see https://issues.apache.org/jira/browse/OAK-1914
+                return ("create table " + tableName + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
+            }
+        },
+
+        MYSQL("MySQL") {
+            @Override
+            public String getTableCreationStatement(String tableName) {
+                // see https://issues.apache.org/jira/browse/OAK-1913
+                return ("create table " + tableName + " (ID varchar(191) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA mediumblob)");
+            }
+
+            @Override
+            public boolean needsConcat() {
+                return true;
+            }
+
+            @Override
+            public boolean needsLimit() {
+                return true;
+            }
+        };
+
+        /**
+         * Allows case in select. Default true.
+         */
+        public boolean allowsCaseInSelect() {
+            return true;
+        }
+
+        /**
+         * whether DB requires "CONCAT" over "||"
+         */
+        public boolean needsConcat() {
+            return false;
+        }
+
+        /**
+         * whether DB requires "LIMIT" instead of "FETCH FIRST"
+         */
+        public boolean needsLimit() {
+            return false;
+        }
+
+        /**
+         * Query for any required initialization of the DB.
+         * 
+         * @return the DB initialization SQL string
+         */
+        public @Nonnull String getInitializationStatement() {
+            return "";
+        }
+
+        /**
+         * Table creation statement string
+         *
+         * @param tableName
+         * @return the table creation string
+         */
+        public String getTableCreationStatement(String tableName) {
+            return "create table "
+                    + tableName
+                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)";
+        }
+
+        private String description;
+
+        private DB(String description) {
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return this.description;
+        }
+
+        @Nonnull
+        public static DB getValue(String desc) {
+            for (DB db : DB.values()) {
+                if (db.description.equals(desc)) {
+                    return db;
+                } else if (db == DB2 && desc.startsWith("DB2/")) {
+                    return db;
+                }
+            }
+
+            LOG.error("DB type " + desc + " unknown, trying default settings");
+            DEFAULT.description = desc + " - using default settings";
+            return DEFAULT;
+        }
+    }
+
     private static final String MODIFIED = "_modified";
     private static final String MODCOUNT = "_modCount";
 
@@ -351,14 +472,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
     // number of retries for updates
     private static final int RETRIES = 10;
 
-    // for DBs that prefer "concat" over "||"
-    private boolean needsConcat = false;
-
-    // for DBs that prefer "limit" over "fetch first"
-    private boolean needsLimit = false;
-
-    // for DBs that do not support CASE in SELECT (currently all)
-    private boolean allowsCaseInSelect = true;
+    // DB-specific information
+    private DB db;
 
     // set of supported indexed properties
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
@@ -385,31 +500,26 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
         Connection con = this.ch.getRWConnection();
         String dbtype = con.getMetaData().getDatabaseProductName();
+        this.db = DB.getValue(dbtype);
 
-        if ("Oracle".equals(dbtype)) {
-            // https://issues.apache.org/jira/browse/OAK-1914
-            // for some reason, the default for NLS_SORT is incorrect
+        if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = con.createStatement();
-            stmt.execute("ALTER SESSION SET NLS_SORT='BINARY'");
+            stmt.execute(db.getInitializationStatement());
             stmt.close();
             con.commit();
-        } else if ("MySQL".equals(dbtype)) {
-            this.needsConcat = true;
-            this.needsLimit = true;
         }
 
         try {
-            createTableFor(con, dbtype, Collection.CLUSTER_NODES, options.isDropTablesOnClose());
-            createTableFor(con, dbtype, Collection.NODES, options.isDropTablesOnClose());
-            createTableFor(con, dbtype, Collection.SETTINGS, options.isDropTablesOnClose());
+            createTableFor(con, Collection.CLUSTER_NODES, options.isDropTablesOnClose());
+            createTableFor(con, Collection.NODES, options.isDropTablesOnClose());
+            createTableFor(con, Collection.SETTINGS, options.isDropTablesOnClose());
         } finally {
             con.commit();
             con.close();
         }
     }
 
-    private void createTableFor(Connection con, String dbtype, Collection<? extends Document> col, boolean dropTablesOnClose)
-            throws SQLException {
+    private void createTableFor(Connection con, Collection<? extends Document> col, boolean dropTablesOnClose) throws SQLException {
         String tableName = getTable(col);
         try {
             PreparedStatement stmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
@@ -425,35 +535,10 @@ public class RDBDocumentStore implements CachingDocumentStore {
             // table does not appear to exist
             con.rollback();
 
-            LOG.info("Attempting to create table " + tableName + " in " + dbtype);
+            LOG.info("Attempting to create table " + tableName + " in " + this.db);
 
             Statement stmt = con.createStatement();
-
-            // the code below likely will need to be extended for new
-            // database types
-            if ("PostgreSQL".equals(dbtype)) {
-                stmt.execute("create table "
-                        + tableName
-                        + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA bytea)");
-            } else if ("DB2".equals(dbtype) || (dbtype != null && dbtype.startsWith("DB2/"))) {
-                stmt.execute("create table "
-                        + tableName
-                        + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
-            } else if ("MySQL".equals(dbtype)) {
-                stmt.execute("create table "
-                        + tableName
-                        + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA mediumblob)");
-            } else if ("Oracle".equals(dbtype)) {
-                // see https://issues.apache.org/jira/browse/OAK-1914
-                this.dataLimitInOctets = 4000;
-                stmt.execute("create table "
-                        + tableName
-                        + " (ID varchar(512) not null primary key, MODIFIED number, HASBINARY number, MODCOUNT number, CMODCOUNT number, DSIZE number, DATA varchar(4000), BDATA blob)");
-            } else {
-                stmt.execute("create table "
-                        + tableName
-                        + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)");
-            }
+            stmt.execute(this.db.getTableCreationStatement(tableName));
             stmt.close();
 
             con.commit();
@@ -985,7 +1070,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     @CheckForNull
     private RDBRow dbRead(Connection connection, String tableName, String id, long lastmodcount) throws SQLException {
         PreparedStatement stmt;
-        boolean useCaseStatement = lastmodcount != -1 && allowsCaseInSelect;
+        boolean useCaseStatement = lastmodcount != -1 && this.db.allowsCaseInSelect();
         if (useCaseStatement) {
             // either we don't have a previous version of the document
             // or the database does not support CASE in SELECT
@@ -1050,7 +1135,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
         t += " order by ID";
         if (limit != Integer.MAX_VALUE) {
-            t += this.needsLimit ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
+            t += this.db.needsLimit() ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
         }
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
@@ -1129,7 +1214,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
         StringBuilder t = new StringBuilder();
         t.append("update " + tableName
                 + " set MODIFIED = GREATEST(MODIFIED, ?), HASBINARY = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
-        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
+        t.append(this.db.needsConcat() ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
                 + ")) ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
@@ -1162,7 +1247,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
         t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append(this.needsConcat ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
+        t.append(this.db.needsConcat() ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
                 + ")) ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
