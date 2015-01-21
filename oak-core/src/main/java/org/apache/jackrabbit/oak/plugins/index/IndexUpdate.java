@@ -288,6 +288,11 @@ public class IndexUpdate implements Editor {
         public void onMissingIndex(String type, NodeBuilder definition)
                 throws CommitFailedException {
             // trigger reindexing when an indexer becomes available
+            PropertyState ps = definition.getProperty(REINDEX_PROPERTY_NAME);
+            if (ps != null && ps.getValue(BOOLEAN)) {
+                // already true, skip the update
+                return;
+            }
             definition.setProperty(REINDEX_PROPERTY_NAME, true);
         }
     }
