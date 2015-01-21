@@ -22,14 +22,18 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.IOException;
 import java.util.Collections;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -43,6 +47,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
@@ -136,6 +141,36 @@ public class IndexPlannerTest {
         assertNotNull(plan);
         assertNotNull(pr(plan));
         assertTrue(pr(plan).evaluateNonFullTextConstraints());
+    }
+
+    @Test
+    public void purePropertyIndexAndPathRestriction() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void fulltextIndexAndPathRestriction() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:base");
+        filter.restrictPath("/content", Filter.PathRestriction.ALL_CHILDREN);
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        //For case when a full text property is present then path restriction can be
+        //evaluated
+        assertNotNull(planner.getPlan());
     }
 
     @Test
@@ -245,6 +280,14 @@ public class IndexPlannerTest {
 
     private static IndexPlanner.PlanResult pr(QueryIndex.IndexPlan plan) {
         return (IndexPlanner.PlanResult) plan.getAttribute(LucenePropertyIndex.ATTR_PLAN_RESULT);
+    }
+
+    @Nonnull
+    private static NodeBuilder getNode(@Nonnull NodeBuilder node, @Nonnull String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            node = node.getChildNode(checkNotNull(name));
+        }
+        return node;
     }
 
 }
