@@ -543,6 +543,14 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
             con.commit();
 
+            if (col.equals(Collection.NODES)) {
+                PreparedStatement pstmt = con.prepareStatement("select DATA from " + tableName + " where ID = ?");
+                pstmt.setString(1, "0:/");
+                ResultSet rs = pstmt.executeQuery();
+                ResultSetMetaData met = rs.getMetaData();
+                this.dataLimitInOctets = met.getPrecision(1);
+            }
+
             if (dropTablesOnClose) {
                 tablesToBeDropped.add(tableName);
             }
