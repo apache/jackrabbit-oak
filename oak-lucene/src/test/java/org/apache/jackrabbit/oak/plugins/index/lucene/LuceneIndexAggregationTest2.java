@@ -145,7 +145,7 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
             }        
         }
     }
-    
+
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
@@ -167,6 +167,11 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
                 .getChild(NT_TEST_ASSET).addChild("includeOriginal");
         originalInclude.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
         originalInclude.setProperty(LuceneIndexConstants.AGG_PATH, "jcr:content/renditions/original");
+
+        Tree includeSingleRel = indexDefn.getChild(LuceneIndexConstants.AGGREGATES)
+            .getChild(NT_TEST_ASSET).addChild("includeFirstLevelChild");
+        includeSingleRel.setProperty(LuceneIndexConstants.AGG_RELATIVE_NODE, true);
+        includeSingleRel.setProperty(LuceneIndexConstants.AGG_PATH, "firstLevelChild");
 
         //Include all properties
         Tree props = TestUtil.newRulePropTree(indexDefn, "test:Asset");
@@ -324,6 +329,25 @@ public class LuceneIndexAggregationTest2 extends AbstractQueryTest {
         root.commit();
         assertQuery(statement, "xpath", Collections.<String>emptyList());
         setTraversalEnabled(true);
+    }
+
+    @Test
+    public void indexSingleRelativeNode() throws Exception {
+        setTraversalEnabled(false);
+        final String statement = "//element(*, test:Asset)[ " +
+            "jcr:contains(firstLevelChild, 'summer') ]";
+
+        List<String> expected = newArrayList();
+
+        Tree content = root.getTree("/").addChild("content");
+        Tree page = content.addChild("pages");
+        page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
+        Tree child = page.addChild("firstLevelChild");
+        child.setProperty("tag", "summer is here", STRING);
+        root.commit();
+
+        expected.add("/content/pages");
+        assertQuery(statement, "xpath", expected);
     }
 
 
