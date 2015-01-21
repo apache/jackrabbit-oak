@@ -181,7 +181,7 @@ class UnsavedModifications implements Closeable {
                 int size = pathList.size();
                 if (updateOp == null) {
                     // create UpdateOp
-                    Commit commit = new Commit(store, null, r);
+                    Commit commit = new Commit(store, r, null, null);
                     updateOp = commit.getUpdateOperationForNode(p);
                     NodeDocument.setLastRev(updateOp, r);
                     lastRev = r;

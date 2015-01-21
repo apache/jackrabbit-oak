@@ -77,7 +77,11 @@ class DocumentNodeStoreBranch
     @Override
     protected DocumentNodeState reset(@Nonnull DocumentNodeState branchHead,
                                    @Nonnull DocumentNodeState ancestor) {
-        return store.getRoot(store.reset(branchHead.getRevision(), ancestor.getRevision()));
+        return store.getRoot(
+                store.reset(
+                        branchHead.getRevision(), 
+                        ancestor.getRevision(),
+                        this));
     }
 
     @Override
@@ -167,7 +171,7 @@ class DocumentNodeStoreBranch
                                       DocumentNodeState base,
                                       CommitInfo info) {
         boolean success = false;
-        Commit c = store.newCommit(base.getRevision());
+        Commit c = store.newCommit(base.getRevision(), this);
         Revision rev;
         try {
             op.with(c);

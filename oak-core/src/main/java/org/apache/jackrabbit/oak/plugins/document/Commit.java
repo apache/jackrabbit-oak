@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
@@ -49,6 +50,7 @@ public class Commit {
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
     private final DocumentNodeStore nodeStore;
+    private final DocumentNodeStoreBranch branch;
     private final Revision baseRevision;
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new LinkedHashMap<String, UpdateOp>();
@@ -67,10 +69,25 @@ public class Commit {
     /** Set of all nodes which have binary properties. **/
     private HashSet<String> nodesWithBinaries = Sets.newHashSet();
 
-    Commit(DocumentNodeStore nodeStore, Revision baseRevision, Revision revision) {
+    /**
+     * Create a new Commit.
+     *  
+     * @param nodeStore the node store.
+     * @param revision the revision for this commit.
+     * @param baseRevision the base revision for this commit or {@code null} if
+     *                     there is none.
+     * @param branch the branch associated with this commit or {@code null} if
+     *               there is none.
+     *                              
+     */
+    Commit(@Nonnull DocumentNodeStore nodeStore,
+           @Nonnull Revision revision,
+           @Nullable Revision baseRevision,
+           @Nullable DocumentNodeStoreBranch branch) {
+        this.nodeStore = checkNotNull(nodeStore);
+        this.revision = checkNotNull(revision);
         this.baseRevision = baseRevision;
-        this.revision = revision;
-        this.nodeStore = nodeStore;
+        this.branch = branch;
     }
 
     UpdateOp getUpdateOperationForNode(String path) {
@@ -160,7 +177,8 @@ public class Commit {
             Branch b = nodeStore.getBranches().getBranch(baseRev);
             if (b == null) {
                 // baseRev is marker for new branch
-                b = nodeStore.getBranches().create(baseRev.asTrunkRevision(), rev);
+                b = nodeStore.getBranches().create(
+                        baseRev.asTrunkRevision(), rev, branch);
             } else {
                 b.addCommit(rev);
             }
