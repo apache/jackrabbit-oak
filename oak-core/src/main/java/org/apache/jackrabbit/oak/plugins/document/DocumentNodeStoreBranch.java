@@ -296,7 +296,7 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             DocumentNodeState base,
             CommitInfo info) {
         boolean success = false;
-        Commit c = store.newCommit(base.getRevision());
+        Commit c = store.newCommit(base.getRevision(), this);
         Revision rev;
         try {
             op.with(c);
@@ -655,7 +655,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
 
         private void resetBranch(DocumentNodeState branchHead, DocumentNodeState ancestor) {
             try {
-                head = store.getRoot(store.reset(branchHead.getRevision(), ancestor.getRevision()));
+                head = store.getRoot(
+                        store.reset(branchHead.getRevision(), 
+                                ancestor.getRevision(), 
+                                DocumentNodeStoreBranch.this));
             } catch (Exception e) {
                 CommitFailedException ex = new CommitFailedException(
                         OAK, 100, "Branch reset failed", e);

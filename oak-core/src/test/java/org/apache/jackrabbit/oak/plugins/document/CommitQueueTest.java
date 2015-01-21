@@ -72,7 +72,7 @@ public class CommitQueueTest {
                 public void run() {
                     try {
                         for (int i = 0; i < COMMITS_PER_WRITER; i++) {
-                            Commit commit = store.newCommit(null);
+                            Commit commit = store.newCommit(null, null);
                             try {
                                 Thread.sleep(0, random.nextInt(1000));
                             } catch (InterruptedException e) {
