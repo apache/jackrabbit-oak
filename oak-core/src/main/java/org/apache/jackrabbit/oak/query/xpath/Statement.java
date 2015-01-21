@@ -179,16 +179,8 @@ public class Statement {
                 buff.append(orderList.get(i));
             }
         }
-
         // leave original xpath string as a comment
-        if (xpathQuery != null) {
-            buff.append(" /* xpath: ");
-            // the xpath query may not contain the "end comment" marker
-            String xpathEscaped = xpathQuery.replaceAll("\\*\\/", "* /");
-            buff.append(xpathEscaped);
-            buff.append(" */");
-        }
-        
+        appendXPathAsComment(buff, xpathQuery);
         return buff.toString();        
     }
 
@@ -251,14 +243,21 @@ public class Statement {
                 }
             }
             // leave original xpath string as a comment
-            if (xpathQuery != null) {
-                buff.append(" /* xpath: ");
-                buff.append(xpathQuery);
-                buff.append(" */");
-            }
+            appendXPathAsComment(buff, xpathQuery);
             return buff.toString();
         }
         
+    }
+    
+    private static void appendXPathAsComment(StringBuilder buff, String xpath) {
+        if (xpath == null) {
+            return;
+        }
+        buff.append(" /* xpath: ");
+        // the xpath query may contain the "end comment" marker
+        String xpathEscaped = xpath.replaceAll("\\*\\/", "* /");
+        buff.append(xpathEscaped);
+        buff.append(" */");        
     }
 
 }
