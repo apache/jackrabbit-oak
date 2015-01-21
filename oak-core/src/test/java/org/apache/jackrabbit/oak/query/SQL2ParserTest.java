@@ -55,6 +55,14 @@ public class SQL2ParserTest {
     public void testTransformAndParse() throws ParseException {
         p.parse(new XPathToSQL2Converter()
                 .convert("/jcr:root/test/*/nt:resource[@jcr:encoding]"));
+        p.parse(new XPathToSQL2Converter()
+                .convert("/jcr:root/test/*/*/nt:resource[@jcr:encoding]"));        
+        
+        String xpath = "/jcr:root/etc/commerce/products//*[@cq:commerceType = 'product' " +
+                "and ((@size = 'M' or */@size= 'M' or */*/@size = 'M' " +
+                "or */*/*/@size = 'M' or */*/*/*/@size = 'M' or */*/*/*/*/@size = 'M'))]";
+        p.parse(new XPathToSQL2Converter()
+                .convert(xpath));        
     }
 
     // see OAK-OAK-830: XPathToSQL2Converter fails to wrap or clauses
