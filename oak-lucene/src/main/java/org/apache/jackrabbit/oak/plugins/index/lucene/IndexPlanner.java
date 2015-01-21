@@ -146,7 +146,7 @@ class IndexPlanner {
             }
         }
 
-        boolean evalPathRestrictions = canEvalPathRestrictions();
+        boolean evalPathRestrictions = canEvalPathRestrictions(indexingRule);
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
 
         if (ft != null && !canEvalAlFullText){
@@ -265,14 +265,14 @@ class IndexPlanner {
         return true;
     }
 
-    private boolean canEvalPathRestrictions() {
+    private boolean canEvalPathRestrictions(IndexingRule rule) {
         if (filter.getPathRestriction() == Filter.PathRestriction.NO_RESTRICTION){
             return false;
         }
-        //TODO If no other restrictions is provided and query is pure
+        //If no other restrictions is provided and query is pure
         //path restriction based then need to be sure that index definition at least
         //allows indexing all the path for given nodeType
-        return defn.evaluatePathRestrictions();
+        return defn.evaluatePathRestrictions() && rule.indexesAllNodesOfMatchingType();
     }
 
     private IndexPlan.Builder defaultPlan() {
