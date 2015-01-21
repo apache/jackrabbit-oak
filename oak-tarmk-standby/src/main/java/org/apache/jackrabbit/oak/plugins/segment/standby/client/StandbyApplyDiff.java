@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentBlob;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
@@ -50,6 +51,11 @@ class StandbyApplyDiff implements NodeStateDiff {
 
     private final String path;
 
+    /**
+     * read-only traversal of the diff that has 2 properties: one is to log all
+     * the content changes, second is to drill down to properly level, so that
+     * missing binaries can be sync'ed if needed
+     */
     private final boolean logOnly;
 
     public StandbyApplyDiff(NodeBuilder builder, SegmentStore store,
@@ -73,6 +79,8 @@ class StandbyApplyDiff implements NodeStateDiff {
         }
         if (!logOnly) {
             builder.setProperty(binaryCheck(after));
+        } else {
+            binaryCheck(after);
         }
         return true;
     }
@@ -84,6 +92,8 @@ class StandbyApplyDiff implements NodeStateDiff {
         }
         if (!logOnly) {
             builder.setProperty(binaryCheck(after));
+        } else {
+            binaryCheck(after);
         }
         return true;
     }
@@ -156,7 +166,9 @@ class StandbyApplyDiff implements NodeStateDiff {
                 RecordId id = ((SegmentNodeState) after).getRecordId();
                 builder.setChildNode(name, new SegmentNodeState(id));
             }
-            return true;
+            return after.compareAgainstBaseState(EmptyNodeState.EMPTY_NODE,
+                    new StandbyApplyDiff(builder.getChildNode(name), store,
+                            loader, path + name + "/", true));
         }
         return false;
     }
@@ -172,17 +184,14 @@ class StandbyApplyDiff implements NodeStateDiff {
             RecordId id = ((SegmentNodeState) after).getRecordId();
 
             if (log.isTraceEnabled()) {
-                // if (PathUtils.getDepth(path) < 5) {
                 RecordId oldId = ((SegmentNodeState) before).getRecordId();
                 log.trace("childNodeChanged {}, {} -> {}, RO:{}", path + name,
                         oldId, id, logOnly);
-                // }
             }
             if (!logOnly) {
                 builder.setChildNode(name, new SegmentNodeState(id));
             }
 
-            // return true;
             return after.compareAgainstBaseState(before, new StandbyApplyDiff(
                     builder.getChildNode(name), store, loader, path + name
                             + "/", true));
