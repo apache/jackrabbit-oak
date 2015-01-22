@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Random;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -47,7 +48,7 @@ import org.junit.Test;
 
 import com.google.common.io.ByteStreams;
 
-public class StandbyTest extends TestBase {
+public class StandbyTestIT extends TestBase {
 
     @Before
     public void setUp() throws Exception {
@@ -57,45 +58,6 @@ public class StandbyTest extends TestBase {
     @After
     public void after() {
         closeServerAndClient();
-    }
-
-    @Test
-    public void testSync() throws Exception {
-        final int mb = 1 * 1024 * 1024;
-        final int blobSize = 5 * mb;
-        FileStore primary = getPrimary();
-        FileStore secondary = getSecondary();
-
-        NodeStore store = new SegmentNodeStore(primary);
-        final StandbyServer server = new StandbyServer(getPort(), primary);
-        server.start();
-        byte[] data = addTestContent(store, "server", blobSize, 150);
-        primary.flush();
-
-        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
-        cl.run();
-
-        try {
-            assertEquals(primary.getHead(), secondary.getHead());
-        } finally {
-            server.close();
-            cl.close();
-        }
-
-        assertTrue(primary.size() > blobSize);
-        assertTrue(secondary.size() > blobSize);
-
-        PropertyState ps = secondary.getHead().getChildNode("root")
-                .getChildNode("server").getProperty("testBlob");
-        assertNotNull(ps);
-        assertEquals(Type.BINARY.tag(), ps.getType().tag());
-        Blob b = ps.getValue(Type.BINARY);
-        assertEquals(blobSize, b.length());
-
-        byte[] testData = new byte[blobSize];
-        ByteStreams.readFully(b.getNewStream(), testData);
-        assertArrayEquals(data, testData);
-
     }
 
     private static byte[] addTestContent(NodeStore store, String child, int size, int dataNodes)
@@ -120,18 +82,57 @@ public class StandbyTest extends TestBase {
         return data;
     }
 
-    public static void main(String[] args) throws Exception {
-        File d = createTmpTargetDir("StandbyLiveTest");
-        d.delete();
-        d.mkdir();
-        FileStore s = new FileStore(d, 256, false);
-        StandbyClient cl = new StandbyClient("127.0.0.1", 8023, s);
+    /**
+     * OAK-2430
+     */
+    @Test
+    public void testSyncLoop() throws Exception {
+        final int mb = 1 * 1024 * 1024;
+        final int blobSize = 5 * mb;
+        final int dataNodes = 5000;
+
+        FileStore primary = getPrimary();
+        FileStore secondary = getSecondary();
+
+        NodeStore store = new SegmentNodeStore(primary);
+        final StandbyServer server = new StandbyServer(getPort(), primary);
+        server.start();
+        byte[] data = addTestContent(store, "server", blobSize, dataNodes);
+
+        StandbyClient cl = new StandbyClient("127.0.0.1", getPort(), secondary);
+
         try {
-            cl.run();
+
+            for (int i = 0; i < 10; i++) {
+                String cp = store.checkpoint(Long.MAX_VALUE);
+                cl.run();
+                assertEquals(primary.getHead(), secondary.getHead());
+                assertTrue(store.release(cp));
+            }
+
         } finally {
-            s.close();
+            server.close();
             cl.close();
         }
+
+        assertTrue(primary.size() > blobSize);
+        assertTrue(secondary.size() > blobSize);
+
+        long primaryFs = FileUtils.sizeOf(directoryS);
+        long secondaryFs = FileUtils.sizeOf(directoryC);
+        assertTrue(secondaryFs < primaryFs * 1.15);
+
+        PropertyState ps = secondary.getHead().getChildNode("root")
+                .getChildNode("server").getProperty("testBlob");
+        assertNotNull(ps);
+        assertEquals(Type.BINARY.tag(), ps.getType().tag());
+        Blob b = ps.getValue(Type.BINARY);
+        assertEquals(blobSize, b.length());
+
+        byte[] testData = new byte[blobSize];
+        ByteStreams.readFully(b.getNewStream(), testData);
+        assertArrayEquals(data, testData);
+
     }
 
 }

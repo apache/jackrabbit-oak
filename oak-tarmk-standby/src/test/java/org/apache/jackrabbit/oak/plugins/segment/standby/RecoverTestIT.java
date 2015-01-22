@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby;
 
+
+import org.apache.jackrabbit.oak.plugins.segment.DebugSegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -27,59 +28,68 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertFalse;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.addTestContent;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-public class FailoverMultipleClientsTest extends TestBase {
+public class RecoverTestIT extends TestBase {
 
     @Before
     public void setUp() throws Exception {
-        setUpServerAndTwoClients();
+        setUpServerAndClient();
     }
 
     @After
     public void after() {
-        closeServerAndTwoClients();
+        closeServerAndClient();
     }
 
     @Test
-    public void testMultipleClients() throws Exception {
-        NodeStore store = new SegmentNodeStore(storeS);
-        final StandbyServer server = new StandbyServer(port, storeS);
-        server.start();
-        SegmentTestUtils.addTestContent(store, "server");
-        storeS.flush();  // this speeds up the test a little bit...
+    public void testBrokenConnection() throws Exception {
 
-        StandbyClient cl1 = new StandbyClient("127.0.0.1", port, storeC);
-        StandbyClient cl2 = new StandbyClient("127.0.0.1", port, storeC2);
+        NodeStore store = new SegmentNodeStore(storeS);
+        DebugSegmentStore s = new DebugSegmentStore(storeS);
+        final StandbyServer server = new StandbyServer(port, s);
+        s.createReadErrors = true;
+        server.start();
+        addTestContent(store, "server");
+
+        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC);
+        cl.run();
 
         try {
-            assertFalse("first client has invalid initial store!", storeS.getHead().equals(storeC.getHead()));
-            assertFalse("second client has invalid initial store!", storeS.getHead().equals(storeC2.getHead()));
-            assertEquals(storeC.getHead(), storeC2.getHead());
-
-            cl1.run();
-            cl2.run();
-
-            assertEquals(storeS.getHead(), storeC.getHead());
-            assertEquals(storeS.getHead(), storeC2.getHead());
-
-            cl1.stop();
-            SegmentTestUtils.addTestContent(store, "test");
-            cl1.run();
-            cl2.run();
-
-            assertEquals(storeS.getHead(), storeC2.getHead());
-            assertFalse("first client updated in stopped state!", storeS.getHead().equals(storeC.getHead()));
-
-            cl1.start();
-            cl1.run();
+            assertFalse("store are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
+            s.createReadErrors = false;
+            cl.run();
             assertEquals(storeS.getHead(), storeC.getHead());
         } finally {
             server.close();
-            cl1.close();
-            cl2.close();
+            cl.close();
         }
+
     }
 
+    @Test
+    public void testLocalChanges() throws Exception {
+
+        NodeStore store = new SegmentNodeStore(storeC);
+        addTestContent(store, "client");
+
+        final StandbyServer server = new StandbyServer(port, storeS);
+        server.start();
+        store = new SegmentNodeStore(storeS);
+        addTestContent(store, "server");
+        storeS.flush();
+
+        StandbyClient cl = new StandbyClient("127.0.0.1", port, storeC);
+        try {
+            assertFalse("stores are not expected to be equal", storeS.getHead().equals(storeC.getHead()));
+            cl.run();
+            assertEquals(storeS.getHead(), storeC.getHead());
+        } finally {
+            server.close();
+            cl.close();
+        }
+
+    }
 }
