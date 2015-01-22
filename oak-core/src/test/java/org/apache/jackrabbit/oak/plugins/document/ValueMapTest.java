@@ -24,8 +24,12 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Test;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
@@ -137,5 +141,83 @@ public class ValueMapTest {
             revs.add(r);
         }
         assertEquals(Arrays.asList(r51, r31, r22, r12), revs);
+    }
+    
+    // OAK-2433
+    @Test
+    public void mergeSorted() throws Exception {
+        DocumentNodeStore store = new DocumentMK.Builder().setAsyncDelay(0).getNodeStore();
+        DocumentStore docStore = store.getDocumentStore();
+        String id = Utils.getIdFromPath("/");
+        
+        List<NodeBuilder> branches = Lists.newArrayList();
+        int i = 0;
+        while (docStore.find(NODES, id).getPreviousRanges().size() < 2) {
+            i++;
+            NodeBuilder builder = store.getRoot().builder();
+            builder.child("foo").setProperty("prop", i);
+            builder.child("bar").setProperty("prop", i);
+            if (i % 7 == 0) {
+                // every now and then create a branch
+                int numRevs = docStore.find(NODES, id).getLocalRevisions().size();
+                NodeBuilder child = builder.child("node" + i);
+                int p = 0;
+                while (numRevs == docStore.find(NODES, id).getLocalRevisions().size()) {
+                    child.setProperty("prop", p++);
+                }
+                branches.add(builder);
+            } else {
+                store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            }
+            store.runBackgroundOperations();
+        }
+        
+        NodeDocument doc = docStore.find(NODES, id);
+        Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
+
+        store.dispose();
+    }
+
+    // OAK-2433
+    @Test
+    public void mergeSorted1() throws Exception {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        
+        Revision r1 = new Revision(1, 0, 1); // prev2
+        Revision r2 = new Revision(2, 0, 1); // prev2
+        Revision r3 = new Revision(3, 0, 1); // root
+        Revision r4 = new Revision(4, 0, 1); // prev2
+        Revision r5 = new Revision(5, 0, 1); // prev1
+        Revision r6 = new Revision(6, 0, 1); // root
+        Revision r7 = new Revision(7, 0, 1); // prev1
+
+        Range range1 = new Range(r7, r5, 0);
+        Range range2 = new Range(r4, r1, 0);
+        
+        String prevId1 = Utils.getPreviousIdFor("/", range1.high, 0);
+        UpdateOp prevOp1 = new UpdateOp(prevId1, true);
+        prevOp1.set(Document.ID, prevId1);
+        NodeDocument.setRevision(prevOp1, r5, "c");
+        NodeDocument.setRevision(prevOp1, r7, "c");
+
+        String prevId2 = Utils.getPreviousIdFor("/", range2.high, 0);
+        UpdateOp prevOp2 = new UpdateOp(prevId2, true);
+        prevOp1.set(Document.ID, prevId2);
+        NodeDocument.setRevision(prevOp2, r1, "c");
+        NodeDocument.setRevision(prevOp2, r2, "c");
+        NodeDocument.setRevision(prevOp2, r4, "c");
+
+        String rootId = Utils.getIdFromPath("/");
+        UpdateOp op = new UpdateOp(rootId, true);
+        op.set(Document.ID, rootId);
+        NodeDocument.setRevision(op, r3, "c");
+        NodeDocument.setRevision(op, r6, "c");
+        NodeDocument.setPrevious(op, range1);
+        NodeDocument.setPrevious(op, range2);
+        
+        store.create(NODES, Lists.newArrayList(op, prevOp1, prevOp2));
+        
+        NodeDocument doc = store.find(NODES, rootId);
+        Iterators.size(doc.getValueMap(NodeDocument.REVISIONS).entrySet().iterator());
     }
 }
