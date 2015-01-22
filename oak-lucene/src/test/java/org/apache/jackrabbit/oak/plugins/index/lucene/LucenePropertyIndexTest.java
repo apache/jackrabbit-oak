@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -821,6 +822,36 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         // Ascending needs to be sorted by query engine
         query = "measure //*[jcr:contains(., 'foo' )] order by @jcr:score";
         assertThat(measureWithLimit(query, XPATH, 1), containsString("scanCount: 3"));
+    }
+
+    @Test
+    @Ignore("OAK-2434")
+    public void fulltextBooleanComplexOrQueries() throws Exception {
+        // Index Definition
+        Tree idx = createIndex("test1", of("propa", "propb"));
+        idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
+        useV2(idx);
+
+        // create test data
+        Tree test = root.getTree("/").addChild("test");
+        root.commit();
+        Tree a = test.addChild("a");
+        a.setProperty("propa", "fox is jumping");
+        a.setProperty("propb", "summer is here");
+
+        Tree b = test.addChild("b");
+        b.setProperty("propa", "fox is sleeping");
+        b.setProperty("propb", "winter is here");
+
+        Tree c = test.addChild("c");
+        c.setProperty("propa", "fox is jumping");
+        c.setProperty("propb", "autumn is here");
+
+        root.commit();
+        assertQuery(
+            "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
+                + "is here\"')",
+            asList("/test/a", "/test/b"));
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
