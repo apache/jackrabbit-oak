@@ -74,6 +74,7 @@
             <configuration>
               <portNames>
                 <portName>standby.server.port</portName>
+                <portName>standby.proxy.port</portName>
               </portNames>
             </configuration>
           </execution>
@@ -82,8 +83,9 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <systemPropertyVariables combine.children="append">
+          <systemPropertyVariables>
             <standby.server.port>${standby.server.port}</standby.server.port>
+            <standby.proxy.port>${standby.poxy.port}</standby.proxy.port>
           </systemPropertyVariables>
           <excludes>
             <!-- excluding long running tests -->
