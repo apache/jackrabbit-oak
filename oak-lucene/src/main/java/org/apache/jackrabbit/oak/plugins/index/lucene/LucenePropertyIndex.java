@@ -558,10 +558,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 continue;
             }
 
-            if (JCR_PRIMARYTYPE.equals(name)) {
-                continue;
-            }
-
             if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 String first = pr.first.getValue(STRING);
