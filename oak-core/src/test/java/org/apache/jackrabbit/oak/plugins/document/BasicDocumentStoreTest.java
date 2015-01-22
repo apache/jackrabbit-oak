@@ -200,10 +200,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         // TODO see OAK-1913
         Assume.assumeTrue(!(super.dsname.equals("RDB-MySQL")));
 
-        String[] tests = new String[] {
-            "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E", "tab:a\tb", "nul:a\u0000b",
-            "brokensurrogate:\ud800"
-        };
+        String[] tests = new String[] { "simple:foo", "cr:a\n\b", "dquote:a\"b", "bs:a\\b", "euro:a\u201c", "gclef:\uD834\uDD1E",
+                "tab:a\tb", "nul:a\u0000b", "brokensurrogate:\ud800" };
 
         for (String t : tests) {
             int pos = t.indexOf(":");
@@ -215,7 +213,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             up.set("_id", id);
             up.set("foo", test);
             boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            assertTrue("failed to insert a document with property value of " + test + " in " + super.dsname, success);
+            assertTrue("failed to insert a document with property value of " + test + " (" + testname + ") in " + super.dsname, success);
             // re-read from persistence
             super.ds.invalidateCache();
             NodeDocument nd = super.ds.find(Collection.NODES, id);
