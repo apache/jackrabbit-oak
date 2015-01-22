@@ -109,7 +109,9 @@ import com.google.common.util.concurrent.Striped;
  * <tr>
  * <th>ID</th>
  * <td>varchar(512) not null primary key</td>
- * <td>the document's key</td>
+ * <td>the document's key (for databases that can not handle 512 character
+ * primary keys, such as MySQL, varbinary is possible as well; note that this
+ * currently needs to be hardcoded)</td>
  * </tr>
  * <tr>
  * <th>MODIFIED</th>
@@ -158,7 +160,7 @@ import com.google.common.util.concurrent.Striped;
  * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
  * <p>
- * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~2M blobs.</em>
+ * <em>For MySQL, the database parameter "max_allowed_packet" needs to be increased to support ~16 blobs.</em>
  * 
  * <h3>Caching</h3>
  * <p>
@@ -353,9 +355,15 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
         MYSQL("MySQL") {
             @Override
+            public boolean isPrimaryColumnByteEncoded() {
+                // TODO: we should dynamically detect this
+                return true;
+            }
+
+            @Override
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-1913
-                return ("create table " + tableName + " (ID varchar(191) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA mediumblob)");
+                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA mediumblob)");
             }
 
             @Override
@@ -368,6 +376,16 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 return true;
             }
         };
+
+
+        /**
+         * If the primary column is encoded in bytes.
+         * Default false
+         * @return boolean
+         */
+        public boolean isPrimaryColumnByteEncoded() {
+            return false;
+        }
 
         /**
          * Allows case in select. Default true.
@@ -1075,6 +1093,35 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
+    private void setIdInStatement(PreparedStatement stmt, int idx, String id) throws SQLException {
+        if (db.isPrimaryColumnByteEncoded()) {
+            try {
+                stmt.setBytes(idx, id.getBytes("UTF-8"));
+            } catch (UnsupportedEncodingException ex) {
+                LOG.error("UTF-8 not supported??", ex);
+                throw new DocumentStoreException(ex);
+            }
+        } else {
+            stmt.setString(idx, id);
+        }
+    }
+
+    private String getIdFromRS(ResultSet rs, int idx) throws SQLException {
+        String id;
+        if (db.isPrimaryColumnByteEncoded()) {
+            try {
+                id = new String(rs.getBytes(idx), "UTF-8");
+
+            } catch (UnsupportedEncodingException ex) {
+                LOG.error("UTF-8 not supported??", ex);
+                throw new DocumentStoreException(ex);
+            }
+        } else {
+            id = rs.getString(idx);
+        }
+        return id;
+    }
+
     @CheckForNull
     private RDBRow dbRead(Connection connection, String tableName, String id, long lastmodcount) throws SQLException {
         PreparedStatement stmt;
@@ -1094,11 +1141,12 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
         try {
             if (useCaseStatement) {
-                stmt.setString(1, id);
-            } else {
+                setIdInStatement(stmt, 1, id);
+            }
+            else {
                 stmt.setLong(1, lastmodcount);
                 stmt.setLong(2, lastmodcount);
-                stmt.setString(3, id);
+                setIdInStatement(stmt, 3, id);
             }
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -1149,8 +1197,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
         List<RDBRow> result = new ArrayList<RDBRow>();
         try {
             int si = 1;
-            stmt.setString(si++, minId);
-            stmt.setString(si++, maxId);
+            setIdInStatement(stmt, si++, minId);
+            setIdInStatement(stmt, si++, maxId);
+
             if (MODIFIED.equals(indexedProperty)) {
                 stmt.setLong(si++, startValue);
             }
@@ -1159,7 +1208,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
             ResultSet rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
-                String id = rs.getString(1);
+                String id = getIdFromRS(rs, 1);
+
                 if (id.compareTo(minId) < 0 || id.compareTo(maxId) > 0) {
                     throw new DocumentStoreException("unexpected query result: '" + minId + "' < '" + id + "' < '" + maxId
                             + "' - broken DB collation?");
@@ -1203,7 +1253,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 stmt.setBytes(si++, bytes);
             }
 
-            stmt.setString(si++, id);
+            setIdInStatement(stmt, si++, id);
+
             if (oldmodcount != null) {
                 stmt.setObject(si++, oldmodcount, Types.BIGINT);
             }
@@ -1237,7 +1288,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, cmodcount == null ? 0 : cmodcount, Types.BIGINT);
             stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
             stmt.setString(si++, "," + appendData);
-            stmt.setString(si++, id);
+            setIdInStatement(stmt, si++, id);
+
             if (oldmodcount != null) {
                 stmt.setObject(si++, oldmodcount, Types.BIGINT);
             }
@@ -1272,7 +1324,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             stmt.setObject(si++, 1 + appendData.length(), Types.BIGINT);
             stmt.setString(si++, "," + appendData);
             for (String id : ids) {
-                stmt.setString(si++, id);
+                setIdInStatement(stmt, si++, id);
             }
             int result = stmt.executeUpdate();
             if (result != ids.size()) {
@@ -1291,7 +1343,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 + "(ID, MODIFIED, HASBINARY, MODCOUNT, CMODCOUNT, DSIZE, DATA, BDATA) values (?, ?, ?, ?, ?, ?, ?, ?)");
         try {
             int si = 1;
-            stmt.setString(si++, id);
+            setIdInStatement(stmt, si++, id);
             stmt.setObject(si++, modified, Types.BIGINT);
             stmt.setObject(si++, hasBinary ? 1 : 0, Types.SMALLINT);
             stmt.setObject(si++, modcount, Types.BIGINT);
@@ -1335,7 +1387,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
         try {
             for (int i = 0; i < cnt; i++) {
-                stmt.setString(i + 1, ids.get(i));
+                setIdInStatement(stmt, i + 1, ids.get(i));
             }
             int result = stmt.executeUpdate();
             if (result != cnt) {
