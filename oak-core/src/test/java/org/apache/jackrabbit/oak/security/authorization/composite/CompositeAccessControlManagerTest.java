@@ -19,18 +19,30 @@ package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
+
+    private static final String TEST_PATH = "/test";
 
     private CompositeAccessControlManager acMgr;
 
@@ -39,18 +51,81 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
         super.before();
 
         List<AccessControlManager> acMgrs = ImmutableList.of(getAccessControlManager(root), new TestAcMgr());
-
         acMgr = new CompositeAccessControlManager(root, NamePathMapper.DEFAULT, getSecurityProvider(), acMgrs);
+
+        NodeUtil node = new NodeUtil(root.getTree("/"));
+        node.addChild("test", NodeTypeConstants.NT_OAK_UNSTRUCTURED);
+        root.commit();
+    }
+
+    @Override
+    public void after() throws Exception {
+        try {
+            root.getTree(TEST_PATH).remove();
+            root.commit();
+        } finally {
+            super.after();
+        }
     }
 
     @Test
-    public void testGetApplicablePolicies() {
+    public void testGetSupportedPrivileges() throws Exception {
+        Set<Privilege> expected = ImmutableSet.copyOf(getPrivilegeManager(root).getRegisteredPrivileges());
+        Set<Privilege> result = ImmutableSet.copyOf(acMgr.getSupportedPrivileges(TEST_PATH));
+        assertEquals(expected, result);
+    }
+
+    @Test
+    public void testPrivilegeFromName() {
         // TODO
     }
 
     @Test
-    public void testGetPolicies() {
-        // TODO
+    public void testGetApplicablePolicies() throws Exception {
+        AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/");
+        while (it.hasNext()) {
+            if (it.nextAccessControlPolicy() == TestPolicy.INSTANCE) {
+                fail("TestPolicy should only be applicable at /test.");
+            }
+        }
+
+        boolean found = false;
+        it = acMgr.getApplicablePolicies(TEST_PATH);
+        while (!found && it.hasNext()) {
+            found = (it.nextAccessControlPolicy() == TestPolicy.INSTANCE);
+        }
+        assertTrue(found);
+    }
+
+    @Test
+    public void testGetPolicies() throws Exception {
+        int len = 0;
+        AccessControlPolicy[] policies = acMgr.getPolicies(TEST_PATH);
+        assertEquals(len, policies.length);
+
+        acMgr.setPolicy(TEST_PATH, TestPolicy.INSTANCE);
+        len++;
+
+        policies = acMgr.getPolicies(TEST_PATH);
+
+        assertEquals(len, policies.length);
+        assertSame(TestPolicy.INSTANCE, policies[0]);
+
+        AccessControlPolicyIterator it = acMgr.getApplicablePolicies(TEST_PATH);
+        while (it.hasNext()) {
+            AccessControlPolicy plc = it.nextAccessControlPolicy();
+            if (plc == TestPolicy.INSTANCE) {
+                fail("TestPolicy should only be applicable at /test.");
+            } else {
+                acMgr.setPolicy(TEST_PATH, plc);
+                len++;
+
+                Set<AccessControlPolicy> policySet = ImmutableSet.copyOf(acMgr.getPolicies(TEST_PATH));
+                assertEquals(len, policySet.size());
+                assertTrue(policySet.contains(TestPolicy.INSTANCE));
+                assertTrue(policySet.contains(plc));
+            }
+        }
     }
 
     @Test
@@ -71,7 +146,7 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
 
     private final static class TestAcMgr implements AccessControlManager, PolicyOwner {
 
-        private static final String PATH = "/test";
+        private boolean hasPolicy = false;
 
         @Override
         public Privilege[] getSupportedPrivileges(String absPath) {
@@ -85,17 +160,17 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
 
         @Override
         public boolean hasPrivileges(String absPath, Privilege[] privileges) {
-            return false;
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public Privilege[] getPrivileges(String absPath) {
-            return new Privilege[0];
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public AccessControlPolicy[] getPolicies(String absPath) {
-            if (PATH.equals(absPath)) {
+            if (TEST_PATH.equals(absPath) && hasPolicy) {
                 return new AccessControlPolicy[] {TestPolicy.INSTANCE};
             } else {
                 return new AccessControlPolicy[0];
@@ -104,7 +179,7 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
 
         @Override
         public AccessControlPolicy[] getEffectivePolicies(String absPath) {
-            if (PATH.equals(absPath)) {
+            if (TEST_PATH.equals(absPath) && hasPolicy) {
                 return new AccessControlPolicy[] {TestPolicy.INSTANCE};
             } else {
                 return new AccessControlPolicy[0];
@@ -113,7 +188,7 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
 
         @Override
         public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
-            if (PATH.equals(absPath)) {
+            if (TEST_PATH.equals(absPath) && !hasPolicy) {
                 return new AccessControlPolicyIteratorAdapter(Collections.singleton(TestPolicy.INSTANCE));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
@@ -121,22 +196,27 @@ public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
         }
 
         @Override
-        public void setPolicy(String absPath, AccessControlPolicy policy) {
-            // TODO
-
+        public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+            if (hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE)  {
+                throw new AccessControlException();
+            } else {
+                hasPolicy = true;
+            }
         }
 
         @Override
-        public void removePolicy(String absPath, AccessControlPolicy policy) {
-            // TODO
-
+        public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
+            if (!hasPolicy || !TEST_PATH.equals(absPath) || policy != TestPolicy.INSTANCE)  {
+                throw new AccessControlException();
+            } else {
+                hasPolicy = false;
+            }
         }
 
         //----------------------------------------------------< PolicyOwner >---
         @Override
         public boolean defines(String absPath, AccessControlPolicy accessControlPolicy) {
-            // TODO
-            return false;
+            return TEST_PATH.equals(absPath) && accessControlPolicy == TestPolicy.INSTANCE;
         }
     }
 
