@@ -124,16 +124,16 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         // property restriction OR native language property restriction defined AND property restriction handled
         if (filter.getPropertyRestrictions() != null && filter.getPropertyRestrictions().size() > 0
                 && (filter.getPropertyRestriction(NATIVE_SOLR_QUERY) != null || filter.getPropertyRestriction(NATIVE_LUCENE_QUERY) != null
-                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions())) {
+                || configuration.useForPropertyRestrictions()) && !hasIgnoredProperties(filter.getPropertyRestrictions(), configuration)) {
             match++;
         }
 
         return match;
     }
 
-    private boolean hasIgnoredProperties(Collection<Filter.PropertyRestriction> propertyRestrictions) {
+    private static boolean hasIgnoredProperties(Collection<Filter.PropertyRestriction> propertyRestrictions, OakSolrConfiguration configuration) {
         for (Filter.PropertyRestriction pr : propertyRestrictions) {
-            if (configuration.getIgnoredProperties().contains(pr.propertyName)) {
+            if (isIgnoredProperty(pr.propertyName, configuration)) {
                 return true;
             }
         }
@@ -144,8 +144,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     public String getPlan(Filter filter, NodeState nodeState) {
         return FilterQueryParser.getQuery(filter, configuration).toString();
     }
-
-
 
     /**
      * Get the set of relative paths of a full-text condition. For example, for
@@ -293,13 +291,20 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         for (String n : PathUtils.elements(row.path)) {
             if (nodeState.hasChildNode(n)) {
                 nodeState = nodeState.getChildNode(n);
-            }
-            else {
+            } else {
                 result = false;
                 break;
             }
         }
         return result;
+    }
+
+    static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
+        return !configuration.useForPropertyRestrictions() // Solr index not used for properties
+                || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
+                || propertyName.contains("/") // no child-level property restrictions
+                || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
+                || configuration.getIgnoredProperties().contains(propertyName); // property is explicitly ignored
     }
 
     static class SolrResultRow {

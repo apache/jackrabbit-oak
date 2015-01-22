@@ -201,6 +201,60 @@ public class SolrQueryIndexTest {
     }
 
     @Test
+    public void testCostWithPropertyRestrictionsEnabledButNotUsedProperty() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+
+        SolrServer solrServer = mock(SolrServer.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Nonnull
+            @Override
+            public Collection<String> getUsedProperties() {
+                return Arrays.asList("foo");
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
+        double cost = solrQueryIndex.getCost(filter, root);
+        assertTrue(Double.POSITIVE_INFINITY == cost);
+    }
+
+    @Test
+    public void testCostWithPropertyRestrictionsEnabledAndUsedProperty() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+
+        SolrServer solrServer = mock(SolrServer.class);
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Nonnull
+            @Override
+            public Collection<String> getUsedProperties() {
+                return Arrays.asList("name");
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
+        double cost = solrQueryIndex.getCost(filter, root);
+        assertTrue(10 == cost);
+    }
+
+    @Test
     public void testQueryOnIgnoredExistingProperty() throws Exception {
         NodeState root = mock(NodeState.class);
         when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
@@ -231,6 +285,72 @@ public class SolrQueryIndexTest {
         String plan = solrQueryIndex.getPlan(filter, root);
         assertNotNull(plan);
         assertTrue(plan.contains("q=*%3A*")); // querying on property name is not possible, then falling back to a match all query
+    }
+
+    @Test
+    public void testQueryOnExplicitlyUsedProperty() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+
+        SolrServer solrServer = TestUtils.createSolrServer();
+        SolrInputDocument document = new SolrInputDocument();
+        document.addField("path_exact", "/a/b");
+        document.addField("name", "hello");
+        solrServer.add(document);
+        solrServer.commit();
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Nonnull
+            @Override
+            public Collection<String> getUsedProperties() {
+                return Arrays.asList("name");
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where name = 'hello')", new QueryEngineSettings());
+        filter.restrictProperty("name", Operator.EQUAL, PropertyValues.newString("hello"));
+        String plan = solrQueryIndex.getPlan(filter, root);
+        assertNotNull(plan);
+        assertTrue(plan.contains("name%3Ahello")); // querying on property name is possible
+    }
+
+    @Test
+    public void testQueryOnPropertyNotListedInUsedProperties() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+
+        SolrServer solrServer = TestUtils.createSolrServer();
+        SolrInputDocument document = new SolrInputDocument();
+        document.addField("path_exact", "/a/b");
+        document.addField("name", "hello");
+        solrServer.add(document);
+        solrServer.commit();
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+
+            @Nonnull
+            @Override
+            public Collection<String> getUsedProperties() {
+                return Arrays.asList("name");
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+
+        FilterImpl filter = new FilterImpl(selector, "select * from [nt:base] as a where foo = 'bar')", new QueryEngineSettings());
+        filter.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        String plan = solrQueryIndex.getPlan(filter, root);
+        assertNotNull(plan);
+        assertTrue(plan.contains("*%3A*")); // querying on property foo is not possible, as the only usable property is 'name'
     }
 
     @Test

@@ -122,4 +122,12 @@ public interface OakSolrConfiguration {
      */
     @Nonnull
     Collection<String> getIgnoredProperties();
+
+    /**
+     * Provide the names of the properties that should be indexed and searched by the Solr index
+     *
+     * @return a {@link java.util.Collection} of property names for properties to be ignored
+     */
+    @Nonnull
+    Collection<String> getUsedProperties();
 }

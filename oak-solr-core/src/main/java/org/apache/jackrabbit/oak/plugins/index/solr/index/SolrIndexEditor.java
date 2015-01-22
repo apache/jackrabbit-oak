@@ -233,8 +233,9 @@ class SolrIndexEditor implements IndexEditor {
         String path = getPath();
         inputDocument.addField(configuration.getPathField(), path);
         for (PropertyState property : state.getProperties()) {
-            // try to get the field to use for this property from configuration
-            if (!configuration.getIgnoredProperties().contains(property.getName())) {
+            if ((configuration.getUsedProperties().size() > 0 && configuration.getUsedProperties().contains(property.getName()))
+                    || !configuration.getIgnoredProperties().contains(property.getName())) {
+                // try to get the field to use for this property from configuration
                 String fieldName = configuration.getFieldNameFor(property.getType());
                 if (fieldName != null) {
                     inputDocument.addField(
