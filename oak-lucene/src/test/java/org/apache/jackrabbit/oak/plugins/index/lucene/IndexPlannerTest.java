@@ -83,6 +83,15 @@ public class IndexPlannerTest {
     }
 
     @Test
+    public void noPlanForSortOnlyByScore() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        IndexPlanner planner = new IndexPlanner(node, "/foo", createFilter("nt:file"),
+                ImmutableList.of(new OrderEntry("jcr:score", Type.LONG, OrderEntry.Order.ASCENDING)));
+        assertNull(planner.getPlan());
+    }
+
+    @Test
     public void fullTextQueryNonFulltextIndex() throws Exception{
         NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
         IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
