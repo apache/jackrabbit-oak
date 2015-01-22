@@ -91,6 +91,10 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
             unbounded = PropertyUnbounded.ARRAY)
     private static final String IGNORED_PROPERTIES = "ignored.properties";
 
+    @Property(label = "used properties",
+            unbounded = PropertyUnbounded.ARRAY)
+    private static final String USED_PROPERTIES = "used.properties";
+
     @Property(value = SolrServerConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
             "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)", label =
             "mappings from Oak Types to Solr fields")
@@ -112,6 +116,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private boolean useForPropertyRestrictions;
     private boolean useForPrimaryTypes;
     private String[] ignoredProperties;
+    private String[] usedProperties;
     private String[] typeMappings;
     private String[] propertyMappings;
 
@@ -131,6 +136,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
         typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
         ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
+        usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
         propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
     }
 
@@ -243,6 +249,12 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Override
                 public Collection<String> getIgnoredProperties() {
                     return Arrays.asList(ignoredProperties);
+                }
+
+                @Nonnull
+                @Override
+                public Collection<String> getUsedProperties() {
+                    return Arrays.asList(usedProperties);
                 }
             };
         }
