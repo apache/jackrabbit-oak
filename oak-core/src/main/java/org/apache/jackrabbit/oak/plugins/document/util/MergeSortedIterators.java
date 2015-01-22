@@ -100,7 +100,9 @@ public abstract class MergeSortedIterators<T> implements Iterator<T> {
             PeekingIterator<T> pIt = Iterators.peekingIterator(it);
             if (!iterators.isEmpty()
                     &&  comparator.compare(pIt.peek(), lastPeek) < 0) {
-                throw new IllegalStateException(description() + " First element of next iterator must be greater than previous iterator");
+                throw new IllegalStateException(description() + 
+                        " First element of next iterator (" + pIt.peek() + ")" +
+                        " must be after previous iterator (" + lastPeek + ")");
             }
             lastPeek = pIt.peek();
             iterators.add(pIt);

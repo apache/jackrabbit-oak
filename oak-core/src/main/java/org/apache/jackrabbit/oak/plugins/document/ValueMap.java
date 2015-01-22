@@ -18,9 +18,12 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -32,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.MergeSortedIterators;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 /**
  * A value map contains the versioned values of a property. The key into this
@@ -61,9 +65,32 @@ class ValueMap {
                 if (map.isEmpty()) {
                     docs = doc.getPreviousDocs(property, null).iterator();
                 } else {
-                    docs = Iterators.concat(
-                            Iterators.singletonIterator(doc),
-                            doc.getPreviousDocs(property, null).iterator());
+                    // merge sort local map into maps of previous documents
+                    List<Iterator<NodeDocument>> iterators = 
+                            new ArrayList<Iterator<NodeDocument>>(2);
+                    iterators.add(Iterators.singletonIterator(doc));
+                    iterators.add(doc.getPreviousDocs(property, null).iterator());                            
+                    docs = Iterators.mergeSorted(iterators, new Comparator<NodeDocument>() {
+                                @Override
+                                public int compare(NodeDocument o1,
+                                                   NodeDocument o2) {
+                                    Revision r1 = getFirstRevision(o1);
+                                    Revision r2 = getFirstRevision(o2);
+                                    return c.compare(r1, r2);
+                                }
+                            
+                                private Revision getFirstRevision(NodeDocument d) {
+                                    Map<Revision, String> values;
+                                    if (Objects.equal(d.getId(), doc.getId())) {
+                                        // return local map for main document
+                                        values = d.getLocalMap(property);
+                                    } else {
+                                        values = d.getValueMap(property);
+                                    }
+                                    return values.keySet().iterator().next();
+                                }
+                        
+                            });
                 }
 
                 return new MergeSortedIterators<Map.Entry<Revision, String>>(
