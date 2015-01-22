@@ -30,7 +30,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.addTest
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-public class FailoverSslTest extends TestBase {
+public class FailoverSslTestIT extends TestBase {
 
     @Before
     public void setUp() throws Exception {
