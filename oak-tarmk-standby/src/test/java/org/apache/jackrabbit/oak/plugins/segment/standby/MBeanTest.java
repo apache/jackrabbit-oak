@@ -60,10 +60,10 @@ public class MBeanTest extends TestBase {
             assertEquals(new ObjectName(server.getMBeanName()), status);
             assertTrue(jmxServer.isRegistered(status));
 
-            assertEquals("master", jmxServer.getAttribute(status, "Mode"));
+            assertEquals("primary", jmxServer.getAttribute(status, "Mode"));
             String m = jmxServer.getAttribute(status, "Status").toString();
             if (!m.equals(StandbyStatusMBean.STATUS_STARTING) && !m.equals("channel unregistered"))
-                fail("unexpected Status" + m);
+                fail("unexpected Status " + m);
 
             assertEquals(StandbyStatusMBean.STATUS_STARTING, jmxServer.getAttribute(status, "Status"));
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
@@ -73,7 +73,7 @@ public class MBeanTest extends TestBase {
             jmxServer.invoke(status, "start", null, null);
 
             assertEquals(true, jmxServer.getAttribute(status, "Running"));
-            assertEquals(StandbyStatusMBean.STATUS_STARTING, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_RUNNING, jmxServer.getAttribute(status, "Status"));
         } finally {
             server.close();
         }
@@ -98,10 +98,10 @@ public class MBeanTest extends TestBase {
             String m = jmxServer.getAttribute(status, "Mode").toString();
             if (!m.startsWith("client: ")) fail("unexpected mode " + m);
 
-            assertEquals("1", jmxServer.getAttribute(status, "FailedRequests").toString());
+            assertEquals("0", jmxServer.getAttribute(status, "FailedRequests").toString());
             assertEquals("-1", jmxServer.getAttribute(status, "SecondsSinceLastSuccess").toString());
 
-            assertEquals(StandbyStatusMBean.STATUS_STOPPED, jmxServer.getAttribute(status, "Status"));
+            assertEquals(StandbyStatusMBean.STATUS_INITIALIZING, jmxServer.getAttribute(status, "Status"));
 
             assertEquals(false, jmxServer.getAttribute(status, "Running"));
             jmxServer.invoke(status, "stop", null, null);

@@ -28,7 +28,7 @@ import java.io.IOException;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentTestUtils.createTmpTargetDir;
 
 public class TestBase {
-    int port = Integer.valueOf(System.getProperty("standby.server.port", "52808"));
+    int port = Integer.valueOf(System.getProperty("standby.server.port", "52800"));
     final static String LOCALHOST = "127.0.0.1";
 
     File directoryS;

@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.segment.standby.store.CommunicationObse
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -147,9 +148,10 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
         final MBeanServer jmxServer = ManagementFactory.getPlatformMBeanServer();
         try {
             jmxServer.unregisterMBean(new ObjectName(this.getMBeanName()));
-        }
-        catch (Exception e) {
-            log.error("can unregister standby status mbean", e);
+        } catch (InstanceNotFoundException e) {
+            // ignore
+        } catch (Exception e) {
+            log.error("can't unregister standby status mbean", e);
         }
         if (bossGroup != null && !bossGroup.isShuttingDown()) {
             bossGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS).syncUninterruptibly();
@@ -163,7 +165,6 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
     private void start(boolean wait) {
         if (running) return;
 
-        running = true;
         this.handler.state = STATUS_STARTING;
 
         final Thread close = new Thread() {
@@ -184,8 +185,8 @@ public class StandbyServer implements StandbyStatusMBean, Closeable {
                 if (future.isSuccess()) {
                     close.start();
                 } else {
-                    log.error("Server failed to start, will be canceled",
-                            future.cause());
+                    log.error("Server failed to start on port " + port
+                            + ", will be canceled", future.cause());
                     future.channel().close();
                     new Thread() {
                         @Override
