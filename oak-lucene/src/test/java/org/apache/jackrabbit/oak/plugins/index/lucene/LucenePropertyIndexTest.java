@@ -824,13 +824,14 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertThat(measureWithLimit(query, XPATH, 1), containsString("scanCount: 3"));
     }
 
-    @Test
-    @Ignore("OAK-2434")
-    public void fulltextBooleanComplexOrQueries() throws Exception {
+    // OAK-2434
+    private void fulltextBooleanComplexOrQueries(boolean ver2) throws Exception {
         // Index Definition
         Tree idx = createIndex("test1", of("propa", "propb"));
         idx.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
-        useV2(idx);
+        if (ver2) {
+            useV2(idx);
+        }
 
         // create test data
         Tree test = root.getTree("/").addChild("test");
@@ -852,6 +853,18 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
             "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
                 + "is here\"')",
             asList("/test/a", "/test/b"));
+    }
+
+    // OAK-2434
+    @Test
+    public void luceneBooleanComplexOrQueries() throws Exception {
+        fulltextBooleanComplexOrQueries(false);
+    }
+
+    // OAK-2434
+    @Test
+    public void lucenPropertyBooleanComplexOrQueries() throws Exception {
+        fulltextBooleanComplexOrQueries(true);
     }
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
