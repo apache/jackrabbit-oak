@@ -74,6 +74,7 @@ import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -87,7 +88,9 @@ import org.apache.jackrabbit.oak.jcr.version.VersionImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
+import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -848,14 +851,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new NodeOperation<NodeType>(dlg, "getPrimaryNodeType") {
             @Override
             public NodeType perform() throws RepositoryException {
-                // TODO: avoid nested calls
-                String primaryNtName;
-                if (hasProperty(Property.JCR_PRIMARY_TYPE)) {
-                    primaryNtName = getProperty(Property.JCR_PRIMARY_TYPE).getString();
-                } else {
-                    throw new RepositoryException("Node " + getPath() + " doesn't have primary type set.");
+                Tree tree = node.getTree();
+                String primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
+                if (primaryTypeName == null) {
+                    // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+                    // read the primary type from the underlying node state.
+                    primaryTypeName = TreeUtil.getPrimaryTypeName(RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()));
                 }
-                return getNodeTypeManager().getNodeType(primaryNtName);
+                if (primaryTypeName != null) {
+                    return getNodeTypeManager().getNodeType(sessionContext.getJcrName(primaryTypeName));
+                } else {
+                    throw new RepositoryException("Unable to retrieve primary type for Node " + getPath());
+                }
             }
         });
     }
@@ -869,16 +876,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new NodeOperation<NodeType[]>(dlg, "getMixinNodeTypes") {
             @Override
             public NodeType[] perform() throws RepositoryException {
-                // TODO: avoid nested calls
-                // TODO: check if transient changes to mixin-types are reflected here
-                if (hasProperty(Property.JCR_MIXIN_TYPES)) {
+                Tree tree = node.getTree();
+                Iterator<String> mixinNames;
+                if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+                    mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
+                } else {
+                    // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
+                    // read the primary type from the underlying node state.
+                    mixinNames = TreeUtil.getNames(
+                            RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()),
+                            JcrConstants.JCR_MIXINTYPES).iterator();
+                }
+
+                if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
-                    Value[] mixinNames = getProperty(Property.JCR_MIXIN_TYPES).getValues();
-                    NodeType[] mixinTypes = new NodeType[mixinNames.length];
-                    for (int i = 0; i < mixinNames.length; i++) {
-                        mixinTypes[i] = ntMgr.getNodeType(mixinNames[i].getString());
+                    List<NodeType> mixinTypes = Lists.newArrayList();
+                    while (mixinNames.hasNext()) {
+                        mixinTypes.add(ntMgr.getNodeType(sessionContext.getJcrName(mixinNames.next())));
                     }
-                    return mixinTypes;
+                    return mixinTypes.toArray(new NodeType[mixinTypes.size()]);
                 } else {
                     return new NodeType[0];
                 }
