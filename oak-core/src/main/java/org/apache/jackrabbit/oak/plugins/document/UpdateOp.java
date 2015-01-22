@@ -368,7 +368,7 @@ public final class UpdateOp {
             if (obj instanceof Key) {
                 Key other = (Key) obj;
                 return name.equals(other.name) &&
-                        revision != null ? revision.equals(other.revision) : other.revision == null;
+                        (revision != null ? revision.equals(other.revision) : other.revision == null);
             }
             return false;
         }
