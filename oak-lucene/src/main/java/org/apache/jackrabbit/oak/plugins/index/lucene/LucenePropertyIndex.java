@@ -841,13 +841,18 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : and.list) {
                     Query x = getFullTextQuery(plan, e, analyzer, reader);
-                    // Lucene can't deal with "must(must_not(x))"
+                    /* Only unwrap the clause if MUST_NOT(x) */
+                    boolean hasMustNot = false;
                     if (x instanceof BooleanQuery) {
                         BooleanQuery bq = (BooleanQuery) x;
-                        for (BooleanClause c : bq.clauses()) {
-                            q.add(c);
+                        if ((bq.getClauses().length == 1) &&
+                            (bq.getClauses()[0].getOccur() == BooleanClause.Occur.MUST_NOT)) {
+                            hasMustNot = true;
+                            q.add(bq.getClauses()[0]);
                         }
-                    } else {
+                    }
+
+                    if (!hasMustNot) {
                         q.add(x, MUST);
                     }
                 }
