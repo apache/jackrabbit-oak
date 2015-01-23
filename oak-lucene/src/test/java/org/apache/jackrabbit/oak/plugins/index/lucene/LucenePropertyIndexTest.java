@@ -867,6 +867,26 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         fulltextBooleanComplexOrQueries(true);
     }
 
+    // OAK-2438
+    @Test
+    // Copied and modified slightly from org.apache.jackrabbit.core.query.FulltextQueryTest#testFulltextExcludeSQL
+    public void luceneAndExclude() throws Exception {
+        Tree indexDefn = createTestIndexNode(root.getTree("/"), LuceneIndexConstants.TYPE_LUCENE);
+        Tree r = root.getTree("/").addChild("test");
+
+        Tree n = r.addChild("node1");
+        n.setProperty("title", "test text");
+        n.setProperty("mytext", "the quick brown fox jumps over the lazy dog.");
+        n = r.addChild("node2");
+        n.setProperty("title", "other text");
+        n.setProperty("mytext", "the quick brown fox jumps over the lazy dog.");
+        root.commit();
+
+        String sql = "SELECT * FROM [nt:base] WHERE [jcr:path] LIKE \'" + r.getPath() + "/%\'"
+            + " AND CONTAINS(*, \'text \'\'fox jumps\'\' -other\')";
+        assertQuery(sql, asList("/test/node1"));
+    }
+
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
         List<? extends ResultRow> result = Lists.newArrayList(
             qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
