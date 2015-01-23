@@ -724,7 +724,20 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 BooleanQuery q = new BooleanQuery();
                 for (FullTextExpression e : and.list) {
                     Query x = getFullTextQuery(e, analyzer, reader);
-                    q.add(x, MUST);
+                    /* Only unwrap the clause if MUST_NOT(x) */
+                    boolean hasMustNot = false;
+                    if (x instanceof BooleanQuery) {
+                        BooleanQuery bq = (BooleanQuery) x;
+                        if ((bq.getClauses().length == 1) &&
+                            (bq.getClauses()[0].getOccur() == BooleanClause.Occur.MUST_NOT)) {
+                            hasMustNot = true;
+                            q.add(bq.getClauses()[0]);
+                        }
+                    }
+
+                    if (!hasMustNot) {
+                        q.add(x, MUST);
+                    }
                 }
                 result.set(q);
                 return true;
