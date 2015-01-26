@@ -254,7 +254,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ') {
+            if (c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff)) {
                 StringBuilder buff = new StringBuilder(length + 2 + length / 8);
                 buff.append('\"');
                 escape(s, length, buff);
@@ -285,7 +285,6 @@ public class JsopBuilder implements JsopWriter {
     private static void escape(String s, int length, StringBuilder buff) {
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            int ic = (int)c;
             switch (c) {
             case '"':
                 // quotation mark
@@ -317,8 +316,8 @@ public class JsopBuilder implements JsopWriter {
                 break;
             default:
                 if (c < ' ') {
-                    buff.append(String.format("\\u%04x", ic));
-                } else if (ic >= 0xD800 && ic <= 0xDBFF) {
+                    buff.append(String.format("\\u%04x", (int) c));
+                } else if (c >= 0xd800 && c <= 0xdbff) {
                     // isSurrogate(), only available in Java 7
                     if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
                         // ok surrogate
@@ -327,7 +326,7 @@ public class JsopBuilder implements JsopWriter {
                         i += 1;
                     } else {
                         // broken surrogate -> escape
-                        buff.append(String.format("\\u%04x", ic));
+                        buff.append(String.format("\\u%04x", (int) c));
                     }
                 } else {
                     buff.append(c);
