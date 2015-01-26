@@ -810,8 +810,13 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
             if (!Utils.isPropertyName(key)) {
                 continue;
             }
+            // ignore when local map is empty (OAK-2442)
+            SortedMap<Revision, String> local = getLocalMap(key);
+            if (local.isEmpty()) {
+                continue;
+            }
             // first check local map, which contains most recent values
-            Value value = getLatestValue(nodeStore, getLocalMap(key),
+            Value value = getLatestValue(nodeStore, local,
                     min, readRevision, validRevisions);
 
             // check if there may be more recent values in a previous document
