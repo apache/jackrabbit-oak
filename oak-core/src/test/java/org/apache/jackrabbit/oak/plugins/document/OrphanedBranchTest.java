@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -145,5 +146,62 @@ public class OrphanedBranchTest {
                 break;
             }
         }
+    }
+    
+    // OAK-2442
+    @Test
+    public void removeUncommittedChange() throws Exception {
+        String id = Utils.getIdFromPath("/foo");
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("foo");
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // force previous document
+        int count = 0;
+        while (store.getDocumentStore().find(NODES, id).getPreviousRanges().isEmpty()) {
+            builder = store.getRoot().builder();
+            builder.child("foo").setProperty("test", count++);
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            store.runBackgroundOperations();
+        }
+
+        int numBranches = store.getBranches().size();
+        count = 0;
+        builder = store.getRoot().builder();
+        NodeBuilder child = builder.child("foo");
+        // perform changes until a branch is created
+        while (store.getBranches().size() == numBranches) {
+            child.setProperty("prop", count++);
+        }
+        // perform some other change to update head revision
+        builder = store.getRoot().builder();
+        builder.child("foo").setProperty("bar", 0);
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // force remove branch
+        NodeDocument doc = store.getDocumentStore().find(NODES, id);
+        assertNotNull(doc);
+        Map<Revision, String> valueMap = doc.getLocalMap("prop");
+        assertFalse(valueMap.isEmpty());
+        UnmergedBranches branches = store.getBranches();
+        Revision branchRev = doc.getLocalMap("prop").firstKey();
+        Branch b = branches.getBranch(branchRev);
+        assertNotNull(b);
+        branches.remove(b);
+        
+        // force another previous document to trigger split
+        // this will also remove unmerged changes
+        count = 0;
+        while (store.getDocumentStore().find(NODES, id).getPreviousRanges().size() == 1) {
+            builder = store.getRoot().builder();
+            builder.child("foo").setProperty("p", count++);
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            store.runBackgroundOperations();
+        }
+
+        doc = store.getDocumentStore().find(NODES, id);
+        doc.getNodeAtRevision(store, store.getHeadRevision(), null);
+        
+        store.dispose();
     }
 }
