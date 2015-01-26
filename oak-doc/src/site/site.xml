@@ -36,12 +36,12 @@ under the License.
     <menu name="Main APIs">
       <item href="http://www.day.com/specs/jcr/2.0/index.html" name="JCR API" />
       <item href="oak_api/overview.html" name="Oak API" />
-      <item href="nodestore/overview.html" name="NodeStore and MicroKernel API" />
     </menu>
     <menu name="Features and Plugins">
+      <item href="nodestore/overview.html" name="Node Storage" />
+      <item href="plugins/blobstore.html" name="Blob Storage" />
       <item href="query/query.html" name="Query" />
       <item href="security/overview.html" name="Security" />
-      <item href="plugins/blobstore.html" name="BlobStore" />
       <item href="clustering.html" name="Clustering" />
     </menu>
     <menu name="Using Oak">

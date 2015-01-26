@@ -206,6 +206,7 @@ structure
       - ordered (boolean) = false
       - isRegexp (boolean) = false
       - type (string) = 'undefined'
+      - propertyIndex (boolean) = false
 
 Following are the details about the above mentioned config options which can be
 defined at the property definition level
@@ -266,6 +267,10 @@ type
   inferred from the indexed value. However in some cases where same property
   type is not used consistently across various nodes then it would recommened
    to specify the type explicitly.
+   
+propertyIndex
+: Whether the index for this property is used for equality conditions, ordering, 
+  and is not null conditions.
 
 **Property Names**
 
