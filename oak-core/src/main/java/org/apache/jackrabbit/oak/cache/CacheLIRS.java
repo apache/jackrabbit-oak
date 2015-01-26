@@ -665,8 +665,10 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
         private int stackSize;
 
         /**
-         * The stack of recently referenced elements. This includes all hot entries,
-         * the recently referenced cold entries, and all non-resident cold entries.
+         * The stack of recently referenced elements. This includes all hot
+         * entries, and the recently referenced cold entries. Resident cold
+         * entries that were not recently referenced, as well as non-resident
+         * cold entries, are not in the stack.
          * <p>
          * There is always at least one entry: the head entry.
          */
