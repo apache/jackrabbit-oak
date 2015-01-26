@@ -99,6 +99,10 @@ blobCacheSize
 : DocumentNodeStore when running with Mongo would use `MongoBlobStore` by default unless a custom `BlobStore` is 
   configured. In such scenario the size of in memory cache for the frequently used blobs can be configured via 
   `blobCacheSize`. 
+  
+persistentCache
+: Default "" (an empty string, meaning disabled)
+: The persistent cache, which is stored in the local file system.
 
 Example config file
 
