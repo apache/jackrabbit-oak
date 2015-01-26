@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.10
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.11
 
 Introduction
 ------------
@@ -8,55 +8,18 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.10 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.11 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.10
---------------------
+Changes in Oak 1.0.11
+---------------------
    
 Bug Fixes
-   [OAK-2058] - Hard-coded write concern
-   [OAK-2195] - Repository upgrade does not correctly update jcr:all aggregate privileges and bits
-   [OAK-2285] - Builder does not exist error during async index update
-   [OAK-2358] - revisionGC leaves garbage around, for often-changed nodes
-   [OAK-2359] - read is inefficient when there are many split documents
-   [OAK-2380] - SegmentReferenceLimitTestIT does not close FileStore
-   [OAK-2386] - AnnotatingConflictHandler: jcr:primaryType must be of type Name 
-   [OAK-2388] - Possibility of overflow in file length calculation
-   [OAK-2396] - TarMk Cold Standby reduce verbosity of server errors on client timeouts
-   [OAK-2411] - Upgrade may fail with constraint exception
-   [OAK-2418] - int overflow with orderby causing huge slowdown
-   [OAK-2426] - [LucenePropertyIndex] full-text search on first level relative node returns no result
-   [OAK-2429] - MissingIndexProviderStrategy too eager to set the reindex flag
-   [OAK-2430] - TARMK Cold Standby size increase due to checkpoints copy
-   [OAK-2433] - IllegalStateException for ValueMap on _revisions
-   [OAK-2434] - Lucene AND query with a complex OR phrase returns incorrect result 
-   [OAK-2435] - UpdateOp.Key.equals() incorrect
-   [OAK-2439] - IndexPlanner returning plan for queries involving jcr:score
-
-Improvements
-
-   [OAK-1791] - Clean up dangling references to previous documents
-   [OAK-1794] - Keep commit info for local changes in main document
-   [OAK-2372] - TARMK Cold Standby improve test cases for FSDS mirroring
-   [OAK-2391] - Provide API to create Tree from NodeBuilder
-   [OAK-2393] - Change default blob size to around 1 MB in OakDirectory
-   [OAK-2398] - TarMk Cold Standby add metatype info for 'standby.readtimeout' property
-   [OAK-2422] - Improve logging in Lucene indexer
-
-Tasks
-
-   [OAK-2428] - Fix the method name AbstractQueryTest#setTravesalEnabled in 1.0 branch
-   [OAK-2431] - Avoid wrapping of LuceneIndexProvider with AggregateIndexProvider in tests
-
-Sub-tasks
-
-   [OAK-2377] - Change log level in Propert   [OAK-2136] - remove RDB support from 1.0 branch
-   [OAK-2421] - Clean up orphaned branches   [OAK-2270] - Resolve usage of ImmutableTree wrt OSGi constraints
+   [OAK-2442] - NoSuchElementException thrown by NodeDocument
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
