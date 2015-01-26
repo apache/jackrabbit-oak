@@ -268,6 +268,11 @@ public class JsopTest extends TestCase {
             StringBuilder buff = new StringBuilder();
             JsopBuilder.escape(test[0], buff);
             assertEquals(test[1], buff.toString());
+            
+            String s2 = JsopBuilder.encode(test[0]);
+            assertEquals("\"" + test[1] + "\"", s2);
+            String s3 = JsopTokenizer.decodeQuoted(s2);
+            assertEquals(test[0], s3);
         }
     }
 
