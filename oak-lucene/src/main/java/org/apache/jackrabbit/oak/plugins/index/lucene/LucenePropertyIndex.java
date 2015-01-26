@@ -207,12 +207,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     @Override
     public String getPlanDescription(IndexPlan plan, NodeState root) {
         Filter filter = plan.getFilter();
-        IndexNode index = tracker.acquireIndexNode(pr(plan).indexPath);
+        IndexNode index = tracker.acquireIndexNode(getPlanResult(plan).indexPath);
         checkState(index != null, "The Lucene index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
             StringBuilder sb = new StringBuilder("lucene:");
-            String path = pr(plan).indexPath;
+            String path = getPlanResult(plan).indexPath;
             sb.append(getIndexName(plan))
                     .append("(")
                     .append(path)
@@ -239,7 +239,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     public Cursor query(final IndexPlan plan, NodeState rootState) {
         final Filter filter = plan.getFilter();
         final Sort sort = getSort(plan);
-        final PlanResult pr = pr(plan);
+        final PlanResult pr = getPlanResult(plan);
         QueryEngineSettings settings = filter.getQueryEngineSettings();
         Iterator<LuceneResultRow> itr = new AbstractIterator<LuceneResultRow>() {
             private final Deque<LuceneResultRow> queue = Queues.newArrayDeque();
@@ -353,17 +353,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     private IndexNode acquireIndexNode(IndexPlan plan) {
-        return tracker.acquireIndexNode(pr(plan).indexPath);
+        return tracker.acquireIndexNode(getPlanResult(plan).indexPath);
     }
 
-    private Sort getSort(IndexPlan plan) {
+    private static Sort getSort(IndexPlan plan) {
         List<OrderEntry> sortOrder = plan.getSortOrder();
         if (sortOrder == null || sortOrder.isEmpty()) {
             return null;
         }
 
         List<SortField> fieldsList = newArrayListWithCapacity(sortOrder.size());
-        PlanResult planResult = pr(plan);
+        PlanResult planResult = getPlanResult(plan);
         for (int i = 0; i < sortOrder.size(); i++) {
             OrderEntry oe = sortOrder.get(i);
             if (!isNativeSort(oe)) {
@@ -411,7 +411,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     }
 
     private static String getIndexName(IndexPlan plan){
-        return PathUtils.getName(pr(plan).indexPath);
+        return PathUtils.getName(getPlanResult(plan).indexPath);
     }
 
     /**
@@ -430,7 +430,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         List<Query> qs = new ArrayList<Query>();
         Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
-        PlanResult planResult = pr(plan);
+        PlanResult planResult = getPlanResult(plan);
         IndexDefinition defn = planResult.indexDefinition;
         Analyzer analyzer = defn.getAnalyzer();
         if (ft == null) {
@@ -510,7 +510,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     private static void addNonFullTextConstraints(List<Query> qs,
             IndexPlan plan, IndexReader reader) {
         Filter filter = plan.getFilter();
-        PlanResult planResult = pr(plan);
+        PlanResult planResult = getPlanResult(plan);
         IndexDefinition defn = planResult.indexDefinition;
         if (!filter.matchesAllTypes()) {
             addNodeTypeConstraints(planResult.indexingRule, qs, filter);
@@ -608,7 +608,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         return defaultVal;
     }
 
-    private static PlanResult pr(IndexPlan plan) {
+    private static PlanResult getPlanResult(IndexPlan plan) {
         return (PlanResult) plan.getAttribute(ATTR_PLAN_RESULT);
     }
 
@@ -808,7 +808,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
     static Query getFullTextQuery(final IndexPlan plan, FullTextExpression ft,
                                   final Analyzer analyzer) {
-        final PlanResult pr = pr(plan);
+        final PlanResult pr = getPlanResult(plan);
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
         final AtomicReference<Query> result = new AtomicReference<Query>();
