@@ -275,7 +275,7 @@ public abstract class AbstractQueryTest {
                                        List<String> expected, boolean skipSort) {
         List<String> paths = executeQuery(sql, language, true, skipSort);
         for (String p : expected) {
-            assertTrue("Expected path " + p + " not found", paths.contains(p));
+            assertTrue("Expected path " + p + " not found, got " + paths, paths.contains(p));
         }
         assertEquals("Result set size is different", expected.size(),
                 paths.size());
