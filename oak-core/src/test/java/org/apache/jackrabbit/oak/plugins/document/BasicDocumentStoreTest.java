@@ -320,9 +320,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testQueryDeletedOnce() {
-        // see OAK-2450
-        Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
-
         // create ten documents
         String base = this.getClass().getName() + ".testQueryDeletedOnce-";
         for (int i = 0; i < 10; i++) {

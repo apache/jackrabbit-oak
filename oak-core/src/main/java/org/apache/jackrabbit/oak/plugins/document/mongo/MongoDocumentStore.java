@@ -468,12 +468,22 @@ public class MongoDocumentStore implements CachingDocumentStore {
         DBObject hint = new BasicDBObject(NodeDocument.ID, 1);
 
         if (indexedProperty != null) {
-            queryBuilder.and(indexedProperty);
-            queryBuilder.greaterThanEquals(startValue);
+            if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
+                if (startValue != 1) {
+                    throw new DocumentStoreException(
+                            "unsupported value for property " + 
+                                    NodeDocument.DELETED_ONCE);
+                }
+                queryBuilder.and(indexedProperty);
+                queryBuilder.is(true);
+            } else {
+                queryBuilder.and(indexedProperty);
+                queryBuilder.greaterThanEquals(startValue);
 
-            if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
-                    && canUseModifiedTimeIdx(startValue)) {
-                hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+                if (NodeDocument.MODIFIED_IN_SECS.equals(indexedProperty)
+                        && canUseModifiedTimeIdx(startValue)) {
+                    hint = new BasicDBObject(NodeDocument.MODIFIED_IN_SECS, -1);
+                }
             }
         }
         DBObject query = queryBuilder.get();
