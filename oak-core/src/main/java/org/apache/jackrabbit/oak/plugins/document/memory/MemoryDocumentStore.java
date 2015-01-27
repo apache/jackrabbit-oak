@@ -126,7 +126,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 if (indexedProperty != null) {
                     Object value = doc.get(indexedProperty);
                     if (value instanceof Boolean) {
-                        long test = ((Boolean) value).booleanValue() ? 1 : 0;
+                        long test = (value != null && ((Boolean) value).booleanValue()) ? 1 : 0;
                         if (test < startValue) {
                             continue;
                         }
@@ -134,7 +134,7 @@ public class MemoryDocumentStore implements DocumentStore {
                         if (value == null || ((Long) value < startValue)) {
                             continue;
                         }
-                    } else {
+                    } else if (value != null) {
                         throw new DocumentStoreException("unexpected type for property " + indexedProperty + ": "
                                 + value.getClass());
                     }
