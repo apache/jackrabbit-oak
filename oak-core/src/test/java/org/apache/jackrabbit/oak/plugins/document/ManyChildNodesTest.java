@@ -65,6 +65,22 @@ public class ManyChildNodesTest {
         }
         mk.dispose();
     }
+    
+    // OAK-2448
+    @Test
+    public void nodeChildrenCache() throws Exception {
+        DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < 1000; i++) {
+            builder.child("c-" + i);
+        }
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        
+        // must not create entries for each child node
+        assertTrue(ns.getNodeChildrenCacheStats().getElementCount() < 1000);
+        
+        ns.dispose();
+    }
 
     private final class TestStore extends MemoryDocumentStore {
 

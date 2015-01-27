@@ -946,7 +946,7 @@ public final class DocumentNodeStore
                              boolean isNew, List<String> added,
                              List<String> removed, List<String> changed,
                              DiffCache.Entry cacheEntry) {
-        if (isNew) {
+        if (isNew && !added.isEmpty()) {
             DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet();
             for (String p : added) {
