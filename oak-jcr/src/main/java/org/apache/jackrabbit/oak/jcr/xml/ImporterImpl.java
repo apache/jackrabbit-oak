@@ -454,7 +454,15 @@ public class ImporterImpl implements Importer {
             // create node
             if (id == null) {
                 // no potential uuid conflict, always add new node
-                tree = createTree(parent, nodeInfo, id);
+                tree = createTree(parent, nodeInfo, null);
+            } else if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
+                // always create a new UUID even if no
+                // conflicting node exists. see OAK-1244
+                tree = createTree(parent, nodeInfo, UUID.randomUUID().toString());
+                // remember uuid mapping
+                if (isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+                    refTracker.put(nodeInfo.getUUID(), TreeUtil.getString(tree, JcrConstants.JCR_UUID));
+                }
             } else {
 
                 //1. First check from base state that tree corresponding to
@@ -475,12 +483,7 @@ public class ImporterImpl implements Importer {
                     conflicting = currentStateIdManager.getTree(id);
                 }
 
-                // resolve conflict if there is one or force
-                // conflict resolution when behavior is IMPORT_UUID_CREATE_NEW.
-                // the latter will always create a new UUID even if no
-                // conflicting node exists. see OAK-1244
-                if ((conflicting != null && conflicting.exists())
-                        || uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
+                if (conflicting != null && conflicting.exists()) {
                     // resolve uuid conflict
                     tree = resolveUUIDConflict(parent, conflicting, id, nodeInfo);
                     if (tree == null) {
