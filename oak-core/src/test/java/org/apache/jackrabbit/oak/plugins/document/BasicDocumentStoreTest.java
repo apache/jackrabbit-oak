@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.junit.Assume;
 import org.junit.Test;
@@ -316,6 +317,32 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         assertEquals(5, result.size());
         assertTrue(result.contains(base + "1"));
         assertFalse(result.contains(base + "0"));
+    }
+
+    @Test
+    public void testQueryDeletedOnce() {
+        // see OAK-2450
+        Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
+        // see OAK-2246
+        Assume.assumeTrue(!(super.ds instanceof MemoryDocumentStore));
+
+        // create ten documents
+        String base = this.getClass().getName() + ".testQueryDeletedOnce-";
+        for (int i = 0; i < 10; i++) {
+            String id = base + i;
+            UpdateOp up = new UpdateOp(id, true);
+            up.set("_id", id);
+            up.set(NodeDocument.DELETED_ONCE, Boolean.valueOf(i % 2 == 0));
+            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+            assertTrue("document with " + id + " not created", success);
+            removeMe.add(id);
+        }
+
+        List<String> result = getKeys(ds.query(Collection.NODES, base, base + "Z", NodeDocument.DELETED_ONCE,
+                1L, 1000));
+        assertEquals(5, result.size());
+        assertTrue(result.contains(base + "0"));
+        assertFalse(result.contains(base + "1"));
     }
 
     @Test

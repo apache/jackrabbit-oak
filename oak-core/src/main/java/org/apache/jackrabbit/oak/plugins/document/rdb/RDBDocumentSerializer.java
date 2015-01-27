@@ -56,6 +56,7 @@ public class RDBDocumentSerializer {
     private static final String CMODCOUNT = "_collisionsModCount";
     private static final String ID = "_id";
     private static final String HASBINARY = NodeDocument.HAS_BINARY_FLAG;
+    private static final String DELETEDONCE = NodeDocument.DELETED_ONCE;
 
     private final Comparator<Revision> comparator = StableRevisionComparator.REVERSE;
 
@@ -184,6 +185,9 @@ public class RDBDocumentSerializer {
         doc.put(CMODCOUNT, row.getCollisionsModcount());
         if (row.hasBinaryProperties()) {
             doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
+        }
+        if (row.deletedOnce()) {
+            doc.put(DELETEDONCE, Boolean.TRUE);
         }
 
         byte[] bdata = row.getBdata();

@@ -29,14 +29,15 @@ import javax.annotation.Nonnull;
 public class RDBRow {
 
     private final String id;
-    private final boolean hasBinaryProperties;
+    private final boolean hasBinaryProperties, deletedOnce;
     private final long modified, modcount, cmodcount;
     private final String data;
     private final byte[] bdata;
 
-    public RDBRow(String id, boolean hasBinaryProperties, long modified, long modcount, long cmodcount, String data, byte[] bdata) {
+    public RDBRow(String id, boolean hasBinaryProperties, boolean deletedOnce, long modified, long modcount, long cmodcount, String data, byte[] bdata) {
         this.id = id;
         this.hasBinaryProperties = hasBinaryProperties;
+        this.deletedOnce = deletedOnce;
         this.modified = modified;
         this.modcount = modcount;
         this.cmodcount = cmodcount;
@@ -51,6 +52,10 @@ public class RDBRow {
 
     public boolean hasBinaryProperties() {
         return hasBinaryProperties;
+    }
+
+    public boolean deletedOnce() {
+        return deletedOnce;
     }
 
     @CheckForNull
