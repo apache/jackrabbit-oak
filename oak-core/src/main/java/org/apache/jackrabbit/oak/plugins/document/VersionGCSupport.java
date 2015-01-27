@@ -19,15 +19,16 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
+
 import java.util.Set;
 
-import com.google.common.base.Predicate;
-
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 
-import static com.google.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
+import com.google.common.base.Predicate;
 
 public class VersionGCSupport {
 
@@ -38,7 +39,7 @@ public class VersionGCSupport {
     }
 
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long lastModifiedTime) {
-        return filter(getAllDocuments(store), new Predicate<NodeDocument>() {
+        return filter(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1), new Predicate<NodeDocument>() {
             @Override
             public boolean apply(NodeDocument input) {
                 return input.wasDeletedOnce() && !input.hasBeenModifiedSince(lastModifiedTime);
