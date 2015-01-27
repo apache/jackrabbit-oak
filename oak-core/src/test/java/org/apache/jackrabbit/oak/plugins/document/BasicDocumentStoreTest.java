@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.junit.Assume;
 import org.junit.Test;
@@ -323,8 +322,6 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     public void testQueryDeletedOnce() {
         // see OAK-2450
         Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
-        // see OAK-2246
-        Assume.assumeTrue(!(super.ds instanceof MemoryDocumentStore));
 
         // create ten documents
         String base = this.getClass().getName() + ".testQueryDeletedOnce-";
