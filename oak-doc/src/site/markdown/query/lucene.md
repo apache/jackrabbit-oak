@@ -407,7 +407,10 @@ defaults to 5
             - path = "renditions/original"
             - relativeNode = true
 
-#### Analyzers (1.0.10)
+#### Analyzers (1.1.6)
+
+_This feature is currently not part of 1.0 branch and is only present in unstable
+1.x releases_
 
 Analyzers can be configured as part of index definition via `analyzers` node.
 The default analyzer can be configured via `analyzers/default` node
@@ -660,16 +663,16 @@ Lucene based index can be restricted to index only specific properties and in th
 case it is similar to [Property Index](query.html#property-index). However it differs
 from property index in following aspects
 
-1. Lucene index is Asynchronous - Lucene indexing is done asynchronously with a default
-   interval of 5 secs. If there are lots of writes and those writes are related to what
-   is being indexed then it might cause further delay. Compared to this the property index
-   are always synchronous and upto date.
+1.  Lucene index is Asynchronous - Lucene indexing is done asynchronously with a default
+    interval of 5 secs. If there are lots of writes and those writes are related to what
+    is being indexed then it might cause further delay. Compared to this the property index
+    are always synchronous and upto date.
 
-   So if in your usecase you need the latest result then prefer _Property Indexes_ over
-   _Lucene Index_
+    So if in your usecase you need the latest result then prefer _Property Indexes_ over
+    _Lucene Index_
 
-2. Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
-   it cannot enforce uniqueness constraint.
+2.  Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
+    it cannot enforce uniqueness constraint.
 
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
