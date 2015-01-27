@@ -91,7 +91,7 @@ Below is the canonical index definition structure
       - blobSize (long) = 32768
       - evaluatePathRestrictions (boolean) = false
       - name (string)
-      - compatMode (long) = 2
+      - compatVersion (long) = 2
       + indexRules (nt:unstructured)
       + aggregates (nt:unstructured)
       + analyzers (nt:unstructured)
@@ -629,18 +629,48 @@ From the Luke UI shown you can access various details.
 Following are some best practices to get good performance from Lucene based 
 indexes
 
-1. Make use on [non root indexes](#non-root-index). If you query always 
-  perform search under certain paths then create index definition under those 
-  paths only. This might be helpful in multi tenant deployment where each tenant 
-  data is stored under specific repository path and all queries are made under 
-  those path.
-   
-2. Index only required data. Depending on your requirement you can create 
-   multiple Lucene indexes. For example if in majority of cases you are 
-   querying on various properties specified under `<node>/jcr:content/metadata`
-   where node belong to certain specific nodeType then create single index 
-   definition listing all such properties and restrict it that nodeType. You 
-   can the size of index via mbean
+1.  **[Non root indexes](#non-root-index)** - If your query always
+    perform search under certain paths then create index definition under those
+    paths only. This might be helpful in multi tenant deployment where each tenant
+    data is stored under specific repository path and all queries are made under
+    those path.
+
+2.  **NodeType based indexing** - Depending on your requirement you can create
+    multiple Lucene indexes. For example if in majority of cases you are
+    querying on various properties specified under `<node>/jcr:content/metadata`
+    where node belong to certain specific nodeType then create single index
+    definition listing all such properties and restrict it that nodeType.
+
+    In fact its recommended to use single index if all the properties being indexed
+    are related. This would enable Lucene index to evaluate as much property
+    restriction as possible  natively (which is faster) and also save on storage
+    cost incurred in storing the node path.
+
+3.  Use features when required - There are certain features provided by Lucene
+    index  which incur extra cost in terms of storage space when enabled. For
+    example enabling `evaluatePathRestrictions`, `ordering` etc. Enable such
+    option only when you make use of those features and further enable them for
+    only those properties. So `ordering`  should be enabled only when sorting is
+    being performed for those properties and `evaluatePathRestrictions` should
+    only be enabled if you are going to specify path restrictions.
+
+### Lucene Index vs Property Index
+
+Lucene based index can be restricted to index only specific properties and in that
+case it is similar to [Property Index](query.html#property-index). However it differs
+from property index in following aspects
+
+1. Lucene index is Asynchronous - Lucene indexing is done asynchronously with a default
+   interval of 5 secs. If there are lots of writes and those writes are related to what
+   is being indexed then it might cause further delay. Compared to this the property index
+   are always synchronous and upto date.
+
+   So if in your usecase you need the latest result then prefer _Property Indexes_ over
+   _Lucene Index_
+
+2. Lucene index cannot enforce uniqueness constraint - By virtue of it being asynchronous
+   it cannot enforce uniqueness constraint.
+
 
 [1]: http://www.day.com/specs/jsr170/javadocs/jcr-2.0/constant-values.html#javax.jcr.PropertyType.TYPENAME_STRING
 [OAK-2201]: https://issues.apache.org/jira/browse/OAK-2201
