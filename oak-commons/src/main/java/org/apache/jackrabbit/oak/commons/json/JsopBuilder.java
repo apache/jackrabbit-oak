@@ -238,8 +238,9 @@ public class JsopBuilder implements JsopWriter {
     /**
      * Convert a string to a quoted Json literal using the correct escape
      * sequences. The literal is enclosed in double quotes. Characters outside
-     * the range 32..127 are encoded (backslash u xxxx). The forward slash
-     * (solidus) is not escaped. Null is encoded as "null" (without quotes).
+     * the range 32..127 are encoded using
+     * {@link #escape(String, StringBuilder)}). Null is encoded as "null"
+     * (without quotes).
      *
      * @param s the text to convert
      * @return the Json representation (including double quotes)
@@ -254,7 +255,7 @@ public class JsopBuilder implements JsopWriter {
         }
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
-            if (c == '\"' || c == '\\' || c < ' ' || c >= 127) {
+            if (c == '\"' || c == '\\' || c < ' ' || (c >= 0xd800 && c <= 0xdbff)) {
                 StringBuilder buff = new StringBuilder(length + 2 + length / 8);
                 buff.append('\"');
                 escape(s, length, buff);
@@ -269,13 +270,24 @@ public class JsopBuilder implements JsopWriter {
      * Escape a string into the target buffer.
      *
      * @param s      the string to escape
+     * @param buff   the target buffer
+     */
+    public static void escape(String s, StringBuilder buff) {
+        escape(s, s.length(), buff);
+    }
+
+    /**
+     * Escape a string for JSON into the target buffer.
+     * <p>
+     * Characters are only escaped if required by RFC 7159 (thus, controls,
+     * backslash, and double quotes), or if they are part of a malformed
+     * surrogate pair (which wouldn't round-trip through UTF-8 otherwise).
+     *
+     * @param s      the string to escape
      * @param length the number of characters.
      * @param buff   the target buffer
      */
-    public static void escape(String s, int length, StringBuilder buff) {
-        // TODO only backslashes, double quotes, and characters < 32 need to be
-        // escaped - but currently all special characters are escaped, which
-        // needs more time, memory, and storage space
+    private static void escape(String s, int length, StringBuilder buff) {
         for (int i = 0; i < length; i++) {
             char c = s.charAt(i);
             switch (c) {
@@ -309,21 +321,18 @@ public class JsopBuilder implements JsopWriter {
                 break;
             default:
                 if (c < ' ') {
-                    // guaranteed to be 1 or 2 hex digits only
-                    buff.append("\\u00");
-                    String hex = Integer.toHexString(c);
-                    if (hex.length() == 1) {
-                        buff.append('0');
+                    buff.append(String.format("\\u%04x", (int) c));
+                } else if (c >= 0xd800 && c <= 0xdbff) {
+                    // isSurrogate(), only available in Java 7
+                    if (i < length - 1 && Character.isSurrogatePair(c, s.charAt(i + 1))) {
+                        // ok surrogate
+                        buff.append(c);
+                        buff.append(s.charAt(i + 1));
+                        i += 1;
+                    } else {
+                        // broken surrogate -> escape
+                        buff.append(String.format("\\u%04x", (int) c));
                     }
-                    buff.append(hex);
-                } else if (c >= 127) {
-                    // ascii only mode
-                    buff.append("\\u");
-                    String hex = Integer.toHexString(c);
-                    for (int len = hex.length(); len < 4; len++) {
-                        buff.append('0');
-                    }
-                    buff.append(hex);
                 } else {
                     buff.append(c);
                 }
