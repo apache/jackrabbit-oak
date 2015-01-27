@@ -74,11 +74,16 @@ public class VersionGarbageCollectorTest {
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() throws IOException {
         List<Object[]> fixtures = Lists.newArrayList();
-        fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
+        fixtures.add(new Object[] { new DocumentStoreFixture.MemoryFixture() });
 
         DocumentStoreFixture mongo = new DocumentStoreFixture.MongoFixture();
-        if(mongo.isAvailable()){
-           fixtures.add(new Object[] {mongo});
+        if (mongo.isAvailable()) {
+            fixtures.add(new Object[] { mongo });
+        }
+
+        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture();
+        if (rdb.isAvailable()) {
+            fixtures.add(new Object[] { rdb });
         }
         return fixtures;
     }
