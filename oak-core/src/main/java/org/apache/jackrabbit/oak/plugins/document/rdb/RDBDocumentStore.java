@@ -46,7 +46,6 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -1187,7 +1186,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
     }
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
-            long startValue, int limit) throws SQLException, RepositoryException {
+            long startValue, int limit) throws SQLException {
         String t = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
                 + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
@@ -1204,7 +1203,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                 }
                 t += " and DELETEDONCE = 1";
             } else {
-                throw new RepositoryException("unsupported indexed property: " + indexedProperty);
+                throw new DocumentStoreException("unsupported indexed property: " + indexedProperty);
             }
         }
         t += " order by ID";
