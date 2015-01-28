@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.MongoDiffCache.Diff;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDiffCache.Diff;
 import static org.junit.Assert.assertEquals;
 
 /**
