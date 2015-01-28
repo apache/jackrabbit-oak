@@ -449,10 +449,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
     }
 
     /**
-     * Package private method to calculate the privilege bits associated with a
-     * given built-in or custom privilege definition.
+     * Method to calculate the next privilege bits associated with this instance.
      *
-     * @return an instance of {@code PrivilegeBits}
+     * @return an new instance of {@code PrivilegeBits}
      */
     @Nonnull
     public PrivilegeBits nextBits() {
