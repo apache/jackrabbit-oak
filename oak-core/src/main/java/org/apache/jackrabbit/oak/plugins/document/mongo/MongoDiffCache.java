@@ -115,12 +115,17 @@ public class MongoDiffCache extends MemoryDiffCache {
             }
 
             @Override
-            public void done() {
+            public boolean done() {
                 try {
-                    changes.insert(commit.doc, WriteConcern.UNACKNOWLEDGED);
+                    // do not write back if doc is too big
+                    if (commit.size < 16 * 1024 * 1024) {
+                        changes.insert(commit.doc, WriteConcern.UNACKNOWLEDGED);
+                        return true;
+                    }
                 } catch (MongoException e) {
                     LOG.warn("Write back of diff cache entry failed", e);
                 }
+                return false;
             }
         };
     }
@@ -182,6 +187,7 @@ public class MongoDiffCache extends MemoryDiffCache {
     static class Diff {
 
         private final DBObject doc;
+        private long size;
 
         Diff(Revision from, Revision to) {
             this.doc = new BasicDBObject();
@@ -203,9 +209,11 @@ public class MongoDiffCache extends MemoryDiffCache {
                     BasicDBObject child = new BasicDBObject();
                     current.put(escName, child);
                     current = child;
+                    size += escName.length() * 2 + 8;
                 }
             }
             current.put("_c", checkNotNull(changes));
+            size += 4 + changes.length() * 2 + 8;
         }
 
         String getChanges(String path) {
