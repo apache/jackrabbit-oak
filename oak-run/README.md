@@ -62,10 +62,14 @@ the console for a TarMK repository, use:
 
     $ java -jar oak-run-*.jar console /path/to/oak/repository
     
-To start the console for a MongoMK repository, use:
+To start the console for a DocumentMK/Mongo repository, use:
 
     $ java -jar oak-run-*.jar console mongodb://host
 
+To start the console for a DocumentMK/RDB repository, use:
+
+    $ java -jar oak-run-*.jar --rdbjdbcuser username --rdbjdbcpasswd password console jdbc:...
+    
 Console is based on [Groovy Shell](http://groovy.codehaus.org/Groovy+Shell) and hence one 
 can use all Groovy constructs. It also exposes the `org.apache.jackrabbit.oak.console.ConsoleSession`
 instance as through `session` variable. For example when using SegmentNodeStore you can 
@@ -252,6 +256,9 @@ Depending on the fixture the following options are available:
     --base <file>          - Tar: Path to the base file
     --mmap <64bit?>        - TarMK memory mapping (the default on 64 bit JVMs)
     --mk                   - Start in MicroKernel mode exposing the MicroKernel API 
+    --rdbjdbcuri           - JDBC URL for RDB persistence
+    --rdbjdbcuser          - JDBC username (defaults to "")
+    --rdbjdbcpasswd        - JDBC password (defaults to "")
 
 Examples:
 
