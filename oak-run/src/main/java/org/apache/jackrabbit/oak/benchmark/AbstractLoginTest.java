@@ -77,36 +77,13 @@ abstract class AbstractLoginTest extends AbstractTest {
         Session s = loginAdministrative();
         try {
             AccessControlUtils.addAccessControlEntry(s, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
-            if ("user".equals(runAsUser)) {
+            if (USER.equals(runAsUser)) {
                 User user = ((JackrabbitSession) s).getUserManager().createUser(USER, USER);
             }
         } finally {
             s.save();
             s.logout();
         }
-    }
-
-    private Credentials buildCredentials(Repository repository, Credentials credentials) throws RepositoryException {
-        Credentials creds;
-        if ("admin".equals(runAsUser)) {
-            creds = credentials;
-        } else if ("anonymous".equals(runAsUser)) {
-            creds = new GuestCredentials();
-        } else {
-            creds = new SimpleCredentials(USER, USER.toCharArray());
-        }
-        if (runWithToken) {
-            Configuration.setConfiguration(ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY));
-            if (creds instanceof SimpleCredentials) {
-                SimpleCredentials sc = (SimpleCredentials) creds;
-                sc.setAttribute(".token", "");
-                repository.login(sc).logout();
-                creds = new TokenCredentials(sc.getAttribute(".token").toString());
-            } else {
-                throw new UnsupportedOperationException();
-            }
-        }
-        return creds;
     }
 
     @Override
@@ -144,5 +121,28 @@ abstract class AbstractLoginTest extends AbstractTest {
             }
         }
         return super.createRepository(fixture);
+    }
+
+    private Credentials buildCredentials(Repository repository, Credentials credentials) throws RepositoryException {
+        Credentials creds;
+        if ("admin".equals(runAsUser)) {
+            creds = credentials;
+        } else if ("anonymous".equals(runAsUser)) {
+            creds = new GuestCredentials();
+        } else {
+            creds = new SimpleCredentials(USER, USER.toCharArray());
+        }
+        if (runWithToken) {
+            Configuration.setConfiguration(ConfigurationUtil.getJackrabbit2Configuration(ConfigurationParameters.EMPTY));
+            if (creds instanceof SimpleCredentials) {
+                SimpleCredentials sc = (SimpleCredentials) creds;
+                sc.setAttribute(".token", "");
+                repository.login(sc).logout();
+                creds = new TokenCredentials(sc.getAttribute(".token").toString());
+            } else {
+                throw new UnsupportedOperationException();
+            }
+        }
+        return creds;
     }
 }
