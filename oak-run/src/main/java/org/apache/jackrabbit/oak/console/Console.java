@@ -22,13 +22,18 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoURI;
+
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -50,6 +55,11 @@ public class Console {
         OptionSpec quiet = parser.accepts("quiet", "be less chatty");
         OptionSpec shell = parser.accepts("shell", "run the shell after executing files");
         OptionSpec help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
+
+        // RDB specific options
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+
         OptionSpec<String> nonOption = parser.nonOptions("console {<path-to-repository> | <mongodb-uri>}");
 
         OptionSet options = parser.parse(args);
@@ -77,12 +87,17 @@ public class Console {
                     setMongoDB(mongo.getDB()).
                     setClusterId(clusterId.value(options)).getNodeStore();
             fixture = new MongoFixture(store);
+        } else if (nonOptions.get(0).startsWith("jdbc")) {
+            DataSource ds = RDBDataSourceFactory.forJdbcUrl(nonOptions.get(0), rdbjdbcuser.value(options),
+                    rdbjdbcpasswd.value(options));
+            DocumentNodeStore store = new DocumentMK.Builder().
+                    setRDBConnection(ds).
+                    setClusterId(clusterId.value(options)).getNodeStore();
+            fixture = new MongoFixture(store);
         } else {
             fixture = new SegmentFixture(new FileStore(
                     new File(nonOptions.get(0)), 256));
         }
-        
-        
 
         List<String> scriptArgs = nonOptions.size() > 1 ?
                 nonOptions.subList(1, nonOptions.size()) : Collections.<String>emptyList();
