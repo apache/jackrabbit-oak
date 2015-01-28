@@ -104,7 +104,8 @@ public class MemoryDiffCache implements DiffCache {
         }
 
         @Override
-        public void done() {
+        public boolean done() {
+            return true;
         }
     }
 
