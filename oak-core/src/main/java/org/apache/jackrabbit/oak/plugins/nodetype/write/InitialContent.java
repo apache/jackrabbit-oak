@@ -16,13 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import javax.annotation.Nonnull;
+
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
 import com.google.common.collect.ImmutableList;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
@@ -57,8 +61,13 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         return ModifiedNodeState.squeeze(builder.getNodeState());
     }
 
+    /**
+     * Whether to pre-populate the version store with intermediate nodes.
+     */
+    private boolean prePopulateVS = false;
+
     @Override
-    public void initialize(NodeBuilder builder) {
+    public void initialize(@Nonnull NodeBuilder builder) {
         builder.setProperty(JCR_PRIMARYTYPE, NT_REP_ROOT, Type.NAME);
 
         if (!builder.hasChildNode(JCR_SYSTEM)) {
@@ -66,13 +75,19 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
             system.setProperty(JCR_PRIMARYTYPE, NT_REP_SYSTEM, Type.NAME);
 
             system.child(JCR_VERSIONSTORAGE)
-                    .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_VERSIONSTORAGE, Type.NAME);
+                    .setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
             system.child(JCR_NODE_TYPES)
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_NODE_TYPES, Type.NAME);
             system.child(VersionConstants.JCR_ACTIVITIES)
                     .setProperty(JCR_PRIMARYTYPE, VersionConstants.REP_ACTIVITIES, Type.NAME);
 
             Namespaces.setupNamespaces(system);
+        }
+        
+        NodeBuilder versionStorage = builder.child(JCR_SYSTEM)
+                .child(JCR_VERSIONSTORAGE);
+        if (prePopulateVS && !isInitialized(versionStorage)) {
+            createIntermediateNodes(versionStorage);
         }
 
         if (!builder.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
@@ -102,4 +117,40 @@ public class InitialContent implements RepositoryInitializer, NodeTypeConstants 
         target.compareAgainstBaseState(base, new ApplyDiff(builder));
     }
 
+    /**
+     * Instructs the initializer to pre-populate the version store with
+     * intermediate nodes.
+     *
+     * @return this instance.
+     */
+    public InitialContent withPrePopulatedVersionStore() {
+        this.prePopulateVS = true;
+        return this;
+    }
+    
+    //--------------------------< internal >------------------------------------
+    
+    private boolean isInitialized(NodeBuilder versionStorage) {
+        PropertyState init = versionStorage.getProperty(":initialized");
+        return init != null && init.getValue(Type.LONG) > 0;
+    }
+
+    private void createIntermediateNodes(NodeBuilder versionStorage) {
+        String fmt = "%02x";
+        versionStorage.setProperty(":initialized", 1);
+        for (int i = 0; i < 0xff; i++) {
+            NodeBuilder c = storageChild(versionStorage, String.format(fmt, i));
+            for (int j = 0; j < 0xff; j++) {
+                storageChild(c, String.format(fmt, j));
+            }
+        }
+    }
+    
+    private NodeBuilder storageChild(NodeBuilder node, String name) {
+        NodeBuilder c = node.child(name);
+        if (!c.hasProperty(JCR_PRIMARYTYPE)) {
+            c.setProperty(JCR_PRIMARYTYPE, REP_VERSIONSTORAGE, Type.NAME);
+        }
+        return c;
+    }
 }
