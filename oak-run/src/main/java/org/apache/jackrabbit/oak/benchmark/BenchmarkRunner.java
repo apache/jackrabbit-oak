@@ -88,8 +88,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
         OptionSpec<Integer> noIterations = parser.accepts("noIterations", "Change default 'passwordHashIterations' parameter.")
                 .withOptionalArg().ofType(Integer.class).defaultsTo(AbstractLoginTest.DEFAULT_ITERATIONS);
-        OptionSpec<Integer> noGroups = parser.accepts("noGroups", "Number of groups to create.")
-                        .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NO_GROUPS_DEFAULT);
+        OptionSpec<Integer> numberOfGroups = parser.accepts("numberOfGroups", "Number of groups to create.")
+                        .withOptionalArg().ofType(Integer.class).defaultsTo(LoginWithMembershipTest.NUMBER_OF_GROUPS_DEFAULT);
         OptionSpec<Boolean> nestedGroups = parser.accepts("nestedGroups", "Use nested groups.")
                         .withOptionalArg().ofType(Boolean.class).defaultsTo(false);
         OptionSpec<Integer> itemsToRead = parser.accepts("itemsToRead", "Number of items to read")
@@ -170,8 +170,12 @@ public class BenchmarkRunner {
             new LoginWithMembershipTest(
                     runWithToken.value(options),
                     noIterations.value(options),
-                    noGroups.value(options),
+                    numberOfGroups.value(options),
                     nestedGroups.value(options)),
+            new LoginWithMembersTest(
+                    runWithToken.value(options),
+                    noIterations.value(options),
+                    numberOfGroups.value(options)),
             new NamespaceTest(),
             new NamespaceRegistryTest(),
             new ReadPropertyTest(),

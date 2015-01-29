@@ -16,16 +16,16 @@
 # limitations under the License.
 #
 TITLE=LoginTest
-BENCH="LoginWithMembershipTest" #LoginTest LoginLogoutTest LoginGetRootLogoutTest"
+BENCH="LoginWithMembersTest LoginWithMembershipTest" # LoginTest LoginLogoutTest LoginGetRootLogoutTest"
 USER="user" # admin anonymous"
 USE_TOKEN=false # true
 HASH_ITERATIONS="-1"
-NO_GROUPS="100" # 10 100 1000"
+NO_GROUPS="1 10 100 1000"
 USE_NESTED_GROUPS=true # false
 RUNTIME=5
 FIXS="Oak-Tar" # Jackrabbit"
 THREADS="1,10,20,50" #"1,2,4,8,10,15,20,50"
-PROFILE=true
+PROFILE=false
 NUM_ITEMS=1000
 
 LOG=$TITLE"_$(date +'%Y%m%d_%H%M%S').csv"
@@ -53,7 +53,7 @@ for bm in $BENCH
             echo "Executing benchmarks as user: $USER with $noGroups groups (nested = $USE_NESTED_GROUPS) on $fix" | tee -a $LOG
         echo "-----------------------------------------------------------" | tee -a $LOG
             rm -rf target/Jackrabbit-* target/Oak-Tar-*
-            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-run-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --noGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
+            cmd="java -Xmx2048m -Dprofile=$PROFILE -Druntime=$RUNTIME -Dwarmup=10 -jar target/oak-run-*-SNAPSHOT.jar benchmark --noIterations $HASH_ITERATIONS --runWithToken $USE_TOKEN --numberOfGroups $noGroups --nestedGroups $USE_NESTED_GROUPS --csvFile $LOG --concurrency $THREADS --runAsUser $USER --report false $bm $fix"
             echo $cmd
             $cmd
         done

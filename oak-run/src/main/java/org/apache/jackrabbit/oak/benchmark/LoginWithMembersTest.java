@@ -30,23 +30,19 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * Measure performance of repository login with the test user being direct or
- * inherited member of a specified number of groups.
+ * Measure performance of repository login with the test user being direct member
+ * of a group with the configured number of other members.
  */
-public class LoginWithMembershipTest extends AbstractLoginTest {
+public class LoginWithMembersTest extends AbstractLoginTest {
 
     private static final String GROUP = "group";
 
-    public static final int NUMBER_OF_GROUPS_DEFAULT = 10;
+    private final int numberOfMembers;
 
-    private final int numberOfGroups;
-    private final boolean nestedGroups;
-
-    public LoginWithMembershipTest(boolean runWithToken, int noIterations, int numberOfGroups, boolean nestedGroups) {
+    public LoginWithMembersTest(boolean runWithToken, int noIterations, int numberOfMembers) {
         super(USER, runWithToken, noIterations);
 
-        this.numberOfGroups = numberOfGroups;
-        this.nestedGroups = nestedGroups;
+        this.numberOfMembers = numberOfMembers;
     }
 
     @Override
@@ -58,18 +54,13 @@ public class LoginWithMembershipTest extends AbstractLoginTest {
             UserManager userManager = ((JackrabbitSession) s).getUserManager();
             Authorizable user = userManager.getAuthorizable(USER);
 
-            // make sure we have a least a single group the user is member of.
             Group gr = userManager.createGroup(new PrincipalImpl(GROUP), "test");
             gr.addMember(user);
 
-            for (int i = 1; i < numberOfGroups; i++) {
+            // add other members to this group which the test user is not member of.
+            for (int i = 1; i < numberOfMembers; i++) {
                 Group g = userManager.createGroup(new PrincipalImpl(GROUP + i), "test");
-                if (!nestedGroups) {
-                    g.addMember(user);
-                } else {
-                    g.addMember(gr);
-                }
-                gr = g;
+                gr.addMember(g);
             }
         } finally {
             s.save();
