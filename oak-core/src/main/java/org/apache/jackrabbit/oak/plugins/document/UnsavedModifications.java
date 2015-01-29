@@ -117,7 +117,7 @@ class UnsavedModifications implements Closeable {
      */
     @Nonnull
     public Iterable<String> getPaths(@Nonnull final Revision start) {
-        if (map.isEmpty()) {
+        if (map.size() == 0) {
             return Collections.emptyList();
         } else {
             return Iterables.transform(Iterables.filter(map.entrySet(),
