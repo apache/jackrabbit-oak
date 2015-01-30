@@ -123,9 +123,19 @@ public class MemoryDocumentStore implements DocumentStore {
             ArrayList<T> list = new ArrayList<T>();
             for (T doc : sub.values()) {
                 if (indexedProperty != null) {
-                    Long value = (Long) doc.get(indexedProperty);
-                    if (value == null || value < startValue) {
-                        continue;
+                    Object value = doc.get(indexedProperty);
+                    if (value instanceof Boolean) {
+                        long test = (value != null && ((Boolean) value).booleanValue()) ? 1 : 0;
+                        if (test < startValue) {
+                            continue;
+                        }
+                    } else if (value instanceof Long) {
+                        if (value == null || ((Long) value < startValue)) {
+                            continue;
+                        }
+                    } else if (value != null) {
+                        throw new MicroKernelException("unexpected type for property " + indexedProperty + ": "
+                                + value.getClass());
                     }
                 }
                 list.add(doc);
