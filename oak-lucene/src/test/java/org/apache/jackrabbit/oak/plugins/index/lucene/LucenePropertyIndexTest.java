@@ -51,11 +51,12 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
+import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -120,7 +121,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         def.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         def.setProperty(REINDEX_PROPERTY_NAME, true);
-        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES, of(PropertyType.TYPENAME_STRING), STRINGS));
+        def.setProperty(createProperty(LuceneIndexConstants.INCLUDE_PROPERTY_TYPES,
+                of(PropertyType.TYPENAME_STRING, PropertyType.TYPENAME_BINARY), STRINGS));
         return index.getChild(INDEX_DEFINITIONS_NAME).getChild(name);
     }
 
@@ -425,7 +427,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where propa like 'hum%'",
-            asList("/test/a", "/test/c"));
+                asList("/test/a", "/test/c"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ty'",
             asList("/test/a", "/test/b"));
         assertQuery("select [jcr:path] from [nt:base] where propa like '%ump%'",
@@ -610,8 +612,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -648,8 +650,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -687,10 +689,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
-            getSortedPaths(tuples, OrderDirection.ASC));
+                getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -725,7 +727,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery(
             "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
             .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
-                Lists.newArrayList("/test/n0"))));
+                    Lists.newArrayList("/test/n0"))));
     }
 
     @Test
@@ -863,9 +865,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         root.commit();
         assertQuery(
-            "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
-                + "is here\"')",
-            asList("/test/a", "/test/b"));
+                "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
+                        + "is here\"')",
+                asList("/test/a", "/test/b"));
     }
 
     // OAK-2434
@@ -936,6 +938,49 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         // verify results ordering
         // which should be /test/c (boost = 4.0), /test/a(boost = 2.0), /test/b (1.0)
         assertOrderedQuery(queryString, asList("/test/b", "/test/c", "/test/a"), XPATH, true);
+    }
+
+    @Test
+    public void customTikaConfig() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "text", "fox is jumping", "text/plain");
+        createFileNode(test, "xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><msg>sky is blue</msg>", "application/xml");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", asList("/test/xml/jcr:content"));
+
+        //Now disable extraction for application/xml and see that query
+        //does not return any result for that
+        idx = root.getTree("/oak:index/test");
+        String tikaConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<properties>\n" +
+                "  <detectors>\n" +
+                "    <detector class=\"org.apache.tika.detect.DefaultDetector\"/>\n" +
+                "  </detectors>\n" +
+                "  <parsers>\n" +
+                "    <parser class=\"org.apache.tika.parser.DefaultParser\"/>\n" +
+                "    <parser class=\"org.apache.tika.parser.EmptyParser\">\n" +
+                "      <mime>application/xml</mime>\n" +
+                "    </parser>\n" +
+                "  </parsers>\n" +
+                "</properties>";
+
+        idx.addChild(LuceneIndexConstants.TIKA_CONFIG).addChild(JCR_CONTENT).setProperty(JCR_DATA, tikaConfig.getBytes());
+        idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'fox ')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", Collections.<String>emptyList());
+    }
+
+    private void createFileNode(Tree tree, String name, String content, String mimeType){
+        Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
+        jcrContent.setProperty(JcrConstants.JCR_DATA, content.getBytes());
+        jcrContent.setProperty(JcrConstants.JCR_MIMETYPE, mimeType);
     }
 
     private Tree usc(Tree parent, String childName){
