@@ -27,27 +27,27 @@
 # sql-1 query (nt:unstructured needs to be escaped in sql-2)
 
 sql1 SELECT [rep:spellcheck()] FROM nt:base WHERE [jcr:path] = '/' AND SPELLCHECK('jackrabit')
-java.lang.IllegalArgumentException: No full-text index was found that can process the condition spellcheck([nt:base], 'jackrabit')
+[jackrabbit], /, 1.0
 
 sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
 
 sql1 select excerpt(.) from nt:resource where contains(., 'jackrabbit')
 
-sql1 select * from nt:base 
-  where jcr:path like '/testroot/%' 
+sql1 select * from nt:base
+  where jcr:path like '/testroot/%'
   and birth > timestamp '1976-01-01T00:00:00.000+01:00'
 
-sql1 select * from nt:base 
-  where jcr:path like '/testroot/%' 
+sql1 select * from nt:base
+  where jcr:path like '/testroot/%'
   and value like 'foo\_bar' escape '\'
 
-sql1 select * from nt:unstructured 
+sql1 select * from nt:unstructured
   where "jcr:path" = '/testroot/foo' and contains(., 'fox')
 
-sql1 select * from nt:unstructured 
+sql1 select * from nt:unstructured
   where "jcr:path" like '/testroot/%' and contains(., 'fox test')
 
 # not supported currently
-# sql1 select [jcr:path], [jcr:score], * from [nt:base] 
+# sql1 select [jcr:path], [jcr:score], * from [nt:base]
 #   where (0 is not null) and isdescendantnode('/testroot')
 

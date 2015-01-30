@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.query.ast.SameNodeJoinConditionImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SimilarImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
+import org.apache.jackrabbit.oak.query.ast.SpellcheckImpl;
 import org.apache.jackrabbit.oak.query.ast.UpperCaseImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
@@ -100,6 +101,11 @@ public class QueryImpl implements Query {
      * The "rep:excerpt" pseudo-property.
      */
     public static final String REP_EXCERPT = "rep:excerpt";
+
+    /**
+     * The "rep:spellcheck" pseudo-property.
+     */
+    public static final String REP_SPELLCHECK = "rep:spellcheck()";
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryImpl.class);
 
@@ -232,6 +238,13 @@ public class QueryImpl implements Query {
             
             @Override
             public boolean visit(SimilarImpl node) {
+                node.setQuery(query);
+                node.bindSelector(source);
+                return super.visit(node);
+            }
+            
+            @Override
+            public boolean visit(SpellcheckImpl node) {
                 node.setQuery(query);
                 node.bindSelector(source);
                 return super.visit(node);
