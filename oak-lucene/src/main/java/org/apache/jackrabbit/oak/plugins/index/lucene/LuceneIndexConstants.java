@@ -200,4 +200,6 @@ public interface LuceneIndexConstants {
     String ANL_CLASS = "class";
     String ANL_NAME = "name";
     String ANL_LUCENE_MATCH_VERSION = AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM;
+
+    String TIKA_CONFIG = "tikaConfig";
 }

@@ -23,8 +23,10 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Calendar;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -36,10 +38,13 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 public class LuceneIndexEditorContext {
 
@@ -89,7 +94,7 @@ public class LuceneIndexEditorContext {
 
     private final IndexWriterConfig config;
 
-    private static final Parser parser = new AutoDetectParser();
+    private static final Parser defaultParser = new AutoDetectParser();
 
     private final IndexDefinition definition;
 
@@ -103,13 +108,15 @@ public class LuceneIndexEditorContext {
 
     private boolean reindex;
 
+    private final Parser parser;
+
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
         this.definition = new IndexDefinition(root, definition);
         this.config = getIndexWriterConfig(this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
-
+        this.parser = initializeTikaParser(this.definition);
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
@@ -171,5 +178,24 @@ public class LuceneIndexEditorContext {
 
     public IndexDefinition getDefinition() {
         return definition;
+    }
+
+    private static Parser initializeTikaParser(IndexDefinition definition) {
+        if (definition.hasCustomTikaConfig()){
+            InputStream is = definition.getTikaConfig();
+            try {
+                TikaConfig config = new TikaConfig(is);
+                return new AutoDetectParser(config);
+            } catch (IOException e){
+                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
+            } catch (SAXException e) {
+                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
+            } catch (TikaException e) {
+                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
+            } finally {
+                IOUtils.closeQuietly(is);
+            }
+        }
+        return defaultParser;
     }
 }
