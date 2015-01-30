@@ -46,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.slf4j.Logger;
@@ -193,10 +195,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
                 private SolrDocument lastDoc;
                 private int offset = 0;
+                private boolean noDocs = false;
 
                 @Override
                 protected SolrResultRow computeNext() {
-                    while (!queue.isEmpty() || loadDocs()) {
+                    if (!queue.isEmpty() || loadDocs()) {
                         return queue.remove();
                     }
                     return endOfData();
@@ -232,6 +235,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                  * @return true if any document is loaded
                  */
                 private boolean loadDocs() {
+
+                    if (noDocs) {
+                        return false;
+                    }
+
                     SolrDocument lastDocToRecord = null;
 
                     try {
@@ -247,9 +255,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         if (log.isDebugEnabled()) {
                             log.debug("sending query {}", query);
                         }
-                        SolrDocumentList docs = solrServer.query(query).getResults();
+                        QueryResponse queryResponse = solrServer.query(query);
 
-                        onRetrievedResults(filter, docs);
+                        SolrDocumentList docs = queryResponse.getResults();
+
+                        onRetrievedDocs(filter, docs);
 
                         if (log.isDebugEnabled()) {
                             log.debug("getting docs {}", docs);
@@ -262,6 +272,19 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             }
                             lastDocToRecord = doc;
                         }
+
+                        // handle spellcheck
+                        SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
+                        if (spellCheckResponse != null && spellCheckResponse.getSuggestions() != null &&
+                                spellCheckResponse.getSuggestions().size() > 0) {
+                            SolrDocument fakeDoc = new SolrDocument();
+                            for (SpellCheckResponse.Suggestion suggestion : spellCheckResponse.getSuggestions()) {
+                                fakeDoc.addField("rep:spellcheck()", suggestion.getAlternatives());
+                            }
+                            queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                            noDocs = true;
+                        }
+
                     } catch (Exception e) {
                         if (log.isWarnEnabled()) {
                             log.warn("query via {} failed.", solrServer, e);
@@ -281,7 +304,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return cursor;
     }
 
-    void onRetrievedResults(Filter filter, SolrDocumentList docs) {
+    void onRetrievedDocs(Filter filter, SolrDocumentList docs) {
         // do nothing
     }
 
@@ -300,11 +323,12 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
-        return !configuration.useForPropertyRestrictions() // Solr index not used for properties
-                || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
-                || propertyName.contains("/") // no child-level property restrictions
-                || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
-                || configuration.getIgnoredProperties().contains(propertyName); // property is explicitly ignored
+        return !(NATIVE_LUCENE_QUERY.equals(propertyName) || NATIVE_SOLR_QUERY.equals(propertyName)) &&
+                (!configuration.useForPropertyRestrictions() // Solr index not used for properties
+                        || (configuration.getUsedProperties().size() > 0 && !configuration.getUsedProperties().contains(propertyName)) // not explicitly contained in the used properties
+                        || propertyName.contains("/") // no child-level property restrictions
+                        || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
+                        || configuration.getIgnoredProperties().contains(propertyName));
     }
 
     static class SolrResultRow {

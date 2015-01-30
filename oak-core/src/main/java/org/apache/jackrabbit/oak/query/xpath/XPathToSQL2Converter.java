@@ -209,7 +209,12 @@ public class XPathToSQL2Converter {
                         readExcerpt();
                         Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                         statement.addSelectColumn(p);
+                    } else if (readIf("rep:spellcheck")) {
+                        readExcerpt();
+                        Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
+                        statement.addSelectColumn(p);
                     }
+
                 } while (readIf("|"));
                 read(")");
             } else if (currentTokenType == IDENTIFIER) {
@@ -622,12 +627,12 @@ public class XPathToSQL2Converter {
             Expression.Similar f = new Expression.Similar(property, path);
             return f;
         } else if ("rep:spellcheck".equals(functionName)) {
-            // TODO maybe support rep:spellcheck as in
-            // /jcr:root[rep:spellcheck('${query}')]/(rep:spellcheck())            
-            throw getSyntaxError("rep:spellcheck is not supported");
+            Expression term = parseExpression();
+            read(")");
+            return new Expression.Spellcheck(term);
         } else {
             throw getSyntaxError("jcr:like | jcr:contains | jcr:score | xs:dateTime | " + 
-                    "fn:lower-case | fn:upper-case | fn:name");
+                    "fn:lower-case | fn:upper-case | fn:name | rep:similar | rep:spellcheck");
         }
     }
 
