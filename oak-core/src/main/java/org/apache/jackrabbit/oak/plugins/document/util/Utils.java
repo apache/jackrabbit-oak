@@ -24,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -468,15 +469,37 @@ public class Utils {
     }
 
     /**
-     * Returns an iterable over all {@code NodeDocument}s in the given store.
-     * The returned iterable does not guarantee a consistent view on the store.
-     * The iterator may return documents that have been added to the store after
-     * this method had been called.
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
+     * store. The returned {@linkplain Iterable} does not guarantee a consistent
+     * view on the store. it may return documents that have been added to the
+     * store after this method had been called.
      *
-     * @param store a document store.
-     * @return an iterable over all documents in the store.
+     * @param store
+     *            a {@link DocumentStore}.
+     * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
+        return internalGetSelectedDocuments(store, null, 0);
+    }
+
+    /**
+     * Returns an {@link Iterable} over all {@link NodeDocument}s in the given
+     * store matching a condition on an <em>indexed property</em>. The returned
+     * {@linkplain Iterable} does not guarantee a consistent view on the store.
+     * it may return documents that have been added to the store after this
+     * method had been called.
+     *
+     * @param store
+     *            a {@link DocumentStore}.
+     * @return an {@link Iterable} over all documents in the store matching the
+     *         condition
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(final DocumentStore store, String indexedProperty, long startValue) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue);
+    }
+
+    private static Iterable<NodeDocument> internalGetSelectedDocuments(final DocumentStore store, final String indexedProperty,
+            final long startValue) {
         return new Iterable<NodeDocument>() {
             @Override
             public Iterator<NodeDocument> iterator() {
@@ -506,8 +529,10 @@ public class Utils {
                     }
 
                     private Iterator<NodeDocument> nextBatch() {
-                        return store.query(Collection.NODES, startId,
-                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE).iterator();
+                        List<NodeDocument> result = indexedProperty == null ? store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, BATCH_SIZE) : store.query(Collection.NODES, startId,
+                                NodeDocument.MAX_ID_VALUE, indexedProperty, startValue, BATCH_SIZE);
+                        return result.iterator();
                     }
                 };
             }
