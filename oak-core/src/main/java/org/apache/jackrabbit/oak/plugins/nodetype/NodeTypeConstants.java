@@ -90,5 +90,9 @@ public interface NodeTypeConstants extends JcrConstants {
     String REP_PRIMARY_TYPE = "rep:primaryType";
     String REP_MIXIN_TYPES = "rep:mixinTypes";
     String REP_UUID = "rep:uuid";
-
+    
+    /**
+     * mixin to enable the AtomicCounterEditor.
+     */
+    String MIX_ATOMIC_COUNTER = "mix:atomicCounter";
 }
