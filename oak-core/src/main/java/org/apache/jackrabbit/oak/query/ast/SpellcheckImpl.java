@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
 
 /**
- * Support for "similar(...)
+ * Support for "spellcheck(...)
  */
 public class SpellcheckImpl extends ConstraintImpl {
     
