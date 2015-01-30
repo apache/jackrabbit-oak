@@ -108,7 +108,7 @@ public class LuceneIndexEditorContext {
 
     private boolean reindex;
 
-    private final Parser parser;
+    private Parser parser;
 
     LuceneIndexEditorContext(NodeState root, NodeBuilder definition, IndexUpdateCallback updateCallback) {
         this.definitionBuilder = definition;
@@ -116,13 +116,15 @@ public class LuceneIndexEditorContext {
         this.config = getIndexWriterConfig(this.definition);
         this.indexedNodes = 0;
         this.updateCallback = updateCallback;
-        this.parser = initializeTikaParser(this.definition);
         if (this.definition.isOfOldFormat()){
             IndexDefinition.updateDefinition(definition);
         }
     }
 
     Parser getParser() {
+        if (parser == null){
+            parser = initializeTikaParser(definition);
+        }
         return parser;
     }
 
