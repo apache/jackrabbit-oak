@@ -807,6 +807,10 @@ Lucene will flush based on whichever limit is hit first.  -->
            <str>nameOfCustomComponent2</str>
          </arr>
         -->
+        <arr name="last-components">
+            <str>mlt</str>
+            <str>spellcheck</str>
+        </arr>
     </requestHandler>
 
     <!-- A request handler that returns indented JSON by default -->
@@ -1195,7 +1199,7 @@ current implementation relies on the updateLog feature being enabled. -->
     -->
     <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 
-        <str name="queryAnalyzerFieldType">textSpell</str>
+        <str name="queryAnalyzerFieldType">text_general</str>
 
         <!-- Multiple "Spell Checkers" can be declared and used by this
            component
@@ -1204,7 +1208,7 @@ current implementation relies on the updateLog feature being enabled. -->
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
-            <str name="field">name</str>
+            <str name="field">catch_all</str>
             <str name="classname">solr.DirectSolrSpellChecker</str>
             <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
             <str name="distanceMeasure">internal</str>
@@ -1220,9 +1224,7 @@ current implementation relies on the updateLog feature being enabled. -->
             <int name="minQueryLength">4</int>
             <!-- maximum threshold of documents a query term can appear to be considered for correction -->
             <float name="maxQueryFrequency">0.01</float>
-            <!-- uncomment this to require suggestions to occur in 1% of the documents
-                <float name="thresholdTokenFrequency">.01</float>
-            -->
+
         </lst>
 
         <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
@@ -1287,9 +1289,9 @@ current implementation relies on the updateLog feature being enabled. -->
        See http://wiki.apache.org/solr/SpellCheckComponent for details
        on the request parameters.
     -->
-    <requestHandler name="/spell" class="solr.SearchHandler" startup="lazy">
+    <requestHandler name="/spellcheck" class="solr.SearchHandler" startup="lazy">
         <lst name="defaults">
-            <str name="df">text</str>
+            <str name="df">catch_all</str>
             <!-- Solr will use suggestions from both the 'default' spellchecker
         and from the 'wordbreak' spellchecker and combine them.
         collations (re-written queries) can include a combination of

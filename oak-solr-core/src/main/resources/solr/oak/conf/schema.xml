@@ -71,6 +71,13 @@
                 <filter class="solr.LowerCaseFilterFactory"/>
             </analyzer>
         </fieldType>
+        <fieldType name="textSpell" class="solr.TextField" positionIncrementGap="100" >
+            <analyzer>
+                <tokenizer class="solr.StandardTokenizerFactory"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+                <filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
+            </analyzer>
+        </fieldType>
 
         <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
 
@@ -110,6 +117,7 @@
 
         <field name="rep:members" type="string" indexed="true" stored="true" multiValued="true"/>
         <field name="rep:principalName" type="string" indexed="true" stored="true" multiValued="true"/>
+        <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="numeric"/>
         <dynamicField name="*_bin" type="string" indexed="true" stored="true" multiValued="true"/>
         <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
     </fields>

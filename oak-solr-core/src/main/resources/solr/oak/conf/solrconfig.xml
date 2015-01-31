@@ -851,6 +851,10 @@
              <str>nameOfCustomComponent2</str>
            </arr>
           -->
+        <arr name="last-components">
+            <str>mlt</str>
+            <str>spellcheck</str>
+        </arr>
     </requestHandler>
 
     <!-- A request handler that returns indented JSON by default -->
@@ -1147,6 +1151,65 @@
          http://wiki.apache.org/solr/SpellCheckComponent
       -->
 
+
+    <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
+
+        <str name="queryAnalyzerFieldType">text_general</str>
+
+        <!-- Multiple "Spell Checkers" can be declared and used by this
+           component
+        -->
+
+        <!-- a spellchecker built from a field of the main index -->
+        <lst name="spellchecker">
+            <str name="name">default</str>
+            <str name="field">catch_all</str>
+            <str name="classname">solr.DirectSolrSpellChecker</str>
+            <str name="distanceMeasure">internal</str>
+            <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
+            <float name="accuracy">0.5</float>
+            <!-- the maximum #edits we consider when enumerating terms: can be 1 or 2 -->
+            <int name="maxEdits">2</int>
+            <!-- the minimum shared prefix when enumerating terms -->
+            <int name="minPrefix">1</int>
+            <!-- maximum number of inspections per result. -->
+            <int name="maxInspections">5</int>
+            <!-- minimum length of a query term to be considered for correction -->
+            <int name="minQueryLength">4</int>
+            <!-- maximum threshold of documents a query term can appear to be considered for correction -->
+            <float name="maxQueryFrequency">0.01</float>
+        </lst>
+
+        <lst name="spellchecker">
+            <str name="name">wordbreak</str>
+            <str name="classname">solr.WordBreakSolrSpellChecker</str>
+            <str name="field">name</str>
+            <str name="combineWords">true</str>
+            <str name="breakWords">true</str>
+            <int name="maxChanges">10</int>
+        </lst>
+
+    </searchComponent>
+
+    <requestHandler name="/spellcheck" class="solr.SearchHandler" startup="lazy">
+        <lst name="defaults">
+            <str name="df">catch_all</str>
+            <str name="spellcheck.dictionary">default</str>
+            <str name="spellcheck.dictionary">wordbreak</str>
+            <str name="spellcheck">on</str>
+            <str name="spellcheck.extendedResults">true</str>
+            <str name="spellcheck.count">10</str>
+            <str name="spellcheck.alternativeTermCount">5</str>
+            <str name="spellcheck.maxResultsForSuggest">5</str>
+            <str name="spellcheck.collate">true</str>
+            <str name="spellcheck.collateExtendedResults">true</str>
+            <str name="spellcheck.maxCollationTries">10</str>
+            <str name="spellcheck.maxCollations">5</str>
+        </lst>
+        <arr name="last-components">
+            <str>spellcheck</str>
+        </arr>
+    </requestHandler>
 
     <!-- Update Processors
 

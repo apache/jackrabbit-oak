@@ -311,7 +311,7 @@ var oak = (function(global){
         }
         if (num > 0) {
             var update = {};
-            update["$inc"] = {_modCount: 1};
+            update["$inc"] = {_modCount: NumberLong(1)};
             update["$unset"] = unset;
             return db.settings.update({_id:"checkpoint"}, update);
         } else {
@@ -363,7 +363,7 @@ var oak = (function(global){
         }
         if (num > 0) {
             var update = {};
-            update["$inc"] = {_modCount: 1};
+            update["$inc"] = {_modCount: NumberLong(1)};
             update["$unset"] = unset;
             return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
         } else {
@@ -588,7 +588,7 @@ var oak = (function(global){
                 }
                 result.numPrevLinksRemoved++;
                 var update = {};
-                update.$inc = {_modCount : 1};
+                update.$inc = {_modCount : NumberLong(1)};
                 if (d._sdType == 40) { // intermediate split doc type
                     update.$unset = {};
                     update.$unset["_prev." + high] = 1;

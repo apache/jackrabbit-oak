@@ -79,8 +79,10 @@ public interface AstVisitor {
 
     boolean visit(UpperCaseImpl node);
 
-    boolean visit(NativeFunctionImpl nativeFunctionImpl);
+    boolean visit(NativeFunctionImpl node);
 
-    boolean visit(SimilarImpl similarImpl);
+    boolean visit(SimilarImpl node);
+    
+    boolean visit(SpellcheckImpl node);
 
 }

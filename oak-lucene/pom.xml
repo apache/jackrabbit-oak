@@ -200,6 +200,12 @@
       <version>${lucene.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-suggest</artifactId>
+      <version>${lucene.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Logging -->
     <dependency>
