@@ -171,7 +171,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
             if (addOrUpdate(path, after, before.exists())) {
                 long indexed = context.incIndexedNodes();
                 if (indexed % 1000 == 0) {
-                    log.debug("Indexed {} nodes...", indexed);
+                    log.debug("{} => Indexed {} nodes...", context.getDefinition(), indexed);
                 }
             }
         }
@@ -188,7 +188,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                         "Failed to close the Lucene index", e);
             }
             if (context.getIndexedNodes() > 0) {
-                log.debug("Indexed {} nodes, done.", context.getIndexedNodes());
+                log.debug("{} => Indexed {} nodes, done.", context.getDefinition(), context.getIndexedNodes());
             }
         }
     }

@@ -319,7 +319,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     @Override
     public String toString() {
-        return "IndexDefinition : " + indexName;
+        return "Lucene Index : " + indexName;
     }
 
     //~---------------------------------------------------< Analyzer >
