@@ -325,6 +325,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
     }
 
+    public String getIndexName() {
+        return indexName;
+    }
+
     @Override
     public String toString() {
         return "Lucene Index : " + indexName;
