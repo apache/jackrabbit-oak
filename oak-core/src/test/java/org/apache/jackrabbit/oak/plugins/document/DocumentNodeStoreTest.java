@@ -906,6 +906,100 @@ public class DocumentNodeStoreTest {
         store.dispose();
     }
 
+    // OAK-2464
+    @Test
+    public void useDocChildCacheForFindingNodes() throws CommitFailedException {
+        final Set<String> reads = Sets.newHashSet();
+        MemoryDocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                reads.add(key);
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setClusterId(1).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+        builder.child("a");
+        builder.child("b").child("c");
+        merge(store, builder);
+
+        NodeState parentState = store.getRoot().getChildNode("b");
+        reads.clear();
+        NodeState nonExistingChild = parentState.getChildNode("non-existing-node-1");
+        assertEquals("Should not go to DocStore::find for a known non-existent child", 0, reads.size());
+        assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+
+        builder = store.getRoot().builder();
+        NodeBuilder childPropBuilder = builder.child("a");
+        childPropBuilder.setProperty("foo", "bar");
+        merge(store, builder);
+
+        parentState = store.getRoot().getChildNode("b");
+        reads.clear();
+        nonExistingChild = parentState.getChildNode("non-existing-node-2");
+        assertEquals("Should not go to DocStore::find for a known non-existent child," +
+                " even if another merge has happened (on another sub-tree)", 0, reads.size());
+        assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+
+        store.invalidateNodeChildrenCache();
+
+        //force filling up doc child cache
+        parentState = store.getRoot().getChildNode("b");
+        Iterables.size(parentState.getChildNodeEntries());
+
+        reads.clear();
+        nonExistingChild = parentState.getChildNode("non-existing-node-3");
+        assertEquals("Should not go to DocStore::find when doc child cache is filled by reading",
+                0, reads.size());
+        assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+
+        store.dispose();
+    }
+
+    @Test
+    public void ignoreDocChildCacheForIncompleteEntry() throws CommitFailedException {
+        final Set<String> reads = Sets.newHashSet();
+        MemoryDocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                reads.add(key);
+                return super.find(collection, key);
+            }
+        };
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setUseSimpleRevision(true)
+                .setClusterId(1).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder parentBuilder = builder.child("a");
+
+        //create > INITIAL_FETCH_SIZE children to have incomplete child cache entries
+        int numChildren = DocumentNodeState.INITIAL_FETCH_SIZE + 2;
+        for (int i = 0; i < numChildren; i++) {
+            parentBuilder.child("child" + i);
+        }
+
+        merge(store, builder);
+
+        store.invalidateNodeChildrenCache();
+
+        //force filling up doc child cache
+        NodeState parentNodeState = store.getRoot().getChildNode("a");
+        Iterables.size(parentNodeState.getChildNodeEntries());
+
+        reads.clear();
+        NodeState nonExistingChild = parentNodeState.getChildNode("non-existing-child-1");
+        assertTrue("DocStore should be queried when no doc child cache entry has all children",
+                reads.size() > 0);
+        assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+        store.dispose();
+    }
+
     private static void assertNoPreviousDocs(Set<String> ids) {
         for (String id : ids) {
             assertFalse("must not read previous document: " +
