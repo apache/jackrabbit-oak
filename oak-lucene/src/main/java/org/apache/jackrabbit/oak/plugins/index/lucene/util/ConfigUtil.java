@@ -21,9 +21,12 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import com.google.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class ConfigUtil {
 
@@ -55,5 +58,15 @@ public class ConfigUtil {
     public static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         return (ps == null) ? JcrConstants.NT_BASE : ps.getValue(Type.NAME);
+    }
+
+    /**
+     * Assumes that given state is of type nt:file and then reads
+     * the jcr:content/@jcr:data property to get the binary content
+     */
+    public static Blob getBlob(NodeState state, String resourceName){
+        NodeState contentNode = state.getChildNode(JcrConstants.JCR_CONTENT);
+        checkArgument(contentNode.exists(), "Was expecting to find jcr:content node to read resource %s", resourceName);
+        return contentNode.getProperty(JcrConstants.JCR_DATA).getValue(Type.BINARY);
     }
 }
