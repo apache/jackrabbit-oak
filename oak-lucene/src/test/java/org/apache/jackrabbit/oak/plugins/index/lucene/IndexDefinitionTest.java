@@ -492,7 +492,8 @@ public class IndexDefinitionTest {
         IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
         assertFalse(defn.hasCustomTikaConfig());
 
-        defnb.child(LuceneIndexConstants.TIKA_CONFIG)
+        defnb.child(LuceneIndexConstants.TIKA)
+                .child(LuceneIndexConstants.TIKA_CONFIG)
                 .child(JcrConstants.JCR_CONTENT)
                 .setProperty(JcrConstants.JCR_DATA, "hello".getBytes());
         defn = new IndexDefinition(root, defnb.getNodeState());

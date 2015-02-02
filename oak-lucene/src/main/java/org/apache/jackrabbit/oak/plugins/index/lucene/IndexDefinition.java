@@ -88,6 +88,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA_CONFIG;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
@@ -235,7 +236,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.indexesAllTypes = areAllTypesIndexed();
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
-        this.hasCustomTikaConfig = defn.getChildNode(TIKA_CONFIG).exists();
+        this.hasCustomTikaConfig = getTikaConfigNode().exists();
     }
 
     public boolean isFullTextEnabled() {
@@ -321,7 +322,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     public InputStream getTikaConfig(){
-        return ConfigUtil.getBlob(definition.getChildNode(TIKA_CONFIG), TIKA_CONFIG).getNewStream();
+        return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
     }
 
     @Override
@@ -981,6 +982,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     //~---------------------------------------------< utility >
+
+    private NodeState getTikaConfigNode() {
+        return definition.getChildNode(TIKA).getChildNode(TIKA_CONFIG);
+    }
 
     private Codec createCodec() {
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
