@@ -246,7 +246,7 @@
   - jcr:etag (STRING) protected autocreated
   
 /**
- * mix:atomicCounter will define a node as a conter which will keep tracks of increasing/decreasing
+ * mix:atomicCounter will define a node as a counter which will keep tracks of increasing/decreasing
  * consistently across a cluster of oak instances. https://issues.apache.org/jira/browse/OAK-2220
  */
 [mix:atomicCounter]

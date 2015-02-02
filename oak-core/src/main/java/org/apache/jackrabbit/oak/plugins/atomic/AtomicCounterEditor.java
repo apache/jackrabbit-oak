@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.commit;
+package org.apache.jackrabbit.oak.plugins.atomic;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -26,16 +26,17 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
+// FIXME add class javadoc
 public class AtomicCounterEditor extends DefaultEditor {
     /**
      * property to be set for incrementing/decrementing the counter
@@ -54,41 +55,35 @@ public class AtomicCounterEditor extends DefaultEditor {
     
     private static final Logger LOG = LoggerFactory.getLogger(AtomicCounterEditor.class);
     private final NodeBuilder builder;
-    private final String nodeName;
-    
+    private final String path;
+
     /**
      * instruct whether to update the node on leave.
      */
     private boolean update;
     
     public AtomicCounterEditor(@Nonnull final NodeBuilder builder) {
-        this(null, builder);
+        this("", checkNotNull(builder));
     }
-    
-    private AtomicCounterEditor(final String nodeName, @Nonnull final NodeBuilder builder) {
-        checkNotNull(builder);
-        this.builder = builder;
-        this.nodeName = null;
+
+    private AtomicCounterEditor(final String path, final NodeBuilder builder) {
+        this.builder = checkNotNull(builder);
+        this.path = path;
     }
-    
-    private static boolean shallWeProcessNode(@Nonnull final NodeBuilder builder) {
-        checkNotNull(builder);
-        PropertyState mixin = builder.getProperty(JCR_MIXINTYPES);
-        return mixin != null
-               && Iterators.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER);
-    }
-    
-    private static boolean shallWeProcessProperty(final PropertyState property, 
-                                                  final String nodeName, 
+
+    private static boolean shallWeProcessProperty(final PropertyState property,
+                                                  final String path,
                                                   final NodeBuilder builder) {
         boolean process = false;
-        if (shallWeProcessNode(builder) && property != null && PROP_INCREMENT.equals(property.getName())) {
+        PropertyState mixin = checkNotNull(builder).getProperty(JCR_MIXINTYPES);
+        if (mixin != null && PROP_INCREMENT.equals(property.getName()) &&
+                Iterators.contains(mixin.getValue(NAMES).iterator(), MIX_ATOMIC_COUNTER)) {
             if (LONG.equals(property.getType())) {
                 process = true;
             } else {
                 LOG.warn(
                     "although the {} property is set is not of the right value: LONG. Not processing node: {}.",
-                    PROP_INCREMENT, nodeName);
+                    PROP_INCREMENT, path);
             }
         }
         return process;
@@ -101,29 +96,26 @@ public class AtomicCounterEditor extends DefaultEditor {
      * </p>
      * 
      * <p>
-     * The passed in {@code NodeBuilder} must have {@link JcrConstants#JCR_MIXINTYPES} with
-     * {@link NodeTypeConstants#MIX_ATOMIC_COUNTER}. If not it will be silently ignored.
+     * The passed in {@code NodeBuilder} must have
+     * {@link org.apache.jackrabbit.JcrConstants#JCR_MIXINTYPES JCR_MIXINTYPES} with
+     * {@link org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants#MIX_ATOMIC_COUNTER MIX_ATOMIC_COUNTER}.
+     * If not it will be silently ignored.
      * </p>
      * 
      * @param builder the builder to work on. Cannot be null.
      */
     public static void consolidateCount(@Nonnull final NodeBuilder builder) {
-        checkNotNull(builder);
-        if (shallWeProcessNode(builder)) {
-            long count = builder.hasProperty(PROP_COUNTER) 
-                            ? builder.getProperty(PROP_COUNTER).getValue(LONG) 
-                            : 0;
-            for (PropertyState p : builder.getProperties()) {
-                if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
-                    count += p.getValue(LONG);
-                    builder.removeProperty(p.getName());
-                }
+        long count = builder.hasProperty(PROP_COUNTER)
+                        ? builder.getProperty(PROP_COUNTER).getValue(LONG)
+                        : 0;
+        for (PropertyState p : builder.getProperties()) {
+            if (p.getName().startsWith(PREFIX_PROP_COUNTER)) {
+                count += p.getValue(LONG);
+                builder.removeProperty(p.getName());
             }
-            
-            builder.setProperty(PROP_COUNTER, count);
-        } else {
-            LOG.debug("NodeBuilder not with the proper mixin set.");
         }
+
+        builder.setProperty(PROP_COUNTER, count);
     }
 
     private void setUniqueCounter(final long value) {
@@ -133,39 +125,33 @@ public class AtomicCounterEditor extends DefaultEditor {
     
     @Override
     public void propertyAdded(final PropertyState after) throws CommitFailedException {
-        if (shallWeProcessProperty(after, nodeName, builder)) {
+        if (shallWeProcessProperty(after, path, builder)) {
             setUniqueCounter(after.getValue(LONG));
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        if (shallWeProcessProperty(after, nodeName, builder)) {
+        if (shallWeProcessProperty(after, path, builder)) {
             setUniqueCounter(after.getValue(LONG));
         }
     }
 
     @Override
     public Editor childNodeAdded(final String name, final NodeState after) throws CommitFailedException {
-        if (shallWeProcessNode(new ReadOnlyBuilder(after))) {
-            return new AtomicCounterEditor(name, builder.getChildNode(name));
-        }
-        return null;
+        return new AtomicCounterEditor(path + '/' + name, builder.getChildNode(name));
     }
 
     @Override
     public Editor childNodeChanged(final String name, 
                                    final NodeState before, 
                                    final NodeState after) throws CommitFailedException {
-        if (shallWeProcessNode(new ReadOnlyBuilder(after))) {
-            return new AtomicCounterEditor(name, builder.getChildNode(name));
-        }
-        return null;
+        return new AtomicCounterEditor(path + '/' + name, builder.getChildNode(name));
     }
 
     @Override
     public void leave(final NodeState before, final NodeState after) throws CommitFailedException {
-        if (update && shallWeProcessNode(builder)) {
+        if (update) {
             // TODO here is where the Async check could be done
             consolidateCount(builder);
         }

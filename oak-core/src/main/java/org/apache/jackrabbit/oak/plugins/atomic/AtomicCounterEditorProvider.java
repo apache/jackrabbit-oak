@@ -14,25 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.commit;
+package org.apache.jackrabbit.oak.plugins.atomic;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Provides an instance of the correct {@link Editor} if the changes are carried over a node type
- * with {@link JcrConstants#JCR_MIXINTYPES} containing {@link #MIXIN_ATOMIC_COUNTER}
+ * with {@link org.apache.jackrabbit.JcrConstants#JCR_MIXINTYPES JCR_MIXINTYPES} containing
+ * {@link org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants#MIX_ATOMIC_COUNTER MIX_ATOMIC_COUNTER}
  */
 @Component
 @Service
 public class AtomicCounterEditorProvider implements EditorProvider {
     
     @Override
-    public Editor getRootEditor(final NodeState before, final NodeState after, 
-                                final NodeBuilder builder, final CommitInfo info) 
+    public Editor getRootEditor(final NodeState before, final NodeState after,
+                                final NodeBuilder builder, final CommitInfo info)
                                     throws CommitFailedException {        
         return new AtomicCounterEditor(builder);
     }
