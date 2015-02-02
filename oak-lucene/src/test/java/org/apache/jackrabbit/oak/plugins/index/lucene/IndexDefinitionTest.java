@@ -478,6 +478,9 @@ public class IndexDefinitionTest {
     public void customAnalyzer() throws Exception{
         NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
                 "lucene", of(TYPENAME_STRING));
+
+        //Set this to -1 to avoid wrapping by LimitAnalyzer
+        defnb.setProperty(LuceneIndexConstants.MAX_FIELD_LENGTH, -1);
         defnb.child(ANALYZERS).child(ANL_DEFAULT)
                 .child(LuceneIndexConstants.ANL_TOKENIZER)
                 .setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
