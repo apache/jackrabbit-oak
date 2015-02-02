@@ -980,6 +980,25 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select * from [nt:base] where CONTAINS(*, 'sky ')", Collections.<String>emptyList());
     }
 
+    @Test
+    public void maxFieldLengthCheck() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree test = root.getTree("/").addChild("test");
+        test.setProperty("text", "red brown fox was jumping");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test"));
+
+        idx = root.getTree("/oak:index/test");
+        idx.setProperty(LuceneIndexConstants.MAX_FIELD_LENGTH, 2);
+        idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+    }
+
     private void createFileNode(Tree tree, String name, String content, String mimeType){
         Tree jcrContent = tree.addChild(name).addChild(JCR_CONTENT);
         jcrContent.setProperty(JcrConstants.JCR_DATA, content.getBytes());
