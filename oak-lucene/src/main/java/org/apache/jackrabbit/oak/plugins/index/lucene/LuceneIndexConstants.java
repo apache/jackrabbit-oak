@@ -191,5 +191,5 @@ public interface LuceneIndexConstants {
     /**
      * nt:file node under 'tika' node which refers to the config xml file
      */
-    String TIKA_CONFIG = "config";
+    String TIKA_CONFIG = "config.xml";
 }
