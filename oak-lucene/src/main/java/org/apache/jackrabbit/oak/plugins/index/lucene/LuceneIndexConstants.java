@@ -211,6 +211,8 @@ public interface LuceneIndexConstants {
      */
     String TIKA_CONFIG = "config.xml";
 
+    String TIKA_MAX_EXTRACT_LENGTH = "maxExtractLength";
+
     /**
      * The maximum number of terms that will be indexed for a single field in a
      * document.  This limits the amount of memory required for indexing, so that

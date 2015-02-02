@@ -676,7 +676,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
     }
 
     private String parseStringValue(Blob v, Metadata metadata, String path) {
-        WriteOutContentHandler handler = new WriteOutContentHandler();
+        WriteOutContentHandler handler = new WriteOutContentHandler(context.getDefinition().getMaxExtractLength());
         try {
             InputStream stream = v.getNewStream();
             try {
