@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -86,6 +88,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA_CONFIG;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.PropertyDefinition.DEFAULT_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -168,6 +172,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final Analyzer analyzer;
 
+    private final boolean hasCustomTikaConfig;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -222,6 +228,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.costPerExecution = getOptionalValue(defn, LuceneIndexConstants.COST_PER_EXECUTION, 1.0);
         this.indexesAllTypes = areAllTypesIndexed();
         this.analyzer = createAnalyzer();
+        this.hasCustomTikaConfig = getTikaConfigNode().exists();
     }
 
     public boolean isFullTextEnabled() {
@@ -300,6 +307,14 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public Analyzer getAnalyzer(){
         return analyzer;
+    }
+
+    public boolean hasCustomTikaConfig(){
+        return hasCustomTikaConfig;
+    }
+
+    public InputStream getTikaConfig(){
+        return ConfigUtil.getBlob(getTikaConfigNode(), TIKA_CONFIG).getNewStream();
     }
 
     @Override
@@ -911,6 +926,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     //~---------------------------------------------< utility >
+
+    private NodeState getTikaConfigNode() {
+        return definition.getChildNode(TIKA).getChildNode(TIKA_CONFIG);
+    }
 
     private Codec createCodec() {
         String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);

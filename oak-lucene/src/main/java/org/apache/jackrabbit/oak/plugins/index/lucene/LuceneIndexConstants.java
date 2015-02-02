@@ -182,4 +182,14 @@ public interface LuceneIndexConstants {
     String COST_PER_ENTRY = "costPerEntry";
 
     String COST_PER_EXECUTION = "costPerExecution";
+
+    /**
+     * Config node which include Tika related configuration
+     */
+    String TIKA = "tika";
+
+    /**
+     * nt:file node under 'tika' node which refers to the config xml file
+     */
+    String TIKA_CONFIG = "config";
 }

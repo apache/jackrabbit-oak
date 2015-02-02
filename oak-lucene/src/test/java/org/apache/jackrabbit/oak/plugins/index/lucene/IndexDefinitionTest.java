@@ -471,6 +471,21 @@ public class IndexDefinitionTest {
         assertEquals(50, defn.getFulltextEntryCount(50));
     }
 
+    @Test
+    public void customTikaConfig() throws Exception{
+        NodeBuilder defnb = newLuceneIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", of(TYPENAME_STRING));
+        IndexDefinition defn = new IndexDefinition(root, defnb.getNodeState());
+        assertFalse(defn.hasCustomTikaConfig());
+
+        defnb.child(LuceneIndexConstants.TIKA)
+                .child(LuceneIndexConstants.TIKA_CONFIG)
+                .child(JcrConstants.JCR_CONTENT)
+                .setProperty(JcrConstants.JCR_DATA, "hello".getBytes());
+        defn = new IndexDefinition(root, defnb.getNodeState());
+        assertTrue(defn.hasCustomTikaConfig());
+    }
+
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
         return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
     }
