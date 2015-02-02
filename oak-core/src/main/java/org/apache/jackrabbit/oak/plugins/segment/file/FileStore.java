@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.file;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
@@ -531,6 +532,8 @@ public class FileStore implements SegmentStore {
      * reference to them).
      */
     public void compact() {
+        checkArgument(!compactionStrategy.equals(NO_COMPACTION),
+                "You must set a compactionStrategy before calling compact");
         log.info("TarMK compaction running, strategy={}", compactionStrategy);
 
         long start = System.currentTimeMillis();
