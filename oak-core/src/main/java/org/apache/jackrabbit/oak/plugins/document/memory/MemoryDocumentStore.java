@@ -186,7 +186,7 @@ public class MemoryDocumentStore implements DocumentStore {
      * @return the map
      */
     @SuppressWarnings("unchecked")
-    private <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
+    protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
         if (collection == Collection.NODES) {
             return (ConcurrentSkipListMap<String, T>) nodes;
         } else if (collection == Collection.CLUSTER_NODES) {
