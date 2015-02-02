@@ -969,7 +969,10 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 "  </parsers>\n" +
                 "</properties>";
 
-        idx.addChild(LuceneIndexConstants.TIKA_CONFIG).addChild(JCR_CONTENT).setProperty(JCR_DATA, tikaConfig.getBytes());
+        idx.addChild(LuceneIndexConstants.TIKA)
+                .addChild(LuceneIndexConstants.TIKA_CONFIG)
+                .addChild(JCR_CONTENT)
+                .setProperty(JCR_DATA, tikaConfig.getBytes());
         idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
         root.commit();
 
