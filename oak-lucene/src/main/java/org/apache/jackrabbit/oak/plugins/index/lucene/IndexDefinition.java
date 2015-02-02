@@ -121,6 +121,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
      */
     public static final int DEFAULT_MAX_FIELD_LENGTH = 10000;
 
+    static final int DEFAULT_MAX_EXTRACT_LENGTH = -10;
+
     /**
      * System managed hidden property to record the current index version
      */
@@ -189,6 +191,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final int maxFieldLength;
 
+    private final int maxExtractLength;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -246,6 +250,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
+        this.maxExtractLength = determineMaxExtractLength();
     }
 
     public boolean isFullTextEnabled() {
@@ -336,6 +341,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public String getIndexName() {
         return indexName;
+    }
+
+    public int getMaxExtractLength() {
+        return maxExtractLength;
     }
 
     @Override
@@ -1003,6 +1012,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     }
 
     //~---------------------------------------------< utility >
+
+    private int determineMaxExtractLength() {
+        int length = getOptionalValue(definition.getChildNode(TIKA), LuceneIndexConstants.TIKA_MAX_EXTRACT_LENGTH,
+                DEFAULT_MAX_EXTRACT_LENGTH);
+        if (length < 0){
+            return - length * maxFieldLength;
+        }
+        return length;
+    }
 
     private NodeState getTikaConfigNode() {
         return definition.getChildNode(TIKA).getChildNode(TIKA_CONFIG);

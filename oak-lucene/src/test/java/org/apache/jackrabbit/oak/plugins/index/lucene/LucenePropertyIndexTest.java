@@ -66,6 +66,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INCLUDE_PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ORDERED_PROP_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTest.createCal;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
@@ -904,8 +905,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
         List<? extends ResultRow> result = Lists.newArrayList(
-            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
-                NO_MAPPINGS).getRows());
+                qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+                        NO_MAPPINGS).getRows());
 
         String measure = "";
         if (result.size() > 0) {
@@ -997,6 +998,27 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+    }
+
+    @Test
+    public void maxExtractLengthCheck() throws Exception{
+        Tree idx = createFulltextIndex(root.getTree("/"), "test");
+        TestUtil.useV2(idx);
+
+        Tree test = root.getTree("/").addChild("test");
+        createFileNode(test, "text", "red brown fox was jumping", "text/plain");
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", asList("/test/text/jcr:content"));
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
+
+        idx = root.getTree("/oak:index/test");
+        idx.addChild(TIKA).setProperty(LuceneIndexConstants.TIKA_MAX_EXTRACT_LENGTH, 15);
+        idx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        root.commit();
+
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'jumping')", Collections.<String>emptyList());
+        assertQuery("select * from [nt:base] where CONTAINS(*, 'red')", asList("/test/text/jcr:content"));
     }
 
     private void createFileNode(Tree tree, String name, String content, String mimeType){
