@@ -34,12 +34,14 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -997,6 +999,78 @@ public class DocumentNodeStoreTest {
         assertTrue("DocStore should be queried when no doc child cache entry has all children",
                 reads.size() > 0);
         assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+        store.dispose();
+    }
+
+    @Test
+    public void docChildCacheWithIncompatiblDocStoreSort() throws CommitFailedException {
+        final Set<String> reads = Sets.newHashSet();
+        final ConcurrentSkipListMap<String, NodeDocument> nodes = new ConcurrentSkipListMap<String, NodeDocument>(
+                new Comparator<String>() {
+                    @Override
+                    public int compare(String o1, String o2) {
+                        int ret = o1.compareTo(o2);
+                        if ( o1.indexOf("child") > 0 && o2.indexOf("child") > 0 ) {
+                            ret = (-ret);
+                        }
+                        return ret;
+                    }
+                }
+        );
+        MemoryDocumentStore docStore = new MemoryDocumentStore() {
+            @Override
+            @SuppressWarnings("unchecked")
+            protected <T extends Document> ConcurrentSkipListMap<String, T> getMap(Collection<T> collection) {
+                if (collection == Collection.NODES) {
+                    return (ConcurrentSkipListMap<String, T>) nodes;
+                } else {
+                    return super.getMap(collection);
+                }
+            }
+
+            @Override
+            public <T extends Document> T find(Collection<T> collection,
+                                               String key) {
+                reads.add(key);
+                return super.find(collection, key);
+            }
+
+        };
+        DocumentNodeStore store = new DocumentMK.Builder()
+                .setUseSimpleRevision(true)
+                .setClusterId(1).setAsyncDelay(0)
+                .setDocumentStore(docStore).getNodeStore();
+
+        NodeBuilder builder = store.getRoot().builder();
+
+        //create < INITIAL_FETCH_SIZE children to have complete child cache entries
+        NodeBuilder parentBuilder = builder.child("parent");
+        int numChildren = DocumentNodeState.INITIAL_FETCH_SIZE - 2;
+        for (int i = 0; i < numChildren; i++) {
+            parentBuilder.child("child" + (i + 1));
+        }
+        merge(store, builder);
+
+        store.invalidateNodeChildrenCache();
+
+        //Force fill child node cache
+        NodeState parentNodeState = store.getRoot().getChildNode("parent");
+        Iterables.size(parentNodeState.getChildNodeEntries());
+
+        reads.clear();
+        NodeState nonExistingChild = parentNodeState.getChildNode("child501-non-existing-child");
+        assertEquals("Fully cached entry in doc child cache should be able to find non existing children" +
+                " even if doc store sort order is incompatible to that of Java", 0, reads.size());
+        assertFalse("Non existing children should be reported as such", nonExistingChild.exists());
+
+        store.invalidateNodeCache("/parent/child25", store.getHeadRevision());
+
+        reads.clear();
+        NodeState existingChild = parentNodeState.getChildNode("child25");
+        assertTrue("Fully cached entry in doc child cache should be able to find existing children" +
+                " even if doc store sort order is incompatible to that of Java", reads.size() > 0);
+        assertTrue("Existing children should be reported as such", existingChild.exists());
+
         store.dispose();
     }
 
