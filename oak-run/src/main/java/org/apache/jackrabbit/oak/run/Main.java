@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -93,6 +94,8 @@ import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.standby.client.StandbyClient;
 import org.apache.jackrabbit.oak.plugins.segment.standby.server.StandbyServer;
@@ -463,6 +466,20 @@ public class Main {
             System.out.println("    -> compacting");
             FileStore store = new FileStore(directory, 256, TAR_STORAGE_MEMORY_MAPPED);
             try {
+                CompactionStrategy compactionStrategy = new CompactionStrategy(
+                        false, CompactionStrategy.CLONE_BINARIES_DEFAULT,
+                        CleanupType.CLEAN_ALL, 0,
+                        CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+                    @Override
+                    public boolean compacted(Callable<Boolean> setHead)
+                            throws Exception {
+                        // oak-run is doing compaction single-threaded
+                        // hence no guarding needed - go straight ahead
+                        // and call setHead
+                        return setHead.call();
+                    }
+                };
+                store.setCompactionStrategy(compactionStrategy);
                 store.compact();
             } finally {
                 store.close();
