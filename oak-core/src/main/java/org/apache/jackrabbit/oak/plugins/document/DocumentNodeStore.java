@@ -630,6 +630,10 @@ public final class DocumentNodeStore
         docChildrenCache.invalidateAll();
     }
 
+    void invalidateNodeChildrenCache() {
+        nodeChildrenCache.invalidateAll();
+    }
+
     void invalidateNodeCache(String path, Revision revision){
         nodeCache.invalidate(new PathRev(path, revision));
     }
@@ -699,6 +703,10 @@ public final class DocumentNodeStore
             DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
                 @Override
                 public DocumentNodeState call() throws Exception {
+                    boolean nodeDoesNotExist = checkNodeNotExistsFromChildrenCache(path, rev);
+                    if (nodeDoesNotExist){
+                        return missing;
+                    }
                     DocumentNodeState n = readNode(path, rev);
                     if (n == null) {
                         n = missing;
@@ -765,6 +773,7 @@ public final class DocumentNodeStore
      */
     DocumentNodeState.Children readChildren(DocumentNodeState parent,
                                             String name, int limit) {
+        String queriedName = name;
         String path = parent.getPath();
         Revision rev = parent.getLastRevision();
         LOG.trace("Reading children for [{}] ast rev [{}]", path, rev);
@@ -802,6 +811,11 @@ public final class DocumentNodeStore
                 // fewer documents returned than requested
                 // -> no more documents
                 c.hasMore = false;
+                if (queriedName == null) {
+                    //we've got to the end of list and we started from the top
+                    //This list is complete and can be sorted
+                    Collections.sort(c.children);
+                }
                 return c;
             }
         }
@@ -1684,6 +1698,45 @@ public final class DocumentNodeStore
     }
 
     //-----------------------------< internal >---------------------------------
+
+    /**
+     * Search for presence of child node as denoted by path in the children cache of parent
+     *
+     * @param path
+     * @param rev revision at which check is performed
+     * @return <code>true</code> if and only if the children cache entry for parent path is complete
+     * and that list does not have the given child node. A <code>false</code> indicates that node <i>might</i>
+     * exist
+     */
+    private boolean checkNodeNotExistsFromChildrenCache(String path, Revision rev) {
+        if (PathUtils.denotesRoot(path)) {
+            return false;
+        }
+
+        final String parentPath = PathUtils.getParentPath(path);
+        PathRev key = childNodeCacheKey(parentPath, rev, null);//read first child cache entry
+        DocumentNodeState.Children children = nodeChildrenCache.getIfPresent(key);
+        String lookupChildName = PathUtils.getName(path);
+
+        //Does not know about children so cannot say for sure
+        if (children == null) {
+            return false;
+        }
+
+        //List not complete so cannot say for sure
+        if (children.hasMore) {
+            return false;
+        }
+
+        int childPosition = Collections.binarySearch(children.children, lookupChildName);
+        if (childPosition < 0) {
+            //Node does not exist for sure
+            LOG.trace("Child node as per path {} does not exist at revision {}", path, rev);
+            return true;
+        }
+
+        return false;
+    }
 
     private static void diffProperties(DocumentNodeState from,
                                        DocumentNodeState to,
