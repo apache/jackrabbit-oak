@@ -123,7 +123,7 @@ class InMemoryDataRecord implements DataRecord {
 
     @Override
     public DataIdentifier getIdentifier() {
-        if(identifier == null){
+        if (identifier == null) {
             identifier = new DataIdentifier(toString());
         }
         return identifier;
