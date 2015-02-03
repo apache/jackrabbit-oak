@@ -26,7 +26,7 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.osgi.service.component.ComponentContext;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name=FileDataStoreService.NAME)
+@Component(policy = ConfigurationPolicy.REQUIRE, name = FileDataStoreService.NAME)
 public class FileDataStoreService extends AbstractDataStoreService{
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.FileDataStore";
 
