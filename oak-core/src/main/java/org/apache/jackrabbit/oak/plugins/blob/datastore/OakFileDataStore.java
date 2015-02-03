@@ -68,7 +68,7 @@ public class OakFileDataStore extends FileDataStore {
 
     @Override
     protected byte[] getOrCreateReferenceKey() throws DataStoreException {
-        if(referenceKey != null){
+        if (referenceKey != null) {
             return referenceKey;
         }
         return super.getOrCreateReferenceKey();
@@ -104,7 +104,7 @@ public class OakFileDataStore extends FileDataStore {
     /**
      * Noop map which eats up all the put call
      */
-    static class NoOpMap<K,V> extends AbstractMap<K,V> {
+    static class NoOpMap<K, V> extends AbstractMap<K, V> {
 
         @Override
         public V put(K key, V value) {

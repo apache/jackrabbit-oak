@@ -117,7 +117,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public DataRecord getRecordIfStored(DataIdentifier identifier) throws DataStoreException {
-        if(isInMemoryRecord(identifier)){
+        if (isInMemoryRecord(identifier)) {
             return getDataRecord(identifier.toString());
         }
         return delegate.getRecordIfStored(identifier);
@@ -125,7 +125,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public DataRecord getRecord(DataIdentifier identifier) throws DataStoreException {
-        if(isInMemoryRecord(identifier)){
+        if (isInMemoryRecord(identifier)) {
             return getDataRecord(identifier.toString());
         }
         return delegate.getRecord(identifier);
@@ -218,7 +218,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         try {
             checkNotNull(encodedBlobId, "BlobId must be specified");
             BlobId id = BlobId.of(encodedBlobId);
-            if(encodeLengthInId && id.hasLengthInfo()){
+            if (encodeLengthInId && id.hasLengthInfo()) {
                 return id.length;
             }
             return getDataRecord(id.blobId).getLength();
@@ -247,16 +247,16 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         checkNotNull(encodedBlobId);
         String blobId = extractBlobId(encodedBlobId);
         //Reference are not created for in memory record
-        if(InMemoryDataRecord.isInstance(blobId)){
+        if (InMemoryDataRecord.isInstance(blobId)) {
             return null;
         }
 
         DataRecord record;
         try {
             record = delegate.getRecord(new DataIdentifier(blobId));
-            if(record != null){
+            if (record != null) {
                 return record.getReference();
-            }else{
+            } else {
                 log.debug("No blob found for id [{}]", blobId);
             }
         } catch (DataStoreException e) {
@@ -298,7 +298,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void setBlockSize(int x) {
-
+        // nothing to do
     }
 
     @Override
@@ -321,7 +321,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void startMark() throws IOException {
-
+        // nothing to do
     }
 
     @Override
@@ -331,7 +331,7 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     @Override
     public void clearCache() {
-
+        // nothing to do
     }
 
     @Override
@@ -361,10 +361,10 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
                 }
                 return false;
             }
-        }),new Function<DataRecord, String>() {
+        }), new Function<DataRecord, String>() {
             @Override
             public String apply(DataRecord input) {
-                if(encodeLengthInId) {
+                if (encodeLengthInId) {
                     return BlobId.of(input).encodedValue();
                 }
                 return input.getIdentifier().toString();
@@ -423,16 +423,16 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
     private DataRecord getDataRecord(String blobId) throws DataStoreException {
         DataRecord id;
-        if(InMemoryDataRecord.isInstance(blobId)){
+        if (InMemoryDataRecord.isInstance(blobId)) {
             id = InMemoryDataRecord.getInstance(blobId);
-        }else{
+        } else {
             id = delegate.getRecord(new DataIdentifier(blobId));
         }
         checkNotNull(id, "No DataRecord found for blobId [%s]", blobId);
         return id;
     }
 
-    private boolean isInMemoryRecord(DataIdentifier identifier){
+    private static boolean isInMemoryRecord(DataIdentifier identifier) {
         return InMemoryDataRecord.isInstance(identifier.toString());
     }
 
@@ -469,15 +469,15 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
         return record;
     }
 
-    private String getBlobId(DataRecord dr){
-        if(encodeLengthInId){
+    private String getBlobId(DataRecord dr) {
+        if (encodeLengthInId) {
             return BlobId.of(dr).encodedValue();
         }
         return dr.getIdentifier().toString();
     }
 
-    private String extractBlobId(String encodedBlobId){
-        if(encodeLengthInId){
+    private String extractBlobId(String encodedBlobId) {
+        if (encodeLengthInId) {
             return BlobId.of(encodedBlobId).blobId;
         }
         return encodedBlobId;
@@ -507,36 +507,36 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
 
         BlobId(String encodedBlobId) {
             int indexOfSep = encodedBlobId.lastIndexOf(SEP);
-            if(indexOfSep != -1){
+            if (indexOfSep != -1) {
                 this.blobId = encodedBlobId.substring(0, indexOfSep);
                 this.length = Long.valueOf(encodedBlobId.substring(indexOfSep+SEP.length()));
-            }else{
+            } else {
                 this.blobId = encodedBlobId;
                 this.length = -1;
             }
         }
 
-        String encodedValue(){
-            if(hasLengthInfo()){
+        String encodedValue() {
+            if (hasLengthInfo()) {
                 return blobId + SEP + String.valueOf(length);
-            } else{
+            } else {
                 return blobId;
             }
         }
 
-        boolean hasLengthInfo(){
+        boolean hasLengthInfo() {
             return length != -1;
         }
 
-        static boolean isEncoded(String encodedBlobId){
+        static boolean isEncoded(String encodedBlobId) {
             return encodedBlobId.contains(SEP);
         }
 
-        static BlobId of(String encodedValue){
+        static BlobId of(String encodedValue) {
             return new BlobId(encodedValue);
         }
 
-        static BlobId of(DataRecord dr){
+        static BlobId of(DataRecord dr) {
             return new BlobId(dr);
         }
     }

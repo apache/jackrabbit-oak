@@ -29,7 +29,7 @@ import org.apache.jackrabbit.core.data.db.DbDataStore;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
 import org.osgi.service.component.ComponentContext;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name=DbDataStoreService.NAME)
+@Component(policy = ConfigurationPolicy.REQUIRE, name = DbDataStoreService.NAME)
 public class DbDataStoreService extends AbstractDataStoreService{
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.DbDataStore";
 
