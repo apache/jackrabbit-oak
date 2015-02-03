@@ -210,11 +210,12 @@ public class XPathToSQL2Converter {
                         Expression.Property p = new Expression.Property(currentSelector, "rep:excerpt", false);
                         statement.addSelectColumn(p);
                     } else if (readIf("rep:spellcheck")) {
-                        readExcerpt();
+                        // only rep:spellcheck() is currently supported
+                        read("(");
+                        read(")");                        
                         Expression.Property p = new Expression.Property(currentSelector, "rep:spellcheck()", false);
                         statement.addSelectColumn(p);
                     }
-
                 } while (readIf("|"));
                 read(")");
             } else if (currentTokenType == IDENTIFIER) {
