@@ -635,7 +635,13 @@ public class SelectorImpl extends SourceImpl {
         } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
             result = currentRow.getValue(QueryImpl.REP_EXCERPT);
         } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
+            // TODO : filter spellcheck corrections by ACLs ?
             result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
+        } else if (oakPropertyName.equals(QueryImpl.REP_SUGGEST)) {
+            // TODO : filter suggestions by ACLs
+            PropertyValue value = currentRow.getValue(QueryImpl.REP_SUGGEST);
+
+            result = value;
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));
         }

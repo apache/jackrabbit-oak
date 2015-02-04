@@ -161,4 +161,7 @@ public class AstElementFactory {
         return new SpellcheckImpl(selectorName, expression);
     }
 
+    public ConstraintImpl suggest(String selectorName, StaticOperandImpl expression) {
+        return new SuggestImpl(selectorName, expression);
+    }
 }

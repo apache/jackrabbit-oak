@@ -578,6 +578,37 @@ abstract class Expression {
     }
 
     /**
+     * A rep:suggest condition.
+     */
+    static class Suggest extends Expression {
+
+        final Expression term;
+
+        Suggest(Expression term) {
+            this.term = term;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("suggest(");
+            buff.append(term);
+            buff.append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+
+        @Override
+        boolean isName() {
+            return false;
+        }
+
+    }
+
+    /**
      * A function call.
      */
     static class Function extends Expression {
