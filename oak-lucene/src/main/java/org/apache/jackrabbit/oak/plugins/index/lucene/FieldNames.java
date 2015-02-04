@@ -26,6 +26,7 @@ import java.util.Set;
  */
 public final class FieldNames {
 
+
     /**
      * Private constructor.
      */
@@ -52,6 +53,16 @@ public final class FieldNames {
      * Name of the field that contains the fulltext index.
      */
     public static final String FULLTEXT = ":fulltext";
+
+    /**
+     * Name of the field that contains the suggest index.
+     */
+    public static final String SUGGEST = ":suggest";
+
+    /**
+     * Name of the field that contains the spellcheck index.
+     */
+    public static final String SPELLCHECK = ":spellcheck";
 
     /**
      * Prefix for all field names that are fulltext indexed by property name.

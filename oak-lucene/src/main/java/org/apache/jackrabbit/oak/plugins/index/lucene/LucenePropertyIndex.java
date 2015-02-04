@@ -34,6 +34,7 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRu
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -88,6 +90,8 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
+import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -332,13 +336,23 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                             }
                             lastDocToRecord = doc;
                         }
-                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestWord[]) {
-                        SuggestWord[] suggestWords = (SuggestWord[]) luceneRequestFacade.getLuceneRequest();
-                        String[] suggestedWordsStrings = new String[suggestWords.length];
-                        for (int i = 0; i < suggestWords.length; i++) {
-                            suggestedWordsStrings[i] = suggestWords[i].string;
+                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
+                        SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
+                        SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
+                        Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
+                        for (SuggestWord suggestWord : suggestWords) {
+                            suggestedWords.add(suggestWord.string);
                         }
-                        queue.add(new LuceneResultRow(suggestedWordsStrings));
+                        queue.add(new LuceneResultRow(suggestedWords));
+                        noDocs = true;
+                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
+                        SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+                        List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+                        Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
+                        for (Lookup.LookupResult suggestWord : lookupResults) {
+                            suggestedWords.add("{term=" + suggestWord.key + ",weight=" + suggestWord.value + "}");
+                        }
+                        queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     }
                 } catch (IOException e) {
@@ -478,10 +492,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             } else if (query.startsWith("spellcheck?")) {
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SuggestWord[]>(SpellcheckHelper.getSpellcheck(spellcheckQueryString, reader));
+                    return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
                 }
-            }
-            else {
+            } else if (query.startsWith("suggest?")) {
+                String suggestQueryString = query.replace("suggest?", "");
+                if (reader != null) {
+                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString,
+                            reader));
+                }
+            } else {
                 try {
                     qs.add(queryParser.parse(query));
                 } catch (ParseException e) {
@@ -834,7 +853,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         // (a "non-local return")
         final AtomicReference<Query> result = new AtomicReference<Query>();
         ft.accept(new FullTextVisitor() {
-            
+
             @Override
             public boolean visit(FullTextContains contains) {
                 visitTerm(contains.getPropertyName(), contains.getRawText(), null, false);
@@ -880,7 +899,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             public boolean visit(FullTextTerm term) {
                 return visitTerm(term.getPropertyName(), term.getText(), term.getBoost(), term.isNot());
             }
-            
+
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
                 Query q = tokenToQuery(text, p, analyzer);
@@ -1002,15 +1021,15 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
     static class LuceneResultRow {
         final String path;
         final double score;
-        final String[] suggestWords;
+        final Iterable<String> suggestWords;
 
         LuceneResultRow(String path, double score) {
             this.path = path;
             this.score = score;
-            this.suggestWords = new String[0];
+            this.suggestWords = Collections.emptySet();
         }
 
-        LuceneResultRow(String[] suggestWords) {
+        LuceneResultRow(Iterable<String> suggestWords) {
             this.path = "/";
             this.score = 1.0d;
             this.suggestWords = suggestWords;
@@ -1021,17 +1040,17 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             return String.format("%s (%1.2f)", path, score);
         }
     }
-    
+
     /**
      * A cursor over Lucene results. The result includes the path,
      * and the jcr:score pseudo-property as returned by Lucene.
      */
     static class LucenePathCursor implements Cursor {
-        
+
         private final Cursor pathCursor;
         private final String pathPrefix;
         LuceneResultRow currentRow;
-        
+
         LucenePathCursor(final Iterator<LuceneResultRow> it, final IndexPlan plan, QueryEngineSettings settings) {
             pathPrefix = plan.getPathPrefix();
             Iterator<String> pathIterator = new Iterator<String>() {
@@ -1043,7 +1062,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
 
                 @Override
                 public String next() {
-                    currentRow = it.next(); 
+                    currentRow = it.next();
                     return currentRow.path;
                 }
 
@@ -1051,11 +1070,11 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 public void remove() {
                     it.remove();
                 }
-                
+
             };
             pathCursor = new PathCursor(pathIterator, true, settings);
         }
-        
+
 
         @Override
         public boolean hasNext() {
@@ -1088,12 +1107,12 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     if (QueryImpl.JCR_SCORE.equals(columnName)) {
                         return PropertyValues.newDouble(currentRow.score);
                     }
-                    if (QueryImpl.REP_SPELLCHECK.equals(columnName)) {
-                        return PropertyValues.newString(Arrays.toString(currentRow.suggestWords));
+                    if (QueryImpl.REP_SPELLCHECK.equals(columnName) || QueryImpl.REP_SUGGEST.equals(columnName)) {
+                        return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
                     return pathRow.getValue(columnName);
                 }
-                
+
             };
         }
     }
