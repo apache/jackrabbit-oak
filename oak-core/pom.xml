@@ -59,6 +59,7 @@
               org.apache.jackrabbit.oak.util,
               org.apache.jackrabbit.oak.namepath,
               org.apache.jackrabbit.oak.osgi,
+              org.apache.jackrabbit.oak.plugins.atomic,
               org.apache.jackrabbit.oak.plugins.backup,
               org.apache.jackrabbit.oak.plugins.commit,
               org.apache.jackrabbit.oak.plugins.identifier,
