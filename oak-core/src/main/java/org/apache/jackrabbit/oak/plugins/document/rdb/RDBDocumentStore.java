@@ -161,7 +161,7 @@ import com.google.common.util.concurrent.Striped;
  * demand)
  * <p>
  * <em>Note that the database needs to be created/configured to support all Unicode
- * characters in text fields, and to collate by Unicode code point (in DB2: "identity collation",
+ * characters in text fields, and to collate by Unicode code point (in DB2: "collate using identity",
  * in Postgres: "C").
  * THIS IS NOT THE DEFAULT!</em>
  * <p>
