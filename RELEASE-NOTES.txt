@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.1.5
+Release Notes -- Apache Jackrabbit Oak -- Version 1.1.6
 
 Introduction
 ------------
@@ -7,58 +7,109 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.1.5 is an unstable release cut directly from
+Apache Jackrabbit Oak 1.1.6 is an unstable release cut directly from
 Jackrabbit Oak trunk, with a focus on new features and other improvements.
 For production use we recommend the latest stable 1.0.7 release.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.1.5
+Changes in Oak 1.1.6
 ---------------------
+
 Sub-task
 
-    [OAK-2273] - Export Lucene packages
-    [OAK-2376] - cleanup JSON related code
+    [OAK-2329] - Use LuceneQuery parser to create query from fulltext
+    string
+    [OAK-2417] - reduce primary key size in RDBBlobStore
+    [OAK-2421] - Clean up orphaned branches
+    [OAK-2446] - make DELETEDONCE an indexed property
+    [OAK-2447] - implement DELETEDONCE as indexed property in RDB
+    [OAK-2455] - Support for invoking suggestor via Query
+    [OAK-2457] - Suggestor support within Oak Lucene
+    [OAK-2458] - support RDB persistence in oak-run modes console and
+    server
+    [OAK-2467] - Suggestor support within Oak Solr
 
 Bug
 
-    [OAK-2195] - Repository upgrade does not correctly update jcr:all
-    aggregate privileges and bits
-    [OAK-2366] - Cleanup org.apache.jackrabbit.oak.kernel package
-    [OAK-2370] - o.a.j.o.plugins.segment.HeavyWriteIT fails on travis
-    (exit code 137)
-    [OAK-2383] - ConcurrentAddNodesClusterIT does not close sessions
-    [OAK-2386] - AnnotatingConflictHandler: jcr:primaryType must be of
-    type Name
-    [OAK-2388] - Possibility of overflow in file length calculation
-    [OAK-2394] - Clarify handling of hidden items in ImmutableTree
-    [OAK-2396] - TarMk Cold Standby reduce verbosity of server errors
-    on client timeouts
-    [OAK-2402] - oak-lucene fails to start in OSGi
-    [OAK-2409] - Invalid cast being performed in BlobStoreFixture
-    [OAK-2411] - Upgrade may fail with constraint exception
+    [OAK-1709] - Diff cache entry too large
+    [OAK-1799] - Create a benchmark for Full text search with Solr
+    [OAK-2369] - DataStoreWrapperBackend not updated to latest
+    extensions added to Backend interface
+    [OAK-2389] - issues with JsopBuilder.encode and .escape
+    [OAK-2418] - int overflow with orderby causing huge slowdown
+    [OAK-2425] - DefaultSolrServerProvider should use
+    ConcurrentUpdateSS for indexing
+    [OAK-2426] - [LucenePropertyIndex] full-text search on first level
+    relative node returns no result
+    [OAK-2427] - XPath to SQL-2 conversion fails due to escaping error
+    [OAK-2429] - MissingIndexProviderStrategy too eager to set the
+    reindex flag
+    [OAK-2430] - TARMK Cold Standby size increase due to checkpoints
+    copy
+    [OAK-2433] - IllegalStateException for ValueMap on _revisions
+    [OAK-2434] - Lucene AND query with a complex OR phrase returns
+    incorrect result
+    [OAK-2435] - UpdateOp.Key.equals() incorrect
+    [OAK-2436] - LucenePropertyIndex throws IllegalStateException: No
+    query created for filter when using order by jcr:score
+    [OAK-2439] - IndexPlanner returning plan for queries involving
+    jcr:score
+    [OAK-2441] - Regression with Node.getPrimaryNodeType and
+    getMixinNodeTypes wrt Jackrabbit 2.x
+    [OAK-2442] - NoSuchElementException thrown by NodeDocument
+    [OAK-2449] - offline compaction (via oak-run) broken
+    [OAK-2450] - MongoDocumentStore fails for DELETED_ONCE indexed
+    property
+    [OAK-2465] - Long overflow in PermissionEntryProviderImpl
 
 Improvement
 
-    [OAK-1791] - Clean up dangling references to previous documents
-    [OAK-2009] - Add a utility method to create Solr synonym file for
-    node type expansions
     [OAK-2105] - Review padding for blobs collection
-    [OAK-2169] - Pluggability of UserAuthenticationFactory
-    [OAK-2292] - Use ConcurrentUpdateSolrServer for remote updates
-    [OAK-2307] - Provide API to create Tree from NodeState
-    [OAK-2378] - add a oak-run command to delete the index data in
-    case of inconsistencies
-    [OAK-2385] - Abstract over repository creating in tests
-    [OAK-2387] - Simplify injection of conflict handlers
-    [OAK-2390] - Replace usages of Immutable* with factory calls
-    [OAK-2391] - Provide API to create Tree from NodeBuilder
-    [OAK-2393] - Change default blob size to around 1 MB in
-    OakDirectory
-    [OAK-2398] - TarMk Cold Standby add metatype info for
-    'standby.readtimeout' property
-    [OAK-2406] - Add RootFactory.createSystemRoot
+    [OAK-2175] - Support for rep:spellcheck
+    [OAK-2177] - Configurable Analyzer in Lucene index
+    [OAK-2179] - Rep:similar support in Lucene index
+    [OAK-2181] - Create whitelist / blacklist of properties to be
+    indexed / filtered for Solr index
+    [OAK-2252] - make generic VersionGCSupport perform better
+    [OAK-2296] - Update sql2.txt test to account for name property
+    presence in non test nodes
+    [OAK-2341] - Use approx counters property index costs even when
+    path restriction is available
+    [OAK-2372] - TARMK Cold Standby improve test cases for FSDS
+    mirroring
+    [OAK-2415] - Improve logging in repository migration in upgrade
+    [OAK-2422] - Improve logging in Lucene indexer
+    [OAK-2448] - Do not create nodeChildren cache entry for leaf
+    [OAK-2451] - Avoid clean up in XmlImportTest benchmark
+    [OAK-2452] - Avoid lookup of conflicting node with
+    ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW
+    [OAK-2453] - Move MongoDiffCache to mongo package
+    [OAK-2454] - Upgrade: reduce implementation dependency
+    [OAK-2459] - Pre-populate version storage with intermediate nodes
+    [OAK-2462] - reduce code duplication between
+    Utils.getSelectedDocuments and MissingLastRevCandidateIterator
+    [OAK-2463] - Provide support for providing custom Tika config
+    [OAK-2464] - Optimize read of known non-existing children
+    [OAK-2469] - Restrict the maximum number of terms that will be
+    indexed for a single field
+    [OAK-2470] - Support for maxExtractLength while parsing binaries
+    with Tika
+    [OAK-2471] - Include index name in the log from LuceneIndexEditor
+
+New Feature
+
+    [OAK-1658] - Similar (rep:similar) support for Solr
+    [OAK-1990] - Utility js methods to manage Oak data in Mongo
+    [OAK-2220] - Support for atomic counters (non-clustered)
+
+Task
+
+    [OAK-2431] - Avoid wrapping of LuceneIndexProvider with
+    AggregateIndexProvider in tests
+    [OAK-2438] - Evaluate support for must(must_not(x)) query with
+    Lucene
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
