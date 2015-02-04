@@ -112,6 +112,15 @@ class FilterQueryParser {
                                     // TODO : this should not be always passed to avoid building the dictionary on each spellcheck request
                                     solrQuery.setParam("spellcheck.build", true);
                                 }
+                                if ("/suggest".equals(requestHandlerString)) {
+                                    if ("term".equals(kv[0])) {
+                                        kv[0] = "suggest.q";
+                                    }
+                                    solrQuery.setParam("suggest", true);
+
+                                    // TODO : this should not be always passed to avoid building the dictionary on each suggest request
+                                    solrQuery.setParam("suggest.build", true);
+                                }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
                         }
@@ -303,7 +312,7 @@ class FilterQueryParser {
 
     private static boolean isSupportedHttpRequest(String nativeQueryString) {
         // the query string starts with ${supported-handler.selector}?
-        return nativeQueryString.matches("(spellcheck|mlt|query|select|get)\\\\?.*");
+        return nativeQueryString.matches("(suggest|spellcheck|mlt|query|select|get)\\\\?.*");
     }
 
     private static void setDefaults(SolrQuery solrQuery, OakSolrConfiguration configuration) {

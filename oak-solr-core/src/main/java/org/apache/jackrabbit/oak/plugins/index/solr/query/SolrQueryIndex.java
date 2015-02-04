@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -50,6 +53,8 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.SimpleOrderedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -259,18 +264,20 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
                         SolrDocumentList docs = queryResponse.getResults();
 
-                        onRetrievedDocs(filter, docs);
+                        if (docs != null) {
+                            onRetrievedDocs(filter, docs);
 
-                        if (log.isDebugEnabled()) {
-                            log.debug("getting docs {}", docs);
-                        }
-
-                        for (SolrDocument doc : docs) {
-                            SolrResultRow row = convertToRow(doc);
-                            if (row != null) {
-                                queue.add(row);
+                            if (log.isDebugEnabled()) {
+                                log.debug("getting docs {}", docs);
                             }
-                            lastDocToRecord = doc;
+
+                            for (SolrDocument doc : docs) {
+                                SolrResultRow row = convertToRow(doc);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
+                                lastDocToRecord = doc;
+                            }
                         }
 
                         // handle spellcheck
@@ -279,10 +286,41 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                                 spellCheckResponse.getSuggestions().size() > 0) {
                             SolrDocument fakeDoc = new SolrDocument();
                             for (SpellCheckResponse.Suggestion suggestion : spellCheckResponse.getSuggestions()) {
-                                fakeDoc.addField("rep:spellcheck()", suggestion.getAlternatives());
+                                fakeDoc.addField(QueryImpl.REP_SPELLCHECK, suggestion.getAlternatives());
                             }
                             queue.add(new SolrResultRow("/", 1.0, fakeDoc));
                             noDocs = true;
+                        }
+
+                        // handle suggest
+                        NamedList<Object> response = queryResponse.getResponse();
+                        Map suggest = (Map) response.get("suggest");
+                        if (suggest != null) {
+                            Set<Map.Entry<String, Object>> suggestEntries = suggest.entrySet();
+                            if (!suggestEntries.isEmpty()) {
+                                SolrDocument fakeDoc = new SolrDocument();
+                                for (Map.Entry<String, Object> suggestor : suggestEntries) {
+                                    SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggestor.getValue());
+                                    for (Map.Entry<String, Object> suggestionResponse : suggestionResponses) {
+                                        SimpleOrderedMap<Object> suggestionResults = ((SimpleOrderedMap) suggestionResponse.getValue());
+                                        for (Map.Entry<String, Object> suggestionResult : suggestionResults) {
+                                            if ("suggestions".equals(suggestionResult.getKey())) {
+                                                ArrayList<SimpleOrderedMap<Object>> suggestions = ((ArrayList<SimpleOrderedMap<Object>>) suggestionResult.getValue());
+                                                if (suggestions.isEmpty()) {
+                                                    fakeDoc.addField(QueryImpl.REP_SUGGEST, "[]");
+                                                }
+                                                else {
+                                                    for (SimpleOrderedMap<Object> suggestion : suggestions) {
+                                                        fakeDoc.addField(QueryImpl.REP_SUGGEST, "{term=" + suggestion.get("term") + ",weight=" + suggestion.get("weight") + "}");
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                                noDocs = true;
+                            }
                         }
 
                     } catch (Exception e) {
