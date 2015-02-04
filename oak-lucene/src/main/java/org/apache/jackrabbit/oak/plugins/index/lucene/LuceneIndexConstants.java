@@ -226,4 +226,14 @@ public interface LuceneIndexConstants {
      * By default, no more than 10,000 terms will be indexed for a field.
      */
     String MAX_FIELD_LENGTH = "maxFieldLength";
+
+    /**
+     * whether use this property values for suggestions
+     */
+    String PROP_USE_IN_SUGGEST = "useInSuggest";
+
+    /**
+     * whether use this property values for spellchecking
+     */
+    String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 }

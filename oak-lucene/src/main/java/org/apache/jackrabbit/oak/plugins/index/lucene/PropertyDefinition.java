@@ -70,6 +70,10 @@ class PropertyDefinition {
 
     final int includedPropertyTypes;
 
+    boolean useInSuggest;
+
+    boolean useInSpellcheck;
+
     public PropertyDefinition(IndexingRule idxDefn, String name, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
         this.name = getName(defn, name);
@@ -90,6 +94,8 @@ class PropertyDefinition {
         //TODO Add test case for above cases
 
         this.propertyType = getPropertyType(idxDefn, name, defn);
+        this.useInSuggest = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
+        this.useInSpellcheck = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
     }
 
     /**
@@ -149,6 +155,8 @@ class PropertyDefinition {
                 ", propertyIndex=" + propertyIndex +
                 ", analyzed=" + analyzed +
                 ", ordered=" + ordered +
+                ", useInSuggest=" + useInSuggest+
+                ", useInSpellcheck=" + useInSpellcheck+
                 '}';
     }
 

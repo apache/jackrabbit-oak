@@ -118,6 +118,17 @@ public final class FieldFactory {
         return new IntField(FieldNames.PATH_DEPTH, PathUtils.getDepth(path), NO);
     }
 
+    public static Field newSuggestField(String... values) {
+        StringBuilder builder = new StringBuilder();
+        for (String v : values) {
+            if (builder.length() > 0) {
+                builder.append('\n');
+            }
+            builder.append(v);
+        }
+        return new OakTextField(FieldNames.SUGGEST, builder.toString(), true);
+    }
+
     /**
      * Date values are saved with sec resolution
      * @param date jcr data string
