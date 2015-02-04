@@ -854,6 +854,7 @@
         <arr name="last-components">
             <str>mlt</str>
             <str>spellcheck</str>
+            <str>suggest</str>
         </arr>
     </requestHandler>
 
@@ -1099,6 +1100,29 @@
            </lst>
         -->
     </requestHandler>
+
+
+    <searchComponent name="suggest" class="solr.SuggestComponent">
+        <lst name="suggester">
+            <str name="name">default</str>
+            <str name="lookupImpl">FuzzyLookupFactory</str>
+            <str name="dictionaryImpl">DocumentDictionaryFactory</str>
+            <str name="field">:suggest</str>
+            <str name="weightField">:suggest-weight</str>
+            <str name="suggestAnalyzerFieldType">string</str>
+        </lst>
+    </searchComponent>
+
+    <requestHandler name="/suggest" class="solr.SearchHandler" startup="lazy">
+        <lst name="defaults">
+            <str name="suggest">true</str>
+            <str name="suggest.count">10</str>
+        </lst>
+        <arr name="components">
+            <str>suggest</str>
+        </arr>
+    </requestHandler>
+
 
     <!-- Search Components
 

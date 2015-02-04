@@ -113,11 +113,13 @@
         <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
         <field name=":path" type="string" indexed="true" stored="false" />
+        <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="true"/>
+        <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1" docValues="true"/>
+        <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
         <field name="rep:members" type="string" indexed="true" stored="true" multiValued="true"/>
         <field name="rep:principalName" type="string" indexed="true" stored="true" multiValued="true"/>
-        <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="numeric"/>
         <dynamicField name="*_bin" type="string" indexed="true" stored="true" multiValued="true"/>
         <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
     </fields>
@@ -127,4 +129,6 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
+    <copyField source="jcr:title" dest=":suggest"/>
+    <copyField source="jcr:description" dest=":suggest"/>
 </schema>

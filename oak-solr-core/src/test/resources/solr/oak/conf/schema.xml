@@ -77,6 +77,14 @@
                 <filter class="solr.RemoveDuplicatesTokenFilterFactory"/>
             </analyzer>
         </fieldType>
+        <fieldtype name="phrase_suggest" class="solr.TextField">
+            <analyzer>
+                <tokenizer class="solr.KeywordTokenizerFactory"/>
+                <filter class="solr.PatternReplaceFilterFactory" pattern="([^\p{L}\p{M}\p{N}\p{Cs}]*[\p{L}\p{M}\p{N}\p{Cs}\_]+:)|([^\p{L}\p{M}\p{N}\p{Cs}])+" replacement=" " replace="all"/>
+                <filter class="solr.LowerCaseFilterFactory"/>
+                <filter class="solr.TrimFilterFactory"/>
+            </analyzer>
+        </fieldtype>
 
         <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true"/>
 
@@ -120,9 +128,10 @@
         <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
         <field name="_version_" type="long" indexed="true" stored="true"/>
         <field name=":path" type="string" indexed="true" stored="false"/>
-        <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="numeric"/>
+        <field name=":indexed" type="tdate" indexed="true" stored="false" default="NOW" docValues="true"/>
+        <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
+        <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
 
-        <field name="jcr:data" type="binary"  indexed="true"  stored="false" multiValued="true"/>
         <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
         <dynamicField name="*_is" type="int"    indexed="true"  stored="true"  multiValued="true"/>
         <dynamicField name="*_s"  type="string"  indexed="true"  stored="true" />
@@ -161,4 +170,6 @@
     <copyField source="path_exact" dest="path_child"/>
     <copyField source="path_exact" dest=":path"/>
     <copyField source="*" dest="catch_all"/>
+    <copyField source="jcr:title" dest=":suggest"/>
+    <copyField source="jcr:description" dest=":suggest"/>
 </schema>
