@@ -36,7 +36,7 @@ public class RDBCreator {
             System.exit(2);
         }
 
-        String driver = RDBJDBCTools.driverForDBType(url);
+        String driver = RDBJDBCTools.driverForDBType(RDBJDBCTools.jdbctype(url));
         try {
             Class.forName(driver);
         } catch (ClassNotFoundException ex) {
