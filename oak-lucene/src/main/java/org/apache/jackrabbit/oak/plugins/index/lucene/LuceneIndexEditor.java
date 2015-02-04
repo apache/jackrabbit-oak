@@ -380,11 +380,11 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     }
 
                     if (pd.useInSuggest) {
-                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, true));
+                        fields.add(newPropertyField(FieldNames.SUGGEST, value, true, false));
                     }
 
                     if (pd.useInSpellcheck) {
-                        fields.add(newPropertyField(FieldNames.SPELLCHECK, value, true, true));
+                        fields.add(newPropertyField(FieldNames.SPELLCHECK, value, true, false));
                     }
 
                     if (pd.nodeScopeIndex) {
