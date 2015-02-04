@@ -566,6 +566,15 @@ public class SQL2Parser {
                 selectorName = getOnlySelectorName();
             }
             c = factory.spellcheck(selectorName, parseStaticOperand());            
+        } else if ("SUGGEST".equalsIgnoreCase(functionName)) {
+            String selectorName;
+            if (currentTokenType == IDENTIFIER) {
+                selectorName = readName();
+                read(",");
+            } else {
+                selectorName = getOnlySelectorName();
+            }
+            c = factory.suggest(selectorName, parseStaticOperand());
         } else {
             return null;
         }
