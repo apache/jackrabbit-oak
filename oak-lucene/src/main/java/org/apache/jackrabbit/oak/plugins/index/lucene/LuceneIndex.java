@@ -499,7 +499,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             } else if (query.startsWith("suggest?")) {
                 String suggestQueryString = query.replace("suggest?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString, reader));
+                    return new LuceneRequestFacade<SuggestHelper.SuggestQuery>(SuggestHelper.getSuggestQuery(suggestQueryString));
                 }
             } else {
                 try {
