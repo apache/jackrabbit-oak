@@ -729,13 +729,13 @@ var oak = (function(global){
     };
 
     var pathFilter = function (depth, prefix){
-        return new RegExp("^"+ depth + ":" + prefix);
+        return new RegExp("^"+ depth + ":" + escapeForRegExp(prefix));
     };
 
     var longPathFilter = function (depth, prefix) {
         var filter = {};
         filter._id = new RegExp("^" + depth + ":h");
-        filter._path = new RegExp("^" + prefix);
+        filter._path = new RegExp("^" + escapeForRegExp(prefix));
         return filter;
     };
 
@@ -750,6 +750,11 @@ var oak = (function(global){
     var humanFileSize = function (size) {
         var i = Math.floor( Math.log(size) / Math.log(1024) );
         return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+    };
+    
+    // http://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript
+    var escapeForRegExp = function(s) {
+        return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
     };
 
     return api;
