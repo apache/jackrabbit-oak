@@ -233,6 +233,11 @@ public interface LuceneIndexConstants {
     String PROP_USE_IN_SUGGEST = "useInSuggest";
 
     /**
+     * update frequency of the suggester in minutes
+     */
+    String SUGGEST_UPDATE_FREQUENCY_MINUTES = "suggestUpdateFrequencyMinutes";
+
+    /**
      * whether use this property values for spellchecking
      */
     String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";

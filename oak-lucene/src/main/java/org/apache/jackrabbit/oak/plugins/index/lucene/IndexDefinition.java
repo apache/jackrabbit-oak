@@ -193,6 +193,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     private final int maxExtractLength;
 
+    private final int suggesterUpdateFrequencyMinutes;
+
     public IndexDefinition(NodeState root, NodeState defn) {
         this(root, defn, null);
     }
@@ -251,6 +253,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         this.analyzer = createAnalyzer();
         this.hasCustomTikaConfig = getTikaConfigNode().exists();
         this.maxExtractLength = determineMaxExtractLength();
+        this.suggesterUpdateFrequencyMinutes = getOptionalValue(defn, LuceneIndexConstants.SUGGEST_UPDATE_FREQUENCY_MINUTES, 60);
     }
 
     public boolean isFullTextEnabled() {
@@ -286,6 +289,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
     public long getEntryCount() {
         return entryCount;
+    }
+
+    public int getSuggesterUpdateFrequencyMinutes() {
+        return suggesterUpdateFrequencyMinutes;
     }
 
     public boolean isEntryCountDefined() {

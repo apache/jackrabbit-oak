@@ -28,11 +28,14 @@ import java.util.Calendar;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.ISO8601;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
@@ -148,6 +151,9 @@ public class LuceneIndexEditorContext {
         }
 
         if (writer != null) {
+
+            updateSuggester();
+
             writer.close();
 
             //OAK-2029 Record the last updated status so
@@ -156,6 +162,36 @@ public class LuceneIndexEditorContext {
             NodeBuilder status = definitionBuilder.child(":status");
             status.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
             status.setProperty("indexedNodes",indexedNodes);
+        }
+    }
+
+    private void updateSuggester() throws IOException {
+
+        // eventually update suggest dictionary
+        boolean updateSuggester = false;
+        NodeBuilder suggesterStatus = definitionBuilder.child(":suggesterStatus");
+        if (suggesterStatus.hasProperty("lastUpdated")) {
+            PropertyState suggesterLastUpdatedValue = suggesterStatus.getProperty("lastUpdated");
+            Calendar suggesterLastUpdatedTime = ISO8601.parse(suggesterLastUpdatedValue.getValue(Type.DATE));
+            int updateFrequency = definition.getSuggesterUpdateFrequencyMinutes();
+            suggesterLastUpdatedTime.add(Calendar.MINUTE, updateFrequency);
+            if (Calendar.getInstance().after(suggesterLastUpdatedTime)) {
+                updateSuggester = true;
+            }
+        } else {
+            updateSuggester = true;
+        }
+
+        if (updateSuggester) {
+            DirectoryReader reader = DirectoryReader.open(writer, false);
+            try {
+                SuggestHelper.updateSuggester(reader);
+                suggesterStatus.setProperty("lastUpdated", ISO8601.format(Calendar.getInstance()), Type.DATE);
+            } catch (Throwable e) {
+                log.warn("could not update suggester", e);
+            } finally {
+                reader.close();
+            }
         }
     }
 
