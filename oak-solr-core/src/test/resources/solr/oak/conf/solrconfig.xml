@@ -1156,6 +1156,7 @@ current implementation relies on the updateLog feature being enabled. -->
             <str name="field">:suggest</str>
             <str name="weightField">:suggest-weight</str>
             <str name="suggestAnalyzerFieldType">string</str>
+            <str name="buildOnCommit">true</str>
         </lst>
     </searchComponent>
 
@@ -1246,7 +1247,6 @@ current implementation relies on the updateLog feature being enabled. -->
             <int name="minQueryLength">4</int>
             <!-- maximum threshold of documents a query term can appear to be considered for correction -->
             <float name="maxQueryFrequency">0.01</float>
-
         </lst>
 
         <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
@@ -1257,6 +1257,7 @@ current implementation relies on the updateLog feature being enabled. -->
             <str name="combineWords">true</str>
             <str name="breakWords">true</str>
             <int name="maxChanges">10</int>
+            <str name="buildOnCommit">true</str>
         </lst>
 
         <!-- a spellchecker that uses a different distance measure -->

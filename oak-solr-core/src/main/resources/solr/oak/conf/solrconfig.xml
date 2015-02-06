@@ -1110,6 +1110,7 @@
             <str name="field">:suggest</str>
             <str name="weightField">:suggest-weight</str>
             <str name="suggestAnalyzerFieldType">string</str>
+            <str name="buildOnCommit">true</str>
         </lst>
     </searchComponent>
 
@@ -1180,10 +1181,6 @@
 
         <str name="queryAnalyzerFieldType">text_general</str>
 
-        <!-- Multiple "Spell Checkers" can be declared and used by this
-           component
-        -->
-
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
@@ -1202,15 +1199,6 @@
             <int name="minQueryLength">4</int>
             <!-- maximum threshold of documents a query term can appear to be considered for correction -->
             <float name="maxQueryFrequency">0.01</float>
-        </lst>
-
-        <lst name="spellchecker">
-            <str name="name">wordbreak</str>
-            <str name="classname">solr.WordBreakSolrSpellChecker</str>
-            <str name="field">name</str>
-            <str name="combineWords">true</str>
-            <str name="breakWords">true</str>
-            <int name="maxChanges">10</int>
         </lst>
 
     </searchComponent>
