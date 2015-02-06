@@ -259,6 +259,7 @@ Depending on the fixture the following options are available:
     --rdbjdbcuri           - JDBC URL for RDB persistence
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
+    --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
 
 Examples:
 
@@ -297,6 +298,7 @@ The following benchmark options (with default values) are currently supported:
     --rdbjdbcuri           - JDBC URL for RDB persistence (defaults to local file-based H2)
     --rdbjdbcuser          - JDBC username (defaults to "")
     --rdbjdbcpasswd        - JDBC password (defaults to "")
+    --rdbjdbctableprefix   - for RDB persistence: prefix for table names (defaults to "")
 
 These options are passed to the test cases and repository fixtures
 that need them. For example the Wikipedia dump option is needed by the
@@ -354,7 +356,9 @@ Finally the benchmark runner supports the following repository fixtures:
 | Oak-RDB       | Oak with the DocumentMK/RDB persistence               |
 
 (Note that for Oak-RDB, the required JDBC drivers either need to be embedded
-into oak-run, or be specified separately in the class path.)
+into oak-run, or be specified separately in the class path. Furthermode, 
+dropDBAfterTest is interpreted to drop the *tables*, not the database
+iself, if and only if they have been auto-created)
 
 Once started, the benchmark runner will execute each listed test case
 against all the listed repository fixtures. After starting up the
