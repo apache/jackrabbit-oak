@@ -963,6 +963,8 @@ public class Main {
         OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI").withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user").withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password").withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
+                .withOptionalArg().defaultsTo("");
 
         OptionSpec<String> nonOption = parser.nonOptions();
         OptionSpec<?> help = parser.acceptsAll(asList("h", "?", "help"), "show help").forHelp();
@@ -1012,7 +1014,7 @@ public class Main {
             oakFixture = OakFixture.getTar(OakFixture.OAK_TAR, baseFile, 256, cacheSize, mmap.value(options), false);
         } else if (fix.equals(OakFixture.OAK_RDB)) {
             oakFixture = OakFixture.getRDB(OakFixture.OAK_RDB, rdbjdbcuri.value(options), rdbjdbcuser.value(options),
-                    rdbjdbcpasswd.value(options), false, cacheSize);
+                    rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), false, cacheSize);
         } else {
             throw new IllegalArgumentException("Unsupported repository setup " + fix);
         }

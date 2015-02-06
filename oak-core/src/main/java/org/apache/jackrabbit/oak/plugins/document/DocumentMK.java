@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.plugins.document.persistentCache.CacheType;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -570,7 +571,21 @@ public class DocumentMK implements MicroKernel {
             }
             return this;
         }
-        
+
+        /**
+         * Sets a {@link DataSource} to use for the RDB document and blob
+         * stores, including {@link RDBOptions}.
+         *
+         * @return this
+         */
+        public Builder setRDBConnection(DataSource ds, RDBOptions options) {
+            this.documentStore = new RDBDocumentStore(ds, this, options);
+            if(this.blobStore == null) {
+                this.blobStore = new RDBBlobStore(ds, options);
+            }
+            return this;
+        }
+
         /**
          * Sets the persistent cache option.
          *

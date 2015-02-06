@@ -60,6 +60,8 @@ public class BenchmarkRunner {
                 .withOptionalArg().defaultsTo("");
         OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
                 .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbctableprefix = parser.accepts("rdbjdbctableprefix", "RDB JDBC table prefix")
+                .withOptionalArg().defaultsTo("");
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -142,10 +144,9 @@ public class BenchmarkRunner {
                         base.value(options), 256, cacheSize, mmap.value(options)),
                 OakRepositoryFixture.getTarWithBlobStore(
                         base.value(options), 256, cacheSize, mmap.value(options)),
-                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options),
-                        rdbjdbcuser.value(options), rdbjdbcpasswd.value(options),
-                        dropDBAfterTest.value(options), cacheSize * MB)
-                        };
+                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options), rdbjdbcuser.value(options),
+                        rdbjdbcpasswd.value(options), rdbjdbctableprefix.value(options), 
+                        dropDBAfterTest.value(options), cacheSize * MB) };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),
             new OrderedIndexQueryStandardIndexTest(),
