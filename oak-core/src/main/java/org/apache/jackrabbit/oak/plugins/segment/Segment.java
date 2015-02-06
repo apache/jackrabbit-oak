@@ -292,7 +292,7 @@ public class Segment {
      * @param offset offset within target buffer
      * @param length number of bytes to read
      */
-     void readBytes(int position, byte[] buffer, int offset, int length) {
+    void readBytes(int position, byte[] buffer, int offset, int length) {
         checkNotNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
         ByteBuffer d = data.duplicate();
