@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -26,6 +27,7 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeType;
 
 import org.junit.Test;
 
@@ -38,6 +40,28 @@ public class CRUDTest extends AbstractRepositoryTest {
 
     public CRUDTest(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2488">OAK-2488</a>
+     */
+    @Test
+    public void testMixins() throws Exception {
+        Session session = getAdminSession();
+        String nodename = "mixintest";
+        Node mixinTest = session.getRootNode().addNode(nodename, "nt:folder");
+        NodeType[] types;
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 0, types.length);
+        mixinTest.addMixin("mix:versionable");
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 1, types.length);
+        session.save();
+        mixinTest = session.getRootNode().getNode(nodename);
+        mixinTest.remove();
+        mixinTest = session.getRootNode().addNode(nodename, "nt:folder");
+        types = mixinTest.getMixinNodeTypes();
+        assertEquals(Arrays.toString(types), 0, types.length);
     }
 
     @Test
