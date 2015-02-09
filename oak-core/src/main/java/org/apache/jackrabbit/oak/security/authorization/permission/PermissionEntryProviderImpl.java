@@ -24,27 +24,20 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
-import com.google.common.math.LongMath;
-
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class PermissionEntryProviderImpl implements PermissionEntryProvider {
 
     public static final String EAGER_CACHE_SIZE_PARAM = "eagerCacheSize";
 
     private static final long DEFAULT_SIZE = 250;
-
-    private static final Logger log = LoggerFactory.getLogger(PermissionEntryProviderImpl.class);
 
     /**
      * The set of principal names for which this {@code PermissionEntryProvider}
@@ -102,12 +95,7 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
                 if (Long.MAX_VALUE == n) {
                     cnt = Long.MAX_VALUE;
                 } else {
-                    try {
-                        cnt = LongMath.checkedAdd(cnt, n);
-                    } catch (ArithmeticException ae) {
-                        log.warn("Long overflow while calculate the total number of permission entries");
-                        cnt = Long.MAX_VALUE;
-                    }
+                    cnt = safeAdd(cnt, n);
                 }
             }
         }
@@ -171,6 +159,25 @@ class PermissionEntryProviderImpl implements PermissionEntryProvider {
             cache.load(store, ret, name, path);
         }
         return ret;
+    }
+
+    /**
+     * Sums {@code a} and {@code b} and verifies that it doesn't overflow in
+     * signed long arithmetic, in which case {@link Long#MAX_VALUE} will be
+     * returned instead of the result.
+     *
+     * Note: this method is a variant of {@link com.google.common.math.LongMath#checkedAdd(long, long)}
+     * that returns {@link Long#MAX_VALUE} instead of throwing {@code ArithmeticException}.
+     *
+     * @see com.google.common.math.LongMath#checkedAdd(long, long)
+     */
+    private static long safeAdd(long a, long b) {
+        long result = a + b;
+        if ((a ^ b) < 0 | (a ^ result) >= 0) {
+            return result;
+        } else {
+            return Long.MAX_VALUE;
+        }
     }
 
     private final class EntryIterator extends AbstractLazyIterator<PermissionEntry> {
