@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.jcr.query;
 import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
@@ -49,6 +48,10 @@ import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
@@ -582,10 +585,12 @@ public class QueryTest extends AbstractRepositoryTest {
     public void xpathEscapeTest() throws RepositoryException {
         Session writer = createAdminSession();
         Session reader = createAdminSession();
+
+        UserManager uMgr = ((JackrabbitSession) writer).getUserManager();
+        String uid = "testUser";
         try {
-            Node rootNode = writer.getRootNode();
-            Node node = rootNode.addNode("test", "nt:unstructured");
-            node.addNode(".tokens");
+            User user = uMgr.createUser("testUser", "pw");
+            writer.getNode(user.getPath()).addNode(".tokens", "rep:Unstructured");
             writer.save();
 
             QueryManager qm = reader.getWorkspace().getQueryManager();
@@ -593,6 +598,11 @@ public class QueryTest extends AbstractRepositoryTest {
             NodeIterator res = q.execute().getNodes();
             assertEquals(1, res.getSize());
         } finally {
+            Authorizable a = uMgr.getAuthorizable(uid);
+            if (a != null) {
+                a.remove();
+                writer.save();
+            }
             if (reader != null) {
                 reader.logout();
             }

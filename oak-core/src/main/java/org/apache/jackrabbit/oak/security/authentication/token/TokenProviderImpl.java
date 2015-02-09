@@ -26,9 +26,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -46,10 +44,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -93,20 +90,9 @@ import static org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager.get
  * interface will not validate the node type of the token node associated with
  * a given token.
  */
-class TokenProviderImpl implements TokenProvider {
+class TokenProviderImpl implements TokenProvider, TokenConstants {
 
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
-
-    /**
-     * Constant for the token attribute passed with valid simple credentials to
-     * trigger the generation of a new token.
-     */
-    private static final String TOKEN_ATTRIBUTE = ".token";
-    private static final String TOKEN_ATTRIBUTE_EXPIRY = "rep:token.exp";
-    private static final String TOKEN_ATTRIBUTE_KEY = "rep:token.key";
-    private static final String TOKENS_NODE_NAME = ".tokens";
-    private static final String TOKENS_NT_NAME = NodeTypeConstants.NT_REP_UNSTRUCTURED;
-    private static final String TOKEN_NT_NAME = "rep:Token";
 
     /**
      * Default expiration time in ms for login tokens is 2 hours.
@@ -114,13 +100,6 @@ class TokenProviderImpl implements TokenProvider {
     private static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
     private static final int DEFAULT_KEY_SIZE = 8;
     private static final char DELIM = '_';
-
-    private static final Set<String> RESERVED_ATTRIBUTES = new HashSet(3);
-    static {
-        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE);
-        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_EXPIRY);
-        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_KEY);
-    }
 
     private final Root root;
     private final ConfigurationParameters options;
@@ -133,7 +112,7 @@ class TokenProviderImpl implements TokenProvider {
         this.root = root;
         this.options = options;
 
-        this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION));
+        this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, DEFAULT_TOKEN_EXPIRATION);
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
     }
@@ -213,16 +192,6 @@ class TokenProviderImpl implements TokenProvider {
             try {
                 String id = user.getID();
                 long creationTime = new Date().getTime();
-                NodeUtil tokenNode = createTokenNode(tokenParent, creationTime);
-                tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
-
-                String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
-                String nodeId = getIdentifier(tokenNode.getTree());
-                String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
-
-                String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, id), options);
-                tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
-
                 long exp;
                 if (attributes.containsKey(PARAM_TOKEN_EXPIRATION)) {
                     exp = Long.parseLong(attributes.get(PARAM_TOKEN_EXPIRATION).toString());
@@ -230,16 +199,21 @@ class TokenProviderImpl implements TokenProvider {
                     exp = tokenExpiration;
                 }
                 long expTime = createExpirationTime(creationTime, exp);
-                tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+                String uuid = UUID.randomUUID().toString();
 
-                for (String name : attributes.keySet()) {
-                    if (!RESERVED_ATTRIBUTES.contains(name)) {
-                        String attr = attributes.get(name).toString();
-                        tokenNode.setString(name, attr);
-                    }
+                TokenInfo tokenInfo;
+                try {
+                    String tokenName = generateTokenName(creationTime);
+                    tokenInfo = createTokenNode(tokenParent, tokenName, expTime, uuid, id, attributes);
+                    root.commit(CommitMarker.asCommitAttributes());
+                } catch (CommitFailedException e) {
+                    // conflict while creating token node -> retry
+                    log.debug("Failed to create token node. Using random name as fallback.");
+                    root.refresh();
+                    tokenInfo = createTokenNode(tokenParent, UUID.randomUUID().toString(), expTime, uuid, id, attributes);
+                    root.commit(CommitMarker.asCommitAttributes());
                 }
-                root.commit();
-                return new TokenInfoImpl(tokenNode, token, id);
+                return tokenInfo;
             } catch (NoSuchAlgorithmException e) {
                 // error while generating login token
                 log.error(error, e.getMessage());
@@ -326,7 +300,7 @@ class TokenProviderImpl implements TokenProvider {
         return key + userId;
     }
 
-    private static boolean isValidTokenTree(Tree tokenTree) {
+    private static boolean isValidTokenTree(@CheckForNull Tree tokenTree) {
         if (tokenTree == null || !tokenTree.exists()) {
             return false;
         } else {
@@ -335,8 +309,15 @@ class TokenProviderImpl implements TokenProvider {
         }
     }
 
+    @Nonnull
+    private static String generateTokenName(long creationTime) {
+        Calendar creation = GregorianCalendar.getInstance();
+        creation.setTimeInMillis(creationTime);
+        return Text.replace(ISO8601.format(creation), ":", ".");
+    }
+
     @CheckForNull
-    private Tree getTokenTree(TokenInfo tokenInfo) {
+    private Tree getTokenTree(@Nonnull TokenInfo tokenInfo) {
         if (tokenInfo instanceof TokenInfoImpl) {
             return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
         } else {
@@ -345,7 +326,7 @@ class TokenProviderImpl implements TokenProvider {
     }
 
     @CheckForNull
-    private String getUserId(Tree tokenTree) {
+    private String getUserId(@CheckForNull Tree tokenTree) {
         if (tokenTree != null && tokenTree.exists()) {
             try {
                 String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
@@ -361,7 +342,7 @@ class TokenProviderImpl implements TokenProvider {
     }
 
     @CheckForNull
-    private User getUser(String userId) {
+    private User getUser(@Nonnull String userId) {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
@@ -385,13 +366,12 @@ class TokenProviderImpl implements TokenProvider {
         String parentPath = null;
         try {
             String userPath = user.getPath();
+            parentPath = userPath + '/' + TOKENS_NODE_NAME;
+
             NodeUtil userNode = new NodeUtil(root.getTree(userPath));
-            tokenParent = userNode.getChild(TOKENS_NODE_NAME);
-            if (tokenParent == null) {
-                tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
-                parentPath = userPath + '/' + TOKENS_NODE_NAME;
-                root.commit();
-            }
+            tokenParent = userNode.getOrAddChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
+
+            root.commit();
         } catch (RepositoryException e) {
             // error while creating token node.
             log.debug("Error while creating token node ", e.getMessage());
@@ -400,11 +380,9 @@ class TokenProviderImpl implements TokenProvider {
             // try to get the tree from the updated root.
             log.debug("Conflict while creating token store -> retrying", e.getMessage());
             root.refresh();
-            if (parentPath != null) {
-                Tree parentTree = root.getTree(parentPath);
-                if (parentTree.exists()) {
-                    tokenParent = new NodeUtil(parentTree);
-                }
+            Tree parentTree = root.getTree(parentPath);
+            if (parentTree.exists()) {
+                tokenParent = new NodeUtil(parentTree);
             }
         }
         return tokenParent;
@@ -414,25 +392,38 @@ class TokenProviderImpl implements TokenProvider {
      * Create a new token node below the specified {@code parent}.
      *
      * @param parent The parent node.
-     * @param creationTime The creation time that is used as name hint.
-     * @return The new token node
-     * @throws AccessDeniedException
+     * @param expTime The expiration time of the new token.
+     * @param uuid The uuid of the token node.
+     * @param id The id of the user that issues the token.
+     * @param attributes The additional attributes of the token to be created.
+     * @return The new token info
+     * @throws AccessDeniedException If the editing session cannot access the
+     * new token node.
+     *
      */
-    private NodeUtil createTokenNode(@Nonnull NodeUtil parent, @Nonnull long creationTime) throws AccessDeniedException {
-        Calendar creation = GregorianCalendar.getInstance();
-        creation.setTimeInMillis(creationTime);
-        String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
-        NodeUtil tokenNode;
-        try {
-            tokenNode = parent.addChild(tokenName, TOKEN_NT_NAME);
-            root.commit();
-        } catch (CommitFailedException e) {
-            // conflict while creating token node -> retry
-            log.debug("Failed to create token node " + tokenName + ". Using random name as fallback.");
-            root.refresh();
-            tokenNode = parent.addChild(UUID.randomUUID().toString(), TOKEN_NT_NAME);
+    private TokenInfo createTokenNode(@Nonnull NodeUtil parent, @Nonnull String tokenName,
+                                      long expTime, @Nonnull String uuid,
+                                      @Nonnull String id, Map<String, ?> attributes)
+            throws AccessDeniedException, UnsupportedEncodingException, NoSuchAlgorithmException {
+
+        NodeUtil tokenNode = parent.addChild(tokenName, TOKEN_NT_NAME);
+        tokenNode.setString(JcrConstants.JCR_UUID, uuid);
+
+        String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
+        String nodeId = getIdentifier(tokenNode.getTree());
+        String token = nodeId + DELIM + key;
+
+        String keyHash = PasswordUtil.buildPasswordHash(getKeyValue(key, id), options);
+        tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
+        tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
+
+        for (String name : attributes.keySet()) {
+            if (!RESERVED_ATTRIBUTES.contains(name)) {
+                String attr = attributes.get(name).toString();
+                tokenNode.setString(name, attr);
+            }
         }
-        return tokenNode;
+        return new TokenInfoImpl(tokenNode, token, id);
     }
 
     //--------------------------------------------------------------------------
@@ -509,7 +500,7 @@ class TokenProviderImpl implements TokenProvider {
                     try {
                         long expTime = createExpirationTime(loginTime, tokenExpiration);
                         tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expTime);
-                        root.commit();
+                        root.commit(CommitMarker.asCommitAttributes());
                         log.debug("Successfully reset token expiration time.");
                         return true;
                     } catch (CommitFailedException e) {
@@ -527,7 +518,7 @@ class TokenProviderImpl implements TokenProvider {
             if (tokenTree != null && tokenTree.exists()) {
                 try {
                     if (tokenTree.remove()) {
-                        root.commit();
+                        root.commit(CommitMarker.asCommitAttributes());
                         return true;
                     }
                 } catch (CommitFailedException e) {

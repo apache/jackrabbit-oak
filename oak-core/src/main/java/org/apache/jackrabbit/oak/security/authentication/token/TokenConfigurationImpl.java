@@ -16,15 +16,21 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import java.security.Principal;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.commit.MoveTracker;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationBase;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -80,6 +86,13 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Nonnull
+    @Override
+    public List<? extends ValidatorProvider> getValidators(String workspaceName, Set<Principal> principals, MoveTracker moveTracker) {
+        ValidatorProvider vp = new TokenValidatorProvider(getSecurityProvider().getParameters(UserConfiguration.NAME));
+        return ImmutableList.of(vp);
     }
 
     //-------------------------------------------------< TokenConfiguration >---
