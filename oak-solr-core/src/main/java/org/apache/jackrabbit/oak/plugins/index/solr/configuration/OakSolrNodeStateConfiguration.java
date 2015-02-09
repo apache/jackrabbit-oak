@@ -19,34 +19,37 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * An {@link OakSolrConfiguration} specified via a given {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
  * For each of the supported properties a default is provided if either the
- * property doesn't exist in the node or if the value is <code>null</code> or
- * empty <code>String</code>.
- * <p/>
- * Subclasses of this should at least provide the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which holds
- * the configuration.
+ * property doesn't exist in the node or if the value is <code>null</code>
  */
-public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
+public class OakSolrNodeStateConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider<SolrServerProvider> {
+
+    private final NodeState definition;
+
+    public OakSolrNodeStateConfiguration(NodeState definition) {
+        this.definition = definition;
+    }
 
     /**
      * get the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which contains the properties for the Oak -
      * Solr configuration.
      *
-     * @return a (possibly non-existent) node state for the Solr configuration
+     * @return a node state for the Solr configuration
      */
-    protected abstract NodeState getConfigurationNodeState();
+    protected NodeState getConfigurationNodeState() {
+        return definition;
+    }
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
@@ -230,27 +233,50 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
 
     @Nonnull
     @Override
-    public SolrServerConfiguration<EmbeddedSolrServerProvider> getSolrServerConfiguration() {
-        String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
-        String solrConfigPath = getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH);
-        String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
+    public SolrServerConfiguration<SolrServerProvider> getSolrServerConfiguration() {
+        String type = getStringValueFor(Properties.SERVER_TYPE, "embedded");
+        if ("embedded".equalsIgnoreCase(type)) {
+            String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
+            String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
+            String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
+            Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
 
-        String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
-        Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
+            return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath,
+                    coreName).withHttpConfiguration(context, httpPort);
+        } else if ("remote".equalsIgnoreCase(type)) {
+            String solrZkHost = getStringValueFor(Properties.ZK_HOST, SolrServerConfigurationDefaults.ZK_HOST);
+            String solrCollection = getStringValueFor(Properties.COLLECTION, SolrServerConfigurationDefaults.COLLECTION);
+            int solrReplicationFactor = getIntValueFor(Properties.REPLICATION_FACTOR, SolrServerConfigurationDefaults.REPLICATION_FACTOR);
+            String solrConfDir = getStringValueFor(Properties.CONFIGURATION_DIRECTORY, SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY);
+            String solrHttpUrls = getStringValueFor(Properties.HTTP_URL, SolrServerConfigurationDefaults.HTTP_URL);
+            int solrShardsNo = getIntValueFor(Properties.SHARDS_NO, SolrServerConfigurationDefaults.SHARDS_NO);
 
-        return new EmbeddedSolrServerConfiguration(solrHomePath,
-                solrConfigPath, coreName).withHttpConfiguration(context, httpPort);
+            return (SolrServerConfiguration) new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
+                    solrReplicationFactor, solrConfDir, solrHttpUrls);
+        } else {
+            return null;
+        }
     }
 
     /**
      * Properties that may be retrieved from the configuration {@link org.apache.jackrabbit.oak.spi.state.NodeState}.
      */
     public final class Properties {
+        // --> embedded solr server properties <--
         public static final String SOLRHOME_PATH = "solrHomePath";
-        public static final String SOLRCONFIG_PATH = "solrConfigPath";
         public static final String CONTEXT = "solrContext";
         public static final String HTTP_PORT = "httpPort";
         public static final String CORE_NAME = "coreName";
+
+        // --> remote solr server properties <--
+        public static final String ZK_HOST = "zkHost";
+        public static final String COLLECTION = "collection";
+        public static final String REPLICATION_FACTOR = "replicationFactor";
+        public static final String CONFIGURATION_DIRECTORY = "configurationDirectory";
+        public static final String HTTP_URL = "httpUrl";
+        public static final String SHARDS_NO = "shardsNo";
+
+        // --> oak solr config properties <--
         public static final String PATH_FIELD = "pathField";
         public static final String PARENT_FIELD = "parentField";
         public static final String CHILDREN_FIELD = "childrenField";
@@ -265,5 +291,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String TYPE_MAPPINGS = "typeMappings";
         public static final String PROPERTY_MAPPINGS = "propertyMappings";
         public static final String USED_PROPERTIES = "usedProperties";
+        public static final String SERVER_TYPE = "serverType";
     }
 }

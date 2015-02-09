@@ -30,7 +30,8 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
     private final int solrShardsNo;
     private final int solrReplicationFactor;
 
-    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor, String solrConfDir, String... solrHttpUrls) {
+    public RemoteSolrServerConfiguration(String solrZkHost, String solrCollection, int solrShardsNo, int solrReplicationFactor,
+                                         String solrConfDir, String... solrHttpUrls) {
         this.solrHttpUrls = solrHttpUrls;
         this.solrZkHost = solrZkHost;
         this.solrCollection = solrCollection;

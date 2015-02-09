@@ -105,7 +105,7 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
     private EmbeddedSolrServerProvider createEmbeddedSolrServerProvider(boolean http) throws Exception {
         String tempDirectoryPath = FileUtils.getTempDirectoryPath();
         File solrHome = new File(tempDirectoryPath, "solr" + System.nanoTime());
-        EmbeddedSolrServerConfiguration embeddedSolrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome.getAbsolutePath(), "", "oak");
+        EmbeddedSolrServerConfiguration embeddedSolrServerConfiguration = new EmbeddedSolrServerConfiguration(solrHome.getAbsolutePath(), "oak");
         if (http) {
             embeddedSolrServerConfiguration = embeddedSolrServerConfiguration.withHttpConfiguration("/solr", 8983);
         }

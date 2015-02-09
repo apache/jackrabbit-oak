@@ -54,12 +54,10 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
         String solrHomePath = solrServerConfiguration.getSolrHomePath();
         String coreName = solrServerConfiguration.getCoreName();
-        String solrConfigPath = solrServerConfiguration.getSolrConfigPath();
         EmbeddedSolrServerConfiguration.HttpConfiguration httpConfiguration = solrServerConfiguration.getHttpConfiguration();
 
-
-        if (solrConfigPath != null && solrHomePath != null && coreName != null) {
-            checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
+        if (solrHomePath != null && coreName != null) {
+            checkSolrConfiguration(solrHomePath, coreName);
             if (httpConfiguration != null) {
                 if (log.isInfoEnabled()) {
                     log.info("starting embedded Solr server with http bindings");
@@ -125,7 +123,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         }
     }
 
-    private void checkSolrConfiguration(String solrHomePath, String solrConfigPath, String coreName) throws IOException {
+    private void checkSolrConfiguration(String solrHomePath, String coreName) throws IOException {
 
         // check if solrHomePath exists
         File solrHomePathFile = new File(solrHomePath);
@@ -149,15 +147,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         } else if (!solrHomePathFile.isDirectory()) {
             throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '" + solrHomePath);
         }
-
-        // TODO : improve this check
-        // check if solrConfigPath exists
-//        File solrConfigPathFile = new File(solrConfigPath);
-//        if (!solrConfigPathFile.exists()) {
-//            if (solrConfigPathFile.createNewFile()) {
-//                copy("/solr/solr.xml", solrConfigPathFile.getAbsolutePath());
-//            }
-//        }
 
         // check if the a core with the given coreName exists
         // TODO : improve this check
