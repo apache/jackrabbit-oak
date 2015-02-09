@@ -852,12 +852,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public NodeType perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                String primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
-                if (primaryTypeName == null) {
+
+                String primaryTypeName = null;
+                if (tree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+                    primaryTypeName = TreeUtil.getPrimaryTypeName(tree);
+                } else if (tree.getStatus() != Status.NEW) {
                     // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
                     // read the primary type from the underlying node state.
                     primaryTypeName = TreeUtil.getPrimaryTypeName(RootFactory.createReadOnlyRoot(sessionDelegate.getRoot()).getTree(tree.getPath()));
                 }
+
                 if (primaryTypeName != null) {
                     return getNodeTypeManager().getNodeType(sessionContext.getJcrName(primaryTypeName));
                 } else {
@@ -877,10 +881,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public NodeType[] perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                Iterator<String> mixinNames;
-                if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+
+                Iterator<String> mixinNames = Iterators.emptyIterator();
+                if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadProperty(tree, JcrConstants.JCR_MIXINTYPES)) {
                     mixinNames = TreeUtil.getNames(tree, JcrConstants.JCR_MIXINTYPES).iterator();
-                } else {
+                } else if (tree.getStatus() != Status.NEW) {
                     // OAK-2441: for backwards compatibility with Jackrabbit 2.x try to
                     // read the primary type from the underlying node state.
                     mixinNames = TreeUtil.getNames(
@@ -1254,6 +1259,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< internal >---
+    private boolean canReadProperty(@Nonnull Tree tree, @Nonnull String propName) throws RepositoryException {
+        String propPath = PathUtils.concat(tree.getPath(), propName);
+        String permName = Permissions.PERMISSION_NAMES.get(Permissions.READ_PROPERTY);
+        return sessionContext.getAccessManager().hasPermissions(propPath, permName);
+    }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
         return getNodeTypeManager().getEffectiveNodeType(dlg.getTree());
