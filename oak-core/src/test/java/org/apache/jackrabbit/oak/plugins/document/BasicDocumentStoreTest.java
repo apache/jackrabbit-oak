@@ -728,7 +728,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             long cnt = 0;
             byte bdata[] = new byte[65536];
             String sdata = appendString;
-            boolean needsConcat = super.dsname.contains("MySQL");
+            boolean needsConcat = super.dsname.contains("MySQL") || super.dsname.contains("Microsoft SQL Server");
             int dataInChars = (super.dsname.contains("Oracle") ? 4000 : 16384);
             int dataInBytes = dataInChars / 3;
 

@@ -50,6 +50,8 @@ public class RDBJDBCTools {
             return "com.mysql.jdbc.Driver";
         } else if ("oracle".equals(type)) {
             return "oracle.jdbc.OracleDriver";
+        } else if ("sqlserver".equals(type)) {
+            return "com.microsoft.sqlserver.jdbc.SQLServerDriver";
         } else {
             return "";
         }

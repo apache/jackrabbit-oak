@@ -324,6 +324,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     // implementation
 
+    enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
 
     /**
      * Defines variation in the capabilities of different RDBs.
@@ -372,16 +373,44 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
 
             @Override
-            public boolean needsConcat() {
-                return true;
+            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
+                return FETCHFIRSTSYNTAX.LIMIT;
             }
 
             @Override
-            public boolean needsLimit() {
-                return true;
+            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
+                return "CONCAT(DATA, ?)";
+            }
+        },
+
+        MSSQL("Microsoft SQL Server") {
+            @Override
+            public String getTableCreationStatement(String tableName) {
+                // see https://issues.apache.org/jira/browse/OAK-2395
+                return ("create table " + tableName + " (ID nvarchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
+            }
+
+            @Override
+            public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
+                return FETCHFIRSTSYNTAX.TOP;
+            }
+
+            @Override
+            public String getConcatQueryString(int dataOctetLimit, int dataLength) {
+                /*
+                 * To avoid truncation when concatenating force an error when
+                 * limit is above the octet limit
+                 */
+                return "CASE WHEN LEN(DATA) <= " + (dataOctetLimit - dataLength) + " THEN (DATA + CAST(? AS nvarchar("
+                        + dataOctetLimit + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
+
+            }
+
+            @Override
+            public String getGreatestQueryString(String column) {
+                return "(select MAX(mod) from (VALUES (" + column + "), (?)) AS ALLMOD(mod))";
             }
         };
-
 
         /**
          * If the primary column is encoded in bytes.
@@ -400,17 +429,36 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
 
         /**
-         * whether DB requires "CONCAT" over "||"
+         * Query syntax for "FETCH FIRST"
          */
-        public boolean needsConcat() {
-            return false;
+        public FETCHFIRSTSYNTAX getFetchFirstSyntax() {
+            return FETCHFIRSTSYNTAX.FETCHFIRST;
         }
 
         /**
-         * whether DB requires "LIMIT" instead of "FETCH FIRST"
+         * Returns the CONCAT function or its equivalent function or sub-query.
+         * Note that the function MUST NOT cause a truncated value to be
+         * written!
+         *
+         * @param dataOctetLimit
+         *            expected capacity of data column
+         * @param dataLength
+         *            length of string to be inserted
+         * 
+         * @return the concat query string
          */
-        public boolean needsLimit() {
-            return false;
+        public String getConcatQueryString(int dataOctetLimit, int dataLength) {
+            return "DATA || CAST(? AS varchar(" + dataOctetLimit + "))";
+        }
+
+        /**
+         * Returns the GREATEST function or its equivalent function or sub-query
+         * supported.
+         *
+         * @return the greatest query string
+         */
+        public String getGreatestQueryString(String column) {
+            return "GREATEST(" + column + ", ?)";
         }
 
         /**
@@ -1187,7 +1235,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
 
     private List<RDBRow> dbQuery(Connection connection, String tableName, String minId, String maxId, String indexedProperty,
             long startValue, int limit) throws SQLException {
-        String t = "select ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
+        String t = "select ";
+        if (limit != Integer.MAX_VALUE && this.db.getFetchFirstSyntax() == FETCHFIRSTSYNTAX.TOP) {
+            t += "TOP " + limit +  " ";
+        }
+        t += "ID, MODIFIED, MODCOUNT, CMODCOUNT, HASBINARY, DELETEDONCE, DATA, BDATA from " + tableName
                 + " where ID > ? and ID < ?";
         if (indexedProperty != null) {
             if (MODIFIED.equals(indexedProperty)) {
@@ -1207,9 +1259,20 @@ public class RDBDocumentStore implements CachingDocumentStore {
             }
         }
         t += " order by ID";
+
         if (limit != Integer.MAX_VALUE) {
-            t += this.db.needsLimit() ? (" LIMIT " + limit) : (" FETCH FIRST " + limit + " ROWS ONLY");
+            switch (this.db.getFetchFirstSyntax()) {
+                case LIMIT:
+                    t += " LIMIT " + limit;
+                    break;
+                case FETCHFIRST:
+                    t += " FETCH FIRST " + limit + " ROWS ONLY";
+                    break;
+                default:
+                    break;
+            }
         }
+
         PreparedStatement stmt = connection.prepareStatement(t);
         List<RDBRow> result = new ArrayList<RDBRow>();
         try {
@@ -1291,11 +1354,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private boolean dbAppendingUpdate(Connection connection, String tableName, String id, Long modified, Boolean hasBinary,
             Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update "
-                + tableName
-                + " set MODIFIED = GREATEST(MODIFIED, ?), HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
-        t.append(this.db.needsConcat() ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
-                + ")) ");
+        t.append("update " + tableName + " set MODIFIED = " + this.db.getGreatestQueryString("MODIFIED")
+                + ", HASBINARY = ?, DELETEDONCE = ?, MODCOUNT = ?, CMODCOUNT = ?, DSIZE = DSIZE + ?, ");
+        t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID = ?");
         if (oldmodcount != null) {
             t.append(" and MODCOUNT = ?");
@@ -1328,9 +1389,9 @@ public class RDBDocumentStore implements CachingDocumentStore {
     private boolean dbBatchedAppendingUpdate(Connection connection, String tableName, List<String> ids, Long modified,
             String appendData) throws SQLException {
         StringBuilder t = new StringBuilder();
-        t.append("update " + tableName + " set MODIFIED = GREATEST(MODIFIED, ?), MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
-        t.append(this.db.needsConcat() ? "DATA = CONCAT(DATA, ?) " : "DATA = DATA || CAST(? AS varchar(" + this.dataLimitInOctets
-                + ")) ");
+        t.append("update " + tableName + " set MODIFIED = " + this.db.getGreatestQueryString("MODIFIED")
+                + ", MODCOUNT = MODCOUNT + 1, DSIZE = DSIZE + ?, ");
+        t.append("DATA = " + this.db.getConcatQueryString(this.dataLimitInOctets, appendData.length()) + " ");
         t.append("where ID in (");
         for (int i = 0; i < ids.size(); i++) {
             if (i != 0) {
