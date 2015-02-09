@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.kernel.NodeStoreKernel;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -295,11 +296,17 @@ public abstract class OakFixture {
 
             @Override
             public void tearDownCluster() {
+                String dropped = "";
                 for (DocumentMK kernel : kernels) {
                     kernel.dispose();
+                    if (kernel.getDocumentStore() instanceof RDBDocumentStore) {
+                        dropped += ((RDBDocumentStore)kernel.getDocumentStore()).getDroppedTables();
+                    }
                 }
                 if (dropDBAfterTest) {
-                    throw new RuntimeException("dropdb not supported for RDB persistence");
+                    if (dropped.isEmpty()) {
+                        throw new RuntimeException("dropdb was set, but tables have not been dropped");
+                    }
                 }
             }
         };

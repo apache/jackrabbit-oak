@@ -275,9 +275,17 @@ public class RDBDocumentStore implements CachingDocumentStore {
         }
     }
 
+    // used for diagnostics
+    private String droppedTables = "";
+
+    public String getDroppedTables() {
+        return this.droppedTables;
+    }
+
     @Override
     public void dispose() {
         if (!this.tablesToBeDropped.isEmpty()) {
+            String dropped = "";
             LOG.debug("attempting to drop: " + this.tablesToBeDropped);
             for (String tname : this.tablesToBeDropped) {
                 Connection con = null;
@@ -288,6 +296,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                         stmt.execute("drop table " + tname);
                         stmt.close();
                         con.commit();
+                        dropped += tname + " ";
                     } catch (SQLException ex) {
                         LOG.debug("attempting to drop: " + tname);
                     }
@@ -303,6 +312,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
                     }
                 }
             }
+            this.droppedTables = dropped.trim();
         }
         this.ch = null;
     }
