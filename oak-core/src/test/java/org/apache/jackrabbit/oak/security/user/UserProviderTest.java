@@ -18,13 +18,19 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -74,6 +80,7 @@ public class UserProviderTest {
 
     @After
     public void tearDown() {
+        root.refresh();
         root = null;
     }
 
@@ -163,9 +170,9 @@ public class UserProviderTest {
         assertEquals(customUserPath + "/b/bb/bbb/b", userTree.getPath());
 
         Map<String, String> m = new HashMap<String,String>();
-        m.put("bb",     "/b/bb/bbb/bb");
+        m.put("bb", "/b/bb/bbb/bb");
         m.put("bbb",    "/b/bb/bbb/bbb");
-        m.put("bbbb",   "/b/bb/bbb/bbbb");
+        m.put("bbbb", "/b/bb/bbb/bbbb");
         m.put("bL",     "/b/bL/bLL/bL");
         m.put("bLbh",   "/b/bL/bLb/bLbh");
         m.put("b_Lb",   "/b/b_/b_L/b_Lb");
@@ -218,7 +225,7 @@ public class UserProviderTest {
         m.put("z[x]", "/z/" + Text.escapeIllegalJcrChars("z[") + '/' + Text.escapeIllegalJcrChars("z[x]"));
         m.put("z*x", "/z/" + Text.escapeIllegalJcrChars("z*") + '/' + Text.escapeIllegalJcrChars("z*x"));
         m.put("z/x", "/z/" + Text.escapeIllegalJcrChars("z/") + '/' + Text.escapeIllegalJcrChars("z/x"));
-        m.put("%\r|", '/' +Text.escapeIllegalJcrChars("%")+ '/' + Text.escapeIllegalJcrChars("%\r") + '/' + Text.escapeIllegalJcrChars("%\r|"));
+        m.put("%\r|", '/' + Text.escapeIllegalJcrChars("%") + '/' + Text.escapeIllegalJcrChars("%\r") + '/' + Text.escapeIllegalJcrChars("%\r|"));
 
         for (String uid : m.keySet()) {
             Tree user = userProvider.createUser(uid, null);
@@ -295,6 +302,33 @@ public class UserProviderTest {
         if (up.getAuthorizable("bb") != null) {
             fail("Removing the top authorizable folder must remove all users contained.");
             u2.remove();
+        }
+    }
+
+    @Test
+    public void testAutoCreatedItemsUponUserCreation() throws Exception {
+        UserProvider up = createUserProvider();
+        assertAutoCreatedItems(up.createUser("c", null), UserConstants.NT_REP_USER, root);
+    }
+
+    @Test
+    public void testAutoCreatedItemsUponGroupCreation() throws Exception {
+        UserProvider up = createUserProvider();
+        assertAutoCreatedItems(up.createGroup("g", null), UserConstants.NT_REP_GROUP, root);
+    }
+
+    private static void assertAutoCreatedItems(@Nonnull Tree authorizableTree, @Nonnull String ntName, @Nonnull Root root) throws Exception {
+        NodeType repUser = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT).getNodeType(ntName);
+        for (NodeDefinition cnd : repUser.getChildNodeDefinitions()) {
+            if (cnd.isAutoCreated()) {
+                assertTrue(authorizableTree.hasChild(cnd.getName()));
+            }
+        }
+
+        for (PropertyDefinition pd : repUser.getPropertyDefinitions()) {
+            if (pd.isAutoCreated()) {
+                assertTrue(authorizableTree.hasProperty(pd.getName()));
+            }
         }
     }
 }
