@@ -29,6 +29,7 @@ public class UpToDateNodeStateConfiguration extends OakSolrNodeStateConfiguratio
     private final String path;
 
     public UpToDateNodeStateConfiguration(NodeStore store, String path) {
+        super(store.getRoot().builder().getBaseState());
         this.store = store;
         this.path = path;
     }

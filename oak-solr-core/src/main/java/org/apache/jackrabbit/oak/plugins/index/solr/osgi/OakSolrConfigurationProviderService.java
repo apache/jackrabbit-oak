@@ -31,7 +31,6 @@ import org.apache.felix.scr.annotations.PropertyUnbounded;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
@@ -110,7 +109,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
     private String catchAllField;
-    private CommitPolicy commitPolicy;
+    private OakSolrConfiguration.CommitPolicy commitPolicy;
     private int rows;
     private boolean useForPathRestrictions;
     private boolean useForPropertyRestrictions;
@@ -130,7 +129,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
         catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
         rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
-        commitPolicy = CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
+        commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
         useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
         useForPropertyRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
         useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));

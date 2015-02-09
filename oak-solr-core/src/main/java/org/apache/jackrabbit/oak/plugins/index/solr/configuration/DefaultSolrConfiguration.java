@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import javax.annotation.CheckForNull;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  */
 public class DefaultSolrConfiguration implements OakSolrConfiguration {
 
-    private static final Collection<String> ignoredProperties = Arrays.asList(SolrServerConfigurationDefaults.IGNORED_PROPERTIES.split(","));
+    private static final Collection<String> ignoredProperties = Collections.emptyList();
     private static final Collection<String> usedProperties = Collections.emptyList();
 
     @Override

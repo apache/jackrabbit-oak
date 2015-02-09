@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
-
 import javax.annotation.Nonnull;
 
 /**

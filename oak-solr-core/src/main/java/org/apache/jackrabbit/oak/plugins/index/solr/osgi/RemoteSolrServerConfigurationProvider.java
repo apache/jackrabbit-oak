@@ -25,6 +25,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 import org.osgi.service.component.ComponentContext;
@@ -37,28 +38,22 @@ import org.osgi.service.component.ComponentContext;
 @Property(name = "name", value = "remote", propertyPrivate = true)
 public class RemoteSolrServerConfigurationProvider implements SolrServerConfigurationProvider<RemoteSolrServerProvider> {
 
-    private static final String DEFAULT_COLLECTION = "oak";
-    private static final String DEFAULT_HTTP_URL = "";
-    private static final String DEFAULT_ZK_HOST = "";
-    private static final int DEFAULT_SHARDS_NO = 2;
-    private static final int DEFAULT_REPLICATION_FACTOR = 2;
-
-    @Property(value = DEFAULT_HTTP_URL, label = "Solr HTTP URL")
+    @Property(value = SolrServerConfigurationDefaults.HTTP_URL, label = "Solr HTTP URL")
     private static final String SOLR_HTTP_URL = "solr.http.url";
 
-    @Property(value = DEFAULT_ZK_HOST, label = "ZooKeeper host")
+    @Property(value = SolrServerConfigurationDefaults.ZK_HOST, label = "ZooKeeper host")
     private static final String SOLR_ZK_HOST = "solr.zk.host";
 
-    @Property(value = DEFAULT_COLLECTION, label = "Solr collection")
+    @Property(value = SolrServerConfigurationDefaults.COLLECTION, label = "Solr collection")
     private static final String SOLR_COLLECTION = "solr.collection";
 
-    @Property(intValue = DEFAULT_SHARDS_NO, label = "No. of collection shards")
+    @Property(intValue = SolrServerConfigurationDefaults.SHARDS_NO, label = "No. of collection shards")
     private static final String SOLR_SHARDS_NO = "solr.shards.no";
 
-    @Property(intValue = DEFAULT_REPLICATION_FACTOR, label = "Replication factor")
+    @Property(intValue = SolrServerConfigurationDefaults.REPLICATION_FACTOR, label = "Replication factor")
     private static final String SOLR_REPLICATION_FACTOR = "solr.replication.factor";
 
-    @Property(value = "", label = "Solr configuration directory")
+    @Property(value = SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY, label = "Solr configuration directory")
     private static final String SOLR_CONF_DIR = "solr.conf.dir";
 
     private String solrHttpUrl;
