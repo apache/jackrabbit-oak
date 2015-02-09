@@ -558,6 +558,21 @@
       </dependencies>
     </profile>
     <profile>
+      <!-- requires local copy of MS SqlServer JDBC driver deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=sqljdbc41.jar -Dpackaging=jar\
+          -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.1
+       -->
+      <id>rdb-mssql</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.microsoft.sqlserver</groupId>
+          <artifactId>sqljdbc4</artifactId>
+          <version>4.1</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <!-- requires local copy of Oracle JDBC driver deployed to Maven repo-->
       <!-- for instance:
         mvn install:install-file -Dfile=ojdbc6.jar -Dpackaging=jar\

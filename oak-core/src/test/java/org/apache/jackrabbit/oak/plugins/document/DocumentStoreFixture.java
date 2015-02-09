@@ -41,6 +41,7 @@ public abstract class DocumentStoreFixture {
     public static final DocumentStoreFixture RDB_DB2 = new RDBFixture("RDB-DB2", "jdbc:db2://localhost:50000/OAK", "oak", "geheim");
     public static final DocumentStoreFixture RDB_MYSQL = new RDBFixture("RDB-MySQL", "jdbc:mysql://localhost:3306/oak", "root", "geheim");
     public static final DocumentStoreFixture RDB_ORACLE = new RDBFixture("RDB-Oracle", "jdbc:oracle:thin:@localhost:1521:orcl", "system", "geheim");
+    public static final DocumentStoreFixture RDB_MSSQL = new RDBFixture("RDB-MSSql", "jdbc:sqlserver://localhost:1433;databaseName=OAK", "sa", "geheim");
     public static final DocumentStoreFixture MONGO = new MongoFixture("mongodb://localhost:27017/oak");
 
     public static final String TABLEPREFIX = "dstest_";
