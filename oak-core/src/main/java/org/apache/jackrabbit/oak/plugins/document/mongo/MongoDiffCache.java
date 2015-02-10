@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -30,6 +30,10 @@ import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.MemoryDiffCache;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,12 +115,17 @@ public class MongoDiffCache extends MemoryDiffCache {
             }
 
             @Override
-            public void done() {
+            public boolean done() {
                 try {
-                    changes.insert(commit.doc, WriteConcern.UNACKNOWLEDGED);
+                    // do not write back if doc is too big
+                    if (commit.size < 16 * 1024 * 1024) {
+                        changes.insert(commit.doc, WriteConcern.UNACKNOWLEDGED);
+                        return true;
+                    }
                 } catch (MongoException e) {
                     LOG.warn("Write back of diff cache entry failed", e);
                 }
+                return false;
             }
         };
     }
@@ -178,6 +187,7 @@ public class MongoDiffCache extends MemoryDiffCache {
     static class Diff {
 
         private final DBObject doc;
+        private long size;
 
         Diff(Revision from, Revision to) {
             this.doc = new BasicDBObject();
@@ -199,9 +209,11 @@ public class MongoDiffCache extends MemoryDiffCache {
                     BasicDBObject child = new BasicDBObject();
                     current.put(escName, child);
                     current = child;
+                    size += escName.length() * 2 + 8;
                 }
             }
             current.put("_c", checkNotNull(changes));
+            size += 4 + changes.length() * 2 + 8;
         }
 
         String getChanges(String path) {
