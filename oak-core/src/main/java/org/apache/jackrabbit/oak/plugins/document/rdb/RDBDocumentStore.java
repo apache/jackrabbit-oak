@@ -175,8 +175,8 @@ import com.google.common.util.concurrent.Striped;
  * 
  * <h3>Queries</h3>
  * <p>
- * The implementation currently supports only two indexed properties:
- * "_modified" and "_bin". Attempts to use a different indexed property will
+ * The implementation currently supports only three indexed properties:
+ * "_bin", "deletedOnce", and "_modified". Attempts to use a different indexed property will
  * cause a {@link DocumentStoreException}.
  */
 public class RDBDocumentStore implements CachingDocumentStore {
