@@ -29,17 +29,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.core.data.FileDataStore;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -49,17 +50,28 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
+
 /**
  * Tests for SegmentNodeStore DataStore GC
  */
 public class SegmentDataStoreBlobGCTest {
     SegmentNodeStore nodeStore;
-    SegmentStore store;
+    FileStore store;
     DataStoreBlobStore blobStore;
 
     protected SegmentNodeStore getNodeStore(BlobStore blobStore) throws IOException {
         if (nodeStore == null) {
             store = new FileStore(blobStore, getWorkDir(), 256, false);
+            CompactionStrategy compactionStrategy =
+                new CompactionStrategy(false, true,
+                    CompactionStrategy.CleanupType.CLEAN_OLD, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
+                    @Override
+                    public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+                        return setHead.call();
+                    }
+                };
+            store.setCompactionStrategy(compactionStrategy);
             nodeStore = new SegmentNodeStore(store);
         }
         return nodeStore;
@@ -70,31 +82,30 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     public HashSet<String> setUp() throws Exception {
-        FileDataStore fds = new FileDataStore();
-        fds.setMinRecordLength(4092);
-        fds.init(getWorkDir().getAbsolutePath());
-        blobStore = new DataStoreBlobStore(fds);
+        blobStore = DataStoreUtils.getBlobStore();
         nodeStore = getNodeStore(blobStore);
 
         HashSet<String> set = new HashSet<String>();
 
         NodeBuilder a = nodeStore.getRoot().builder();
 
-        int number = 2;
+        int number = 10;
+        int maxDeleted  = 5;
+
         // track the number of the assets to be deleted
         List<Integer> processed = Lists.newArrayList();
         Random rand = new Random();
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);
             if (!processed.contains(n)) {
                 processed.add(n);
             }
         }
         for (int i = 0; i < number; i++) {
-            Blob b = nodeStore.createBlob(randomStream(i, 16516));
-            if (processed.contains(i)) {
+            SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 16516));
+            if (!processed.contains(i)) {
                 Iterator<String> idIter = blobStore
-                        .resolveChunks(b.toString());
+                        .resolveChunks(b.getBlobId());
                 while (idIter.hasNext()) {
                     set.add(idIter.next());
                 }
@@ -106,7 +117,7 @@ public class SegmentDataStoreBlobGCTest {
         for (int id : processed) {
             delete("c" + id);
         }
-        store.gc();
+        store.compact();
 
         return set;
     }
@@ -120,7 +131,7 @@ public class SegmentDataStoreBlobGCTest {
 
     @Test
     public void gc() throws Exception {
-        HashSet<String> set = setUp();
+        HashSet<String> remaining = setUp();
 
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new SegmentBlobReferenceRetriever(store.getTracker()),
@@ -129,9 +140,8 @@ public class SegmentDataStoreBlobGCTest {
                     "./target", 2048, true,  0);
         gc.collectGarbage();
 
-        Set<String> existing = iterate();
-        boolean empty = Sets.intersection(set, existing).isEmpty();
-        assertTrue(empty);
+        Set<String> existingAfterGC = iterate();
+        assertTrue(Sets.symmetricDifference(remaining, existingAfterGC).isEmpty());
     }
 
     protected Set<String> iterate() throws Exception {
