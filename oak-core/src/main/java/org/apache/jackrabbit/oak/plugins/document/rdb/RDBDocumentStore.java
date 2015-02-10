@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -580,8 +581,11 @@ public class RDBDocumentStore implements CachingDocumentStore {
         this.cacheStats = new CacheStats(nodesCache, "Document-Documents", builder.getWeigher(), builder.getDocumentCacheSize());
 
         Connection con = this.ch.getRWConnection();
-        String dbtype = con.getMetaData().getDatabaseProductName();
-        this.db = DB.getValue(dbtype);
+        DatabaseMetaData md = con.getMetaData();
+        String dbDesc = md.getDatabaseProductName() + " " + md.getDatabaseProductVersion();
+        String driverDesc = md.getDriverName() + " " + md.getDriverVersion();
+
+        this.db = DB.getValue(md.getDatabaseProductName());
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = con.createStatement();
@@ -598,6 +602,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
             con.commit();
             con.close();
         }
+
+        LOG.info("RDBDocumentStore instantiated for database " + dbDesc + ", using driver: " + driverDesc);
     }
 
     private void createTableFor(Connection con, Collection<? extends Document> col, boolean dropTablesOnClose) throws SQLException {
