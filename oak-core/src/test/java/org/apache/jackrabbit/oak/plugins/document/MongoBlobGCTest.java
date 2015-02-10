@@ -56,10 +56,11 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         NodeBuilder a = s.getRoot().builder();
 
         int number = 10;
+        int maxDeleted = 5;
         // track the number of the assets to be deleted
         List<Integer> processed = Lists.newArrayList();
         Random rand = new Random(47);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < maxDeleted; i++) {
             int n = rand.nextInt(number);
             if (!processed.contains(n)) {
                 processed.add(n);
@@ -67,7 +68,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         }
         for (int i = 0; i < number; i++) {
             Blob b = s.createBlob(randomStream(i, 4160));
-            if (processed.contains(i)) {
+            if (!processed.contains(i)) {
                 Iterator<String> idIter =
                         ((GarbageCollectableBlobStore) s.getBlobStore())
                                 .resolveChunks(b.toString());
@@ -144,7 +145,7 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
         addInlined();
         gc(set);
     }
-    private void gc(HashSet<String> set) throws Exception {
+    private void gc(HashSet<String> remaining) throws Exception {
         DocumentNodeStore store = mk.getNodeStore();
         MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                 new DocumentBlobReferenceRetriever(store),
@@ -153,9 +154,9 @@ public class MongoBlobGCTest extends AbstractMongoConnectionTest {
                 "./target", 5, true, 0);
         gc.collectGarbage();
 
-        Set<String> existing = iterate();
-        boolean empty = Sets.intersection(set, existing).isEmpty();
-        assertTrue(empty && !existing.isEmpty());
+        Set<String> existingAfterGC = iterate();
+        boolean empty = Sets.symmetricDifference(remaining, existingAfterGC).isEmpty();
+        assertTrue(empty);
     }
 
     protected Set<String> iterate() throws Exception {
