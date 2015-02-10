@@ -50,7 +50,8 @@ class AmnesiaDiffCache implements DiffCache {
             }
 
             @Override
-            public void done() {
+            public boolean done() {
+                return false;
             }
         };
     }

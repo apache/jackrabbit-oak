@@ -14,15 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.document;
+package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.Arrays;
 import java.util.List;
 
+import com.mongodb.DB;
+
+import org.apache.jackrabbit.oak.plugins.document.DiffCache;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.MongoDiffCache.Diff;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MONGO;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDiffCache.Diff;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests for the MongoDiffCache.
@@ -64,6 +75,29 @@ public class MongoDiffCacheTest {
         assertEquals("+", doMerge("+", "^"));
         assertEquals("^", doMerge("-", "+", "^"));
         assertEquals("^", doMerge("^", "-", "+", "^"));
+    }
+
+    @Test
+    public void sizeLimit() {
+        assumeTrue(MONGO.isAvailable());
+        DocumentStore store = MONGO.createDocumentStore();
+        assertTrue(store instanceof MongoDocumentStore);
+        DB db = ((MongoDocumentStore) store).getDBCollection(NODES).getDB();
+        
+        MongoDiffCache diffCache = new MongoDiffCache(db, 32, new DocumentMK.Builder());
+        DiffCache.Entry entry = diffCache.newEntry(
+                new Revision(1, 0, 1), new Revision(2, 0, 1));
+        for (int i = 0; i < 100; i++) {
+            for (int j = 0; j < 100; j++) {
+                for (int k = 0; k < 64; k++) {
+                    entry.append("/node-" + i + "/node-" + j + "/node-" + k, 
+                            "^\"foo\":{}");
+                }
+            }
+        }
+        assertFalse(entry.done());
+        
+        store.dispose();
     }
 
     private String doMerge(String... ops) {

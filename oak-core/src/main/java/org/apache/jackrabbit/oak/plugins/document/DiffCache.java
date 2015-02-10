@@ -74,8 +74,11 @@ public interface DiffCache {
         /**
          * Called when all changes have been appended and the entry is ready
          * to be used by the cache.
+         * 
+         * @return {@code true} if the entry was successfully added to the
+         *          cache, {@code false} otherwise.
          */
-        void done();
+        boolean done();
     }
 
     public interface Loader {
