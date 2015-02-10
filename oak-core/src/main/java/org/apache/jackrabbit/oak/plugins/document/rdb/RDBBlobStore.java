@@ -37,7 +37,6 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -180,6 +179,9 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                         } else if ("MySQL".equals(dbtype)) {
                             ct = "create table " + tableName + " (ID varchar(" + IDSIZE
                                     + ") not null primary key, DATA mediumblob)";
+                        } else if ("Microsoft SQL Server".equals(dbtype)) {
+                            ct = "create table " + tableName + " (ID varchar(" + IDSIZE
+                                    + ") not null primary key, DATA varbinary(max))";
                         } else {
                             ct = "create table " + tableName + " (ID varchar(" + IDSIZE + ") not null primary key, DATA blob)";
                         }
