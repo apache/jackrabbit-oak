@@ -74,7 +74,14 @@ public interface Filter {
     FullTextExpression getFullTextConstraint();
     
     QueryEngineSettings getQueryEngineSettings();
-    
+
+    /**
+     * check whether a certain (valid) path is accessible (can be read) from the user associated with the query Session
+     * @param path a valid JCR path
+     * @return <code>true</code> if path can be read by the calling user, <code>false</code> otherwise.
+     */
+    boolean isAccessible(String path);
+
     /**
      * Whether the filter contains a native condition.
      * 

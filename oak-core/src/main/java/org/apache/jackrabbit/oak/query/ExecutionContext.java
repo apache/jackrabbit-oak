@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.query;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -43,14 +45,17 @@ public class ExecutionContext {
     
     private final QueryIndexProvider indexProvider;
 
+    private final PermissionProvider permissionProvider;
+
     public ExecutionContext(
             NodeState baseState, Root root,
             QueryEngineSettings settings,
-            QueryIndexProvider indexProvider) {
+            QueryIndexProvider indexProvider, PermissionProvider permissionProvider) {
         this.baseState = baseState;
         this.root = root;
         this.settings = settings;
         this.indexProvider = indexProvider;
+        this.permissionProvider = permissionProvider;
     }
 
     /**
@@ -87,5 +92,9 @@ public class ExecutionContext {
     public QueryEngineSettings getSettings() {
         return settings;
     }
-    
+
+    @CheckForNull
+    public PermissionProvider getPermissionProvider() {
+        return permissionProvider;
+    }
 }

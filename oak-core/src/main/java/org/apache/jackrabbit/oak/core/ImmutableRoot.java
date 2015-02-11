@@ -127,7 +127,7 @@ public final class ImmutableRoot implements Root {
                 return new ExecutionContext(
                         rootTree.getNodeState(), ImmutableRoot.this,
                         new QueryEngineSettings(),
-                        new PropertyIndexProvider());
+                        new PropertyIndexProvider(), null);
             }
         };
     }

@@ -987,10 +987,14 @@ public class QueryImpl implements Query {
     public QueryEngineSettings getSettings() {
         return settings;
     }
-    
+
     @Override
     public void setInternal(boolean isInternal) {
         this.isInternal = isInternal;
+    }
+
+    public ExecutionContext getExecutionContext() {
+        return context;
     }
 
 }
