@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvanceFulltextQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -347,11 +348,26 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
                         SuggestHelper.SuggestQuery suggestQuery = (SuggestHelper.SuggestQuery) luceneRequestFacade.getLuceneRequest();
+
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(suggestQuery);
+
+                        // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
-                        for (Lookup.LookupResult suggestWord : lookupResults) {
-                            suggestedWords.add("{term=" + suggestWord.key + ",weight=" + suggestWord.value + "}");
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        for (Lookup.LookupResult suggestion : lookupResults) {
+                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.key.toString());
+                            TopDocs topDocs = searcher.search(query, 100);
+                            if (topDocs.totalHits > 0) {
+                                for (ScoreDoc doc : topDocs.scoreDocs) {
+                                    Document retrievedDoc = searcher.doc(doc.doc);
+                                    if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
+                                        suggestedWords.add("{term=" + suggestion.key + ",weight=" + suggestion.value + "}");
+                                        break;
+                                    }
+                                }
+                            }
                         }
+
                         queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     }
