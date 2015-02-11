@@ -223,7 +223,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         try {
             long now = System.currentTimeMillis();
-            PreparedStatement prep = con.prepareStatement("update " + metaTable + " set lastMod = ? where id = ?");
+            PreparedStatement prep = con.prepareStatement("update " + metaTable + " set LASTMOD = ? where ID = ?");
             int count;
             try {
                 prep.setLong(1, now);
@@ -239,7 +239,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
             if (count == 0) {
                 try {
-                    prep = con.prepareStatement("insert into " + dataTable + "(id, data) values(?, ?)");
+                    prep = con.prepareStatement("insert into " + dataTable + "(ID, DATA) values(?, ?)");
                     try {
                         prep.setString(1, id);
                         prep.setBytes(2, data);
@@ -254,7 +254,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                     throw new RuntimeException(message, ex);
                 }
                 try {
-                    prep = con.prepareStatement("insert into " + metaTable + "(id, lvl, lastMod) values(?, ?, ?)");
+                    prep = con.prepareStatement("insert into " + metaTable + "(ID, LVL, LASTMOD) values(?, ?, ?)");
                     try {
                         prep.setString(1, id);
                         prep.setInt(2, level);
@@ -280,7 +280,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         byte[] data;
 
         try {
-            PreparedStatement prep = con.prepareStatement("select data from " + dataTable + " where id = ?");
+            PreparedStatement prep = con.prepareStatement("select DATA from " + dataTable + " where ID = ?");
             try {
                 prep.setString(1, id);
                 ResultSet rs = prep.executeQuery();
@@ -308,7 +308,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             Connection con = this.ch.getROConnection();
 
             try {
-                PreparedStatement prep = con.prepareStatement("select data from " + dataTable + " where id = ?");
+                PreparedStatement prep = con.prepareStatement("select DATA from " + dataTable + " where ID = ?");
                 try {
                     prep.setString(1, id);
                     ResultSet rs = prep.executeQuery();
@@ -358,7 +358,7 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
                 return;
             }
             String id = StringUtils.convertBytesToHex(blockId.getDigest());
-            PreparedStatement prep = con.prepareStatement("update " + metaTable + " set lastMod = ? where id = ? and lastMod < ?");
+            PreparedStatement prep = con.prepareStatement("update " + metaTable + " set LASTMOD = ? where ID = ? and LASTMOD < ?");
             prep.setLong(1, System.currentTimeMillis());
             prep.setString(2, id);
             prep.setLong(3, minLastModified);
@@ -383,15 +383,15 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
         Connection con = this.ch.getRWConnection();
         try {
             int count = 0;
-            PreparedStatement prep = con.prepareStatement("select id from " + metaTable + " where lastMod < ?");
+            PreparedStatement prep = con.prepareStatement("select ID from " + metaTable + " where LASTMOD < ?");
             prep.setLong(1, minLastModified);
             ResultSet rs = prep.executeQuery();
             ArrayList<String> ids = new ArrayList<String>();
             while (rs.next()) {
                 ids.add(rs.getString(1));
             }
-            prep = con.prepareStatement("delete from " + metaTable + " where id = ?");
-            PreparedStatement prepData = con.prepareStatement("delete from " + dataTable + " where id = ?");
+            prep = con.prepareStatement("delete from " + metaTable + " where ID = ?");
+            PreparedStatement prepData = con.prepareStatement("delete from " + dataTable + " where ID = ?");
             for (String id : ids) {
                 prep.setString(1, id);
                 prep.execute();
@@ -433,16 +433,16 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
             }
 
             if (maxLastModifiedTime > 0) {
-                prepMeta = con.prepareStatement("delete from " + metaTable + " where id in (" + inClause.toString()
-                        + ") and lastMod <= ?");
+                prepMeta = con.prepareStatement("delete from " + metaTable + " where ID in (" + inClause.toString()
+                        + ") and LASTMOD <= ?");
                 prepMeta.setLong(batch + 1, maxLastModifiedTime);
 
-                prepData = con.prepareStatement("delete from " + dataTable + " where id in (" + inClause.toString()
-                        + ") and not exists(select * from " + metaTable + " m where id = m.id and m.lastMod <= ?)");
+                prepData = con.prepareStatement("delete from " + dataTable + " where ID in (" + inClause.toString()
+                        + ") and not exists(select * from " + metaTable + " m where ID = m.ID and m.LASTMOD <= ?)");
                 prepData.setLong(batch + 1, maxLastModifiedTime);
             } else {
-                prepMeta = con.prepareStatement("delete from " + metaTable + " where id in (" + inClause.toString() + ")");
-                prepData = con.prepareStatement("delete from " + dataTable + " where id in (" + inClause.toString() + ")");
+                prepMeta = con.prepareStatement("delete from " + metaTable + " where ID in (" + inClause.toString() + ")");
+                prepData = con.prepareStatement("delete from " + dataTable + " where ID in (" + inClause.toString() + ")");
             }
 
             for (int idx = 0; idx < batch; idx++) {
@@ -501,18 +501,18 @@ public class RDBBlobStore extends CachingBlobStore implements Closeable {
 
         private boolean refill() {
             StringBuffer query = new StringBuffer();
-            query.append("select id from " + metaTable);
+            query.append("select ID from " + metaTable);
             if (maxLastModifiedTime > 0) {
-                query.append(" where lastMod <= ?");
+                query.append(" where LASTMOD <= ?");
                 if (lastId != null) {
-                    query.append(" and id > ?");
+                    query.append(" and ID > ?");
                 }
             } else {
                 if (lastId != null) {
-                    query.append(" where id > ?");
+                    query.append(" where ID > ?");
                 }
             }
-            query.append(" order by id");
+            query.append(" order by ID");
 
             Connection connection = null;
             try {
