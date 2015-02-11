@@ -29,6 +29,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 
 /**
  * A filter or lookup condition.
@@ -592,6 +594,12 @@ public class FilterImpl implements Filter {
     @Override
     public QueryEngineSettings getQueryEngineSettings() {
         return settings;
+    }
+
+    @Override
+    public boolean isAccessible(String path) {
+        PermissionProvider permissionProvider = selector.getQuery().getExecutionContext().getPermissionProvider();
+        return permissionProvider != null && permissionProvider.isGranted(path, Session.ACTION_READ);
     }
 
 }

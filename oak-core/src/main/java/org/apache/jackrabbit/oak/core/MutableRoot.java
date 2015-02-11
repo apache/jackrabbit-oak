@@ -306,7 +306,7 @@ class MutableRoot implements Root {
                             provider, getBaseState(), getRootState());
                 }
                 return new ExecutionContext(
-                        getBaseState(), MutableRoot.this, queryEngineSettings, provider);
+                        getBaseState(), MutableRoot.this, queryEngineSettings, provider, permissionProvider.get());
             }
         };
     }
