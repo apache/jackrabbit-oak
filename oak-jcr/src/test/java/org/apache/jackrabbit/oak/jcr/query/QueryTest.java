@@ -69,6 +69,62 @@ public class QueryTest extends AbstractRepositoryTest {
     }
     
     @Test
+    public void twoSelectors() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        
+        Node test = root.addNode("test");
+        test.addNode("testNode", "oak:Unstructured");
+        session.save();
+        
+        assertEquals("/test/testNode",
+                getNodeList(session, 
+                "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
+                "from [nt:base] as a " +
+                "inner join [nt:base] as b " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(a, '/test')", Query.JCR_SQL2));
+
+        assertEquals("/test/testNode",
+                getNodeList(session, 
+                "select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* " +
+                "from [nt:base] as b " +
+                "inner join [nt:base] as a " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
+
+        assertEquals("/test",
+                getNodeList(session, 
+                "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
+                "from [nt:base] as a " +
+                "inner join [nt:base] as b " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(a, '/test')", Query.JCR_SQL2));
+        
+        assertEquals("/test",
+                getNodeList(session, 
+                "select a.[jcr:path] as [jcr:path], a.[jcr:score] as [jcr:score], a.* " +
+                "from [nt:base] as b " +
+                "inner join [nt:base] as a " + 
+                "on ischildnode(b, a) " +
+                "where issamenode(b, '/test/testNode')", Query.JCR_SQL2));
+    }
+    
+    private static String getNodeList(Session session, String query, String language) throws RepositoryException {
+        QueryResult r = session.getWorkspace().getQueryManager()
+                .createQuery(query, language).execute();
+        NodeIterator it = r.getNodes();
+        StringBuilder buff = new StringBuilder();
+        while (it.hasNext()) {
+            if (buff.length() > 0) {
+                buff.append(", ");
+            }
+            buff.append(it.nextNode().getPath());        
+        }
+        return buff.toString();
+    }
+    
+    @Test
     public void noDeclaringNodeTypesIndex() throws Exception {
         Session session = getAdminSession();
         Node root = session.getRootNode();
