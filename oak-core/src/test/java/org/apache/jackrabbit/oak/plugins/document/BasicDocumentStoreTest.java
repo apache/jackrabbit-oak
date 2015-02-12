@@ -737,8 +737,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             long cnt = 0;
             byte bdata[] = new byte[65536];
             String sdata = appendString;
-            boolean needsConcat = super.dsname.contains("MySQL") || super.dsname.contains("Microsoft SQL Server");
-            int dataInChars = (super.dsname.contains("Oracle") ? 4000 : 16384);
+            boolean needsConcat = super.dsname.contains("MySQL");
+            boolean needsSQLStringConcat = super.dsname.contains("MSSql");
+            int dataInChars = ((super.dsname.contains("Oracle") || (super.dsname.contains("MSSql"))) ? 4000 : 16384);
             int dataInBytes = dataInChars / 3;
 
             while (System.currentTimeMillis() < end) {
@@ -785,11 +786,21 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                             stmt.close();
                         }
                     } else if (mode == 3) {
-                        PreparedStatement stmt = connection.prepareStatement("update "
-                                + table
-                                + " set "
-                                + (needsConcat ? "DATA = CONCAT(DATA, ?)" : "DATA = DATA || CAST(? as varchar(" + dataInChars
-                                        + "))") + " where ID = ?");
+                        String t = "update " + table + " ";
+
+                        t += "set DATA = ";
+                        if (needsConcat) {
+                            t += "CONCAT(DATA, ?) ";
+                        } else if (needsSQLStringConcat) {
+                            t += "CASE WHEN LEN(DATA) <= " + (dataInChars - appendString.length()) + " THEN (DATA + CAST(? AS nvarchar(" + 4000
+                                    + "))) ELSE (DATA + CAST(DATA AS nvarchar(max))) END";
+                        } else {
+                            t += "DATA || CAST(? as varchar(" + dataInChars + "))";
+                        }
+
+                        t += " where ID = ?";
+
+                        PreparedStatement stmt = connection.prepareStatement(t);
                         try {
                             stmt.setString(1, appendString);
                             stmt.setString(2, key);
