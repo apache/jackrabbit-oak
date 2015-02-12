@@ -340,10 +340,24 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
+
+                        // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        for (SuggestWord suggestWord : suggestWords) {
-                            suggestedWords.add(suggestWord.string);
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        for (SuggestWord suggestion : suggestWords) {
+                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.string);
+                            TopDocs topDocs = searcher.search(query, 100);
+                            if (topDocs.totalHits > 0) {
+                                for (ScoreDoc doc : topDocs.scoreDocs) {
+                                    Document retrievedDoc = searcher.doc(doc.doc);
+                                    if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
+                                        suggestedWords.add(suggestion.string);
+                                        break;
+                                    }
+                                }
+                            }
                         }
+
                         queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestHelper.SuggestQuery) {
