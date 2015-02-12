@@ -262,7 +262,7 @@ public class RecordUsageAnalyserTest {
     }
 
     private static void assertSizes(RecordUsageAnalyser analyser,
-            int maps, int lists, int values, int templates, int nodes) {
+            long maps, long lists, long values, long templates, long nodes) {
         assertEquals("maps sizes mismatch", maps, analyser.getMapSize());
         assertEquals("lists sizes mismatch", lists, analyser.getListSize());
         assertEquals("value sizes mismatch", values, analyser.getValueSize());

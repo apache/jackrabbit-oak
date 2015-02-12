@@ -20,7 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Maps.newHashMap;
+import static java.lang.System.arraycopy;
+import static java.util.Arrays.binarySearch;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
@@ -32,7 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Template.MANY_CHILD_NODE
 import static org.apache.jackrabbit.oak.plugins.segment.Template.ZERO_CHILD_NODES;
 
 import java.util.Formatter;
-import java.util.Set;
+import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -47,36 +49,34 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * space from aligning records is not accounted for.
  */
 public class RecordUsageAnalyser {
-    private final Set<RecordId> seenIds = newHashSet();
+    private long mapSize;       // leaf and branch
+    private long listSize;      // list and bucket
+    private long valueSize;     // inlined values
+    private long templateSize;  // template
+    private long nodeSize;      // node
 
-    private int mapSize;       // leaf and branch
-    private int listSize;      // list and bucket
-    private int valueSize;     // inlined values
-    private int templateSize;  // template
-    private int nodeSize;      // node
-
-    public int getMapSize() {
+    public long getMapSize() {
         return mapSize;
     }
 
-    public int getListSize() {
+    public long getListSize() {
         return listSize;
     }
 
-    public int getValueSize() {
+    public long getValueSize() {
         return valueSize;
     }
 
-    public int getTemplateSize() {
+    public long getTemplateSize() {
         return templateSize;
     }
 
-    public int getNodeSize() {
+    public long getNodeSize() {
         return nodeSize;
     }
 
     public void analyseNode(RecordId nodeId) {
-        if (seenIds.add(nodeId)) {
+        if (notSeen(nodeId)) {
             Segment segment = nodeId.getSegment();
             int offset = nodeId.getOffset();
             RecordId templateId = segment.readRecordId(offset);
@@ -136,7 +136,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseTemplate(RecordId templateId) {
-        if (seenIds.add(templateId)) {
+        if (notSeen(templateId)) {
             Segment segment = templateId.getSegment();
             int size = 0;
             int offset = templateId.getOffset();
@@ -180,7 +180,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseMap(RecordId mapId, MapRecord map) {
-        if (seenIds.add(mapId)) {
+        if (notSeen(mapId)) {
             if (map.isDiff()) {
                 analyseDiff(mapId, map);
             } else if (map.isLeaf()) {
@@ -225,13 +225,13 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseProperty(RecordId propertyId, PropertyTemplate template) {
-        if (!seenIds.contains(propertyId)) {
+        if (!contains(propertyId)) {
             Segment segment = propertyId.getSegment();
             int offset = propertyId.getOffset();
             Type<?> type = template.getType();
 
             if (type.isArray()) {
-                seenIds.add(propertyId);
+                notSeen(propertyId);
                 int size = segment.readInt(offset);
                 valueSize += 4;
 
@@ -259,7 +259,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseBlob(RecordId blobId) {
-        if (seenIds.add(blobId)) {
+        if (notSeen(blobId)) {
             Segment segment = blobId.getSegment();
             int offset = blobId.getOffset();
             byte head = segment.readByte(offset);
@@ -289,7 +289,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseString(RecordId stringId) {
-        if (seenIds.add(stringId)) {
+        if (notSeen(stringId)) {
             Segment segment = stringId.getSegment();
             int offset = stringId.getOffset();
 
@@ -310,7 +310,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseList(RecordId listId, int size) {
-        if (seenIds.add(listId)) {
+        if (notSeen(listId)) {
             listSize += noOfListSlots(size) * RECORD_ID_BYTES;
         }
     }
@@ -325,6 +325,60 @@ public class RecordUsageAnalyser {
             } else {
                 return size + noOfListSlots(fullBuckets);
             }
+        }
+    }
+
+    private final Map<String, ShortSet> seenIds = newHashMap();
+
+    private boolean notSeen(RecordId id) {
+        String segmentId = id.getSegmentId().toString();
+        ShortSet offsets = seenIds.get(segmentId);
+        if (offsets == null) {
+            offsets = new ShortSet();
+            seenIds.put(segmentId, offsets);
+        }
+        return offsets.add(crop(id.getOffset()));
+    }
+
+    private boolean contains(RecordId id) {
+        String segmentId = id.getSegmentId().toString();
+        ShortSet offsets = seenIds.get(segmentId);
+        return offsets != null && offsets.contains(crop(id.getOffset()));
+    }
+
+    private static short crop(int value) {
+        return (short) (value >> Segment.RECORD_ALIGN_BITS);
+    }
+
+    static class ShortSet {
+        short[] elements;
+
+        boolean add(short n) {
+            if (elements == null) {
+                elements = new short[1];
+                elements[0] = n;
+                return true;
+            } else {
+                int k = binarySearch(elements, n);
+                if (k < 0) {
+                    int l = -k - 1;
+                    short[] e = new short[elements.length + 1];
+                    arraycopy(elements, 0, e, 0, l);
+                    e[l] = n;
+                    int c = elements.length - l;
+                    if (c > 0) {
+                        arraycopy(elements, l, e, l + 1, c);
+                    }
+                    elements = e;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        boolean contains(short n) {
+            return elements != null && binarySearch(elements, n) >= 0;
         }
     }
 
