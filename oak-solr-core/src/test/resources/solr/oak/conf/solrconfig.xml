@@ -808,9 +808,6 @@ Lucene will flush based on whichever limit is hit first.  -->
          </arr>
         -->
         <arr name="last-components">
-            <str>mlt</str>
-            <str>spellcheck</str>
-            <str>suggest</str>
         </arr>
     </requestHandler>
 

@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
@@ -31,7 +32,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -196,139 +196,170 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
             final int parentDepth = getDepth(parent);
 
-            cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
-                private final Set<String> seenPaths = Sets.newHashSet();
-                private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
-                private SolrDocument lastDoc;
-                private int offset = 0;
-                private boolean noDocs = false;
-
-                @Override
-                protected SolrResultRow computeNext() {
-                    if (!queue.isEmpty() || loadDocs()) {
-                        return queue.remove();
-                    }
-                    return endOfData();
-                }
-
-                private SolrResultRow convertToRow(SolrDocument doc) {
-                    String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
-                    if (path != null) {
-                        if ("".equals(path)) {
-                            path = "/";
-                        }
-                        if (!parent.isEmpty()) {
-                            path = getAncestorPath(path, parentDepth);
-                            // avoid duplicate entries
-                            if (seenPaths.contains(path)) {
-                                return null;
-                            }
-                            seenPaths.add(path);
-                        }
-
-                        float score = 0f;
-                        Object scoreObj = doc.get("score");
-                        if (scoreObj != null) {
-                            score = (Float) scoreObj;
-                        }
-                        return new SolrResultRow(path, score, doc);
-                    }
-                    return null;
-                }
-
-                /**
-                 * Loads the Solr documents in batches
-                 * @return true if any document is loaded
-                 */
-                private boolean loadDocs() {
-
-                    if (noDocs) {
-                        return false;
-                    }
-
-                    SolrDocument lastDocToRecord = null;
-
-                    try {
-                        if (log.isDebugEnabled()) {
-                            log.debug("converting filter {}", filter);
-                        }
-                        SolrQuery query = FilterQueryParser.getQuery(filter, configuration);
-                        if (lastDoc != null) {
-                            offset++;
-                            int newOffset = offset * configuration.getRows();
-                            query.setParam("start", String.valueOf(newOffset));
-                        }
-                        if (log.isDebugEnabled()) {
-                            log.debug("sending query {}", query);
-                        }
-                        QueryResponse queryResponse = solrServer.query(query);
-
-                        SolrDocumentList docs = queryResponse.getResults();
-
-                        if (docs != null) {
-                            onRetrievedDocs(filter, docs);
-
-                            if (log.isDebugEnabled()) {
-                                log.debug("getting docs {}", docs);
-                            }
-
-                            for (SolrDocument doc : docs) {
-                                SolrResultRow row = convertToRow(doc);
-                                if (row != null) {
-                                    queue.add(row);
-                                }
-                                lastDocToRecord = doc;
-                            }
-                        }
-
-                        // handle spellcheck
-                        SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
-                        if (spellCheckResponse != null && spellCheckResponse.getSuggestions() != null &&
-                                spellCheckResponse.getSuggestions().size() > 0) {
-                            SolrDocument fakeDoc = new SolrDocument();
-                            for (SpellCheckResponse.Suggestion suggestion : spellCheckResponse.getSuggestions()) {
-                                fakeDoc.addField(QueryImpl.REP_SPELLCHECK, suggestion.getAlternatives());
-                            }
-                            queue.add(new SolrResultRow("/", 1.0, fakeDoc));
-                            noDocs = true;
-                        }
-
-                        // handle suggest
-                        NamedList<Object> response = queryResponse.getResponse();
-                        Map suggest = (Map) response.get("suggest");
-                        if (suggest != null) {
-                            Set<Map.Entry<String, Object>> suggestEntries = suggest.entrySet();
-                            if (!suggestEntries.isEmpty()) {
-                                SolrDocument fakeDoc = getSuggestions(suggestEntries, filter);
-                                queue.add(new SolrResultRow("/", 1.0, fakeDoc));
-                                noDocs = true;
-                            }
-                        }
-
-                    } catch (Exception e) {
-                        if (log.isWarnEnabled()) {
-                            log.warn("query via {} failed.", solrServer, e);
-                        }
-                    }
-                    if (lastDocToRecord != null) {
-                        this.lastDoc = lastDocToRecord;
-                    }
-
-                    return !queue.isEmpty();
-                }
-
-            }, filter.getQueryEngineSettings());
+            cursor = new SolrRowCursor(getIterator(filter, parent, parentDepth), filter.getQueryEngineSettings());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return cursor;
     }
 
+    private AbstractIterator<SolrResultRow> getIterator(final Filter filter, final String parent, final int parentDepth) {
+        return new AbstractIterator<SolrResultRow>() {
+            private final Set<String> seenPaths = Sets.newHashSet();
+            private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
+            private SolrDocument lastDoc;
+            private int offset = 0;
+            private boolean noDocs = false;
+
+            @Override
+            protected SolrResultRow computeNext() {
+                if (!queue.isEmpty() || loadDocs()) {
+                    return queue.remove();
+                }
+                return endOfData();
+            }
+
+            private SolrResultRow convertToRow(SolrDocument doc) {
+                String path = String.valueOf(doc.getFieldValue(configuration.getPathField()));
+                if (path != null) {
+                    if ("".equals(path)) {
+                        path = "/";
+                    }
+                    if (!parent.isEmpty()) {
+                        path = getAncestorPath(path, parentDepth);
+                        // avoid duplicate entries
+                        if (seenPaths.contains(path)) {
+                            return null;
+                        }
+                        seenPaths.add(path);
+                    }
+
+                    float score = 0f;
+                    Object scoreObj = doc.get("score");
+                    if (scoreObj != null) {
+                        score = (Float) scoreObj;
+                    }
+                    return new SolrResultRow(path, score, doc);
+                }
+                return null;
+            }
+
+            /**
+             * Loads the Solr documents in batches
+             * @return true if any document is loaded
+             */
+            private boolean loadDocs() {
+
+                if (noDocs) {
+                    return false;
+                }
+
+                SolrDocument lastDocToRecord = null;
+
+                try {
+                    if (log.isDebugEnabled()) {
+                        log.debug("converting filter {}", filter);
+                    }
+                    SolrQuery query = FilterQueryParser.getQuery(filter, configuration);
+                    if (lastDoc != null) {
+                        offset++;
+                        int newOffset = offset * configuration.getRows();
+                        query.setParam("start", String.valueOf(newOffset));
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("sending query {}", query);
+                    }
+                    QueryResponse queryResponse = solrServer.query(query);
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("getting response {}", queryResponse.getHeader());
+                    }
+
+                    SolrDocumentList docs = queryResponse.getResults();
+
+                    if (docs != null) {
+                        onRetrievedDocs(filter, docs);
+
+                        for (SolrDocument doc : docs) {
+                            SolrResultRow row = convertToRow(doc);
+                            if (row != null) {
+                                queue.add(row);
+                            }
+                            lastDocToRecord = doc;
+                        }
+                    }
+
+                    // handle spellcheck
+                    SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
+                    if (spellCheckResponse != null && spellCheckResponse.getSuggestions() != null &&
+                            spellCheckResponse.getSuggestions().size() > 0) {
+                        SolrDocument fakeDoc = getSpellChecks(spellCheckResponse, filter);
+                        queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                        noDocs = true;
+                    }
+
+                    // handle suggest
+                    NamedList<Object> response = queryResponse.getResponse();
+                    Map suggest = (Map) response.get("suggest");
+                    if (suggest != null) {
+                        Set<Map.Entry<String, Object>> suggestEntries = suggest.entrySet();
+                        if (!suggestEntries.isEmpty()) {
+                            SolrDocument fakeDoc = getSuggestions(suggestEntries, filter);
+                            queue.add(new SolrResultRow("/", 1.0, fakeDoc));
+                            noDocs = true;
+                        }
+                    }
+
+                } catch (Exception e) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("query via {} failed.", solrServer, e);
+                    }
+                }
+                if (lastDocToRecord != null) {
+                    this.lastDoc = lastDocToRecord;
+                }
+
+                return !queue.isEmpty();
+            }
+
+        };
+    }
+
+    private SolrDocument getSpellChecks(SpellCheckResponse spellCheckResponse, Filter filter) throws SolrServerException {
+        SolrDocument fakeDoc = new SolrDocument();
+        List<SpellCheckResponse.Suggestion> suggestions = spellCheckResponse.getSuggestions();
+        Collection<String> alternatives = new ArrayList<String>(suggestions.size());
+        for (SpellCheckResponse.Suggestion suggestion : suggestions) {
+            alternatives.addAll(suggestion.getAlternatives());
+        }
+
+        // ACL filter spellcheck results
+        for (String alternative : alternatives) {
+            SolrQuery solrQuery = new SolrQuery();
+            solrQuery.setParam("q", alternative);
+            solrQuery.setParam("df", configuration.getCatchAllField());
+            solrQuery.setParam("q.op", "AND");
+            solrQuery.setParam("rows", "100");
+            QueryResponse suggestQueryResponse = solrServer.query(solrQuery);
+            SolrDocumentList results = suggestQueryResponse.getResults();
+            if (results != null && results.getNumFound() > 0) {
+                for (SolrDocument doc : results) {
+                    if (filter.isAccessible(String.valueOf(doc.getFieldValue(configuration.getPathField())))) {
+                        fakeDoc.addField(QueryImpl.REP_SPELLCHECK, alternative);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return fakeDoc;
+    }
+
     private SolrDocument getSuggestions(Set<Map.Entry<String, Object>> suggestEntries, Filter filter) throws SolrServerException {
         Collection<SimpleOrderedMap<Object>> retrievedSuggestions = new HashSet<SimpleOrderedMap<Object>>();
         SolrDocument fakeDoc = new SolrDocument();
-        for (Map.Entry<String, Object> suggestor : suggestEntries) {
-            SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggestor.getValue());
+        for (Map.Entry<String, Object> suggester : suggestEntries) {
+            SimpleOrderedMap<Object> suggestionResponses = ((SimpleOrderedMap) suggester.getValue());
             for (Map.Entry<String, Object> suggestionResponse : suggestionResponses) {
                 SimpleOrderedMap<Object> suggestionResults = ((SimpleOrderedMap) suggestionResponse.getValue());
                 for (Map.Entry<String, Object> suggestionResult : suggestionResults) {
