@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.blob.ds;
 import java.io.File;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.blob.DocumentMKWriteTest;
@@ -53,7 +54,7 @@ public class DocumentMKDataStoreWriteTest extends DocumentMKWriteTest {
     @Override
     @After
     public void tearDownConnection() throws Exception {
-        FileUtils.deleteDirectory(new File(DataStoreUtils.PATH));
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
         // the db might already be closed
         mongoConnection.close();

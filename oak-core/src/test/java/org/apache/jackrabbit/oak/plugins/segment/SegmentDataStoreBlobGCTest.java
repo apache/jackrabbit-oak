@@ -39,7 +39,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
-import org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
@@ -130,6 +131,7 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     @Test
+    @Ignore("OAK-2493")
     public void gc() throws Exception {
         HashSet<String> remaining = setUp();
 
@@ -160,6 +162,7 @@ public class SegmentDataStoreBlobGCTest {
             store.close();
         }
         FileUtils.cleanDirectory(getWorkDir());
+        FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
     }
 
     static InputStream randomStream(int seed, int size) {

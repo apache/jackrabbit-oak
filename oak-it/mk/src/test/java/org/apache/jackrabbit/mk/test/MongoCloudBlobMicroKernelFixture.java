@@ -80,7 +80,7 @@ public class MongoCloudBlobMicroKernelFixture extends BaseMongoMicroKernelFixtur
     }
 
     /**
-     * See org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils#getConfig()
+     * See org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils#getConfig()
      */
     private static Map<String,?> getConfig(){
         Map<String,Object> result = Maps.newHashMap();

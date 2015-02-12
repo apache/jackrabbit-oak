@@ -36,7 +36,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
-import org.apache.jackrabbit.oak.plugins.document.blob.ds.DataStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStoreTest;
 import org.apache.jackrabbit.oak.spi.blob.BlobStoreInputStream;
 import org.junit.After;
@@ -194,7 +193,7 @@ public class DataStoreBlobStoreTest extends AbstractBlobStoreTest {
     @After
     @Override
     public void tearDown() throws Exception {
-        FileUtils.deleteDirectory(new File(DataStoreUtils.PATH));
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         super.tearDown();
     }
 
