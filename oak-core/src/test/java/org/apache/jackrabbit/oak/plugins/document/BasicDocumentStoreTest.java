@@ -117,8 +117,9 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testMaxProperty() {
         int min = 0;
-        int max = 1024 * 1024 * 4; // 32M
+        int max = 1024 * 1024 * 8;
         int test = 0;
+        int last = 0;
 
         while (max - min >= 256) {
             test = (max + min) / 2;
@@ -134,12 +135,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 assertNotNull("failed to retrieve previously stored document", findme);
                 super.ds.remove(Collection.NODES, id);
                 min = test;
+                last = test;
             } else {
                 max = test;
             }
         }
 
-        LOG.info("max prop length for " + super.dsname + " was " + test);
+        LOG.info("max prop length for " + super.dsname + " was " + last);
     }
 
     @Test

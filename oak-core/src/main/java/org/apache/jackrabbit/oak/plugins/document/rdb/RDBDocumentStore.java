@@ -380,7 +380,7 @@ public class RDBDocumentStore implements CachingDocumentStore {
             @Override
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-1913
-                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA mediumblob)");
+                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16000), BDATA longblob)");
             }
 
             @Override
@@ -490,7 +490,8 @@ public class RDBDocumentStore implements CachingDocumentStore {
         public String getTableCreationStatement(String tableName) {
             return "create table "
                     + tableName
-                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob)";
+                    + " (ID varchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA varchar(16384), BDATA blob("
+                    + 1024 * 1024 * 1024 + "))";
         }
 
         private String description;
