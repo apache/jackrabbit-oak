@@ -871,7 +871,12 @@ public class Main {
         for (int k = 0; k < segment.getRootCount(); k++) {
             if (segment.getRootType(k) == NODE) {
                 RecordId nodeId = new RecordId(segment.getSegmentId(), segment.getRootOffset(k));
-                analyser.analyseNode(nodeId);
+                try {
+                    analyser.analyseNode(nodeId);
+                } catch (Exception e) {
+                    System.err.format("Error while processing node at %s", nodeId);
+                    e.printStackTrace();
+                }
             }
         }
     }
