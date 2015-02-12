@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.MongoBlobGCTest;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
@@ -54,7 +55,7 @@ public class MongoDataStoreBlobGCTest extends MongoBlobGCTest {
     @After
     @Override
     public void tearDownConnection() throws Exception {
-        FileUtils.deleteDirectory(new File(DataStoreUtils.PATH));
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
         mk.dispose();
         // the db might already be closed
         mongoConnection.close();
