@@ -131,8 +131,9 @@ that follow after the segment identifier lookup table. The root record
 references are a debugging and recovery aid, that are not needed during
 normal operation. They identify the types and locations of those records
 within this segment that are not accessible by following references in
-other records within this segment. These root references give enough context
-for parsing all records within a segment without any external information.
+other records within this segment. <s>These root references give enough
+context for parsing all records within a segment without any external
+information.</s> See [OAK-2498](https://issues.apache.org/jira/browse/OAK-2498).
 
 The 16-bit `blobrefcount` field indicates the number of external blob record
 references that follow after the root record references. External blobs are
