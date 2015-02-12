@@ -71,7 +71,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxIdAscii() {
-        testMaxId(true);
+        // TODO see OAK-2395
+        Assume.assumeTrue(! super.dsname.contains("MSSql"));
+
+        int result = testMaxId(true);
+        assertTrue("needs to support keys of 512 bytes length, but only supports " + result, result >= 512);
     }
 
     @Test
@@ -79,12 +83,13 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         testMaxId(false);
     }
 
-    private void testMaxId(boolean ascii) {
+    private int testMaxId(boolean ascii) {
         // TODO see OAK-1589
         Assume.assumeTrue(!(super.ds instanceof MongoDocumentStore));
         int min = 0;
         int max = 32768;
         int test = 0;
+        int last = 0;
 
         while (max - min >= 2) {
             test = (max + min) / 2;
@@ -99,12 +104,14 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
                 assertEquals(id, findme.getId());
                 super.ds.remove(Collection.NODES, id);
                 min = test;
+                last = test;
             } else {
                 max = test;
             }
         }
 
-        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for " + super.dsname + " was " + test);
+        LOG.info("max " + (ascii ? "ASCII ('0')" : "non-ASCII (U+1F4A9)") + " id length for " + super.dsname + " was " + last);
+        return last;
     }
 
     @Test
