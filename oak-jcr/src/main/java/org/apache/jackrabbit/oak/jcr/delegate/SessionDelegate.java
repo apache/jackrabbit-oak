@@ -69,6 +69,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
  */
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
+    static final Logger auditLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.audit");
     static final Logger readOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.reads");
     static final Logger writeOperationLogger = LoggerFactory.getLogger("org.apache.jackrabbit.oak.jcr.operations.writes");
 
@@ -645,10 +646,16 @@ public class SessionDelegate {
 
     private static <T> void logOperationDetails(ContentSession session, SessionOperation<T> ops) {
         if (readOperationLogger.isTraceEnabled()
-                || writeOperationLogger.isTraceEnabled()) {
+                || writeOperationLogger.isTraceEnabled()
+                || auditLogger.isDebugEnabled()) {
             Marker sessionMarker = MarkerFactory.getMarker(session.toString());
             Logger log = ops.isUpdate() ? writeOperationLogger : readOperationLogger;
             log.trace(sessionMarker, "[{}] {}", session, ops);
+
+            //For a logout operation the auth info is not accessible
+            if (!ops.isLogout() && ops.isUpdate()) {
+                auditLogger.debug(sessionMarker, "[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
+            }
         }
     }
 
