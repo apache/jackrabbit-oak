@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.junit.Assume;
 import org.junit.Test;
@@ -482,7 +481,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         while (System.currentTimeMillis() < end) {
             long now = System.currentTimeMillis();
             List<NodeDocument> result = super.ds.query(Collection.NODES, sid, cid + "X", fetchcount);
-            if ((super.ds instanceof CachingDocumentStore) && result.size() > 0) {
+            if (super.ds.getCacheStats() != null && result.size() > 0) {
                 // check freshness of returned documents
                 long created = result.get(0).getLastCheckTime();
                 assertTrue(

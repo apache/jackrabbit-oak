@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -120,4 +121,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
         store.setReadWriteMode(readWriteMode);
     }
 
+    @Override
+    public synchronized CacheStats getCacheStats() {
+        return store.getCacheStats();
+    }
 }
