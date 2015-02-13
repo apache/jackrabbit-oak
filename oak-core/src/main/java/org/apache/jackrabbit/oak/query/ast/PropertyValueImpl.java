@@ -127,10 +127,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
                     f.restrictPath(v.getValue(Type.STRING), PathRestriction.EXACT);
                 }
             } else {
-                f.restrictProperty(pn, operator, v);
-                if (propertyType != PropertyType.UNDEFINED) {
-                    f.restrictPropertyType(pn, operator, propertyType);
-                }
+                f.restrictProperty(pn, operator, v, propertyType);
             }
         }
     }
