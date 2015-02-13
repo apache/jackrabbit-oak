@@ -123,12 +123,12 @@ public class RepositoryManager implements RepositoryManagementMBean {
     }
 
     @Override
-    public CompositeData startDataStoreGC() {
+    public CompositeData startDataStoreGC(final boolean markOnly) {
         return execute(BlobGCMBean.class, new Function<BlobGCMBean, Status>() {
             @Nonnull
             @Override
             public Status apply(BlobGCMBean blobGCService) {
-                return fromCompositeData(blobGCService.startBlobGC());
+                return fromCompositeData(blobGCService.startBlobGC(markOnly));
             }
         }).toCompositeData();
     }
