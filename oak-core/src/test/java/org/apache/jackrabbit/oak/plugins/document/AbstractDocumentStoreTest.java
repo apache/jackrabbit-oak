@@ -18,34 +18,54 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
+
+import javax.sql.DataSource;
 
 import org.junit.After;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public abstract class AbstractDocumentStoreTest {
 
     protected String dsname;
     protected DocumentStore ds;
-    protected Set<String> removeMe = new HashSet<String>();
     protected DocumentStoreFixture dsf;
+    protected DataSource rdbDataSource;
+    protected List<String> removeMe = new ArrayList<String>();
+
+    static final Logger LOG = LoggerFactory.getLogger(AbstractDocumentStoreTest.class);
 
     public AbstractDocumentStoreTest(DocumentStoreFixture dsf) {
-        this.ds = dsf.createDocumentStore();
         this.dsf = dsf;
+        this.ds = dsf.createDocumentStore(1);
         this.dsname = dsf.getName();
+        this.rdbDataSource = dsf.getRDBDataSource();
     }
 
     @After
     public void cleanUp() throws Exception {
-        for (String id : removeMe) {
+        if (!removeMe.isEmpty()) {
+            long start = System.nanoTime();
             try {
-                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
+                ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, removeMe);
             } catch (Exception ex) {
-                // best effort
+                // retry one by one
+                for (String id : removeMe) {
+                    try {
+                        ds.remove(org.apache.jackrabbit.oak.plugins.document.Collection.NODES, id);
+                    } catch (Exception ex2) {
+                        // best effort
+                    }
+                }
+            }
+            if (removeMe.size() > 1) {
+                long elapsed = (System.nanoTime() - start) / (1000 * 1000);
+                float rate = (((float)removeMe.size()) / (elapsed == 0 ? 1 : elapsed));
+                LOG.info(removeMe.size() + " documents removed in " + elapsed + "ms (" + rate + "/ms)");
             }
         }
         dsf.dispose();
@@ -53,12 +73,20 @@ public abstract class AbstractDocumentStoreTest {
 
     @Parameterized.Parameters
     public static Collection<Object[]> fixtures() {
+        return fixtures(false);
+    }
+
+    protected static Collection<Object[]> fixtures(boolean multi) {
         Collection<Object[]> result = new ArrayList<Object[]>();
-        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO };
+        DocumentStoreFixture candidates[] = new DocumentStoreFixture[] { DocumentStoreFixture.MEMORY, DocumentStoreFixture.MONGO,
+                DocumentStoreFixture.RDB_H2, DocumentStoreFixture.RDB_PG, DocumentStoreFixture.RDB_DB2,
+                DocumentStoreFixture.RDB_MYSQL, DocumentStoreFixture.RDB_ORACLE, DocumentStoreFixture.RDB_MSSQL };
 
         for (DocumentStoreFixture dsf : candidates) {
             if (dsf.isAvailable()) {
-                result.add(new Object[] { dsf });
+                if (!multi || dsf.hasSinglePersistence()) {
+                    result.add(new Object[] { dsf });
+                }
             }
         }
 

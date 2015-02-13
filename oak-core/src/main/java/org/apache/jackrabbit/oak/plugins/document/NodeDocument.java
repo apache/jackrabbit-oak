@@ -124,7 +124,7 @@ public final class NodeDocument extends Document implements CachedNodeDocument{
      * overlap with un-merged branch commits.
      * Key: revision, value: always true
      */
-    static final String COLLISIONS = "_collisions";
+    public static final String COLLISIONS = "_collisions";
 
     /**
      * The modified time in seconds (5 second resolution).
