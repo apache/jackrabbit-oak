@@ -21,6 +21,8 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
+
 /**
  * The interface for the backend storage for documents.
  * <p>
@@ -244,4 +246,9 @@ public interface DocumentStore {
      */
     void setReadWriteMode(String readWriteMode);
 
+    /**
+     * @return status information about the cache
+     */
+    @CheckForNull
+    CacheStats getCacheStats();
 }

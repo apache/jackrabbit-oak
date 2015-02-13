@@ -28,6 +28,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -303,6 +304,19 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
+
+    @Override
+    public CacheStats getCacheStats() {
+        try {
+            long start = now();
+            CacheStats result = base.getCacheStats();
+            updateAndLogTimes("getCacheStats", start, 0, 0);
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
     private void logCommonCall(long start, String key) {
         int time = (int) (System.currentTimeMillis() - start);
         if (time <= 0) {
@@ -433,5 +447,4 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
         }
     }
-
 }

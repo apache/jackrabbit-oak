@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -444,14 +443,13 @@ public class DocumentNodeStoreService {
         }
 
         DocumentStore ds = store.getDocumentStore();
-        if (ds instanceof CachingDocumentStore) {
-            CachingDocumentStore cds = (CachingDocumentStore) ds;
+        if (ds.getCacheStats() != null) {
             registrations.add(
                     registerMBean(whiteboard,
                             CacheStatsMBean.class,
-                            cds.getCacheStats(),
+                            ds.getCacheStats(),
                             CacheStatsMBean.TYPE,
-                            cds.getCacheStats().getName())
+                            ds.getCacheStats().getName())
             );
         }
 
