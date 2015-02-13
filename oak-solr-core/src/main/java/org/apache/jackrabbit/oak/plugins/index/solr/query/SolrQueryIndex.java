@@ -207,9 +207,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return new AbstractIterator<SolrResultRow>() {
             private final Set<String> seenPaths = Sets.newHashSet();
             private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
-            private SolrDocument lastDoc;
             private int offset = 0;
             private boolean noDocs = false;
+            private long numFound = 0;
 
             @Override
             protected SolrResultRow computeNext() {
@@ -254,16 +254,17 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     return false;
                 }
 
-                SolrDocument lastDocToRecord = null;
-
                 try {
                     if (log.isDebugEnabled()) {
                         log.debug("converting filter {}", filter);
                     }
                     SolrQuery query = FilterQueryParser.getQuery(filter, configuration);
-                    if (lastDoc != null) {
+                    if (numFound > 0) {
                         offset++;
                         int newOffset = offset * configuration.getRows();
+                        if (newOffset >= numFound) {
+                            return false;
+                        }
                         query.setParam("start", String.valueOf(newOffset));
                     }
                     if (log.isDebugEnabled()) {
@@ -278,6 +279,9 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     SolrDocumentList docs = queryResponse.getResults();
 
                     if (docs != null) {
+
+                        numFound = docs.getNumFound();
+
                         onRetrievedDocs(filter, docs);
 
                         for (SolrDocument doc : docs) {
@@ -285,7 +289,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             if (row != null) {
                                 queue.add(row);
                             }
-                            lastDocToRecord = doc;
                         }
                     }
 
@@ -314,9 +317,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     if (log.isWarnEnabled()) {
                         log.warn("query via {} failed.", solrServer, e);
                     }
-                }
-                if (lastDocToRecord != null) {
-                    this.lastDoc = lastDocToRecord;
                 }
 
                 return !queue.isEmpty();
