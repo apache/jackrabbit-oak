@@ -49,7 +49,6 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
-import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
@@ -346,14 +345,13 @@ public class DocumentNodeStoreService {
         }
 
         DocumentStore ds = store.getDocumentStore();
-        if (ds instanceof CachingDocumentStore) {
-            CachingDocumentStore cds = (CachingDocumentStore) ds;
+        if (ds.getCacheStats() != null) {
             registrations.add(
                     registerMBean(whiteboard,
                             CacheStatsMBean.class,
-                            cds.getCacheStats(),
+                            ds.getCacheStats(),
                             CacheStatsMBean.TYPE,
-                            cds.getCacheStats().getName())
+                            ds.getCacheStats().getName())
             );
         }
 

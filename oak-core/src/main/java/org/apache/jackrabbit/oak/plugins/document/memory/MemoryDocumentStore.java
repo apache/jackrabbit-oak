@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -340,6 +341,11 @@ public class MemoryDocumentStore implements DocumentStore {
 
     public WriteConcern getWriteConcern() {
         return writeConcern;
+    }
+
+    @Override
+    public CacheStats getCacheStats() {
+        return null;
     }
 
 }

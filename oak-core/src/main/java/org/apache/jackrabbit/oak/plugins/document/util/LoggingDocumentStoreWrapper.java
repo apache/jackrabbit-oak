@@ -21,6 +21,7 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -279,6 +280,22 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
+    @Override
+    public CacheStats getCacheStats() {
+        try {
+            logMethod("getCacheStats");
+            return logResult(new Callable<CacheStats>() {
+                @Override
+                public CacheStats call() throws Exception {
+                    return store.getCacheStats();
+                }
+            });
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
         buff.append('.').append(methodName).append('(');
@@ -328,5 +345,4 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
         LOG.info(out);
     }
-
 }
