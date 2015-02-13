@@ -597,7 +597,7 @@ public class SessionDelegate {
             log.trace(sessionMarker, "[{}] {}", session, ops);
 
             //For a logout operation the auth info is not accessible
-            if (!ops.isLogout() && ops.isUpdate()) {
+            if (!ops.isLogout() && !ops.isRefresh() && !ops.isSave() && ops.isUpdate()) {
                 auditLogger.debug(sessionMarker, "[{}] [{}] {}", session.getAuthInfo().getUserID(), session, ops);
             }
         }
