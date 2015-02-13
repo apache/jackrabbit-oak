@@ -51,7 +51,7 @@ import com.google.common.collect.ImmutableSet;
  */
 class ReferenceIndex implements QueryIndex {
 
-    private static ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
+    private static final ContentMirrorStoreStrategy STORE = new ContentMirrorStoreStrategy();
 
     @Override
     public String getIndexName() {
@@ -70,24 +70,31 @@ class ReferenceIndex implements QueryIndex {
             return Double.POSITIVE_INFINITY;
         }
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            if (pr.propertyType == REFERENCE
-                    || pr.propertyType == WEAKREFERENCE) {
+            if (isEqualityRestrictionOnType(pr, REFERENCE) ||
+                    isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
                 return 1;
             }
         }
         // not an appropriate index
         return POSITIVE_INFINITY;
     }
+    
+    private static boolean isEqualityRestrictionOnType(PropertyRestriction pr, int propertyType) {
+        if (pr.propertyType != propertyType) {
+            return false;
+        }
+        return pr.first != null && pr.first == pr.last;
+    }
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            if (pr.propertyType == REFERENCE) {
+            if (isEqualityRestrictionOnType(pr, REFERENCE)) {
                 String uuid = pr.first.getValue(STRING);
                 String name = pr.propertyName;
                 return lookup(root, uuid, name, REF_NAME, filter);
             }
-            if (pr.propertyType == WEAKREFERENCE) {
+            if (isEqualityRestrictionOnType(pr, WEAKREFERENCE)) {
                 String uuid = pr.first.getValue(STRING);
                 String name = pr.propertyName;
                 return lookup(root, uuid, name, WEAK_REF_NAME, filter);

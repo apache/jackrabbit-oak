@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.query.index;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -31,6 +30,8 @@ import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.Session;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
@@ -87,8 +88,15 @@ public class FilterImpl implements Filter {
     
     private FullTextExpression fullTextConstraint;
 
-    private final HashMap<String, PropertyRestriction> propertyRestrictions =
-            new HashMap<String, PropertyRestriction>();
+    /**
+     * The list of restrictions for each property. A restriction may be x=1.
+     * <p>
+     * Each property may have multiple restrictions, which means all
+     * restrictions must apply, for example x=1 and x=2. For this case, only
+     * multi-valued properties match if it contains both the values 1 and 2.
+     */
+    private final ListMultimap<String, PropertyRestriction> propertyRestrictions =
+            ArrayListMultimap.create();
 
     /**
      * Only return distinct values.
@@ -239,15 +247,24 @@ public class FilterImpl implements Filter {
         return propertyRestrictions.values();
     }
 
-    /**
-     * Get the restriction for the given property, if any.
-     *
-     * @param propertyName the property name
-     * @return the restriction or null
-     */
     @Override
     public PropertyRestriction getPropertyRestriction(String propertyName) {
-        return propertyRestrictions.get(propertyName);
+        List<PropertyRestriction> list = propertyRestrictions.get(propertyName);
+        if (list.isEmpty()) {
+            return null;
+        } else if (list.size() == 1) {
+            return list.get(0);
+        }
+        int bestSort = -1;
+        PropertyRestriction best = null;
+        for (PropertyRestriction x : list) {
+            int sort = x.sortOrder();
+            if (sort > bestSort) {
+                bestSort = sort;
+                best = x;
+            }
+        }
+        return best;
     }
 
     public boolean testPath(String path) {
@@ -270,52 +287,25 @@ public class FilterImpl implements Filter {
         }
     }
 
-    public void restrictPropertyType(String propertyName, Operator operator,
-            int propertyType) {
-        if (propertyType == PropertyType.UNDEFINED) {
-            // not restricted
-            return;
-        }
-        PropertyRestriction x = addRestricition(propertyName);
-        if (x.propertyType != PropertyType.UNDEFINED && x.propertyType != propertyType) {
-            // already restricted to another property type - always false
-            setAlwaysFalse();
-        }
-        x.propertyType = propertyType;
+    public void restrictPropertyAsList(String propertyName, List<PropertyValue> list) {
+        PropertyRestriction x = new PropertyRestriction();
+        x.propertyName = propertyName;
+        x.list = list;
+        addRestriction(x);
     }
     
-    public void restrictPropertyAsList(String propertyName, List<PropertyValue> list) {
-        PropertyRestriction x = addRestricition(propertyName);
-        if (x.list == null) {
-            x.list = list;
-        } else {
-            // this is required for multi-valued properties:
-            // for example, if a multi-value property p contains {1, 2},
-            // and we search using "p in (1, 3) and p in (2, 4)", then
-            // this needs to match - so we search for "p in (1, 2, 3, 4)"
-            x.list.removeAll(list);
-            x.list.addAll(list);
-        }
+    public void restrictProperty(String propertyName, Operator op, PropertyValue v) {
+        restrictProperty(propertyName, op, v, PropertyType.UNDEFINED);
     }
 
-    public void restrictProperty(String propertyName, Operator op, PropertyValue v) {
-        PropertyRestriction x = addRestricition(propertyName);
-        PropertyValue oldFirst = x.first;
-        PropertyValue oldLast = x.last;
+    public void restrictProperty(String propertyName, Operator op, PropertyValue v, int propertyType) {
+        PropertyRestriction x = new PropertyRestriction();
+        x.propertyName = propertyName;
+        x.propertyType = propertyType;
         switch (op) {
         case EQUAL:
-            if (x.first != null && x.last == x.first && x.firstIncluding && x.lastIncluding) {
-                // we keep the old equality condition if there is one;
-                // we can not use setAlwaysFalse, as this would not be correct
-                // for multi-valued properties:
-                // unlike in databases, "x = 1 and x = 2" can match a node
-                // if x is a multi-valued property with value {1, 2}
-            } else {
-                // all other conditions (range conditions) are replaced with this one
-                // (we can not use setAlwaysFalse for the same reason as above)
-                x.first = x.last = v;
-                x.firstIncluding = x.lastIncluding = true;
-            }
+            x.first = x.last = v;
+            x.firstIncluding = x.lastIncluding = true;
             break;
         case NOT_EQUAL:
             if (v != null) {
@@ -323,61 +313,51 @@ public class FilterImpl implements Filter {
             }
             break;
         case GREATER_THAN:
-            // we don't narrow the range because of multi-valued properties
-            if (x.first == null) {
-                x.first = maxValue(oldFirst, v);
-                x.firstIncluding = false;
-            }
+            x.first = v;
+            x.firstIncluding = false;
             break;
         case GREATER_OR_EQUAL:
-            // we don't narrow the range because of multi-valued properties
-            if (x.first == null) {
-                x.first = maxValue(oldFirst, v);
-                x.firstIncluding = x.first == oldFirst ? x.firstIncluding : true;
-            }
+            x.first = v;
+            x.firstIncluding = true;
             break;
         case LESS_THAN:
-            // we don't narrow the range because of multi-valued properties
-            if (x.last == null) {
-                x.last = minValue(oldLast, v);
-                x.lastIncluding = false;
-            }
+            x.last = v;
+            x.lastIncluding = false;
             break;
         case LESS_OR_EQUAL:
-            // we don't narrow the range because of multi-valued properties
-            if (x.last == null) {
-                x.last = minValue(oldLast, v);
-                x.lastIncluding = x.last == oldLast ? x.lastIncluding : true;
-            }
+            x.last = v;
+            x.lastIncluding = true;
             break;
         case LIKE:
-            // we don't narrow the range because of multi-valued properties
-            if (x.first == null) {
-                // LIKE is handled in the fulltext index
-                x.isLike = true;
-                x.first = v;
-            }
+            // LIKE is handled in the fulltext index
+            x.isLike = true;
+            x.first = v;
             break;
         }
-        if (x.first != null && x.last != null) {
-            if (x.first.compareTo(x.last) > 0) {
-                setAlwaysFalse();
-            } else if (x.first.compareTo(x.last) == 0 && (!x.firstIncluding || !x.lastIncluding)) {
-                setAlwaysFalse();
+        addRestriction(x);
+    }
+    
+    /**
+     * Add a restriction for the given property, unless the exact same
+     * restriction is already set.
+     * 
+     * @param restriction the restriction to add
+     */
+    private void addRestriction(PropertyRestriction restriction) {
+        List<PropertyRestriction> list = getPropertyRestrictions(restriction.propertyName);
+        for (PropertyRestriction old : list) {
+            if (old.equals(restriction)) {
+                return;
             }
         }
+        list.add(restriction);
     }
     
-    private PropertyRestriction addRestricition(String propertyName) {
-        PropertyRestriction x = propertyRestrictions.get(propertyName);
-        if (x == null) {
-            x = new PropertyRestriction();
-            x.propertyName = propertyName;
-            propertyRestrictions.put(propertyName, x);
-        }
-        return x;
+    @Override
+    public List<PropertyRestriction> getPropertyRestrictions(String propertyName) {
+        return propertyRestrictions.get(propertyName);
     }
-    
+
     static PropertyValue maxValue(PropertyValue a, PropertyValue b) {
         if (a == null) {
             return b;
@@ -408,10 +388,10 @@ public class FilterImpl implements Filter {
         buff.append(", path=").append(getPathPlan());
         if (!propertyRestrictions.isEmpty()) {
             buff.append(", property=[");
-            Iterator<Entry<String, PropertyRestriction>> iterator = propertyRestrictions
-                    .entrySet().iterator();
+            Iterator<Entry<String, Collection<PropertyRestriction>>> iterator = propertyRestrictions
+                    .asMap().entrySet().iterator();
             while (iterator.hasNext()) {
-                Entry<String, PropertyRestriction> p = iterator.next();
+                Entry<String, Collection<PropertyRestriction>> p = iterator.next();
                 buff.append(p.getKey()).append("=").append(p.getValue());
                 if (iterator.hasNext()) {
                     buff.append(", ");

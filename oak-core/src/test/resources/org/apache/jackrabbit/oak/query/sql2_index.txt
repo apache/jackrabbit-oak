@@ -24,6 +24,11 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+explain select * from [nt:base] where (p=1 or p=2) and (p=3 or p=4)
+[nt:base] as [nt:base] /* traverse "*"
+  where ([nt:base].[p] in(1, 2))
+  and ([nt:base].[p] in(3, 4)) */
+
 explain select *
   from [nt:base]
   where [jcr:uuid] like '%'
