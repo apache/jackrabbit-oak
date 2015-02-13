@@ -24,6 +24,13 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+explain select * from [nt:base] where (p=1 or p=2) and (p=3 or p=4)
+[nt:base] as [nt:base] /* traverse "*"
+  where ((([nt:base].[p] is not null)
+  and ([nt:base].[p] in(cast('1' as long), cast('2' as long))))
+  and ([nt:base].[p] is not null))
+  and ([nt:base].[p] in(cast('3' as long), cast('4' as long))) */
+
 explain select e.[jcr:path]
   from [nt:base] as a
   inner join [nt:base] as b on ischildnode(b, a)
