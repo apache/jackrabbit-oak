@@ -48,6 +48,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.slf4j.Logger;
@@ -62,7 +63,8 @@ import static com.google.common.collect.Iterators.transform;
  * It also handles inlining binaries if there size is smaller than
  * {@link org.apache.jackrabbit.core.data.DataStore#getMinRecordLength()}
  */
-public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollectableBlobStore {
+public class DataStoreBlobStore implements DataStore, SharedDataStore, BlobStore,
+        GarbageCollectableBlobStore {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final DataStore delegate;
@@ -392,6 +394,48 @@ public class DataStoreBlobStore implements DataStore, BlobStore, GarbageCollecta
     @Override
     public Iterator<String> resolveChunks(String blobId) throws IOException {
         return Iterators.singletonIterator(blobId);
+    }
+
+    @Override
+    public void addMetadataRecord(InputStream stream, String name) throws DataStoreException {
+        if (delegate instanceof SharedDataStore) {
+            ((SharedDataStore) delegate).addMetadataRecord(stream, name);
+        }
+    }
+
+    @Override public DataRecord getMetadataRecord(String name) {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getMetadataRecord(name);
+        }
+        return null;
+    }
+
+    @Override
+    public List<DataRecord> getAllMetadataRecords(String prefix) {
+        if (delegate instanceof SharedDataStore) {
+            return ((SharedDataStore) delegate).getAllMetadataRecords(prefix);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean deleteMetadataRecord(String name) {
+        return delegate instanceof SharedDataStore && ((SharedDataStore) delegate).deleteMetadataRecord(name);
+    }
+
+    @Override
+    public void deleteAllMetadataRecords(String prefix) {
+        if (delegate instanceof SharedDataStore) {
+            ((SharedDataStore) delegate).deleteAllMetadataRecords(prefix);
+        }
+    }
+
+    @Override
+    public Type getType() {
+        if (delegate instanceof SharedDataStore) {
+            return Type.SHARED;
+        }
+        return Type.DEFAULT;
     }
 
     //~---------------------------------------------< Object >

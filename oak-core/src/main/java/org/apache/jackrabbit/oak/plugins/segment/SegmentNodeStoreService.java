@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStr
 import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.TIMESTAMP_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +51,10 @@ import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
@@ -262,15 +267,27 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         revisionGCRegistration = registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
                 RevisionGCMBean.TYPE, "Segment node store revision garbage collection");
 
+        // If a shared data store register the repo id in the data store
+        if (SharedDataStoreUtils.isShared(blobStore)) {
+            try {
+                String repoId = ClusterRepositoryInfo.createId(delegate);
+                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                    SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+            } catch (Exception e) {
+                throw new IOException("Could not register a unique repositoryId", e);
+            }
+        }
+
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
-                public void collectGarbage() throws Exception {
+                public void collectGarbage(boolean sweep) throws Exception {
                     MarkSweepGarbageCollector gc = new MarkSweepGarbageCollector(
                             new SegmentBlobReferenceRetriever(store.getTracker()),
                             (GarbageCollectableBlobStore) store.getBlobStore(),
-                            executor);
-                    gc.collectGarbage();
+                            executor,
+                            ClusterRepositoryInfo.getId(delegate));
+                    gc.collectGarbage(sweep);
                 }
             };
 
