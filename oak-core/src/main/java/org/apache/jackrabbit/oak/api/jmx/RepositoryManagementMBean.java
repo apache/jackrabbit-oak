@@ -130,10 +130,11 @@ public interface RepositoryManagementMBean {
     /**
      * Initiate a data store garbage collection operation
      *
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
      * @return  the status of the operation right after it was initiated
      */
     @Nonnull
-    CompositeData startDataStoreGC();
+    CompositeData startDataStoreGC(boolean markOnly);
 
     /**
      * Data store garbage collection status

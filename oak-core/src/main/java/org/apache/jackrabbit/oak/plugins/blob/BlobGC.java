@@ -61,13 +61,13 @@ public class BlobGC implements BlobGCMBean {
 
     @Nonnull
     @Override
-    public CompositeData startBlobGC() {
+    public CompositeData startBlobGC(final boolean markOnly) {
         if (gcOp.isDone()) {
             gcOp = newManagementOperation(OP_NAME, new Callable<String>() {
                 @Override
                 public String call() throws Exception {
                     long t0 = nanoTime();
-                    blobGarbageCollector.collectGarbage();
+                    blobGarbageCollector.collectGarbage(markOnly);
                     return "Blob gc completed in " + formatTime(nanoTime() - t0);
                 }
             });
