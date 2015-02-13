@@ -20,7 +20,6 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -87,14 +86,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
 
     @Nonnull
     @Override
-    public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update)
-            throws MicroKernelException {
+    public synchronized <T extends Document> T createOrUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.createOrUpdate(collection, update);
     }
 
     @Override
-    public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update)
-            throws MicroKernelException {
+    public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.findAndUpdate(collection, update);
     }
 

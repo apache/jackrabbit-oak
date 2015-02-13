@@ -21,11 +21,11 @@ import java.util.concurrent.Callable;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,8 +186,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     @Nonnull
     @Override
     public <T extends Document> T createOrUpdate(final Collection<T> collection,
-                                                 final UpdateOp update)
-            throws MicroKernelException {
+                                                 final UpdateOp update) {
         try {
             logMethod("createOrUpdate", collection, update);
             return logResult(new Callable<T>() {
@@ -204,8 +203,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
 
     @Override
     public <T extends Document> T findAndUpdate(final Collection<T> collection,
-                                                final UpdateOp update)
-            throws MicroKernelException {
+                                                final UpdateOp update) {
         try {
             logMethod("findAndUpdate", collection, update);
             return logResult(new Callable<T>() {
@@ -308,7 +306,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
             return (RuntimeException) e;
         }
         log("// unexpected exception type: " + e.getClass().getName());
-        return new MicroKernelException("Unexpected exception: " + e.toString(), e);
+        return new DocumentStoreException("Unexpected exception: " + e.toString(), e);
     }
 
     private void logException(Exception e) {

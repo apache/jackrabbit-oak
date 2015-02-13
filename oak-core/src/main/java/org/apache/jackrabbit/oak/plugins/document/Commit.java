@@ -29,7 +29,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -148,7 +147,7 @@ public class Commit {
         if (operations.containsKey(path)) {
             String msg = "Node already added: " + path;
             LOG.error(msg);
-            throw new MicroKernelException(msg);
+            throw new DocumentStoreException(msg);
         }
         operations.put(path, n.asOperation(true));
         addedNodes.add(path);
@@ -162,11 +161,10 @@ public class Commit {
      * Applies this commit to the store.
      *
      * @return the commit revision.
-     * @throws MicroKernelException if the commit cannot be applied.
-     *              TODO: use non-MK exception type
+     * @throws DocumentStoreException if the commit cannot be applied.
      */
     @Nonnull
-    Revision apply() throws MicroKernelException {
+    Revision apply() throws DocumentStoreException {
         boolean success = false;
         Revision baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
@@ -373,7 +371,7 @@ public class Commit {
                     if (before == null) {
                         String msg = "Conflicting concurrent change. " +
                                 "Update operation failed: " + commitRoot;
-                        throw new MicroKernelException(msg);
+                        throw new DocumentStoreException(msg);
                     } else {
                         // if we get here the commit was successful and
                         // the commit revision is set on the commitRoot
@@ -391,7 +389,7 @@ public class Commit {
                 }
                 operations.put(commitRootPath, commitRoot);
             }
-        } catch (MicroKernelException e) {
+        } catch (DocumentStoreException e) {
             rollback(newNodes, opLog, commitRoot);
             throw e;
         }
@@ -525,7 +523,7 @@ public class Commit {
                 conflictMessage += ", before\n" + revision +
                         "; document:\n" + (before == null ? "" : before.format()) +
                         ",\nrevision order:\n" + nodeStore.getRevisionComparator();
-                throw new MicroKernelException(conflictMessage);
+                throw new DocumentStoreException(conflictMessage);
             }
         }
     }
