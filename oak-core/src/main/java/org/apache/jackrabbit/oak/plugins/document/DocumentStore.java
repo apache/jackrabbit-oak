@@ -21,8 +21,6 @@ import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-
 /**
  * The interface for the backend storage for documents.
  * <p>
@@ -160,11 +158,9 @@ public interface DocumentStore {
      * @param collection the collection
      * @param update the update operation
      * @return the old document or <code>null</code> if it didn't exist before.
-     * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException;
+    <T extends Document> T createOrUpdate(Collection<T> collection, UpdateOp update);
 
     /**
      * Performs a conditional update (e.g. using
@@ -177,11 +173,9 @@ public interface DocumentStore {
      * @param update the update operation with the condition
      * @return the old document or <code>null</code> if the condition is not met or
      *         if the document wasn't found
-     * @throws MicroKernelException if the operation failed.
      */
     @CheckForNull
-    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update)
-            throws MicroKernelException;
+    <T extends Document> T findAndUpdate(Collection<T> collection, UpdateOp update);
 
     /**
      * Invalidate the document cache.
