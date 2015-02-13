@@ -18,12 +18,16 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Comparator;
+import java.util.List;
 
 import com.google.common.io.Files;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 
 /**
@@ -47,6 +51,13 @@ class GarbageCollectorFileState implements Closeable{
 
     /** The garbage stores the garbage collection candidates which were not deleted . */
     private final File garbage;
+    private final static Comparator<String> lexComparator = 
+            new Comparator<String>() {
+                @Override
+                public int compare(String s1, String s2) {
+                    return s1.compareTo(s2);
+                }
+            };
 
     /**
      * Instantiates a new garbage collector file state.
@@ -118,21 +129,26 @@ class GarbageCollectorFileState implements Closeable{
      * 
      * @param file file whose contents needs to be sorted
      */
-    public void sort(File file) throws IOException {
+    public static void sort(File file) throws IOException {
         File sorted = createTempFile();
-        Comparator<String> lexComparator = new Comparator<String>() {
-            @Override
-            public int compare(String s1, String s2) {
-                return s1.compareTo(s2);
-            }
-        };
-        ExternalSort.mergeSortedFiles(
-                ExternalSort.sortInBatch(file, lexComparator, true),
-                sorted, lexComparator, true);
+        merge(ExternalSort.sortInBatch(file, lexComparator, true), sorted);
         Files.move(sorted, file);
     }
+    
+    public static void merge(List<File> files, File output) throws IOException {
+        ExternalSort.mergeSortedFiles(
+                files,
+                output, lexComparator, true);        
+    }
+    
+    public static File copy(InputStream stream) throws IOException {
+        File file = createTempFile();
+        IOUtils.copy(stream, 
+                new FileOutputStream(file));
+        return file;
+    }
 
-    private File createTempFile() throws IOException {
-        return File.createTempFile("temp", null, home);
+    private static File createTempFile() throws IOException {
+        return File.createTempFile("temp", null);
     }
 }

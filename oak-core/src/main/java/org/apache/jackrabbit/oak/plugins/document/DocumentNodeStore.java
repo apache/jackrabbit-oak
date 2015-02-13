@@ -1973,11 +1973,13 @@ public final class DocumentNodeStore
      * Creates and returns a MarkSweepGarbageCollector if the current BlobStore
      * supports garbage collection
      *
-     * @return garbage collector of the BlobStore supports GC otherwise null
      * @param blobGcMaxAgeInSecs
+     * @param repositoryId
+     * @return garbage collector of the BlobStore supports GC otherwise null
      */
     @CheckForNull
-    public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs) {
+    public MarkSweepGarbageCollector createBlobGarbageCollector(long blobGcMaxAgeInSecs,
+            String repositoryId) {
         MarkSweepGarbageCollector blobGC = null;
         if(blobStore instanceof GarbageCollectableBlobStore){
             try {
@@ -1985,7 +1987,8 @@ public final class DocumentNodeStore
                         new DocumentBlobReferenceRetriever(this),
                             (GarbageCollectableBlobStore) blobStore,
                         executor,
-                        TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs));
+                        TimeUnit.SECONDS.toMillis(blobGcMaxAgeInSecs),
+                        repositoryId);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while initializing " +
                         "the MarkSweepGarbageCollector",e);

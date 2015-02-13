@@ -24,6 +24,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.AbstractMongoConnectionTest;
 import org.junit.Test;
 
@@ -51,7 +52,7 @@ public class DataStoreUtils {
     private static long time = -1;
 
     public static DataStoreBlobStore getBlobStore() throws Exception {
-        String className = System.getProperty(DS_CLASS_NAME, FileDataStore.class.getName());
+        String className = System.getProperty(DS_CLASS_NAME, OakFileDataStore.class.getName());
         DataStore ds = Class.forName(className).asSubclass(DataStore.class).newInstance();
         PropertiesUtil.populate(ds, getConfig(), false);
         ds.init(getHomeDir());

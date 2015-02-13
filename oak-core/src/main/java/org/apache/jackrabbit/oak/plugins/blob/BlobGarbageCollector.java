@@ -22,9 +22,11 @@ package org.apache.jackrabbit.oak.plugins.blob;
 public interface BlobGarbageCollector {
 
     /**
-     * Collect garbage blobs from the passed node store instance.
-     * 
-     * @throws Exception
+     * Marks garbage blobs from the passed node store instance.
+     * Collects them only if markOnly is false.
+     *
+     * @param markOnly whether to only mark references and not sweep in the mark and sweep operation.
+     * @throws Exception the exception
      */
-    void collectGarbage() throws Exception;
+    void collectGarbage(boolean markOnly) throws Exception;
 }

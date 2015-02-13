@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -55,8 +56,11 @@ import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
+import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
+import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.cache.CachingDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -291,6 +295,17 @@ public class DocumentNodeStoreService {
         mkBuilder.setExecutor(executor);
         mk = mkBuilder.open();
 
+        // If a shared data store register the repo id in the data store
+        if (SharedDataStoreUtils.isShared(blobStore)) {
+            try {
+                String repoId = ClusterRepositoryInfo.createId(mk.getNodeStore());
+                ((SharedDataStore) blobStore).addMetadataRecord(new ByteArrayInputStream(new byte[0]),
+                    SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY.getNameFromId(repoId));
+            } catch (Exception e) {
+                throw new IOException("Could not register a unique repositoryId", e);
+            }
+        }
+
         registerJMXBeans(mk.getNodeStore());
         registerLastRevRecoveryJob(mk.getNodeStore());
 
@@ -443,8 +458,10 @@ public class DocumentNodeStoreService {
         if (store.getBlobStore() instanceof GarbageCollectableBlobStore) {
             BlobGarbageCollector gc = new BlobGarbageCollector() {
                 @Override
-                public void collectGarbage() throws Exception {
-                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs).collectGarbage();
+                public void collectGarbage(boolean sweep) throws Exception {
+                    store.createBlobGarbageCollector(blobGcMaxAgeInSecs,
+                            ClusterRepositoryInfo.getId(mk.getNodeStore()))
+                            .collectGarbage(sweep);
                 }
             };
             registrations.add(registerMBean(whiteboard, BlobGCMBean.class, new BlobGC(gc, executor),
