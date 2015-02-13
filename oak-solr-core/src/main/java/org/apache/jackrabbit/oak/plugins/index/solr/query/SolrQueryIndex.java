@@ -460,6 +460,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                 private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
                 private SolrDocument lastDoc;
                 public int offset = 0;
+                public long numFound = 0;
 
                 @Override
                 protected SolrResultRow computeNext() {
@@ -499,16 +500,18 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                  * @return true if any document is loaded
                  */
                 private boolean loadDocs() {
-                    SolrDocument lastDocToRecord = null;
 
                     try {
                         if (log.isDebugEnabled()) {
                             log.debug("converting filter {}", filter);
                         }
                         SolrQuery query = getQuery(filter);
-                        if (lastDoc != null) {
+                        if (numFound > 0) {
                             offset++;
                             int newOffset = offset * configuration.getRows();
+                            if (newOffset >= numFound) {
+                                return false;
+                            }
                             query.setParam("start", String.valueOf(newOffset));
                         }
                         if (log.isDebugEnabled()) {
@@ -520,20 +523,21 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             log.debug("getting docs {}", docs);
                         }
 
-                        for (SolrDocument doc : docs) {
-                            SolrResultRow row = convertToRow(doc);
-                            if (row != null) {
-                                queue.add(row);
+                        if (docs != null) {
+
+                            numFound = docs.getNumFound();
+
+                            for (SolrDocument doc : docs) {
+                                SolrResultRow row = convertToRow(doc);
+                                if (row != null) {
+                                    queue.add(row);
+                                }
                             }
-                            lastDocToRecord = doc;
                         }
                     } catch (Exception e) {
                         if (log.isWarnEnabled()) {
                             log.warn("query via {} failed.", solrServer, e);
                         }
-                    }
-                    if (lastDocToRecord != null) {
-                        this.lastDoc = lastDocToRecord;
                     }
 
                     return !queue.isEmpty();
