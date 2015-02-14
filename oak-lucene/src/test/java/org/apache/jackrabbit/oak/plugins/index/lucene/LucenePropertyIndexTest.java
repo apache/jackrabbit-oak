@@ -58,7 +58,9 @@ import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_MAPPINGS;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
@@ -184,7 +186,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         Tree indexWithType = createIndex("test2", of("propa"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:unstructured"),
+            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
                 Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
@@ -216,7 +218,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     public void declaringNodeTypeSingleIndex() throws Exception {
         Tree indexWithType = createIndex("test2", of("propa", "propb"));
         indexWithType.setProperty(PropertyStates
-            .createProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:unstructured"),
+            .createProperty(DECLARING_NODE_TYPES, of("nt:unstructured"),
                 Type.STRINGS));
 
         Tree test = root.getTree("/").addChild("test");
@@ -243,6 +245,59 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         String propNoIdxQuery = "select [jcr:path] from [nt:base] where [propb] = 'baz'";
         assertThat(explain(propNoIdxQuery), containsString("no-index"));
         assertQuery(propNoIdxQuery, ImmutableList.<String>of());
+    }
+
+    @Test
+    public void usedAsNodeTypeIndex() throws Exception {
+        Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:resource"), NAMES));
+        nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+
+        Tree indexWithType = createIndex("test2", of(JcrConstants.JCR_PRIMARYTYPE, "propb"));
+        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+
+        Tree test = root.getTree("/").addChild("test");
+        setNodeType(test, "nt:file");
+        root.commit();
+
+        setNodeType(test.addChild("a"), "nt:file");
+        setNodeType(test.addChild("b"), "nt:file");
+        setNodeType(test.addChild("c"), "nt:base");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:file]";
+        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertQuery(propabQuery, asList("/test/a", "/test/b", "/test"));
+    }
+
+    @Test
+    public void usedAsNodeTypeIndex2() throws Exception {
+        //prevent the default nodeType index from indexing all types
+        Tree nodeTypeIdx = root.getTree("/oak:index/nodetype");
+        nodeTypeIdx.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:resource"), NAMES));
+        nodeTypeIdx.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+
+        Tree indexWithType = createIndex("test2", of("propb"));
+        indexWithType.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, of("nt:file"), NAMES));
+        indexWithType.setProperty(LuceneIndexConstants.FULL_TEXT_ENABLED, true);
+        TestUtil.useV2(indexWithType);
+
+        Tree test = root.getTree("/").addChild("test");
+        setNodeType(test, "nt:file");
+        root.commit();
+
+        setNodeType(test.addChild("a"), "nt:file");
+        setNodeType(test.addChild("b"), "nt:file");
+        setNodeType(test.addChild("c"), "nt:base");
+        root.commit();
+
+        String propabQuery = "select [jcr:path] from [nt:file]";
+        assertThat(explain(propabQuery), containsString("lucene:test2"));
+        assertQuery(propabQuery, asList("/test/a", "/test/b", "/test"));
+    }
+
+    private static void setNodeType(Tree t, String typeName){
+        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
     }
 
     @Test
@@ -905,8 +960,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     private String measureWithLimit(String query, String lang, int limit) throws ParseException {
         List<? extends ResultRow> result = Lists.newArrayList(
-                qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
-                        NO_MAPPINGS).getRows());
+            qe.executeQuery(query, lang, limit, 0, Maps.<String, PropertyValue>newHashMap(),
+                NO_MAPPINGS).getRows());
 
         String measure = "";
         if (result.size() > 0) {
