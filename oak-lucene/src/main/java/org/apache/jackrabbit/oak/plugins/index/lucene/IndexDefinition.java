@@ -724,6 +724,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             return indexesAllNodesOfMatchingType;
         }
 
+        public boolean isBasedOnNtBase(){
+            return JcrConstants.NT_BASE.equals(baseNodeType);
+        }
+
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
                                                                    List<Aggregate.Include> propAggregate) {
             Map<String, PropertyDefinition> propDefns = newHashMap();

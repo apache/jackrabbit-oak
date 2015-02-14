@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -561,10 +560,19 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
 
         if (qs.size() == 0) {
-            if (!defn.isFullTextEnabled()) {
-                throw new IllegalStateException("No query created for filter " + filter);
+            if (reader == null){
+                //When called in planning mode then some queries like rep:similar
+                //cannot create query as reader is not provided. In such case we
+                //just return match all queries
+                return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
             }
-            return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
+            //For purely nodeType based queries all the documents would have to
+            //be returned (if the index definition has a single rule)
+            if (planResult.evaluateNodeTypeRestriction()) {
+                return new LuceneRequestFacade<Query>(new MatchAllDocsQuery());
+            }
+
+            throw new IllegalStateException("No query created for filter " + filter);
         }
         if (qs.size() == 1) {
             return new LuceneRequestFacade<Query>(qs.get(0));

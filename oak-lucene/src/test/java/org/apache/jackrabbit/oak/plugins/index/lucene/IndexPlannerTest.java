@@ -51,6 +51,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -180,6 +181,75 @@ public class IndexPlannerTest {
         //For case when a full text property is present then path restriction can be
         //evaluated
         assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void fulltextIndexAndNodeTypeRestriction() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:file");
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        //For case when a full text property is present then path restriction can be
+        //evaluated
+        assertNotNull(planner.getPlan());
+    }
+
+    @Test
+    public void purePropertyIndexAndNodeTypeRestriction() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:file");
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void purePropertyIndexAndNodeTypeRestriction2() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:base/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:file");
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        //No plan should be result for a index with just a rule for nt:base
+        assertNull(planner.getPlan());
+    }
+
+    @Test
+    public void purePropertyIndexAndNodeTypeRestriction3() throws Exception{
+        NodeBuilder defn = newLucenePropertyIndexDefinition(builder, "test", of("foo"), "async");
+        defn.setProperty(LuceneIndexConstants.EVALUATE_PATH_RESTRICTION, true);
+        defn.setProperty(IndexConstants.DECLARING_NODE_TYPES, of("nt:file"), NAMES);
+
+        defn = IndexDefinition.updateDefinition(defn.getNodeState().builder());
+        NodeBuilder foob = getNode(defn, "indexRules/nt:file/properties/foo");
+        foob.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+
+        IndexNode node = createIndexNode(new IndexDefinition(root, defn.getNodeState()));
+        FilterImpl filter = createFilter("nt:file");
+        IndexPlanner planner = new IndexPlanner(node, "/foo", filter, Collections.<OrderEntry>emptyList());
+
+        QueryIndex.IndexPlan plan = planner.getPlan();
+        assertNotNull(plan);
+        assertNotNull(pr(plan));
+        assertTrue(pr(plan).evaluateNodeTypeRestriction());
     }
 
     @Test

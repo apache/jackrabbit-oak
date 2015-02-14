@@ -147,6 +147,7 @@ class IndexPlanner {
             }
         }
 
+        boolean evalNodeTypeRestrictions = canEvalNodeTypeRestrictions(indexingRule);
         boolean evalPathRestrictions = canEvalPathRestrictions(indexingRule);
         boolean canEvalAlFullText = canEvalAllFullText(indexingRule, ft);
 
@@ -158,7 +159,7 @@ class IndexPlanner {
 
         List<OrderEntry> sortOrder = createSortOrder(indexingRule);
         boolean canSort = canSortByProperty(sortOrder);
-        if (!indexedProps.isEmpty() || canSort || ft != null || evalPathRestrictions) {
+        if (!indexedProps.isEmpty() || canSort || ft != null || evalPathRestrictions || evalNodeTypeRestrictions) {
             //TODO Need a way to have better cost estimate to indicate that
             //this index can evaluate more propertyRestrictions natively (if more props are indexed)
             //For now we reduce cost per entry
@@ -180,15 +181,15 @@ class IndexPlanner {
                 result.enableNonFullTextConstraints();
             }
 
+            if (evalNodeTypeRestrictions){
+                result.enableNodeTypeEvaluation();
+            }
+
             return plan.setCostPerEntry(definition.getCostPerEntry() / costPerEntryFactor);
         }
 
         //TODO Support for property existence queries
         //TODO support for nodeName queries
-
-        //Above logic would not return any plan for pure nodeType based query like
-        //select * from nt:unstructured. We can do that but this is better handled
-        //by NodeType index
 
         return null;
     }
@@ -289,6 +290,18 @@ class IndexPlanner {
         //path restriction based then need to be sure that index definition at least
         //allows indexing all the path for given nodeType
         return definition.evaluatePathRestrictions() && rule.indexesAllNodesOfMatchingType();
+    }
+
+
+    private boolean canEvalNodeTypeRestrictions(IndexingRule rule) {
+        //No need to handle nt:base
+        if (filter.matchesAllTypes()){
+            return false;
+        }
+
+        //Only opt in if rule is not derived from nt:base otherwise it would
+        //get used when there a full text index on all nodes
+        return rule.indexesAllNodesOfMatchingType() && !rule.isBasedOnNtBase();
     }
 
     private IndexPlan.Builder defaultPlan() {
@@ -404,6 +417,7 @@ class IndexPlanner {
         private int parentDepth;
         private String parentPathSegment;
         private boolean relativize;
+        private boolean nodeTypeRestrictions;
 
         public PlanResult(String indexPath, IndexDefinition defn, IndexingRule indexingRule) {
             this.indexPath = indexPath;
@@ -449,6 +463,10 @@ class IndexPlanner {
             return nonFullTextConstraints;
         }
 
+        public boolean evaluateNodeTypeRestriction() {
+            return nodeTypeRestrictions;
+        }
+
         private void setParentPath(String relativePath){
             parentPathSegment = "/" + relativePath;
             if (relativePath.isEmpty()){
@@ -463,6 +481,10 @@ class IndexPlanner {
 
         private void enableNonFullTextConstraints(){
             nonFullTextConstraints = true;
+        }
+
+        private void enableNodeTypeEvaluation() {
+            nodeTypeRestrictions = true;
         }
     }
 }
