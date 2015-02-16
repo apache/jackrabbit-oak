@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Strings.repeat;
 import static java.util.Collections.nCopies;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -34,8 +35,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Random;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
@@ -85,7 +86,7 @@ public class RecordUsageAnalyserTest {
     @Test
     public void nodeWithMediumString() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("medium", Strings.repeat("a", SMALL_LIMIT + 1));
+        builder.setProperty("medium", repeat("a", SMALL_LIMIT + 1));
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
@@ -95,7 +96,7 @@ public class RecordUsageAnalyserTest {
     @Test
     public void nodeWithLargeString() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("large", Strings.repeat("b", MEDIUM_LIMIT + 1));
+        builder.setProperty("large", repeat("b", MEDIUM_LIMIT + 1));
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
@@ -155,7 +156,7 @@ public class RecordUsageAnalyserTest {
     @Test
     public void nodeWithBlob() {
         NodeBuilder builder = EMPTY_NODE.builder();
-        builder.setProperty("blob", new ArrayBasedBlob(new byte[]{1, 2, 3, 4}));
+        builder.setProperty("blob", createRandomBlob(4));
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
@@ -165,10 +166,7 @@ public class RecordUsageAnalyserTest {
     @Test
     public void nodeWithMediumBlob() {
         NodeBuilder builder = EMPTY_NODE.builder();
-
-        byte[] bytes = new byte[SMALL_LIMIT + 1];
-        new Random().nextBytes(bytes);
-        builder.setProperty("mediumBlob", new ArrayBasedBlob(bytes));
+        builder.setProperty("mediumBlob", createRandomBlob(SMALL_LIMIT + 1));
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
@@ -178,10 +176,7 @@ public class RecordUsageAnalyserTest {
     @Test
     public void nodeWithLargeBlob() {
         NodeBuilder builder = EMPTY_NODE.builder();
-
-        byte[] bytes = new byte[MEDIUM_LIMIT + 1];
-        new Random().nextBytes(bytes);
-        builder.setProperty("largeBlob", new ArrayBasedBlob(bytes));
+        builder.setProperty("largeBlob", createRandomBlob(MEDIUM_LIMIT + 1));
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
@@ -261,6 +256,29 @@ public class RecordUsageAnalyserTest {
         assertSizes(analyser, 41, 0, 18, 16, 24);
     }
 
+    @Test
+    public void counts() {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setChildNode("child1");
+        builder.setChildNode("child2");
+        builder.setProperty("prop", ImmutableList.of("a", "b"), STRINGS);
+        builder.setProperty("mediumString", repeat("m", SMALL_LIMIT));
+        builder.setProperty("longString", repeat("l", MEDIUM_LIMIT));
+        builder.setProperty("smallBlob", createRandomBlob(4));
+        builder.setProperty("mediumBlob", createRandomBlob(SMALL_LIMIT));
+        builder.setProperty("longBlob", createRandomBlob(MEDIUM_LIMIT));
+
+        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        analyser.analyseNode(node.getRecordId());
+        assertCounts(analyser, 1, 3, 6, 1, 1, 1, 0, 10, 1, 1, 2, 3);
+    }
+
+    private static Blob createRandomBlob(int size) {
+        byte[] bytes = new byte[size];
+        new Random().nextBytes(bytes);
+        return new ArrayBasedBlob(bytes);
+    }
+
     private static void assertSizes(RecordUsageAnalyser analyser,
             long maps, long lists, long values, long templates, long nodes) {
         assertEquals("maps sizes mismatch", maps, analyser.getMapSize());
@@ -268,6 +286,26 @@ public class RecordUsageAnalyserTest {
         assertEquals("value sizes mismatch", values, analyser.getValueSize());
         assertEquals("template sizes mismatch", templates, analyser.getTemplateSize());
         assertEquals("nodes sizes mismatch", nodes, analyser.getNodeSize());
+    }
+
+    private static void assertCounts(RecordUsageAnalyser analyser,
+            long mapCount, long listCount, long propertyCount,
+            long smallBlobCount, long mediumBlobCount, long longBlobCount, long externalBlobCount,
+            long smallStringCount, long mediumStringCount, long longStringCount,
+            long templateCount, long nodeCount) {
+        assertEquals("map count mismatch", mapCount, analyser.getMapCount());
+        assertEquals("list count mismatch", listCount, analyser.getListCount());
+        assertEquals("property count mismatch", propertyCount, analyser.getPropertyCount());
+        assertEquals("small blob count mismatch", smallBlobCount, analyser.getSmallBlobCount());
+        assertEquals("medium blob mismatch", mediumBlobCount, analyser.getMediumBlobCount());
+        assertEquals("long blob count mismatch", longBlobCount, analyser.getLongBlobCount());
+        assertEquals("external blob count mismatch", externalBlobCount, analyser.getExternalBlobCount());
+        assertEquals("small string count mismatch", smallStringCount, analyser.getSmallStringCount());
+        assertEquals("medium string count mismatch", mediumStringCount, analyser.getMediumStringCount());
+        assertEquals("long string count mismatch", longStringCount, analyser.getLongStringCount());
+        assertEquals("template count mismatch", templateCount, analyser.getTemplateCount());
+        assertEquals("node count mismatch", nodeCount, analyser.getNodeCount());
+
     }
 
 }
