@@ -444,6 +444,88 @@
       </build>
     </profile>
     <profile>
+      <id>rdb-mysql</id>
+      <dependencies>
+        <dependency>
+          <groupId>mysql</groupId>
+          <artifactId>mysql-connector-java</artifactId>
+          <version>5.1.34</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>rdb-postgres</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.postgresql</groupId>
+          <artifactId>postgresql</artifactId>
+          <version>9.3-1101-jdbc4</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>rdb-h2</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.h2database</groupId>
+          <artifactId>h2</artifactId>
+          <version>${h2.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <!-- requires local copy of MS SqlServer JDBC driver deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=sqljdbc41.jar -Dpackaging=jar\
+          -DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.1
+       -->
+      <id>rdb-mssql</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.microsoft.sqlserver</groupId>
+          <artifactId>sqljdbc4</artifactId>
+          <version>4.1</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <!-- requires local copy of Oracle JDBC driver deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=ojdbc6.jar -Dpackaging=jar\
+          -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.3.0
+       -->
+      <id>rdb-oracle</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.oracle</groupId>
+          <artifactId>ojdbc6</artifactId>
+          <version>11.2.0.3.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <!-- requires local copy of IBM DB2 JDBC drivers deployed to Maven repo-->
+      <!-- for instance:
+        mvn install:install-file -Dfile=db2jcc4.jar -Dpackaging=jar\
+          -DgroupId=com.ibm.db2 -DartifactId=db2 -Dversion=4.16.53
+        mvn install:install-file -Dfile=db2jcc_license_cu.jar -Dpackaging=jar\
+          -DgroupId=com.ibm.db2 -DartifactId=db2-license -Dversion=4.16.53
+       -->
+      <id>rdb-db2</id>
+      <dependencies>
+        <dependency>
+          <groupId>com.ibm.db2</groupId>
+          <artifactId>db2</artifactId>
+          <version>4.16.53</version>
+        </dependency>
+        <dependency>
+          <groupId>com.ibm.db2</groupId>
+          <artifactId>db2-license</artifactId>
+          <version>4.16.53</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
       <id>java8</id>
       <activation>
         <jdk>[1.8,)</jdk>
