@@ -61,7 +61,7 @@ public class OakSolrNodeStateConfigurationTest {
         NodeState idxDef = store.getRoot().getChildNode("oak:index").getChildNode("solrIdx");
         OakSolrNodeStateConfiguration fixedNodeStateConfiguration = new OakSolrNodeStateConfiguration(idxDef);
         SolrServerConfiguration<SolrServerProvider> configuration = fixedNodeStateConfiguration.getSolrServerConfiguration();
-//        assertNotNull(configuration);
+        assertNotNull(configuration);
 //        assertEquals("sh", configuration.getSolrHomePath()); // property defined in the node state
 //        assertEquals("cn", solrServerConfiguration.getCoreName()); // property defined in the node state
 //        assertEquals("path_exact", fixedNodeStateConfiguration.getPathField()); // using default as this property is not defined in the node state

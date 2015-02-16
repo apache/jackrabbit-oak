@@ -238,11 +238,15 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration, Solr
         if ("embedded".equalsIgnoreCase(type)) {
             String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
             String coreName = getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
-            String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
-            Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
+            String context = getStringValueFor(Properties.CONTEXT, null);
+            Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, "0"));
 
-            return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath,
-                    coreName).withHttpConfiguration(context, httpPort);
+            if (context != null && httpPort > 0) {
+                return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath, coreName)
+                        .withHttpConfiguration(context, httpPort);
+            } else {
+                return (SolrServerConfiguration) new EmbeddedSolrServerConfiguration(solrHomePath, coreName);
+            }
         } else if ("remote".equalsIgnoreCase(type)) {
             String solrZkHost = getStringValueFor(Properties.ZK_HOST, SolrServerConfigurationDefaults.ZK_HOST);
             String solrCollection = getStringValueFor(Properties.COLLECTION, SolrServerConfigurationDefaults.COLLECTION);
@@ -254,7 +258,8 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration, Solr
             return (SolrServerConfiguration) new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
                     solrReplicationFactor, solrConfDir, solrHttpUrls);
         } else {
-            return null;
+
+            throw new RuntimeException("unexpected Solr server type: " + type);
         }
     }
 
