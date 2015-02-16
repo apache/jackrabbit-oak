@@ -70,9 +70,10 @@ public class InitializerTest extends AbstractMongoConnectionTest {
     }
 
     @Test
-    public void testInitializerMongoWithoutInitialContent() throws CommitFailedException {
+    public void testInitializerMongoAfterInitialContent() throws CommitFailedException {
         NodeBuilder builder = mk.getNodeStore().getRoot().builder();
-        builder.child("foo");
+        // add initial content in separate merge
+        new InitialContent().initialize(builder);
         mk.getNodeStore().merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         SecurityProviderImpl provider = new SecurityProviderImpl(
