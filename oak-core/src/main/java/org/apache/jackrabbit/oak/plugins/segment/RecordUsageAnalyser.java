@@ -55,28 +55,150 @@ public class RecordUsageAnalyser {
     private long templateSize;  // template
     private long nodeSize;      // node
 
+    private long mapCount;
+    private long listCount;
+    private long propertyCount;
+    private long smallBlobCount;
+    private long mediumBlobCount;
+    private long longBlobCount;
+    private long externalBlobCount;
+    private long smallStringCount;
+    private long mediumStringCount;
+    private long longStringCount;
+    private long templateCount;
+    private long nodeCount;
+
+    /**
+     * @return number of bytes in {@link RecordType#LEAF leaf} and {@link RecordType#BRANCH branch}
+     * records.
+     */
     public long getMapSize() {
         return mapSize;
     }
 
+    /**
+     * @return number of bytes in {@link RecordType#LIST list} and {@link RecordType#BUCKET bucket}
+     * records.
+     */
     public long getListSize() {
         return listSize;
     }
 
+    /**
+     * @return number of bytes in inlined values (strings and blobs)
+     */
     public long getValueSize() {
         return valueSize;
     }
 
+    /**
+     * @return number of bytes in {@link RecordType#TEMPLATE template} records.
+     */
     public long getTemplateSize() {
         return templateSize;
     }
 
+    /**
+     * @return number of bytes in {@link RecordType#NODE node} records.
+     */
     public long getNodeSize() {
         return nodeSize;
     }
 
+    /**
+     * @return number of maps
+     */
+    public long getMapCount() {
+        return mapCount;
+    }
+
+    /**
+     * @return number of lists
+     */
+    public long getListCount() {
+        return listCount;
+    }
+
+    /**
+     * @return number of properties
+     */
+    public long getPropertyCount() {
+        return propertyCount;
+    }
+
+    /**
+     * @return number of {@link Segment#SMALL_LIMIT small} blobs.
+     *
+     */
+    public long getSmallBlobCount() {
+        return smallBlobCount;
+    }
+
+    /**
+     * @return number of {@link Segment#MEDIUM_LIMIT medium} blobs.
+     *
+     */
+    public long getMediumBlobCount() {
+        return mediumBlobCount;
+    }
+
+    /**
+     * @return number of long blobs.
+     *
+     */
+    public long getLongBlobCount() {
+        return longBlobCount;
+    }
+
+    /**
+     * @return number of external blobs.
+     *
+     */
+    public long getExternalBlobCount() {
+        return externalBlobCount;
+    }
+
+    /**
+     * @return number of {@link Segment#SMALL_LIMIT small} strings.
+     *
+     */
+    public long getSmallStringCount() {
+        return smallStringCount;
+    }
+
+    /**
+     * @return number of {@link Segment#MEDIUM_LIMIT medium} strings.
+     *
+     */
+    public long getMediumStringCount() {
+        return mediumStringCount;
+    }
+
+    /**
+     * @return number of long strings.
+     *
+     */
+    public long getLongStringCount() {
+        return longStringCount;
+    }
+
+    /**
+     * @return number of templates.
+     */
+    public long getTemplateCount() {
+        return templateCount;
+    }
+
+    /**
+     * @return number of nodes.
+     */
+    public long getNodeCount() {
+        return nodeCount;
+    }
+
     public void analyseNode(RecordId nodeId) {
         if (notSeen(nodeId)) {
+            nodeCount++;
             Segment segment = nodeId.getSegment();
             int offset = nodeId.getOffset();
             RecordId templateId = segment.readRecordId(offset);
@@ -118,25 +240,29 @@ public class RecordUsageAnalyser {
         StringBuilder sb = new StringBuilder();
         Formatter formatter = new Formatter(sb);
         formatter.format(
-                "%s in maps (leaf and branch records)%n",
-                byteCountToDisplaySize(mapSize));
+                "%s in maps (%s leaf and branch records)%n",
+                byteCountToDisplaySize(mapSize), mapCount);
         formatter.format(
-                "%s in lists (list and bucket records)%n",
-                byteCountToDisplaySize(listSize));
+                "%s in lists (%s list and bucket records)%n",
+                byteCountToDisplaySize(listSize), listCount);
         formatter.format(
-                "%s in values (value and block records)%n",
-                byteCountToDisplaySize(valueSize));
+                "%s in values (value and block records of %s properties, " +
+                "%s/%s/%s/%s small/medium/long/external blobs, %s/%s/%s small/medium/long strings)%n",
+                byteCountToDisplaySize(valueSize), propertyCount,
+                smallBlobCount, mediumBlobCount, longBlobCount, externalBlobCount,
+                smallStringCount, mediumStringCount, longStringCount);
         formatter.format(
-                "%s in templates (template records)%n",
-                byteCountToDisplaySize(templateSize));
+                "%s in templates (%s template records)%n",
+                byteCountToDisplaySize(templateSize), templateCount);
         formatter.format(
-                "%s in nodes (node records)%n",
-                byteCountToDisplaySize(nodeSize));
+                "%s in nodes (%s node records)%n",
+                byteCountToDisplaySize(nodeSize), nodeCount);
         return sb.toString();
     }
 
     private void analyseTemplate(RecordId templateId) {
         if (notSeen(templateId)) {
+            templateCount++;
             Segment segment = templateId.getSegment();
             int size = 0;
             int offset = templateId.getOffset();
@@ -181,6 +307,7 @@ public class RecordUsageAnalyser {
 
     private void analyseMap(RecordId mapId, MapRecord map) {
         if (notSeen(mapId)) {
+            mapCount++;
             if (map.isDiff()) {
                 analyseDiff(mapId, map);
             } else if (map.isLeaf()) {
@@ -226,6 +353,7 @@ public class RecordUsageAnalyser {
 
     private void analyseProperty(RecordId propertyId, PropertyTemplate template) {
         if (!contains(propertyId)) {
+            propertyCount++;
             Segment segment = propertyId.getSegment();
             int offset = propertyId.getOffset();
             Type<?> type = template.getType();
@@ -266,10 +394,12 @@ public class RecordUsageAnalyser {
             if ((head & 0x80) == 0x00) {
                 // 0xxx xxxx: small value
                 valueSize += (1 + head);
+                smallBlobCount++;
             } else if ((head & 0xc0) == 0x80) {
                 // 10xx xxxx: medium value
                 int length = (segment.readShort(offset) & 0x3fff) + SMALL_LIMIT;
                 valueSize += (2 + length);
+                mediumBlobCount++;
             } else if ((head & 0xe0) == 0xc0) {
                 // 110x xxxx: long value
                 long length = (segment.readLong(offset) & 0x1fffffffffffffffL) + MEDIUM_LIMIT;
@@ -277,10 +407,12 @@ public class RecordUsageAnalyser {
                 RecordId listId = segment.readRecordId(offset + 8);
                 analyseList(listId, size);
                 valueSize += (8 + RECORD_ID_BYTES + length);
+                longBlobCount++;
             } else if ((head & 0xf0) == 0xe0) {
                 // 1110 xxxx: external value
                 int length = (head & 0x0f) << 8 | (segment.readByte(offset + 1) & 0xff);
                 valueSize += (2 + length);
+                externalBlobCount++;
             } else {
                 throw new IllegalStateException(String.format(
                         "Unexpected value record type: %02x", head & 0xff));
@@ -296,13 +428,16 @@ public class RecordUsageAnalyser {
             long length = segment.readLength(offset);
             if (length < Segment.SMALL_LIMIT) {
                 valueSize += (1 + length);
+                smallStringCount++;
             } else if (length < Segment.MEDIUM_LIMIT) {
                 valueSize += (2 + length);
+                mediumStringCount++;
             } else if (length < Integer.MAX_VALUE) {
                 int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
                 RecordId listId = segment.readRecordId(offset + 8);
                 analyseList(listId, size);
                 valueSize += (8 + RECORD_ID_BYTES + length);
+                longStringCount++;
             } else {
                 throw new IllegalStateException("String is too long: " + length);
             }
@@ -311,6 +446,7 @@ public class RecordUsageAnalyser {
 
     private void analyseList(RecordId listId, int size) {
         if (notSeen(listId)) {
+            listCount++;
             listSize += noOfListSlots(size) * RECORD_ID_BYTES;
         }
     }
