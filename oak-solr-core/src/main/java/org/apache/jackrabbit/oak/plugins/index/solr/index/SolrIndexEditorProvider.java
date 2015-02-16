@@ -62,7 +62,6 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
               SolrServer solrServer = solrServerProvider.getIndexingSolrServer();
               if (solrServer != null) {
                   return new SolrIndexEditor(
-                        definition,
                         solrServer,
                         oakSolrConfigurationProvider.getConfiguration(), callback);
               } else {

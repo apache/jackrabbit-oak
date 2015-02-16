@@ -50,7 +50,7 @@ public class SolrIndexEditorTest {
         SolrServer solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
+        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
         NodeState before = mock(NodeState.class);
         NodeState after = mock(NodeState.class);
         Iterable properties = new Iterable<PropertyState>() {
@@ -82,7 +82,7 @@ public class SolrIndexEditorTest {
             }
         };
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);
-        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(builder, solrServer, configuration, callback);
+        SolrIndexEditor solrIndexEditor = new SolrIndexEditor(solrServer, configuration, callback);
         NodeState before = mock(NodeState.class);
         NodeState after = mock(NodeState.class);
         Iterable properties = new Iterable<PropertyState>() {

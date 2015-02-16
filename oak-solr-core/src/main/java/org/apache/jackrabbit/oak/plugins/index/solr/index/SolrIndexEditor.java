@@ -69,11 +69,6 @@ class SolrIndexEditor implements IndexEditor {
      */
     private String path;
 
-    /**
-     * Index definition node builder
-     */
-    private final NodeBuilder definition;
-
     private final SolrServer solrServer;
 
     private final OakSolrConfiguration configuration;
@@ -85,13 +80,12 @@ class SolrIndexEditor implements IndexEditor {
     private static final Parser parser = new AutoDetectParser();
 
     SolrIndexEditor(
-            NodeBuilder definition, SolrServer solrServer,
+            SolrServer solrServer,
             OakSolrConfiguration configuration,
             IndexUpdateCallback callback) {
         this.parent = null;
         this.name = null;
         this.path = "/";
-        this.definition = definition;
         this.solrServer = solrServer;
         this.configuration = configuration;
         this.updateCallback = callback;
@@ -101,7 +95,6 @@ class SolrIndexEditor implements IndexEditor {
         this.parent = parent;
         this.name = name;
         this.path = null;
-        this.definition = parent.definition;
         this.solrServer = parent.solrServer;
         this.configuration = parent.configuration;
         this.updateCallback = parent.updateCallback;
