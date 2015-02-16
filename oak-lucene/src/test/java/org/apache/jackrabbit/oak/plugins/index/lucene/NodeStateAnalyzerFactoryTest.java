@@ -27,6 +27,7 @@ import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory.NodeStateResourceLoader;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -45,6 +46,7 @@ import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_CHAR_FILTERS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_CLASS;
@@ -57,6 +59,7 @@ import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHIL
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class NodeStateAnalyzerFactoryTest {
@@ -107,6 +110,7 @@ public class NodeStateAnalyzerFactoryTest {
         NodeBuilder filters = nb.child(ANL_FILTERS);
         filters.setProperty(OAK_CHILD_ORDER, ImmutableList.of("stop", "LowerCase"),NAMES);
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
+        filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
         filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
 
@@ -177,10 +181,12 @@ public class NodeStateAnalyzerFactoryTest {
         NodeBuilder nb = EMPTY_NODE.builder();
         nb.setProperty("a", "a");
         nb.setProperty("b", 1);
+        nb.setProperty(JcrConstants.JCR_PRIMARYTYPE, "nt:base");
 
         Map<String, String> result = factory.convertNodeState(nb.getNodeState());
         assertEquals("a", result.get("a"));
         assertEquals("1", result.get("b"));
+        assertNull(result.get(JcrConstants.JCR_PRIMARYTYPE));
     }
 
     private static NodeBuilder createFileNode(NodeBuilder nb, String nodeName, byte[] content){
