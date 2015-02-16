@@ -24,6 +24,7 @@ import static org.apache.lucene.store.NoLockFactory.getNoLockFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Calendar;
 
 import org.apache.commons.io.IOUtils;
@@ -42,12 +43,10 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.tika.config.TikaConfig;
-import org.apache.tika.exception.TikaException;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
 public class LuceneIndexEditorContext {
 
@@ -97,7 +96,7 @@ public class LuceneIndexEditorContext {
 
     private final IndexWriterConfig config;
 
-    private static final Parser defaultParser = new AutoDetectParser();
+    private static final Parser defaultParser = createDefaultParser();
 
     private final IndexDefinition definition;
 
@@ -222,18 +221,40 @@ public class LuceneIndexEditorContext {
         if (definition.hasCustomTikaConfig()){
             InputStream is = definition.getTikaConfig();
             try {
-                TikaConfig config = new TikaConfig(is);
-                return new AutoDetectParser(config);
-            } catch (IOException e){
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
-            } catch (SAXException e) {
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
-            } catch (TikaException e) {
-                throw new RuntimeException("Error loading TikaConfig for "+ definition, e);
+                return new AutoDetectParser(getTikaConfig(is, definition));
             } finally {
                 IOUtils.closeQuietly(is);
             }
         }
         return defaultParser;
+    }
+
+    private static AutoDetectParser createDefaultParser() {
+        URL configUrl = LuceneIndexEditorContext.class.getResource("tika-config.xml");
+        InputStream is = null;
+        if (configUrl != null) {
+            try {
+                is = configUrl.openStream();
+                TikaConfig config = new TikaConfig(is);
+                log.info("Loaded default Tika Config from classpath {}", configUrl);
+                return new AutoDetectParser(config);
+            } catch (Exception e) {
+                log.warn("Tika configuration not available : " + configUrl, e);
+            } finally {
+                IOUtils.closeQuietly(is);
+            }
+        } else {
+            log.warn("Default Tika configuration not found from {}", configUrl);
+        }
+        return new AutoDetectParser();
+    }
+
+    private static TikaConfig getTikaConfig(InputStream configStream, Object source){
+        try {
+            return new TikaConfig(configStream);
+        } catch (Exception e) {
+            log.warn("Tika configuration not available : "+source, e);
+        }
+        return TikaConfig.getDefaultConfig();
     }
 }
