@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.annotation.Nonnull;
@@ -134,6 +135,7 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     @Test
+    @Ignore("OAK-2521")
     public void gc() throws Exception {
         HashSet<String> remaining = setUp();
         String repoId = null;
