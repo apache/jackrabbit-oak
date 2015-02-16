@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Dictionary;
@@ -27,6 +25,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.sql.DataSource;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
@@ -64,6 +64,12 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
+import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
+import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
@@ -121,7 +127,24 @@ public class DocumentNodeStoreService {
      */
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
+    /**
+     * Boolean value indicating a different DataSource has to be used for
+     * BlobStore
+     */
+    public static final String CUSTOM_BLOB_DATA_SOURCE = "customBlobDataSource";
+
     private static final long MB = 1024 * 1024;
+
+    private static enum DocumentStoreType {
+        MONGO, RDB;
+
+        static DocumentStoreType fromString(String type) {
+            if (type == null) {
+                return MONGO;
+            }
+            return valueOf(type.toUpperCase());
+        }
+    }
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -132,6 +155,18 @@ public class DocumentNodeStoreService {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
             policy = ReferencePolicy.DYNAMIC)
     private volatile BlobStore blobStore;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC,
+            target = "(datasource.name=oak)"
+    )
+    private volatile DataSource dataSource;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY,
+            policy = ReferencePolicy.DYNAMIC,
+            target = "(datasource.name=oak)"
+    )
+    private volatile DataSource blobDataSource;
 
     private DocumentMK mk;
     private ObserverTracker observerTracker;
@@ -159,77 +194,103 @@ public class DocumentNodeStoreService {
     public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
     private long maxReplicationLagInSecs = DEFAULT_MAX_REPLICATION_LAG;
 
+    /**
+     * Specifies the type of DocumentStore MONGO, RDB
+     */
+    public static final String PROP_DS_TYPE = "documentStoreType";
+    private DocumentStoreType documentStoreType;
+
+    private boolean customBlobStore;
+    private boolean customBlobDataSource;
+
     @Activate
     protected void activate(ComponentContext context, Map<String, ?> config) throws Exception {
         this.context = context;
-        this.whiteboard = new OsgiWhiteboard(context.getBundleContext());
-        this.executor = new WhiteboardExecutor();
+        whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        executor = new WhiteboardExecutor();
         executor.start(whiteboard);
-        this.maxReplicationLagInSecs = PropertiesUtil.toLong(config.get(PROP_REPLICATION_LAG),
-                DEFAULT_MAX_REPLICATION_LAG);
+        maxReplicationLagInSecs = toLong(config.get(PROP_REPLICATION_LAG), DEFAULT_MAX_REPLICATION_LAG);
+        customBlobStore = toBoolean(prop(CUSTOM_BLOB_STORE), false);
+        customBlobDataSource = toBoolean(prop(CUSTOM_BLOB_DATA_SOURCE), false);
+        documentStoreType = DocumentStoreType.fromString(PropertiesUtil.toString(config.get(PROP_DS_TYPE), "MONGO"));
 
-        if (blobStore == null &&
-                PropertiesUtil.toBoolean(prop(CUSTOM_BLOB_STORE), false)) {
+        modified(config);
+        registerNodeStoreIfPossible();
+    }
+
+    private void registerNodeStoreIfPossible() throws IOException {
+        if (context == null) {
+            log.info("Component still not activated. Ignoring the initialization call");
+        } else if (customBlobStore && blobStore == null) {
             log.info("BlobStore use enabled. DocumentNodeStoreService would be initialized when "
                     + "BlobStore would be available");
+        } else if (documentStoreType == DocumentStoreType.RDB
+                && (dataSource == null || (customBlobDataSource && blobDataSource == null))) {
+            log.info("DataSource use enabled. DocumentNodeStoreService would be initialized when "
+                    + "DataSource would be available");
         } else {
             registerNodeStore();
         }
-        modified(config);
     }
 
-    protected void registerNodeStore() throws IOException {
-        if (context == null) {
-            log.info("Component still not activated. Ignoring the initialization call");
-            return;
-        }
+    private void registerNodeStore() throws IOException {
         String uri = PropertiesUtil.toString(prop(PROP_URI, FWK_PROP_URI), DEFAULT_URI);
         String db = PropertiesUtil.toString(prop(PROP_DB, FWK_PROP_DB), DEFAULT_DB);
 
-        int offHeapCache = PropertiesUtil.toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
-        int cacheSize = PropertiesUtil.toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
-        int changesSize = PropertiesUtil.toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
-        int blobCacheSize = PropertiesUtil.toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
-        String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
-        boolean useMK = PropertiesUtil.toBoolean(context.getProperties().get(PROP_USE_MK), false);
-
-
-        MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
-        MongoClientURI mongoURI = new MongoClientURI(uri, builder);
-
-        if (log.isInfoEnabled()) {
-            // Take care around not logging the uri directly as it
-            // might contain passwords
-            String type = useMK ? "MK" : "NodeStore";
-            log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
-                            "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                    type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
-            log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
-        }
-
-        MongoClient client = new MongoClient(mongoURI);
-        DB mongoDB = client.getDB(db);
+        int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
+        int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
+        int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
+        int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
+        boolean useMK = toBoolean(context.getProperties().get(PROP_USE_MK), false);
 
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
                 offHeapCacheSize(offHeapCache * MB);
-        
-        if (persistentCache != null && persistentCache.length() > 0) {
-            mkBuilder.setPersistentCache(persistentCache);
-        }
 
         //Set blobstore before setting the DB
-        if (blobStore != null) {
+        if (customBlobStore) {
+            checkNotNull(blobStore, "Use of custom BlobStore enabled via  [%s] but blobStore reference not " +
+                    "initialized", CUSTOM_BLOB_STORE);
             mkBuilder.setBlobStore(blobStore);
         }
 
-        mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
-        mkBuilder.setMongoDB(mongoDB, changesSize, blobCacheSize);
+        if (documentStoreType == DocumentStoreType.RDB){
+            checkNotNull(dataSource, "DataStore type set [%s] but DataSource reference not initialized", PROP_DS_TYPE);
+            if(customBlobDataSource){
+                checkNotNull(blobDataSource, "DataStore type set [%s] and BlobStore is configured to use different " +
+                        "DataSource via [%s] but BlobDataSource reference not initialized", PROP_DS_TYPE, CUSTOM_BLOB_DATA_SOURCE);
+                mkBuilder.setRDBConnection(dataSource, blobDataSource);
+                log.info("Connected to datasources {} {}", dataSource, blobDataSource);
+            } else {
+                mkBuilder.setRDBConnection(dataSource);
+                log.info("Connected to datasource {}", dataSource);
+            }
+        } else {
+            MongoClientOptions.Builder builder = MongoConnection.getDefaultBuilder();
+            MongoClientURI mongoURI = new MongoClientURI(uri, builder);
+
+            if (log.isInfoEnabled()) {
+                // Take care around not logging the uri directly as it
+                // might contain passwords
+                String type = useMK ? "MK" : "NodeStore";
+                log.info("Starting Document{} with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
+                                "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                        type, mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
+                log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
+            }
+
+            MongoClient client = new MongoClient(mongoURI);
+            DB mongoDB = client.getDB(db);
+
+            mkBuilder.setMaxReplicationLag(maxReplicationLagInSecs, TimeUnit.SECONDS);
+            mkBuilder.setMongoDB(mongoDB, changesSize, blobCacheSize);
+
+            log.info("Connected to database {}", mongoDB);
+        }
+
         mkBuilder.setExecutor(executor);
         mk = mkBuilder.open();
-
-        log.info("Connected to database {}", mongoDB);
 
         registerJMXBeans(mk.getNodeStore());
         registerLastRevRecoveryJob(mk.getNodeStore());
@@ -257,8 +318,8 @@ public class DocumentNodeStoreService {
      */
     @Modified
     protected void modified(Map<String, ?> config){
-        versionGcMaxAgeInSecs = PropertiesUtil.toLong(config.get(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
-        blobGcMaxAgeInSecs = PropertiesUtil.toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
+        versionGcMaxAgeInSecs = toLong(config.get(PROP_VER_GC_MAX_AGE), DEFAULT_VER_GC_MAX_AGE);
+        blobGcMaxAgeInSecs = toLong(config.get(PROP_BLOB_GC_MAX_AGE), DEFAULT_BLOB_GC_MAX_AGE);
     }
 
     @Deactivate
@@ -274,12 +335,36 @@ public class DocumentNodeStoreService {
     protected void bindBlobStore(BlobStore blobStore) throws IOException {
         log.info("Initializing DocumentNodeStore with BlobStore [{}]", blobStore);
         this.blobStore = blobStore;
-        registerNodeStore();
+        registerNodeStoreIfPossible();
     }
 
     @SuppressWarnings("UnusedDeclaration")
     protected void unbindBlobStore(BlobStore blobStore) {
         this.blobStore = null;
+        unregisterNodeStore();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindDataSource(DataSource dataSource) throws IOException {
+        this.dataSource = dataSource;
+        registerNodeStoreIfPossible();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindDataSource(DataSource dataSource) {
+        this.dataSource = null;
+        unregisterNodeStore();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void bindBlobDataSource(DataSource dataSource) throws IOException {
+        this.blobDataSource = dataSource;
+        registerNodeStoreIfPossible();
+    }
+
+    @SuppressWarnings("UnusedDeclaration")
+    protected void unbindBlobDataSource(DataSource dataSource) {
+        this.blobDataSource = null;
         unregisterNodeStore();
     }
 
@@ -323,15 +408,6 @@ public class DocumentNodeStoreService {
                         CacheStatsMBean.TYPE,
                         store.getDocChildrenCacheStats().getName())
         );
-
-        registrations.add(
-                registerMBean(whiteboard,
-                        DocumentNodeStoreMBean.class,
-                        store.getMBean(),
-                        DocumentNodeStoreMBean.TYPE,
-                        "Document node store management")
-        );
-
         DiffCache cl = store.getDiffCache();
         if (cl instanceof MemoryDiffCache) {
             MemoryDiffCache mcl = (MemoryDiffCache) cl;
@@ -341,7 +417,6 @@ public class DocumentNodeStoreService {
                             mcl.getDiffCacheStats(),
                             CacheStatsMBean.TYPE,
                             mcl.getDiffCacheStats().getName()));
-            
         }
 
         DocumentStore ds = store.getDocumentStore();
@@ -379,7 +454,7 @@ public class DocumentNodeStoreService {
     }
 
     private void registerLastRevRecoveryJob(final DocumentNodeStore nodeStore) {
-        long leaseTime = PropertiesUtil.toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
+        long leaseTime = toLong(context.getProperties().get(PROP_REV_RECOVERY_INTERVAL),
                 ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS);
         Runnable recoverJob = new Runnable() {
             @Override
