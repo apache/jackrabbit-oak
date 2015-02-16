@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -53,6 +54,7 @@ public class SharedDataStoreUtilsTest {
     }
 
     @Test
+    @Ignore("OAK-2525")
     public void test() throws Exception {
         dataStore = DataStoreUtils.getBlobStore();
         String repoId1 = UUID.randomUUID().toString();
@@ -74,9 +76,7 @@ public class SharedDataStoreUtilsTest {
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId2));
         DataRecord rec2 = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId2));
 
-        Assert.assertEquals(
-                SharedStoreRecordType.REPOSITORY.getIdFromName(repo1.getIdentifier().toString()),
-                repoId1);
+        Assert.assertEquals(SharedStoreRecordType.REPOSITORY.getIdFromName(repo1.getIdentifier().toString()), repoId1);
         Assert.assertEquals(
                 SharedStoreRecordType.REPOSITORY.getIdFromName(repo2.getIdentifier().toString()),
                 repoId2);
@@ -88,9 +88,8 @@ public class SharedDataStoreUtilsTest {
                 repoId2);
 
         // All the references from registered repositories are available
-        Assert.assertTrue(
-                SharedDataStoreUtils.refsNotAvailableFromRepos(
-                    dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
+        Assert.assertTrue(SharedDataStoreUtils
+                .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                     dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).isEmpty());
 
         // Earliest should be the 1st reference record
