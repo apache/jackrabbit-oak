@@ -51,6 +51,9 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
  */
 public class Segment {
 
+    // michid doc 10 = ..
+    public static final byte STORAGE_FORMAT_VERSION = 10;
+
     /**
      * Number of bytes used for storing a record identifier. One byte
      * is used for identifying the segment and two for the record offset
@@ -137,7 +140,7 @@ public class Segment {
             checkState(data.get(0) == '0'
                     && data.get(1) == 'a'
                     && data.get(2) == 'K'
-                    && data.get(3) == '\n');
+                    && data.get(3) == STORAGE_FORMAT_VERSION);
             this.refids = new SegmentId[getRefCount()];
             refids[0] = id;
         } else {
