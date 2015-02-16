@@ -51,7 +51,12 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
  */
 public class Segment {
 
-    // michid doc 10 = ..
+    /**
+     * Version of the segment storage format.
+     * <ul>
+     *     <li>10 = all Oak versions released so far</li>
+     * </ul>
+     */
     public static final byte STORAGE_FORMAT_VERSION = 10;
 
     /**
