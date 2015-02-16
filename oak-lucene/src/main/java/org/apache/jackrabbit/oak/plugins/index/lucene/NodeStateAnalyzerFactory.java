@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -67,7 +68,11 @@ import static com.google.common.collect.Lists.newArrayList;
 final class NodeStateAnalyzerFactory{
     private static final AtomicBoolean versionWarningAlreadyLogged = new AtomicBoolean(false);
 
-    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(LuceneIndexConstants.ANL_CLASS, LuceneIndexConstants.ANL_NAME);
+    private static final Set<String> IGNORE_PROP_NAMES = ImmutableSet.of(
+            LuceneIndexConstants.ANL_CLASS,
+            LuceneIndexConstants.ANL_NAME,
+            JcrConstants.JCR_PRIMARYTYPE
+    );
 
     private static final Logger log = LoggerFactory.getLogger(NodeStateAnalyzerFactory.class);
 
