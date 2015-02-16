@@ -187,7 +187,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                         + "deleted [{}]", sw.toString(), deleteCount);
             }
         } finally {
-            if (LOG.isTraceEnabled()) {
+            if (!LOG.isTraceEnabled()) {
                 Closeables.close(fs, threw);
             }
             state = State.NOT_RUNNING;
