@@ -38,6 +38,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LE
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SEGMENT_REFERENCE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.STORAGE_FORMAT_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -94,8 +95,8 @@ public class SegmentWriter {
         buffer[0] = '0';
         buffer[1] = 'a';
         buffer[2] = 'K';
-        buffer[3] = '\n';
-        buffer[4] = 0;
+        buffer[3] = STORAGE_FORMAT_VERSION;
+        buffer[4] = 0; // reserved
         buffer[5] = 0; // refcount
         return buffer;
     }
