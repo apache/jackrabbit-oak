@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -24,7 +24,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.junit.Ignore;
+import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
+import org.apache.jackrabbit.oak.jcr.NodeStoreFixture;
 import org.junit.Test;
 
 public class MiscTest extends AbstractRepositoryTest {
@@ -33,7 +34,9 @@ public class MiscTest extends AbstractRepositoryTest {
         super(fixture);
     }
 
-    @Ignore("OAK-2024")
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-2024">OAK-2024</a>
+     */
     @Test
     public void testTraverseIndex() throws Exception {
         Session session = getAdminSession();
@@ -44,11 +47,9 @@ public class MiscTest extends AbstractRepositoryTest {
     }
 
     private void traverse(Node node) throws RepositoryException {
-        System.out.println(node.getPath());
         PropertyIterator iter = node.getProperties();
         while (iter.hasNext()) {
             Property p = iter.nextProperty();
-            System.out.println(p.getPath());
             p.getDefinition();
         }
         NodeIterator niter = node.getNodes();
