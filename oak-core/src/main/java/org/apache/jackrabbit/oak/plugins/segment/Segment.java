@@ -44,6 +44,14 @@ import com.google.common.base.Charsets;
 public class Segment {
 
     /**
+     * Version of the segment storage format.
+     * <ul>
+     *     <li>10 = all Oak versions released so far</li>
+     * </ul>
+     */
+    public static final byte STORAGE_FORMAT_VERSION = 10;
+
+    /**
      * Number of bytes used for storing a record identifier. One byte
      * is used for identifying the segment and two for the record offset
      * within that segment.
@@ -129,7 +137,7 @@ public class Segment {
             checkState(data.get(0) == '0'
                     && data.get(1) == 'a'
                     && data.get(2) == 'K'
-                    && data.get(3) == '\n');
+                    && data.get(3) == STORAGE_FORMAT_VERSION);
             this.refids = new SegmentId[getRefCount()];
             refids[0] = id;
         } else {
