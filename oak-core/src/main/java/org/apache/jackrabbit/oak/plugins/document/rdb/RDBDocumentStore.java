@@ -555,6 +555,9 @@ public class RDBDocumentStore implements DocumentStore {
     // number of retries for updates
     private static final int RETRIES = 10;
 
+    // see OAK-2044
+    protected static final boolean USECMODCOUNT = true;
+
     // DB-specific information
     private DB db;
 
@@ -1664,6 +1667,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     private boolean hasChangesToCollisions(UpdateOp update) {
+        if (! USECMODCOUNT) return false;
+
         for (Entry<Key, Operation> e : checkNotNull(update).getChanges().entrySet()) {
             Key k = e.getKey();
             Operation op = e.getValue();

@@ -182,7 +182,9 @@ public class RDBDocumentSerializer {
         doc.put(ID, row.getId());
         doc.put(MODIFIED, row.getModified());
         doc.put(MODCOUNT, row.getModcount());
-        doc.put(CMODCOUNT, row.getCollisionsModcount());
+        if (RDBDocumentStore.USECMODCOUNT) {
+            doc.put(CMODCOUNT, row.getCollisionsModcount());
+        }
         if (row.hasBinaryProperties()) {
             doc.put(HASBINARY, NodeDocument.HAS_BINARY_VAL);
         }
