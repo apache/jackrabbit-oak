@@ -64,7 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNe
 class SplitOperations {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitOperations.class);
-    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 10000);
+    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 1000);
     private static final DocumentStore STORE = new MemoryDocumentStore();
 
     private final NodeDocument doc;
