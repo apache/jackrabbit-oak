@@ -66,6 +66,11 @@ public class OakRepositoryFixture implements RepositoryFixture {
         return new OakRepositoryFixture(OakFixture.getMongo(name, useMK, host, port, database, dropDBAfterTest, cacheSize));
     }
 
+    public static RepositoryFixture getRDB(String jdbcuri, String jdbcuser, String jdbcpasswd, boolean dropDBAfterTest, long cacheSize) {
+        return new OakRepositoryFixture(OakFixture.getRDB(OakFixture.OAK_RDB, jdbcuri, jdbcuser, jdbcpasswd, false, dropDBAfterTest,
+                cacheSize));
+    }
+
     public static RepositoryFixture getTar(File base, int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping) {
         return new OakRepositoryFixture(OakFixture.getTar(base, maxFileSizeMB, cacheSizeMB, memoryMapping));
     }

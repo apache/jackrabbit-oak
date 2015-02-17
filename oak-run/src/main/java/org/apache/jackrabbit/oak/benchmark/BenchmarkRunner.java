@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -51,6 +54,12 @@ public class BenchmarkRunner {
                 .withRequiredArg();
         OptionSpec<Boolean> dropDBAfterTest = parser.accepts("dropDBAfterTest", "Whether to drop the MongoDB database after the test")
                 .withOptionalArg().ofType(Boolean.class).defaultsTo(true);
+        OptionSpec<String> rdbjdbcuri = parser.accepts("rdbjdbcuri", "RDB JDBC URI")
+                .withOptionalArg().defaultsTo("jdbc:h2:target/benchmark");
+        OptionSpec<String> rdbjdbcuser = parser.accepts("rdbjdbcuser", "RDB JDBC user")
+                .withOptionalArg().defaultsTo("");
+        OptionSpec<String> rdbjdbcpasswd = parser.accepts("rdbjdbcpasswd", "RDB JDBC password")
+                .withOptionalArg().defaultsTo("");
         OptionSpec<Boolean> mmap = parser.accepts("mmap", "TarMK memory mapping")
                 .withOptionalArg().ofType(Boolean.class)
                 .defaultsTo("64".equals(System.getProperty("sun.arch.data.model")));
@@ -99,8 +108,11 @@ public class BenchmarkRunner {
                         dbName.value(options), dropDBAfterTest.value(options),
                         cacheSize * MB),
                 OakRepositoryFixture.getTar(
-                        base.value(options), 256, cacheSize, mmap.value(options))
-        };
+                        base.value(options), 256, cacheSize, mmap.value(options)),
+                OakRepositoryFixture.getRDB(rdbjdbcuri.value(options),
+                        rdbjdbcuser.value(options), rdbjdbcpasswd.value(options),
+                        dropDBAfterTest.value(options), cacheSize * MB)
+                        };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new OrderedIndexQueryOrderedIndexTest(),
             new OrderedIndexQueryStandardIndexTest(),
@@ -213,11 +225,21 @@ public class BenchmarkRunner {
             }
         }
 
+        if (fixtures.isEmpty()) {
+            System.err.println("Warning: no repository fixtures specified, supported fixtures are: "
+                    + asSortedString(Arrays.asList(allFixtures)));
+        }
+
         List<Benchmark> benchmarks = Lists.newArrayList();
         for (Benchmark benchmark : allBenchmarks) {
             if (argset.remove(benchmark.toString())) {
                 benchmarks.add(benchmark);
             }
+        }
+
+        if (benchmarks.isEmpty()) {
+            System.err.println("Warning: no benchmarks specified, supported benchmarks are: "
+                    + asSortedString(Arrays.asList(allBenchmarks)));
         }
 
         if (argset.isEmpty()) {
@@ -239,4 +261,12 @@ public class BenchmarkRunner {
         }
     }
 
+    private static String asSortedString(List<?> in) {
+        List<String> tmp = new ArrayList<String>();
+        for (Object o : in) {
+            tmp.add(o.toString());
+        }
+        Collections.sort(tmp);
+        return tmp.toString();
+    }
 }
