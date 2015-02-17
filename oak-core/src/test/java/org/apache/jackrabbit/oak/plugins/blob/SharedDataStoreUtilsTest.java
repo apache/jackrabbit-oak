@@ -55,7 +55,6 @@ public class SharedDataStoreUtilsTest {
     }
 
     @Test
-    @Ignore("OAK-2525")
     public void test() throws Exception {
         dataStore = DataStoreUtils.getBlobStore();
         String repoId1 = UUID.randomUUID().toString();
