@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.Assert;
 
@@ -72,9 +73,12 @@ public class SharedDataStoreUtilsTest {
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
         DataRecord rec1 = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
+        long lastModifiedRec1 = rec1.getLastModified();
+        TimeUnit.MILLISECONDS.sleep(25);
         dataStore.addMetadataRecord(new ByteArrayInputStream(new byte[0]),
             SharedStoreRecordType.REFERENCES.getNameFromId(repoId2));
         DataRecord rec2 = dataStore.getMetadataRecord(SharedStoreRecordType.REFERENCES.getNameFromId(repoId2));
+        long lastModifiedRec2 = rec2.getLastModified();
 
         Assert.assertEquals(SharedStoreRecordType.REPOSITORY.getIdFromName(repo1.getIdentifier().toString()), repoId1);
         Assert.assertEquals(
@@ -92,11 +96,11 @@ public class SharedDataStoreUtilsTest {
                 .refsNotAvailableFromRepos(dataStore.getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType()),
                     dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).isEmpty());
 
-        // Earliest should be the 1st reference record
-        Assert.assertEquals(
-            SharedDataStoreUtils.getEarliestRecord(
-                dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType())).getIdentifier().toString(),
-            SharedStoreRecordType.REFERENCES.getNameFromId(repoId1));
+        // Since, we don't care about which file specifically but only the earliest timestamped record
+        // Earliest time should be the min timestamp from the 2 reference files
+        Assert.assertEquals(SharedDataStoreUtils
+            .getEarliestRecord(dataStore.getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType()))
+            .getLastModified(), (lastModifiedRec1 <= lastModifiedRec2 ? lastModifiedRec1 : lastModifiedRec2));
 
         // Delete references and check back if deleted
         dataStore.deleteAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
