@@ -1204,7 +1204,6 @@
         <lst name="defaults">
             <str name="df">catch_all</str>
             <str name="spellcheck.dictionary">default</str>
-            <str name="spellcheck.dictionary">wordbreak</str>
             <str name="spellcheck">on</str>
             <str name="spellcheck.extendedResults">true</str>
             <str name="spellcheck.count">10</str>
