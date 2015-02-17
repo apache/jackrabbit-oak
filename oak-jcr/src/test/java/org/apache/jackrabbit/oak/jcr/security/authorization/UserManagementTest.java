@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -23,6 +24,9 @@ import java.util.Set;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.query.Query;
 import javax.jcr.security.Privilege;
 
@@ -34,6 +38,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
@@ -455,5 +460,30 @@ public class UserManagementTest extends AbstractEvaluationTest {
             }
         }
         assertTrue("Result mismatch", ids.isEmpty());
+    }
+
+    @Test
+    public void testGlobRestriction() throws Exception {
+        String groupHome = Text.getRelativeParent(UserConstants.DEFAULT_GROUP_PATH, 1);
+        Privilege[] privs = privilegesFromName(PrivilegeConstants.REP_USER_MANAGEMENT);
+        allow(groupHome, privs);
+        deny(groupHome, privs, createGlobRestriction("*/" + UserConstants.REP_MEMBERS));
+
+        UserManager testUserMgr = getUserManager(testSession);
+
+        // creating a new group must be allow
+        Group gr = testUserMgr.createGroup(groupId);
+        testSession.save();
+
+        // modifying group membership must be denied
+        try {
+            gr.addMember(testUserMgr.getAuthorizable(testSession.getUserID()));
+            testSession.save();
+            fail();
+        } catch (AccessDeniedException e) {
+            // success
+        } finally {
+            testSession.refresh(false);
+        }
     }
 }

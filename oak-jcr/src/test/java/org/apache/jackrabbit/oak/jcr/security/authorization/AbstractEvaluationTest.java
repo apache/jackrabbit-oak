@@ -18,10 +18,10 @@ package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -35,8 +35,10 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -48,7 +50,6 @@ import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.junit.After;
 import org.junit.Before;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -81,7 +82,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected Session testSession;
     protected AccessControlManager testAcMgr;
 
-    private List<ACL> toRestore = Lists.newArrayList();
+    private Map<String, ACL> toRestore = Maps.newHashMap();
 
     @Override
     @Before
@@ -141,10 +142,8 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
             }
             superuser.refresh(false);
             // restore in reverse order
-            for (ACL acl : Lists.reverse(toRestore)) {
-                if (acl.path == null || superuser.nodeExists(acl.path)) {
-                    restoreAces(acl);
-                }
+            for (String path : toRestore.keySet()) {
+                toRestore.get(path).restore();
             }
             toRestore.clear();
             if (testGroup != null) {
@@ -225,11 +224,18 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected JackrabbitAccessControlList modify(String path, Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws Exception {
+        return modify(path, principal, privileges, isAllow, restrictions, Collections.<String, Value[]>emptyMap());
+    }
+
+    protected JackrabbitAccessControlList modify(String path, Principal principal,
+                                                 Privilege[] privileges, boolean isAllow,
+                                                 Map<String, Value> restrictions,
+                                                 Map<String, Value[]> mvRestrictions) throws Exception {
         // remember for restore during tearDown
-        toRestore.add(getACL(path));
+        rememberForRestore(path);
 
         JackrabbitAccessControlList tmpl = AccessControlUtils.getAccessControlList(acMgr, path);
-        tmpl.addEntry(principal, privileges, isAllow, restrictions);
+        tmpl.addEntry(principal, privileges, isAllow, restrictions, mvRestrictions);
 
         acMgr.setPolicy(tmpl.getPath(), tmpl);
         superuser.save();
@@ -272,35 +278,56 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return modify(nPath, principal, privileges, false, EMPTY_RESTRICTIONS);
     }
 
-    private ACL getACL(String path) throws RepositoryException {
-        return new ACL(path, AccessControlUtils.getAccessControlList(superuser, path));
-    }
-
-    private void restoreAces(ACL restore) throws RepositoryException {
-        AccessControlList acl = AccessControlUtils.getAccessControlList(superuser, path);
-        if (acl != null) {
-            for (AccessControlEntry ace : acl.getAccessControlEntries()) {
-                acl.removeAccessControlEntry(ace);
-            }
-            for (AccessControlEntry ace : restore.entries) {
-                acl.addAccessControlEntry(ace.getPrincipal(), ace.getPrivileges());
-            }
-            acMgr.setPolicy(path, acl);
-            superuser.save();
+    private void rememberForRestore(@Nullable String path) throws RepositoryException {
+        if (!toRestore.containsKey(path)) {
+            toRestore.put(path, new ACL(path));
         }
     }
 
-    private static final class ACL {
+    private final class ACL {
 
         private final String path;
+        private final boolean remove;
         private final Set<AccessControlEntry> entries = Sets.newHashSet();
 
-        ACL(String path, AccessControlList list)
-                throws RepositoryException {
+        private ACL(String path) throws RepositoryException {
             this.path = path;
+
+            AccessControlList list = getList(path);
+            remove = (list == null);
             if (list != null) {
                 Collections.addAll(entries, list.getAccessControlEntries());
             }
+        }
+
+        private void restore() throws RepositoryException {
+            AccessControlList list = getList(path);
+            if (list != null) {
+                if (remove) {
+                    acMgr.removePolicy(path, list);
+                } else {
+                    for (AccessControlEntry ace : list.getAccessControlEntries()) {
+                        list.removeAccessControlEntry(ace);
+                    }
+                    for (AccessControlEntry ace : entries) {
+                        list.addAccessControlEntry(ace.getPrincipal(), ace.getPrivileges());
+                    }
+                    acMgr.setPolicy(path, list);
+                }
+            }
+            superuser.save();
+        }
+
+        @CheckForNull
+        private AccessControlList getList(@Nullable String path) throws RepositoryException {
+            if (path == null || superuser.nodeExists(path)) {
+                for (AccessControlPolicy policy : acMgr.getPolicies(path)) {
+                    if (policy instanceof AccessControlList) {
+                        return (AccessControlList) policy;
+                    }
+                }
+            }
+            return null;
         }
     }
 }
