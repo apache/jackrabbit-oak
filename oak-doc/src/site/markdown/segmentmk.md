@@ -95,7 +95,7 @@ bytes.
 The segment header consists of the following fields:
 
     +--------+--------+--------+--------+--------+--------+--------+--------+
-    | magic bytes: "0aK\n" in ASCII     |version |idcount |rootcount        |
+    | magic bytes: "0aK" ASCII |version |reserved|idcount |rootcount        |
     +--------+--------+--------+--------+--------+--------+--------+--------+
     | nanosecond timestamp/counter (8 bytes)                                |
     +--------+--------+--------+--------+--------+--------+--------+--------+
@@ -110,9 +110,9 @@ The segment header consists of the following fields:
     |                                            |
     +--------+--------+--------+--------+--------+
 
-The first four bytes of a segment always contain the ASCII string "0aK\n",
+The first three bytes of a segment always contain the ASCII string "0aK",
 which is intended to make the binary segment data format easily detectable.
-The next byte indicates the version of segment format, and is set to zero
+The next byte indicates the version of segment format, and is set to 10
 for all segments that follow the format described here.
 
 The `idcount` byte indicates how many other segments are referenced by
