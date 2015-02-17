@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType.REPOSITORY;
 import static org.junit.Assert.assertTrue;
 
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -52,8 +54,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 
@@ -61,6 +64,8 @@ import javax.annotation.Nonnull;
  * Tests for SegmentNodeStore DataStore GC
  */
 public class SegmentDataStoreBlobGCTest {
+    private static final Logger log = LoggerFactory.getLogger(SegmentDataStoreBlobGCTest.class);
+
     SegmentNodeStore nodeStore;
     FileStore store;
     DataStoreBlobStore blobStore;
@@ -94,9 +99,33 @@ public class SegmentDataStoreBlobGCTest {
 
         NodeBuilder a = nodeStore.getRoot().builder();
 
-        int number = 10;
-        int maxDeleted  = 5;
+        /* Create garbage by creating in-lined blobs (size < 16KB) */
+        int number = 10000;
+        NodeBuilder content = a.child("content");
+        for (int i = 0; i < number; i++) {
+            NodeBuilder c = content.child("x" + i);
+            for (int j = 0; j < 5; j++) {
+                c.setProperty("p" + j, nodeStore.createBlob(randomStream(j, 16384)));
+            }
+        }
+        nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
+        final long dataSize = store.size();
+        log.info("File store dataSize {}", byteCountToDisplaySize(dataSize));
+
+        // 2. Now remove the nodes to generate garbage
+        content = a.child("content");
+        for (int i = 0; i < 2000; i++) {
+            NodeBuilder c = content.child("x" + i);
+            for (int j = 0; j < 5; j++) {
+                c.removeProperty("p" + j);
+            }
+        }
+        nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        /* Create and delete nodes with blobs stored in DS*/
+        int maxDeleted  = 5;
+        number = 10;
         // track the number of the assets to be deleted
         List<Integer> processed = Lists.newArrayList();
         Random rand = new Random();
@@ -106,8 +135,11 @@ public class SegmentDataStoreBlobGCTest {
                 processed.add(n);
             }
         }
+
+        List<String> createdBlobs = Lists.newArrayList();
         for (int i = 0; i < number; i++) {
             SegmentBlob b = (SegmentBlob) nodeStore.createBlob(randomStream(i, 16516));
+            createdBlobs.add(b.getBlobId());
             if (!processed.contains(i)) {
                 Iterator<String> idIter = blobStore
                         .resolveChunks(b.getBlobId());
@@ -118,11 +150,17 @@ public class SegmentDataStoreBlobGCTest {
             a.child("c" + i).setProperty("x", b);
         }
         nodeStore.merge(a, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        log.info("Created blobs : {}", createdBlobs.size());
 
         for (int id : processed) {
             delete("c" + id);
         }
-        store.compact();
+        log.info("Deleted nodes : {}", processed.size());
+
+        // Sleep a little to make eligible for cleanup
+        TimeUnit.MILLISECONDS.sleep(5);
+        store.maybeCompact(false);
+        store.cleanup();
 
         return set;
     }
@@ -135,7 +173,6 @@ public class SegmentDataStoreBlobGCTest {
     }
 
     @Test
-    @Ignore("OAK-2521")
     public void gc() throws Exception {
         HashSet<String> remaining = setUp();
         String repoId = null;
@@ -154,6 +191,9 @@ public class SegmentDataStoreBlobGCTest {
         gc.collectGarbage(false);
 
         Set<String> existingAfterGC = iterate();
+        log.info("{} blobs that should have remained after gc : {}", remaining.size(), remaining);
+        log.info("{} blobs existing after gc : {}", existingAfterGC.size(), existingAfterGC);
+
         assertTrue(Sets.symmetricDifference(remaining, existingAfterGC).isEmpty());
     }
 
@@ -172,8 +212,8 @@ public class SegmentDataStoreBlobGCTest {
         if (store != null) {
             store.close();
         }
-        FileUtils.cleanDirectory(getWorkDir());
-        FileUtils.cleanDirectory(new File(DataStoreUtils.getHomeDir()));
+        FileUtils.deleteDirectory(getWorkDir());
+        FileUtils.deleteDirectory(new File(DataStoreUtils.getHomeDir()));
     }
 
     static InputStream randomStream(int seed, int size) {
