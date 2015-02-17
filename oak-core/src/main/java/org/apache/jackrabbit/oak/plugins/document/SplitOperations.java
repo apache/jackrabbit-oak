@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -65,6 +64,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isRevisionNe
 class SplitOperations {
 
     private static final Logger LOG = LoggerFactory.getLogger(SplitOperations.class);
+    private static final int GARBAGE_LIMIT = Integer.getInteger("oak.documentMK.garbage.limit", 10000);
     private static final DocumentStore STORE = new MemoryDocumentStore();
 
     private final NodeDocument doc;
@@ -75,7 +75,9 @@ class SplitOperations {
     private Revision low;
     private int numValues;
     private Map<String, NavigableMap<Revision, String>> committedChanges;
+    private Set<Revision> changes;
     private Map<String, Set<Revision>> garbage;
+    private int garbageCount = 0;
     private Set<Revision> mostRecentRevs;
     private Set<Revision> splitRevs;
     private List<UpdateOp> splitOps;
@@ -119,7 +121,10 @@ class SplitOperations {
         mostRecentRevs = Sets.newHashSet();
         splitRevs = Sets.newHashSet();
         garbage = Maps.newHashMap();
-        committedChanges = getCommittedLocalChanges();
+        changes = Sets.newHashSet();
+        committedChanges = Maps.newHashMap();
+        
+        collectLocalChanges(committedChanges, changes);
 
         // revisions of the most recent committed changes on this document
         // these are kept in the main document. _revisions and _commitRoot
@@ -215,9 +220,15 @@ class SplitOperations {
         NavigableMap<Revision, String> commitRoot =
                 new TreeMap<Revision, String>(context.getRevisionComparator());
         for (Map.Entry<Revision, String> entry : doc.getLocalCommitRoot().entrySet()) {
-            if (splitRevs.contains(entry.getKey())) {
-                commitRoot.put(entry.getKey(), entry.getValue());
+            Revision r = entry.getKey();
+            if (splitRevs.contains(r)) {
+                commitRoot.put(r, entry.getValue());
                 numValues++;
+            } else if (r.getClusterId() == context.getClusterId() 
+                    && !changes.contains(r)) {
+                // OAK-2528: _commitRoot entry without associated
+                // change -> consider as garbage
+                addGarbage(r, COMMIT_ROOT);
             }
         }
         committedChanges.put(COMMIT_ROOT, commitRoot);
@@ -350,15 +361,15 @@ class SplitOperations {
     }
 
     /**
-     * Returns a map of all local property changes committed by the current
+     * Collects all local property changes committed by the current
      * cluster node.
      *
-     * @return local changes committed by the current cluster node.
+     * @param committedLocally local changes committed by the current cluster node.
+     * @param changes all revisions of local changes (committed and uncommitted).
      */
-    @Nonnull
-    private Map<String, NavigableMap<Revision, String>> getCommittedLocalChanges() {
-        Map<String, NavigableMap<Revision, String>> committedLocally
-                = new HashMap<String, NavigableMap<Revision, String>>();
+    private void collectLocalChanges(
+            Map<String, NavigableMap<Revision, String>> committedLocally,
+            Set<Revision> changes) {
         for (String property : filter(doc.keySet(), PROPERTY_OR_DELETED)) {
             NavigableMap<Revision, String> splitMap
                     = new TreeMap<Revision, String>(context.getRevisionComparator());
@@ -370,6 +381,7 @@ class SplitOperations {
                 if (rev.getClusterId() != context.getClusterId()) {
                     continue;
                 }
+                changes.add(rev);
                 if (doc.isCommitted(rev)) {
                     splitMap.put(rev, entry.getValue());
                 } else if (isGarbage(rev)) {
@@ -377,7 +389,6 @@ class SplitOperations {
                 }
             }
         }
-        return committedLocally;
     }
     
     private boolean isGarbage(Revision rev) {
@@ -392,12 +403,17 @@ class SplitOperations {
     }
     
     private void addGarbage(Revision rev, String property) {
+        if (garbageCount > GARBAGE_LIMIT) {
+            return;
+        }
         Set<Revision> revisions = garbage.get(property);
         if (revisions == null) {
             revisions = Sets.newHashSet();
             garbage.put(property, revisions);
         }
-        revisions.add(rev);
+        if (revisions.add(rev)) {
+            garbageCount++;
+        }
     }
 
     private void disconnectStalePrevDocs() {
@@ -444,8 +460,10 @@ class SplitOperations {
         for (Map.Entry<String, Set<Revision>> entry : garbage.entrySet()) {
             for (Revision r : entry.getValue()) {
                 main.removeMapEntry(entry.getKey(), r);
-                NodeDocument.removeCommitRoot(main, r);
-                NodeDocument.removeRevision(main, r);
+                if (PROPERTY_OR_DELETED.apply(entry.getKey())) {
+                    NodeDocument.removeCommitRoot(main, r);
+                    NodeDocument.removeRevision(main, r);
+                }
             }
         }
     }
