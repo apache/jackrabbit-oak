@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -256,15 +258,19 @@ public abstract class OakFixture {
     }
 
     public static OakFixture getRDB(final String name, final String jdbcuri, final String jdbcuser, final String jdbcpasswd,
-            final boolean useMk, final boolean dropDBAfterTest, final long cacheSize) {
+            final boolean useMk, final String tablePrefix, final boolean dropDBAfterTest, final long cacheSize) {
         return new OakFixture(name) {
             private DocumentMK[] kernels;
             private BlobStore blobStore;
 
+            private RDBOptions getOptions(boolean dropDBAFterTest, String tablePrefix) {
+                return new RDBOptions().dropTablesOnClose(dropDBAfterTest).tablePrefix(tablePrefix);
+            }
+
             private BlobStore getBlobStore() {
                 try {
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    blobStore = new RDBBlobStore(ds);
+                    blobStore = new RDBBlobStore(ds, getOptions(dropDBAfterTest, tablePrefix));
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -275,7 +281,8 @@ public abstract class OakFixture {
             @Override
             public Oak getOak(int clusterId) throws Exception {
                 DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
+                        .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                         .setClusterId(clusterId).setLogging(false);
                 BlobStore blobStore = getBlobStore();
                 if (blobStore != null) {
@@ -298,7 +305,8 @@ public abstract class OakFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     BlobStore blobStore = getBlobStore();
                     DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcuri, jdbcuser, jdbcpasswd);
-                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder().setRDBConnection(ds).memoryCacheSize(cacheSize)
+                    DocumentMK.Builder mkBuilder = new DocumentMK.Builder()
+                            .setRDBConnection(ds, getOptions(dropDBAfterTest, tablePrefix)).memoryCacheSize(cacheSize)
                             .setClusterId(i).setLogging(false);
                     if (blobStore != null) {
                         mkBuilder.setBlobStore(blobStore);
@@ -317,11 +325,17 @@ public abstract class OakFixture {
 
             @Override
             public void tearDownCluster() {
+                String dropped = "";
                 for (DocumentMK kernel : kernels) {
                     kernel.dispose();
+                    if (kernel.getDocumentStore() instanceof RDBDocumentStore) {
+                        dropped += ((RDBDocumentStore)kernel.getDocumentStore()).getDroppedTables();
+                    }
                 }
                 if (dropDBAfterTest) {
-                    throw new RuntimeException("dropdb not supported for RDB persistence");
+                    if (dropped.isEmpty()) {
+                        throw new RuntimeException("dropdb was set, but tables have not been dropped");
+                    }
                 }
             }
         };
