@@ -138,6 +138,10 @@ public class PropertyIndexPlan {
                 }
 
                 if (restriction != null) {
+                    if (restriction.isNullRestriction()) {
+                        // covering indexes are not currently supported
+                        continue;
+                    }
                     Set<String> values = getValues(restriction);
                     double cost = strategy.count(filter, root, definition, values, MAX_COST);
                     if (cost < bestCost) {
@@ -227,7 +231,7 @@ public class PropertyIndexPlan {
             }
             return values;
         } else {
-            // processed as "[property] is not null"
+            // "[property] is not null" or "[property] is null"
             return null;
         }
     }

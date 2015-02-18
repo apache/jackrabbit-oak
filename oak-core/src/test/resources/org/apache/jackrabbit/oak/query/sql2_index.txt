@@ -24,6 +24,21 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+explain select * from [nt:base] as a
+    left outer join [nt:base] as b on a.x=b.y
+    where a.y is null and b.z = 1
+[nt:base] as [a] /* traverse "*"
+  where [a].[y] is null */ left outer join [nt:base] as [b] /* traverse "*"
+  where [b].[z] = 1 */
+  on [a].[x] = [b].[y]
+
+explain select * from [nt:base] as a
+    right outer join [nt:base] as b on a.x=b.y
+    where a.y is null and b.z = 1
+[nt:base] as [b] /* traverse "*"
+  where [b].[z] = 1 */ left outer join [nt:base] as [a] /* traverse "*" */
+  on [a].[x] = [b].[y]
+
 explain select * from [nt:base] where (p=1 or p=2) and (p=3 or p=4)
 [nt:base] as [nt:base] /* traverse "*"
   where ([nt:base].[p] in(1, 2))

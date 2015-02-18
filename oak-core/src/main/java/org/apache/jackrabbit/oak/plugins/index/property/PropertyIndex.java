@@ -121,7 +121,7 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-    private PropertyIndexPlan plan(NodeState root, Filter filter) {
+    private static PropertyIndexPlan plan(NodeState root, Filter filter) {
         PropertyIndexPlan bestPlan = null;
 
         // TODO support indexes on a path

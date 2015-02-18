@@ -225,6 +225,14 @@ public interface Filter {
          * If not restricted, this field is set to PropertyType.UNDEFINED.
          */
         public int propertyType = PropertyType.UNDEFINED;
+        
+        public boolean isNullRestriction() {
+            return first == null && last == null && lastIncluding && firstIncluding;
+        }
+        
+        public boolean isNotNullRestriction() {
+            return first == null && last == null && !lastIncluding && !firstIncluding;
+        }
 
         @Override
         public String toString() {
@@ -248,6 +256,11 @@ public interface Filter {
         }
         
         private String toStringFromTo() {
+            if (isNullRestriction()) {
+                return "is null";
+            } else if (isNotNullRestriction()) {
+                return "is not null";
+            }
             String f = first == null ? "" : first.toString();
             String l = last == null ? "" : last.toString();
             if (f.equals(l)) {

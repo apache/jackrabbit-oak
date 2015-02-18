@@ -123,18 +123,18 @@ public class FilterTest {
         f = new FilterImpl();
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
         assertEquals(
-                "Filter(, path=*, property=[x=[]])", 
+                "Filter(, path=*, property=[x=[is not null]])", 
                 f.toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertEquals(
-                "Filter(, path=*, property=[x=[, ..1)]])", 
+                "Filter(, path=*, property=[x=[is not null, ..1)]])", 
                 f.toString());
         
         // this should replace the range with an equality
         // (which is faster, and correct even when using multi-valued properties)
         f.restrictProperty("x", Operator.EQUAL, two);
         assertEquals(
-                "Filter(, path=*, property=[x=[, ..1), 2]])", 
+                "Filter(, path=*, property=[x=[is not null, ..1), 2]])", 
                 f.toString());
 
     }

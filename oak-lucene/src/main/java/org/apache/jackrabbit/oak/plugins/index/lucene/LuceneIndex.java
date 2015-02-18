@@ -604,8 +604,8 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         IndexingRule rule = indexDefinition.getApplicableIndexingRule(JcrConstants.NT_BASE);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
 
-            if (pr.first == null && pr.last == null) {
-                // ignore property existence checks, Lucene can't to 'property
+            if (pr.isNullRestriction() || pr.isNotNullRestriction()) {
+                // ignore property existence checks, Lucene can't do 'property
                 // is not null' queries (OAK-1208)
                 continue;
             }

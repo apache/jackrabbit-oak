@@ -102,8 +102,6 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        // we don't support covering indexes, 
-        // so there is no optimization anyway, and
         // we need to be careful with "property IS NULL"
         // because this might cause an index
         // to ignore the join condition "property = x"
@@ -113,6 +111,13 @@ public class PropertyInexistenceImpl extends ConstraintImpl {
         // must not result in the index to check for
         // "b.y is null", because that would alter the
         // result
+        if (selector.isOuterJoinRightHandSide()) {
+            return;
+        }
+        if (f.getSelector().equals(selector)) {
+            String pn = normalizePropertyName(propertyName);
+            f.restrictProperty(pn, Operator.EQUAL, null);
+        }        
     }
 
     @Override
