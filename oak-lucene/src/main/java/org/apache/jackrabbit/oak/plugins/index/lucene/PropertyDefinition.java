@@ -19,16 +19,22 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.collect.ImmutableList.copyOf;
+import static com.google.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.FIELD_BOOST;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_IS_REGEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.ConfigUtil.getOptionalValue;
@@ -68,15 +74,29 @@ class PropertyDefinition {
 
     final boolean ordered;
 
+    final boolean nullCheckEnabled;
+
     final int includedPropertyTypes;
 
-    boolean useInSuggest;
+    final boolean relative;
 
-    boolean useInSpellcheck;
+    final boolean useInSuggest;
 
-    public PropertyDefinition(IndexingRule idxDefn, String name, NodeState defn) {
+    final boolean useInSpellcheck;
+
+    final String[] ancestors;
+
+    /**
+     * Property name excluding the relativePath. For regular expression based definition
+     * its set to null
+     */
+    @CheckForNull
+    final String nonRelativeName;
+
+    public PropertyDefinition(IndexingRule idxDefn, String nodeName, NodeState defn) {
         this.isRegexp = getOptionalValue(defn, PROP_IS_REGEX, false);
-        this.name = getName(defn, name);
+        this.name = getName(defn, nodeName);
+        this.relative = isRelativeProperty(name);
         this.boost = getOptionalValue(defn, FIELD_BOOST, DEFAULT_BOOST);
 
         //By default if a property is defined it is indexed
@@ -93,10 +113,15 @@ class PropertyDefinition {
 
         //TODO Add test case for above cases
 
-        this.propertyType = getPropertyType(idxDefn, name, defn);
+        this.propertyType = getPropertyType(idxDefn, nodeName, defn);
         this.useInSuggest = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SUGGEST, false);
         this.useInSpellcheck = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+        this.nullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
+        this.nonRelativeName = determineNonRelativeName();
+        this.ancestors = computeAncestors(name);
+        validate();
     }
+
 
     /**
      * If 'analyzed' is enabled then property value would be used to evaluate the
@@ -156,11 +181,39 @@ class PropertyDefinition {
                 ", analyzed=" + analyzed +
                 ", ordered=" + ordered +
                 ", useInSuggest=" + useInSuggest+
-                ", useInSpellcheck=" + useInSpellcheck+
+                ", nullCheckEnabled=" + nullCheckEnabled+
                 '}';
     }
 
+    static boolean isRelativeProperty(String propertyName){
+        return !isAbsolute(propertyName) && PathUtils.getNextSlash(propertyName, 0) > 0;
+    }
+
     //~---------------------------------------------< internal >
+
+    private void validate() {
+        if (nullCheckEnabled && isRegexp){
+            throw new IllegalStateException(String.format("%s can be set to true for property definition using " +
+                    "regular expression", LuceneIndexConstants.PROP_NULL_CHECK_ENABLED));
+        }
+    }
+
+    private String determineNonRelativeName() {
+        if (isRegexp){
+            return null;
+        }
+
+        if (!relative){
+            return name;
+        }
+
+        return PathUtils.getName(name);
+    }
+
+    private static String[] computeAncestors(String parentPath) {
+        return toArray(copyOf(elements(PathUtils.getParentPath(parentPath))), String.class);
+    }
+
 
     private static String getName(NodeState definition, String defaultName){
         PropertyState ps = definition.getProperty(LuceneIndexConstants.PROP_NAME);
