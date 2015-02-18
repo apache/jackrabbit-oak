@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import java.io.Closeable;
 import javax.annotation.CheckForNull;
 
 import org.apache.solr.client.solrj.SolrServer;
@@ -23,7 +24,7 @@ import org.apache.solr.client.solrj.SolrServer;
 /**
  * Provider of {@link org.apache.solr.client.solrj.SolrServer}s instances
  */
-public interface SolrServerProvider {
+public interface SolrServerProvider extends Closeable {
 
     /**
      * provides an already initialized {@link org.apache.solr.client.solrj.SolrServer} to be used for either searching or

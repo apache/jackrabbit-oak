@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import java.io.File;
+import java.io.IOException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -25,12 +26,9 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrCon
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.EmbeddedSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.solr.client.solrj.SolrServer;
-import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
-import org.apache.solr.core.CoreContainer;
 
 import static org.junit.Assert.assertTrue;
 
@@ -114,4 +112,8 @@ public class TestUtils
         return configuration;
     }
 
+    @Override
+    public void close() throws IOException {
+
+    }
 }

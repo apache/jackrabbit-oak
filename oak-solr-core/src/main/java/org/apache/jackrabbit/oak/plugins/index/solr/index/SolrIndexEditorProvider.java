@@ -21,7 +21,10 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.OakSolrNodeStateConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -45,8 +48,8 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
     public SolrIndexEditorProvider(
-            SolrServerProvider solrServerProvider,
-            OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+            @Nonnull SolrServerProvider solrServerProvider,
+            @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.solrServerProvider = solrServerProvider;
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
@@ -55,31 +58,46 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     public Editor getIndexEditor(
             @Nonnull String type, @Nonnull NodeBuilder definition, @Nonnull NodeState root, @Nonnull IndexUpdateCallback callback)
             throws CommitFailedException {
-
-        if (SolrQueryIndex.TYPE.equals(type)
-                && isConfigurationOk()) {
-            try {
-              SolrServer solrServer = solrServerProvider.getIndexingSolrServer();
-              if (solrServer != null) {
-                  return new SolrIndexEditor(
-                        solrServer,
-                        oakSolrConfigurationProvider.getConfiguration(), callback);
-              } else {
-                  if (log.isWarnEnabled()) {
-                      log.warn("null SolrServer provided, cannot index {}", definition);
-                  }
-              }
-            } catch (Exception e) {
-                if (log.isErrorEnabled()) {
-                    log.error("unable to create SolrIndexEditor", e);
-                }
+        SolrIndexEditor editor = null;
+        if (SolrQueryIndex.TYPE.equals(type)) {
+            // if index definition contains a persisted configuration, use that
+            if (isPersistedConfiguration(definition)) {
+                NodeState nodeState = definition.getNodeState();
+                OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(nodeState);
+                SolrServerProvider serverProvider = new NodeStateSolrServerProvider(nodeState.getChildNode("server"));
+                editor = getEditor(configuration, serverProvider, callback, definition);
+            } else { // otherwise use the default configuration providers (e.g. defined via code or OSGi)
+                OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
+                editor = getEditor(configuration, solrServerProvider, callback, definition);
             }
         }
-        return null;
+        return editor;
     }
 
-    private boolean isConfigurationOk() {
-        return solrServerProvider != null && oakSolrConfigurationProvider != null;
+    private boolean isPersistedConfiguration(NodeBuilder definition) {
+        return definition.hasChildNode("server");
+    }
+
+    private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrServerProvider solrServerProvider,
+                                      IndexUpdateCallback callback, NodeBuilder definition) {
+        SolrIndexEditor editor = null;
+        try {
+            SolrServer solrServer = solrServerProvider.getIndexingSolrServer();
+            if (solrServer != null) {
+                editor = new SolrIndexEditor(
+                        solrServer,
+                        configuration, callback);
+            } else {
+                if (log.isWarnEnabled()) {
+                    log.warn("null SolrServer provided, cannot index {}", definition);
+                }
+            }
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("unable to create SolrIndexEditor", e);
+            }
+        }
+        return editor;
     }
 
 }

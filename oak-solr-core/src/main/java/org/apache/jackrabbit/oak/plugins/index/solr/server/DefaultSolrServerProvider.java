@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.server;
 
+import java.io.IOException;
 import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
@@ -56,5 +57,22 @@ public class DefaultSolrServerProvider implements SolrServerProvider {
         return SolrServerConfigurationDefaults.LOCAL_BASE_URL + ':' +
                 SolrServerConfigurationDefaults.HTTP_PORT + SolrServerConfigurationDefaults.CONTEXT +
                 '/' + SolrServerConfigurationDefaults.CORE_NAME;
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            getSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getIndexingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getSearchingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        }
     }
 }

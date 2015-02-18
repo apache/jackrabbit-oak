@@ -46,7 +46,6 @@ public class SolrIndexEditorTest {
 
     @Test
     public void testIndexedProperties() throws Exception {
-        NodeBuilder builder = mock(NodeBuilder.class);
         SolrServer solrServer = TestUtils.createSolrServer();
         OakSolrConfiguration configuration = TestUtils.getTestConfiguration();
         IndexUpdateCallback callback = mock(IndexUpdateCallback.class);

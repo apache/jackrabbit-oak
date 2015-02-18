@@ -16,27 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
-import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
 
+import com.google.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,12 +48,13 @@ import org.slf4j.LoggerFactory;
  * @see QueryIndexProvider
  */
 @Component(metatype = true, immediate = true, label = "Oak Solr Query index provider configuration")
-@Service(value = QueryIndexProvider.class)
-public class SolrQueryIndexProviderService implements QueryIndexProvider {
+public class SolrQueryIndexProviderService {
 
     private static final boolean QUERY_TIME_AGGREGATION_DEFAULT = false;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private final List<ServiceRegistration> regs = Lists.newArrayList();
 
     @Reference
     private SolrServerProvider solrServerProvider;
@@ -71,25 +72,28 @@ public class SolrQueryIndexProviderService implements QueryIndexProvider {
             description = "enable query time aggregation for Solr index")
     private static final String QUERY_TIME_AGGREGATION = "query.aggregation";
 
-    private boolean queryTimeAggregation;
-
     @Activate
     protected void activate(ComponentContext componentContext) {
         Object value = componentContext.getProperties().get(QUERY_TIME_AGGREGATION);
-        queryTimeAggregation = PropertiesUtil.toBoolean(value, QUERY_TIME_AGGREGATION_DEFAULT);
-    }
-
-    @Override
-    @Nonnull
-    public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
+        boolean queryTimeAggregation = PropertiesUtil.toBoolean(value, QUERY_TIME_AGGREGATION_DEFAULT);
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
-            SolrQueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(solrServerProvider,
+            QueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(solrServerProvider,
                     oakSolrConfigurationProvider, nodeAggregator);
             log.debug("creating Solr query index provider {} query time aggregation", queryTimeAggregation ? "with" : "without");
-            return queryTimeAggregation ? AggregateIndexProvider.wrap(solrQueryIndexProvider).getQueryIndexes(nodeState) :
-                    solrQueryIndexProvider.getQueryIndexes(nodeState);
-        } else {
-            return new ArrayList<QueryIndex>();
+            if (queryTimeAggregation) {
+                solrQueryIndexProvider = AggregateIndexProvider.wrap(solrQueryIndexProvider);
+            }
+
+            regs.add(componentContext.getBundleContext().registerService(QueryIndexProvider.class.getName(), solrQueryIndexProvider, null));
+            regs.add(componentContext.getBundleContext().registerService(Observer.class.getName(), solrQueryIndexProvider, null));
+        }
+    }
+
+    @Deactivate
+    protected void deactivate() {
+
+        for (ServiceRegistration registration : regs) {
+            registration.unregister();
         }
     }
 

@@ -52,6 +52,17 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getSolrServer() throws Exception {
+
+        SolrServer cachedEntry = SolrServerRegistry.get(remoteSolrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
+
+        try {
+            if (cachedEntry != null && 0 == cachedEntry.ping().getStatus()) {
+                return cachedEntry;
+            }
+        } catch (Exception e) {
+            log.warn("cached entry is shut down, creating new one");
+        }
+
         if (solrServer == null && remoteSolrServerConfiguration.getSolrZkHost() != null && remoteSolrServerConfiguration.getSolrZkHost().length() > 0) {
             try {
                 solrServer = initializeWithCloudSolrServer();
@@ -69,6 +80,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         }
         if (solrServer == null) {
             throw new IOException("could not connect to any remote Solr server");
+        } else {
+            SolrServerRegistry.register(remoteSolrServerConfiguration, solrServer, SolrServerRegistry.Strategy.SEARCHING);
         }
         return solrServer;
     }
@@ -76,11 +89,23 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     @CheckForNull
     @Override
     public SolrServer getIndexingSolrServer() throws Exception {
+
+        SolrServer cachedEntry = SolrServerRegistry.get(remoteSolrServerConfiguration, SolrServerRegistry.Strategy.INDEXING);
+
+        try {
+            if (cachedEntry != null && 0 == cachedEntry.ping().getStatus()) {
+                return cachedEntry;
+            }
+        } catch (Exception e) {
+            log.warn("cached entry is shut down, creating new one");
+        }
+
         SolrServer server = getSolrServer();
 
         if (server instanceof HttpSolrServer) {
             String url = ((HttpSolrServer) server).getBaseURL();
             server = new ConcurrentUpdateSolrServer(url, 1000, 4);
+            SolrServerRegistry.register(remoteSolrServerConfiguration, solrServer, SolrServerRegistry.Strategy.INDEXING);
         }
 
         return server;
@@ -196,6 +221,23 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
         } catch (Exception e) {
             log.warn("could not create collection {}", solrCollection);
             throw new SolrServerException(e);
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            getSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getIndexingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getSearchingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
         }
     }
 }

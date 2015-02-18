@@ -21,8 +21,12 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /**
  * A {@link org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer} for Solr index
@@ -98,5 +102,9 @@ public class SolrIndexInitializer implements RepositoryInitializer {
             }
 
         }
+    }
+
+    public static boolean isSolrIndexNode(NodeState node) {
+        return SolrQueryIndex.TYPE.equals(node.getString(TYPE_PROPERTY_NAME));
     }
 }
