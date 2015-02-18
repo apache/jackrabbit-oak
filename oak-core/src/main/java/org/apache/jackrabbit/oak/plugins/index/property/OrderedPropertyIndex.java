@@ -131,7 +131,7 @@ public class OrderedPropertyIndex implements QueryIndex, AdvancedQueryIndex {
             String operation = null;
             PropertyValue value = null;       
             // TODO support pr.list
-            if (pr.first == null && pr.last == null) {
+            if (pr.isNotNullRestriction()) {
                 // open query: [property] is not null
                 operation = "is not null";
             } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding

@@ -268,7 +268,7 @@ public class OrderedPropertyIndexLookup {
         if (definition != null) {
             PropertyValue value = null;
             boolean createPlan = false;
-            if (pr.first == null && pr.last == null) {
+            if (pr.isNotNullRestriction()) {
                 // open query: [property] is not null
                 value = null;
                 createPlan = true;
