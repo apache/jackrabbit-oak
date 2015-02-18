@@ -145,6 +145,23 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
     }
 
     @Override
+    public void close() throws IOException {
+        try {
+            getSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getIndexingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getSearchingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        }
+    }
+
+    @Override
     public String toString() {
         return "NodeStateSolrServerProvider{" +
                 "nodeStateChildren=" + Iterables.toString(nodeState.getChildNodeNames()) +

@@ -52,6 +52,18 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private SolrServer createSolrServer() throws Exception {
 
+        SolrServer cachedEntry = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
+
+        try {
+            if (cachedEntry != null && 0 == cachedEntry.ping().getStatus()) {
+                return cachedEntry;
+            }
+        } catch (Exception e) {
+            log.warn("cached entry is shut down, creating new one");
+        }
+
+        log.warn("creating new embedded solr server with config: {}", solrServerConfiguration);
+
         String solrHomePath = solrServerConfiguration.getSolrHomePath();
         String coreName = solrServerConfiguration.getCoreName();
         EmbeddedSolrServerConfiguration.HttpConfiguration httpConfiguration = solrServerConfiguration.getHttpConfiguration();
@@ -113,6 +125,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
                 EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, coreName);
                 if (server.ping().getStatus() == 0) {
+                    SolrServerRegistry.register(solrServerConfiguration, server, SolrServerRegistry.Strategy.SEARCHING);
                     return server;
                 } else {
                     throw new IOException("the embedded Solr server is not alive");
@@ -124,9 +137,11 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     }
 
     private void checkSolrConfiguration(String solrHomePath, String coreName) throws IOException {
+        File solrHomePathFile = new File(solrHomePath);
+
+        log.info("checking configuration at {}", solrHomePathFile.getAbsolutePath());
 
         // check if solrHomePath exists
-        File solrHomePathFile = new File(solrHomePath);
         if (!solrHomePathFile.exists()) {
             if (!solrHomePathFile.mkdirs()) {
                 throw new IOException("could not create solrHomePath directory");
@@ -134,30 +149,41 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 // copy all the needed files to the just created directory
                 copy("/solr/solr.xml", solrHomePath);
                 copy("/solr/zoo.cfg", solrHomePath);
-                if (!new File(solrHomePath + "/" + coreName + "/conf").mkdirs()) {
-                    throw new IOException("could not create nested core directory in solrHomePath");
-                }
-                String solrCoreDir = solrHomePath + "/" + coreName;
-                copy("/solr/oak/core.properties", solrCoreDir);
-                String coreConfDir = solrCoreDir + "/conf/";
-                copy("/solr/oak/conf/currency.xml", coreConfDir);
-                copy("/solr/oak/conf/schema.xml", coreConfDir);
-                copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
+
             }
         } else if (!solrHomePathFile.isDirectory()) {
             throw new IOException("a non directory file with the specified name already exists for the given solrHomePath '" + solrHomePath);
         }
 
+        File solrCorePathFile = new File(solrHomePathFile, coreName);
+        if (!solrCorePathFile.exists()) {
+            if (!new File(solrCorePathFile, "conf").mkdirs()) {
+                throw new IOException("could not create nested core directory in solrHomePath/solrCoreName/conf");
+            }
+            String solrCoreDir = solrCorePathFile.getAbsolutePath();
+//            copy("/solr/oak/core.properties", solrCoreDir);
+            File coreProperties = new File(new File(solrCoreDir), "core.properties");
+            assert coreProperties.createNewFile();
+            FileOutputStream out = new FileOutputStream(coreProperties);
+            IOUtils.writeBytes(out, ("name=" + coreName).getBytes());
+            out.flush();
+            out.close();
+
+            String coreConfDir = solrCoreDir + "/conf/";
+            copy("/solr/oak/conf/currency.xml", coreConfDir);
+            copy("/solr/oak/conf/schema.xml", coreConfDir);
+            copy("/solr/oak/conf/solrconfig.xml", coreConfDir);
+        } else if (!solrCorePathFile.isDirectory()) {
+            throw new IOException("a non directory file with the specified name already exists for the given Solr core path'" + solrCorePathFile.getAbsolutePath());
+        }
+
         // check if the a core with the given coreName exists
-        // TODO : improve this check
-        String[] files = new File(solrHomePath).list();
+        String[] files = solrHomePathFile.list();
         Arrays.sort(files);
         if (Arrays.binarySearch(files, coreName) < 0) {
             throw new IOException("could not find a directory with the coreName '" + coreName
                     + "' in the solrHomePath '" + solrHomePath + "'");
         }
-
-
     }
 
     private void copy(String resource, String dir) throws IOException {
@@ -233,6 +259,23 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
             } catch (Exception e) {
                 log.warn("could not stop JettySolrRunner {}", jettySolrRunner);
             }
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            getSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getIndexingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
+        } try {
+            getSearchingSolrServer().shutdown();
+        } catch (Exception e) {
+            // do nothing
         }
     }
 }

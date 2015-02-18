@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.regex.Pattern;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.TokenStream;

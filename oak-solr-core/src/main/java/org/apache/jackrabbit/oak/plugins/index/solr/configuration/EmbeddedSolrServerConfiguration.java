@@ -83,7 +83,22 @@ public class EmbeddedSolrServerConfiguration extends SolrServerConfiguration<Emb
         public Integer getHttpPort() {
             return httpPort;
         }
+
+        @Override
+        public String toString() {
+            return "HttpConfiguration{" +
+                    "context='" + context + '\'' +
+                    ", httpPort=" + httpPort +
+                    '}';
+        }
     }
 
-
+    @Override
+    public String toString() {
+        return "EmbeddedSolrServerConfiguration{" +
+                "solrHomePath='" + solrHomePath + '\'' +
+                ", coreName='" + coreName + '\'' +
+                ", httpConfiguration=" + httpConfiguration +
+                '}';
+    }
 }

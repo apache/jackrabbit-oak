@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
+import java.util.Arrays;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
 
 /**
@@ -62,5 +64,17 @@ public class RemoteSolrServerConfiguration extends SolrServerConfiguration<Remot
 
     public String getSolrConfDir() {
         return solrConfDir;
+    }
+
+    @Override
+    public String toString() {
+        return "RemoteSolrServerConfiguration{" +
+                "solrConfDir='" + solrConfDir + '\'' +
+                ", solrHttpUrls=" + Arrays.toString(solrHttpUrls) +
+                ", solrZkHost='" + solrZkHost + '\'' +
+                ", solrCollection='" + solrCollection + '\'' +
+                ", solrShardsNo=" + solrShardsNo +
+                ", solrReplicationFactor=" + solrReplicationFactor +
+                '}';
     }
 }

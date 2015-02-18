@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -53,6 +54,11 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
             throw new RuntimeException();
         }
         SolrServerProvider solrServerProvider = new SolrServerProvider() {
+            @Override
+            public void close() throws IOException {
+
+            }
+
             @CheckForNull
             @Override
             public SolrServer getSolrServer() throws Exception {
