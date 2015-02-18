@@ -48,6 +48,8 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_FILE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PERSISTENCE_PATH;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.NT_TEST;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.createNodeWithType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
@@ -224,6 +226,81 @@ public class LuceneIndexTest {
         assertEquals("/a", cursor.next().getPath());
         assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
+    }
+
+    @Test
+    public void testPropertyNonExistence() throws Exception {
+        root = TestUtil.registerTestNodeType(builder).getNodeState();
+
+        NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        NodeBuilder rules = index.child(INDEX_RULES);
+        NodeBuilder propNode = rules.child(NT_TEST).child(LuceneIndexConstants.PROP_NODE);
+
+        NodeBuilder fooProp = propNode.child("foo");
+        fooProp.setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true);
+        fooProp.setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+
+        NodeState before = builder.getNodeState();
+        createNodeWithType(builder, "a", NT_TEST).setProperty("foo", "bar");
+        createNodeWithType(builder, "b", NT_TEST).setProperty("foo", "bar");
+        createNodeWithType(builder, "c", NT_TEST);
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+
+        FilterImpl filter = createFilter(NT_TEST);
+        filter.restrictProperty("foo", Operator.EQUAL, null);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/c"));
+    }
+
+    @Test
+    public void testRelativePropertyNonExistence() throws Exception {
+        root = TestUtil.registerTestNodeType(builder).getNodeState();
+
+        NodeBuilder index = newLucenePropertyIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "lucene", ImmutableSet.of("foo"), null);
+        NodeBuilder rules = index.child(INDEX_RULES);
+        NodeBuilder propNode = rules.child(NT_TEST).child(LuceneIndexConstants.PROP_NODE);
+
+        propNode.child("bar")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "jcr:content/bar")
+                .setProperty(LuceneIndexConstants.PROP_PROPERTY_INDEX, true)
+                .setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+
+        NodeState before = builder.getNodeState();
+
+        NodeBuilder a1 = createNodeWithType(builder, "a1", NT_TEST);
+        a1.child("jcr:content").setProperty("bar", "foo");
+
+        NodeBuilder b1 = createNodeWithType(builder, "b1", NT_TEST);
+        b1.child("jcr:content");
+
+        NodeState after = builder.getNodeState();
+
+        NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
+
+        IndexTracker tracker = new IndexTracker();
+        tracker.update(indexed);
+        AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
+
+        FilterImpl filter = createFilter(NT_TEST);
+        filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
+        assertFilter(filter, queryIndex, indexed, ImmutableList.of("/b1"));
+
+        builder.child("b1").child("jcr:content").setProperty("bar", "foo");
+        after = builder.getNodeState();
+        indexed = HOOK.processCommit(before, after, CommitInfo.EMPTY);
+        tracker.update(indexed);
+
+        filter = createFilter(NT_TEST);
+        filter.restrictProperty("jcr:content/bar", Operator.EQUAL, null);
+        assertFilter(filter, queryIndex, indexed, Collections.<String>emptyList());
     }
 
     @Test
@@ -494,7 +571,8 @@ public class LuceneIndexTest {
         for (String p : expected) {
             assertTrue("Expected path " + p + " not found", paths.contains(p));
         }
-        assertEquals("Result set size is different", expected.size(), paths.size());
+        assertEquals("Result set size is different \nExpected: " +
+                expected + "\nActual: " + paths, expected.size(), paths.size());
         return paths;
     }
 

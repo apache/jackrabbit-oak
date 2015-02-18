@@ -24,7 +24,6 @@ import javax.jcr.PropertyType;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.tree.TreeFactory;
@@ -34,7 +33,6 @@ import org.apache.lucene.codecs.Codec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexDefinition.IndexingRule;
 import org.junit.Test;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
@@ -51,12 +49,14 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TIKA;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.registerTestNodeType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.tree.impl.TreeConstants.OAK_CHILD_ORDER;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -154,13 +154,15 @@ public class IndexDefinitionTest {
         assertNotNull(rule.getConfig("foo1/bar"));
         assertEquals(PropertyType.DATE, rule.getConfig("foo1/bar").getType());
         assertEquals(PropertyType.LONG, rule.getConfig("foo2/bar2/baz").getType());
+        assertTrue(rule.getConfig("foo1/bar").relative);
+        assertArrayEquals(new String[]{"foo2", "bar2"}, rule.getConfig("foo2/bar2/baz").ancestors);
     }
 
     @Test
     public void indexRuleSanity() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder").setProperty(LuceneIndexConstants.FIELD_BOOST, 2.0);
-        child(rules, "nt:folder/properties/prop1")
+        TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0)
                 .setProperty(LuceneIndexConstants.PROP_TYPE, PropertyType.TYPENAME_BOOLEAN);
 
@@ -243,9 +245,9 @@ public class IndexDefinitionTest {
     public void indexRuleWithPropertyRegEx() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
-        child(rules, "nt:folder/properties/prop1")
+        TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
-        child(rules, "nt:folder/properties/prop2")
+        TestUtil.child(rules, "nt:folder/properties/prop2")
                 .setProperty(LuceneIndexConstants.PROP_NAME, "foo.*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
@@ -267,10 +269,10 @@ public class IndexDefinitionTest {
     public void indexRuleWithPropertyRegEx2() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
-        child(rules, "nt:folder/properties/prop1")
+        TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true);
-        child(rules, "nt:folder/properties/prop2")
+        TestUtil.child(rules, "nt:folder/properties/prop2")
                 .setProperty(LuceneIndexConstants.PROP_NAME, "metadata/.*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
@@ -293,11 +295,11 @@ public class IndexDefinitionTest {
     public void indexRuleWithPropertyOrdering() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
-        child(rules, "nt:folder/properties/prop1")
+        TestUtil.child(rules, "nt:folder/properties/prop1")
                 .setProperty(LuceneIndexConstants.PROP_NAME, "foo.*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 3.0);
-        child(rules, "nt:folder/properties/prop2")
+        TestUtil.child(rules, "nt:folder/properties/prop2")
                 .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(LuceneIndexConstants.FIELD_BOOST, 4.0);
@@ -328,7 +330,7 @@ public class IndexDefinitionTest {
     public void skipTokenization() throws Exception{
         NodeBuilder rules = builder.child(INDEX_RULES);
         rules.child("nt:folder");
-        child(rules, "nt:folder/properties/prop2")
+        TestUtil.child(rules, "nt:folder/properties/prop2")
                 .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
                 .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
                 .setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
@@ -519,6 +521,37 @@ public class IndexDefinitionTest {
         assertEquals(1000, defn.getMaxExtractLength());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void nullCheckEnabledWithNtBase() throws Exception{
+        builder.child(PROP_NODE).child("foo").setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void nullCheckEnabledWithRegex() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        rules.child(TestUtil.NT_TEST);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, ".*")
+                .setProperty(LuceneIndexConstants.PROP_IS_REGEX, true)
+                .setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+    }
+
+    @Test
+    public void nullCheckEnabledWithTestNode() throws Exception{
+        NodeBuilder rules = builder.child(INDEX_RULES);
+        TestUtil.child(rules, "oak:TestNode/properties/prop2")
+                .setProperty(LuceneIndexConstants.PROP_NAME, "foo")
+                .setProperty(LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, true);
+        root = registerTestNodeType(builder).getNodeState();
+        IndexDefinition idxDefn = new IndexDefinition(root, builder.getNodeState());
+        assertTrue(!idxDefn.getApplicableIndexingRule(TestUtil.NT_TEST).getNullCheckEnabledProperties().isEmpty());
+    }
+
+    //TODO indexesAllNodesOfMatchingType - with nullCheckEnabled
+
     private static IndexingRule getRule(IndexDefinition defn, String typeName){
         return defn.getApplicableIndexingRule(newTree(newNode(typeName)));
     }
@@ -533,10 +566,4 @@ public class IndexDefinitionTest {
         return builder;
     }
 
-    private static NodeBuilder child(NodeBuilder nb, String path) {
-        for (String name : PathUtils.elements(checkNotNull(path))) {
-            nb = nb.child(name);
-        }
-        return nb;
-    }
 }
