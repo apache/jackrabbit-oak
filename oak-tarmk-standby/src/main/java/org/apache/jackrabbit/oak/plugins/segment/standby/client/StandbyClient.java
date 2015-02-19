@@ -248,4 +248,9 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
     public int calcSecondsSinceLastSuccess() {
         return this.getSecondsSinceLastSuccess();
     }
+
+    @Override
+    public void cleanup() {
+        store.cleanup();
+    }
 }

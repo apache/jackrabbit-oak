@@ -88,6 +88,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     private void initSync() {
         log.debug("new head id " + head);
         long t = System.currentTimeMillis();
+        long preSyncSize = store.size();
 
         try {
             store.setLoader(this);
@@ -124,6 +125,16 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
             boolean ok = store.setHead(before, builder.getNodeState());
             log.debug("updated head state successfully: {} in {}ms.", ok,
                     System.currentTimeMillis() - t);
+            // check is a cleanup is needed
+            long postSyncSize = store.size();
+            // if size gain is over 25% call cleanup
+            if (preSyncSize > 0
+                    && postSyncSize - preSyncSize > 0.25 * preSyncSize) {
+                log.debug(
+                        "Store size increased from {} to {}, will run cleanup.",
+                        preSyncSize, postSyncSize);
+                store.cleanup();
+            }
         } finally {
             close();
         }
