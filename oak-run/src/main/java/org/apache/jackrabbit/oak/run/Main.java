@@ -62,6 +62,8 @@ import org.apache.jackrabbit.oak.plugins.backup.FileStoreBackup;
 import org.apache.jackrabbit.oak.plugins.backup.FileStoreRestore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.segment.RecordId;
 import org.apache.jackrabbit.oak.plugins.segment.Segment;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
@@ -141,6 +143,9 @@ public class Main {
                 break;
             case CHECKPOINTS:
                 checkpoints(args);
+                break;
+            case REPAIR:
+                repair(args);
                 break;
             default:
                 System.err.println("Unknown command: " + mode);
@@ -485,6 +490,41 @@ public class Main {
 
     private static void failWith(String message) {
         throw new RuntimeException(message);
+    }
+
+    private static void repair(String[] args) throws IOException {
+        if (args.length < 2) {
+            System.err.println("usage: repair mongodb://host:port/database path");
+            return;
+        }
+        Closer closer = Closer.create();
+        try {
+            final DocumentNodeStore store;
+            if (args[0].startsWith(MongoURI.MONGODB_PREFIX)) {
+                MongoClientURI uri = new MongoClientURI(args[0]);
+                MongoClient client = new MongoClient(uri);
+                store = new DocumentMK.Builder().setMongoDB(client.getDB(uri.getDatabase())).getNodeStore();
+                closer.register(new Closeable() {
+                    @Override
+                    public void close() throws IOException {
+                        store.dispose();
+                    }
+                });
+            } else {
+                System.err.println("Repair only available for MongoDocumentStore");
+                System.exit(1);
+                return;
+            }
+
+            MongoDocumentStore docStore = (MongoDocumentStore) store.getDocumentStore();
+
+            String path = args[args.length - 1];
+            MongoDocumentStoreHelper.repair(docStore, path);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
     }
 
     private static void debug(String[] args) throws IOException {
@@ -841,7 +881,8 @@ public class Main {
         UPGRADE("upgrade"),
         PRIMARY("primary"),
         STANDBY("standy"),
-        CHECKPOINTS("checkpoints");
+        CHECKPOINTS("checkpoints"),
+        REPAIR("repair");
 
         private final String name;
 
