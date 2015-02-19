@@ -515,7 +515,7 @@ public class OrderedContentMirrorStoreStrategy extends ContentMirrorStoreStrateg
                     v.visit(n);
                     count = v.getEstimatedCount();
                 }
-            } else if (lpr.first == null && lpr.last == null) {
+            } else if (lpr.isNotNullRestriction()) {
                 // property not null case
                 PropertyState ec = indexMeta.getProperty(ENTRY_COUNT_PROPERTY_NAME);
                 if (ec != null) {
