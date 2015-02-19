@@ -313,6 +313,11 @@ class Branch {
         public void track(String path) {
             modifications.add(path);
         }
+
+        @Override
+        public String toString() {
+            return "B (" + modifications.size() + ")";
+        }
     }
 
     static class RebaseCommit extends BranchCommit {
@@ -359,6 +364,11 @@ class Branch {
         @Override
         public void track(String path) {
             throw new UnsupportedOperationException("RebaseCommit is read-only");
+        }
+
+        @Override
+        public String toString() {
+            return "R (" + previous.size() + ")";
         }
     }
 
