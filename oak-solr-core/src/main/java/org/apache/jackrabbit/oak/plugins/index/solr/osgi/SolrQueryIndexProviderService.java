@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
  * @see QueryIndexProvider
  */
-@Component(metatype = true, immediate = true, label = "Oak Solr Query index provider configuration")
+@Component(metatype = true, immediate = true, label = "Apache Jackrabbit Oak Solr Query index provider configuration")
 public class SolrQueryIndexProviderService {
 
     private static final boolean QUERY_TIME_AGGREGATION_DEFAULT = false;
