@@ -38,10 +38,11 @@ import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigu
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.DefaultSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
+import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.slf4j.Logger;
@@ -76,9 +77,11 @@ public class FullTextSolrSearchTest extends FullTextSearchTest {
                             };
                         }
                     };
-                    oak.with(new SolrQueryIndexProvider(serverProvider, configurationProvider))
-                            .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
-                            .with(new SolrIndexInitializer(false));
+                    SolrQueryIndexProvider solrPRovider = new SolrQueryIndexProvider(serverProvider, configurationProvider);
+                    oak.with((Observer) solrPRovider)
+                        .with((QueryIndexProvider) solrPRovider)
+                        .with(new SolrIndexEditorProvider(serverProvider, configurationProvider))
+                        .with(new SolrIndexInitializer(false));
                     return new Jcr(oak);
                 }
             });
