@@ -676,7 +676,7 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                         in.add(NumericRangeQuery.newLongRange(pr.propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
                     }
                     return in;
-                } else if (pr.first == null && pr.last == null ) {
+                } else if (pr.isNotNullRestriction()) {
                     // not null. For date lower bound of zero can be used
                     return NumericRangeQuery.newLongRange(pr.propertyName, 0L, Long.MAX_VALUE, true, true);
                 }

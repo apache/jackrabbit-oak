@@ -125,7 +125,9 @@ class PropertyIndex implements QueryIndex {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding
+                if (pr.isNullRestriction()) {
+                    // covering indexes are not currently supported
+                } else if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
                     propertyCost = lookup.getCost(filter, propertyName, pr.first);
@@ -136,6 +138,7 @@ class PropertyIndex implements QueryIndex {
                     }
                 } else {
                     // processed as "[property] is not null"
+                    // even if it is a range query
                     propertyCost = lookup.getCost(filter, propertyName, null);
                 }
             }
@@ -198,9 +201,11 @@ class PropertyIndex implements QueryIndex {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                // equality
-                if (pr.firstIncluding && pr.lastIncluding
+                if (pr.isNullRestriction()) {
+                    // covering indexes are not currently supported
+                } else if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
+                    // equality
                     // "[property] = $value"
                     paths = lookup.query(filter, propertyName, pr.first);
                 } else if (pr.list != null) {
@@ -214,6 +219,7 @@ class PropertyIndex implements QueryIndex {
                     }
                 } else {
                     // processed as "[property] is not null"
+                    // even if it is a range query
                     paths = lookup.query(filter, propertyName, null);
                 }
             }
@@ -241,22 +247,24 @@ class PropertyIndex implements QueryIndex {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
             if (lookup.isIndexed(propertyName, "/", filter)) {
-                if (pr.firstIncluding && pr.lastIncluding
+                if (pr.isNullRestriction()) {
+                    // covering indexes are not currently supported
+                } else if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     buff.append(' ').append(propertyName).append('=').append(pr.first);
+                } else if (pr.list != null) {
+                    buff.append(' ').append(propertyName).append(" IN(");
+                    int i = 0;
+                    for (PropertyValue pv : pr.list) {
+                        if (i++ > 0) {
+                            buff.append(", ");
+                        }
+                        buff.append(pv);
+                    }
+                    buff.append(')');
                 } else {
                     buff.append(' ').append(propertyName);
                 }
-            } else if (pr.list != null) {
-                buff.append(' ').append(propertyName).append(" IN(");
-                int i = 0;
-                for (PropertyValue pv : pr.list) {
-                    if (i++ > 0) {
-                        buff.append(", ");
-                    }
-                    buff.append(pv);
-                }
-                buff.append(')');
             } else {
                 notIndexed.append(' ').append(propertyName);
                 if (!pr.toString().isEmpty()) {
