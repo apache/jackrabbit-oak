@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
  */
-@Component(metatype = true, label = "Oak Solr server provider", immediate = true)
+@Component(metatype = true, label = "Apache Jackrabbit Oak Solr server provider", immediate = true)
 @References({
         @Reference(name = "solrServerConfigurationProvider",
                 referenceInterface = SolrServerConfigurationProvider.class,
