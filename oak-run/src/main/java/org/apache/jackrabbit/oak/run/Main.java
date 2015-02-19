@@ -84,6 +84,7 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.LastRevRecoveryAgent;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoMissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.MapDBMapFactory;
@@ -184,6 +185,9 @@ public class Main {
                 break;
             case RECOVERY:
                 recovery(args);
+                break;
+            case REPAIR:
+                repair(args);
                 break;
             case HELP:
             default:
@@ -633,6 +637,31 @@ public class Main {
             closer.register(docs);
             boolean dryRun = Arrays.asList(args).contains("dryRun");
             agent.recover(docs.iterator(), dns.getClusterId(), dryRun);
+        } catch (Throwable e) {
+            throw closer.rethrow(e);
+        } finally {
+            closer.close();
+        }
+    }
+    
+    private static void repair(String[] args) throws IOException {
+        Closer closer = Closer.create();
+        String h = "repair mongodb://host:port/database path";
+        try {
+            NodeStore store = bootstrapNodeStore(args, closer, h);
+            if (!(store instanceof DocumentNodeStore)) {
+                System.err.println("Repair only available for DocumentNodeStore");
+                System.exit(1);
+            }
+            DocumentNodeStore dns = (DocumentNodeStore) store;
+            if (!(dns.getDocumentStore() instanceof MongoDocumentStore)) {
+                System.err.println("Repair only available for MongoDocumentStore");
+                System.exit(1);
+            }
+            MongoDocumentStore docStore = (MongoDocumentStore) dns.getDocumentStore();
+
+            String path = args[args.length - 1];
+            MongoDocumentStoreHelper.repair(docStore, path);
         } catch (Throwable e) {
             throw closer.rethrow(e);
         } finally {
@@ -1166,7 +1195,8 @@ public class Main {
         STANDBY("standy"),
         HELP("help"),
         CHECKPOINTS("checkpoints"),
-        RECOVERY("recovery");
+        RECOVERY("recovery"),
+        REPAIR("repair");
 
         private final String name;
 
