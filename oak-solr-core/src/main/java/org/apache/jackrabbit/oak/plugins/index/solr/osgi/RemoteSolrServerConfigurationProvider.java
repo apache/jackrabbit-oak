@@ -33,7 +33,7 @@ import org.osgi.service.component.ComponentContext;
 /**
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} for remote Solr installations.
  */
-@Component(metatype = true, immediate = true, label = "Oak Solr remote server configuration")
+@Component(metatype = true, immediate = true, label = "Apache Jackrabbit Oak Solr remote server configuration")
 @Service(SolrServerConfigurationProvider.class)
 @Property(name = "name", value = "remote", propertyPrivate = true)
 public class RemoteSolrServerConfigurationProvider implements SolrServerConfigurationProvider<RemoteSolrServerProvider> {
