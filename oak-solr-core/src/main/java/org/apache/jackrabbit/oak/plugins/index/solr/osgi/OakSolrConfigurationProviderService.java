@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -90,8 +91,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
             unbounded = PropertyUnbounded.ARRAY)
     private static final String IGNORED_PROPERTIES = "ignored.properties";
 
-    @Property(label = "used properties",
-            unbounded = PropertyUnbounded.ARRAY)
+    @Property(value = {}, label = "used properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String USED_PROPERTIES = "used.properties";
 
     @Property(value = SolrServerConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
@@ -247,7 +247,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getIgnoredProperties() {
-                    return Arrays.asList(ignoredProperties);
+                    if (usedProperties != null && usedProperties.length > 0) {
+                        return Arrays.asList(usedProperties);
+                    } else {
+                        return Collections.emptyList();
+                    }
                 }
 
                 @Nonnull
