@@ -163,6 +163,10 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
+                if (pr.isNullRestriction()) {
+                    // can not use full "x is null"
+                    continue;
+                }
                 // native query support
                 if (NATIVE_SOLR_QUERY.equals(pr.propertyName) || NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
                     String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));

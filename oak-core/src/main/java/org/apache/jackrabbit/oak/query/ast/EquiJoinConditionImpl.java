@@ -106,9 +106,14 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
                     p2 = null;
                 }
             }
-            // always set the condition, even if unkown ( -> is not null)
             String p1n = normalizePropertyName(property1Name);
-            f.restrictProperty(p1n, Operator.EQUAL, p2);
+            if (p2 == null) {
+                // always set the condition, 
+                // even if unknown (in which case it is converted to "is not null")
+                f.restrictProperty(p1n, Operator.NOT_EQUAL, null);
+            } else {
+                f.restrictProperty(p1n, Operator.EQUAL, p2);
+            }
         }
         if (f.getSelector().equals(selector2)) {
             PropertyValue p1 = selector1.currentProperty(property1Name);

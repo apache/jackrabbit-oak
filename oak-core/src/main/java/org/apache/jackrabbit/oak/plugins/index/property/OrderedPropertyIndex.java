@@ -130,7 +130,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
                 if (lookup.isIndexed(propertyName, "/", filter)) {
                     PropertyValue value = null;
                     boolean createPlan = false;
-                    if (pr.first == null && pr.last == null) {
+                    if (pr.isNotNullRestriction()) {
                         // open query: [property] is not null
                         value = null;
                         createPlan = true;
@@ -189,7 +189,7 @@ public class OrderedPropertyIndex extends PropertyIndex implements AdvancedQuery
             String operation = null;
             PropertyValue value = null;       
             // TODO support pr.list
-            if (pr.first == null && pr.last == null) {
+            if (pr.isNotNullRestriction()) {
                 // open query: [property] is not null
                 operation = "is not null";
             } else if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
