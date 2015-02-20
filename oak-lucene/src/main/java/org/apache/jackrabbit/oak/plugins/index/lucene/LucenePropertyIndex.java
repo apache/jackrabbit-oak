@@ -499,10 +499,19 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
         }
 
         if (qs.size() == 0) {
-            if (!defn.isFullTextEnabled()) {
-                throw new IllegalStateException("No query created for filter " + filter);
+            if (reader == null){
+                //When called in planning mode then some queries like rep:similar
+                //cannot create query as reader is not provided. In such case we
+                //just return match all queries
+                return new MatchAllDocsQuery();
             }
-            return new MatchAllDocsQuery();
+            //For purely nodeType based queries all the documents would have to
+            //be returned (if the index definition has a single rule)
+            if (planResult.evaluateNodeTypeRestriction()) {
+                return new MatchAllDocsQuery();
+            }
+
+            throw new IllegalStateException("No query created for filter " + filter);
         }
         if (qs.size() == 1) {
             return qs.get(0);
@@ -562,10 +571,6 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
             String name = pr.propertyName;
 
             if ("rep:excerpt".equals(name)) {
-                continue;
-            }
-
-            if (JCR_PRIMARYTYPE.equals(name)) {
                 continue;
             }
 
