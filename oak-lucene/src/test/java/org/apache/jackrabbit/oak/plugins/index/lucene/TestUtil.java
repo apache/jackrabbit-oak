@@ -26,12 +26,37 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.SystemRoot;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TestUtil {
     private static final AtomicInteger COUNTER = new AtomicInteger();
+
+    public static final String NT_TEST = "oak:TestNode";
+
+    public static final String TEST_NODE_TYPE = "[oak:TestNode]\n" +
+            " - * (UNDEFINED) multiple\n" +
+            " - * (UNDEFINED)\n" +
+            " + * (nt:base) = oak:TestNode VERSION";
 
     static void useV2(NodeBuilder idxNb) {
         idxNb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
@@ -87,6 +112,13 @@ public class TestUtil {
         return props;
     }
 
+    public static NodeBuilder child(NodeBuilder nb, String path) {
+        for (String name : PathUtils.elements(checkNotNull(path))) {
+            nb = nb.child(name);
+        }
+        return nb;
+    }
+
     static class AggregatorBuilder {
         private final Tree aggs;
 
@@ -106,5 +138,35 @@ public class TestUtil {
 
     static String unique(String name){
         return name + COUNTER.getAndIncrement();
+    }
+
+    public static NodeBuilder registerTestNodeType(NodeBuilder builder){
+        registerNodeType(builder, TEST_NODE_TYPE);
+        return builder;
+    }
+
+    public static void registerNodeType(NodeBuilder builder, String nodeTypeDefn){
+        //Taken from org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent
+        NodeState base = ModifiedNodeState.squeeze(builder.getNodeState());
+        NodeStore store = new MemoryNodeStore(base);
+        Root root = new SystemRoot(
+                store, new EditorHook(new CompositeEditorProvider(
+                new NamespaceEditorProvider(),
+                new TypeEditorProvider())));
+        NodeTypeRegistry.register(root, IOUtils.toInputStream(nodeTypeDefn), "test node types");
+        NodeState target = store.getRoot();
+        target.compareAgainstBaseState(base, new ApplyDiff(builder));
+    }
+
+    public static Tree createNodeWithType(Tree t, String nodeName, String typeName){
+        t = t.addChild(nodeName);
+        t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
+        return t;
+    }
+
+    public static NodeBuilder createNodeWithType(NodeBuilder builder, String nodeName, String typeName){
+        builder = builder.child(nodeName);
+        builder.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
+        return builder;
     }
 }
