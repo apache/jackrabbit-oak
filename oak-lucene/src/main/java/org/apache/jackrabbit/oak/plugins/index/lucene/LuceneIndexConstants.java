@@ -192,4 +192,10 @@ public interface LuceneIndexConstants {
      * nt:file node under 'tika' node which refers to the config xml file
      */
     String TIKA_CONFIG = "config.xml";
+
+    /**
+     * Property definition config indicating that null check support should be
+     * enabled for this property
+     */
+    String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
 }

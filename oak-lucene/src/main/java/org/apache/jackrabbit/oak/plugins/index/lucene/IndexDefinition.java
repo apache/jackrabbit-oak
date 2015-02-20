@@ -71,7 +71,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COUNT;
@@ -507,6 +506,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final String nodeTypeName;
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
+        private final List<PropertyDefinition> nullCheckEnabledProperties;
         private final boolean indexesAllNodesOfMatchingType;
 
         final float boost;
@@ -527,15 +527,18 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propertyTypes = getSupportedTypes(config, INCLUDE_PROPERTY_TYPES, TYPES_ALLOW_ALL);
 
             List<NamePattern> namePatterns = newArrayList();
+            List<PropertyDefinition> nonExistentProperties = newArrayList();
             List<Aggregate.Include> propIncludes = newArrayList();
-            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes);
+            this.propConfigs = collectPropConfigs(config, namePatterns, propIncludes, nonExistentProperties);
             this.propAggregate = new Aggregate(nodeTypeName, propIncludes);
             this.aggregate = combine(propAggregate, nodeTypeName);
 
             this.namePatterns = ImmutableList.copyOf(namePatterns);
+            this.nullCheckEnabledProperties = ImmutableList.copyOf(nonExistentProperties);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
+            validateRuleDefinition();
         }
 
         /**
@@ -555,6 +558,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propertyTypes = original.propertyTypes;
             this.propertyIndexEnabled = original.propertyIndexEnabled;
             this.propAggregate = original.propAggregate;
+            this.nullCheckEnabledProperties = original.nullCheckEnabledProperties;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
             this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
@@ -580,6 +584,10 @@ class IndexDefinition implements Aggregate.AggregateMapper{
          */
         public String getNodeTypeName() {
             return nodeTypeName;
+        }
+
+        public List<PropertyDefinition> getNullCheckEnabledProperties() {
+            return nullCheckEnabledProperties;
         }
 
         @Override
@@ -674,7 +682,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         }
 
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
-                                                                   List<Aggregate.Include> propAggregate) {
+                                                                   List<Aggregate.Include> propAggregate,
+                                                                   List<PropertyDefinition> nonExistentProperties) {
             Map<String, PropertyDefinition> propDefns = newHashMap();
             NodeState propNode = config.getChildNode(LuceneIndexConstants.PROP_NODE);
 
@@ -700,8 +709,12 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                         propDefns.put(pd.name, pd);
                     }
 
-                    if (isRelativeProperty(pd.name)){
+                    if (pd.relative){
                         propAggregate.add(new Aggregate.PropertyInclude(pd));
+                    }
+
+                    if (pd.nullCheckEnabled){
+                        nonExistentProperties.add(pd);
                     }
                 }
             }
@@ -745,6 +758,15 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                 return true;
             }
 
+            //If there is nullCheckEnabled property which is not relative then
+            //all nodes would be indexed. relativeProperty with nullCheckEnabled might
+            //not ensure that (OAK-1085)
+            for (PropertyDefinition pd : nullCheckEnabledProperties){
+                if (!pd.relative) {
+                    return true;
+                }
+            }
+
             //jcr:primaryType is present on all node. So if such a property
             //is indexed then it would mean all nodes covered by this index rule
             //are indexed
@@ -763,6 +785,13 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                 includes.addAll(nodeTypeAgg.getIncludes());
             }
             return new Aggregate(nodeTypeName, includes);
+        }
+
+        private void validateRuleDefinition() {
+            if (!nullCheckEnabledProperties.isEmpty() && isBasedOnNtBase()){
+                throw new IllegalStateException("nt:base based rule cannot have a " +
+                        "PropertyDefinition with nullCheckEnabled");
+            }
         }
     }
 
@@ -893,7 +922,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                 String propNodeName = propName;
 
                 //For proper propName use the propName as childNode name
-                if(isRelativeProperty(propName)
+                if(PropertyDefinition.isRelativeProperty(propName)
                         || propName.equals(includeAllProp)){
                     propNodeName = "prop" + i++;
                 }
@@ -955,7 +984,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     private static NodeState getPropDefnNode(NodeState defn, String propName){
         NodeState propNode = defn.getChildNode(LuceneIndexConstants.PROP_NODE);
         NodeState propDefNode;
-        if (isRelativeProperty(propName)) {
+        if (PropertyDefinition.isRelativeProperty(propName)) {
             NodeState result = propNode;
             for (String name : PathUtils.elements(propName)) {
                 result = result.getChildNode(name);
@@ -1175,7 +1204,4 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         return defn.getChildNode(LuceneIndexConstants.INDEX_RULES).exists();
     }
 
-    private static boolean isRelativeProperty(String propertyName){
-        return !isAbsolute(propertyName) && PathUtils.getNextSlash(propertyName, 0) > 0;
-    }
 }

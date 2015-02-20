@@ -298,6 +298,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         }
 
         dirty |= indexAggregates(path, fields, state);
+        dirty |= indexNullCheckEnabledProps(path, fields, state);
 
         if (isUpdate && !dirty) {
             // updated the state but had no relevant changes
@@ -486,6 +487,46 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
         }
         return fields;
+    }
+
+    //~-------------------------------------------------------< NullCheck Support >
+
+    private boolean indexNullCheckEnabledProps(String path, List<Field> fields, NodeState state) {
+        boolean fieldAdded = false;
+        for (PropertyDefinition pd : indexingRule.getNullCheckEnabledProperties()) {
+            if (isPropertyNull(state, pd)) {
+                fields.add(new StringField(FieldNames.NULL_PROPS, pd.name, Field.Store.NO));
+                fieldAdded = true;
+            }
+        }
+        return fieldAdded;
+    }
+
+    /**
+     * Determine if the property as defined by PropertyDefinition exists or not.
+     *
+     * <p>For relative property if the intermediate nodes do not exist then property is
+     * <bold>not</bold> considered to be null</p>
+     *
+     * @return true if the property does not exist
+     */
+    private boolean isPropertyNull(NodeState state, PropertyDefinition pd){
+        NodeState propertyNode = getPropertyNode(state, pd);
+        if (!propertyNode.exists()){
+            return false;
+        }
+        return !propertyNode.hasProperty(pd.nonRelativeName);
+    }
+
+    private static NodeState getPropertyNode(NodeState nodeState, PropertyDefinition pd) {
+        if (!pd.relative){
+            return nodeState;
+        }
+        NodeState node = nodeState;
+        for (String name : pd.ancestors) {
+            node = node.getChildNode(name);
+        }
+        return node;
     }
 
     //~-------------------------------------------------------< Aggregate >
