@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,12 +32,13 @@ import java.io.IOException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.json.JsopDiff;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
@@ -81,9 +83,43 @@ public class SegmentVersionTest {
             NodeState content = addTestContent(fileStoreV10).getChildNode("content");
             NodeBuilder builder = content.builder();
             builder.setChildNode("foo");
-            JsopDiff diff = new JsopDiff();
-            content.compareAgainstBaseState(builder.getNodeState(), diff);
-            assertEquals("-\"/foo\"", diff.toString());
+            content.compareAgainstBaseState(builder.getNodeState(), new NodeStateDiff() {
+                @Override
+                public boolean propertyAdded(PropertyState after) {
+                    fail();
+                    return false;
+                }
+
+                @Override
+                public boolean propertyChanged(PropertyState before, PropertyState after) {
+                    fail();
+                    return false;
+                }
+
+                @Override
+                public boolean propertyDeleted(PropertyState before) {
+                    fail();
+                    return false;
+                }
+
+                @Override
+                public boolean childNodeAdded(String name, NodeState after) {
+                    fail();
+                    return false;
+                }
+
+                @Override
+                public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+                    fail();
+                    return false;
+                }
+
+                @Override
+                public boolean childNodeDeleted(String name, NodeState before) {
+                    assertEquals("foo", name);
+                    return false;
+                }
+            });
         } finally {
             fileStoreV10.close();
         }
