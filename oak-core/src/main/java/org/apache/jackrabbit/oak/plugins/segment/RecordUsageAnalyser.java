@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.segment.Template.ZERO_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.util.Formatter;
 import java.util.Map;
@@ -227,10 +228,25 @@ public class RecordUsageAnalyser {
             int ids = template.getChildName() == ZERO_CHILD_NODES ? 1 : 2;
             nodeSize += ids * RECORD_ID_BYTES;
             PropertyTemplate[] propertyTemplates = template.getPropertyTemplates();
-            for (PropertyTemplate propertyTemplate : propertyTemplates) {
-                nodeSize += RECORD_ID_BYTES;
-                RecordId propertyId = segment.readRecordId(offset + ids++ * RECORD_ID_BYTES);
-                analyseProperty(propertyId, propertyTemplate);
+            if (segment.getSegmentVersion().onOrAfter(V_11)) {
+                if (propertyTemplates.length > 0) {
+                    nodeSize += RECORD_ID_BYTES;
+                    RecordId id = segment.readRecordId(offset + ids * RECORD_ID_BYTES);
+                    ListRecord pIds = new ListRecord(id,
+                            propertyTemplates.length);
+                    for (int i = 0; i < propertyTemplates.length; i++) {
+                        RecordId propertyId = pIds.getEntry(i);
+                        analyseProperty(propertyId, propertyTemplates[i]);
+                    }
+                    analyseList(id, propertyTemplates.length);
+                }
+            } else {
+                for (PropertyTemplate propertyTemplate : propertyTemplates) {
+                    nodeSize += RECORD_ID_BYTES;
+                    RecordId propertyId = segment.readRecordId(offset + ids++
+                            * RECORD_ID_BYTES);
+                    analyseProperty(propertyId, propertyTemplate);
+                }
             }
         }
     }
@@ -238,6 +254,7 @@ public class RecordUsageAnalyser {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        @SuppressWarnings("resource")
         Formatter formatter = new Formatter(sb);
         formatter.format(
                 "%s in maps (%s leaf and branch records)%n",
@@ -295,11 +312,26 @@ public class RecordUsageAnalyser {
                 size += Segment.RECORD_ID_BYTES;
             }
 
-            for (int i = 0; i < propertyCount; i++) {
-                RecordId propertyNameId = segment.readRecordId(offset + size);
-                size += Segment.RECORD_ID_BYTES;
-                size++;  // type
-                analyseString(propertyNameId);
+            if (segment.getSegmentVersion().onOrAfter(V_11)) {
+                if (propertyCount > 0) {
+                    RecordId listId = segment.readRecordId(offset + size);
+                    ListRecord propertyNames = new ListRecord(listId,
+                            propertyCount);
+                    for (int i = 0; i < propertyCount; i++) {
+                        RecordId propertyNameId = propertyNames.getEntry(i);
+                        size += Segment.RECORD_ID_BYTES;
+                        size++; // type
+                        analyseString(propertyNameId);
+                    }
+                    analyseList(listId, propertyCount);
+                }
+            } else {
+                for (int i = 0; i < propertyCount; i++) {
+                    RecordId propertyNameId = segment.readRecordId(offset + size);
+                    size += Segment.RECORD_ID_BYTES;
+                    size++;  // type
+                    analyseString(propertyNameId);
+                }
             }
             templateSize += size;
         }

@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.IOException;
@@ -50,14 +51,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
  * This class includes method to read records from the raw bytes.
  */
 public class Segment {
-
-    /**
-     * Version of the segment storage format.
-     * <ul>
-     *     <li>10 = all Oak versions released so far</li>
-     * </ul>
-     */
-    public static final byte STORAGE_FORMAT_VERSION = 10;
 
     /**
      * Number of bytes used for storing a record identifier. One byte
@@ -117,6 +110,11 @@ public class Segment {
     private final ByteBuffer data;
 
     /**
+     * Version of the segment storage format.
+     */
+    private final SegmentVersion version;
+
+    /**
      * Referenced segment identifiers. Entries are initialized lazily in
      * {@link #getRefId(int)}. Set to {@code null} for bulk segments.
      */
@@ -137,19 +135,25 @@ public class Segment {
     private volatile long accessed = 0;
 
     public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data) {
+        this(tracker, id, data, V_11);
+    }
+
+    public Segment(SegmentTracker tracker, SegmentId id, ByteBuffer data, SegmentVersion version) {
         this.tracker = checkNotNull(tracker);
         this.id = checkNotNull(id);
         this.data = checkNotNull(data);
-
         if (id.isDataSegmentId()) {
+            byte segmentVersion = data.get(3);
             checkState(data.get(0) == '0'
                     && data.get(1) == 'a'
                     && data.get(2) == 'K'
-                    && data.get(3) == STORAGE_FORMAT_VERSION);
+                    && SegmentVersion.isValid(segmentVersion));
             this.refids = new SegmentId[getRefCount()];
-            refids[0] = id;
+            this.refids[0] = id;
+            this.version = SegmentVersion.fromByte(segmentVersion);
         } else {
             this.refids = null;
+            this.version = version;
         }
     }
 
@@ -157,9 +161,9 @@ public class Segment {
         this.tracker = checkNotNull(tracker);
         this.id = tracker.newDataSegmentId();
         this.data = ByteBuffer.wrap(checkNotNull(buffer));
-
         this.refids = new SegmentId[SEGMENT_REFERENCE_LIMIT + 1];
-        refids[0] = id;
+        this.refids[0] = id;
+        this.version = SegmentVersion.fromByte(buffer[3]);
     }
 
     void access() {
@@ -169,6 +173,10 @@ public class Segment {
     boolean accessed() {
         accessed >>>= 1;
         return accessed != 0;
+    }
+
+    SegmentVersion getSegmentVersion() {
+        return version;
     }
 
     /**
@@ -436,19 +444,41 @@ public class Segment {
             offset += Segment.RECORD_ID_BYTES;
         }
 
-        PropertyTemplate[] properties =
-                new PropertyTemplate[propertyCount];
-        for (int i = 0; i < properties.length; i++) {
+        PropertyTemplate[] properties;
+        if (version.onOrAfter(V_11)) {
+            properties = readPropsV11(propertyCount, offset);
+        } else {
+            properties = readPropsV10(propertyCount, offset);
+        }
+        return new Template(primaryType, mixinTypes, properties, childName);
+    }
+
+    private PropertyTemplate[] readPropsV10(int propertyCount, int offset) {
+        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
+        for (int i = 0; i < propertyCount; i++) {
             RecordId propertyNameId = readRecordId(offset);
             offset += Segment.RECORD_ID_BYTES;
             byte type = readByte(offset++);
-            properties[i] = new PropertyTemplate(
-                    i, readString(propertyNameId),
+            properties[i] = new PropertyTemplate(i, readString(propertyNameId),
                     Type.fromTag(Math.abs(type), type < 0));
         }
+        return properties;
+    }
 
-        return new Template(
-                primaryType, mixinTypes, properties, childName);
+    private PropertyTemplate[] readPropsV11(int propertyCount, int offset) {
+        PropertyTemplate[] properties = new PropertyTemplate[propertyCount];
+        if (propertyCount > 0) {
+            RecordId id = readRecordId(offset);
+            ListRecord propertyNames = new ListRecord(id, properties.length);
+            offset += Segment.RECORD_ID_BYTES;
+            for (int i = 0; i < propertyCount; i++) {
+                byte type = readByte(offset++);
+                properties[i] = new PropertyTemplate(i,
+                        readString(propertyNames.getEntry(i)), Type.fromTag(
+                                Math.abs(type), type < 0));
+            }
+        }
+        return properties;
     }
 
     long readLength(RecordId id) {

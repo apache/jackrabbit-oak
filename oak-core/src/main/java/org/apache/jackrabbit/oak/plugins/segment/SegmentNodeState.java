@@ -16,21 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.Collections;
-import java.util.List;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
@@ -46,7 +31,23 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.spi.state.AbstractNodeState.checkValidName;
+
+import java.util.Collections;
+import java.util.List;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * A record of type "NODE". This class can read a node record from a segment. It
@@ -134,15 +135,37 @@ public class SegmentNodeState extends Record implements NodeState {
                 template.getPropertyTemplate(name);
         if (propertyTemplate != null) {
             Segment segment = getSegment();
-            int ids = 1 + propertyTemplate.getIndex();
-            if (template.getChildName() != Template.ZERO_CHILD_NODES) {
-                ids++;
+            RecordId id;
+            if (getSegment().getSegmentVersion().onOrAfter(V_11)) {
+                id = getRecordIdV11(segment, template, propertyTemplate);
+            } else {
+                id = getRecordIdV10(segment, template, propertyTemplate);
             }
-            return new SegmentPropertyState(
-                    segment.readRecordId(getOffset(0, ids)), propertyTemplate);
+            return new SegmentPropertyState(id, propertyTemplate);
         } else {
             return null;
         }
+    }
+
+    private RecordId getRecordIdV10(Segment segment, Template template,
+            PropertyTemplate propertyTemplate) {
+        int ids = 1 + propertyTemplate.getIndex();
+        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
+            ids++;
+        }
+        return segment.readRecordId(getOffset(0, ids));
+    }
+
+    private RecordId getRecordIdV11(Segment segment, Template template,
+            PropertyTemplate propertyTemplate) {
+        int ids = 1;
+        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
+            ids++;
+        }
+        RecordId rid = segment.readRecordId(getOffset(0, ids));
+        ListRecord pIds = new ListRecord(rid,
+                template.getPropertyTemplates().length);
+        return pIds.getEntry(propertyTemplate.getIndex());
     }
 
     @Override @Nonnull
@@ -167,10 +190,24 @@ public class SegmentNodeState extends Record implements NodeState {
         if (template.getChildName() != Template.ZERO_CHILD_NODES) {
             ids++;
         }
-        for (int i = 0; i < propertyTemplates.length; i++) {
-            RecordId propertyId = segment.readRecordId(getOffset(0, ids++));
-            list.add(new SegmentPropertyState(
-                    propertyId, propertyTemplates[i]));
+
+        if (segment.getSegmentVersion().onOrAfter(V_11)) {
+            if (propertyTemplates.length > 0) {
+                ListRecord pIds = new ListRecord(
+                        segment.readRecordId(getOffset(0, ids)),
+                        propertyTemplates.length);
+                for (int i = 0; i < propertyTemplates.length; i++) {
+                    RecordId propertyId = pIds.getEntry(i);
+                    list.add(new SegmentPropertyState(propertyId,
+                            propertyTemplates[i]));
+                }
+            }
+        } else {
+            for (int i = 0; i < propertyTemplates.length; i++) {
+                RecordId propertyId = segment.readRecordId(getOffset(0, ids++));
+                list.add(new SegmentPropertyState(propertyId,
+                        propertyTemplates[i]));
+            }
         }
 
         return list;
@@ -247,11 +284,13 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         Segment segment = getSegment();
-        int ids = 1 + propertyTemplate.getIndex();
-        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
-            ids++;
+        RecordId id;
+        if (getSegment().getSegmentVersion().onOrAfter(V_11)) {
+            id = getRecordIdV11(segment, template, propertyTemplate);
+        } else {
+            id = getRecordIdV10(segment, template, propertyTemplate);
         }
-        return segment.readString(segment.readRecordId(getOffset(0, ids)));
+        return segment.readString(id);
     }
 
     /**
@@ -288,12 +327,12 @@ public class SegmentNodeState extends Record implements NodeState {
         }
 
         Segment segment = getSegment();
-        int ids = 1 + propertyTemplate.getIndex();
-        if (template.getChildName() != Template.ZERO_CHILD_NODES) {
-            ids++;
+        RecordId id;
+        if (getSegment().getSegmentVersion().onOrAfter(V_11)) {
+            id = getRecordIdV11(segment, template, propertyTemplate);
+        } else {
+            id = getRecordIdV10(segment, template, propertyTemplate);
         }
-
-        RecordId id = segment.readRecordId(getOffset(0, ids));
         segment = id.getSegment();
         int size = segment.readInt(id.getOffset());
         if (size == 0) {
