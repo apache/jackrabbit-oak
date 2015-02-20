@@ -181,7 +181,6 @@ public final class StandbyClient implements ClientStandbyStatusMBean, Runnable, 
         } catch (Exception e) {
             this.failedRequests++;
             log.error("Failed synchronizing state.", e);
-            stop();
         } finally {
             synchronized (this.sync) {
                 this.active = false;
