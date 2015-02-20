@@ -21,6 +21,7 @@ import static com.google.common.collect.Sets.newTreeSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -139,7 +140,7 @@ public class FileStoreTest {
         store = new FileStore(directory, 1, false);
         head = store.getHead();
         assertTrue(store.size() > largeBinarySize);
-        writer = new SegmentWriter(store, store.getTracker());
+        writer = new SegmentWriter(store, store.getTracker(), V_11);
         compactor = new Compactor(writer);
         compacted = compactor.compact(EmptyNodeState.EMPTY_NODE, head);
         builder = head.builder();
