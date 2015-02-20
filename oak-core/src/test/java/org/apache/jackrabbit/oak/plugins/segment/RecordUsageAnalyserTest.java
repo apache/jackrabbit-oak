@@ -101,6 +101,22 @@ public class RecordUsageAnalyserTest {
     }
 
     @Test
+    public void nodeWithMultipleProperties() {
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.setProperty("one", "11");
+        builder.setProperty("two", "22");
+        builder.setProperty("three", "33");
+
+        SegmentNodeState node = writer.writeNode(builder.getNodeState());
+        analyser.analyseNode(node.getRecordId());
+        if (segmentVersion == V_11) {
+            assertSizes(analyser, 0, 18, 23, 10, 6);
+        } else {
+            assertSizes(analyser, 0, 0, 23, 16, 12);
+        }
+    }
+
+    @Test
     public void nodeWithMediumString() {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("medium", repeat("a", SMALL_LIMIT + 1));

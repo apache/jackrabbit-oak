@@ -295,31 +295,30 @@ public class RecordUsageAnalyser {
             if (hasPrimaryType) {
                 RecordId primaryId = segment.readRecordId(offset + size);
                 analyseString(primaryId);
-                size += Segment.RECORD_ID_BYTES;
+                size += RECORD_ID_BYTES;
             }
 
             if (hasMixinTypes) {
                 for (int i = 0; i < mixinCount; i++) {
                     RecordId mixinId = segment.readRecordId(offset + size);
                     analyseString(mixinId);
-                    size += Segment.RECORD_ID_BYTES;
+                    size += RECORD_ID_BYTES;
                 }
             }
 
             if (!zeroChildNodes && !manyChildNodes) {
                 RecordId childNameId = segment.readRecordId(offset + size);
                 analyseString(childNameId);
-                size += Segment.RECORD_ID_BYTES;
+                size += RECORD_ID_BYTES;
             }
 
             if (segment.getSegmentVersion().onOrAfter(V_11)) {
                 if (propertyCount > 0) {
                     RecordId listId = segment.readRecordId(offset + size);
-                    ListRecord propertyNames = new ListRecord(listId,
-                            propertyCount);
+                    size += RECORD_ID_BYTES;
+                    ListRecord propertyNames = new ListRecord(listId, propertyCount);
                     for (int i = 0; i < propertyCount; i++) {
                         RecordId propertyNameId = propertyNames.getEntry(i);
-                        size += Segment.RECORD_ID_BYTES;
                         size++; // type
                         analyseString(propertyNameId);
                     }
@@ -328,7 +327,7 @@ public class RecordUsageAnalyser {
             } else {
                 for (int i = 0; i < propertyCount; i++) {
                     RecordId propertyNameId = segment.readRecordId(offset + size);
-                    size += Segment.RECORD_ID_BYTES;
+                    size += RECORD_ID_BYTES;
                     size++;  // type
                     analyseString(propertyNameId);
                 }
