@@ -507,6 +507,8 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         private final String nodeTypeName;
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
+        private final boolean indexesAllNodesOfMatchingType;
+
         final float boost;
         final boolean inherited;
         final int propertyTypes;
@@ -533,6 +535,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.namePatterns = ImmutableList.copyOf(namePatterns);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || hasAnyFullTextEnabledProperty();
             this.propertyIndexEnabled = hasAnyPropertyIndexConfigured();
+            this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
         }
 
         /**
@@ -554,6 +557,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
             this.propAggregate = original.propAggregate;
             this.aggregate = combine(propAggregate, nodeTypeName);
             this.fulltextEnabled = aggregate.hasNodeAggregates() || original.fulltextEnabled;
+            this.indexesAllNodesOfMatchingType = allMatchingNodeByTypeIndexed();
         }
 
         /**
@@ -620,7 +624,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
         }
 
         public boolean isFulltextEnabled() {
-            return fullTextEnabled;
+            return fulltextEnabled;
         }
         /**
          * @param propertyName name of a property.
@@ -650,6 +654,19 @@ class IndexDefinition implements Aggregate.AggregateMapper{
 
         public Aggregate getAggregate() {
             return aggregate;
+        }
+
+        /**
+         * Flag to determine weather current index rule definition allows indexing of all
+         * node of type as covered by the current rule. For example if the rule only indexes
+         * certain property 'foo' for node type 'app:Asset' then index would only have
+         * entries for those assets where foo is defined. Such an index cannot claim that
+         * it has entries for all assets.
+
+         * @return true in case all matching node types are covered by this rule
+         */
+        public boolean indexesAllNodesOfMatchingType() {
+            return indexesAllNodesOfMatchingType;
         }
 
         private Map<String, PropertyDefinition> collectPropConfigs(NodeState config, List<NamePattern> patterns,
@@ -714,6 +731,23 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                     return true;
                 }
             }
+            return false;
+        }
+
+        private boolean allMatchingNodeByTypeIndexed(){
+            //Incase of fulltext all nodes matching this rule type would be indexed
+            //and would have entry in the index
+            if (fulltextEnabled){
+                return true;
+            }
+
+            //jcr:primaryType is present on all node. So if such a property
+            //is indexed then it would mean all nodes covered by this index rule
+            //are indexed
+            if (getConfig(JcrConstants.JCR_PRIMARYTYPE) != null){
+                return true;
+            }
+
             return false;
         }
 
