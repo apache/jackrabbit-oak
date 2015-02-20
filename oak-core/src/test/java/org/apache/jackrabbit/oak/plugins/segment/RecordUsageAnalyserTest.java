@@ -29,11 +29,13 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_10;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Random;
 
 import com.google.common.collect.ImmutableList;
@@ -42,18 +44,32 @@ import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class RecordUsageAnalyserTest {
+    private final SegmentVersion segmentVersion;
+
     private SegmentStore store;
     private SegmentWriter writer;
     private RecordUsageAnalyser analyser = new RecordUsageAnalyser();
+
+    @Parameterized.Parameters
+    public static List<SegmentVersion[]> fixtures() {
+        return ImmutableList.of(new SegmentVersion[] {V_10}, new SegmentVersion[] {V_11});
+    }
+
+    public RecordUsageAnalyserTest(SegmentVersion segmentVersion) {
+        this.segmentVersion = segmentVersion;
+    }
 
     @Before
     public void setup() {
         store = mock(SegmentStore.class);
         SegmentTracker tracker = new SegmentTracker(store);
         when(store.getTracker()).thenReturn(tracker);
-        writer = new SegmentWriter(store, store.getTracker(), V_11);
+        writer = new SegmentWriter(store, store.getTracker(), segmentVersion);
         analyser = new RecordUsageAnalyser();
     }
 
@@ -271,7 +287,11 @@ public class RecordUsageAnalyserTest {
 
         SegmentNodeState node = writer.writeNode(builder.getNodeState());
         analyser.analyseNode(node.getRecordId());
-        assertCounts(analyser, 1, 5, 6, 1, 1, 1, 0, 10, 1, 1, 2, 3);
+        if (segmentVersion == V_11) {
+            assertCounts(analyser, 1, 5, 6, 1, 1, 1, 0, 10, 1, 1, 2, 3);
+        } else {
+            assertCounts(analyser, 1, 3, 6, 1, 1, 1, 0, 10, 1, 1, 2, 3);
+        }
     }
 
     private static Blob createRandomBlob(int size) {
