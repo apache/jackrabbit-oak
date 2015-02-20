@@ -93,20 +93,25 @@ public class SegmentTracker {
 
     private long currentSize = 0;
 
-    public SegmentTracker(SegmentStore store, int cacheSizeMB) {
+    public SegmentTracker(SegmentStore store, int cacheSizeMB,
+            SegmentVersion version) {
         for (int i = 0; i < tables.length; i++) {
             tables[i] = new SegmentIdTable(this);
         }
 
         this.store = store;
-        this.writer = new SegmentWriter(store, this);
+        this.writer = new SegmentWriter(store, this, version);
         this.cacheSize = cacheSizeMB * MB;
         this.compactionMap = new AtomicReference<CompactionMap>(
                 new CompactionMap(1, this));
     }
 
+    public SegmentTracker(SegmentStore store, SegmentVersion version) {
+        this(store, DEFAULT_MEMORY_CACHE_SIZE, version);
+    }
+
     public SegmentTracker(SegmentStore store) {
-        this(store, DEFAULT_MEMORY_CACHE_SIZE);
+        this(store, DEFAULT_MEMORY_CACHE_SIZE, SegmentVersion.V_11);
     }
 
     public SegmentWriter getWriter() {

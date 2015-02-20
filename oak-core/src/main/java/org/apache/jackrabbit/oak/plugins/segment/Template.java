@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.Record.fastEquals;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -173,9 +174,16 @@ public class Template {
         if (childName != ZERO_CHILD_NODES) {
             offset += RECORD_ID_BYTES;
         }
-        offset += index * RECORD_ID_BYTES;
-        return new SegmentPropertyState(
-                segment.readRecordId(offset), properties[index]);
+        RecordId rid = null;
+        if (segment.getSegmentVersion().onOrAfter(V_11)) {
+            RecordId lid = segment.readRecordId(offset);
+            ListRecord props = new ListRecord(lid, properties.length);
+            rid = props.getEntry(index);
+        } else {
+            offset += index * RECORD_ID_BYTES;
+            rid = segment.readRecordId(offset);
+        }
+        return new SegmentPropertyState(rid, properties[index]);
     }
 
     MapRecord getChildNodeMap(RecordId recordId) {
