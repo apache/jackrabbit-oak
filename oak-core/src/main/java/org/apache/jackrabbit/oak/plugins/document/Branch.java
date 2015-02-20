@@ -22,9 +22,11 @@ import static com.google.common.collect.Iterables.transform;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
@@ -33,7 +35,6 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -277,6 +278,8 @@ class Branch {
         abstract boolean isModified(String path);
 
         abstract Iterable<String> getModifiedPaths();
+
+        protected abstract boolean isRebase();
     }
 
     /**
@@ -307,6 +310,11 @@ class Branch {
             return modifications;
         }
 
+        @Override
+        protected boolean isRebase() {
+            return false;
+        }
+
         //------------------< LastRevTracker >----------------------------------
 
         @Override
@@ -320,14 +328,14 @@ class Branch {
         }
     }
 
-    static class RebaseCommit extends BranchCommit {
+    private static class RebaseCommit extends BranchCommit {
 
         private final NavigableMap<Revision, BranchCommit> previous;
 
         RebaseCommit(Revision base, Revision commit,
                      NavigableMap<Revision, BranchCommit> previous) {
             super(base, commit);
-            this.previous = Maps.newTreeMap(previous);
+            this.previous = squash(previous);
         }
 
         @Override
@@ -348,6 +356,11 @@ class Branch {
         }
 
         @Override
+        protected boolean isRebase() {
+            return true;
+        }
+
+        @Override
         Iterable<String> getModifiedPaths() {
             Iterable<Iterable<String>> paths = transform(previous.values(),
                     new Function<BranchCommit, Iterable<String>>() {
@@ -357,6 +370,22 @@ class Branch {
                 }
             });
             return Iterables.concat(paths);
+        }
+
+        /**
+         * Filter out the RebaseCommits as they are just container of previous BranchCommit
+         *
+         * @param previous branch commit history
+         * @return filtered branch history only containing non rebase commits
+         */
+        private static NavigableMap<Revision, BranchCommit> squash(NavigableMap<Revision, BranchCommit> previous) {
+            NavigableMap<Revision, BranchCommit> result = new TreeMap<Revision, BranchCommit>(previous.comparator());
+            for (Map.Entry<Revision, BranchCommit> e : previous.entrySet()){
+                if (!e.getValue().isRebase()){
+                    result.put(e.getKey(), e.getValue());
+                }
+            }
+            return result;
         }
 
         //------------------< LastRevTracker >----------------------------------

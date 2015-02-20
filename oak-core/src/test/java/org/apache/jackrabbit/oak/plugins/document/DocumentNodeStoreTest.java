@@ -73,7 +73,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class DocumentNodeStoreTest {
@@ -1076,7 +1075,6 @@ public class DocumentNodeStoreTest {
         store.dispose();
     }
 
-    @Ignore("OAK-2513")
     @Test
     public void slowRebase() throws Exception {
         final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
