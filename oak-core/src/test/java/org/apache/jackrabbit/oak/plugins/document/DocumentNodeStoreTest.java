@@ -34,6 +34,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -908,6 +909,61 @@ public class DocumentNodeStoreTest {
         assertNoPreviousDocs(reads);
 
         store.dispose();
+    }
+
+    @Test
+    public void slowRebase() throws Exception {
+        final int NUM_NODES = DocumentRootBuilder.UPDATE_LIMIT / 2;
+        final int NUM_PROPS = 10;
+        final int REBASE_COUNT = 5;
+        final DocumentNodeStore ns = new DocumentMK.Builder().getNodeStore();
+
+        NodeBuilder builder = ns.getRoot().builder();
+        for (int i = 0; i < NUM_NODES / 2; i++) {
+            NodeBuilder c = deepTree(builder.child("n" + i), 5);
+            for (int j = 0; j < NUM_PROPS; j++) {
+                c.setProperty("p" + j, "value");
+            }
+        }
+
+        //1. Prepare a large tree
+        merge(ns, builder);
+
+        builder = ns.getRoot().builder();
+        int[] rebaseCounts = {2,3,1,8,3};
+        for (int r = 0; r < REBASE_COUNT; r++){
+            for (int i = 0; i < NUM_NODES / 2; i++) {
+                NodeBuilder c = deepTree(builder.child("n" + i), 5);
+                for (int j = 0; j < NUM_PROPS; j++) {
+                    c.setProperty("q"+ r + "" + j, "value");
+                }
+            }
+
+            //Do multiple rebase for each round of branch commit phase
+            for (int k = 0; k < rebaseCounts[r]; k++){
+                doSomeChange(ns);
+                ns.rebase(builder);
+            }
+        }
+
+        System.out.println("Starting the final merge "+ new Date());
+        merge(ns, builder);
+
+        ns.dispose();
+    }
+
+    private void doSomeChange(NodeStore ns) throws CommitFailedException {
+        NodeBuilder b = ns.getRoot().builder();
+        b.setProperty("count", System.currentTimeMillis());
+        merge(ns, b);
+    }
+
+    private NodeBuilder deepTree(NodeBuilder parent, int depth){
+        NodeBuilder nb = parent;
+        for (int i = depth ; i >= 0; i--){
+            nb = nb.child("c"+i);
+        }
+        return nb;
     }
 
     private static void assertNoPreviousDocs(Set<String> ids) {

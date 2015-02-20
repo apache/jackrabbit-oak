@@ -25,6 +25,7 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.CheckForNull;
@@ -295,6 +296,8 @@ class Branch {
         abstract boolean isModified(String path);
 
         abstract Iterable<String> getModifiedPaths();
+
+        protected abstract boolean isRebase();
     }
 
     /**
@@ -330,6 +333,11 @@ class Branch {
             return modifications.keySet();
         }
 
+        @Override
+        protected boolean isRebase() {
+            return false;
+        }
+
         //------------------< LastRevTracker >----------------------------------
 
         @Override
@@ -341,6 +349,11 @@ class Branch {
             }
             modifications.put(path, commit);
         }
+
+        @Override
+        public String toString() {
+            return "B (" + modifications.size() + ")";
+        }
     }
 
     class RebaseCommit extends BranchCommit {
@@ -350,7 +363,7 @@ class Branch {
         RebaseCommit(Revision base, Revision commit,
                      NavigableMap<Revision, BranchCommit> previous) {
             super(base, commit);
-            this.previous = Maps.newTreeMap(previous);
+            this.previous = squash(previous);
         }
 
         @Override
@@ -371,6 +384,11 @@ class Branch {
         }
 
         @Override
+        protected boolean isRebase() {
+            return true;
+        }
+
+        @Override
         Iterable<String> getModifiedPaths() {
             Iterable<Iterable<String>> paths = transform(previous.values(),
                     new Function<BranchCommit, Iterable<String>>() {
@@ -382,11 +400,32 @@ class Branch {
             return Iterables.concat(paths);
         }
 
+        /**
+         * Filter out the RebaseCommits as they are just container of previous BranchCommit
+         *
+         * @param previous branch commit history
+         * @return filtered branch history only containing non rebase commits
+         */
+        private NavigableMap<Revision, BranchCommit> squash(NavigableMap<Revision, BranchCommit> previous) {
+            NavigableMap<Revision, BranchCommit> result = new TreeMap<Revision, BranchCommit>(previous.comparator());
+            for (Map.Entry<Revision, BranchCommit> e : previous.entrySet()){
+                if (!e.getValue().isRebase()){
+                    result.put(e.getKey(), e.getValue());
+                }
+            }
+            return result;
+        }
+
         //------------------< LastRevTracker >----------------------------------
 
         @Override
         public void track(String path) {
             throw new UnsupportedOperationException("RebaseCommit is read-only");
+        }
+
+        @Override
+        public String toString() {
+            return "R (" + previous.size() + ")";
         }
     }
 
