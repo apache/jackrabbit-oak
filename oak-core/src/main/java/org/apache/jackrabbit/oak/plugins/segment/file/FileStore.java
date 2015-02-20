@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
@@ -62,6 +63,7 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNotFoundException;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -146,6 +148,11 @@ public class FileStore implements SegmentStore {
      */
     private final LinkedList<File> toBeRemoved = newLinkedList();
 
+    /**
+     * Version of the segment storage format.
+     */
+    private final SegmentVersion version = SegmentVersion.V_11;
+
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
         this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping);
@@ -171,10 +178,12 @@ public class FileStore implements SegmentStore {
             int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping)
             throws IOException {
         checkNotNull(directory).mkdirs();
-        if (cacheSizeMB > 0) {
-            this.tracker = new SegmentTracker(this, cacheSizeMB);
+        if (cacheSizeMB < 0) {
+            this.tracker = new SegmentTracker(this, 0, getVersion());
+        } else if (cacheSizeMB > 0) {
+            this.tracker = new SegmentTracker(this, cacheSizeMB, getVersion());
         } else {
-            this.tracker = new SegmentTracker(this);
+            this.tracker = new SegmentTracker(this, getVersion());
         }
         this.blobStore = blobStore;
         this.directory = directory;
@@ -509,7 +518,7 @@ public class FileStore implements SegmentStore {
         log.info("TarMK compaction running, strategy={}", compactionStrategy);
 
         long start = System.currentTimeMillis();
-        SegmentWriter writer = new SegmentWriter(this, tracker);
+        SegmentWriter writer = new SegmentWriter(this, tracker, getVersion());
         final Compactor compactor = new Compactor(writer, compactionStrategy.cloneBinaries());
         SegmentNodeState before = getHead();
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
@@ -585,6 +594,7 @@ public class FileStore implements SegmentStore {
                 flush();
 
                 writer.close();
+                tracker.getWriter().dropCache();
 
                 List<TarReader> list = readers;
                 readers = newArrayList();
@@ -770,5 +780,9 @@ public class FileStore implements SegmentStore {
                 return false;
             }
         }
+    }
+
+    public SegmentVersion getVersion() {
+        return version;
     }
 }
