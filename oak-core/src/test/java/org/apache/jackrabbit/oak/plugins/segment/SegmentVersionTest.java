@@ -23,19 +23,26 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType.CLEAN_NONE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.Callable;
+
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -80,7 +87,8 @@ public class SegmentVersionTest {
             }
         };
         try {
-            NodeState content = addTestContent(fileStoreV10).getChildNode("content");
+            NodeState content = addTestContent(fileStoreV10, "content").getChildNode("content");
+            assertVersion(content, SegmentVersion.V_10);
             NodeBuilder builder = content.builder();
             builder.setChildNode("foo");
             content.compareAgainstBaseState(builder.getNodeState(), new NodeStateDiff() {
@@ -135,27 +143,98 @@ public class SegmentVersionTest {
             }
         };
         try {
-            addTestContent(fileStoreV10);
+            NodeState content = addTestContent(fileStoreV10, "content");
+            assertVersion(content, SegmentVersion.V_10);
         } finally {
             fileStoreV10.close();
         }
 
         FileStore fileStoreV11 = new FileStore(directory, 1);
         try {
-            verifyContent(fileStoreV11);
+            verifyContent(fileStoreV11, "content");
         } finally {
             fileStoreV11.close();
         }
+    }
 
+    @Test
+    public void mixedVersions() throws IOException, CommitFailedException {
+        FileStore fileStoreV10 = new FileStore(directory, 1) {
+            @SuppressWarnings("deprecation")
+            @Override
+            public SegmentVersion getVersion() {
+                return SegmentVersion.V_10;
+            }
+        };
+        try {
+            NodeState content10 = addTestContent(fileStoreV10, "content10");
+            assertVersion(content10, SegmentVersion.V_10);
+        } finally {
+            fileStoreV10.close();
+        }
+
+        FileStore fileStoreV11 = new FileStore(directory, 1);
+        try {
+            NodeState content11 = addTestContent(fileStoreV11, "content11");
+            assertVersion(content11, SegmentVersion.V_11);
+            verifyContent(fileStoreV11, "content10");
+            verifyContent(fileStoreV11, "content11");
+        } finally {
+            fileStoreV11.close();
+        }
+    }
+
+    @Test
+    public void migrate() throws IOException, CommitFailedException {
+        FileStore fileStoreV10 = new FileStore(directory, 1) {
+            @SuppressWarnings("deprecation")
+            @Override
+            public SegmentVersion getVersion() {
+                return SegmentVersion.V_10;
+            }
+        };
+        try {
+            addTestContent(fileStoreV10, "content10");
+        } finally {
+            fileStoreV10.close();
+        }
+
+        FileStore fileStoreV11 = new FileStore(directory, 1);
+        try {
+            fileStoreV11.setCompactionStrategy(new CompactionStrategy(false, false,
+                    CLEAN_NONE, 0, (byte) 0) {
+                @Override
+                public boolean compacted(@Nonnull Callable<Boolean> setHead) throws Exception {
+                    return setHead.call();
+                }
+            });
+            checkAllVersions(fileStoreV11.getHead(), SegmentVersion.V_10);
+            fileStoreV11.compact();
+            checkAllVersions(fileStoreV11.getHead(), SegmentVersion.V_11);
+        } finally {
+            fileStoreV11.close();
+        }
+    }
+
+    private static void checkAllVersions(SegmentNodeState head, SegmentVersion version) {
+        assertVersion(head, version);
+        for (ChildNodeEntry childNodeEntry : head.getChildNodeEntries()) {
+            checkAllVersions((SegmentNodeState) childNodeEntry.getNodeState(), version);
+        }
+    }
+
+    private static void assertVersion(NodeState node, SegmentVersion version) {
+        assertTrue(node instanceof SegmentNodeState);
+        assertEquals(version, ((SegmentNodeState) node).getSegment().getSegmentVersion());
     }
 
     @SuppressWarnings("deprecation")
-    private static NodeState addTestContent(FileStore fs)
+    private static NodeState addTestContent(FileStore fs, String nodeName)
             throws CommitFailedException {
         NodeStore store = new SegmentNodeStore(fs);
         NodeBuilder builder = store.getRoot().builder();
 
-        NodeBuilder content = builder.child("content");
+        NodeBuilder content = builder.child(nodeName);
         content.setProperty("a", 1);
         content.setProperty("aM", ImmutableList.of(1L, 2L, 3L, 4L), LONGS);
 
@@ -165,17 +244,13 @@ public class SegmentVersionTest {
 
         // add blobs?
 
-        NodeState root = store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        assertEquals(SegmentVersion.V_10, fs.getHead().getSegment()
-                .getSegmentVersion());
-        return root;
+        return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static void verifyContent(FileStore fs)
-            throws CommitFailedException {
+    private static void verifyContent(FileStore fs, String nodeName) {
         NodeStore store = new SegmentNodeStore(fs);
         SegmentNodeState content = (SegmentNodeState) store.getRoot()
-                .getChildNode("content");
+                .getChildNode(nodeName);
 
         assertEquals(new Long(1), content.getProperty("a").getValue(LONG));
         assertEquals(ImmutableList.of(1L, 2L, 3L, 4L),
