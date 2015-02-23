@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment.standby.client;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.newGetBlobReq;
 import static org.apache.jackrabbit.oak.plugins.segment.standby.codec.Messages.newGetSegmentReq;
 import io.netty.channel.ChannelHandlerContext;
@@ -55,6 +56,7 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     private final EventExecutorGroup loaderExecutor;
     private final AtomicBoolean running;
     private final int readTimeoutMs;
+    private final boolean autoClean;
 
     private ChannelHandlerContext ctx;
 
@@ -62,13 +64,14 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
 
     public SegmentLoaderHandler(final StandbyStore store, RecordId head,
             EventExecutorGroup loaderExecutor,
-            String clientID, AtomicBoolean running, int readTimeoutMs) {
+            String clientID, AtomicBoolean running, int readTimeoutMs, boolean autoClean) {
         this.store = store;
         this.head = head;
         this.loaderExecutor = loaderExecutor;
         this.clientID = clientID;
         this.running = running;
         this.readTimeoutMs = readTimeoutMs;
+        this.autoClean = autoClean;
     }
 
     @Override
@@ -88,6 +91,10 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
     private void initSync() {
         log.debug("new head id " + head);
         long t = System.currentTimeMillis();
+        long preSyncSize = -1;
+        if (autoClean) {
+            preSyncSize = store.size();
+        }
 
         try {
             store.setLoader(this);
@@ -124,6 +131,18 @@ public class SegmentLoaderHandler extends ChannelInboundHandlerAdapter
             boolean ok = store.setHead(before, builder.getNodeState());
             log.debug("updated head state successfully: {} in {}ms.", ok,
                     System.currentTimeMillis() - t);
+
+            if (autoClean && preSyncSize > 0) {
+                long postSyncSize = store.size();
+                // if size gain is over 25% call cleanup
+                if (postSyncSize - preSyncSize > 0.25 * preSyncSize) {
+                    log.info(
+                            "Store size increased from {} to {}, will run cleanup.",
+                            humanReadableByteCount(preSyncSize),
+                            humanReadableByteCount(postSyncSize));
+                    store.cleanup();
+                }
+            }
         } finally {
             close();
         }

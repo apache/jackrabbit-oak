@@ -29,11 +29,13 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentId;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentTracker;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StandbyStore implements SegmentStore {
+
     private static final Logger log = LoggerFactory.getLogger(StandbyStore.class);
 
     private final SegmentTracker tracker = new SegmentTracker(this);
@@ -143,4 +145,26 @@ public class StandbyStore implements SegmentStore {
         this.loader = loader;
     }
 
+    public long size() {
+        if (delegate instanceof FileStore) {
+            try {
+                return ((FileStore) delegate).size();
+            } catch (IOException e) {
+                log.error("Error getting delegate size", e);
+            }
+        }
+        return -1;
+    }
+
+    public void cleanup() {
+        if (delegate instanceof FileStore) {
+            try {
+                ((FileStore) delegate).cleanup();
+            } catch (IOException e) {
+                log.error("Error running cleanup", e);
+            }
+        } else {
+            log.warn("Delegate is not a FileStore, ignoring cleanup call");
+        }
+    }
 }

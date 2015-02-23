@@ -84,6 +84,10 @@ public class StandbyStoreService {
     @Property(intValue = READ_TIMEOUT_DEFAULT)
     public static final String READ_TIMEOUT = "standby.readtimeout";
 
+    public static final boolean AUTO_CLEAN_DEFAULT = false;
+    @Property(boolValue = AUTO_CLEAN_DEFAULT)
+    public static final String AUTO_CLEAN = "standby.autoclean";
+
     @Reference(policy = STATIC, policyOption = GREEDY)
     private SegmentStoreProvider storeProvider = null;
 
@@ -144,8 +148,9 @@ public class StandbyStoreService {
         String host = PropertiesUtil.toString(props.get(PRIMARY_HOST), PRIMARY_HOST_DEFAULT);
         boolean secure = PropertiesUtil.toBoolean(props.get(SECURE), SECURE_DEFAULT);
         int readTimeout = PropertiesUtil.toInteger(props.get(READ_TIMEOUT), READ_TIMEOUT_DEFAULT);
+        boolean clean = PropertiesUtil.toBoolean(props.get(AUTO_CLEAN), AUTO_CLEAN_DEFAULT);
 
-        sync = new StandbyClient(host, port, segmentStore, secure, readTimeout);
+        sync = new StandbyClient(host, port, segmentStore, secure, readTimeout, clean);
         Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
         dictionary.put("scheduler.period", interval);
         dictionary.put("scheduler.concurrent", false);
