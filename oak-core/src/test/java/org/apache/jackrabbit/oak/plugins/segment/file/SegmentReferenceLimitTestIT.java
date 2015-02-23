@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,11 +65,14 @@ public class SegmentReferenceLimitTestIT {
 
     /**
      * OAK-2294 Corrupt repository after concurrent version operations
+     * 
+     * TODO Test is currently ignored because of how memory intensive it is
      *
      * @see <a
      *      href="https://issues.apache.org/jira/browse/OAK-2294">OAK-2294</a>
      */
     @Test
+    @Ignore
     public void corruption() throws IOException, CommitFailedException, ExecutionException, InterruptedException {
         FileStore fileStore = new FileStore(directory, 1, 0, false);
         SegmentNodeStore nodeStore = new SegmentNodeStore(fileStore);
