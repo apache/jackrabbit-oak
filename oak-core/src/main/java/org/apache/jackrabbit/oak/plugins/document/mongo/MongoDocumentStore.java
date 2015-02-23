@@ -62,6 +62,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,8 +90,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class MongoDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
-
-    private static final boolean LOG_TIME = false;
+    private static final PerfLogger PERFLOG = new PerfLogger(
+            LoggerFactory.getLogger(MongoDocumentStore.class.getName()
+                    + ".perf"));
 
     private static final DBObject BY_ID_ASC = new BasicDBObject(Document.ID, 1);
 
@@ -237,20 +239,6 @@ public class MongoDocumentStore implements DocumentStore {
         return new NodeDocOffHeapCache(primaryCache, listener, builder, this);
     }
 
-    private static long start() {
-        return LOG_TIME ? System.currentTimeMillis() : 0;
-    }
-
-    private void end(String message, long start) {
-        if (LOG_TIME) {
-            long t = System.currentTimeMillis() - start;
-            if (t > 0) {
-                LOG.debug(message + ": " + t);
-            }
-            timeSum += t;
-        }
-    }
-
     @Override
     public void finalize() throws Throwable {
         super.finalize();
@@ -287,14 +275,20 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
-        return find(collection, key, true, -1);
+        final long start = PERFLOG.start();
+        final T result = find(collection, key, true, -1);
+        PERFLOG.end(start, 1, "find: preferCached=true, key={}", key);
+        return result;
     }
 
     @Override
     public <T extends Document> T find(final Collection<T> collection,
                                        final String key,
                                        int maxCacheAge) {
-        return find(collection, key, false, maxCacheAge);
+        final long start = PERFLOG.start();
+        final T result = find(collection, key, false, maxCacheAge);
+        PERFLOG.end(start, 1, "find: preferCached=false, key={}", key);
+        return result;
     }
 
     @SuppressWarnings("unchecked")
@@ -365,12 +359,14 @@ public class MongoDocumentStore implements DocumentStore {
     private <T extends Document> T findUncached(Collection<T> collection, String key, DocumentReadPreference docReadPref) {
         log("findUncached", key, docReadPref);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        final long start = PERFLOG.start();
+        boolean isSlaveOk = false;
         try {
             ReadPreference readPreference = getMongoReadPreference(collection, Utils.getParentId(key), docReadPref);
 
             if(readPreference.isSlaveOk()){
                 LOG.trace("Routing call to secondary for fetching [{}]", key);
+                isSlaveOk = true;
             }
 
             DBObject obj = dbCollection.findOne(getByKeyQuery(key).get(), null, null, readPreference);
@@ -395,7 +391,8 @@ public class MongoDocumentStore implements DocumentStore {
             }
             return doc;
         } finally {
-            end("findUncached", start);
+            PERFLOG.end(start, 1, "findUncached on key={}, isSlaveOk={}", key,
+                    isSlaveOk);
         }
     }
 
@@ -446,7 +443,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBObject query = queryBuilder.get();
         String parentId = Utils.getParentIdFromLowerLimit(fromKey);
         TreeLock lock = acquireExclusive(parentId != null ? parentId : "");
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             DBCursor cursor = dbCollection.find(query).sort(BY_ID_ASC).hint(hint);
             ReadPreference readPreference =
@@ -494,7 +491,7 @@ public class MongoDocumentStore implements DocumentStore {
             return list;
         } finally {
             lock.unlock();
-            end("query", start);
+            PERFLOG.end(start, 1, "query for children from [{}] to [{}]", fromKey, toKey);
         }
     }
 
@@ -509,7 +506,7 @@ public class MongoDocumentStore implements DocumentStore {
     public <T extends Document> void remove(Collection<T> collection, String key) {
         log("remove", key);
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        long start = PERFLOG.start();
         try {
             WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get());
             invalidateCache(collection, key);
@@ -517,7 +514,7 @@ public class MongoDocumentStore implements DocumentStore {
                 throw new DocumentStoreException("Remove failed: " + writeResult.getError());
             }
         } finally {
-            end("remove", start);
+            PERFLOG.end(start, 1, "remove key={}", key);
         }
     }
 
@@ -547,7 +544,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBObject update = createUpdate(updateOp);
 
         TreeLock lock = acquire(updateOp.getId());
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             // get modCount of cached document
             Number modCount = null;
@@ -600,7 +597,7 @@ public class MongoDocumentStore implements DocumentStore {
             throw DocumentStoreException.convert(e);
         } finally {
             lock.unlock();
-            end("findAndModify", start);
+            PERFLOG.end(start, 1, "findAndModify [{}]", updateOp.getId());
         }
     }
 
@@ -670,7 +667,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             try {
                 WriteResult writeResult = dbCollection.insert(inserts);
@@ -692,7 +689,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return false;
             }
         } finally {
-            end("create", start);
+            PERFLOG.end(start, 1, "create");
         }
     }
 
@@ -706,7 +703,7 @@ public class MongoDocumentStore implements DocumentStore {
         // make sure we don't modify the original updateOp
         updateOp = updateOp.copy();
         DBObject update = createUpdate(updateOp);
-        long start = start();
+        final long start = PERFLOG.start();
         try {
             Map<String, NodeDocument> cachedDocs = Collections.emptyMap();
             if (collection == Collection.NODES) {
@@ -742,7 +739,7 @@ public class MongoDocumentStore implements DocumentStore {
                 throw DocumentStoreException.convert(e);
             }
         } finally {
-            end("update", start);
+            PERFLOG.end(start, 1, "update");
         }
     }
 

@@ -36,7 +36,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.slf4j.Logger;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -55,7 +55,10 @@ import org.slf4j.LoggerFactory;
  * </pre>
  */
 public class EventGenerator {
-    private static final Logger log = LoggerFactory.getLogger(EventGenerator.class);
+
+    private static final PerfLogger perfLogger = new PerfLogger(
+            LoggerFactory.getLogger(EventGenerator.class.getName()
+                    + ".perf"));
 
     /**
      * Maximum number of content changes to process during the
@@ -109,14 +112,11 @@ public class EventGenerator {
     public void generate() {
         if (!continuations.isEmpty()) {
             final Continuation c = continuations.removeFirst();
-            if (log.isDebugEnabled()) {
-                log.debug("Starting event generation ...");
-                long start = System.currentTimeMillis();
-                c.run();
-                log.debug("Generated {} events in {} ms", c.counter, (System.currentTimeMillis() - start));
-            } else {
-                c.run();
-            }
+            final long start = perfLogger
+                    .start("generate: Starting event generation");
+            c.run();
+            perfLogger.end(start, 1, "generate: Generated {} events in {} ms",
+                    c.counter);
         }
     }
 
