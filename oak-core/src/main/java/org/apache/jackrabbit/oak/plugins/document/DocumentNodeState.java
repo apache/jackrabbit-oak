@@ -48,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.util.PerfLogger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -62,6 +64,10 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * A {@link NodeState} implementation for the {@link DocumentNodeStore}.
  */
 public class DocumentNodeState extends AbstractNodeState implements CacheValue {
+
+    private static final PerfLogger perfLogger = new PerfLogger(
+            LoggerFactory.getLogger(DocumentNodeState.class.getName()
+                    + ".perf"));
 
     public static final Children NO_CHILDREN = new Children();
 
@@ -257,7 +263,19 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                         return true;
                     } else {
                         // use DocumentNodeStore compare
-                        return dispatch(store.diffChildren(this, mBase), mBase, diff);
+                        final long start = perfLogger.start();
+                        try {
+                            return dispatch(store.diffChildren(this, mBase),
+                                    mBase, diff);
+                        } finally {
+                            perfLogger
+                                    .end(start,
+                                            1,
+                                            "compareAgainstBaseState, path={}, rev={}, lastRevision={}, base.path={}, base.rev={}, base.lastRevision={}",
+                                            path, rev, lastRevision,
+                                            mBase.path, mBase.rev,
+                                            mBase.lastRevision);
+                        }
                     }
                 }
             }
