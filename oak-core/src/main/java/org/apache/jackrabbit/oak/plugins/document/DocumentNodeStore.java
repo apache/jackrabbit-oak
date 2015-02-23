@@ -95,6 +95,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,6 +106,9 @@ public final class DocumentNodeStore
         implements NodeStore, RevisionContext, Observable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStore.class);
+
+    private static final PerfLogger PERFLOG = new PerfLogger(
+            LoggerFactory.getLogger(DocumentNodeStore.class.getName() + ".perf"));
 
     /**
      * Do not cache more than this number of children for a document.
@@ -697,6 +701,7 @@ public final class DocumentNodeStore
     @CheckForNull
     DocumentNodeState getNode(@Nonnull final String path, @Nonnull final Revision rev) {
         checkRevisionAge(checkNotNull(rev), checkNotNull(path));
+        final long start = PERFLOG.start();
         try {
             PathRev key = new PathRev(path, rev);
             DocumentNodeState node = nodeCache.get(key, new Callable<DocumentNodeState>() {
@@ -709,7 +714,10 @@ public final class DocumentNodeStore
                     return n;
                 }
             });
-            return node == missing || node.equals(missing) ? null : node;
+            final DocumentNodeState result = node == missing
+                    || node.equals(missing) ? null : node;
+            PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
+            return result;
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         }
@@ -919,13 +927,21 @@ public final class DocumentNodeStore
 
     @CheckForNull
     DocumentNodeState readNode(String path, Revision readRevision) {
+        final long start = PERFLOG.start();
         String id = Utils.getIdFromPath(path);
         Revision lastRevision = getPendingModifications().get(path);
         NodeDocument doc = store.find(Collection.NODES, id);
         if (doc == null) {
+            PERFLOG.end(start, 1,
+                    "readNode: (document not found) path={}, readRevision={}",
+                    path, readRevision);
             return null;
         }
-        return doc.getNodeAtRevision(this, readRevision, lastRevision);
+        final DocumentNodeState result = doc.getNodeAtRevision(this,
+                readRevision, lastRevision);
+        PERFLOG.end(start, 1, "readNode: path={}, readRevision={}", path,
+                readRevision);
+        return result;
     }
 
     /**
