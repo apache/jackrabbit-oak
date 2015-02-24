@@ -84,7 +84,6 @@ public class SolrQueryIndexProviderService {
             }
 
             regs.add(componentContext.getBundleContext().registerService(QueryIndexProvider.class.getName(), solrQueryIndexProvider, null));
-            regs.add(componentContext.getBundleContext().registerService(Observer.class.getName(), solrQueryIndexProvider, null));
         }
     }
 

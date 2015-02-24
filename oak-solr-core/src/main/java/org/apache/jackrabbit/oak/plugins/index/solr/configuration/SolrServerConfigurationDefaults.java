@@ -42,7 +42,7 @@ public class SolrServerConfigurationDefaults {
     public static final String DESC_FIELD_NAME = "path_des";
     public static final String ANC_FIELD_NAME = "path_anc";
     public static final String CATCHALL_FIELD = "catch_all";
-    public static final int ROWS = 50;
+    public static final int ROWS = Integer.MAX_VALUE;
     public static final boolean PROPERTY_RESTRICTIONS = false;
     public static final boolean PATH_RESTRICTIONS = false;
     public static final boolean PRIMARY_TYPES = false;
