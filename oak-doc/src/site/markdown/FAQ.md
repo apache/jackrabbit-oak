@@ -26,6 +26,8 @@ You might be missing an index. See [Query engine](query.html).
 
 You are accessing a `Session` instance concurrently from multiple threads. Session instances are
 [not thread safe](dos_and_donts.html#Anti_pattern:_concurrent_session_access).
+Enabling `DEBUG` logging for `SessionDelegate` provides stack traces for both sessions involved. 
+*Note*: this should be used for debugging only as it has a major impact on system performance.
 
 #### I have a SegmentMK store and the size is growing beyond control
 
