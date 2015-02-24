@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
@@ -61,8 +62,8 @@ public abstract class SolrBaseTest {
         Oak oak = new Oak().with(new InitialContent())
                 .with(new OpenSecurityProvider())
                 .with(new SolrIndexInitializer(false)) // synchronous
-                .with((QueryIndexProvider) new SolrQueryIndexProvider(provider, provider))
-                .with((Observer) new SolrQueryIndexProvider(provider, provider))
+                .with(new SolrQueryIndexProvider(provider, provider))
+                .with(new NodeStateSolrServersObserver())
                 .with(new SolrIndexEditorProvider(provider, provider));
         repository = oak
                 .createContentRepository();

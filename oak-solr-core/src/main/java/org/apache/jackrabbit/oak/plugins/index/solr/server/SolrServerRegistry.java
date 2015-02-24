@@ -63,7 +63,22 @@ public class SolrServerRegistry {
         return null;
     }
 
-    enum Strategy {
+    public static void unregister(SolrServerConfiguration<SolrServerProvider> configuration, @Nonnull Strategy strategy) {
+        switch (strategy) {
+            case INDEXING:
+                synchronized (indexingServerRegistry) {
+                    indexingServerRegistry.remove(configuration.toString());
+                }
+                break;
+            case SEARCHING:
+                synchronized (searchingServerRegistry) {
+                    searchingServerRegistry.remove(configuration.toString());
+                }
+                break;
+        }
+    }
+
+    public enum Strategy {
         INDEXING,
         SEARCHING
     }

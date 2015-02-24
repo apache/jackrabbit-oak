@@ -52,17 +52,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private SolrServer createSolrServer() throws Exception {
 
-        SolrServer cachedEntry = SolrServerRegistry.get(solrServerConfiguration, SolrServerRegistry.Strategy.SEARCHING);
-
-        try {
-            if (cachedEntry != null && 0 == cachedEntry.ping().getStatus()) {
-                return cachedEntry;
-            }
-        } catch (Exception e) {
-            log.warn("cached entry is shut down, creating new one");
-        }
-
-        log.warn("creating new embedded solr server with config: {}", solrServerConfiguration);
+        log.info("creating new embedded solr server with config: {}", solrServerConfiguration);
 
         String solrHomePath = solrServerConfiguration.getSolrHomePath();
         String coreName = solrServerConfiguration.getCoreName();
@@ -125,7 +115,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
                 EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, coreName);
                 if (server.ping().getStatus() == 0) {
-                    SolrServerRegistry.register(solrServerConfiguration, server, SolrServerRegistry.Strategy.SEARCHING);
                     return server;
                 } else {
                     throw new IOException("the embedded Solr server is not alive");
@@ -161,7 +150,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
                 throw new IOException("could not create nested core directory in solrHomePath/solrCoreName/conf");
             }
             String solrCoreDir = solrCorePathFile.getAbsolutePath();
-//            copy("/solr/oak/core.properties", solrCoreDir);
             File coreProperties = new File(new File(solrCoreDir), "core.properties");
             assert coreProperties.createNewFile();
             FileOutputStream out = new FileOutputStream(coreProperties);
@@ -265,15 +253,9 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     @Override
     public void close() throws IOException {
         try {
-            getSolrServer().shutdown();
-        } catch (Exception e) {
-            // do nothing
-        } try {
-            getIndexingSolrServer().shutdown();
-        } catch (Exception e) {
-            // do nothing
-        } try {
-            getSearchingSolrServer().shutdown();
+            if (solrServer != null) {
+                solrServer.shutdown();
+            }
         } catch (Exception e) {
             // do nothing
         }

@@ -57,15 +57,15 @@
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
-                        <Service-Component>OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr
-                            .osgi.SolrQueryIndexProviderService.xml,OSGI-INF/org.apache.jackrabbit.
-                            oak.plugins.index.solr.osgi.SolrServerProviderService.xml,OSGI-I
-                            NF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrIndexEditorPro
-                            viderService.xml,OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.
-                            osgi.EmbeddedSolrServerConfigurationProvider.xml,OSGI-INF/org.apache.ja
-                            ckrabbit.oak.plugins.index.solr.osgi.RemoteSolrServerConfigurationProvi
-                            der.xml,OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.OakS
-                            olrConfigurationProviderService.xml</Service-Component>
+                        <Service-Component>
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrQueryIndexProviderService.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrServerProviderService.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrIndexEditorProviderService.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.EmbeddedSolrServerConfigurationProvider.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.RemoteSolrServerConfigurationProvider.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.OakSolrConfigurationProviderService.xml,
+                            OSGI-INF/org.apache.jackrabbit.oak.plugins.index.solr.osgi.NodeStateSolrServersObserverService.xml
+                        </Service-Component>
                     </instructions>
                 </configuration>
             </plugin>
