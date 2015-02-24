@@ -39,24 +39,6 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
         this.nodeState = nodeState;
     }
 
-    private int getIntValueFor(String propertyName, int defaultValue) {
-        long value = defaultValue;
-        PropertyState property = nodeState.getProperty(propertyName);
-        if (property != null) {
-            value = property.getValue(Type.LONG);
-        }
-        return (int) value;
-    }
-
-    private String getStringValueFor(String propertyName, String defaultValue) {
-        String value = defaultValue;
-        PropertyState property = nodeState.getProperty(propertyName);
-        if (property != null) {
-            value = property.getValue(Type.STRING);
-        }
-        return value;
-    }
-
     private void checkProviderInitialization() throws IllegalAccessException, java.lang.reflect.InvocationTargetException, InstantiationException {
         synchronized (nodeState) {
             if (provider == null) {
@@ -82,7 +64,6 @@ public class NodeStateSolrServerProvider implements SolrServerProvider {
         checkProviderInitialization();
         return provider.getSearchingSolrServer();
     }
-
 
     @Override
     public void close() throws IOException {

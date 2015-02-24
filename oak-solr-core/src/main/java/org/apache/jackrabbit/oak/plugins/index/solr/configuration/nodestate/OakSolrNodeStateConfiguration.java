@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -41,6 +42,9 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
     public OakSolrNodeStateConfiguration(NodeState definition) {
         this.definition = definition;
+        if (!definition.hasProperty("type") || !(SolrQueryIndex.TYPE.equals(definition.getProperty("type").getValue(Type.STRING)))) {
+            throw new IllegalArgumentException("missing or wrong 'type' property in " + definition);
+        }
     }
 
     @Override
