@@ -24,6 +24,10 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+explain select * from [nt:base] where [jcr:uuid] <> '1'
+[nt:base] as [nt:base] /* property jcr:uuid
+  where [nt:base].[jcr:uuid] <> cast('1' as string) */
+
 explain select * from [nt:base] as a
     left outer join [nt:base] as b on a.x=b.y
     where a.y is null and b.z = 1
