@@ -101,7 +101,7 @@ public class SessionDelegate {
     private final Clock clock;
 
     // access time stamps and counters for statistics about this session
-    Counters sessionCounters;
+    private final Counters sessionCounters;
 
     // repository-wide counters for statistics about all sessions
     private final AtomicLong readCounter;
