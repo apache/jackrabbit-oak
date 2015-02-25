@@ -15,10 +15,13 @@
    limitations under the License.
   -->
 
-Oak DocumentMK
+Oak Document Storage
 ==============
 
-One of the plugins in Oak stores data in a document oriented format. The plugin implements two low level APIs, the `MicroKernel` and `NodeStore` interface.
+One of the plugins in Oak stores data in a document oriented format. 
+The plugin implements two low level APIs, the `MicroKernel` and `NodeStore` interface.
+
+The document storage optionally uses the [persistent cache](persistent-cache.html) to reduce read operations on the backend storage.
 
 Backend implementations
 -----------------------
