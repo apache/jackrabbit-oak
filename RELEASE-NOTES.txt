@@ -1,5 +1,5 @@
 
-Release Notes -- Apache Jackrabbit Oak -- Version 1.0.11
+Release Notes -- Apache Jackrabbit Oak -- Version 1.0.12
 
 Introduction
 ------------
@@ -8,21 +8,70 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.0.11 is a patch release that contains fixes and
+Apache Jackrabbit Oak 1.0.12 is a patch release that contains fixes and
 improvements over Oak 1.0. Jackrabbit Oak 1.0.x releases are considered
 stable and targeted for production use.
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.0.11
+Changes in Oak 1.0.12
 ---------------------
    
 Bug Fixes
-   [OAK-2442] - NoSuchElementException thrown by NodeDocument
+   [OAK-1709] - Diff cache entry too large
+   [OAK-2294] - Corrupt repository after concurrent version operations
+   [OAK-2346] - InitializerTest.testInitializerMongoWithoutInitialContent() fails
+   [OAK-2360] - IllegalStateException: OrderedPropertyIndex index is used even when no index is available
+   [OAK-2369] - DataStoreWrapperBackend not updated to latest extensions added to Backend interface
+   [OAK-2389] - issues with JsopBuilder.encode and .escape
+   [OAK-2449] - offline compaction (via oak-run) broken
+   [OAK-2450] - MongoDocumentStore fails for DELETED_ONCE indexed property
+   [OAK-2475] - Query Filter looses property constraints for multiple and conditions for same property
+   [OAK-2496] - InitializerTest failing with Mongo on 1.0 branch
+   [OAK-2505] - Rows parameter is provided but the value is not taken from configuration
+   [OAK-2513] - algorithm with O(n!) in mongoMk rebase - not finishing in years
+   [OAK-2515] - SolrQueryIndex blindly executes a 2nd query to check there are no more results
+   [OAK-2518] - backport DocumentStoreException to Oak 1.0
+   [OAK-2528] - Entries in _commitRoot not purged
+   [OAK-2532] - OSGiIT fails on 1.0 branch
+   [OAK-2535] - TARMK Cold Standby allow cleanup on standby instance
+   [OAK-2541] - TARMK Cold Standby marks the sync as stopped on first error
+
+Improvements
+   [OAK-1796] - Update Mongo Java Driver version to 2.12
+   [OAK-2252] - make generic VersionGCSupport perform better
+   [OAK-2340] - LucenePropertyIndex should support pure nodeType based query
+   [OAK-2415] - Improve logging in repository migration in upgrade
+   [OAK-2432] - Allow querying on jcr:primaryType property if that property is indexed
+   [OAK-2453] - Move MongoDiffCache to mongo package
+   [OAK-2461] - Optimize access to pending _lastRev updates
+   [OAK-2463] - Provide support for providing custom Tika config
+   [OAK-2471] - Include index name in the log from LuceneIndexEditor
+   [OAK-2501] - add more trace-logging to mongoMk to debug performance issues
+   [OAK-2516] - Add user information in audit events in oak
+   [OAK-2519] - remove CachingDocumentStore interface
+   [OAK-2527] - Update SegmentMK header format definition
+   [OAK-2529] - Index usage for "not equals" conditions
+   [OAK-2534] - Add missing Apache Jackrabbit qualifiers to OSGi services metatype
+
+New Features
+   [OAK-2517] - Support IS NULL based property restrictions in LucenePropertyIndex
+   [OAK-2530] - Support IS NULL based property restrictions in the query engine
+
+Tasks
+   [OAK-2484] - Backport OAK-2319 to 1.0
+
+Sub-tasks
+   [OAK-2446] - make DELETEDONCE an indexed property
+   [OAK-2506] - port RDB support back to Oak 1.0
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
+
+Please note, the backported RDB support for the DocumentNodeStore is considered
+experimental at this point and is not yet ready for production use. Feel free 
+to try it out and report any issues you may see to the Oak developers.
 
 For more detailed information about all the changes in this and other
 Oak releases, please see the Oak issue tracker at
