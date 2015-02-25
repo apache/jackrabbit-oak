@@ -55,11 +55,12 @@ import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.SharedDataStoreUtils.SharedStoreRecordType;
 import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
-import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy.CleanupType;
+import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.DefaultCompactionStrategyMBean;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore.Builder;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.Observable;
@@ -236,14 +237,17 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             }
         };
 
-        boolean memoryMapping = "64".equals(mode);
-        int cacheSize = Integer.parseInt(size);
+        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
+        Builder storeBuilder = FileStore.newFileStore(new File(directory))
+                .withCacheSize(Integer.parseInt(size))
+                .withMemoryMapping("64".equals(mode))
+                .withWhiteBoard(whiteboard);
         if (customBlobStore) {
             log.info("Initializing SegmentNodeStore with BlobStore [{}]", blobStore);
-            store = new FileStore(blobStore, new File(directory), cacheSize,
-                    memoryMapping).setCompactionStrategy(compactionStrategy);
+            store = storeBuilder.withBlobStore(blobStore).create()
+                    .setCompactionStrategy(compactionStrategy);
         } else {
-            store = new FileStore(new File(directory), cacheSize, memoryMapping)
+            store = storeBuilder.create()
                     .setCompactionStrategy(compactionStrategy);
         }
 
@@ -251,7 +255,6 @@ public class SegmentNodeStoreService extends ProxyNodeStore
         observerTracker = new ObserverTracker(delegate);
         observerTracker.start(context.getBundleContext());
 
-        OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
