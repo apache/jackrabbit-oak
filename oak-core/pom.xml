@@ -85,6 +85,7 @@
               org.apache.jackrabbit.oak.plugins.value,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.spi.commit,
+              org.apache.jackrabbit.oak.spi.gc,
               org.apache.jackrabbit.oak.spi.lifecycle,
               org.apache.jackrabbit.oak.spi.query,
               org.apache.jackrabbit.oak.spi.security,
