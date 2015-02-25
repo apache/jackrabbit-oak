@@ -15,15 +15,15 @@
    limitations under the License.
   -->
 
-SegmentMK design overview
+Segment Storage Design Overview
 =========================
 
-The SegmentMK is an Oak storage backend that stores content as various
+The SegmentNodeStore is an Oak storage backend that stores content as various
 types of *records* within larger *segments*. One or more *journals* are
-used to track the latest state of the repository. In the TarMK implementation
+used to track the latest state of the repository. In the Tar implementation
 only one "root" journal is used.
 
-The SegmentMK was designed from the ground up based on the following
+The SegmentNodeStore was designed from the ground up based on the following
 key principles:
 
   * Immutability. Segments are immutable, which makes is easy to cache
@@ -33,7 +33,7 @@ key principles:
 
   * Compactness. The formatting of records is optimized for size to
     reduce IO costs and to fit as much content in caches as possible.
-    A node stored in SegmentMK typically consumes only a fraction of the
+    A node stored in SegmentNodeStore typically consumes only a fraction of the
     size it would as a bundle in Jackrabbit Classic.
 
   * Locality. Segments are written so that related records, like a node
@@ -41,7 +41,7 @@ key principles:
     This makes tree traversals very fast and avoids most cache misses for
     typical clients that access more than one related node per session.
 
-This document describes the overall design of the SegmentMK. See the
+This document describes the overall design of the SegmentNodeStore. See the
 source code and javadocs in `org.apache.jackrabbit.oak.plugins.segment`
 for full details.
 
@@ -164,7 +164,7 @@ Journals are special, atomically updated documents that record the
 state of the repository as a sequence of references to successive
 root node records.
 
-A small system (like TarMK) could use just a single journal and would
+A small system (like Tar) could use just a single journal and would
 serialize all repository updates through atomic updates of that journal.
 A larger system that needs more write throughput can have more journals,
 linked to each other in a tree hierarchy. Commits to journals in lower
@@ -343,7 +343,7 @@ remain reasonably efficient to access and modify. The main downside of
 this alternative storage layout is that the ordering of child nodes is
 lost.
 
-TarMK
+Tar
 =====
 
 TODO:
