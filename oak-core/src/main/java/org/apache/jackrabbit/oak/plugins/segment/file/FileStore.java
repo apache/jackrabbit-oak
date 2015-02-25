@@ -50,9 +50,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
@@ -158,40 +159,151 @@ public class FileStore implements SegmentStore {
      */
     private final SegmentVersion version = SegmentVersion.V_11;
 
+    /**
+     * Create a new instance of a {@link Builder} for a file store.
+     * @param directory  directory where the tar files are stored
+     * @return a new {@link Builder} instance.
+     */
+    @Nonnull
+    public static Builder newFileStore(@Nonnull File directory) {
+        return new Builder(checkNotNull(directory));
+    }
+
+    /**
+     * Builder for creating {@link FileStore} instances.
+     */
+    public static class Builder {
+        private final File directory;
+        private BlobStore blobStore;   // null ->  store blobs inline
+        private NodeState root = EMPTY_NODE;
+        private int maxFileSize = 256;
+        private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
+        private boolean memoryMapping;
+
+        private Builder(File directory) {
+            this.directory = directory;
+        }
+
+        /**
+         * Specify the {@link BlobStore}.
+         * @param blobStore
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withBlobStore(@Nonnull BlobStore blobStore) {
+            this.blobStore = checkNotNull(blobStore);
+            return this;
+        }
+
+        /**
+         * Specify the initial root node state for the file store
+         * @param root
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withRoot(@Nonnull NodeState root) {
+            this.root = checkNotNull(root);
+            return this;
+        }
+
+        /**
+         * Maximal size of the generated tar files in MB.
+         * @param maxFileSize
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withMaxFileSize(int maxFileSize) {
+            this.maxFileSize = maxFileSize;
+            return this;
+        }
+
+        /**
+         * Size of the cache in MB.
+         * @param cacheSize
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withCacheSize(int cacheSize) {
+            this.cacheSize = cacheSize;
+            return this;
+        }
+
+        /**
+         * Turn caching off
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withNoCache() {
+            this.cacheSize = -1;
+            return this;
+        }
+
+        /**
+         * Turn memory mapping on or off
+         * @param memoryMapping
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withMemoryMapping(boolean memoryMapping) {
+            this.memoryMapping = memoryMapping;
+            return this;
+        }
+
+        /**
+         * Create a new {@link FileStore} instance with the settings specified in this
+         * builder. If none of the {@code with} methods have been called before calling
+         * this method, a file store with the following default settings is returned:
+         * <ul>
+         * <li>blob store: inline</li>
+         * <li>root: empty node</li>
+         * <li>max file size: 256MB</li>
+         * <li>cache size: 256MB</li>
+         * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
+         * </ul>
+         *
+         * @return a new file store instance
+         * @throws IOException
+         */
+        @Nonnull
+        public FileStore create() throws IOException {
+            return new FileStore(
+                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping);
+        }
+    }
+
+    @Deprecated
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
         this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping);
     }
 
+    @Deprecated
     public FileStore(File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
         this(null, directory, maxFileSizeMB, memoryMapping);
     }
 
+    @Deprecated
     public FileStore(File directory, int maxFileSizeMB)
             throws IOException {
         this(null, directory, maxFileSizeMB, MEMORY_MAPPING_DEFAULT);
     }
 
+    @Deprecated
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
         this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping);
     }
 
-    public FileStore(
-            BlobStore blobStore, final File directory, NodeState initial,
-            int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping)
-            throws IOException {
-        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, false);
-    }
-
+    @Deprecated
     FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
-        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, false);
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT);
     }
 
-    private FileStore(
-            BlobStore blobStore, final File directory, NodeState initial,
-            int maxFileSizeMB, int cacheSizeMB, boolean memoryMapping, boolean noCache)
+    @Deprecated
+    public FileStore(
+            BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
+            int cacheSizeMB, boolean memoryMapping)
             throws IOException {
         checkNotNull(directory).mkdirs();
         if (cacheSizeMB < 0) {
