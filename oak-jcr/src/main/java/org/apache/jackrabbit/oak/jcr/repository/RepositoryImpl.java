@@ -22,7 +22,6 @@ import static java.util.Collections.singletonMap;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -44,7 +43,6 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
@@ -54,9 +52,11 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.jmx.SessionMBean;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy;
+import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -244,7 +244,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             @CheckForNull Map<String, Object> attributes) throws RepositoryException {
         try {
             if (attributes == null) {
-                attributes = Collections.emptyMap();
+                attributes = emptyMap();
             }
             Long refreshInterval = getRefreshInterval(credentials);
             if (refreshInterval == null) {
@@ -254,7 +254,9 @@ public class RepositoryImpl implements JackrabbitRepository {
             }
             boolean relaxedLocking = getRelaxedLocking(attributes);
 
-            RefreshStrategy refreshStrategy = createRefreshStrategy(refreshInterval);
+            RefreshStrategy refreshStrategy = refreshInterval == null
+                ? new RefreshStrategy.LogOnce(60)
+                : new RefreshStrategy.Timed(refreshInterval);
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             SessionDelegate sessionDelegate = createSessionDelegate(refreshStrategy, contentSession);
             SessionContext context = createSessionContext(
@@ -268,8 +270,12 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     private SessionDelegate createSessionDelegate(
-            final RefreshStrategy refreshStrategy,
-            final ContentSession contentSession) {
+            RefreshStrategy refreshStrategy,
+            ContentSession contentSession) {
+
+        final RefreshOnGC refreshOnGC = new RefreshOnGC();
+        refreshStrategy = new Composite(refreshStrategy, refreshOnGC);
+
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
                 threadSaveCount, statisticManager, clock) {
@@ -280,6 +286,7 @@ public class RepositoryImpl implements JackrabbitRepository {
 
             @Override
             public void logout() {
+                refreshOnGC.close();
                 // Cancel session MBean registration
                 registrationTask.cancel();
                 scheduledTask.cancel(false);
@@ -444,31 +451,35 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
     }
 
-    /**
-     * Auto refresh logic for sessions, which is done to enhance backwards compatibility with
-     * Jackrabbit 2.
-     * <p>
-     * A sessions is automatically refreshed when
-     * <ul>
-     *     <li>it has not been accessed for the number of seconds specified by the
-     *         {@code refreshInterval} parameter,</li>
-     *     <li>an observation event has been delivered to a listener registered from within this
-     *         session,</li>
-     *     <li>an updated occurred through a different session from <em>within the same
-     *         thread.</em></li>
-     * </ul>
-     * In addition a warning is logged once per session if the session is accessed after one
-     * minute of inactivity.
-     */
-    private RefreshStrategy createRefreshStrategy(Long refreshInterval) {
-        if (refreshInterval == null) {
-            return new RefreshStrategy.LogOnce(60);
-        } else {
-            return new RefreshStrategy.Timed(refreshInterval);
+    private class RefreshOnGC implements RefreshStrategy {
+        private final GCMonitor gcMonitor = new GCMonitor.Empty() {
+            @Override
+            public void compacted() {
+                compactionCount++;
+            }
+        };
+
+        private final Registration reg = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
+
+        private volatile int compactionCount;
+        private int refreshCount;
+
+        public void close() {
+            reg.unregister();
+        }
+
+        @Override
+        public boolean needsRefresh(long secondsSinceLastAccess) {
+            if (compactionCount > refreshCount) {
+                refreshCount = compactionCount;
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 
-    static class RegistrationTask implements Runnable {
+    private static class RegistrationTask implements Runnable {
         private final SessionStats sessionStats;
         private final Whiteboard whiteboard;
         private boolean cancelled;
