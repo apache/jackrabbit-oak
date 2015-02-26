@@ -93,6 +93,8 @@ public class PersistentCache {
                 maxBinaryEntry = Long.parseLong(p.split("=")[1]);
             } else if (p.startsWith("autoCompact=")) {
                 autoCompact = Integer.parseInt(p.split("=")[1]);
+            } else if (p.equals("appendOnly")) {
+                appendOnly = true;
             }
         }
         this.directory = dir;
