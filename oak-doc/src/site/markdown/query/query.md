@@ -190,8 +190,15 @@ To define a property index on a subtree you have to add an index definition node
 
 * must be of type `oak:QueryIndexDefinition`
 * must have the `type` property set to __`property`__
-* contains the `propertyNames` property that indicates what properties will be stored in the index.
-  `propertyNames` can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+* contains the `propertyNames` property.
+    This is a multi-valued property, and must not be empty.
+    It usually contains only one property name.
+    All nodes that have any of those properties are stored in this index.
+    
+It is recommended to index one property per index.
+(If multiple properties are indexed within one index, 
+then the index contains all nodes that has either one of the properties,
+which can make the query less efficient, and can make the query pick the wrong index.)
 
 _Optionally_ you can specify
 
@@ -224,17 +231,6 @@ or to simplify you can use one of the existing `IndexUtils#createIndexDefinition
       NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
       IndexUtils.createIndexDefinition(index, "myProp", true, false, ImmutableList.of("myProp"), null);
     }
-
-(Not sure if this is correct) 
-__Note on `propertyNames`__ Adding a property index definition that contains two or more properties will only
-include nodes that have _all_ specified properties present. This is different than adding a dedicated property
-index for each and letting the query engine make use of them.
-
-(Not sure if this is correct) 
-__Note__ Is is currently not possible to add more than one property index on the same property name, even if it
-might be used in various combinations with other property names. This rule is not enforced in any way, but the
-behavior is undefined, one of the defined indexes will be updated while the others will simply be ignored by the
-indexer which can result in empty result sets at query time.
 
 #### Reindexing
 
