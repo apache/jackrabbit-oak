@@ -26,11 +26,15 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.FulltextQueryIndex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Support for "spellcheck(...)
  */
 public class SpellcheckImpl extends ConstraintImpl {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
     
     public static final String NATIVE_LUCENE_LANGUAGE = "lucene";
     
@@ -62,7 +66,8 @@ public class SpellcheckImpl extends ConstraintImpl {
         // and because we don't know how to process native
         // conditions
         if (!(selector.getIndex() instanceof FulltextQueryIndex)) {
-            throw new IllegalArgumentException("No full-text index was found that can process the condition " + toString());
+            log.warn("No full-text index was found that can process the condition " + toString());
+            return false;
         }
         // we assume the index only returns the requested entries
         return true;
