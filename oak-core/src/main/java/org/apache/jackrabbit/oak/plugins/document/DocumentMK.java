@@ -59,6 +59,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * A MicroKernel implementation that stores the data in a {@link DocumentStore}.
  */
@@ -490,6 +492,10 @@ public class DocumentMK implements MicroKernel {
      */
     public static class Builder {
         private static final long DEFAULT_MEMORY_CACHE_SIZE = 256 * 1024 * 1024;
+        public static final int DEFAULT_NODE_CACHE_PERCENTAGE = 25;
+        public static final int DEFAULT_CHILDREN_CACHE_PERCENTAGE = 10;
+        public static final int DEFAULT_DIFF_CACHE_PERCENTAGE = 5;
+        public static final int DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE = 3;
         private DocumentNodeStore nodeStore;
         private DocumentStore documentStore;
         private DiffCache diffCache;
@@ -499,11 +505,11 @@ public class DocumentMK implements MicroKernel {
         private boolean timing;
         private boolean logging;
         private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
-        private long nodeCacheSize;
-        private long childrenCacheSize;
-        private long diffCacheSize;
-        private long documentCacheSize;
-        private long docChildrenCacheSize;
+        private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
+        private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
+        private int childrenCachePercentage = DEFAULT_CHILDREN_CACHE_PERCENTAGE;
+        private int diffCachePercentage = DEFAULT_DIFF_CACHE_PERCENTAGE;
+        private int docChildrenCachePercentage = DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
         private boolean useSimpleRevision;
         private long splitDocumentAgeMillis = 5 * 60 * 1000;
         private long offHeapCacheSize = -1;
@@ -515,7 +521,6 @@ public class DocumentMK implements MicroKernel {
         private PersistentCache persistentCache;
 
         public Builder() {
-            memoryCacheSize(DEFAULT_MEMORY_CACHE_SIZE);
         }
 
         /**
@@ -729,32 +734,46 @@ public class DocumentMK implements MicroKernel {
         }
 
         public Builder memoryCacheSize(long memoryCacheSize) {
-            this.nodeCacheSize = memoryCacheSize * 25 / 100;
-            this.childrenCacheSize = memoryCacheSize * 10 / 100;
-            this.diffCacheSize = memoryCacheSize * 5 / 100;
-            this.docChildrenCacheSize = memoryCacheSize * 3 / 100;
-            this.documentCacheSize = memoryCacheSize - nodeCacheSize - childrenCacheSize - diffCacheSize - docChildrenCacheSize;
+            this.memoryCacheSize = memoryCacheSize;
+            return this;
+        }
+        
+        public Builder memoryCacheDistribution(int nodeCachePercentage,
+                                               int childrenCachePercentage,
+                                               int docChildrenCachePercentage,
+                                               int diffCachePercentage) {
+            checkArgument(nodeCachePercentage >= 0);
+            checkArgument(childrenCachePercentage>= 0);
+            checkArgument(docChildrenCachePercentage >= 0);
+            checkArgument(diffCachePercentage >= 0);
+            checkArgument(nodeCachePercentage + childrenCachePercentage + 
+                    docChildrenCachePercentage + diffCachePercentage < 100);
+            this.nodeCachePercentage = nodeCachePercentage;
+            this.childrenCachePercentage = childrenCachePercentage;
+            this.docChildrenCachePercentage = docChildrenCachePercentage;
+            this.diffCachePercentage = diffCachePercentage;
             return this;
         }
 
         public long getNodeCacheSize() {
-            return nodeCacheSize;
+            return memoryCacheSize * nodeCachePercentage / 100;
         }
 
         public long getChildrenCacheSize() {
-            return childrenCacheSize;
+            return memoryCacheSize * childrenCachePercentage / 100;
         }
 
         public long getDocumentCacheSize() {
-            return documentCacheSize;
+            return memoryCacheSize - getNodeCacheSize() - getChildrenCacheSize() 
+                    - getDiffCacheSize() - getDocChildrenCacheSize();
         }
 
         public long getDocChildrenCacheSize() {
-            return docChildrenCacheSize;
+            return memoryCacheSize * docChildrenCachePercentage / 100;
         }
 
         public long getDiffCacheSize() {
-            return diffCacheSize;
+            return memoryCacheSize * diffCachePercentage / 100;
         }
 
         public Builder setUseSimpleRevision(boolean useSimpleRevision) {

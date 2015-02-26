@@ -22,6 +22,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toBoolean;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toInteger;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.toLong;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.ByteArrayInputStream;
@@ -108,6 +112,18 @@ public class DocumentNodeStoreService {
 
     @Property(intValue = DEFAULT_CACHE)
     private static final String PROP_CACHE = "cache";
+    
+    @Property(intValue = DEFAULT_NODE_CACHE_PERCENTAGE)
+    private static final String PROP_NODE_CACHE_PERCENTAGE = "nodeCachePercentage";
+    
+    @Property(intValue = DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE)
+    private static final String PROP_CHILDREN_CACHE_PERCENTAGE = "childrenCachePercentage";
+    
+    @Property(intValue = DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE)
+    private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
+    
+    @Property(intValue = DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE)
+    private static final String PROP_DOC_CHILDREN_CACHE_PERCENTAGE = "docChildrenCachePercentage";
 
     @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
@@ -238,6 +254,10 @@ public class DocumentNodeStoreService {
 
         int offHeapCache = toInteger(prop(PROP_OFF_HEAP_CACHE), DEFAULT_OFF_HEAP_CACHE);
         int cacheSize = toInteger(prop(PROP_CACHE), DEFAULT_CACHE);
+        int nodeCachePercentage = toInteger(prop(PROP_NODE_CACHE_PERCENTAGE), DEFAULT_NODE_CACHE_PERCENTAGE);
+        int childrenCachePercentage = toInteger(prop(PROP_CHILDREN_CACHE_PERCENTAGE), DEFAULT_CHILDREN_CACHE_PERCENTAGE);
+        int docChildrenCachePercentage = toInteger(prop(PROP_DOC_CHILDREN_CACHE_PERCENTAGE), DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE);
+        int diffCachePercentage = toInteger(prop(PROP_DIFF_CACHE_PERCENTAGE), DEFAULT_DIFF_CACHE_PERCENTAGE);
         int changesSize = toInteger(prop(PROP_CHANGES_SIZE), DEFAULT_CHANGES_SIZE);
         int blobCacheSize = toInteger(prop(PROP_BLOB_CACHE_SIZE), DEFAULT_BLOB_CACHE_SIZE);
         String persistentCache = PropertiesUtil.toString(prop(PROP_PERSISTENT_CACHE), DEFAULT_PERSISTENT_CACHE);
@@ -245,6 +265,11 @@ public class DocumentNodeStoreService {
         DocumentMK.Builder mkBuilder =
                 new DocumentMK.Builder().
                 memoryCacheSize(cacheSize * MB).
+                memoryCacheDistribution(
+                        nodeCachePercentage, 
+                        childrenCachePercentage, 
+                        docChildrenCachePercentage, 
+                        diffCachePercentage).
                 offHeapCacheSize(offHeapCache * MB);
         
         if (persistentCache != null && persistentCache.length() > 0) {
