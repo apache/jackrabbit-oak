@@ -61,7 +61,8 @@ public class PersistentCache {
     private int writeGeneration;
     private long maxBinaryEntry = 1024 * 1024;
     private int autoCompact = 50;
-    
+    private boolean appendOnly;
+
     public PersistentCache(String url) {
         LOG.info("start version 1");
         String[] parts = url.split(",");
@@ -172,7 +173,11 @@ public class PersistentCache {
                 LOG.error("Error in persistent cache", e);
             }
         });
-        return builder.open();
+        MVStore store = builder.open();
+        if (appendOnly) {
+            store.setReuseSpace(false);
+        }
+        return store;
     }
     
     public void close() {
