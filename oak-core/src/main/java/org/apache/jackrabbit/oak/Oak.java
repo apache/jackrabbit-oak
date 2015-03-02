@@ -43,12 +43,8 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.io.Closer;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -58,7 +54,12 @@ import org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean;
 import org.apache.jackrabbit.oak.api.jmx.RepositoryManagementMBean;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.management.RepositoryManager;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGC;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
+import org.apache.jackrabbit.oak.plugins.blob.BlobGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.identifier.ClusterRepositoryInfo;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -70,6 +71,7 @@ import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncRe
 import org.apache.jackrabbit.oak.plugins.index.property.jmx.PropertyIndexAsyncReindexMBean;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
+import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -91,6 +93,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.RevisionGC;
+import org.apache.jackrabbit.oak.spi.state.RevisionGCMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -99,6 +103,11 @@ import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardAware;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.io.Closer;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -265,7 +274,12 @@ public class Oak {
                     }
                     mbeanServer.registerMBean(service, objectName);
                 } catch (JMException e) {
-                    // ignore
+                	try {
+                        StandardMBean mbean = new StandardMBean(service, type);
+                        mbeanServer.registerMBean(mbean, objectName);
+                	} catch (JMException e1) {
+                        LOG.error(e.toString());
+                	}
                 }
             }
 
@@ -573,6 +587,39 @@ public class Oak {
         RepositoryManager repositoryManager = new RepositoryManager(whiteboard);
         regs.add(registerMBean(whiteboard, RepositoryManagementMBean.class, repositoryManager,
                 RepositoryManagementMBean.TYPE, repositoryManager.getName()));
+
+        final DocumentNodeStore dns = (DocumentNodeStore) store;
+
+        // Register BlobGCMBean for RepositoryManager
+        if (dns.getBlobStore() instanceof GarbageCollectableBlobStore) {
+			BlobGarbageCollector gc = new BlobGarbageCollector() {
+				@Override
+				public void collectGarbage(boolean sweep) throws Exception {
+					dns.createBlobGarbageCollector(
+							TimeUnit.HOURS.toSeconds(24),
+							ClusterRepositoryInfo.getId(dns))
+							.collectGarbage(sweep);
+				}
+			};
+			regs.add(registerMBean(whiteboard, BlobGCMBean.class,
+					new BlobGC(gc, executor), BlobGCMBean.TYPE,
+					"Document node store blob garbage collection"));
+		}
+
+        // Register RevisionGCMBean for RepositoryManager
+		RevisionGC revisionGC = new RevisionGC(new Runnable() {
+			@Override
+			public void run() {
+				dns.getVersionGarbageCollector().gc(TimeUnit.DAYS.toSeconds(1),
+						TimeUnit.SECONDS);
+			}
+		}, executor);
+
+		regs.add(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
+				RevisionGCMBean.TYPE,
+				"Document node store revision garbage collection"));
+
+        // [TODO] Register FileStoreBackupRestoreMBean for RepositoryManager
 
         return new ContentRepositoryImpl(
                 store,
