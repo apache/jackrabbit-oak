@@ -728,7 +728,7 @@ public class Main {
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
 
-         checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
+        checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
     }
 
     private static void debugTarFile(FileStore store, String[] args) {
