@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -504,6 +505,9 @@ class IndexDefinition implements Aggregate.AggregateMapper{
     public class IndexingRule {
         private final String baseNodeType;
         private final String nodeTypeName;
+        /**
+         * Case insensitive map of lower cased propertyName to propertyConfigs
+         */
         private final Map<String, PropertyDefinition> propConfigs;
         private final List<NamePattern> namePatterns;
         private final List<PropertyDefinition> nullCheckEnabledProperties;
@@ -642,7 +646,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
          */
         @CheckForNull
         public PropertyDefinition getConfig(String propertyName) {
-            PropertyDefinition config = propConfigs.get(propertyName);
+            PropertyDefinition config = propConfigs.get(propertyName.toLowerCase(Locale.ENGLISH));
             if (config != null) {
                 return config;
             } else if (namePatterns.size() > 0) {
@@ -706,7 +710,7 @@ class IndexDefinition implements Aggregate.AggregateMapper{
                     if(pd.isRegexp){
                         patterns.add(new NamePattern(pd.name, pd));
                     } else {
-                        propDefns.put(pd.name, pd);
+                        propDefns.put(pd.name.toLowerCase(Locale.ENGLISH), pd);
                     }
 
                     if (pd.relative){
