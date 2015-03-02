@@ -83,4 +83,13 @@ public interface GCMonitor {
      * @param currentSize    number of bytes after garbage collection
      */
     void cleaned(long reclaimedSize, long currentSize);
+
+    class Empty implements GCMonitor {
+        @Override public void info(String message, Object[] arguments) { }
+        @Override public void warn(String message, Object[] arguments) { }
+        @Override public void error(String message, Exception e) { }
+        @Override public void skipped(String reason, Object[] arguments) { }
+        @Override public void compacted() { }
+        @Override public void cleaned(long reclaimedSize, long currentSize) { }
+    }
 }
