@@ -16,26 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.List;
-import java.util.Set;
-
-import javax.jcr.PropertyType;
-import javax.jcr.Value;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.Iterables.any;
@@ -55,6 +35,26 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.jcr.PropertyType;
+import javax.jcr.Value;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Validator implementation that check JCR node type constraints.
@@ -374,7 +374,7 @@ class TypeEditor extends DefaultEditor {
 
         for (String constraint : constraints.getValue(STRINGS)) {
             Predicate<Value> predicate = valueConstraint(type, constraint);
-            for (Value v : ValueFactoryImpl.createValues(property, null)) {
+            for (Value v : ValueFactoryImpl.createValues(property, NamePathMapper.DEFAULT)) {
                 if (predicate.apply(v)) {
                     return;
                 }
