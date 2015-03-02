@@ -209,6 +209,11 @@ public class SegmentNodeStoreService extends ProxyNodeStore
             size = System.getProperty(SIZE, "256");
         }
 
+        String cache = lookup(context, CACHE);
+        if (cache == null) {
+            cache = System.getProperty(CACHE);
+        }
+
         boolean pauseCompaction = toBoolean(lookup(context, PAUSE_COMPACTION),
                 PAUSE_DEFAULT);
         boolean cloneBinaries = toBoolean(
@@ -239,7 +244,8 @@ public class SegmentNodeStoreService extends ProxyNodeStore
 
         OsgiWhiteboard whiteboard = new OsgiWhiteboard(context.getBundleContext());
         Builder storeBuilder = FileStore.newFileStore(new File(directory))
-                .withCacheSize(Integer.parseInt(size))
+                .withCacheSize(Integer.parseInt(cache))
+                .withMaxFileSize(Integer.parseInt(size))
                 .withMemoryMapping("64".equals(mode))
                 .withWhiteBoard(whiteboard);
         if (customBlobStore) {
