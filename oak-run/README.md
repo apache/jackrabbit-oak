@@ -100,6 +100,9 @@ The 'check' mode checks the storage of the FileStore for inconsistencies.
 
     $ java -jar oak-run-*.jar check <options>
 
+    --bin [Long]   read the n first bytes from binary  
+                     properties. -1 for all bytes.     
+                     (default: 0)                      
     --deep [Long]  enable deep consistency checking. An
                      optional long specifies the number
                      of seconds between progress
