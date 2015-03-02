@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.value.ValueImpl.newValue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,7 +88,7 @@ public class ValueFactoryImpl implements ValueFactory {
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     public static Value createValue(PropertyState property, NamePathMapper namePathMapper) {
-        return new ValueImpl(property, namePathMapper);
+        return newValue(property, namePathMapper);
     }
 
     /**
@@ -99,7 +100,7 @@ public class ValueFactoryImpl implements ValueFactory {
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
     public static Value createValue(PropertyValue property, NamePathMapper namePathMapper) {
-        return new ValueImpl(PropertyValues.create(property), namePathMapper);
+        return newValue(PropertyValues.create(property), namePathMapper);
     }
 
     /**
@@ -112,7 +113,7 @@ public class ValueFactoryImpl implements ValueFactory {
     public static List<Value> createValues(PropertyState property, NamePathMapper namePathMapper) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
-            values.add(new ValueImpl(property, i, namePathMapper));
+            values.add(newValue(property, i, namePathMapper));
         }
         return values;
     }
@@ -125,7 +126,7 @@ public class ValueFactoryImpl implements ValueFactory {
     public List<Value> createValues(PropertyState property) {
         List<Value> values = Lists.newArrayList();
         for (int i = 0; i < property.count(); i++) {
-            values.add(new ValueImpl(property, i, namePathMapper));
+            values.add(newValue(property, i, namePathMapper));
         }
         return values;
     }
@@ -134,7 +135,7 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(String value) {
-        return new ValueImpl(StringPropertyState.stringProperty("", value), namePathMapper);
+        return newValue(StringPropertyState.stringProperty("", value), namePathMapper);
     }
 
     @Override
@@ -142,6 +143,8 @@ public class ValueFactoryImpl implements ValueFactory {
         try {
             return createBinaryValue(value);
         } catch (IOException e) {
+            return new ErrorValue(e, PropertyType.BINARY);
+        } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         }
     }
@@ -169,22 +172,22 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(long value) {
-        return new ValueImpl(LongPropertyState.createLongProperty("", value), namePathMapper);
+        return newValue(LongPropertyState.createLongProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(double value) {
-        return new ValueImpl(DoublePropertyState.doubleProperty("", value), namePathMapper);
+        return newValue(DoublePropertyState.doubleProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(Calendar value) {
-        return new ValueImpl(PropertyStates.createProperty("", value), namePathMapper);
+        return newValue(PropertyStates.createProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(boolean value) {
-        return new ValueImpl(BooleanPropertyState.booleanProperty("", value), namePathMapper);
+        return newValue(BooleanPropertyState.booleanProperty("", value), namePathMapper);
     }
 
     @Override
@@ -199,13 +202,13 @@ public class ValueFactoryImpl implements ValueFactory {
                     "Node is not referenceable: " + value.getPath());
         }
         return weak
-            ? new ValueImpl(GenericPropertyState.weakreferenceProperty("", value.getUUID()), namePathMapper)
-            : new ValueImpl(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper);
+            ? newValue(GenericPropertyState.weakreferenceProperty("", value.getUUID()), namePathMapper)
+            : newValue(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper);
     }
 
     @Override
     public Value createValue(BigDecimal value) {
-        return new ValueImpl(DecimalPropertyState.decimalProperty("", value), namePathMapper);
+        return newValue(DecimalPropertyState.decimalProperty("", value), namePathMapper);
     }
 
     @Override
@@ -219,7 +222,7 @@ public class ValueFactoryImpl implements ValueFactory {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    return new ValueImpl(BinaryPropertyState.binaryProperty("", value), namePathMapper);
+                    return newValue(BinaryPropertyState.binaryProperty("", value), namePathMapper);
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
                 case PropertyType.DOUBLE:
@@ -228,7 +231,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    return new ValueImpl(GenericPropertyState.dateProperty("", value), namePathMapper);
+                    return newValue(GenericPropertyState.dateProperty("", value), namePathMapper);
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
@@ -236,7 +239,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakName == null || !JcrNameParser.validate(oakName)) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    return new ValueImpl(GenericPropertyState.nameProperty("", oakName), namePathMapper);
+                    return newValue(GenericPropertyState.nameProperty("", oakName), namePathMapper);
                 case PropertyType.PATH:
                     String oakValue = value;
                     if (value.startsWith("[") && value.endsWith("]")) {
@@ -247,20 +250,20 @@ public class ValueFactoryImpl implements ValueFactory {
                             throw new ValueFormatException("Invalid path: " + value);
                         }
                     }
-                    return new ValueImpl(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
+                    return newValue(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
                 case PropertyType.REFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    return new ValueImpl(GenericPropertyState.referenceProperty("", value), namePathMapper);
+                    return newValue(GenericPropertyState.referenceProperty("", value), namePathMapper);
                 case PropertyType.WEAKREFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
-                    return new ValueImpl(GenericPropertyState.weakreferenceProperty("", value), namePathMapper);
+                    return newValue(GenericPropertyState.weakreferenceProperty("", value), namePathMapper);
                 case PropertyType.URI:
                     new URI(value);
-                    return new ValueImpl(GenericPropertyState.uriProperty("", value), namePathMapper);
+                    return newValue(GenericPropertyState.uriProperty("", value), namePathMapper);
                 case PropertyType.DECIMAL:
                     return createValue(Conversions.convert(value).toDecimal());
                 default:
@@ -282,81 +285,14 @@ public class ValueFactoryImpl implements ValueFactory {
         }
     }
 
-    private ValueImpl createBinaryValue(InputStream value) throws IOException {
+    private ValueImpl createBinaryValue(InputStream value) throws IOException, RepositoryException {
         return createBinaryValue(root.createBlob(value));
     }
 
-    private ValueImpl createBinaryValue(Blob blob) {
+    private ValueImpl createBinaryValue(Blob blob) throws RepositoryException {
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 
     //------------------------------------------------------------< ErrorValue >---
 
-    /**
-     * Instances of this class represent a {@code Value} which couldn't be retrieved.
-     * All its accessors throw a {@code RepositoryException}.
-     */
-    private static class ErrorValue implements Value {
-        private final Exception exception;
-        private final int type;
-
-        private ErrorValue(Exception exception, int type) {
-            this.exception = exception;
-            this.type = type;
-        }
-
-        @Override
-        public String getString() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public InputStream getStream() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public Binary getBinary() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public long getLong() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public double getDouble() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public BigDecimal getDecimal() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public Calendar getDate() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public boolean getBoolean() throws RepositoryException {
-            throw createException();
-        }
-
-        @Override
-        public int getType() {
-            return type;
-        }
-
-        private RepositoryException createException() {
-            return new RepositoryException("Inaccessible value", exception);
-        }
-
-        @Override
-        public String toString() {
-            return "Inaccessible value: " + exception.getMessage();
-        }
-    }
 }

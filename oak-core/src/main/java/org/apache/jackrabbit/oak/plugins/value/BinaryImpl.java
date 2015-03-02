@@ -27,11 +27,14 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class BinaryImpl implements ReferenceBinary {
+    private static final Logger LOG = LoggerFactory.getLogger(BinaryImpl.class);
 
     private final ValueImpl value;
 
@@ -46,12 +49,12 @@ class BinaryImpl implements ReferenceBinary {
     //-------------------------------------------------------------< Binary >---
 
     @Override
-    public InputStream getStream() {
+    public InputStream getStream() throws RepositoryException {
         return value.getBlob().getNewStream();
     }
 
     @Override
-    public int read(byte[] b, long position) throws IOException {
+    public int read(byte[] b, long position) throws IOException, RepositoryException {
         InputStream stream = getStream();
         try {
             if (position != stream.skip(position)) {
@@ -84,7 +87,12 @@ class BinaryImpl implements ReferenceBinary {
 
     @Override @CheckForNull
     public String getReference() {
-        return value.getBlob().getReference();
+        try {
+            return value.getBlob().getReference();
+        } catch (RepositoryException e) {
+            LOG.warn("Error getting binary reference", e);
+            return null;
+        }
     }
 
     @Override
