@@ -71,10 +71,11 @@ public abstract class AbstractServiceTracker<T> {
     }
 
     public synchronized void stop() {
-        checkState(tracker != stopped);
-        Tracker<T> t = tracker;
-        tracker = stopped;
-        t.stop();
+        if (tracker != stopped) {
+            Tracker<T> t = tracker;
+            tracker = stopped;
+            t.stop();
+        }
     }
 
     /**
