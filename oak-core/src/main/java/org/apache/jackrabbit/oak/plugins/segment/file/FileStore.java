@@ -68,8 +68,11 @@ import org.apache.jackrabbit.oak.plugins.segment.SegmentVersion;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,6 +156,7 @@ public class FileStore implements SegmentStore {
      * Version of the segment storage format.
      */
     private final SegmentVersion version = SegmentVersion.V_11;
+    private final GCMonitorTracker gcMonitor = new GCMonitorTracker();
 
     /**
      * Create a new instance of a {@link Builder} for a file store.
@@ -174,6 +178,7 @@ public class FileStore implements SegmentStore {
         private int maxFileSize = 256;
         private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
         private boolean memoryMapping;
+        private Whiteboard whiteboard;
 
         private Builder(File directory) {
             this.directory = directory;
@@ -245,6 +250,17 @@ public class FileStore implements SegmentStore {
         }
 
         /**
+         * {@link Whiteboard} used to track {@link GCMonitor} instances.
+         * @param whiteboard
+         * @return this instance
+         */
+        @Nonnull
+        public Builder withWhiteBoard(@Nonnull Whiteboard whiteboard) {
+            this.whiteboard = checkNotNull(whiteboard);
+            return this;
+        }
+
+        /**
          * Create a new {@link FileStore} instance with the settings specified in this
          * builder. If none of the {@code with} methods have been called before calling
          * this method, a file store with the following default settings is returned:
@@ -254,6 +270,7 @@ public class FileStore implements SegmentStore {
          * <li>max file size: 256MB</li>
          * <li>cache size: 256MB</li>
          * <li>memory mapping: on for 64 bit JVMs off otherwise</li>
+         * <li>whiteboard: none. No {@link GCMonitor} tracking</li>
          * </ul>
          *
          * @return a new file store instance
@@ -262,14 +279,14 @@ public class FileStore implements SegmentStore {
         @Nonnull
         public FileStore create() throws IOException {
             return new FileStore(
-                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping);
+                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, whiteboard);
         }
     }
 
     @Deprecated
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping);
+        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, null);
     }
 
     @Deprecated
@@ -287,18 +304,24 @@ public class FileStore implements SegmentStore {
     @Deprecated
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
-        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping);
+        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, null);
     }
 
     @Deprecated
     FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
-        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT);
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, null);
     }
 
     @Deprecated
     public FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
-            int cacheSizeMB, boolean memoryMapping)
+            int cacheSizeMB, boolean memoryMapping) throws IOException {
+        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, null);
+    }
+
+    private FileStore(
+            BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
+            int cacheSizeMB, boolean memoryMapping, Whiteboard whiteboard)
             throws IOException {
         checkNotNull(directory).mkdirs();
         if (cacheSizeMB < 0) {
@@ -391,6 +414,9 @@ public class FileStore implements SegmentStore {
                     }
                 });
 
+        if (whiteboard != null) {
+            gcMonitor.start(whiteboard);
+        }
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
     }
 
@@ -405,7 +431,7 @@ public class FileStore implements SegmentStore {
         }
         long needed = delta * compactionStrategy.getMemoryThreshold();
         if (needed >= avail) {
-            log.info(
+            gcMonitor.skipped(
                     "Not enough available memory {}, needed {}, last merge delta {}, so skipping compaction for now",
                     humanReadableByteCount(avail),
                     humanReadableByteCount(needed),
@@ -423,7 +449,7 @@ public class FileStore implements SegmentStore {
         CompactionGainEstimate estimate = estimateCompactionGain();
         long gain = estimate.estimateCompactionGain();
         if (gain >= 10) {
-            log.info(
+            gcMonitor.info(
                     "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so running compaction",
                     watch, gain, estimate.getReachableSize(),
                     estimate.getTotalSize(),
@@ -433,10 +459,10 @@ public class FileStore implements SegmentStore {
                 compact();
                 compacted = true;
             } else {
-                log.info("TarMK compaction paused");
+                gcMonitor.skipped("TarMK compaction paused");
             }
         } else {
-            log.info(
+            gcMonitor.skipped(
                     "Estimated compaction in {}, gain is {}% ({}/{}) or ({}/{}), so skipping compaction for now",
                     watch, gain, estimate.getReachableSize(),
                     estimate.getTotalSize(),
@@ -597,7 +623,7 @@ public class FileStore implements SegmentStore {
     public synchronized void cleanup() throws IOException {
         Stopwatch watch = Stopwatch.createStarted();
         long initialSize = size();
-        log.info("TarMK revision cleanup started. Current repository size {}",
+        gcMonitor.info("TarMK revision cleanup started. Current repository size {}",
                 humanReadableByteCount(initialSize));
 
         // Suggest to the JVM that now would be a good time
@@ -623,13 +649,14 @@ public class FileStore implements SegmentStore {
                     list.add(cleaned);
                 }
                 File file = reader.close();
-                log.info("TarMK revision cleanup reclaiming {}", file.getName());
+                gcMonitor.info("TarMK revision cleanup reclaiming {}", file.getName());
                 toBeRemoved.addLast(file);
             }
         }
         readers = list;
         long finalSize = size();
-        log.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
+        gcMonitor.cleaned(initialSize - finalSize, finalSize);
+        gcMonitor.info("TarMK revision cleanup completed in {}. Post cleanup size is {} " +
                 "and space reclaimed {}", watch,
                 humanReadableByteCount(finalSize),
                 humanReadableByteCount(initialSize - finalSize));
@@ -638,7 +665,7 @@ public class FileStore implements SegmentStore {
     public void compact() {
         checkArgument(!compactionStrategy.equals(NO_COMPACTION),
                 "You must set a compactionStrategy before calling compact");
-        log.info("TarMK compaction running, strategy={}", compactionStrategy);
+        gcMonitor.info("TarMK compaction running, strategy={}", compactionStrategy);
 
         long start = System.currentTimeMillis();
         SegmentWriter writer = new SegmentWriter(this, tracker, getVersion());
@@ -647,7 +674,7 @@ public class FileStore implements SegmentStore {
         long existing = before.getChildNode(SegmentNodeStore.CHECKPOINTS)
                 .getChildNodeCount(Long.MAX_VALUE);
         if (existing > 1) {
-            log.warn(
+            gcMonitor.warn(
                     "TarMK compaction found {} checkpoints, you might need to run checkpoint cleanup",
                     existing);
         }
@@ -664,10 +691,10 @@ public class FileStore implements SegmentStore {
                 after = compactor.compact(after, head);
                 setHead = new SetHead(head, after, compactor);
             }
-            log.info("TarMK compaction completed in {}ms",
+            gcMonitor.info("TarMK compaction completed in {}ms",
                     System.currentTimeMillis() - start);
         } catch (Exception e) {
-            log.error("Error while running TarMK compaction", e);
+            gcMonitor.error("Error while running TarMK compaction", e);
         }
     }
 
@@ -711,6 +738,7 @@ public class FileStore implements SegmentStore {
         // threads before acquiring the synchronization lock
         compactionThread.close();
         flushThread.close();
+        gcMonitor.stop();
 
         synchronized (this) {
             try {
@@ -897,6 +925,7 @@ public class FileStore implements SegmentStore {
                 // content. TODO: There should be a cleaner way to do this.
                 tracker.getWriter().dropCache();
                 tracker.getWriter().flush();
+                gcMonitor.compacted();
                 tracker.clearSegmentIdTables(compactionStrategy);
                 return true;
             } else {
@@ -907,5 +936,50 @@ public class FileStore implements SegmentStore {
 
     public SegmentVersion getVersion() {
         return version;
+    }
+
+    private static class GCMonitorTracker extends AbstractServiceTracker<GCMonitor> {
+        public GCMonitorTracker() {
+            super(GCMonitor.class);
+        }
+
+        void info(String message, Object... arguments) {
+            log.info(message, arguments);
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.info(message, arguments);
+            }
+        }
+
+        void warn(String message, Object... arguments) {
+            log.warn(message, arguments);
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.warn(message, arguments);
+            }
+        }
+
+        void error(String message, Exception e) {
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.error(message, e);
+            }
+        }
+
+        void skipped(String message, Object... arguments) {
+            log.info(message, arguments);
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.skipped(message, arguments);
+            }
+        }
+
+        void compacted() {
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.compacted();
+            }
+        }
+
+        void cleaned(long reclaimedSize, long currentSize) {
+            for (GCMonitor gcMonitor : getServices()) {
+                gcMonitor.cleaned(reclaimedSize, currentSize);
+            }
+        }
     }
 }
