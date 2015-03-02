@@ -709,6 +709,9 @@ public class Main {
                 "deep", "enable deep consistency checking. An optional long " +
                         "specifies the number of seconds between progress notifications")
                 .withOptionalArg().ofType(Long.class).defaultsTo(Long.MAX_VALUE);
+        ArgumentAcceptingOptionSpec<Long> bin = parser.accepts(
+                "bin", "read the n first bytes from binary properties. -1 for all bytes.")
+                .withOptionalArg().ofType(Long.class).defaultsTo(0L);
 
         OptionSet options = parser.parse(args);
 
@@ -727,8 +730,12 @@ public class Main {
         String journalFileName = journal.value(options);
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
+        long binLen = bin.value(options);
+        if (binLen < 0) {
+            binLen = Long.MAX_VALUE;
+        }
 
-        checkConsistency(dir, journalFileName, fullTraversal, debugLevel);
+        checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 
     private static void debugTarFile(FileStore store, String[] args) {
