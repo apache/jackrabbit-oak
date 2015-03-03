@@ -731,10 +731,6 @@ public class Main {
         boolean fullTraversal = options.has(deep);
         long debugLevel = deep.value(options);
         long binLen = bin.value(options);
-        if (binLen < 0) {
-            binLen = Long.MAX_VALUE;
-        }
-
         checkConsistency(dir, journalFileName, fullTraversal, debugLevel, binLen);
     }
 

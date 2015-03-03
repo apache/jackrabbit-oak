@@ -215,8 +215,11 @@ public class ConsistencyChecker {
     }
 
     private static void traverse(Blob blob, long length) throws IOException {
-        InputStream s = blob.getNewStream();
+        if (length < 0) {
+            length = Long.MAX_VALUE;
+        }
         if (length > 0) {
+            InputStream s = blob.getNewStream();
             try {
                 byte[] buffer = new byte[8192];
                 int l = s.read(buffer, 0, (int) min(buffer.length, length));
