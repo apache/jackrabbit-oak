@@ -159,6 +159,22 @@ public final class ConfigurationParameters implements Map<String, Object> {
     }
 
     /**
+     * Creates new a configuration parameters instance from the
+     * given key and value pairs.
+     *
+     * @param key1 The key of the first pair.
+     * @param value1 The value of the first pair
+     * @param key2 The key of the second pair.
+     * @param value2 The value of the second pair.
+     * @return a new instance of configuration parameters.
+     */
+    @Nonnull
+    public static ConfigurationParameters of(@Nonnull String key1, @Nonnull Object value1,
+                                             @Nonnull String key2, @Nonnull Object value2) {
+        return new ConfigurationParameters(ImmutableMap.of(key1, value1, key2, value2));
+    }
+
+    /**
      * Returns {@code true} if this instance contains a configuration entry with
      * the specified key irrespective of the defined value; {@code false} otherwise.
      *
