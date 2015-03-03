@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.Collections;
 
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -110,9 +111,10 @@ public class DocumentNodeStoreIT extends AbstractDocumentStoreTest {
         ns1.runBackgroundOperations();
         ns2.runBackgroundOperations();
 
-        String diff = ns1.diffChildren(root2, root1);
+        JsopDiff diff = new JsopDiff("", 0);
+        ns1.compare(root2, root1, diff);
         // must report /node as changed
-        assertEquals("^\"node\":{}", diff.trim());
+        assertEquals("^\"node\":{}", diff.toString());
 
         ns1.dispose();
         ns2.dispose();

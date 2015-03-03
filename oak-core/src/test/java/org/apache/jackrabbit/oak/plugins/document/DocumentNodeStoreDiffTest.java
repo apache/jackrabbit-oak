@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -35,7 +34,6 @@ import static org.junit.Assert.assertEquals;
 public class DocumentNodeStoreDiffTest extends AbstractMongoConnectionTest {
 
     // OAK-2562
-    @Ignore
     @Test
     public void diff() throws Exception {
         DocumentNodeStore store = mk.getNodeStore();

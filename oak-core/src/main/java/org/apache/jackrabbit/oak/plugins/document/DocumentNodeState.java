@@ -57,7 +57,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -265,8 +264,7 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
                         // use DocumentNodeStore compare
                         final long start = perfLogger.start();
                         try {
-                            return dispatch(store.diffChildren(this, mBase),
-                                    mBase, diff);
+                            return store.compare(this, mBase, diff);
                         } finally {
                             perfLogger
                                     .end(start,
@@ -409,64 +407,6 @@ public class DocumentNodeState extends AbstractNodeState implements CacheValue {
     private boolean revisionEquals(DocumentNodeState other) {
         return this.rev.equals(other.rev)
                 || this.lastRevision.equals(other.lastRevision);
-    }
-
-    private boolean dispatch(@Nonnull String jsonDiff,
-                             @Nonnull DocumentNodeState base,
-                             @Nonnull NodeStateDiff diff) {
-        if (!AbstractNodeState.comparePropertiesAgainstBaseState(this, base, diff)) {
-            return false;
-        }
-        if (jsonDiff.trim().isEmpty()) {
-            return true;
-        }
-        JsopTokenizer t = new JsopTokenizer(jsonDiff);
-        boolean continueComparison = true;
-        while (continueComparison) {
-            int r = t.read();
-            if (r == JsopReader.END) {
-                break;
-            }
-            switch (r) {
-                case '+': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    t.read('{');
-                    while (t.read() != '}') {
-                        // skip properties
-                    }
-                    continueComparison = diff.childNodeAdded(name, getChildNode(name));
-                    break;
-                }
-                case '-': {
-                    String name = unshareString(t.readString());
-                    continueComparison = diff.childNodeDeleted(name, base.getChildNode(name));
-                    break;
-                }
-                case '^': {
-                    String name = unshareString(t.readString());
-                    t.read(':');
-                    if (t.matches('{')) {
-                        t.read('}');
-                        continueComparison = diff.childNodeChanged(name,
-                                base.getChildNode(name), getChildNode(name));
-                    } else if (t.matches('[')) {
-                        // ignore multi valued property
-                        while (t.read() != ']') {
-                            // skip values
-                        }
-                    } else {
-                        // ignore single valued property
-                        t.read();
-                    }
-                    break;
-                }
-                default:
-                    throw new IllegalArgumentException("jsonDiff: illegal token '"
-                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
-            }
-        }
-        return continueComparison;
     }
 
     /**
