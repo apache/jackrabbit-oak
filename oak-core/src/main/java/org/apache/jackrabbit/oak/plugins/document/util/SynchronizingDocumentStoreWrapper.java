@@ -125,4 +125,9 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     public synchronized CacheStats getCacheStats() {
         return store.getCacheStats();
     }
+
+    @Override
+    public String getDescription() {
+        return store.getDescription();
+    }
 }

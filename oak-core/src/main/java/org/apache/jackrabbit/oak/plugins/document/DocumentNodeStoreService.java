@@ -92,6 +92,7 @@ public class DocumentNodeStoreService {
     private static final String DEFAULT_DB = "oak";
     private static final String DEFAULT_PERSISTENT_CACHE = "";
     private static final String PREFIX = "oak.documentstore.";
+    private static final String DESCRIPTION = "oak.nodestore.description";
 
     /**
      * Name of framework property to configure Mongo Connection URI
@@ -340,8 +341,11 @@ public class DocumentNodeStoreService {
 
         observerTracker.start(context.getBundleContext());
 
+        DocumentStore ds = mk.getDocumentStore();
+
         Dictionary<String, String> props = new Hashtable<String, String>();
         props.put(Constants.SERVICE_PID, DocumentNodeStore.class.getName());
+        props.put(DESCRIPTION, ds.getDescription());
         reg = context.getBundleContext().registerService(NodeStore.class.getName(), store, props);
     }
 

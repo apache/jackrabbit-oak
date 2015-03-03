@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.encode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -333,6 +334,11 @@ public class RDBDocumentStore implements DocumentStore {
         return this.cacheStats;
     }
 
+    @Override
+    public String getDescription() {
+        return dbDescription;
+    }
+
     // implementation
 
     enum FETCHFIRSTSYNTAX { FETCHFIRST, LIMIT, TOP};
@@ -561,6 +567,8 @@ public class RDBDocumentStore implements DocumentStore {
     // DB-specific information
     private DB db;
 
+    private String dbDescription;
+
     // set of supported indexed properties
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
             NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE }));
@@ -590,6 +598,9 @@ public class RDBDocumentStore implements DocumentStore {
         String driverDesc = md.getDriverName() + " " + md.getDriverVersion();
 
         this.db = DB.getValue(md.getDatabaseProductName());
+        this.dbDescription = String.format("{\"type\":\"rdb\",\"db\":%s,\"version\":%s}",
+                encode(md.getDatabaseProductName()),
+                encode(md.getDatabaseProductVersion()));
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = con.createStatement();

@@ -296,6 +296,11 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
+    @Override
+    public String getDescription() {
+        return store.getDescription();
+    }
+
     private void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
         buff.append('.').append(methodName).append('(');
