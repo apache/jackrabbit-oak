@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -62,7 +60,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         testAction.reset();
         pwAction.init(getSecurityProvider(), ConfigurationParameters.of(
-                Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*")));
+                PasswordValidationAction.CONSTRAINT, "^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*"));
 
     }
 
@@ -143,7 +141,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager(root).createUser("testuser", "testPw123456");
         root.commit();
         try {
-            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(Collections.singletonMap(PasswordValidationAction.CONSTRAINT, "abc")));
+            pwAction.init(getSecurityProvider(), ConfigurationParameters.of(PasswordValidationAction.CONSTRAINT, "abc"));
 
             String hashed = PasswordUtil.buildPasswordHash("abc");
             testUser.changePassword(hashed);
@@ -196,8 +194,8 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
                     @Nonnull
                     @Override
                     public ConfigurationParameters getParameters() {
-                        Map<String, AuthorizableActionProvider> m = Collections.singletonMap(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider);
-                        return ConfigurationParameters.of(super.getParameters(), ConfigurationParameters.of(m));
+                        return ConfigurationParameters.of(super.getParameters(),
+                                ConfigurationParameters.of(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, actionProvider));
                     }
                 };
             } else {
