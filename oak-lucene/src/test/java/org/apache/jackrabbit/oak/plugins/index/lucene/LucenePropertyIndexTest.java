@@ -53,7 +53,6 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -317,7 +316,6 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b"));
     }
 
-    @Ignore("OAK-2568")
     @Test
     public void redundantNotNullCheck() throws Exception{
         Tree idx = createIndex("test1", of("tags"));
@@ -347,7 +345,12 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 ")";
 
         //Check that filter created out of query does not have is not null restriction
-        assertThat(explain(q), not(containsString("[content].[tags] is not null")));
+        //Changed the condition to check for absence of range query in Lucene as the fix
+        //is done in LucenePropertyIndex level and not query engine level.
+        //So  [content].[tags] is not null would still be present but would not be passed
+        //on to Lucene
+        //assertThat(explain(q), not(containsString("[content].[tags] is not null")));
+        assertThat(explain(q), not(containsString("+tags:[* TO *]")));
     }
 
     @Test
@@ -659,7 +662,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         List<Long> values = createLongs(NUMBER_OF_NODES);
         List<Tuple> tuples = Lists.newArrayListWithCapacity(values.size());
-        for(int i = 0; i < values.size(); i++){
+        for (int i = 0; i < values.size(); i++){
             Tree child = test.addChild("n"+i);
             child.setProperty("foo", values.get(i));
             child.setProperty("bar", "baz");
@@ -705,8 +708,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -743,8 +746,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]", getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -784,8 +787,8 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         assertOrderedQuery("select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo]",
             getSortedPaths(tuples, OrderDirection.ASC));
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
-            getSortedPaths(tuples, OrderDirection.DESC));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC",
+                getSortedPaths(tuples, OrderDirection.DESC));
     }
 
     @Test
@@ -818,9 +821,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
                 getSortedPaths(tuples, OrderDirection.ASC))));
         // Append the path of property added as timestamp string to the sorted list
         assertOrderedQuery(
-            "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
-            .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
-                Lists.newArrayList("/test/n0"))));
+                "select [jcr:path] from [nt:base] where [bar] = 'baz' order by [foo] DESC", Lists
+                        .newArrayList(Iterables.concat(getSortedPaths(tuples, OrderDirection.DESC),
+                                Lists.newArrayList("/test/n0"))));
     }
 
     @Test
@@ -958,9 +961,9 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
         root.commit();
         assertQuery(
-            "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
-                + "is here\"')",
-            asList("/test/a", "/test/b"));
+                "select * from [nt:base] where CONTAINS(*, 'fox') and CONTAINS([propb], '\"winter is here\" OR \"summer "
+                        + "is here\"')",
+                asList("/test/a", "/test/b"));
     }
 
     // OAK-2434
@@ -1109,7 +1112,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
     }
 
     private static String dt(String date) throws ParseException {
-        return String.format("CAST ('%s' AS DATE)",ISO8601.format(createCal(date)));
+        return String.format("CAST ('%s' AS DATE)", ISO8601.format(createCal(date)));
     }
 
     private static List<String> getSortedPaths(List<Tuple> tuples, OrderDirection dir) {
@@ -1166,7 +1169,7 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         Random rnd = new Random();
         List<Calendar> values = Lists.newArrayListWithCapacity(n);
         for (long i = 0; i < n; i++){
-            values.add(createCal(String.format("%02d/%02d/2%03d", rnd.nextInt(26) + 1, rnd.nextInt(10) + 1,i)));
+            values.add(createCal(String.format("%02d/%02d/2%03d", rnd.nextInt(26) + 1, rnd.nextInt(10) + 1, i)));
         }
         Collections.shuffle(values);
         return values;
