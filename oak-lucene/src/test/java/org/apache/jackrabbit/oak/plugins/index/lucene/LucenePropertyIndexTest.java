@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static com.google.common.collect.ImmutableSet.of;
@@ -74,6 +75,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorTe
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.useV2;
 import static org.apache.jackrabbit.oak.plugins.index.property.OrderedIndex.OrderDirection;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.containsString;
@@ -313,6 +315,39 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         root.commit();
 
         assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b"));
+    }
+
+    @Ignore("OAK-2568")
+    @Test
+    public void redundantNotNullCheck() throws Exception{
+        Tree idx = createIndex("test1", of("tags"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("tags", of("a","b"), Type.STRINGS);
+        test.addChild("b").setProperty("tags", of("a","c"), Type.STRINGS);
+        root.commit();
+
+        String q = "SELECT * FROM [nt:unstructured] as content WHERE ISDESCENDANTNODE('/content/dam/en/us')\n" +
+                "and(\n" +
+                "    content.[tags] = 'Products:A'\n" +
+                "    or content.[tags] = 'Products:A/B'\n" +
+                "    or content.[tags] = 'Products:A/B'\n" +
+                "    or content.[tags] = 'Products:A'\n" +
+                ")\n" +
+                "and(\n" +
+                "    content.[tags] = 'DocTypes:A'\n" +
+                "    or content.[tags] = 'DocTypes:B'\n" +
+                "    or content.[tags] = 'DocTypes:C'\n" +
+                "    or content.[tags] = 'ProblemType:A'\n" +
+                ")\n" +
+                "and(\n" +
+                "    content.[hasRendition] IS NULL\n" +
+                "    or content.[hasRendition] = 'false'\n" +
+                ")";
+
+        //Check that filter created out of query does not have is not null restriction
+        assertThat(explain(q), not(containsString("[content].[tags] is not null")));
     }
 
     @Test
