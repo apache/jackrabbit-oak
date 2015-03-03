@@ -73,6 +73,7 @@ public class AuthenticationConfigurationImpl extends ConfigurationBase implement
         super();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
