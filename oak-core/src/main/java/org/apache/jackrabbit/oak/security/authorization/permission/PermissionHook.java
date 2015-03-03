@@ -33,8 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -63,8 +61,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * </pre>
  */
 public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
-
-    private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
