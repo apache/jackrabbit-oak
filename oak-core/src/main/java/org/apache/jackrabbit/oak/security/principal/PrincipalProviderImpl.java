@@ -53,9 +53,6 @@ import org.slf4j.LoggerFactory;
  */
 class PrincipalProviderImpl implements PrincipalProvider {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
     private final UserManager userManager;
@@ -113,7 +110,7 @@ class PrincipalProviderImpl implements PrincipalProvider {
         try {
             Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
             Iterator<Principal> principals = Iterators.transform(
-                    Iterators.filter(authorizables, Predicates.<Object>notNull()),
+                    Iterators.filter(authorizables, Predicates.notNull()),
                     new AuthorizableToPrincipal());
 
             if (matchesEveryone(nameHint, searchType)) {
