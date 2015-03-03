@@ -76,6 +76,7 @@ public class TokenConfigurationImpl extends ConfigurationBase implements TokenCo
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
