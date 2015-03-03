@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.HashMap;
 import java.util.UUID;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.CredentialExpiredException;
@@ -38,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * @see OAK-1922
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-1922">OAK-1922</a>
  */
 public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTest {
 
@@ -52,10 +51,9 @@ public class PasswordExpiryAndForceInitialChangeTest extends AbstractSecurityTes
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        ConfigurationParameters parameters = ConfigurationParameters.of(new HashMap<String, Object>() {{
-            put(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
-            put(UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
-        }});
+        ConfigurationParameters parameters = ConfigurationParameters.of(
+                UserConstants.PARAM_PASSWORD_MAX_AGE, 10,
+                UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
         return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, parameters));
     }
 

@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.ImmutableMap;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.CredentialExpiredException;
+import javax.security.auth.login.LoginException;
+
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -29,10 +32,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtil;
 import org.junit.Before;
 import org.junit.Test;
-
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.CredentialExpiredException;
-import javax.security.auth.login.LoginException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -60,7 +59,7 @@ public class ResetExpiredPasswordTest extends AbstractSecurityTest implements Us
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(UserConstants.PARAM_PASSWORD_MAX_AGE, 10);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     private void authenticate(String expiredPw, Object newPw) throws LoginException {

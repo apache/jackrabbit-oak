@@ -17,12 +17,10 @@
 package org.apache.jackrabbit.oak.security.user.autosave;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
@@ -69,8 +67,8 @@ public class AutoSaveEnabledManagerTest extends AbstractSecurityTest {
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
-                Collections.singletonMap(UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE));
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+                UserConstants.PARAM_SUPPORT_AUTOSAVE, Boolean.TRUE);
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     @Test

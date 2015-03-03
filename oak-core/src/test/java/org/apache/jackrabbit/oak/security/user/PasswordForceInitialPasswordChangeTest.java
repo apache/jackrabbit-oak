@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -39,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * @see OAK-1922
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-1922">OAK-1922</a>
  */
 public class PasswordForceInitialPasswordChangeTest extends AbstractSecurityTest {
 
@@ -55,7 +54,7 @@ public class PasswordForceInitialPasswordChangeTest extends AbstractSecurityTest
     protected ConfigurationParameters getSecurityConfigParameters() {
         ConfigurationParameters userConfig = ConfigurationParameters.of(
                 UserConstants.PARAM_PASSWORD_INITIAL_CHANGE, true);
-        return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, userConfig));
+        return ConfigurationParameters.of(UserConfiguration.NAME, userConfig);
     }
 
     @Test
