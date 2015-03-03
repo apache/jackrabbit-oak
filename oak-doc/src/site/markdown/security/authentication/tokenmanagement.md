@@ -176,10 +176,11 @@ definition:
         }
     }
 
+<a name="validation"/>
 ##### Validation
 
 The consistency of this content structure both on creation and modification is
-asserted by a dedicated `TokenValidator`. The corresponding error are
+asserted by a dedicated `TokenValidator`. The corresponding errors are
 all of type `Constraint` with the following codes:
 
 | Code              | Message                                                  |

@@ -45,65 +45,32 @@ information about the issue. This page is an informal registry of common error c
 
 #### User Validation
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0020              | Admin user cannot be disabled                            |
-| 0021              | Invalid jcr:uuid for authorizable (creation)             |
-| 0022              | Changing Id, principal name after creation               |
-| 0023              | Invalid jcr:uuid for authorizable (mod)                  |
-| 0024              | Password may not be plain text                           |
-| 0025              | Attempt to remove id, principalname or pw                |
-| 0026              | Mandatory property rep:principalName missing             |
-| 0027              | The admin user cannot be removed                         |
-| 0028              | Attempt to create outside of configured scope            |
-| 0029              | Intermediate folders not rep:AuthorizableFolder          |
-| 0030              | Missing uuid for group (check for cyclic membership)     |
-| 0031              | Cyclic group membership                                  |
-| 0032              | Attempt to set password with system user                 |
-| 0033              | Attempt to add rep:pwd node to a system user             |
+see section [User Management](../security/user.html#validation)
 
 #### Privilege Validation
 
-| Code              | Message                                                  |
-|-------------------|----------------------------------------------------------|
-| 0041              | Modification of existing privilege definition X          |
-| 0042              | Un-register privilege X                                  |
-| 0043              | Next bits not updated                                    |
-| 0044              | Privilege store not initialized                          |
-| 0045              | Modification of existing privilege definition X          |
-| 0046              | Modification of existing privilege definition X          |
-| 0047              | Invalid declared aggregate name X                        |
-| 0048              | PrivilegeBits are missing                                |
-| 0049              | PrivilegeBits already in used                            |
-| 0050              | Singular aggregation is equivalent to existing privilege.|
-| 0051              | Declared aggregate X is not a registered privilege       |
-| 0052              | Detected circular aggregation                            |
-| 0053              | Custom aggregate privilege X is already covered.         |
+see section [Privilege Management](../security/privilege.html#validation)
 
 #### Token Validation
 
-see section [Token Management](../security/authentication/tokenmanagement.html)
+see section [Token Management](../security/authentication/tokenmanagement.html#validation)
 
 
 ### Type Access
 
-#### Access Validation
-_todo_
-
 #### Permission Validation
-_todo_
 
+see section [Permissions](../security/permission.html#validation)
 
 ### Type Access Control
 
 #### Default Access Control Validation
 
-_todo_
+see section [Access Control Management](../security/accesscontrol.html#validation)
 
 #### CUG Validation
 
-see section [Closed User Groups](../security/authorization/cug.html)
-
+see section [Closed User Groups](../security/accesscontrol/cug.html#validation)
 
 <!-- hidden references -->
 [OAK-764]: https://issues.apache.org/jira/browse/OAK-764
