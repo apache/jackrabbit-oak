@@ -207,28 +207,31 @@ public class SecurityProviderImpl implements SecurityProvider, WhiteboardAware {
         userAuthenticationFactory.stop();
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindPrincipalConfiguration(@Nonnull PrincipalConfiguration reference) {
         principalConfiguration.removeConfiguration(reference);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void bindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.addConfiguration(initConfiguration(reference));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     protected void unbindTokenConfiguration(@Nonnull TokenConfiguration reference) {
         tokenConfiguration.removeConfiguration(reference);
     }
 
     //------------------------------------------------------------< private >---
     private void initializeConfigurations() {
-        Map<String, WhiteboardRestrictionProvider> authorizMap = ImmutableMap.of(
-                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider
+        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(
+                AccessControlConstants.PARAM_RESTRICTION_PROVIDER, restrictionProvider)
         );
-        initConfiguration(authorizationConfiguration, ConfigurationParameters.of(authorizMap));
 
         Map<String, Object> userMap = ImmutableMap.<String,Object>of(
                 UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, authorizableActionProvider,
