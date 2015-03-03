@@ -335,6 +335,42 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
 
     //OAK-2568
     @Test
+    public void multiValueAnd() throws Exception{
+        Tree idx = createIndex("test1", of("tags"));
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("tags", of("a","b"), Type.STRINGS);
+        test.addChild("b").setProperty("tags", of("a","c"), Type.STRINGS);
+        root.commit();
+
+        String q = "SELECT * FROM [nt:unstructured] as content WHERE ISDESCENDANTNODE('/content/dam/en/us')\n" +
+                "and(\n" +
+                "    content.[tags] = 'Products:A'\n" +
+                "    or content.[tags] = 'Products:A/B'\n" +
+                "    or content.[tags] = 'Products:A/B'\n" +
+                "    or content.[tags] = 'Products:A'\n" +
+                ")\n" +
+                "and(\n" +
+                "    content.[tags] = 'DocTypes:A'\n" +
+                "    or content.[tags] = 'DocTypes:B'\n" +
+                "    or content.[tags] = 'DocTypes:C'\n" +
+                "    or content.[tags] = 'ProblemType:A'\n" +
+                ")\n" +
+                "and(\n" +
+                "    content.[hasRendition] IS NULL\n" +
+                "    or content.[hasRendition] = 'false'\n" +
+                ")";
+        String explain = explain(q);
+        System.out.println(explain);
+        String luceneQuery = explain.substring(0, explain.indexOf('\n'));
+        assertEquals("[nt:unstructured] as [content] /* lucene:test1(/oak:index/test1) " + 
+                "+(tags:Products:A tags:Products:A/B) " + 
+                "+(tags:DocTypes:A tags:DocTypes:B tags:DocTypes:C tags:ProblemType:A)",
+                luceneQuery);
+    }
+
+    @Test
     public void redundantNotNullCheck() throws Exception{
         Tree idx = createIndex("test1", of("tags"));
         root.commit();
