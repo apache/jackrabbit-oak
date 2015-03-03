@@ -50,6 +50,7 @@ public class PrincipalConfigurationImpl extends ConfigurationBase implements Pri
         super(securityProvider, securityProvider.getParameters(NAME));
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
