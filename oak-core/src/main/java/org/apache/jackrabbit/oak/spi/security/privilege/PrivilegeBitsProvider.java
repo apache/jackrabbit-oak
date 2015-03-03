@@ -28,6 +28,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -186,53 +187,79 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     }
 
     /**
-     * TODO
+     * Return the names of the non-aggregate privileges corresponding to the
+     * specified {@code privilegeNames}.
      *
-     * @param privilegeNames
-     * @return
+     * @param privilegeNames The privilege names to be converted.
+     * @return The names of the non-aggregate privileges that correspond to the
+     * given {@code privilegeNames}.
      */
     @Nonnull
     public Iterable<String> getAggregatedPrivilegeNames(@Nonnull String... privilegeNames) {
         if (privilegeNames.length == 0) {
             return Collections.emptySet();
+        } else if (privilegeNames.length == 1) {
+            String privName = privilegeNames[0];
+            if (NON_AGGREGATE_PRIVILEGES.contains(privName)) {
+                return ImmutableSet.of(privName);
+            } else if (aggregation.containsKey(privName)) {
+                return aggregation.get(privName);
+            } else {
+                return extractAggregatedPrivileges(Collections.singleton(privName));
+            }
         } else {
-            Tree privilegesTree = getPrivilegesTree();
-            if (!privilegesTree.exists()) {
-                return Collections.emptySet();
+            Set<String> pNames = ImmutableSet.copyOf(privilegeNames);
+            if (NON_AGGREGATE_PRIVILEGES.containsAll(pNames)) {
+                return pNames;
+            } else {
+                return extractAggregatedPrivileges(pNames);
             }
-
-            Set<String> aggregates = Sets.newHashSet();
-            for (String privName : privilegeNames) {
-                if (aggregation.containsKey(privName)) {
-                    aggregates.addAll(aggregation.get(privName));
-                } else if (privilegesTree.hasChild(privName)) {
-                    Tree privTree = privilegesTree.getChild(privName);
-                    if (JCR_ALL.equals(privName)) {
-                        // aggregation for jcr:all must not be cached
-                        return fillAggregation(privTree, aggregates);
-                    } else {
-                        Set<String> aggSet = fillAggregation(privTree, Sets.<String>newHashSet());
-                        aggregation.put(privName, aggSet);
-                        aggregates.addAll(aggSet);
-                    }
-                }
-            }
-            return aggregates;
         }
     }
 
-    private Set<String> fillAggregation(@Nonnull Tree privTree, @Nonnull Set<String> aggSet) {
-        if (privTree.hasProperty(REP_AGGREGATES)) {
-            for (String name : privTree.getProperty(REP_AGGREGATES).getValue(Type.NAMES)) {
-                if (aggregation.containsKey(name)) {
-                    aggSet.addAll(aggregation.get(name));
+    private Iterable<String> extractAggregatedPrivileges(@Nonnull Iterable<String> privilegeNames) {
+        return FluentIterable.from(privilegeNames).transformAndConcat(new ExtractAggregatedPrivileges());
+    }
+
+    private final class ExtractAggregatedPrivileges implements Function<String, Iterable<String>> {
+        @Nonnull
+        @Override
+        public Iterable<String> apply(@Nullable String privName) {
+            if (privName == null) {
+                return Collections.emptySet();
+            } else {
+                if (NON_AGGREGATE_PRIVILEGES.contains(privName)) {
+                    return Collections.singleton(privName);
+                } if (aggregation.containsKey(privName)) {
+                    return aggregation.get(privName);
                 } else {
-                    fillAggregation(privTree.getParent().getChild(name), aggSet);
+                    Set<String> aggregates = Sets.newHashSet();
+                    fillAggregation(getPrivilegesTree().getChild(privName), aggregates);
+                    if (!JCR_ALL.equals(privName) && !aggregates.isEmpty()) {
+                        aggregation.put(privName, aggregates);
+                    }
+                    return aggregates;
                 }
             }
-        } else {
-            aggSet.add(privTree.getName());
         }
-        return aggSet;
+
+        private void fillAggregation(@Nonnull Tree privTree, @Nonnull Set<String> aggSet) {
+            if (!privTree.exists()) {
+                return;
+            }
+            if (privTree.hasProperty(REP_AGGREGATES)) {
+                for (String name : privTree.getProperty(REP_AGGREGATES).getValue(Type.NAMES)) {
+                    if (NON_AGGREGATE_PRIVILEGES.contains(name)) {
+                        aggSet.add(name);
+                    } else if (aggregation.containsKey(name)) {
+                        aggSet.addAll(aggregation.get(name));
+                    } else {
+                        fillAggregation(privTree.getParent().getChild(name), aggSet);
+                    }
+                }
+            } else {
+                aggSet.add(privTree.getName());
+            }
+        }
     }
 }
