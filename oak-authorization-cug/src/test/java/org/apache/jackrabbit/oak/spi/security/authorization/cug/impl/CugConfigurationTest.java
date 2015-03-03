@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.security.authorization.cug.impl;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.jcr.security.AccessControlManager;
 
@@ -59,11 +58,10 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionProviderDisabled2() {
-        Map<String, Object> params = ImmutableMap.<String, Object>of(
+        ConfigurationParameters params = ConfigurationParameters.of(
                 CugConstants.PARAM_CUG_ENABLED, false,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
-
+        CugConfiguration cc = createConfiguration(params);
         PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
         assertSame(EmptyPermissionProvider.getInstance(), pp);
     }
@@ -87,10 +85,10 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPermissionProviderSupportedPaths() {
-        Map<String, Object> params = ImmutableMap.<String, Object>of(
+        ConfigurationParameters params = ConfigurationParameters.of(
                 CugConstants.PARAM_CUG_ENABLED, true,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
+        CugConfiguration cc = createConfiguration(params);
 
         PermissionProvider pp = cc.getPermissionProvider(root, "default", ImmutableSet.<Principal>of(EveryonePrincipal.getInstance()));
         assertTrue(pp instanceof CugPermissionProvider);
@@ -114,10 +112,10 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testGetAccessControlManagerSupportedPaths() {
-        Map<String, Object> params = ImmutableMap.<String, Object>of(
+        ConfigurationParameters params = ConfigurationParameters.of(
                 CugConstants.PARAM_CUG_ENABLED, true,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
+        CugConfiguration cc = createConfiguration(params);
 
         AccessControlManager acMgr = cc.getAccessControlManager(root, NamePathMapper.DEFAULT);
         assertTrue(acMgr instanceof CugAccessControlManager);
@@ -125,11 +123,10 @@ public class CugConfigurationTest extends AbstractSecurityTest {
 
     @Test
     public void testExcludedPrincipals() {
-        Map<String, Object> params = ImmutableMap.<String, Object>of(
+        ConfigurationParameters params = ConfigurationParameters.of(
                 CugConstants.PARAM_CUG_ENABLED, true,
                 CugConstants.PARAM_CUG_SUPPORTED_PATHS, "/content");
-
-        CugConfiguration cc = createConfiguration(ConfigurationParameters.of(params));
+        CugConfiguration cc = createConfiguration(params);
 
         List<Principal> excluded = ImmutableList.of(
                 SystemPrincipal.INSTANCE,

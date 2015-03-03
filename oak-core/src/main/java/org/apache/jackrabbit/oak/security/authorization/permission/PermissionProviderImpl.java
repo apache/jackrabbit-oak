@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Repositor
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants, AggregatedPermissionProvider {
 
@@ -53,8 +53,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     private final CompiledPermissions compiledPermissions;
 
     private Root immutableRoot;
-
-    private ControlFlag flag;
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull String workspaceName, @Nonnull Set<Principal> principals,
                                   @Nonnull AuthorizationConfiguration acConfig) {
@@ -69,8 +67,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         } else {
             compiledPermissions = CompiledPermissionImpl.create(immutableRoot, workspaceName, principals, acConfig);
         }
-
-        flag = ControlFlag.valueOf(acConfig.getParameters().getConfigValue(AggregatedPermissionProvider.PARAM_CONTROL_FLAG, ControlFlag.REQUISITE_NAME));
     }
 
     @Override
@@ -124,17 +120,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     //---------------------------------------< AggregatedPermissionProvider >---
     @Override
-    public ControlFlag getFlag() {
-        return flag;
-    }
-
-    @Override
     public boolean handles(@Nonnull String path, @Nonnull String jcrAction) {
         return true;
     }
 
     @Override
-    public boolean handles(@Nonnull Tree tree) {
+    public boolean handles(@Nonnull Tree tree, PrivilegeBits privilegeBits) {
         return true;
     }
 

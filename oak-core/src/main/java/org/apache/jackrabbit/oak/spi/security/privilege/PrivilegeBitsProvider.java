@@ -30,8 +30,10 @@ import javax.jcr.security.Privilege;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     private static final Logger log = LoggerFactory.getLogger(PrivilegeBitsProvider.class);
 
     private final Map<PrivilegeBits, Set<String>> bitsToNames = new HashMap<PrivilegeBits, Set<String>>();
+    private final Map<String, Set<String>> aggregation = new HashMap<String, Set<String>>();
 
     private final Root root;
 
@@ -134,7 +137,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      * Resolve the given privilege bits to a set of privilege names.
      *
      * @param privilegeBits An instance of privilege bits.
-     * @return The names of the registed privileges associated with the given
+     * @return The names of the registered privileges associated with the given
      *         bits. Any bits that don't have a corresponding privilege definition will
      *         be ignored.
      */
@@ -180,5 +183,56 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             }
             return privilegeNames;
         }
+    }
+
+    /**
+     * TODO
+     *
+     * @param privilegeNames
+     * @return
+     */
+    @Nonnull
+    public Iterable<String> getAggregatedPrivilegeNames(@Nonnull String... privilegeNames) {
+        if (privilegeNames.length == 0) {
+            return Collections.emptySet();
+        } else {
+            Tree privilegesTree = getPrivilegesTree();
+            if (!privilegesTree.exists()) {
+                return Collections.emptySet();
+            }
+
+            Set<String> aggregates = Sets.newHashSet();
+            for (String privName : privilegeNames) {
+                if (aggregation.containsKey(privName)) {
+                    aggregates.addAll(aggregation.get(privName));
+                } else if (privilegesTree.hasChild(privName)) {
+                    Tree privTree = privilegesTree.getChild(privName);
+                    if (JCR_ALL.equals(privName)) {
+                        // aggregation for jcr:all must not be cached
+                        return fillAggregation(privTree, aggregates);
+                    } else {
+                        Set<String> aggSet = fillAggregation(privTree, Sets.<String>newHashSet());
+                        aggregation.put(privName, aggSet);
+                        aggregates.addAll(aggSet);
+                    }
+                }
+            }
+            return aggregates;
+        }
+    }
+
+    private Set<String> fillAggregation(@Nonnull Tree privTree, @Nonnull Set<String> aggSet) {
+        if (privTree.hasProperty(REP_AGGREGATES)) {
+            for (String name : privTree.getProperty(REP_AGGREGATES).getValue(Type.NAMES)) {
+                if (aggregation.containsKey(name)) {
+                    aggSet.addAll(aggregation.get(name));
+                } else {
+                    fillAggregation(privTree.getParent().getChild(name), aggSet);
+                }
+            }
+        } else {
+            aggSet.add(privTree.getName());
+        }
+        return aggSet;
     }
 }

@@ -29,6 +29,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class CompositeAccessControlManagerTest extends AbstractCompositeTest {
+public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
 
     private static final String TEST_PATH = "/test";
 

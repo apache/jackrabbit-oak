@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-public class CompositePermissionProviderTest extends AbstractCompositeTest {
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
+
+public class CompositePermissionProviderTest extends AbstractSecurityTest {
 
     // TODO
 }
