@@ -67,7 +67,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
      */
     @CheckForNull
     PrivilegeDefinition readDefinition(String privilegeName) {
-        if (privilegesTree == null || !privilegesTree.hasChild(privilegeName)) {
+        if (!privilegesTree.exists() || !privilegesTree.hasChild(privilegeName)) {
             return null;
         } else {
             Tree definitionTree = privilegesTree.getChild(privilegeName);
