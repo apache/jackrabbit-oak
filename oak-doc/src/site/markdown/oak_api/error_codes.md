@@ -43,6 +43,25 @@ information about the issue. This page is an informal registry of common error c
 | 0025              | Mandatory child node X not included in a new node        |
 | 0026              | Mandatory child node X can not be removed                |
 
+#### User Validation
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0020              | Admin user cannot be disabled                            |
+| 0021              | Invalid jcr:uuid for authorizable (creation)             |
+| 0022              | Changing Id, principal name after creation               |
+| 0023              | Invalid jcr:uuid for authorizable (mod)                  |
+| 0024              | Password may not be plain text                           |
+| 0025              | Attempt to remove id, principalname or pw                |
+| 0026              | Mandatory property rep:principalName missing             |
+| 0027              | The admin user cannot be removed                         |
+| 0028              | Attempt to create outside of configured scope            |
+| 0029              | Intermediate folders not rep:AuthorizableFolder          |
+| 0030              | Missing uuid for group (check for cyclic membership)     |
+| 0031              | Cyclic group membership                                  |
+| 0032              | Attempt to set password with system user                 |
+| 0033              | Attempt to add rep:pwd node to a system user             |
+
 #### Privilege Validation
 
 | Code              | Message                                                  |
@@ -61,15 +80,29 @@ information about the issue. This page is an informal registry of common error c
 | 0052              | Detected circular aggregation                            |
 | 0053              | Custom aggregate privilege X is already covered.         |
 
-#### User Validation
+#### Token Validation
 
-_todo_
+see section [Token Management](../security/authentication/tokenmanagement.html)
+
 
 ### Type Access
 
+#### Access Validation
+_todo_
+
 #### Permission Validation
+_todo_
+
+
+### Type Access Control
+
+#### Default Access Control Validation
 
 _todo_
+
+#### CUG Validation
+
+see section [Closed User Groups](../security/authorization/cug.html)
 
 
 <!-- hidden references -->
