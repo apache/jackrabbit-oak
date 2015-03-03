@@ -18,10 +18,7 @@
  */
 package org.apache.jackrabbit.oak.stats;
 
-import org.apache.jackrabbit.api.stats.TimeSeries;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import javax.annotation.Nonnull;
 import javax.management.openmbean.ArrayType;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
@@ -30,27 +27,36 @@ import javax.management.openmbean.OpenDataException;
 import javax.management.openmbean.OpenType;
 import javax.management.openmbean.SimpleType;
 
+import org.apache.jackrabbit.api.stats.TimeSeries;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Utility class for retrieving {@link javax.management.openmbean.CompositeData} for
  * {@link org.apache.jackrabbit.api.stats.TimeSeries}.
  */
-public class TimeSeriesStatsUtil {
+public final class TimeSeriesStatsUtil {
     public static final String[] ITEM_NAMES = new String[] {"per second", "per minute", "per hour", "per week"};
 
     private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesStatsUtil.class);
 
+    private TimeSeriesStatsUtil() {
+    }
+
+    @Nonnull
     public static CompositeData asCompositeData(TimeSeries timeSeries, String name) {
         try {
             long[][] values = new long[][] {timeSeries.getValuePerSecond(), timeSeries.getValuePerMinute(),
                 timeSeries.getValuePerHour(), timeSeries.getValuePerWeek()};
             return new CompositeDataSupport(getCompositeType(name), ITEM_NAMES, values);
         } catch (Exception e) {
-            LOG.error("Error creating CompositeData instance from TimeSeries", e);
-            return null;
+            String msg = "Error creating CompositeData instance from TimeSeries";
+            LOG.error(msg, e);
+            throw new IllegalArgumentException(msg, e);
         }
     }
 
-    static CompositeType getCompositeType(String name) throws OpenDataException {
+    private static CompositeType getCompositeType(String name) throws OpenDataException {
         ArrayType<int[]> longArrayType = new ArrayType<int[]>(SimpleType.LONG, true);
         OpenType<?>[] itemTypes = new OpenType[] {longArrayType, longArrayType, longArrayType, longArrayType};
         return new CompositeType(name, name + " time series", ITEM_NAMES, ITEM_NAMES, itemTypes);
