@@ -440,13 +440,13 @@ public class RepositoryImpl implements JackrabbitRepository {
         private final GCMonitor gcMonitor = new GCMonitor.Empty() {
             @Override
             public void compacted() {
-                compactionCount++;
+                compacted = true;
             }
         };
 
         private final Registration reg = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
 
-        private volatile int compactionCount;
+        private volatile boolean compacted;
         private int refreshCount;
 
         public void close() {
@@ -455,8 +455,8 @@ public class RepositoryImpl implements JackrabbitRepository {
 
         @Override
         public boolean needsRefresh(long secondsSinceLastAccess) {
-            if (compactionCount > refreshCount) {
-                refreshCount = compactionCount;
+            if (compacted) {
+                compacted = false;
                 return true;
             } else {
                 return false;
