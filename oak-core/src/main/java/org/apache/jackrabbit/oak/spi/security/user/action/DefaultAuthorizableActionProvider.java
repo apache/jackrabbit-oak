@@ -100,6 +100,7 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     }
 
     //----------------------------------------------------< SCR Integration >---
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         config = ConfigurationParameters.of(properties);
