@@ -52,7 +52,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                                                         final @Nonnull NamePathMapper namePathMapper) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalArgumentException();
+            case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getAccessControlManager(root, namePathMapper);
             default:
                 List<AccessControlManager> mgrs = Lists.transform(configurations, new Function<AuthorizationConfiguration, AccessControlManager>() {
@@ -86,7 +86,7 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                                                     final @Nonnull Set<Principal> principals) {
         List<AuthorizationConfiguration> configurations = getConfigurations();
         switch (configurations.size()) {
-            case 0: throw new IllegalArgumentException();
+            case 0: throw new IllegalStateException();
             case 1: return configurations.get(0).getPermissionProvider(root, workspaceName, principals);
             default:
                 List<AggregatedPermissionProvider> aggrPermissionProviders = Lists.newArrayListWithCapacity(configurations.size());
@@ -96,7 +96,11 @@ public class CompositeAuthorizationConfiguration extends CompositeConfiguration<
                         aggrPermissionProviders.add((AggregatedPermissionProvider) pProvider);
                     }
                 }
-                return new CompositePermissionProvider(root, aggrPermissionProviders);
+                if (aggrPermissionProviders.size() == 1) {
+                    return aggrPermissionProviders.get(0);
+                } else {
+                    return new CompositePermissionProvider(root, aggrPermissionProviders);
+                }
         }
     }
 }

@@ -148,4 +148,9 @@ public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements P
         }
         assertEquals(all, bits.unmodifiable());
     }
+
+    @Test
+    public void testGetAggregatedNames() throws Exception {
+        // TODO
+    }
 }

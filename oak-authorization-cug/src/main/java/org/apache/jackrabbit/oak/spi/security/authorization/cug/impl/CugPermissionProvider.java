@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.base.Predicates;
@@ -35,14 +36,15 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregatedPermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ControlFlag;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.RepositoryPermission;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,21 +64,24 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
             PrivilegeConstants.REP_READ_PROPERTIES
     );
 
+    private static final Set<PrivilegeBits> READ_PRIVILEGE_BITS = ImmutableSet.of(
+            PrivilegeBits.BUILT_IN.get(PrivilegeConstants.JCR_READ),
+            PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_NODES),
+            PrivilegeBits.BUILT_IN.get(PrivilegeConstants.REP_READ_PROPERTIES)
+    );
+
     private final Root root;
     private final Set<String> principalNames;
 
-    private final ControlFlag flag;
     private final Context ctx;
 
-    private final String[] supportedPaths;
-    private final String[] supportedAltPaths;
+    private final SupportedPaths supportedPaths;
 
     private Root immutableRoot;
 
     CugPermissionProvider(@Nonnull Root root,
                           @Nonnull Set<Principal> principals,
                           @Nonnull String[] supportedPaths,
-                          @Nonnull ControlFlag flag,
                           @Nonnull Context ctx) {
         this.root = root;
 
@@ -86,32 +91,22 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
             principalNames.add(p.getName());
         }
 
-        this.flag = flag;
-
-        this.supportedPaths = supportedPaths;
-        supportedAltPaths = new String[supportedPaths.length];
-        int i = 0;
-        for (String p : supportedPaths) {
-            supportedAltPaths[i++] = p + '/';
-        }
-
+        this.supportedPaths = new SupportedPaths(supportedPaths);
         this.ctx = ctx;
     }
 
     //---------------------------------------< AggregatedPermissionProvider >---
-
-    public ControlFlag getFlag() {
-        return flag;
-    }
-
+    @Override
     public boolean handles(String path, String jcrAction) {
         return isReadAction(jcrAction) && includesCug(immutableRoot.getTree(path), path);
     }
 
-    public boolean handles(Tree tree) {
-        return includesCug(tree, tree.getPath());
+    @Override
+    public boolean handles(@Nonnull Tree tree, PrivilegeBits privilegeBits) {
+        return READ_PRIVILEGE_BITS.contains(privilegeBits) && includesCug(tree, tree.getPath());
     }
 
+    @Override
     public boolean handles(Tree tree, long permission) {
         return isRead(permission) && includesCug(tree, tree.getPath());
     }
@@ -125,15 +120,18 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         }
     }
 
+    @Override
     public boolean handlesRepositoryPermissions() {
         return false;
     }
 
     //-------------------------------------------------< PermissionProvider >---
+    @Override
     public void refresh() {
         immutableRoot = RootFactory.createReadOnlyRoot(root);
     }
 
+    @Override
     public Set<String> getPrivileges(Tree tree) {
         if (canRead(tree)) {
             return READ_PRIVILEGE_NAMES;
@@ -142,6 +140,7 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         }
     }
 
+    @Override
     public boolean hasPrivileges(Tree tree, String... privilegeNames) {
         for (String privilegeName : privilegeNames) {
             if (!READ_PRIVILEGE_NAMES.contains(privilegeName)) {
@@ -151,35 +150,39 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         return canRead(tree);
     }
 
+    @Override
     public RepositoryPermission getRepositoryPermission() {
         throw new UnsupportedOperationException("Not supported");
     }
 
+    @Override
     public TreePermission getTreePermission(Tree tree, TreePermission parentPermission) {
         Tree immutableTree = getImmutableTree(tree);
-        if (ctx.definesContextRoot(immutableTree)) {
+        if (parentPermission == TreePermission.EMPTY && !immutableTree.isRoot() || isAcContent(immutableTree, true)) {
             return TreePermission.EMPTY;
         }
+
+        TreePermission tp;
         if (parentPermission instanceof CugTreePermission) {
+            tp =  new CugTreePermission(immutableTree, ((CugTreePermission) parentPermission).allow);
             if (hasCug(immutableTree)) {
-                return createCugPermission(immutableTree);
-            } else {
-                return new CugTreePermission(immutableTree, ((CugTreePermission) parentPermission).allow);
+                // a new (nested) cug starts off here
+                tp = createCugPermission(immutableTree, tp);
             }
-        } else if (parentPermission == TreePermission.EMPTY && !immutableTree.isRoot()) {
-            return TreePermission.EMPTY;
         } else {
             String path = immutableTree.getPath();
-            if (includes(path)) {
-                return createCugPermission(immutableTree);
-            } else if (mayContainCug(path)) {
-                return new EmptyCugPermission(immutableTree);
+            if (supportedPaths.includes(path)) {
+                tp =  createCugPermission(immutableTree, null);
+            } else if (supportedPaths.mayContainCug(path)) {
+                tp =  new EmptyCugPermission(immutableTree);
             } else {
-                return TreePermission.EMPTY;
+                tp = TreePermission.EMPTY;
             }
         }
+        return tp;
     }
 
+    @Override
     public boolean isGranted(Tree tree, PropertyState property, long permissions) {
         if (isRead(permissions)) {
             return canRead(tree);
@@ -188,9 +191,10 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         }
     }
 
+    @Override
     public boolean isGranted(String oakPath, String jcrActions) {
         TreeLocation location = TreeLocation.create(immutableRoot, oakPath);
-        boolean isAcContent = ctx.definesLocation(location);
+        boolean isAcContent = isAcContent(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
         if (isRead(permissions)) {
@@ -221,34 +225,45 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         return tree.exists() && tree.hasChild(REP_CUG_POLICY);
     }
 
-    private boolean includes(@Nonnull String path) {
-        for (String p : supportedAltPaths) {
-            if (p.startsWith(path)) {
-                return true;
-            }
-        }
-        for (String p : supportedPaths) {
-            if (p.equals(path)) {
-                return true;
-            }
-        }
-        return false;
+    private boolean isAcContent(@Nonnull Tree tree, boolean testForCtxRoot) {
+        // FIXME: this should also take other ac-configurations into considerations
+        return (testForCtxRoot) ? ctx.definesContextRoot(tree) : ctx.definesTree(tree);
+    }
+
+    private boolean isAcContent(@Nonnull TreeLocation location) {
+        // FIXME: this should also take other ac-configurations into considerations
+        return ctx.definesLocation(location);
     }
 
     private boolean includesCug(@Nonnull Tree tree, @Nonnull String path) {
         return getCugRoot(tree, path) != null;
     }
 
+    /**
+     * Returns the {@code tree} that holds a CUG policy in the ancestry of the
+     * given {@code tree} with the specified {@code path} or {@code null} if no
+     * such tree exists and thus no CUG is effective at the specified path.
+     *
+     * @param tree The target tree.
+     * @param path The path of the given target tree.
+     * @return the {@code tree} holding the CUG policy that effects the specified
+     * path or {@code null} if no such policy exists.
+     */
     @CheckForNull
     private Tree getCugRoot(@Nonnull Tree tree, @Nonnull String path) {
-        if (!includes(path)) {
+        if (!supportedPaths.includes(path)) {
             return null;
         }
         Tree immutableTree = getImmutableTree(tree);
         if (hasCug(immutableTree)) {
             return immutableTree;
         }
+        String parentPath;
         while (!immutableTree.isRoot()) {
+            parentPath = PathUtils.getParentPath(path);
+            if (!supportedPaths.includes(parentPath)) {
+                break;
+            }
             immutableTree = immutableTree.getParent();
             if (hasCug(immutableTree)) {
                 return immutableTree;
@@ -257,37 +272,29 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         return null;
     }
 
-    private boolean mayContainCug(@Nonnull String path) {
-        String path2 = path + '/';
-        for (String sp : supportedPaths) {
-            if (path.equals(sp) || sp.startsWith(path2)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean canRead(@Nonnull Tree tree) {
         Tree immutableTree = getImmutableTree(tree);
-        if (ctx.definesTree(immutableTree)) {
+        if (isAcContent(immutableTree, false)) {
             // cug defining access control content is not accessible
             return false;
         }
         Tree cugRoot = getCugRoot(immutableTree, immutableTree.getPath());
-        return cugRoot != null && createCugPermission(cugRoot).canRead();
+        return cugRoot != null && createCugPermission(cugRoot, null).canRead();
     }
 
+    @Nonnull
     private Tree getImmutableTree(@Nonnull Tree tree) {
-        return immutableRoot.getTree(tree.getPath());
+        return TreeUtil.isReadOnlyTree(tree) ? tree : immutableRoot.getTree(tree.getPath());
     }
 
-    private TreePermission createCugPermission(@Nonnull Tree tree) {
+    @Nonnull
+    private TreePermission createCugPermission(@Nonnull Tree tree, @Nullable TreePermission fallback) {
         Tree cugTree = tree.getChild(REP_CUG_POLICY);
         if (CugUtil.definesCug(cugTree)) {
-            PropertyState pNameState = cugTree.getProperty(REP_PRINCIPAL_NAMES);
-            if (pNameState != null) {
+            PropertyState princNamesState = cugTree.getProperty(REP_PRINCIPAL_NAMES);
+            if (princNamesState != null) {
                 boolean allow = false;
-                for (String pName : pNameState.getValue(Type.STRINGS)) {
+                for (String pName : princNamesState.getValue(Type.STRINGS)) {
                     if (principalNames.contains(pName)) {
                         allow = true;
                         break;
@@ -298,10 +305,15 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
                 log.warn("Tree at {0} doesn't represent a valid CUG.", cugTree.getPath());
             }
         }
-        return new EmptyCugPermission(tree);
+        return (fallback == null) ? new EmptyCugPermission(tree) : fallback;
     }
 
     //--------------------------------------------------------------------------
+
+    /**
+     * Same as {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.TreePermission#EMPTY}
+     * from a permission point of view but indicating that
+     */
     private final class EmptyCugPermission implements TreePermission {
 
         private Tree tree;
@@ -346,6 +358,9 @@ class CugPermissionProvider implements PermissionProvider, AggregatedPermissionP
         }
     }
 
+    /**
+     * {@code TreePermission} implementation for all items located with a CUG.
+     */
     private final class CugTreePermission implements TreePermission {
 
         private final Tree tree;

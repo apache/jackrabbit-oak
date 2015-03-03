@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.cug.CugPolicy;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -62,7 +63,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  * Implementation of the {@link org.apache.jackrabbit.api.security.JackrabbitAccessControlManager}
  * interface that allows to create, modify and remove closed user group policies.
  */
-class CugAccessControlManager extends AbstractAccessControlManager implements CugConstants {
+class CugAccessControlManager extends AbstractAccessControlManager implements CugConstants, PolicyOwner {
 
     private static final Logger log = LoggerFactory.getLogger(CugAccessControlManager.class);
 
@@ -124,7 +125,8 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         } else {
             CugPolicy cug = getCugPolicy(oakPath);
             if (cug == null) {
-                return new AccessControlPolicyIteratorAdapter(ImmutableSet.of(new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config))));
+                cug = new CugPolicyImpl(oakPath, getNamePathMapper(), principalManager, CugUtil.getImportBehavior(config));
+                return new AccessControlPolicyIteratorAdapter(ImmutableSet.of(cug));
             } else {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
             }
@@ -190,6 +192,12 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         return new AccessControlPolicy[0];
     }
 
+    //--------------------------------------------------------< PolicyOwner >---
+    @Override
+    public boolean defines(@Nullable String absPath, @Nonnull AccessControlPolicy accessControlPolicy) {
+        return isValidPolicy(absPath, accessControlPolicy);
+    }
+
     //--------------------------------------------------------------------------
 
     private boolean isSupportedPath(@Nullable String oakPath) throws RepositoryException {
@@ -237,12 +245,16 @@ class CugAccessControlManager extends AbstractAccessControlManager implements Cu
         }
     }
 
+    private static boolean isValidPolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) {
+        return policy instanceof CugPolicyImpl && ((CugPolicyImpl) policy).getPath().equals(absPath);
+    }
+
     private static void checkValidPolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
         if (!(policy instanceof CugPolicyImpl)) {
             throw new AccessControlException("Unsupported policy implementation: " + policy);
         }
 
-        CugPolicy cug = (CugPolicy) policy;
+        CugPolicyImpl cug = (CugPolicyImpl) policy;
         if (!cug.getPath().equals(absPath)) {
             throw new AccessControlException("Path mismatch: Expected " + cug.getPath() + ", Found: " + absPath);
         }
