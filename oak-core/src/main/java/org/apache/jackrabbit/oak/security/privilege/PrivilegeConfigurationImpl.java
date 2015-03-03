@@ -54,6 +54,7 @@ public class PrivilegeConfigurationImpl extends ConfigurationBase implements Pri
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
