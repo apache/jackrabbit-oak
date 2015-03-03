@@ -51,7 +51,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.segment.CompactionMap;
@@ -71,8 +70,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,7 +153,11 @@ public class FileStore implements SegmentStore {
      * Version of the segment storage format.
      */
     private final SegmentVersion version = SegmentVersion.V_11;
-    private final GCMonitorTracker gcMonitor = new GCMonitorTracker();
+
+    /**
+     * {@code GCMonitor} monitoring this instance's gc progress
+     */
+    private final GCMonitor gcMonitor;
 
     /**
      * Create a new instance of a {@link Builder} for a file store.
@@ -178,7 +179,7 @@ public class FileStore implements SegmentStore {
         private int maxFileSize = 256;
         private int cacheSize;   // 0 -> DEFAULT_MEMORY_CACHE_SIZE
         private boolean memoryMapping;
-        private Whiteboard whiteboard;
+        private final LoggingGCMonitor gcMonitor = new LoggingGCMonitor();
 
         private Builder(File directory) {
             this.directory = directory;
@@ -250,13 +251,13 @@ public class FileStore implements SegmentStore {
         }
 
         /**
-         * {@link Whiteboard} used to track {@link GCMonitor} instances.
-         * @param whiteboard
+         * {@link GCMonitor} for monitoring this files store's gc process.
+         * @param gcMonitor
          * @return this instance
          */
         @Nonnull
-        public Builder withWhiteBoard(@Nonnull Whiteboard whiteboard) {
-            this.whiteboard = checkNotNull(whiteboard);
+        public Builder withGCMonitor(@Nonnull GCMonitor gcMonitor) {
+            this.gcMonitor.delegatee = checkNotNull(gcMonitor);
             return this;
         }
 
@@ -279,14 +280,14 @@ public class FileStore implements SegmentStore {
         @Nonnull
         public FileStore create() throws IOException {
             return new FileStore(
-                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, whiteboard);
+                    blobStore, directory, root, maxFileSize, cacheSize, memoryMapping, gcMonitor);
         }
     }
 
     @Deprecated
     public FileStore(BlobStore blobStore, File directory, int maxFileSizeMB, boolean memoryMapping)
             throws IOException {
-        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, null);
+        this(blobStore, directory, EMPTY_NODE, maxFileSizeMB, 0, memoryMapping, GCMonitor.EMPTY);
     }
 
     @Deprecated
@@ -304,24 +305,24 @@ public class FileStore implements SegmentStore {
     @Deprecated
     public FileStore(File directory, int maxFileSizeMB, int cacheSizeMB,
             boolean memoryMapping) throws IOException {
-        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, null);
+        this(null, directory, EMPTY_NODE, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY);
     }
 
     @Deprecated
     FileStore(File directory, NodeState initial, int maxFileSize) throws IOException {
-        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, null);
+        this(null, directory, initial, maxFileSize, -1, MEMORY_MAPPING_DEFAULT, GCMonitor.EMPTY);
     }
 
     @Deprecated
     public FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
             int cacheSizeMB, boolean memoryMapping) throws IOException {
-        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, null);
+        this(blobStore, directory, initial, maxFileSizeMB, cacheSizeMB, memoryMapping, GCMonitor.EMPTY);
     }
 
     private FileStore(
             BlobStore blobStore, final File directory, NodeState initial, int maxFileSizeMB,
-            int cacheSizeMB, boolean memoryMapping, Whiteboard whiteboard)
+            int cacheSizeMB, boolean memoryMapping, GCMonitor gcMonitor)
             throws IOException {
         checkNotNull(directory).mkdirs();
         if (cacheSizeMB < 0) {
@@ -335,6 +336,7 @@ public class FileStore implements SegmentStore {
         this.directory = directory;
         this.maxFileSize = maxFileSizeMB * MB;
         this.memoryMapping = memoryMapping;
+        this.gcMonitor = gcMonitor;
 
         journalFile = new RandomAccessFile(
                 new File(directory, JOURNAL_FILE_NAME), "rw");
@@ -414,9 +416,6 @@ public class FileStore implements SegmentStore {
                     }
                 });
 
-        if (whiteboard != null) {
-            gcMonitor.start(whiteboard);
-        }
         log.info("TarMK opened: {} (mmap={})", directory, memoryMapping);
     }
 
@@ -738,7 +737,6 @@ public class FileStore implements SegmentStore {
         // threads before acquiring the synchronization lock
         compactionThread.close();
         flushThread.close();
-        gcMonitor.stop();
 
         synchronized (this) {
             try {
@@ -938,48 +936,40 @@ public class FileStore implements SegmentStore {
         return version;
     }
 
-    private static class GCMonitorTracker extends AbstractServiceTracker<GCMonitor> {
-        public GCMonitorTracker() {
-            super(GCMonitor.class);
-        }
+    private static class LoggingGCMonitor implements GCMonitor {
+        public GCMonitor delegatee = GCMonitor.EMPTY;
 
-        void info(String message, Object... arguments) {
+        @Override
+        public void info(String message, Object... arguments) {
             log.info(message, arguments);
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.info(message, arguments);
-            }
+            delegatee.info(message, arguments);
         }
 
-        void warn(String message, Object... arguments) {
+        @Override
+        public void warn(String message, Object... arguments) {
             log.warn(message, arguments);
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.warn(message, arguments);
-            }
+            delegatee.warn(message, arguments);
         }
 
-        void error(String message, Exception e) {
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.error(message, e);
-            }
+        @Override
+        public void error(String message, Exception exception) {
+            delegatee.error(message, exception);
         }
 
-        void skipped(String message, Object... arguments) {
-            log.info(message, arguments);
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.skipped(message, arguments);
-            }
+        @Override
+        public void skipped(String reason, Object... arguments) {
+            log.info(reason, arguments);
+            delegatee.skipped(reason, arguments);
         }
 
-        void compacted() {
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.compacted();
-            }
+        @Override
+        public void compacted() {
+            delegatee.compacted();
         }
 
-        void cleaned(long reclaimedSize, long currentSize) {
-            for (GCMonitor gcMonitor : getServices()) {
-                gcMonitor.cleaned(reclaimedSize, currentSize);
-            }
+        @Override
+        public void cleaned(long reclaimedSize, long currentSize) {
+            delegatee.cleaned(reclaimedSize, currentSize);
         }
     }
 }

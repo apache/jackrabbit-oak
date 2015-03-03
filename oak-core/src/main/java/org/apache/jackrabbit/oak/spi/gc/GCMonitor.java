@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  */
 public interface GCMonitor {
 
+    GCMonitor EMPTY = new Empty();
+
     /**
      * Log a message at the INFO level according to the specified format
      * and arguments.
@@ -48,7 +50,7 @@ public interface GCMonitor {
      * @param message  The message with {} place holders for the {@code arguments}
      * @param arguments
      */
-    void info(String message, Object[] arguments);
+    void info(String message, Object... arguments);
 
     /**
      * Warning about a condition that might have advert effects on the overall
@@ -56,7 +58,7 @@ public interface GCMonitor {
      * @param message  The message with {} place holders for the {@code arguments}
      * @param arguments
      */
-    void warn(String message, Object[] arguments);
+    void warn(String message, Object... arguments);
 
     /**
      * An error caused the garbage collection process to terminate prematurely.
@@ -70,7 +72,7 @@ public interface GCMonitor {
      * @param reason  The reason with {} place holders for the {@code arguments}
      * @param arguments
      */
-    void skipped(String reason, Object[] arguments);
+    void skipped(String reason, Object... arguments);
 
     /**
      * The compaction phase of the garbage collection process terminated successfully.
@@ -91,5 +93,5 @@ public interface GCMonitor {
         @Override public void skipped(String reason, Object[] arguments) { }
         @Override public void compacted() { }
         @Override public void cleaned(long reclaimedSize, long currentSize) { }
-    }
+    };
 }

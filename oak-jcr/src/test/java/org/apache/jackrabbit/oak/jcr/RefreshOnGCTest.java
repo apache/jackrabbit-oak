@@ -39,6 +39,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.plugins.segment.GCMonitorTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
@@ -52,6 +53,7 @@ import org.junit.Test;
 public class RefreshOnGCTest {
     private FileStore fileStore;
     private Repository repository;
+    private GCMonitorTracker gcMonitor;
 
     @Before
     public void setup() throws IOException {
@@ -60,8 +62,10 @@ public class RefreshOnGCTest {
         directory.mkdir();
 
         Whiteboard whiteboard = new DefaultWhiteboard();
+        gcMonitor = new GCMonitorTracker();
+        gcMonitor.start(whiteboard);
         fileStore = newFileStore(directory)
-                .withWhiteBoard(whiteboard)
+                .withGCMonitor(gcMonitor)
                 .create()
                 .setCompactionStrategy(new CompactionStrategy(
                         false, false, CLEAN_NONE, 0, CompactionStrategy.MEMORY_THRESHOLD_DEFAULT) {
@@ -83,6 +87,7 @@ public class RefreshOnGCTest {
         if (repository instanceof JackrabbitRepository) {
             ((JackrabbitRepository) repository).shutdown();
         }
+        gcMonitor.stop();
     }
 
     @Test
