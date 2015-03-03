@@ -574,6 +574,14 @@ public class LucenePropertyIndex implements AdvancedQueryIndex, QueryIndex, Nati
                 continue;
             }
 
+            //If there are more than one restriction on same property then
+            //isNotNullRestriction can be ignored
+            if (pr.isNotNullRestriction()
+                    && filter.getPropertyRestrictions(name).size() > 1
+                    && pr.list == null) { //Check also for pr.list due to OAK-2566
+                continue;
+            }
+
             if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
                     && pr.lastIncluding) {
                 String first = pr.first.getValue(STRING);
