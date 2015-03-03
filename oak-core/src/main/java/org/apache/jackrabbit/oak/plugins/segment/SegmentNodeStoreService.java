@@ -81,6 +81,7 @@ import org.slf4j.LoggerFactory;
  * An OSGi wrapper for the segment node store.
  */
 @Component(policy = ConfigurationPolicy.REQUIRE)
+@Property(name = "oak.nodestore.description", value = "{\"type\":\"segment\"}", propertyPrivate = true)
 public class SegmentNodeStoreService extends ProxyNodeStore
         implements Observable, SegmentStoreProvider {
 
