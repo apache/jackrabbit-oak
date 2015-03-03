@@ -371,12 +371,14 @@ public class AsyncIndexUpdate implements Runnable {
 
             builder.child(ASYNC).setProperty(name, afterCheckpoint);
             builder.child(ASYNC).setProperty(PropertyStates.createProperty(lastIndexedTo, afterTime, Type.DATE));
+            boolean updatePostRunStatus = true;
             if (callback.isDirty() || before == MISSING_NODE) {
                 if (switchOnSync) {
-                    reindexedDefinitions.addAll(
-                            indexUpdate.getReindexedDefinitions());
+                    reindexedDefinitions.addAll(indexUpdate
+                            .getReindexedDefinitions());
+                    updatePostRunStatus = false;
                 } else {
-                    postAsyncRunStatsStatus(indexStats);
+                    updatePostRunStatus = true;
                 }
             } else {
                 if (switchOnSync) {
@@ -396,9 +398,12 @@ public class AsyncIndexUpdate implements Runnable {
                     }
                     reindexedDefinitions.clear();
                 }
-                postAsyncRunStatsStatus(indexStats);
+                updatePostRunStatus = true;
             }
             mergeWithConcurrencyCheck(builder, beforeCheckpoint, callback.lease);
+            if (updatePostRunStatus) {
+                postAsyncRunStatsStatus(indexStats);
+            }
             if (indexUpdate.isReindexingPerformed()) {
                 log.info("Reindexing completed for indexes: {} in {}", indexUpdate.getAllReIndexedIndexes(), watch);
             }
