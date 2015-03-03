@@ -176,6 +176,25 @@ definition:
         }
     }
 
+##### Validation
+
+The consistency of this content structure both on creation and modification is
+asserted by a dedicated `TokenValidator`. The corresponding error are
+all of type `Constraint` with the following codes:
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0060              | Attempt to create reserved token property in other ctx   |
+| 0061              | Attempt to change existing token key                     |
+| 0062              | Change primary type of existing node to rep:Token        |
+| 0063              | Creation/Manipulation of tokens without using provider   |
+| 0064              | Create a token outside of configured scope               |
+| 0065              | Invalid location of token node                           |
+| 0066              | Invalid token key                                        |
+| 0067              | Mandatory token expiration missing                       |
+| 0068              | Invalid location of .tokens node                         |
+| 0069              | Change type of .tokens parent node                       |
+
 ### Configuration
 
 The Oak token management comes with it's own [TokenConfiguration] which allows
