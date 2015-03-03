@@ -34,7 +34,7 @@ public class FilterQueryParserTest {
     public void testMatchAllConversionWithNoConstraints() throws Exception {
         Filter filter = mock(Filter.class);
         OakSolrConfiguration configuration = mock(OakSolrConfiguration.class);
-        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, configuration);
+        SolrQuery solrQuery = FilterQueryParser.getQuery(filter, null, configuration);
         assertNotNull(solrQuery);
         assertEquals("*:*", solrQuery.getQuery());
     }

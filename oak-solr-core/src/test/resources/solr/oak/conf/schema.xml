@@ -132,36 +132,12 @@
         <field name=":suggest-weight" type="tint" indexed="false" stored="false" default="1"  docValues="true"/>
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
 
-        <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
-        <dynamicField name="*_is" type="int"    indexed="true"  stored="true"  multiValued="true"/>
-        <dynamicField name="*_s"  type="string"  indexed="true"  stored="true" />
-        <dynamicField name="*_ss" type="string"  indexed="true"  stored="true" multiValued="true"/>
-        <dynamicField name="*_l"  type="long"   indexed="true"  stored="true"/>
-        <dynamicField name="*_ls" type="long"   indexed="true"  stored="true"  multiValued="true"/>
-        <dynamicField name="*_t"  type="text_general"    indexed="true"  stored="true"/>
-        <dynamicField name="*_txt" type="text_general"   indexed="true"  stored="true" multiValued="true"/>
-        <dynamicField name="*_b"  type="boolean" indexed="true" stored="true"/>
-        <dynamicField name="*_bs" type="boolean" indexed="true" stored="true"  multiValued="true"/>
-        <dynamicField name="*_f"  type="float"  indexed="true"  stored="true"/>
-        <dynamicField name="*_fs" type="float"  indexed="true"  stored="true"  multiValued="true"/>
-        <dynamicField name="*_d"  type="double" indexed="true"  stored="true"/>
-        <dynamicField name="*_ds" type="double" indexed="true"  stored="true"  multiValued="true"/>
+        <!-- sorting dynamic fields -->
+        <!--<dynamicField name="*_long_sort" type="tlong" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <!--<dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <!--<dynamicField name="*_date_sort" type="tdate" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <dynamicField name="*_string_sort" type="string" indexed="true" stored="false" multiValued="false" docValues="true"/>
 
-        <dynamicField name="*_coordinate"  type="tdouble" indexed="true"  stored="false" />
-
-        <dynamicField name="*_dt"  type="date"    indexed="true"  stored="true"/>
-        <dynamicField name="*_dts" type="date"    indexed="true"  stored="true" multiValued="true"/>
-        <dynamicField name="*_p"  type="location" indexed="true" stored="true"/>
-
-        <dynamicField name="*_ti" type="tint"    indexed="true"  stored="true"/>
-        <dynamicField name="*_tl" type="tlong"   indexed="true"  stored="true"/>
-        <dynamicField name="*_tf" type="tfloat"  indexed="true"  stored="true"/>
-        <dynamicField name="*_td" type="tdouble" indexed="true"  stored="true"/>
-        <dynamicField name="*_tdt" type="tdate"  indexed="true"  stored="true"/>
-
-        <dynamicField name="*_pi"  type="pint"    indexed="true"  stored="true"/>
-        <dynamicField name="*_c"   type="currency" indexed="true"  stored="true"/>
-        <dynamicField name="*_bin" type="binary"  indexed="true"  stored="false" multiValued="true"/>
         <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
     </fields>
     <uniqueKey>path_exact</uniqueKey>
