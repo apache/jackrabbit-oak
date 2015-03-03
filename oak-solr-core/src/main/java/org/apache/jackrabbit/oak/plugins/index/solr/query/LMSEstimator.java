@@ -22,25 +22,34 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.solr.common.SolrDocumentList;
 
 /**
- * A very simple estimator for no. of entries in the index using least mean square.
+ * A very simple estimator for no. of entries in the index using least mean square update method but not the full stochastic
+ * gradient descent algorithm (yet?).
  */
 class LMSEstimator {
 
     private double[] weights;
+    private final double alpha;
+
+    public LMSEstimator(double alpha, double[] weights) {
+        this.alpha = alpha;
+        this.weights = weights;
+    }
 
     public LMSEstimator(double[] weights) {
         this.weights = weights;
+        this.alpha = 0.03;
     }
 
     public LMSEstimator() {
         this.weights = new double[5];
+        this.alpha = 0.03;
     }
 
     synchronized void update(Filter filter, SolrDocumentList docs) {
         double[] updatedWeights = new double[weights.length];
         for (int i = 0; i < updatedWeights.length; i++) {
             double errors = (docs.getNumFound() - estimate(filter)) * getInput(filter, i);
-            updatedWeights[i] = weights[i] + 0.03 * errors;
+            updatedWeights[i] = weights[i] + alpha * errors;
         }
         // weights updated
         weights = Arrays.copyOf(updatedWeights, 5);
