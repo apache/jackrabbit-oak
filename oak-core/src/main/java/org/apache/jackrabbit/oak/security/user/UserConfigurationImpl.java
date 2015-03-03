@@ -121,6 +121,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
         return DEFAULT_AUTH_FACTORY;
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @Activate
     private void activate(Map<String, Object> properties) {
         setParameters(ConfigurationParameters.of(properties));
