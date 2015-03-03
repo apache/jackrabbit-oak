@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
@@ -223,4 +225,28 @@ public interface PrivilegeConstants {
      * @since OAK 1.0
      */
     String REP_INDEX_DEFINITION_MANAGEMENT = "rep:indexDefinitionManagement";
+
+    /**
+     * The internal names of all built-in privileges that are not aggregates.
+     */
+    Set<String> NON_AGGREGATE_PRIVILEGES = ImmutableSet.of(
+            REP_READ_NODES, REP_READ_PROPERTIES,
+                        REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
+                        JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
+                        JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
+                        JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
+                        JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
+                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT, REP_INDEX_DEFINITION_MANAGEMENT
+
+    );
+
+    /**
+     * The internal names and aggregation definition of all built-in privileges
+     * that are aggregates (except for jcr:all).
+     */
+    Map<String, String[]> AGGREGATE_PRIVILEGES = ImmutableMap.of(
+            JCR_READ, new String[]{REP_READ_NODES, REP_READ_PROPERTIES},
+            JCR_MODIFY_PROPERTIES, new String[]{REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES},
+            JCR_WRITE, new String[]{JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE},
+            REP_WRITE, new String[]{JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT});
 }
