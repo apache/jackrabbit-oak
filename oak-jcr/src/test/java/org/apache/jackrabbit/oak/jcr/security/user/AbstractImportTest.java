@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
@@ -50,8 +49,6 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableMap;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertFalse;
@@ -148,7 +145,7 @@ public abstract class AbstractImportTest {
         if (importBehavior != null) {
             Map<String, String> userParams = new HashMap<String, String>();
             userParams.put(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, getImportBehavior());
-            return ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+            return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
         } else {
             return null;
         }
