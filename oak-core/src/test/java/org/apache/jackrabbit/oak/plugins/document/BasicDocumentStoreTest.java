@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.commons.json.JsonObject;
+import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.junit.Assume;
 import org.junit.Test;
@@ -954,5 +956,15 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             assertNotNull(cmc3);
             assertTrue(cmc2.longValue() == cmc3.longValue());
         }
+    }
+
+    @Test
+    public void description() throws Exception{
+        String desc = ds.getDescription();
+        System.out.println(desc);
+        JsopTokenizer t = new JsopTokenizer(desc);
+        t.read('{');
+        JsonObject json = JsonObject.create(t);
+        assertNotNull(json.getProperties().get("type"));
     }
 }

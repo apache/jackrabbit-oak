@@ -251,4 +251,9 @@ public interface DocumentStore {
      */
     @CheckForNull
     CacheStats getCacheStats();
+
+    /**
+     * @return description of the underlying storage.
+     */
+    String getDescription();
 }

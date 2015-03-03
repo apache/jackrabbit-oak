@@ -28,7 +28,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -347,6 +346,11 @@ public class MemoryDocumentStore implements DocumentStore {
     @Override
     public CacheStats getCacheStats() {
         return null;
+    }
+
+    @Override
+    public String getDescription() {
+        return "{\"type\":\"memory\"}";
     }
 
 }
