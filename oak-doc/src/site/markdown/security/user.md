@@ -173,6 +173,29 @@ The following block lists the built-in node types related to user management tas
       + * (rep:Members) = rep:Members protected multiple
       - * (WEAKREFERENCE) protected < 'rep:Authorizable'
 
+<a name="validation"/>
+##### Validation
+
+The consistency of this content structure is asserted by a dedicated `UserValidator`.
+The corresponding errors are all of type `Constraint` with the following codes:
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0020              | Admin user cannot be disabled                            |
+| 0021              | Invalid jcr:uuid for authorizable (creation)             |
+| 0022              | Changing Id, principal name after creation               |
+| 0023              | Invalid jcr:uuid for authorizable (mod)                  |
+| 0024              | Password may not be plain text                           |
+| 0025              | Attempt to remove id, principalname or pw                |
+| 0026              | Mandatory property rep:principalName missing             |
+| 0027              | The admin user cannot be removed                         |
+| 0028              | Attempt to create outside of configured scope            |
+| 0029              | Intermediate folders not rep:AuthorizableFolder          |
+| 0030              | Missing uuid for group (check for cyclic membership)     |
+| 0031              | Cyclic group membership                                  |
+| 0032              | Attempt to set password with system user                 |
+| 0033              | Attempt to add rep:pwd node to a system user             |
+
 
 #### XML Import
 As of Oak 1.0 user and group nodes can be imported both with Session and Workspace

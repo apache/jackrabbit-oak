@@ -150,6 +150,28 @@ Note the protection status of all child items defined by these node type definit
 as they prevent modification of the privilege definitions using regular JCR
 write operations.
 
+<a name="validation"/>
+##### Validation
+
+The consistency of this content structure is asserted by a dedicated `PrivilegeValidator`.
+The corresponding errors are all of type `Constraint` with the following codes:
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0041              | Modification of existing privilege definition X          |
+| 0042              | Un-register privilege X                                  |
+| 0043              | Next bits not updated                                    |
+| 0044              | Privilege store not initialized                          |
+| 0045              | Modification of existing privilege definition X          |
+| 0046              | Modification of existing privilege definition X          |
+| 0047              | Invalid declared aggregate name X                        |
+| 0048              | PrivilegeBits are missing                                |
+| 0049              | PrivilegeBits already in used                            |
+| 0050              | Singular aggregation is equivalent to existing privilege.|
+| 0051              | Declared aggregate X is not a registered privilege       |
+| 0052              | Detected circular aggregation                            |
+| 0053              | Custom aggregate privilege X is already covered.         |
+
 
 ### API Extensions
 

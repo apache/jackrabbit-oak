@@ -370,6 +370,17 @@ implementation (`VersionablePathHook`).
       mixin
       - * (PATH) protected ABORT
 
+<a name="validation"/>
+##### Validation
+
+The consistency of this content structure is asserted by a dedicated `PermissionValidator`.
+The corresponding errors are all of type `Access` with the following codes:
+
+| Code              | Message                                                  |
+|-------------------|----------------------------------------------------------|
+| 0000              | Generic access violation                                 |
+| 0021              | Version storage: Node creation without version history   |
+| 0022              | Version storage: Removal of intermediate node            |
 
 <a name="api_extensions"/>
 ### API Extensions
