@@ -41,6 +41,7 @@ public abstract class AbstractDataStoreService {
 
     public static final String PROP_ENCODE_LENGTH = "encodeLengthInId";
     public static final String PROP_CACHE_SIZE = "cacheSizeInMB";
+    private static final String DESCRIPTION = "oak.blobstore.description";
 
     private ServiceRegistration reg;
 
@@ -63,6 +64,7 @@ public abstract class AbstractDataStoreService {
 
         Dictionary<String, String> props = new Hashtable<String, String>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
+        props.put(DESCRIPTION, getDescription());
 
         reg = context.getBundleContext().registerService(new String[]{
                 BlobStore.class.getName(),
@@ -79,6 +81,10 @@ public abstract class AbstractDataStoreService {
     }
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
+
+    protected String getDescription(){
+        return "{\"type\":\"unknown\"}";
+    }
 
     protected static String lookup(ComponentContext context, String property) {
         //Prefer property from BundleContext first
