@@ -446,4 +446,50 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
         assertQuery("//*[jcr:contains(., 'media') and (@p = 'dam/smartcollection' or @p = 'dam/collection') ]", "xpath",
                 ImmutableList.of(one.getPath(), two.getPath()));
     }
+
+    @Test
+    public void testSortingOnPath() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").addChild("c");
+        test.addChild("b").addChild("d");
+        root.commit();
+
+        Iterator<String> result = executeQuery(
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [jcr:path] asc",
+                "JCR-SQL2").iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/a", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/a/c", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b/d", result.next());
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    public void testSortingOnProperty() throws Exception {
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.addChild("c").setProperty("foo", "car");
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "tar");
+        b.addChild("d").setProperty("foo", "jar");
+        root.commit();
+
+        Iterator<String> result = executeQuery(
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test') order by [foo] asc",
+                "JCR-SQL2").iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/a", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/a/c", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b/d", result.next());
+        assertTrue(result.hasNext());
+        assertEquals("/test/b", result.next());
+        assertFalse(result.hasNext());
+    }
 }

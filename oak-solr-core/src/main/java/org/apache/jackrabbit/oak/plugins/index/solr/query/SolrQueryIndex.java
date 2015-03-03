@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.common.SolrDocument;
@@ -66,7 +67,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 /**
  * A Solr based {@link QueryIndex}
  */
-public class SolrQueryIndex implements FulltextQueryIndex {
+public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFulltextQueryIndex {
 
     public static final String TYPE = "solr";
 
@@ -81,16 +82,23 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     private final OakSolrConfiguration configuration;
 
     private final NodeAggregator aggregator;
+    private final LMSEstimator estimator;
 
-    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator) {
+
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator, LMSEstimator estimator) {
         this.name = name;
         this.solrServer = solrServer;
         this.configuration = configuration;
         this.aggregator = aggregator;
+        this.estimator = estimator;
+    }
+
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator) {
+        this(name, solrServer, configuration, aggregator, new LMSEstimator());
     }
 
     public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
-        this(name, solrServer, configuration, null);
+        this(name, solrServer, configuration, null, new LMSEstimator());
     }
 
     @Override
@@ -150,7 +158,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState nodeState) {
-        return FilterQueryParser.getQuery(filter, configuration).toString();
+        return FilterQueryParser.getQuery(filter, null, configuration).toString();
     }
 
     /**
@@ -187,7 +195,11 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     }
 
     @Override
-    public Cursor query(final Filter filter, final NodeState root) {
+    public Cursor query(final IndexPlan plan, final NodeState root) {
+        return query(plan.getFilter(), plan.getSortOrder(), root);
+    }
+
+    private Cursor query(Filter filter, List<OrderEntry> sortOrder, NodeState root) {
         Cursor cursor;
         try {
             final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint())
@@ -196,14 +208,16 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
             final int parentDepth = getDepth(parent);
 
-            cursor = new SolrRowCursor(getIterator(filter, parent, parentDepth), filter.getQueryEngineSettings());
+            AbstractIterator<SolrResultRow> iterator = getIterator(filter, sortOrder, parent, parentDepth);
+
+            cursor = new SolrRowCursor(iterator, filter.getQueryEngineSettings());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return cursor;
     }
 
-    private AbstractIterator<SolrResultRow> getIterator(final Filter filter, final String parent, final int parentDepth) {
+    private AbstractIterator<SolrResultRow> getIterator(final Filter filter, final List<OrderEntry> sortOrder, final String parent, final int parentDepth) {
         return new AbstractIterator<SolrResultRow>() {
             private final Set<String> seenPaths = Sets.newHashSet();
             private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
@@ -258,7 +272,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                     if (log.isDebugEnabled()) {
                         log.debug("converting filter {}", filter);
                     }
-                    SolrQuery query = FilterQueryParser.getQuery(filter, configuration);
+                    SolrQuery query = FilterQueryParser.getQuery(filter, sortOrder, configuration);
                     if (numFound > 0) {
                         offset++;
                         int newOffset = offset * configuration.getRows();
@@ -396,10 +410,6 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return fakeDoc;
     }
 
-    void onRetrievedDocs(Filter filter, SolrDocumentList docs) {
-        // do nothing
-    }
-
     static boolean isIgnoredProperty(String propertyName, OakSolrConfiguration configuration) {
         return !(NATIVE_LUCENE_QUERY.equals(propertyName) || NATIVE_SOLR_QUERY.equals(propertyName)) &&
                 (!configuration.useForPropertyRestrictions() // Solr index not used for properties
@@ -407,6 +417,47 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         || propertyName.contains("/") // no child-level property restrictions
                         || "rep:excerpt".equals(propertyName) // rep:excerpt is handled by the query engine
                         || configuration.getIgnoredProperties().contains(propertyName));
+    }
+
+    @Override
+    public List<IndexPlan> getPlans(Filter filter, List<OrderEntry> sortOrder, NodeState rootState) {
+        // TODO : eventually provide multiple plans for (eventually) filtering by ACLs
+        // TODO : eventually provide multiple plans for normal paging vs deep paging
+        if (getMatchingFilterRestrictions(filter) > 0) {
+            return Collections.singletonList(planBuilder(filter)
+                    .setEstimatedEntryCount(estimator.estimate(filter))
+                    .setSortOrder(sortOrder)
+                    .build());
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
+    private IndexPlan.Builder planBuilder(Filter filter) {
+        return new IndexPlan.Builder()
+                .setCostPerExecution(solrServer instanceof EmbeddedSolrServer ? 1 : 2) // disk I/O + network I/O
+                .setCostPerEntry(0.3) // with properly configured SolrCaches ~70% of the doc fetches should hit them
+                .setFilter(filter)
+                .setFulltextIndex(true)
+                .setIncludesNodeData(true) // we currently include node data
+                .setDelayed(true); //Solr is most usually async
+    }
+
+    void onRetrievedDocs(Filter filter, SolrDocumentList docs) {
+        // estimator update
+        estimator.update(filter, docs);
+    }
+
+
+
+    @Override
+    public String getPlanDescription(IndexPlan plan, NodeState root) {
+        return plan.toString();
+    }
+
+    @Override
+    public Cursor query(Filter filter, NodeState rootState) {
+        return query(filter, null, rootState);
     }
 
     static class SolrResultRow {

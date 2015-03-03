@@ -16,6 +16,7 @@
  limitations under the License.
 -->
 <schema name="minimal" version="1.5">
+
     <types>
         <fieldType name="string" class="solr.StrField"/>
         <fieldType name="descendent_path" class="solr.TextField">
@@ -106,6 +107,7 @@
                    currencyConfig="currency.xml"/>
         <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
     </types>
+
     <fields>
         <field name="path_exact" type="string" indexed="true" stored="true"/>
         <field name="path_child" type="children_path" indexed="true" stored="false"/>
@@ -118,11 +120,15 @@
         <field name=":suggest" type="string" indexed="true" stored="true" multiValued="true" />
         <field name="_version_" type="long" indexed="true" stored="true"/>
 
-        <field name="rep:members" type="string" indexed="true" stored="true" multiValued="true"/>
-        <field name="rep:principalName" type="string" indexed="true" stored="true" multiValued="true"/>
-        <dynamicField name="*_bin" type="string" indexed="true" stored="true" multiValued="true"/>
+        <!-- sorting dynamic fields -->
+        <!--<dynamicField name="*_long_sort" type="tlong" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <!--<dynamicField name="*_double_sort" type="tdouble" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <!--<dynamicField name="*_date_sort" type="tdate" indexed="false" stored="false" multiValued="false" docValues="true"/>-->
+        <dynamicField name="*_string_sort" type="string" indexed="true" stored="false" multiValued="false" docValues="true"/>
+
         <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true"/>
     </fields>
+
     <uniqueKey>path_exact</uniqueKey>
     <copyField source="path_exact" dest="path_anc"/>
     <copyField source="path_exact" dest="path_des"/>
@@ -131,4 +137,5 @@
     <copyField source="*" dest="catch_all"/>
     <copyField source="jcr:title" dest=":suggest"/>
     <copyField source="jcr:description" dest=":suggest"/>
+
 </schema>
