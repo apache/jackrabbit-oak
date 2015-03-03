@@ -43,6 +43,7 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
     public void setUpConnection() throws Exception {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
+        Revision.setClock(getTestClock());
         mk = new DocumentMK.Builder().clock(getTestClock()).setMongoDB(mongoConnection.getDB()).open();
     }
 
@@ -58,6 +59,7 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
         mongoConnection = MongoUtils.getConnection();
         MongoUtils.dropCollections(mongoConnection.getDB());
         mongoConnection.close();
+        Revision.resetClockToDefault();
     }
 
     @Override
