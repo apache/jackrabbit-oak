@@ -19,15 +19,12 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -44,9 +41,9 @@ import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -145,7 +142,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
         userParams.put(UserConstants.PARAM_OMIT_ADMIN_PW, true);
 
-        ConfigurationParameters params = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
@@ -196,7 +193,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Map<String,Object> userParams = new HashMap();
         userParams.put(UserConstants.PARAM_ANONYMOUS_ID, "");
 
-        ConfigurationParameters params = ConfigurationParameters.of(ImmutableMap.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams)));
+        ConfigurationParameters params = ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters.of(userParams));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
                 .with(new PropertyIndexEditorProvider())
