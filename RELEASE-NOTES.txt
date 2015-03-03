@@ -24,6 +24,7 @@ Bug Fixes
    [OAK-2346] - InitializerTest.testInitializerMongoWithoutInitialContent() fails
    [OAK-2360] - IllegalStateException: OrderedPropertyIndex index is used even when no index is available
    [OAK-2369] - DataStoreWrapperBackend not updated to latest extensions added to Backend interface
+   [OAK-2384] - SegmentNotFoundException when keeping JCR Value references
    [OAK-2389] - issues with JsopBuilder.encode and .escape
    [OAK-2449] - offline compaction (via oak-run) broken
    [OAK-2450] - MongoDocumentStore fails for DELETED_ONCE indexed property
@@ -37,11 +38,14 @@ Bug Fixes
    [OAK-2532] - OSGiIT fails on 1.0 branch
    [OAK-2535] - TARMK Cold Standby allow cleanup on standby instance
    [OAK-2541] - TARMK Cold Standby marks the sync as stopped on first error
+   [OAK-2558] - Wrong interpretation of SegmentNodeStoreService configuration values 
+   [OAK-2559] - Lucene index rules should be case insensitive
 
 Improvements
    [OAK-1796] - Update Mongo Java Driver version to 2.12
    [OAK-2252] - make generic VersionGCSupport perform better
    [OAK-2340] - LucenePropertyIndex should support pure nodeType based query
+   [OAK-2407] - Auto-refresh sessions on revision gc
    [OAK-2415] - Improve logging in repository migration in upgrade
    [OAK-2432] - Allow querying on jcr:primaryType property if that property is indexed
    [OAK-2453] - Move MongoDiffCache to mongo package
@@ -54,6 +58,10 @@ Improvements
    [OAK-2527] - Update SegmentMK header format definition
    [OAK-2529] - Index usage for "not equals" conditions
    [OAK-2534] - Add missing Apache Jackrabbit qualifiers to OSGi services metatype
+   [OAK-2546] - allow configuring subcaches of documentnodestore individually
+   [OAK-2553] - Add builder to file store
+   [OAK-2554] - Make AbstractServiceTracker.stop() idempotent
+   [OAK-2568] - Ignore redundant IS NOT NULL constraints 
 
 New Features
    [OAK-2517] - Support IS NULL based property restrictions in LucenePropertyIndex
