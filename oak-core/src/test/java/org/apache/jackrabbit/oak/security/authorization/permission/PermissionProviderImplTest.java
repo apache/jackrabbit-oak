@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
@@ -92,10 +90,9 @@ public class PermissionProviderImplTest extends AbstractSecurityTest implements 
 
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put(PermissionConstants.PARAM_READ_PATHS, READ_PATHS);
-        map.put(PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
-        ConfigurationParameters acConfig = ConfigurationParameters.of(map);
+        ConfigurationParameters acConfig = ConfigurationParameters.of(
+                PermissionConstants.PARAM_READ_PATHS, READ_PATHS,
+                PermissionConstants.PARAM_ADMINISTRATIVE_PRINCIPALS, new String[] {ADMINISTRATOR_GROUP});
 
         return ConfigurationParameters.of(ImmutableMap.of(AuthorizationConfiguration.NAME, acConfig));
     }
