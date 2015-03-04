@@ -17,9 +17,8 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.plugins.segment;
+package org.apache.jackrabbit.oak.spi.gc;
 
-import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
