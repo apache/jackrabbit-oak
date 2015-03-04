@@ -21,11 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.toArray;
 import static com.google.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.MERGE;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.FAST_DIFF;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentMK.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.unshareString;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -91,8 +93,10 @@ import org.apache.jackrabbit.oak.spi.commit.Observable;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.util.PerfLogger;
@@ -831,7 +835,7 @@ public final class DocumentNodeStore
         String to = Utils.getKeyUpperLimit(checkNotNull(path));
         String from;
         if (name != null) {
-            from = Utils.getIdFromPath(PathUtils.concat(path, name));
+            from = Utils.getIdFromPath(concat(path, name));
         } else {
             from = Utils.getKeyLowerLimit(path);
         }
@@ -856,7 +860,7 @@ public final class DocumentNodeStore
         } else if (c.childNames.size() < limit && !c.isComplete) {
             // fetch more and update cache
             String lastName = c.childNames.get(c.childNames.size() - 1);
-            String lastPath = PathUtils.concat(path, lastName);
+            String lastPath = concat(path, lastName);
             from = Utils.getIdFromPath(lastPath);
             int remainingLimit = limit - c.childNames.size();
             List<NodeDocument> docs = store.query(Collection.NODES,
@@ -873,7 +877,7 @@ public final class DocumentNodeStore
         Iterable<NodeDocument> it = transform(c.childNames, new Function<String, NodeDocument>() {
             @Override
             public NodeDocument apply(String name) {
-                String p = PathUtils.concat(path, name);
+                String p = concat(path, name);
                 NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(p));
                 if (doc == null) {
                     docChildrenCache.invalidateAll();
@@ -914,7 +918,7 @@ public final class DocumentNodeStore
                 new Function<String, DocumentNodeState>() {
             @Override
             public DocumentNodeState apply(String input) {
-                String p = PathUtils.concat(parent.getPath(), input);
+                String p = concat(parent.getPath(), input);
                 DocumentNodeState result = getNode(p, readRevision);
                 if (result == null) {
                     throw new DocumentStoreException("DocumentNodeState is null for revision " + readRevision + " of " + p
@@ -1246,26 +1250,42 @@ public final class DocumentNodeStore
 
     /**
      * Compares the given {@code node} against the {@code base} state and
-     * reports the differences on the children as a json diff string. This
-     * method does not report any property changes between the two nodes.
+     * reports the differences to the {@link NodeStateDiff}.
      *
      * @param node the node to compare.
      * @param base the base node to compare against.
-     * @return the json diff.
+     * @param diff handler of node state differences
+     * @return {@code true} if the full diff was performed, or
+     *         {@code false} if it was aborted as requested by the handler
+     *         (see the {@link NodeStateDiff} contract for more details)
      */
-    String diffChildren(@Nonnull final DocumentNodeState node,
-                        @Nonnull final DocumentNodeState base) {
-        if (node.hasNoChildren() && base.hasNoChildren()) {
-            return "";
+    boolean compare(@Nonnull final DocumentNodeState node,
+                    @Nonnull final DocumentNodeState base,
+                    @Nonnull final NodeStateDiff diff) {
+        if (!AbstractNodeState.comparePropertiesAgainstBaseState(node, base, diff)) {
+            return false;
         }
-        return diffCache.getChanges(base.getLastRevision(),
-                node.getLastRevision(), node.getPath(),
-                new DiffCache.Loader() {
-                    @Override
-                    public String call() {
-                        return diffImpl(base, node);
-                    }
-                });
+        if (node.hasNoChildren() && base.hasNoChildren()) {
+            return true;
+        }
+        boolean useReadRevision = true;
+        // first lookup with read revisions of nodes and without loader
+        String jsop = diffCache.getChanges(base.getRevision(), 
+                node.getRevision(), node.getPath(), null);
+        if (jsop == null) {
+            useReadRevision = false;
+            // fall back to last revisions with loader, this
+            // guarantees we get a diff
+            jsop = diffCache.getChanges(base.getLastRevision(),
+                    node.getLastRevision(), node.getPath(),
+                    new DiffCache.Loader() {
+                        @Override
+                        public String call() {
+                            return diffImpl(base, node);
+                        }
+                    });
+        }
+        return dispatch(jsop, node, base, diff, useReadRevision);
     }
 
     String diff(@Nonnull final String fromRevisionId,
@@ -1306,13 +1326,13 @@ public final class DocumentNodeStore
                     t.read(':');
                     t.read('{');
                     t.read('}');
-                    writer.tag((char) r).key(PathUtils.concat(path, name));
+                    writer.tag((char) r).key(concat(path, name));
                     writer.object().endObject().newline();
                     break;
                 }
                 case '-': {
                     String name = t.readString();
-                    writer.tag('-').value(PathUtils.concat(path, name));
+                    writer.tag('-').value(concat(path, name));
                     writer.newline();
                 }
             }
@@ -1669,6 +1689,69 @@ public final class DocumentNodeStore
 
     //-----------------------------< internal >---------------------------------
 
+    private boolean dispatch(@Nonnull String jsonDiff,
+                             @Nonnull DocumentNodeState node,
+                             @Nonnull DocumentNodeState base,
+                             @Nonnull NodeStateDiff diff,
+                             boolean useReadRevision) {
+        if (jsonDiff.trim().isEmpty()) {
+            return true;
+        }
+        Revision nodeRev = useReadRevision ? node.getRevision() : node.getLastRevision();
+        Revision baseRev = useReadRevision ? base.getRevision() : base.getLastRevision();
+        JsopTokenizer t = new JsopTokenizer(jsonDiff);
+        boolean continueComparison = true;
+        while (continueComparison) {
+            int r = t.read();
+            if (r == JsopReader.END) {
+                break;
+            }
+            switch (r) {
+                case '+': {
+                    String name = unshareString(t.readString());
+                    t.read(':');
+                    t.read('{');
+                    while (t.read() != '}') {
+                        // skip properties
+                    }
+                    NodeState child = getNode(concat(node.getPath(), name), nodeRev);
+                    continueComparison = diff.childNodeAdded(name, child);
+                    break;
+                }
+                case '-': {
+                    String name = unshareString(t.readString());
+                    NodeState child = getNode(concat(base.getPath(), name), baseRev);
+                    continueComparison = diff.childNodeDeleted(name, child);
+                    break;
+                }
+                case '^': {
+                    String name = unshareString(t.readString());
+                    t.read(':');
+                    if (t.matches('{')) {
+                        t.read('}');
+                        NodeState nodeChild = getNode(concat(node.getPath(), name), nodeRev);
+                        NodeState baseChild = getNode(concat(base.getPath(), name), baseRev);
+                        continueComparison = diff.childNodeChanged(
+                                name, baseChild, nodeChild);
+                    } else if (t.matches('[')) {
+                        // ignore multi valued property
+                        while (t.read() != ']') {
+                            // skip values
+                        }
+                    } else {
+                        // ignore single valued property
+                        t.read();
+                    }
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("jsonDiff: illegal token '"
+                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
+            }
+        }
+        return continueComparison;
+    }
+
     /**
      * Creates a tracker for the given commit revision.
      *
@@ -1692,7 +1775,7 @@ public final class DocumentNodeStore
             // changed or removed properties
             PropertyState toValue = to.getProperty(name);
             if (!fromValue.equals(toValue)) {
-                w.tag('^').key(PathUtils.concat(from.getPath(), name));
+                w.tag('^').key(concat(from.getPath(), name));
                 if (toValue == null) {
                     w.value(null);
                 } else {
@@ -1703,7 +1786,7 @@ public final class DocumentNodeStore
         for (String name : to.getPropertyNames()) {
             // added properties
             if (!from.hasProperty(name)) {
-                w.tag('^').key(PathUtils.concat(from.getPath(), name))
+                w.tag('^').key(concat(from.getPath(), name))
                         .encodedValue(to.getPropertyAsString(name)).newline();
             }
         }
@@ -1838,7 +1921,7 @@ public final class DocumentNodeStore
             if (!childrenSet.contains(n)) {
                 w.tag('-').value(n).newline();
             } else {
-                String path = PathUtils.concat(parentPath, n);
+                String path = concat(parentPath, n);
                 DocumentNodeState n1 = getNode(path, fromRev);
                 DocumentNodeState n2 = getNode(path, toRev);
                 // this is not fully correct:
@@ -1901,7 +1984,7 @@ public final class DocumentNodeStore
         }
         for (DocumentNodeState child : getChildNodes(source, null, Integer.MAX_VALUE)) {
             String childName = PathUtils.getName(child.getPath());
-            String destChildPath = PathUtils.concat(targetPath, childName);
+            String destChildPath = concat(targetPath, childName);
             moveOrCopyNode(move, child, destChildPath, commit);
         }
     }
