@@ -44,7 +44,7 @@ public class S3DataStoreService extends AbstractDataStoreService{
     }
 
     @Override
-    protected String getDescription() {
-        return "{\"type\":\"S3\"}";
+    protected String[] getDescription() {
+        return new String[] {"type=S3"};
     }
 }

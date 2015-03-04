@@ -318,8 +318,8 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public String getDescription() {
-        return base.getDescription();
+    public Map<String, String> getMetadata() {
+        return base.getMetadata();
     }
 
     private void logCommonCall(long start, String key) {

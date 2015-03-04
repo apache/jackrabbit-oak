@@ -62,7 +62,7 @@ public abstract class AbstractDataStoreService {
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         PropertiesUtil.populate(dataStore, config, false);
 
-        Dictionary<String, String> props = new Hashtable<String, String>();
+        Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_PID, ds.getClass().getName());
         props.put(DESCRIPTION, getDescription());
 
@@ -82,8 +82,8 @@ public abstract class AbstractDataStoreService {
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
-    protected String getDescription(){
-        return "{\"type\":\"unknown\"}";
+    protected String[] getDescription(){
+        return new String[] {"type=unknown"};
     }
 
     protected static String lookup(ComponentContext context, String property) {

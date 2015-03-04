@@ -37,6 +37,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.mongodb.MongoClientURI;
@@ -44,7 +45,6 @@ import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
-import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -154,11 +154,14 @@ public class MongoDocumentStore implements DocumentStore {
 
     private String lastReadWriteMode;
 
-    private final String dbDescription;
+    private final Map<String, String> metadata;
 
     public MongoDocumentStore(DB db, DocumentMK.Builder builder) {
         String version = checkVersion(db);
-        dbDescription = String.format("{\"type\":\"mongo\",\"version\":%s}", JsopBuilder.encode(version));
+        metadata = ImmutableMap.<String,String>builder()
+                .put("type", "mongo")
+                .put("version", version)
+                .build();
 
         nodes = db.getCollection(
                 Collection.NODES.toString());
@@ -930,8 +933,8 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public String getDescription() {
-        return dbDescription;
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
     long getMaxDeltaForModTimeIdxSecs() {

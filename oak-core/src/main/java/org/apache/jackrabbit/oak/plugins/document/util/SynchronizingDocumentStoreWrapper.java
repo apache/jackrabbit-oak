@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document.util;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 
@@ -127,7 +128,7 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public String getDescription() {
-        return store.getDescription();
+    public Map<String, String> getMetadata() {
+        return store.getMetadata();
     }
 }

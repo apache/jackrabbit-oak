@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -255,5 +256,5 @@ public interface DocumentStore {
     /**
      * @return description of the underlying storage.
      */
-    String getDescription();
+    Map<String, String> getMetadata();
 }

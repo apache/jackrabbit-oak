@@ -36,7 +36,7 @@ public class FileDataStoreService extends AbstractDataStoreService{
     }
 
     @Override
-    protected String getDescription() {
-        return "{\"type\":\"filesystem\"}";
+    protected String[] getDescription() {
+        return new String[] {"type=filesystem"};
     }
 }
