@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * Implements a <code>DocumentStore</code> wrapper which synchronizes on all
@@ -98,8 +99,8 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public synchronized void invalidateCache() {
-        store.invalidateCache();
+    public synchronized CacheInvalidationStats invalidateCache() {
+        return store.invalidateCache();
     }
 
     @Override

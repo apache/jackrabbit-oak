@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.cache.ForwardingListener;
 import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocOffHeapCache;
 import org.apache.jackrabbit.oak.plugins.document.cache.OffHeapCache;
@@ -260,10 +261,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         //TODO Check if we should use LinearInvalidator for small cache sizes as
         //that would lead to lesser number of queries
-        CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
+        return CacheInvalidator.createHierarchicalInvalidator(this).invalidateCache();
     }
 
     @Override
