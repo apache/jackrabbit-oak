@@ -39,7 +39,7 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.segment.GCMonitorTracker;
+import org.apache.jackrabbit.oak.spi.gc.GCMonitorTracker;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.compaction.CompactionStrategy;
 import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
