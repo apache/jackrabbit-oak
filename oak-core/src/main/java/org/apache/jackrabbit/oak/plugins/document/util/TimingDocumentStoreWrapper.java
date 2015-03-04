@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * A MicroKernel wrapper that can be used to log and also time MicroKernel
@@ -249,11 +250,12 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         try {
             long start = now();
-            base.invalidateCache();
+            CacheInvalidationStats result = base.invalidateCache();
             updateAndLogTimes("invalidateCache", start, 0, 0);
+            return result;
         } catch (Exception e) {
             throw convert(e);
         }

@@ -56,6 +56,7 @@ import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -89,10 +90,11 @@ public class DocumentNodeStoreTest {
         DocumentStore docStore = new MemoryDocumentStore();
         DocumentStore testStore = new TimingDocumentStoreWrapper(docStore) {
             @Override
-            public void invalidateCache() {
+            public CacheInvalidationStats invalidateCache() {
                 super.invalidateCache();
                 semaphore.acquireUninterruptibly();
                 semaphore.release();
+                return null;
             }
         };
         final DocumentNodeStore store1 = new DocumentMK.Builder().setAsyncDelay(0)

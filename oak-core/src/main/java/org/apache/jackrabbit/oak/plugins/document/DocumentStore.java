@@ -23,6 +23,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * The interface for the backend storage for documents.
@@ -213,7 +214,8 @@ public interface DocumentStore {
     /**
      * Invalidate the document cache.
      */
-    void invalidateCache();
+    @CheckForNull
+    CacheInvalidationStats invalidateCache();
 
     /**
      * Invalidate the document cache for the given key.

@@ -74,6 +74,7 @@ import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.Checkpoints.Info;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoBlobReferenceIterator;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
@@ -1526,14 +1527,14 @@ public final class DocumentNodeStore
             long writeTime = clock.getTime() - time;
             time = clock.getTime();
             // pull in changes from other cluster nodes
-            backgroundRead(true);
+            BackgroundReadStats readStats = backgroundRead(true);
             long readTime = clock.getTime() - time;
-            String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{})";
+            String msg = "Background operations stats (clean:{}, split:{}, write:{}, read:{} {})";
             if (clock.getTime() - start > TimeUnit.SECONDS.toMillis(10)) {
                 // log as info if it took more than 10 seconds
-                LOG.info(msg, cleanTime, splitTime, writeTime, readTime);
+                LOG.info(msg, cleanTime, splitTime, writeTime, readTime, readStats);
             } else {
-                LOG.debug(msg, cleanTime, splitTime, writeTime, readTime);
+                LOG.debug(msg, cleanTime, splitTime, writeTime, readTime, readStats);
             }
         } catch (RuntimeException e) {
             if (isDisposed.get()) {
@@ -1587,11 +1588,13 @@ public final class DocumentNodeStore
      * @param dispatchChange whether to dispatch external changes
      *                       to {@link #dispatcher}.
      */
-    void backgroundRead(boolean dispatchChange) {
+    BackgroundReadStats backgroundRead(boolean dispatchChange) {
+        BackgroundReadStats stats = new BackgroundReadStats();
+        long time = clock.getTime();
         String id = Utils.getIdFromPath("/");
         NodeDocument doc = store.find(Collection.NODES, id, asyncDelay);
         if (doc == null) {
-            return;
+            return stats;
         }
         Map<Integer, Revision> lastRevMap = doc.getLastRev();
 
@@ -1624,9 +1627,14 @@ public final class DocumentNodeStore
             }
         }
 
+        stats.readHead = clock.getTime() - time;
+        time = clock.getTime();
+
         if (!externalChanges.isEmpty()) {
             // invalidate caches
-            store.invalidateCache();
+            stats.cacheStats = store.invalidateCache();
+            stats.cacheInvalidationTime = clock.getTime() - time;
+            time = clock.getTime();
             // TODO only invalidate affected items
             docChildrenCache.invalidateAll();
 
@@ -1649,8 +1657,36 @@ public final class DocumentNodeStore
             } finally {
                 backgroundOperationLock.writeLock().unlock();
             }
+            stats.dispatchChanges = clock.getTime() - time;
+            time = clock.getTime();
         }
         revisionComparator.purge(revisionPurgeMillis());
+        stats.purge = clock.getTime() - time;
+
+        return stats;
+    }
+
+    private static class BackgroundReadStats {
+        CacheInvalidationStats cacheStats;
+        long readHead;
+        long cacheInvalidationTime;
+        long dispatchChanges;
+        long purge;
+
+        @Override
+        public String toString() {
+            String cacheStatsMsg = "NOP";
+            if (cacheStats != null){
+                cacheStatsMsg = cacheStats.summaryReport();
+            }
+            return  "ReadStats{" +
+                    "cacheStats:" + cacheStatsMsg +
+                    ", head:" + readHead +
+                    ", cache:" + cacheInvalidationTime +
+                    ", dispatch:" + dispatchChanges +
+                    ", purge:" + purge +
+                    '}';
+        }
     }
 
     /**

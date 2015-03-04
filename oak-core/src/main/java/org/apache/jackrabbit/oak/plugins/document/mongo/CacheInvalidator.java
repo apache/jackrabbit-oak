@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.plugins.document.CachedNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +66,7 @@ abstract class CacheInvalidator {
         return new SimpleInvalidator(documentStore);
     }
 
-    static class InvalidationResult {
+    static class InvalidationResult implements CacheInvalidationStats{
         int invalidationCount;
         int upToDateCount;
         int cacheSize;
@@ -83,6 +84,11 @@ abstract class CacheInvalidator {
                     ", queryCount=" + queryCount +
                     ", cacheEntriesProcessedCount=" + cacheEntriesProcessedCount +
                     '}';
+        }
+
+        @Override
+        public String summaryReport() {
+            return toString();
         }
     }
 

@@ -64,6 +64,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.slf4j.Logger;
@@ -261,8 +262,9 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
+    public CacheInvalidationStats invalidateCache() {
         nodesCache.invalidateAll();
+        return null;
     }
 
     @Override
