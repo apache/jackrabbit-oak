@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateUtils;
 import com.google.common.base.Splitter;
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
+import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
@@ -289,8 +290,8 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void invalidateCache() {
-        // there is no cache, so nothing to invalidate
+    public CacheInvalidationStats invalidateCache() {
+        return null;
     }
 
     @Override
