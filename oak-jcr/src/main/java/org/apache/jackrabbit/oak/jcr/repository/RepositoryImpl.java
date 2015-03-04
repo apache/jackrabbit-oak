@@ -274,7 +274,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             ContentSession contentSession) {
 
         final RefreshOnGC refreshOnGC = new RefreshOnGC();
-        refreshStrategy = new Composite(refreshStrategy, refreshOnGC);
+        refreshStrategy = Composite.create(refreshStrategy, refreshOnGC);
 
         return new SessionDelegate(
                 contentSession, securityProvider, refreshStrategy,
@@ -470,12 +470,17 @@ public class RepositoryImpl implements JackrabbitRepository {
 
         @Override
         public boolean needsRefresh(long secondsSinceLastAccess) {
-            if (compacted) {
-                compacted = false;
-                return true;
-            } else {
-                return false;
-            }
+            return compacted;
+        }
+
+        @Override
+        public void refreshed() {
+            compacted = false;
+        }
+
+        @Override
+        public String toString() {
+            return "Refresh on revision garbage collection";
         }
     }
 
