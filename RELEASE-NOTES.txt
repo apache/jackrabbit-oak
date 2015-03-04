@@ -73,6 +73,7 @@ Tasks
 Sub-tasks
    [OAK-2446] - make DELETEDONCE an indexed property
    [OAK-2506] - port RDB support back to Oak 1.0
+   [OAK-2552] - Implement MBean monitoring garbage collection
 
 In addition to the above-mentioned changes, this release contains
 all changes included in previous Apache Jackrabbit Oak 1.0.x releases.
