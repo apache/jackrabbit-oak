@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.json.JsopBuilder.encode;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -335,8 +335,8 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     @Override
-    public String getDescription() {
-        return dbDescription;
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
     // implementation
@@ -567,7 +567,7 @@ public class RDBDocumentStore implements DocumentStore {
     // DB-specific information
     private DB db;
 
-    private String dbDescription;
+    private Map<String, String> metadata;
 
     // set of supported indexed properties
     private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
@@ -598,9 +598,11 @@ public class RDBDocumentStore implements DocumentStore {
         String driverDesc = md.getDriverName() + " " + md.getDriverVersion();
 
         this.db = DB.getValue(md.getDatabaseProductName());
-        this.dbDescription = String.format("{\"type\":\"rdb\",\"db\":%s,\"version\":%s}",
-                encode(md.getDatabaseProductName()),
-                encode(md.getDatabaseProductVersion()));
+        this.metadata = ImmutableMap.<String,String>builder()
+                .put("type", "rdb")
+                .put("db", md.getDatabaseProductName())
+                .put("version", md.getDatabaseProductVersion())
+                .build();
 
         if (! "".equals(db.getInitializationStatement())) {
             Statement stmt = con.createStatement();
