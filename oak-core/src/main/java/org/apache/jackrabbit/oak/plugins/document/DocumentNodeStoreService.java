@@ -50,6 +50,7 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Modified;
 import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.PropertyOption;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.apache.felix.scr.annotations.ReferencePolicy;
@@ -83,7 +84,15 @@ import org.slf4j.LoggerFactory;
 /**
  * The OSGi service to start/stop a DocumentNodeStore instance.
  */
-@Component(policy = ConfigurationPolicy.REQUIRE)
+@Component(policy = ConfigurationPolicy.REQUIRE,
+        metatype = true,
+        label = "Apache Jackrabbit Oak Document NodeStore Service",
+        description = "NodeStore implementation based on Document model. For configuration option refer " +
+                "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#DocumentNodeStore. Note that for system " +
+                "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
+                "should be done via file system based config file and this view should ONLY be used to determine which " +
+                "options are supported"
+)
 public class DocumentNodeStoreService {
     private static final String DEFAULT_URI = "mongodb://localhost:27017/oak";
     private static final int DEFAULT_CACHE = 256;
@@ -106,48 +115,90 @@ public class DocumentNodeStoreService {
      */
     private static final String FWK_PROP_DB = "oak.mongo.db";
 
-    @Property(value = DEFAULT_URI)
+    @Property(value = DEFAULT_URI,
+            label = "Mongo URI",
+            description = "Mongo connection URI used to connect to Mongo. Refer to " +
+                    "http://docs.mongodb.org/manual/reference/connection-string/ for details. Note that this value " +
+                    "can be overridden via framework property 'oak.mongo.uri'"
+    )
     private static final String PROP_URI = "mongouri";
 
-    @Property(value = DEFAULT_DB)
+    @Property(value = DEFAULT_DB,
+            label = "Mongo DB name",
+            description = "Name of the database in Mongo. Note that this value " +
+                    "can be overridden via framework property 'oak.mongo.db'"
+    )
     private static final String PROP_DB = "db";
 
-    @Property(intValue = DEFAULT_CACHE)
+    @Property(intValue = DEFAULT_CACHE,
+            label = "Cache Size (in MB)",
+            description = "Cache size in MB. This is distributed among various caches used in DocumentNodeStore"
+    )
     private static final String PROP_CACHE = "cache";
     
-    @Property(intValue = DEFAULT_NODE_CACHE_PERCENTAGE)
+    @Property(intValue = DEFAULT_NODE_CACHE_PERCENTAGE,
+            label = "NodeState Cache",
+            description = "Percentage of cache to be allocated towards Node cache"
+    )
     private static final String PROP_NODE_CACHE_PERCENTAGE = "nodeCachePercentage";
     
-    @Property(intValue = DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE)
+    @Property(intValue = DocumentMK.Builder.DEFAULT_CHILDREN_CACHE_PERCENTAGE,
+            label = "NodeState Children Cache",
+            description = "Percentage of cache to be allocated towards Children cache"
+    )
     private static final String PROP_CHILDREN_CACHE_PERCENTAGE = "childrenCachePercentage";
     
-    @Property(intValue = DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE)
+    @Property(intValue = DocumentMK.Builder.DEFAULT_DIFF_CACHE_PERCENTAGE,
+            label = "Diff Cache",
+            description = "Percentage of cache to be allocated towards Diff cache"
+    )
     private static final String PROP_DIFF_CACHE_PERCENTAGE = "diffCachePercentage";
     
-    @Property(intValue = DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE)
+    @Property(intValue = DocumentMK.Builder.DEFAULT_DOC_CHILDREN_CACHE_PERCENTAGE,
+            label = "Document Children Cache",
+            description = "Percentage of cache to be allocated towards Document children cache"
+    )
     private static final String PROP_DOC_CHILDREN_CACHE_PERCENTAGE = "docChildrenCachePercentage";
 
-    @Property(intValue = DEFAULT_OFF_HEAP_CACHE)
     private static final String PROP_OFF_HEAP_CACHE = "offHeapCache";
 
-    @Property(intValue =  DEFAULT_CHANGES_SIZE)
+    @Property(intValue =  DEFAULT_CHANGES_SIZE,
+            label = "Mongo Changes Collection Size (in MB)",
+            description = "With the MongoDB backend, the DocumentNodeStore uses a capped collection to cache the diff. " +
+                    "This value is used to determine the size of that capped collection"
+    )
     private static final String PROP_CHANGES_SIZE = "changesSize";
 
-    @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE)
+    @Property(intValue =  DEFAULT_BLOB_CACHE_SIZE,
+            label = "Blob Cache Size (in MB)",
+            description = "Cache size to store blobs in memory. Used only with default BlobStore " +
+                    "(as per DocumentStore type)"
+    )
     private static final String PROP_BLOB_CACHE_SIZE = "blobCacheSize";
-    
-    @Property(value =  DEFAULT_PERSISTENT_CACHE)
+
+    @Property(value = DEFAULT_PERSISTENT_CACHE,
+            label = "Persistent Cache Config",
+            description = "Configuration for enabling Persistent cache. By default it is not enabled. Refer to " +
+                    "http://jackrabbit.apache.org/oak/docs/nodestore/persistent-cache.html for various options"
+    )
     private static final String PROP_PERSISTENT_CACHE = "persistentCache";
 
-    /**
-     * Boolean value indicating a blobStore is to be used
-     */
+    @Property(boolValue = false,
+            label = "Custom BlobStore",
+            description = "Boolean value indicating that a custom BlobStore is to be used. " +
+                    "By default, for MongoDB, MongoBlobStore is used; for RDB, RDBBlobStore is used."
+    )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     /**
      * Boolean value indicating a different DataSource has to be used for
      * BlobStore
      */
+    @Property(boolValue = false,
+            label = "Custom DataSource",
+            description = "Boolean value indicating that DataSource is configured " +
+                    "separately, and that it should be used"
+    )
     public static final String CUSTOM_BLOB_DATA_SOURCE = "customBlobDataSource";
 
     private static final long MB = 1024 * 1024;
@@ -203,17 +254,34 @@ public class DocumentNodeStoreService {
     /**
      * Blob modified before this time duration would be considered for Blob GC
      */
-    private static final long DEFAULT_BLOB_GC_MAX_AGE = TimeUnit.HOURS.toSeconds(24);
+    private static final long DEFAULT_BLOB_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.HOURS.toSeconds(24);
+    @Property (longValue = DEFAULT_BLOB_GC_MAX_AGE,
+            label = "Blob GC Max Age (in secs)",
+            description = "Blob Garbage Collector (GC) logic will only consider those blobs for GC which " +
+                    "are not accessed recently (currentTime - lastModifiedTime > blobGcMaxAgeInSecs). For " +
+                    "example as per default only those blobs which have been created 24 hrs ago will be " +
+                    "considered for GC"
+    )
     public static final String PROP_BLOB_GC_MAX_AGE = "blobGcMaxAgeInSecs";
     private long blobGcMaxAgeInSecs = DEFAULT_BLOB_GC_MAX_AGE;
 
-    private static final long DEFAULT_MAX_REPLICATION_LAG = TimeUnit.HOURS.toSeconds(6);
+    private static final long DEFAULT_MAX_REPLICATION_LAG = 6 * 60 * 60; //TimeUnit.HOURS.toSeconds(6);
+    @Property(longValue = DEFAULT_MAX_REPLICATION_LAG,
+            label = "Max Replication Lag (in secs)",
+            description = "Value in seconds. Determines the duration beyond which it can be safely assumed " +
+                    "that the state on the secondaries is consistent with the primary, and it is safe to read from them"
+    )
     public static final String PROP_REPLICATION_LAG = "maxReplicationLagInSecs";
     private long maxReplicationLagInSecs = DEFAULT_MAX_REPLICATION_LAG;
 
-    /**
-     * Specifies the type of DocumentStore MONGO, RDB
-     */
+    @Property(options = {
+                @PropertyOption(name = "MONGO", value = "MONGO"),
+                @PropertyOption(name = "RDB", value = "RDB")
+            },
+            value = "MONGO",
+            label = "DocumentStore Type",
+            description = "Type of DocumentStore to use for persistence. Defaults to MONGO"
+    )
     public static final String PROP_DS_TYPE = "documentStoreType";
     private DocumentStoreType documentStoreType;
 
@@ -303,9 +371,9 @@ public class DocumentNodeStoreService {
             if (log.isInfoEnabled()) {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
-                log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, Off Heap Cache size (MB)={}, " +
+                log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
                                 "'changes' collection size (MB)={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
-                        mongoURI.getHosts(), db, cacheSize, offHeapCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
+                        mongoURI.getHosts(), db, cacheSize, persistentCache, changesSize, blobCacheSize, maxReplicationLagInSecs);
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
