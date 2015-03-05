@@ -61,7 +61,7 @@ public class JsopDiff implements NodeStateDiff {
         this(blobs, "/");
     }
 
-    JsopDiff(String path, int depth) {
+    public JsopDiff(String path, int depth) {
         this(new JsopBuilder(), new BlobSerializer(), path, depth);
     }
 
