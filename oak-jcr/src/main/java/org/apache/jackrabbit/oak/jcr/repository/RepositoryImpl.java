@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.jcr.session.RefreshStrategy.Composite;
 import org.apache.jackrabbit.oak.jcr.session.SessionContext;
 import org.apache.jackrabbit.oak.jcr.session.SessionStats;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
+import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
@@ -95,8 +96,9 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final SecurityProvider securityProvider;
     private final int observationQueueLength;
     private final CommitRateLimiter commitRateLimiter;
-
     private final Clock clock;
+    private final DelegatingGCMonitor gcMonitor = new DelegatingGCMonitor();
+    private final Registration gcMonitorRegistration;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -129,6 +131,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.descriptors = determineDescriptors();
         this.statisticManager = new StatisticManager(whiteboard, scheduledExecutor);
         this.clock = new Clock.Fast(scheduledExecutor);
+        this.gcMonitorRegistration = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
     }
 
     //---------------------------------------------------------< Repository >---
@@ -271,7 +274,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             RefreshStrategy refreshStrategy,
             ContentSession contentSession) {
 
-        final RefreshOnGC refreshOnGC = new RefreshOnGC();
+        final RefreshOnGC refreshOnGC = new RefreshOnGC(gcMonitor);
         refreshStrategy = new Composite(refreshStrategy, refreshOnGC);
 
         return new SessionDelegate(
@@ -296,6 +299,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     @Override
     public void shutdown() {
         statisticManager.dispose();
+        gcMonitorRegistration.unregister();
         scheduledExecutor.shutdown();
         if (contentRepository instanceof Closeable) {
             IOUtils.closeQuietly((Closeable) contentRepository);
@@ -436,21 +440,21 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
     }
 
-    private class RefreshOnGC implements RefreshStrategy {
-        private final GCMonitor gcMonitor = new GCMonitor.Empty() {
-            @Override
-            public void compacted() {
-                compacted = true;
-            }
-        };
-
-        private final Registration reg = whiteboard.register(GCMonitor.class, gcMonitor, emptyMap());
-
+    private static class RefreshOnGC extends GCMonitor.Empty implements RefreshStrategy {
+        private final Registration registration;
         private volatile boolean compacted;
-        private int refreshCount;
+
+        public RefreshOnGC(DelegatingGCMonitor gcMonitor) {
+            registration = gcMonitor.registerGCMonitor(this);
+        }
 
         public void close() {
-            reg.unregister();
+            registration.unregister();
+        }
+
+        @Override
+        public void compacted() {
+            compacted = true;
         }
 
         @Override
