@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache.GenerationCache;
-import org.h2.mvstore.MVMapConcurrent;
+import org.h2.mvstore.MVMap;
 import org.h2.mvstore.type.DataType;
 
 import com.google.common.cache.Cache;
@@ -52,7 +52,7 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
         this.type = type;
         this.docNodeStore = docNodeStore;
         this.docStore = docStore;
-        PersistentCache.LOG.info("wrap " + this.type);
+        PersistentCache.LOG.info("wrapping map " + this.type);
         map = new MultiGenerationMap<K, V>();
     }
     
@@ -60,10 +60,10 @@ class NodeCache<K, V> implements Cache<K, V>, GenerationCache {
     public void addGeneration(int generation, boolean readOnly) {
         DataType keyType = new KeyDataType(type);
         DataType valueType = new ValueDataType(docNodeStore, docStore, type);
-        MVMapConcurrent.Builder<K, V> b = new MVMapConcurrent.Builder<K, V>().
+        MVMap.Builder<K, V> b = new MVMap.Builder<K, V>().
                 keyType(keyType).valueType(valueType);
         String mapName = type.name();
-        Map<K, V> m = cache.openMap(generation, mapName, b);
+        CacheMap<K, V> m = cache.openMap(generation, mapName, b);
         map.addReadMap(generation, m);
         if (!readOnly) {
             map.setWriteMap(m);
