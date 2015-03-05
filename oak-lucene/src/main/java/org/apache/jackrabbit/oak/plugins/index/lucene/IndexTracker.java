@@ -92,7 +92,6 @@ class IndexTracker {
                 @Override
                 public void leave(NodeState before, NodeState after) {
                     try {
-                        // TODO: Use DirectoryReader.openIfChanged()
                         IndexNode index = IndexNode.open(path, root, after, cloner);
                         log.debug("Index found to be updated at [{}]. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
@@ -112,8 +111,10 @@ class IndexTracker {
                     .putAll(filterValues(updates, notNull()))
                     .build();
 
-            //TODO This might take some time as close need to acquire the
+            //This might take some time as close need to acquire the
             //write lock which might be held by current running searches
+            //Given that Tracker is now invoked from a BackgroundObserver
+            //not a high concern
             for (String path : updates.keySet()) {
                 IndexNode index = original.get(path);
                 try {
