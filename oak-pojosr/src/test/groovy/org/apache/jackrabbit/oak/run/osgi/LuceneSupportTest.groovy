@@ -33,13 +33,13 @@ import org.junit.Test
 import javax.jcr.Node
 import javax.jcr.Session
 import javax.jcr.query.*
-import java.util.concurrent.TimeUnit
 
 import static com.google.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME
 import static org.apache.jackrabbit.oak.run.osgi.OakOSGiRepositoryFactory.REPOSITORY_CONFIG_FILE
+import static org.junit.Assert.fail
 
 class LuceneSupportTest extends AbstractRepositoryFactoryTest {
     Session session
@@ -65,16 +65,17 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
         session.save()
 
         //The lucene index is set to synched mode
-        TimeUnit.SECONDS.sleep(1)
+        retry(10, 200) {
+            String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
+            assert [ '/myFile/jcr:content' ] as HashSet == execute ( query )
 
-        String query = "SELECT * FROM [nt:base] as f WHERE CONTAINS (f.*, 'dog')"
-        assert ['/myFile/jcr:content'] as HashSet == execute(query)
+            SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
+                    NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
+            getRegistry ( ).registerService ( NodeAggregator.class.name, agg, null )
 
-        SimpleNodeAggregator agg = new SimpleNodeAggregator().newRuleWithName(
-                NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
-        getRegistry().registerService(NodeAggregator.class.name, agg, null)
-
-        assert ["/myFile", '/myFile/jcr:content'] as HashSet == execute(query)
+            assert [ "/myFile", '/myFile/jcr:content' ] as HashSet == execute ( query )
+            return true
+        }
     }
 
     Set<String> execute(String stmt){
@@ -97,12 +98,32 @@ class LuceneSupportTest extends AbstractRepositoryFactoryTest {
                         NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
                         if (!index.hasChildNode("lucene")) {
                             NodeBuilder nb = LuceneIndexHelper.newLuceneIndexDefinition(
-                                    index, "lucene", LuceneIndexHelper.JR_PROPERTY_INCLUDES)
+                                    index, "lucene", LuceneIndexHelper.JR_PROPERTY_INCLUDES, null, "async")
                             nb.setProperty(LuceneIndexConstants.COMPAT_MODE, IndexFormatVersion.V1.getVersion());
                         }
                     }
                 }
             }, null);
         }
+    }
+
+    private static retry(int timeoutSeconds, int intervalBetweenTriesMsec, Closure c) {
+        long timeout = System.currentTimeMillis() + timeoutSeconds * 1000L;
+        while (System.currentTimeMillis() < timeout) {
+            try {
+                if (c.call()) {
+                    return;
+                }
+            } catch (AssertionError ignore) {
+            } catch (Exception ignore) {
+            }
+
+            try {
+                Thread.sleep(intervalBetweenTriesMsec);
+            } catch (InterruptedException ignore) {
+            }
+        }
+
+        fail("RetryLoop failed, condition is false after " + timeoutSeconds + " seconds: ");
     }
 }
