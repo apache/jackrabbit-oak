@@ -422,7 +422,19 @@
         <artifactId>aws-s3</artifactId>
         <version>1.7.0</version>
       </dependency>
-      
+      <dependency>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+        <version>1.2.0</version>
+        <scope>test</scope>
+        <exclusions>
+          <!-- Need to exclude it due to SLING-4470 -->
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
