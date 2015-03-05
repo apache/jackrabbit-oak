@@ -56,6 +56,9 @@ public class RepositoryManager {
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = 1000;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
 
+    //TODO Exposed for testing purpose due to SLING-4472
+    static boolean ignoreFrameworkProperties = false;
+
     private final WhiteboardEditorProvider editorProvider =
             new WhiteboardEditorProvider();
 
@@ -64,8 +67,6 @@ public class RepositoryManager {
 
     private final WhiteboardIndexProvider indexProvider =
             new WhiteboardIndexProvider();
-
-    private final WhiteboardExecutor executor = new WhiteboardExecutor();
 
     private Whiteboard whiteboard;
 
@@ -110,15 +111,16 @@ public class RepositoryManager {
         editorProvider.start(whiteboard);
         indexEditorProvider.start(whiteboard);
         indexProvider.start(whiteboard);
-        executor.start(whiteboard);
         registration = registerRepository(bundleContext);
     }
 
     private static Object prop(Map<String, ?> config, BundleContext bundleContext, String name) {
-        //Prefer framework property first
-        Object value = bundleContext.getProperty(name);
-        if (value != null) {
-            return value;
+        if (!ignoreFrameworkProperties) {
+            //Prefer framework property first
+            Object value = bundleContext.getProperty(name);
+            if (value != null) {
+                return value;
+            }
         }
 
         //Fallback to one from config
@@ -132,7 +134,6 @@ public class RepositoryManager {
             registration.unregister();
         }
 
-        executor.stop();
         indexProvider.stop();
         indexEditorProvider.stop();
         editorProvider.stop();
@@ -147,8 +148,7 @@ public class RepositoryManager {
                 .with(editorProvider)
                 .with(indexEditorProvider)
                 .with(indexProvider)
-                .withAsyncIndexing()
-                .with(executor);
+                .withAsyncIndexing();
 
         if (commitRateLimiter != null) {
             oak.with(commitRateLimiter);
