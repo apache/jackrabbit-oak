@@ -94,6 +94,7 @@ class IndexTracker {
                     try {
                         // TODO: Use DirectoryReader.openIfChanged()
                         IndexNode index = IndexNode.open(path, root, after, cloner);
+                        log.debug("Index found to be updated at [{}]. Reopening the IndexNode", path);
                         updates.put(path, index); // index can be null
                     } catch (IOException e) {
                         log.error("Failed to open Lucene index at " + path, e);
