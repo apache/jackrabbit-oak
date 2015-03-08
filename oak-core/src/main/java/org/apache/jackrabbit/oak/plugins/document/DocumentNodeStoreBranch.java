@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,10 @@ import org.slf4j.LoggerFactory;
  */
 class DocumentNodeStoreBranch implements NodeStoreBranch {
     private static final Logger LOG = LoggerFactory.getLogger(DocumentNodeStoreBranch.class);
+    private static final PerfLogger perfLogger = new PerfLogger(
+            LoggerFactory.getLogger(DocumentNodeStoreBranch.class.getName()
+                    + ".perf"));
+
     private static final ConcurrentMap<Thread, DocumentNodeStoreBranch> BRANCHES = Maps.newConcurrentMap();
     private static final Random RANDOM = new Random();
     private static final long MIN_BACKOFF = 50;
@@ -213,20 +218,18 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
             if (ex != null) {
                 try {
                     numRetries++;
-                    long sleepStart = System.currentTimeMillis();
-                    Thread.sleep(
-                        backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
-                    LOG.debug("Merge - Slept '{}' for retrial {}",
-                            (System.currentTimeMillis() - sleepStart), numRetries);
+                    final long start = perfLogger.start();
+                    Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    perfLogger.end(start, 1, "Merge - Retry attempt [{}]", numRetries);
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(
                             MERGE, 3, "Merge interrupted", e);
                 }
             }
             try {
-                long lockTryStart = System.currentTimeMillis();
+                final long start = perfLogger.start();
                 boolean acquired = mergeLock.readLock().tryLock(maxLockTryTimeMS, MILLISECONDS);
-                LOG.debug("Acquired merge lock in '{}'", (System.currentTimeMillis() - lockTryStart));
+                perfLogger.end(start, 1, "Merge - Acquired lock");
                 try {
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
                 } catch (CommitFailedException e) {
@@ -343,7 +346,6 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
      * <p>
      * See also {@link #withCurrentBranch(Callable)}.
      *
-     * @return
      */
     @CheckForNull
     static DocumentNodeStoreBranch getCurrentBranch() {
