@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
@@ -120,6 +121,7 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
     }
 
+    @Ignore("OAK-2588")
     @Test
     public void testInvalidateCache() {
         String id = this.getClass().getName() + ".testInvalidateCache";
