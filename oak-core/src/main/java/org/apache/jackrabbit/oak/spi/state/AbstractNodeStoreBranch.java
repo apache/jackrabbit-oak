@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 
 import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,9 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends NodeState>
         implements NodeStoreBranch {
     private static final Logger log = LoggerFactory.getLogger(AbstractNodeStoreBranch.class);
+    private static final PerfLogger perfLogger = new PerfLogger(
+            LoggerFactory.getLogger(AbstractNodeStoreBranch.class.getName()
+                    + ".perf"));
 
     private static final Random RANDOM = new Random();
 
@@ -310,20 +314,18 @@ public abstract class AbstractNodeStoreBranch<S extends NodeStore, N extends Nod
             if (ex != null) {
                 try {
                     numRetries++;
-                    long sleepStart = System.currentTimeMillis();
-                    Thread.sleep(
-                        backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
-                    log.debug("Merge - Slept '{}' for retrial {}",
-                        (System.currentTimeMillis() - sleepStart), numRetries);
+                    final long start = perfLogger.start();
+                    Thread.sleep(backoff + RANDOM.nextInt((int) Math.min(backoff, Integer.MAX_VALUE)));
+                    perfLogger.end(start, 1, "Merge - Retry attempt [{}]", numRetries);
                 } catch (InterruptedException e) {
                     throw new CommitFailedException(
                             MERGE, 3, "Merge interrupted", e);
                 }
             }
             try {
-                long lockTryStart = System.currentTimeMillis();
+                final long start = perfLogger.start();
                 boolean acquired = mergeLock.tryLock(maxLockTryTimeMS, MILLISECONDS);
-                log.debug("Acquired merge lock in '{}'", (System.currentTimeMillis() - lockTryStart));
+                perfLogger.end(start, 1, "Merge - Acquired lock");
                 try {
                     return branchState.merge(checkNotNull(hook), checkNotNull(info));
                 } catch (CommitFailedException e) {
