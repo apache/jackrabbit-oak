@@ -88,50 +88,103 @@ import org.slf4j.LoggerFactory;
 /**
  * An OSGi wrapper for the segment node store.
  */
-@Component(policy = ConfigurationPolicy.REQUIRE)
+@Component(policy = ConfigurationPolicy.REQUIRE,
+        metatype = true,
+        label = "Apache Jackrabbit Oak Segment NodeStore Service",
+        description = "NodeStore implementation based on Document model. For configuration option refer " +
+                "to http://jackrabbit.apache.org/oak/docs/osgi_config.html#SegmentNodeStore. Note that for system " +
+                "stability purpose it is advisable to not change these settings at runtime. Instead the config change " +
+                "should be done via file system based config file and this view should ONLY be used to determine which " +
+                "options are supported"
+)
 @Property(name = "oak.nodestore.description", value = {"nodeStoreType=segment"}, propertyPrivate = true)
 public class SegmentNodeStoreService extends ProxyNodeStore
         implements Observable, SegmentStoreProvider {
 
-    @Property(description="The unique name of this instance")
     public static final String NAME = "name";
 
-    @Property(description="TarMK directory")
+    @Property(
+            label = "Directory",
+            description="Directory location used to store the segment tar files. If not specified then looks " +
+                    "for framework property 'repository.home' otherwise use a subdirectory with name 'tarmk'"
+    )
     public static final String DIRECTORY = "repository.home";
 
-    @Property(description="TarMK mode (64 for memory mapping, 32 for normal file access)")
+    @Property(
+            label = "Mode",
+            description="TarMK mode (64 for memory mapping, 32 for normal file access)"
+    )
     public static final String MODE = "tarmk.mode";
 
-    @Property(description="TarMK maximum file size (MB)", intValue=256)
+    @Property(
+            intValue = 256,
+            label = "Maximum Tar File Size (MB)",
+            description = "TarMK maximum file size (MB)"
+    )
     public static final String SIZE = "tarmk.size";
 
-    @Property(description="Cache size (MB)", intValue=256)
+    @Property(
+            intValue = 256,
+            label = "Cache size (MB)",
+            description = "Cache size for storing most recently used Segments"
+    )
     public static final String CACHE = "cache";
 
-    @Property(description = "TarMK compaction clone binaries flag", boolValue = CLONE_BINARIES_DEFAULT)
+    @Property(
+            boolValue = CLONE_BINARIES_DEFAULT,
+            label = "Clone Binaries",
+            description = "Clone the binary segments while performing compaction"
+    )
     public static final String COMPACTION_CLONE_BINARIES = "compaction.cloneBinaries";
 
     @Property(options = {
             @PropertyOption(name = "CLEAN_ALL", value = "CLEAN_ALL"),
             @PropertyOption(name = "CLEAN_NONE", value = "CLEAN_NONE"),
-            @PropertyOption(name = "CLEAN_OLD", value = "CLEAN_OLD") }, value = "CLEAN_OLD")
+            @PropertyOption(name = "CLEAN_OLD", value = "CLEAN_OLD") },
+            value = "CLEAN_OLD",
+            label = "Cleanup Strategy",
+            description = "Cleanup strategy used for live in memory segment references while performing cleanup. "+
+                    "1. CLEAN_NONE: All in memory references are considered valid, " +
+                    "2. CLEAN_OLD: Only in memory references older than a " +
+                    "certain age are considered valid (compaction.cleanup.timestamp), " +
+                    "3. CLEAN_ALL: None of the in memory references are considered valid"
+    )
     public static final String COMPACTION_CLEANUP = "compaction.cleanup";
 
-    @Property(description = "TarMK compaction strategy timestamp older (ms)", longValue = TIMESTAMP_DEFAULT)
+    @Property(
+            longValue = TIMESTAMP_DEFAULT,
+            label = "Reference expiry time (ms)",
+            description = "Time interval in ms beyond which in memory segment references would be ignored " +
+                    "while performing cleanup"
+    )
     public static final String COMPACTION_CLEANUP_TIMESTAMP = "compaction.cleanup.timestamp";
 
-    @Property(description = "TarMK compaction available memory multiplier needed to run compaction", byteValue = MEMORY_THRESHOLD_DEFAULT)
+    @Property(
+            byteValue = MEMORY_THRESHOLD_DEFAULT,
+            label = "Memory Multiplier",
+            description = "TarMK compaction available memory multiplier needed to run compaction"
+    )
     public static final String COMPACTION_MEMORY_THRESHOLD = "compaction.memoryThreshold";
 
-    @Property(description = "TarMK compaction paused flag", boolValue = PAUSE_DEFAULT)
+    @Property(
+            boolValue = PAUSE_DEFAULT,
+            label = "Pause Compaction",
+            description = "When enabled compaction would not be performed"
+    )
     public static final String PAUSE_COMPACTION = "pauseCompaction";
 
-    @Property(description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider", boolValue = false)
+    @Property(
+            boolValue = false,
+            label = "Standby Mode",
+            description = "Flag indicating that this component will not register as a NodeStore but just as a NodeStoreProvider"
+    )
     public static final String STANDBY = "standby";
 
-    /**
-     * Boolean value indicating a blobStore is to be used
-     */
+    @Property(boolValue = false,
+            label = "Custom BlobStore",
+            description = "Boolean value indicating that a custom BlobStore is to be used. " +
+                    "By default large binary content would be stored within segment tar files"
+    )
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
