@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
-import org.junit.Ignore;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
@@ -121,9 +121,11 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
         }
     }
 
-    @Ignore("OAK-2588")
     @Test
     public void testInvalidateCache() {
+        // TODO see OAK-2588
+        Assume.assumeTrue(! super.dsname.contains("Mongo"));
+
         String id = this.getClass().getName() + ".testInvalidateCache";
 
         // remove if present
