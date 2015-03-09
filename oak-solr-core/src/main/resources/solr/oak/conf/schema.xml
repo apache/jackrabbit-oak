@@ -95,18 +95,18 @@
         <fieldType name="pdouble" class="solr.DoubleField"/>
         <fieldType name="pdate" class="solr.DateField" sortMissingLast="true"/>
 
-    <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD" currencyConfig="currency.xml" />
-    <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
-  </types>
-  <fields>
-    <field name="path_exact" type="string" indexed="true" stored="true"/>
-    <field name="path_child" type="children_path" indexed="true" stored="false"/>
-    <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
-    <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
-    <field name="ignored" type="ignored" multiValued="true"/>
-    <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true"/>
-    <field name="_version_" type="long" indexed="true" stored="true"/>
-    <field name=":path" type="string" indexed="true" stored="false"/>
+        <fieldType name="currency" class="solr.CurrencyField" precisionStep="8" defaultCurrency="USD"
+                   currencyConfig="currency.xml"/>
+        <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField"/>
+    </types>
+    <fields>
+        <field name="path_exact" type="string" indexed="true" stored="true"/>
+        <field name="path_child" type="children_path" indexed="true" stored="false"/>
+        <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
+        <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
+        <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
+        <field name=":path" type="string" indexed="true" stored="false" />
+        <field name="_version_" type="long" indexed="true" stored="true"/>
 
     <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
     <dynamicField name="*_is" type="int"    indexed="true"  stored="true"  multiValued="true"/>
