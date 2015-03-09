@@ -732,4 +732,8 @@ public class SelectorImpl extends SourceImpl {
         return this.outerJoinRightHandSide;
     }
 
+    public QueryImpl getQuery() {
+        return query;
+    }
+
 }

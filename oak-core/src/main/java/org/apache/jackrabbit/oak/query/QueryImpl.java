@@ -955,4 +955,8 @@ public class QueryImpl implements Query {
         return settings;
     }
 
+    public ExecutionContext getExecutionContext() {
+        return context;
+    }
+
 }
