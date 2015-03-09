@@ -1171,10 +1171,6 @@
 
         <str name="queryAnalyzerFieldType">text_general</str>
 
-        <!-- Multiple "Spell Checkers" can be declared and used by this
-           component
-        -->
-
         <!-- a spellchecker built from a field of the main index -->
         <lst name="spellchecker">
             <str name="name">default</str>
@@ -1195,22 +1191,12 @@
             <float name="maxQueryFrequency">0.01</float>
         </lst>
 
-        <lst name="spellchecker">
-            <str name="name">wordbreak</str>
-            <str name="classname">solr.WordBreakSolrSpellChecker</str>
-            <str name="field">name</str>
-            <str name="combineWords">true</str>
-            <str name="breakWords">true</str>
-            <int name="maxChanges">10</int>
-        </lst>
-
     </searchComponent>
 
     <requestHandler name="/spellcheck" class="solr.SearchHandler" startup="lazy">
         <lst name="defaults">
             <str name="df">catch_all</str>
             <str name="spellcheck.dictionary">default</str>
-            <str name="spellcheck.dictionary">wordbreak</str>
             <str name="spellcheck">on</str>
             <str name="spellcheck.extendedResults">true</str>
             <str name="spellcheck.count">10</str>
