@@ -107,9 +107,6 @@ class FilterQueryParser {
                                         kv[0] = "spellcheck.q";
                                     }
                                     solrQuery.setParam("spellcheck", true);
-
-                                    // TODO : this should not be always passed to avoid building the dictionary on each spellcheck request
-                                    solrQuery.setParam("spellcheck.build", true);
                                 }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
