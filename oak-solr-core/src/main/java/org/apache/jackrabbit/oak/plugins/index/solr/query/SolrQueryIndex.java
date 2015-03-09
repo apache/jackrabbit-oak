@@ -29,13 +29,12 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.query.QueryImpl;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextExpression;
-import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -64,10 +63,11 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  */
 public class SolrQueryIndex implements FulltextQueryIndex {
 
-    private static final String NATIVE_SOLR_QUERY = "native*solr";
-    private static final String NATIVE_LUCENE_QUERY = "native*lucene";
-
     public static final String TYPE = "solr";
+
+    static final String NATIVE_SOLR_QUERY = "native*solr";
+
+    static final String NATIVE_LUCENE_QUERY = "native*lucene";
 
     private final Logger log = LoggerFactory.getLogger(SolrQueryIndex.class);
 
@@ -77,12 +77,15 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     private final NodeAggregator aggregator;
 
-    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator) {
         this.name = name;
         this.solrServer = solrServer;
         this.configuration = configuration;
-        // TODO this index should support aggregation in the same way as the Lucene index
-        this.aggregator = null;
+        this.aggregator = aggregator;
+    }
+
+    public SolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration) {
+        this(name, solrServer, configuration, null);
     }
 
     @Override
@@ -93,10 +96,14 @@ public class SolrQueryIndex implements FulltextQueryIndex {
     @Override
     public double getCost(Filter filter, NodeState root) {
         // cost is inverse proportional to the number of matching restrictions, infinite if no restriction matches
-        return 10d / getMatchingFilterRestrictions(filter);
+        double cost = 10d / getMatchingFilterRestrictions(filter);
+        if (log.isDebugEnabled()) {
+            log.debug("Solr: cost for {} is {}", name, cost);
+        }
+        return cost;
     }
 
-    private int getMatchingFilterRestrictions(Filter filter) {
+    int getMatchingFilterRestrictions(Filter filter) {
         int match = 0;
 
         // full text expressions OR full text conditions defined
@@ -139,240 +146,10 @@ public class SolrQueryIndex implements FulltextQueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState nodeState) {
-        return getQuery(filter).toString();
+        return FilterQueryParser.getQuery(filter, configuration).toString();
     }
 
-    private SolrQuery getQuery(Filter filter) {
 
-        SolrQuery solrQuery = new SolrQuery();
-        setDefaults(solrQuery);
-
-        StringBuilder queryBuilder = new StringBuilder();
-
-        FullTextExpression ft = filter.getFullTextConstraint();
-        if (ft != null) {
-            queryBuilder.append(getFullTextQuery(ft));
-            queryBuilder.append(' ');
-        } else if (filter.getFulltextConditions() != null) {
-            Collection<String> fulltextConditions = filter.getFulltextConditions();
-            for (String fulltextCondition : fulltextConditions) {
-                queryBuilder.append(fulltextCondition).append(" ");
-            }
-        }
-
-        Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
-        if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
-            for (Filter.PropertyRestriction pr : propertyRestrictions) {
-                if (pr.isNullRestriction()) {
-                    // can not use full "x is null"
-                    continue;
-                }
-                // native query support
-                if (NATIVE_SOLR_QUERY.equals(pr.propertyName) || NATIVE_LUCENE_QUERY.equals(pr.propertyName)) {
-                    String nativeQueryString = String.valueOf(pr.first.getValue(pr.first.getType()));
-                    if (isSupportedHttpRequest(nativeQueryString)) {
-                        // pass through the native HTTP Solr request
-                        String requestHandlerString = nativeQueryString.substring(0, nativeQueryString.indexOf('?'));
-                        if (!"select".equals(requestHandlerString)) {
-                            if (requestHandlerString.charAt(0) != '/') {
-                                requestHandlerString = "/" + requestHandlerString;
-                            }
-                            solrQuery.setRequestHandler(requestHandlerString);
-                        }
-                        String parameterString = nativeQueryString.substring(nativeQueryString.indexOf('?') + 1);
-                        for (String param : parameterString.split("&")) {
-                            String[] kv = param.split("=");
-                            if (kv.length != 2) {
-                                throw new RuntimeException("Unparsable native HTTP Solr query");
-                            } else {
-                                if ("stream.body".equals(kv[0])) {
-                                    kv[0] = "q";
-                                    String mltFlString = "mlt.fl=";
-                                    int mltFlIndex = parameterString.indexOf(mltFlString);
-                                    if (mltFlIndex > -1) {
-                                        int beginIndex = mltFlIndex + mltFlString.length();
-                                        int endIndex = parameterString.indexOf('&', beginIndex);
-                                        String fields;
-                                        if (endIndex > beginIndex) {
-                                            fields = parameterString.substring(beginIndex, endIndex);
-                                        } else {
-                                            fields = parameterString.substring(beginIndex);
-                                        }
-                                        kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
-                                    }
-                                }
-                                solrQuery.setParam(kv[0], kv[1]);
-                            }
-                        }
-                        return solrQuery; // every other restriction is not considered
-                    } else {
-                        queryBuilder.append(nativeQueryString);
-                    }
-                } else {
-                    if (!configuration.useForPropertyRestrictions() // Solr index not used for properties
-                            || pr.propertyName.contains("/") // no child-level property restrictions
-                            || "rep:excerpt".equals(pr.propertyName) // rep:excerpt is handled by the query engine
-                            || configuration.getIgnoredProperties().contains(pr.propertyName) // property is explicitly ignored
-                            ) {
-                        continue;
-                    }
-
-                    String first = null;
-                    if (pr.first != null) {
-                        first = partialEscape(String.valueOf(pr.first.getValue(pr.first.getType()))).toString();
-                    }
-                    String last = null;
-                    if (pr.last != null) {
-                        last = partialEscape(String.valueOf(pr.last.getValue(pr.last.getType()))).toString();
-                    }
-
-                    String prField = configuration.getFieldForPropertyRestriction(pr);
-                    CharSequence fieldName = partialEscape(prField != null ?
-                            prField : pr.propertyName);
-                    if ("jcr\\:path".equals(fieldName.toString())) {
-                        queryBuilder.append(configuration.getPathField());
-                        queryBuilder.append(':');
-                        queryBuilder.append(first);
-                    } else {
-                        if (pr.first != null && pr.last != null && pr.first.equals(pr.last)) {
-                            queryBuilder.append(fieldName).append(':');
-                            queryBuilder.append(first);
-                        } else if (pr.first == null && pr.last == null) {
-                            if (!queryBuilder.toString().contains(fieldName + ":")) {
-                                queryBuilder.append(fieldName).append(':');
-                                queryBuilder.append('*');
-                            }
-                        } else if ((pr.first != null && pr.last == null) || (pr.last != null && pr.first == null) || (!pr.first.equals(pr.last))) {
-                            // TODO : need to check if this works for all field types (most likely not!)
-                            queryBuilder.append(fieldName).append(':');
-                            queryBuilder.append(createRangeQuery(first, last, pr.firstIncluding, pr.lastIncluding));
-                        } else if (pr.isLike) {
-                            // TODO : the current parameter substitution is not expected to work well
-                            queryBuilder.append(fieldName).append(':');
-                            queryBuilder.append(partialEscape(String.valueOf(pr.first.getValue(pr.first.getType())).replace('%', '*').replace('_', '?')));
-                        } else {
-                            throw new RuntimeException("[unexpected!] not handled case");
-                        }
-                    }
-                }
-                queryBuilder.append(" ");
-            }
-        }
-
-        if (configuration.useForPrimaryTypes()) {
-            String[] pts = filter.getPrimaryTypes().toArray(new String[filter.getPrimaryTypes().size()]);
-            for (int i = 0; i < pts.length; i++) {
-                String pt = pts[i];
-                if (i == 0) {
-                    queryBuilder.append("(");
-                }
-                if (i > 0 && i < pts.length) {
-                    queryBuilder.append("OR ");
-                }
-                queryBuilder.append("jcr\\:primaryType").append(':').append(partialEscape(pt)).append(" ");
-                if (i == pts.length - 1) {
-                    queryBuilder.append(")");
-                    queryBuilder.append(' ');
-                }
-            }
-        }
-
-        if (configuration.useForPathRestrictions()) {
-            Filter.PathRestriction pathRestriction = filter.getPathRestriction();
-            if (pathRestriction != null) {
-                String path = purgePath(filter);
-                String fieldName = configuration.getFieldForPathRestriction(pathRestriction);
-                if (fieldName != null) {
-                    queryBuilder.append(fieldName);
-                    queryBuilder.append(':');
-                    queryBuilder.append(path);
-                }
-            }
-        }
-
-        if (queryBuilder.length() == 0) {
-            queryBuilder.append("*:*");
-        }
-        String escapedQuery = queryBuilder.toString();
-        solrQuery.setQuery(escapedQuery);
-
-        if (log.isDebugEnabled()) {
-            log.debug("JCR query {} has been converted to Solr query {}",
-                    filter.getQueryStatement(), solrQuery.toString());
-        }
-
-        return solrQuery;
-    }
-
-    private String getFullTextQuery(FullTextExpression ft) {
-        final StringBuilder fullTextString = new StringBuilder();
-        ft.accept(new FullTextVisitor() {
-
-            @Override
-            public boolean visit(FullTextOr or) {
-                fullTextString.append('(');
-                for (int i = 0; i < or.list.size(); i++) {
-                    if (i > 0 && i < or.list.size()) {
-                        fullTextString.append(" OR ");
-                    }
-                    FullTextExpression e = or.list.get(i);
-                    String orTerm = getFullTextQuery(e);
-                    fullTextString.append(orTerm);
-                }
-                fullTextString.append(')');
-                fullTextString.append(' ');
-                return true;
-            }
-
-            @Override
-            public boolean visit(FullTextAnd and) {
-                fullTextString.append('(');
-                for (int i = 0; i < and.list.size(); i++) {
-                    if (i > 0 && i < and.list.size()) {
-                        fullTextString.append(" AND ");
-                    }
-                    FullTextExpression e = and.list.get(i);
-                    String andTerm = getFullTextQuery(e);
-                    fullTextString.append(andTerm);
-                }
-                fullTextString.append(')');
-                fullTextString.append(' ');
-                return true;
-            }
-
-            @Override
-            public boolean visit(FullTextTerm term) {
-                if (term.isNot()) {
-                    fullTextString.append('-');
-                }
-                String p = term.getPropertyName();
-                if (p != null && p.indexOf('/') >= 0) {
-                    p = getName(p);
-                }
-                if (p == null || "*".equals(p)) {
-                    p = configuration.getCatchAllField();
-                }
-                fullTextString.append(partialEscape(p));
-                fullTextString.append(':');
-                String termText = term.getText();
-                if (termText.indexOf(' ') > 0) {
-                    fullTextString.append('"');
-                }
-                fullTextString.append(termText.replace("/", "\\/").replace(":", "\\:"));
-                if (termText.indexOf(' ') > 0) {
-                    fullTextString.append('"');
-                }
-                String boost = term.getBoost();
-                if (boost != null) {
-                    fullTextString.append('^');
-                    fullTextString.append(boost);
-                }
-                fullTextString.append(' ');
-                return true;
-            }
-        });
-        return fullTextString.toString();
-    }
 
     /**
      * Get the set of relative paths of a full-text condition. For example, for
@@ -407,63 +184,21 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return relPaths;
     }
 
-    private boolean isSupportedHttpRequest(String nativeQueryString) {
-        // the query string starts with ${supported-handler.selector}?
-        return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
-    }
-
-    private void setDefaults(SolrQuery solrQuery) {
-        solrQuery.setParam("q.op", "AND");
-        solrQuery.setParam("fl", configuration.getPathField() + " score");
-        String catchAllField = configuration.getCatchAllField();
-        if (catchAllField != null && catchAllField.length() > 0) {
-            solrQuery.setParam("df", catchAllField);
-        }
-
-        solrQuery.setParam("rows", String.valueOf(configuration.getRows()));
-    }
-
-    private static String createRangeQuery(String first, String last, boolean firstIncluding, boolean lastIncluding) {
-        // TODO : handle inclusion / exclusion of bounds
-        return "[" + (first != null ? first : "*") + " TO " + (last != null ? last : "*") + "]";
-    }
-
-    private static String purgePath(Filter filter) {
-        return partialEscape(filter.getPath()).toString();
-    }
-
-
-    // partially borrowed from SolrPluginUtils#partialEscape
-    private static CharSequence partialEscape(CharSequence s) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' || c == '!' || c == '(' || c == ')' ||
-                    c == ':' || c == '^' || c == '[' || c == ']' || c == '/' ||
-                    c == '{' || c == '}' || c == '~' || c == '*' || c == '?' ||
-                    c == '-' || c == ' ') {
-                sb.append('\\');
-            }
-            sb.append(c);
-        }
-        return sb;
-    }
-
     @Override
-    public Cursor query(final Filter filter, NodeState root) {
+    public Cursor query(final Filter filter, final NodeState root) {
         Cursor cursor;
         try {
-            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint()) : Collections.<String>emptySet();
+            final Set<String> relPaths = filter.getFullTextConstraint() != null ? getRelativePaths(filter.getFullTextConstraint())
+                    : Collections.<String>emptySet();
             final String parent = relPaths.size() == 0 ? "" : relPaths.iterator().next();
 
             final int parentDepth = getDepth(parent);
-
 
             cursor = new SolrRowCursor(new AbstractIterator<SolrResultRow>() {
                 private final Set<String> seenPaths = Sets.newHashSet();
                 private final Deque<SolrResultRow> queue = Queues.newArrayDeque();
                 private SolrDocument lastDoc;
-                public int offset = 0;
+                private int offset = 0;
                 public long numFound = 0;
 
                 @Override
@@ -509,7 +244,7 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                         if (log.isDebugEnabled()) {
                             log.debug("converting filter {}", filter);
                         }
-                        SolrQuery query = getQuery(filter);
+                        SolrQuery query = FilterQueryParser.getQuery(filter, configuration);
                         if (numFound > 0) {
                             offset++;
                             int newOffset = offset * configuration.getRows();
@@ -522,6 +257,8 @@ public class SolrQueryIndex implements FulltextQueryIndex {
                             log.debug("sending query {}", query);
                         }
                         SolrDocumentList docs = solrServer.query(query).getResults();
+
+                        onRetrievedResults(filter, docs);
 
                         if (log.isDebugEnabled()) {
                             log.debug("getting docs {}", docs);
@@ -554,14 +291,32 @@ public class SolrQueryIndex implements FulltextQueryIndex {
         return cursor;
     }
 
+    void onRetrievedResults(Filter filter, SolrDocumentList docs) {
+        // do nothing
+    }
+
+    private boolean exists(SolrResultRow row, NodeState root) {
+        boolean result = true;
+        NodeState nodeState = root;
+        for (String n : PathUtils.elements(row.path)) {
+            if (nodeState.hasChildNode(n)) {
+                nodeState = nodeState.getChildNode(n);
+            }
+            else {
+                result = false;
+                break;
+            }
+        }
+        return result;
+    }
+
     static class SolrResultRow {
         final String path;
         final double score;
-        SolrDocument doc;
+        final SolrDocument doc;
 
         SolrResultRow(String path, double score) {
-            this.path = path;
-            this.score = score;
+            this(path, score, null);
         }
 
 
