@@ -79,6 +79,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
@@ -103,6 +104,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Version;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 import org.slf4j.Logger;
@@ -363,10 +365,24 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                     } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
+
+                        // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        for (SuggestWord suggestWord : suggestWords) {
-                            suggestedWords.add(suggestWord.string);
+                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        for (SuggestWord suggestion : suggestWords) {
+                            Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.string);
+                            TopDocs topDocs = searcher.search(query, 100);
+                            if (topDocs.totalHits > 0) {
+                                for (ScoreDoc doc : topDocs.scoreDocs) {
+                                    Document retrievedDoc = searcher.doc(doc.doc);
+                                    if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
+                                        suggestedWords.add(suggestion.string);
+                                        break;
+                                    }
+                                }
+                            }
                         }
+
                         queue.add(new LuceneResultRow(suggestedWords));
                         noDocs = true;
                     }

@@ -867,8 +867,6 @@
            </arr>
           -->
         <arr name="last-components">
-            <str>mlt</str>
-            <str>spellcheck</str>
         </arr>
     </requestHandler>
 

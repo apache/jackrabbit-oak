@@ -50,4 +50,3 @@ sql1 select * from nt:unstructured
 # not supported currently
 # sql1 select [jcr:path], [jcr:score], * from [nt:base]
 #   where (0 is not null) and isdescendantnode('/testroot')
-
