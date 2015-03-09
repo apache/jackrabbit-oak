@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
