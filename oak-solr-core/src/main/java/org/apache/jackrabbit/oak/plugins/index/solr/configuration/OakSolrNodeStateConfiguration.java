@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;

@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.solr.configuration;
 
 import java.util.Collection;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
