@@ -20,22 +20,18 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Maps.newHashMap;
-import static java.lang.System.arraycopy;
-import static java.util.Arrays.binarySearch;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 import static org.apache.jackrabbit.oak.api.Type.BINARY;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.MEDIUM_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.SMALL_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 import static org.apache.jackrabbit.oak.plugins.segment.Template.MANY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.segment.Template.ZERO_CHILD_NODES;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentVersion.V_11;
 
 import java.util.Formatter;
-import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -50,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * space from aligning records is not accounted for.
  */
 public class RecordUsageAnalyser {
+    private final RecordIdSet seenIds = new RecordIdSet();
+
     private long mapSize;       // leaf and branch
     private long listSize;      // list and bucket
     private long valueSize;     // inlined values
@@ -198,7 +196,7 @@ public class RecordUsageAnalyser {
     }
 
     public void analyseNode(RecordId nodeId) {
-        if (notSeen(nodeId)) {
+        if (seenIds.addIfNotPresent(nodeId)) {
             nodeCount++;
             Segment segment = nodeId.getSegment();
             int offset = nodeId.getOffset();
@@ -278,7 +276,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseTemplate(RecordId templateId) {
-        if (notSeen(templateId)) {
+        if (seenIds.addIfNotPresent(templateId)) {
             templateCount++;
             Segment segment = templateId.getSegment();
             int size = 0;
@@ -337,7 +335,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseMap(RecordId mapId, MapRecord map) {
-        if (notSeen(mapId)) {
+        if (seenIds.addIfNotPresent(mapId)) {
             mapCount++;
             if (map.isDiff()) {
                 analyseDiff(mapId, map);
@@ -383,14 +381,14 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseProperty(RecordId propertyId, PropertyTemplate template) {
-        if (!contains(propertyId)) {
+        if (!seenIds.contains(propertyId)) {
             propertyCount++;
             Segment segment = propertyId.getSegment();
             int offset = propertyId.getOffset();
             Type<?> type = template.getType();
 
             if (type.isArray()) {
-                notSeen(propertyId);
+                seenIds.addIfNotPresent(propertyId);
                 int size = segment.readInt(offset);
                 valueSize += 4;
 
@@ -418,7 +416,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseBlob(RecordId blobId) {
-        if (notSeen(blobId)) {
+        if (seenIds.addIfNotPresent(blobId)) {
             Segment segment = blobId.getSegment();
             int offset = blobId.getOffset();
             byte head = segment.readByte(offset);
@@ -452,7 +450,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseString(RecordId stringId) {
-        if (notSeen(stringId)) {
+        if (seenIds.addIfNotPresent(stringId)) {
             Segment segment = stringId.getSegment();
             int offset = stringId.getOffset();
 
@@ -476,7 +474,7 @@ public class RecordUsageAnalyser {
     }
 
     private void analyseList(RecordId listId, int size) {
-        if (notSeen(listId)) {
+        if (seenIds.addIfNotPresent(listId)) {
             listCount++;
             listSize += noOfListSlots(size) * RECORD_ID_BYTES;
         }
@@ -492,60 +490,6 @@ public class RecordUsageAnalyser {
             } else {
                 return size + noOfListSlots(fullBuckets);
             }
-        }
-    }
-
-    private final Map<String, ShortSet> seenIds = newHashMap();
-
-    private boolean notSeen(RecordId id) {
-        String segmentId = id.getSegmentId().toString();
-        ShortSet offsets = seenIds.get(segmentId);
-        if (offsets == null) {
-            offsets = new ShortSet();
-            seenIds.put(segmentId, offsets);
-        }
-        return offsets.add(crop(id.getOffset()));
-    }
-
-    private boolean contains(RecordId id) {
-        String segmentId = id.getSegmentId().toString();
-        ShortSet offsets = seenIds.get(segmentId);
-        return offsets != null && offsets.contains(crop(id.getOffset()));
-    }
-
-    private static short crop(int value) {
-        return (short) (value >> Segment.RECORD_ALIGN_BITS);
-    }
-
-    static class ShortSet {
-        short[] elements;
-
-        boolean add(short n) {
-            if (elements == null) {
-                elements = new short[1];
-                elements[0] = n;
-                return true;
-            } else {
-                int k = binarySearch(elements, n);
-                if (k < 0) {
-                    int l = -k - 1;
-                    short[] e = new short[elements.length + 1];
-                    arraycopy(elements, 0, e, 0, l);
-                    e[l] = n;
-                    int c = elements.length - l;
-                    if (c > 0) {
-                        arraycopy(elements, l, e, l + 1, c);
-                    }
-                    elements = e;
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        }
-
-        boolean contains(short n) {
-            return elements != null && binarySearch(elements, n) >= 0;
         }
     }
 
