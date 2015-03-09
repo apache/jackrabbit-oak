@@ -94,6 +94,11 @@ class FilterQueryParser {
                                         kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
                                     }
                                 }
+                                if ("mlt.fl".equals(kv[0]) && ":path".equals(kv[1])) {
+                                    // rep:similar passes the path of the node to find similar documents for in the :path
+                                    // but needs its indexed content to find similar documents
+                                    kv[1] = configuration.getCatchAllField();
+                                }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
                         }

@@ -110,7 +110,7 @@
         <field name="path_anc" type="parent_path" indexed="true" stored="false"/>
         <field name="path_des" type="descendent_path" indexed="true" stored="false"/>
         <field name="ignored" type="ignored" />
-        <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true"/>
+        <field name="catch_all" type="text_general" indexed="true" stored="false" multiValued="true" termVectors="true"/> <!-- term vectors used for rep:similar -->
         <field name="_version_" type="long" indexed="true" stored="true"/>
         <field name=":path" type="string" indexed="true" stored="false"/>
 
