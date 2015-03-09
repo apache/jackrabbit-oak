@@ -70,7 +70,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 @Component(metatype = true,
-        label = "CUG Configuration",
+        label = "Apache Jackrabbit Oak CUG Configuration",
         description = "Authorization configuration dedicated to setup and evaluation 'closed user group' permissions.",
         policy = ConfigurationPolicy.REQUIRE)
 @Service({AuthorizationConfiguration.class, SecurityConfiguration.class})
