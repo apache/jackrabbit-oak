@@ -21,6 +21,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -45,9 +46,17 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final OakSolrConfigurationProvider oakSolrConfigurationProvider;
 
-    public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+    private final NodeAggregator aggregator;
+
+    public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider,
+                                  NodeAggregator nodeAggregator) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
+        this.aggregator = nodeAggregator;
+    }
+
+    public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+        this(solrServerProvider, oakSolrConfigurationProvider, null);
     }
 
     @Nonnull
@@ -64,17 +73,15 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
             PropertyState type = definition.getProperty(TYPE_PROPERTY_NAME);
             if (type != null
                     && SolrQueryIndex.TYPE.equals(type.getValue(Type.STRING))) {
-                if (log.isDebugEnabled()) {
-                    log.debug("found a Solr index definition {}", entry.getName());
-                }
                 try {
                     SolrServer solrServer = solrServerProvider.getSolrServer();
                     // the query engine should be returned only if the server is alive, otherwise other indexes should be used
                     if (solrServer != null && 0 == solrServer.ping().getStatus()) {
-                        tempIndexes.add(new SolrQueryIndex(
+                        tempIndexes.add(new AdvancedSolrQueryIndex(
                                 entry.getName(),
                                 solrServer,
-                                oakSolrConfigurationProvider.getConfiguration()));
+                                oakSolrConfigurationProvider.getConfiguration(),
+                                aggregator));
                     }
                     else {
                         if (log.isWarnEnabled()) {

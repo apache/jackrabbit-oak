@@ -72,9 +72,7 @@ public class SolrOakRepositoryStub extends OakTarMKRepositoryStub {
         };
         OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(configuration);
         jcr.with(new SolrIndexInitializer(false))
-                //FIXME OAK-2168 - Enable it again once we do support AggregateIndex and AdvanceQueryIndex
-//                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
-                .with(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider))
+                .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
                 .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
     }
 }

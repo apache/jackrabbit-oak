@@ -256,4 +256,29 @@ public class SolrQueryIndexTest {
         assertNotNull(plan);
         assertTrue(plan.contains("q=name%3Ahello")); // query gets converted to a fielded query on name field
     }
+
+    @Test
+    public void testUnion() throws Exception {
+        NodeState root = mock(NodeState.class);
+        when(root.getNames(any(String.class))).thenReturn(Collections.<String>emptySet());
+        SelectorImpl selector = new SelectorImpl(root, "a");
+        String sqlQuery = "select [jcr:path], [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where" +
+                " isdescendantnode(a, '/content') and contains([jcr:content/*], 'founded') union select [jcr:path]," +
+                " [jcr:score], [rep:excerpt] from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " +
+                "contains([jcr:content/jcr:title], 'founded') union select [jcr:path], [jcr:score], [rep:excerpt]" +
+                " from [nt:hierarchyNode] as a where isdescendantnode(a, '/content') and " +
+                "contains([jcr:content/jcr:description], 'founded') order by [jcr:score] desc";
+        SolrServer solrServer = TestUtils.createSolrServer();
+        OakSolrConfiguration configuration = new DefaultSolrConfiguration() {
+            @Override
+            public boolean useForPropertyRestrictions() {
+                return true;
+            }
+        };
+        SolrQueryIndex solrQueryIndex = new SolrQueryIndex("solr", solrServer, configuration);
+        FilterImpl filter = new FilterImpl(selector, sqlQuery, new QueryEngineSettings());
+        Cursor cursor = solrQueryIndex.query(filter, root);
+        assertNotNull(cursor);
+
+    }
 }
