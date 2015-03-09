@@ -101,7 +101,7 @@ public class AdvancedSolrQueryIndex extends SolrQueryIndex implements QueryIndex
     }
 
     @Override
-    void onRetrievedResults(Filter filter, SolrDocumentList docs) {
+    void onRetrievedDocs(Filter filter, SolrDocumentList docs) {
         // update estimates cache
         cache.put(filter.toString(), docs.getNumFound());
     }

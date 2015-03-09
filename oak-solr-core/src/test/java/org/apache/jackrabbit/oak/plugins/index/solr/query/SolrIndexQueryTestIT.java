@@ -88,6 +88,11 @@ public class SolrIndexQueryTestIT extends AbstractQueryTest {
     }
 
     @Test
+    public void sql1() throws Exception {
+        test("sql1.txt");
+    }
+
+    @Test
     public void sql2() throws Exception {
         test("sql2.txt");
     }

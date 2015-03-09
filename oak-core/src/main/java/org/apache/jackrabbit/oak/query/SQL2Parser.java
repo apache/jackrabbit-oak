@@ -555,6 +555,15 @@ public class SQL2Parser {
             String language = readString().getValue(Type.STRING);
             read(",");
             c = factory.nativeFunction(selectorName, language, parseStaticOperand());
+        } else if ("SPELLCHECK".equalsIgnoreCase(functionName)) {
+            String selectorName;
+            if (currentTokenType == IDENTIFIER) {
+                selectorName = readName();
+                read(",");
+            } else {
+                selectorName = getOnlySelectorName();
+            }
+            c = factory.spellcheck(selectorName, parseStaticOperand());            
         } else {
             return null;
         }
@@ -827,32 +836,43 @@ public class SQL2Parser {
                         }
                         read(")");
                     }
+                    readOptionalAlias(column);
                 } else {                    
                     column.propertyName = readName();
-                    if (readIf(".")) {
+                    if (column.propertyName.equals("rep:spellcheck")) {
+                        if (readIf("(")) {
+                            read(")");
+                            column.propertyName = ":spellcheck";
+                        }
+                        readOptionalAlias(column);                        
+                    } else if (readIf(".")) {
                         column.selectorName = column.propertyName;
                         if (readIf("*")) {
                             column.propertyName = null;
                         } else {
                             column.propertyName = readName();
-                            if (readIf("AS")) {
-                                column.columnName = readName();
-                            } else {
+                            if (!readOptionalAlias(column)) {
                                 column.columnName =
                                         column.selectorName
                                         + "." + column.propertyName;
                             }
                         }
                     } else {
-                        if (readIf("AS")) {
-                            column.columnName = readName();
-                        }
+                        readOptionalAlias(column);
                     }
                 }
                 list.add(column);
             } while (readIf(","));
         }
         return list;
+    }
+    
+    private boolean readOptionalAlias(ColumnOrWildcard column) throws ParseException {
+        if (readIf("AS")) {
+            column.columnName = readName();
+            return true;
+        }
+        return false;
     }
 
     private ColumnImpl[] resolveColumns(ArrayList<ColumnOrWildcard> list) throws ParseException {
