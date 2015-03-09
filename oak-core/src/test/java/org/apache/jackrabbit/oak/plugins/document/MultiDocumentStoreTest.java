@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
@@ -123,10 +122,9 @@ public class MultiDocumentStoreTest extends AbstractMultiDocumentStoreTest {
 
     @Test
     public void testInvalidateCache() {
-        // TODO see OAK-2588
-        Assume.assumeTrue(! super.dsname.contains("Mongo"));
-
-        String id = this.getClass().getName() + ".testInvalidateCache";
+        // use a "proper" ID because otherwise Mongo's cache invalidation will fail
+        // see OAK-2588
+        String id = "1:/" + this.getClass().getName() + ".testInvalidateCache";
 
         // remove if present
         NodeDocument nd = super.ds1.find(Collection.NODES, id);
