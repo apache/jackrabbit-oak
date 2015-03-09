@@ -61,6 +61,7 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.util.BytesRef;
@@ -358,6 +359,10 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                     if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
                         String analyzedPropName = constructAnalyzedPropertyName(pname);
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
+                    }
+
+                    if (pd.useInSpellcheck) {
+                        fields.add(newPropertyField(FieldNames.SPELLCHECK, value, true, false));
                     }
 
                     if (pd.nodeScopeIndex) {

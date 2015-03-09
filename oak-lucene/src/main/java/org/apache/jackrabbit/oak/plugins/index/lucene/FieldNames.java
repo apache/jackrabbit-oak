@@ -54,6 +54,11 @@ public final class FieldNames {
     public static final String FULLTEXT = ":fulltext";
 
     /**
+     * Name of the field that contains the spellcheck index.
+     */
+    public static final String SPELLCHECK = ":spellcheck";
+
+    /**
      * Prefix for all field names that are fulltext indexed by property name.
      */
     public static final String ANALYZED_FIELD_PREFIX = "full:";

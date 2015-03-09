@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
@@ -263,7 +264,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     public Cursor query(final IndexPlan plan, NodeState rootState) {
         final Filter filter = plan.getFilter();
         FullTextExpression ft = filter.getFullTextConstraint();
-        Set<String> relPaths = getRelativePaths(ft);
+        final Set<String> relPaths = getRelativePaths(ft);
         if (relPaths.size() > 1) {
             return new MultiLuceneIndex(filter, rootState, relPaths).query();
         }
@@ -359,10 +360,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                             }
                             lastDocToRecord = doc;
                         }
-                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SuggestWord[]) {
-                        SuggestWord[] intent = (SuggestWord[]) luceneRequestFacade.getLuceneRequest();
-                        Collection<String> suggestedWords = new ArrayList<String>(intent.length);
-                        for (SuggestWord suggestWord : intent) {
+                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
+                        SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
+                        SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
+                        Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
+                        for (SuggestWord suggestWord : suggestWords) {
                             suggestedWords.add(suggestWord.string);
                         }
                         queue.add(new LuceneResultRow(suggestedWords));
@@ -480,10 +482,9 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
             if (query.startsWith("spellcheck?")) {
                 String spellcheckQueryString = query.replace("spellcheck?", "");
                 if (reader != null) {
-                    return new LuceneRequestFacade<SuggestWord[]>(SpellcheckHelper.getSpellcheck(spellcheckQueryString, reader));
+                    return new LuceneRequestFacade<SpellcheckHelper.SpellcheckQuery>(SpellcheckHelper.getSpellcheckQuery(spellcheckQueryString, reader));
                 }
-            }
-            else {
+            } else {
                 try {
                     qs.add(queryParser.parse(query));
                 } catch (ParseException e) {
@@ -1045,7 +1046,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                         return PropertyValues.newDouble(currentRow.score);
                     }
                     if (QueryImpl.REP_SPELLCHECK.equals(columnName)) {
-                        return PropertyValues.newString(currentRow.suggestWords);
+                        return PropertyValues.newString(Iterables.toString(currentRow.suggestWords));
                     }
                     return pathRow.getValue(columnName);
                 }

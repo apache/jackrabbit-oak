@@ -11,28 +11,59 @@ import org.apache.lucene.search.spell.SuggestWord;
  * under the hood.
  */
 public class SpellcheckHelper {
-    public static SuggestWord[] getSpellcheck(String spellcheckQueryString, IndexReader reader) {
-        DirectSpellChecker spellChecker = new DirectSpellChecker();
+    public static SuggestWord[] getSpellcheck(SpellcheckQuery spellcheckQuery) {
         try {
-            String text = null;
-            for (String param : spellcheckQueryString.split("&")) {
-                String[] keyValuePair = param.split("=");
-                if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
-                    throw new RuntimeException("Unparsable native Lucene Spellcheck query: " + spellcheckQueryString);
-                } else {
-                    if ("term".equals(keyValuePair[0])) {
-                        text = keyValuePair[1];
-                    }
+            DirectSpellChecker spellChecker = new DirectSpellChecker();
+            return spellChecker.suggestSimilar(spellcheckQuery.getTerm(), spellcheckQuery.getCount(), spellcheckQuery.getReader());
+        } catch (Exception e) {
+            throw new RuntimeException("could not handle Spellcheck query " + spellcheckQuery, e);
+        }
+    }
+
+    public static SpellcheckQuery getSpellcheckQuery(String spellcheckQueryString, IndexReader reader) {
+        String text = null;
+        for (String param : spellcheckQueryString.split("&")) {
+            String[] keyValuePair = param.split("=");
+            if (keyValuePair.length != 2 || keyValuePair[0] == null || keyValuePair[1] == null) {
+                throw new RuntimeException("Unparsable native Lucene Spellcheck query: " + spellcheckQueryString);
+            } else {
+                if ("term".equals(keyValuePair[0])) {
+                    text = keyValuePair[1];
                 }
             }
-            if (text != null) {
-                return spellChecker.suggestSimilar(new Term(FieldNames.FULLTEXT, text), 10, reader);
-            } else {
-                return new SuggestWord[0];
-            }
+        }
+        return new SpellcheckHelper.SpellcheckQuery(new Term(FieldNames.SPELLCHECK, text), 10, reader);
+    }
 
-        } catch (Exception e) {
-            throw new RuntimeException("could not handle Spellcheck query " + spellcheckQueryString);
+    public static class SpellcheckQuery {
+        private final Term term;
+        private final int count;
+        private final IndexReader reader;
+
+        public SpellcheckQuery(Term term, int count, IndexReader reader) {
+            this.term = term;
+            this.count = count;
+            this.reader = reader;
+        }
+
+        public Term getTerm() {
+            return term;
+        }
+
+        public int getCount() {
+            return count;
+        }
+
+        public IndexReader getReader() {
+            return reader;
+        }
+
+        @Override
+        public String toString() {
+            return "SpellcheckQuery{" +
+                    "term=" + term +
+                    ", count=" + count +
+                    '}';
         }
     }
 }

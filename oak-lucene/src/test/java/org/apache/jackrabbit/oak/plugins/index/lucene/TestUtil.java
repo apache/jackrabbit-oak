@@ -86,6 +86,7 @@ public class TestUtil {
         prop.setProperty(LuceneIndexConstants.PROP_NODE_SCOPE_INDEX, true);
         prop.setProperty(LuceneIndexConstants.PROP_ANALYZED, true);
         prop.setProperty(LuceneIndexConstants.PROP_USE_IN_EXCERPT, true);
+        prop.setProperty(LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, true);
         return prop;
     }
 
