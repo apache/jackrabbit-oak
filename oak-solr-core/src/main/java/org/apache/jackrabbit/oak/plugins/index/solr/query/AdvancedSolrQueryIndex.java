@@ -40,17 +40,13 @@ public class AdvancedSolrQueryIndex extends SolrQueryIndex implements QueryIndex
 
     private static final Map<String, Long> cache = new WeakHashMap<String, Long>();
 
-    private final OakSolrConfiguration configuration;
     private final SolrServer solrServer;
-    private final NodeAggregator aggregator;
     private final String name;
 
     public AdvancedSolrQueryIndex(String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeAggregator aggregator) {
         super(name, solrServer, configuration, aggregator);
         this.name = name;
-        this.configuration = configuration;
         this.solrServer = solrServer;
-        this.aggregator = aggregator;
     }
 
     @Override
@@ -114,11 +110,6 @@ public class AdvancedSolrQueryIndex extends SolrQueryIndex implements QueryIndex
     @Override
     public Cursor query(IndexPlan plan, NodeState rootState) {
         return super.query(plan.getFilter(), rootState);
-    }
-
-    @Override
-    public NodeAggregator getNodeAggregator() {
-        return aggregator;
     }
 
     @Override
