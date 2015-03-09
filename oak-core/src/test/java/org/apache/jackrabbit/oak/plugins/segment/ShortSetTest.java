@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.plugins.segment.RecordUsageAnalyser.ShortSet;
+import org.apache.jackrabbit.oak.plugins.segment.RecordIdSet.ShortSet;
 import org.junit.Test;
 
 public class ShortSetTest {
