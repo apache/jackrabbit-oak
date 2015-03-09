@@ -257,6 +257,7 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 if (log.isTraceEnabled()){
                     log.trace("Indexed document for {} is {}", path, d);
                 }
+                context.indexUpdate();
                 context.getWriter().updateDocument(newPathTerm(path), d);
                 return true;
             }
@@ -343,7 +344,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
         boolean includeTypeForFullText = indexingRule.includePropertyType(property.getType().tag());
         if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
-            this.context.indexUpdate();
             fields.addAll(newBinary(property, state, null, path + "@" + pname));
             return true;
         }  else {
@@ -355,7 +355,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
             if (pd.fulltextEnabled() && includeTypeForFullText) {
                 for (String value : property.getValue(Type.STRINGS)) {
-                    this.context.indexUpdate();
                     if (pd.analyzed && pd.includePropertyType(property.getType().tag())) {
                         String analyzedPropName = constructAnalyzedPropertyName(pname);
                         fields.add(newPropertyField(analyzedPropName, value, !pd.skipTokenization(pname), pd.stored));
@@ -398,7 +397,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
             }
 
-            this.context.indexUpdate();
             fields.add(f);
             fieldAdded = true;
         }
@@ -444,7 +442,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 }
 
                 if (f != null) {
-                    this.context.indexUpdate();
                     fields.add(f);
                     fieldAdded = true;
                 }
@@ -623,7 +620,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
 
             if (Type.BINARY == property.getType()) {
                 String aggreagtedNodePath = PathUtils.concat(path, result.nodePath);
-                this.context.indexUpdate();
                 //Here the fulltext is being created for aggregate root hence nodePath passed
                 //should be null
                 String nodePath = result.isRelativeNode() ? result.rootIncludePath : null;
@@ -640,7 +636,6 @@ public class LuceneIndexEditor implements IndexEditor, Aggregate.AggregateRoot {
                 }
 
                 for (String value : property.getValue(Type.STRINGS)) {
-                    this.context.indexUpdate();
                     Field field = result.isRelativeNode() ?
                             newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
                     if (pd != null) {
