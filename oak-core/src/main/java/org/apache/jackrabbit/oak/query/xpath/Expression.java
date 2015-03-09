@@ -544,7 +544,38 @@ abstract class Expression {
             return false;
         }
     
-    } 
+    }
+
+    /**
+     * A rep:spellcheck condition.
+     */
+    static class Spellcheck extends Expression {
+
+        final Expression term;
+
+        Spellcheck(Expression term) {
+            this.term = term;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buff = new StringBuilder("spellcheck(");
+            buff.append(term);
+            buff.append(')');
+            return buff.toString();
+        }
+
+        @Override
+        boolean isCondition() {
+            return true;
+        }
+
+        @Override
+        boolean isName() {
+            return false;
+        }
+
+    }
 
     /**
      * A function call.

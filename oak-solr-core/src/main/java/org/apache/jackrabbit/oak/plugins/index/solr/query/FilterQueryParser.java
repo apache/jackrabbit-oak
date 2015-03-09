@@ -78,26 +78,38 @@ class FilterQueryParser {
                             if (kv.length != 2) {
                                 throw new RuntimeException("Unparsable native HTTP Solr query");
                             } else {
-                                if ("stream.body".equals(kv[0])) {
-                                    kv[0] = "q";
-                                    String mltFlString = "mlt.fl=";
-                                    int mltFlIndex = parameterString.indexOf(mltFlString);
-                                    if (mltFlIndex > -1) {
-                                        int beginIndex = mltFlIndex + mltFlString.length();
-                                        int endIndex = parameterString.indexOf('&', beginIndex);
-                                        String fields;
-                                        if (endIndex > beginIndex) {
-                                            fields = parameterString.substring(beginIndex, endIndex);
-                                        } else {
-                                            fields = parameterString.substring(beginIndex);
+                                // more like this
+                                if ("/mlt".equals(requestHandlerString)) {
+                                    if ("stream.body".equals(kv[0])) {
+                                        kv[0] = "q";
+                                        String mltFlString = "mlt.fl=";
+                                        int mltFlIndex = parameterString.indexOf(mltFlString);
+                                        if (mltFlIndex > -1) {
+                                            int beginIndex = mltFlIndex + mltFlString.length();
+                                            int endIndex = parameterString.indexOf('&', beginIndex);
+                                            String fields;
+                                            if (endIndex > beginIndex) {
+                                                fields = parameterString.substring(beginIndex, endIndex);
+                                            } else {
+                                                fields = parameterString.substring(beginIndex);
+                                            }
+                                            kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
                                         }
-                                        kv[1] = "_query_:\"{!dismax qf=" + fields + " q.op=OR}" + kv[1] + "\"";
+                                    }
+                                    if ("mlt.fl".equals(kv[0]) && ":path".equals(kv[1])) {
+                                        // rep:similar passes the path of the node to find similar documents for in the :path
+                                        // but needs its indexed content to find similar documents
+                                        kv[1] = configuration.getCatchAllField();
                                     }
                                 }
-                                if ("mlt.fl".equals(kv[0]) && ":path".equals(kv[1])) {
-                                    // rep:similar passes the path of the node to find similar documents for in the :path
-                                    // but needs its indexed content to find similar documents
-                                    kv[1] = configuration.getCatchAllField();
+                                if ("/spellcheck".equals(requestHandlerString)) {
+                                    if ("term".equals(kv[0])) {
+                                        kv[0] = "spellcheck.q";
+                                    }
+                                    solrQuery.setParam("spellcheck", true);
+
+                                    // TODO : this should not be always passed to avoid building the dictionary on each spellcheck request
+                                    solrQuery.setParam("spellcheck.build", true);
                                 }
                                 solrQuery.setParam(kv[0], kv[1]);
                             }
@@ -285,7 +297,7 @@ class FilterQueryParser {
 
     private static boolean isSupportedHttpRequest(String nativeQueryString) {
         // the query string starts with ${supported-handler.selector}?
-        return nativeQueryString.matches("(mlt|query|select|get)\\\\?.*");
+        return nativeQueryString.matches("(spellcheck|mlt|query|select|get)\\\\?.*");
     }
 
     private static void setDefaults(SolrQuery solrQuery, OakSolrConfiguration configuration) {

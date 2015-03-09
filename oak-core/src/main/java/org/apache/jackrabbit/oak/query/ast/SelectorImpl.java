@@ -620,6 +620,8 @@ public class SelectorImpl extends SourceImpl {
             result = currentRow.getValue(QueryImpl.JCR_SCORE);
         } else if (oakPropertyName.equals(QueryImpl.REP_EXCERPT)) {
             result = currentRow.getValue(QueryImpl.REP_EXCERPT);
+        } else if (oakPropertyName.equals(QueryImpl.REP_SPELLCHECK)) {
+            result = currentRow.getValue(QueryImpl.REP_SPELLCHECK);
         } else {
             result = PropertyValues.create(t.getProperty(oakPropertyName));
         }
