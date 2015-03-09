@@ -157,6 +157,22 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         return ignoredProperties;
     }
 
+    @Nonnull
+    @Override
+    public Collection<String> getUsedProperties() {
+        Collection<String> usedProperties;
+        Iterable<String> usedPropertiesValues = getStringValuesFor(Properties.USED_PROPERTIES);
+        if (usedPropertiesValues != null) {
+            usedProperties = new LinkedList<String>();
+            for (String usedProperty : usedPropertiesValues) {
+                usedProperties.add(usedProperty);
+            }
+        } else {
+            usedProperties = Collections.emptyList();
+        }
+        return usedProperties;
+    }
+
     private boolean getBooleanValueFor(String propertyName, boolean defaultValue) {
         boolean value = defaultValue;
         NodeState configurationNodeState = getConfigurationNodeState();
@@ -240,5 +256,6 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         public static final String IGNORED_PROPERTIES = "ignoredProperties";
         public static final String TYPE_MAPPINGS = "typeMappings";
         public static final String PROPERTY_MAPPINGS = "propertyMappings";
+        public static final String USED_PROPERTIES = "usedProperties";
     }
 }

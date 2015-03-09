@@ -102,11 +102,7 @@ class FilterQueryParser {
                         queryBuilder.append(nativeQueryString);
                     }
                 } else {
-                    if (!configuration.useForPropertyRestrictions() // Solr index not used for properties
-                            || pr.propertyName.contains("/") // no child-level property restrictions
-                            || "rep:excerpt".equals(pr.propertyName) // rep:excerpt is handled by the query engine
-                            || configuration.getIgnoredProperties().contains(pr.propertyName) // property is explicitly ignored
-                            ) {
+                    if (SolrQueryIndex.isIgnoredProperty(pr.propertyName, configuration)) {
                         continue;
                     }
 
