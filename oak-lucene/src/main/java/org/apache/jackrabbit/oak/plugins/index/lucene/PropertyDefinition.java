@@ -80,6 +80,8 @@ class PropertyDefinition {
 
     final boolean relative;
 
+    final boolean useInSpellcheck;
+
     final String[] ancestors;
 
     /**
@@ -113,6 +115,7 @@ class PropertyDefinition {
         this.nullCheckEnabled = getOptionalValue(defn, LuceneIndexConstants.PROP_NULL_CHECK_ENABLED, false);
         this.nonRelativeName = determineNonRelativeName();
         this.ancestors = computeAncestors(name);
+        this.useInSpellcheck = getOptionalValue(defn, LuceneIndexConstants.PROP_USE_IN_SPELLCHECK, false);
         validate();    }
 
 
@@ -174,6 +177,7 @@ class PropertyDefinition {
                 ", analyzed=" + analyzed +
                 ", ordered=" + ordered +
                 ", nullCheckEnabled=" + nullCheckEnabled+
+                ", useInSpellcheck=" + useInSpellcheck+
                 '}';
     }
 

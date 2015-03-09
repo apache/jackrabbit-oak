@@ -198,4 +198,9 @@ public interface LuceneIndexConstants {
      * enabled for this property
      */
     String PROP_NULL_CHECK_ENABLED = "nullCheckEnabled";
+
+    /**
+     * whether use this property values for spellchecking
+     */
+    String PROP_USE_IN_SPELLCHECK = "useInSpellcheck";
 }
