@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.tree.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.PerfLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,10 @@ import org.slf4j.LoggerFactory;
  * by node instead of tracking them down to individual properties.
  */
 public abstract class NodeObserver implements Observer {
+
+    private static final PerfLogger PERF_LOGGER = new PerfLogger(
+            LoggerFactory.getLogger(NodeObserver.class.getName()
+                    + ".perf"));
     private static final Logger LOG = LoggerFactory.getLogger(NodeObserver.class);
 
     private final String path;
@@ -120,6 +125,7 @@ public abstract class NodeObserver implements Observer {
     public void contentChanged(@Nonnull NodeState root, @Nullable CommitInfo info) {
         if (previousRoot != null) {
             try {
+                long start = PERF_LOGGER.start();
                 NamePathMapper namePathMapper = new NamePathMapperImpl(
                         new GlobalNameMapper(RootFactory.createReadOnlyRoot(root)));
 
@@ -155,6 +161,9 @@ public abstract class NodeObserver implements Observer {
                 while (!generator.isDone()) {
                     generator.generate();
                 }
+                PERF_LOGGER.end(start, 10,
+                        "Generated events (before: {}, after: {})",
+                        previousRoot, root);
             } catch (Exception e) {
                 LOG.warn("Error while dispatching observation events", e);
             }
