@@ -37,6 +37,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,8 +50,10 @@ import java.util.concurrent.TimeoutException;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.observation.Event;
@@ -111,6 +114,8 @@ public class ObservationTest extends AbstractRepositoryTest {
         ntMgr.registerNodeType(mixTest, false);
 
         Node n = session.getRootNode().addNode(TEST_NODE);
+        n.setProperty("test_property1", 42);
+        n.setProperty("test_property2", "forty_two");
         n.addMixin(TEST_TYPE);
         Node refNode = n.addNode(REFERENCEABLE_NODE);
         refNode.addMixin(JcrConstants.MIX_REFERENCEABLE);
@@ -957,6 +962,66 @@ public class ObservationTest extends AbstractRepositoryTest {
         assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
     }
 
+    @Test
+    public void propertyValue() throws RepositoryException, ExecutionException, InterruptedException {
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
+        try {
+            Node n = getNode(TEST_PATH);
+            n.setProperty("added", 42);
+            listener.expectValue(null, n.getProperty("added").getValue());
+
+            Value before = n.getProperty("test_property1").getValue();
+            n.getProperty("test_property1").setValue(43);
+            listener.expectValue(before, n.getProperty("test_property1").getValue());
+
+            before = n.getProperty("test_property2").getValue();
+            n.getProperty("test_property2").remove();
+            listener.expectValue(before, null);
+            getAdminSession().save();
+
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        }
+        finally {
+            observationManager.removeEventListener(listener);
+        }
+    }
+
+    @Test
+    public void propertyValues() throws RepositoryException, ExecutionException, InterruptedException {
+        Node n = getNode(TEST_PATH);
+        n.setProperty("toChange", new String[]{"one", "two"}, PropertyType.STRING);
+        n.setProperty("toDelete", new String[]{"three", "four"}, PropertyType.STRING);
+        getAdminSession().save();
+
+        ExpectationListener listener = new ExpectationListener();
+        observationManager.addEventListener(listener, ALL_EVENTS, "/", true, null, null, false);
+        try {
+            n.setProperty("added", new String[]{"five", "six"}, PropertyType.STRING);
+            listener.expectValues(null, n.getProperty("added").getValues());
+
+            Value[] before = n.getProperty("toChange").getValues();
+            n.getProperty("toChange").setValue(new String[]{"1", "2"});
+            listener.expectValues(before, n.getProperty("toChange").getValues());
+
+            before = n.getProperty("toDelete").getValues();
+            n.getProperty("toDelete").remove();
+            listener.expectValues(before, null);
+            getAdminSession().save();
+
+            List<Expectation> missing = listener.getMissing(TIME_OUT, TimeUnit.SECONDS);
+            assertTrue("Missing events: " + missing, missing.isEmpty());
+            List<Event> unexpected = listener.getUnexpected();
+            assertTrue("Unexpected events: " + unexpected, unexpected.isEmpty());
+        }
+        finally {
+            observationManager.removeEventListener(listener);
+        }
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {
@@ -1085,6 +1150,26 @@ public class ObservationTest extends AbstractRepositoryTest {
                             equal(dst, event.getPath()) &&
                             equal(src, event.getInfo().get("srcAbsPath")) &&
                             equal(dst, event.getInfo().get("destAbsPath"));
+                }
+            });
+        }
+
+        public void expectValue(final Value before, final Value after) {
+            expect(new Expectation("Before value " + before + " after value " + after) {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    return equal(before, event.getInfo().get("beforeValue")) &&
+                           equal(after, event.getInfo().get("afterValue"));
+                }
+            });
+        }
+
+        public void expectValues(final Value[] before, final Value[] after) {
+            expect(new Expectation("Before valuse " + before + " after values " + after) {
+                @Override
+                public boolean onEvent(Event event) throws Exception {
+                    return Arrays.equals(before, (Object[])event.getInfo().get("beforeValue")) &&
+                           Arrays.equals(after, (Object[]) event.getInfo().get("afterValue"));
                 }
             });
         }
