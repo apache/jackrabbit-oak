@@ -71,6 +71,7 @@
       <!-- Observation -->
       org.apache.jackrabbit.test.api.observation.NodeRemovedTest#testMultiNodesRemoved  <!-- OAK-1459 -->
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove       <!-- OAK-1459 -->
+      org.apache.jackrabbit.test.api.observation.GetInfoTest#testPropertyAdded          <!--OAK-2262-->
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved  <!-- Move in 2nd session not reflected in nodes of 1st session -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove          <!-- Uses SNS -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName           <!-- Uses SNS -->
