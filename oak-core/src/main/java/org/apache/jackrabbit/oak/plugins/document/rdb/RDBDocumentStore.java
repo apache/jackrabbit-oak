@@ -230,13 +230,13 @@ public class RDBDocumentStore implements DocumentStore {
     @Override
     public <T extends Document> void remove(Collection<T> collection, String id) {
         delete(collection, id);
-        invalidateCache(collection, id);
+        invalidateCache(collection, id, true);
     }
 
     @Override
     public <T extends Document> void remove(Collection<T> collection, List<String> ids) {
         for (String id : ids) {
-            invalidateCache(collection, id);
+            invalidateCache(collection, id, true);
         }
         delete(collection, ids);
     }
@@ -263,19 +263,37 @@ public class RDBDocumentStore implements DocumentStore {
 
     @Override
     public CacheInvalidationStats invalidateCache() {
-        nodesCache.invalidateAll();
+        for (NodeDocument nd : nodesCache.asMap().values()) {
+            nd.markUpToDate(0);
+        }
         return null;
     }
 
     @Override
     public <T extends Document> void invalidateCache(Collection<T> collection, String id) {
+        invalidateCache(collection, id, false);
+    }
+
+    private <T extends Document> void invalidateCache(Collection<T> collection, String id, boolean remove) {
         if (collection == Collection.NODES) {
-            Lock lock = getAndLock(id);
-            try {
-                nodesCache.invalidate(new StringValue(id));
-            } finally {
-                lock.unlock();
+            invalidateNodesCache(id, remove);
+        }
+    }
+
+    private void invalidateNodesCache(String id, boolean remove) {
+        StringValue key = new StringValue(id);
+        Lock lock = getAndLock(id);
+        try {
+            if (remove) {
+                nodesCache.invalidate(key);
+            } else {
+                NodeDocument entry = nodesCache.getIfPresent(key);
+                if (entry != null) {
+                    entry.markUpToDate(0);
+                }
             }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -680,37 +698,48 @@ public class RDBDocumentStore implements DocumentStore {
                 // first try without lock
                 doc = nodesCache.getIfPresent(cacheKey);
                 if (doc != null) {
-                    if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - doc.getLastCheckTime() < maxCacheAge) {
-                        return castAsT(unwrap(doc));
+                    long lastCheckTime = doc.getLastCheckTime();
+                    if (lastCheckTime != 0) {
+                        if (maxCacheAge == Integer.MAX_VALUE || System.currentTimeMillis() - lastCheckTime < maxCacheAge) {
+                            return castAsT(unwrap(doc));
+                        }
                     }
                 }
             }
             try {
                 Lock lock = getAndLock(id);
-                final NodeDocument cachedDoc = doc;
                 try {
+                    // caller really wants the cache to be cleared
                     if (maxCacheAge == 0) {
-                        invalidateCache(collection, id);
+                        invalidateNodesCache(id, true);
+                        doc = null;
                     }
-                    while (true) {
-                        doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
-                            @Override
-                            public NodeDocument call() throws Exception {
-                                NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
-                                if (doc != null) {
-                                    doc.seal();
-                                }
-                                return wrap(doc);
+                    final NodeDocument cachedDoc = doc;
+                    doc = nodesCache.get(cacheKey, new Callable<NodeDocument>() {
+                        @Override
+                        public NodeDocument call() throws Exception {
+                            NodeDocument doc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                            if (doc != null) {
+                                doc.seal();
                             }
-                        });
-                        if (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE) {
-                            break;
+                            return wrap(doc);
                         }
-                        if (System.currentTimeMillis() - doc.getLastCheckTime() < maxCacheAge) {
-                            break;
+                    });
+                    // inspect the doc whether it can be used
+                    long lastCheckTime = doc.getLastCheckTime();
+                    if (lastCheckTime != 0 && (maxCacheAge == 0 || maxCacheAge == Integer.MAX_VALUE)) {
+                        // we either just cleared the cache or the caller does
+                        // not care;
+                    } else if (lastCheckTime != 0 && (System.currentTimeMillis() - lastCheckTime < maxCacheAge)) {
+                        // is new enough
+                    } else {
+                        // need to at least revalidate
+                        NodeDocument ndoc = (NodeDocument) readDocumentUncached(collection, id, cachedDoc);
+                        if (ndoc != null) {
+                            ndoc.seal();
                         }
-                        // too old: invalidate, try again
-                        invalidateCache(collection, id);
+                        doc = wrap(ndoc);
+                        nodesCache.put(cacheKey, doc);
                     }
                 } finally {
                     lock.unlock();
