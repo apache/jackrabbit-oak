@@ -20,6 +20,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 public interface IndexUpdateCallback {
 
+    /**
+     * Invoked by the {@link org.apache.jackrabbit.oak.plugins.index.IndexEditor} for every NodeState
+     * indexed it.
+     */
     void indexUpdate() throws CommitFailedException;
 
 }
