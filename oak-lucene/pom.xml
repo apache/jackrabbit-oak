@@ -107,6 +107,7 @@
             </Export-Package>
             <Import-Package>
                 org.apache.lucene.sandbox.*;resolution:=optional,
+                !org.apache.lucene.*,
                 *
             </Import-Package>
             <Embed-Dependency>
