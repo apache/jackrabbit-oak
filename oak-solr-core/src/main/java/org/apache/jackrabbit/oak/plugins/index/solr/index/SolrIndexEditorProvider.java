@@ -69,10 +69,10 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
                     OakSolrConfiguration configuration = new OakSolrNodeStateConfiguration(nodeState);
                     SolrServerConfigurationProvider configurationProvider = new NodeStateSolrServerConfigurationProvider(definition.getChildNode("server").getNodeState());
                     SolrServer solrServer = new OakSolrServer(configurationProvider);
-                    editor = getEditor(configuration, solrServer, callback, definition);
+                    editor = getEditor(configuration, solrServer, callback);
                 } else { // otherwise use the default configuration providers (e.g. defined via code or OSGi)
                     OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
-                    editor = getEditor(configuration, solrServerProvider.getIndexingSolrServer(), callback, definition);
+                    editor = getEditor(configuration, solrServerProvider.getIndexingSolrServer(), callback);
                 }
             } catch (Exception e) {
                 log.warn("could not get Solr index editor from {}", definition.getNodeState(), e);
@@ -86,16 +86,14 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
     }
 
     private SolrIndexEditor getEditor(OakSolrConfiguration configuration, SolrServer solrServer,
-                                      IndexUpdateCallback callback, NodeBuilder definition) {
+                                      IndexUpdateCallback callback) {
         SolrIndexEditor editor = null;
         try {
-            if (solrServer != null && 0 == solrServer.ping().getStatus()) {
-                editor = new SolrIndexEditor(
-                        solrServer,
-                        configuration, callback);
+            if (solrServer != null) {
+                editor = new SolrIndexEditor(solrServer, configuration, callback);
             } else {
                 if (log.isWarnEnabled()) {
-                    log.warn("no SolrServer provided, cannot index {}", definition);
+                    log.warn("no SolrServer provided, cannot perform indexing");
                 }
             }
         } catch (Exception e) {

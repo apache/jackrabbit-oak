@@ -106,8 +106,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private void addQueryIndex(List<QueryIndex> tempIndexes, String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeState definition) {
         try {
-            // the query engine should be returned only if the server is alive, otherwise other indexes should be used
-            if (solrServer != null && 0 == solrServer.ping().getStatus()) {
+            if (solrServer != null) {
                 LMSEstimator estimator;
                 synchronized (estimators) {
                     estimator = estimators.get(definition);
@@ -123,7 +122,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
                         aggregator, estimator));
             } else {
                 if (log.isWarnEnabled()) {
-                    log.warn("cannot create Solr query index as SolrServer {} is unreachable", solrServer);
+                    log.warn("cannot create Solr query index as SolrServer is null");
                 }
             }
         } catch (Exception e) {
