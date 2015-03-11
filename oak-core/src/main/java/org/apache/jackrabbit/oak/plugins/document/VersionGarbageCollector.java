@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -108,6 +109,8 @@ public class VersionGarbageCollector {
         } finally {
             Utils.closeIfCloseable(itr);
         }
+
+        Collections.sort(docIdsToDelete, PathComparator.INSTANCE);
 
         if(log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Deleted document with following ids were deleted as part of GC \n");
