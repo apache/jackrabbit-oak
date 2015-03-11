@@ -561,8 +561,17 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     }
 
     @Test
-    public void testPerfReadBigDoc() {
-        String id = this.getClass().getName() + ".testReadBigDoc";
+    public void testPerfReadBigDocCached() {
+        perfReadBigDoc(true, this.getClass().getName() + ".testReadBigDocCached");
+    }
+
+    @Test
+    public void testPerfReadBigDocAfterInvalidate() {
+        perfReadBigDoc(false, this.getClass().getName() + ".testReadBigDocAfterInvalidate");
+    }
+
+    private void perfReadBigDoc(boolean cached, String name) {
+        String id = name;
         long duration = 1000;
         int cnt = 0;
 
@@ -577,12 +586,15 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
         long end = System.currentTimeMillis() + duration;
         while (System.currentTimeMillis() < end) {
-            NodeDocument d = super.ds.find(Collection.NODES, id, 10); // allow 10ms old entries
+            if (!cached) {
+                super.ds.invalidateCache(Collection.NODES, id);
+            }
+            NodeDocument d = super.ds.find(Collection.NODES, id, 10);
             cnt += 1;
         }
 
-        LOG.info("big doc read from " + super.dsname + " was "
-                + cnt + " in " + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
+        LOG.info("big doc read " + (cached ? "" : "(after invalidate) ") + "from " + super.dsname + " was " + cnt + " in "
+                + duration + "ms (" + (cnt / (duration / 1000f)) + "/s)");
     }
 
     @Test
