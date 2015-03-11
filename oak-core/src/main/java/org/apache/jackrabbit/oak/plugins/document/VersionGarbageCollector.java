@@ -110,7 +110,7 @@ public class VersionGarbageCollector {
             Utils.closeIfCloseable(itr);
         }
 
-        Collections.sort(docIdsToDelete, PathComparator.INSTANCE);
+        Collections.sort(docIdsToDelete, NodeDocumentIdComparator.INSTANCE);
 
         if(log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Deleted document with following ids were deleted as part of GC \n");
