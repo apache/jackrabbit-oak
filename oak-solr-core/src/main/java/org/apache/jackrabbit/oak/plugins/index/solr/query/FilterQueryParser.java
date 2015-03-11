@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.Collection;
+import java.util.List;
+import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextAnd;
@@ -25,6 +27,7 @@ import org.apache.jackrabbit.oak.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.query.fulltext.FullTextVisitor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +42,7 @@ class FilterQueryParser {
 
     private static final Logger log = LoggerFactory.getLogger(FilterQueryParser.class);
 
-    static SolrQuery getQuery(Filter filter, OakSolrConfiguration configuration) {
+    static SolrQuery getQuery(Filter filter, List<QueryIndex.OrderEntry> sortOrder, OakSolrConfiguration configuration) {
 
         SolrQuery solrQuery = new SolrQuery();
         setDefaults(solrQuery, configuration);
@@ -54,6 +57,24 @@ class FilterQueryParser {
             Collection<String> fulltextConditions = filter.getFulltextConditions();
             for (String fulltextCondition : fulltextConditions) {
                 queryBuilder.append(fulltextCondition).append(" ");
+            }
+        }
+
+        if (sortOrder != null) {
+            for (QueryIndex.OrderEntry orderEntry : sortOrder) {
+                SolrQuery.ORDER order;
+                if (QueryIndex.OrderEntry.Order.ASCENDING.equals(orderEntry.getOrder())) {
+                    order = SolrQuery.ORDER.asc;
+                } else {
+                    order = SolrQuery.ORDER.desc;
+                }
+                String sortingField;
+                if ("jcr:path".equals(orderEntry.getPropertyName())) {
+                    sortingField = configuration.getPathField();
+                } else {
+                    sortingField = getSortingField(orderEntry.getPropertyType().tag(), orderEntry.getPropertyName());
+                }
+                solrQuery.addOrUpdateSort(partialEscape(sortingField).toString(), order);
             }
         }
 
@@ -209,6 +230,21 @@ class FilterQueryParser {
         }
 
         return solrQuery;
+    }
+
+    private static String getSortingField(int tag, String s) {
+//        switch (tag) {
+//            case PropertyType.LONG:
+//                return s+"_long_sort";
+//            case PropertyType.DATE:
+//                return s+"_date_sort";
+//            case PropertyType.DOUBLE:
+//                return s+"_double_sort";
+//            case PropertyType.STRING:
+//                return s+"_string_sort";
+//            default:
+                return s+"_string_sort";
+//        }
     }
 
     private static CharSequence partialEscape(CharSequence s) {
