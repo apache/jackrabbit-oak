@@ -238,23 +238,60 @@ public class SolrIndexEditor implements IndexEditor {
                 // try to get the field to use for this property from configuration
                 String fieldName = configuration.getFieldNameFor(property.getType());
                 if (fieldName != null) {
-                    inputDocument.addField(
-                            fieldName, property.getValue(property.getType()));
+                    Object value = property.getValue(property.getType());
+                    inputDocument.addField(fieldName, value);
+                    // add sort field
+                    inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), value);
                 } else {
                     if (Type.BINARY.tag() == property.getType().tag()) {
-                        inputDocument.addField(property.getName(), extractTextValues(property, state));
-                    } else if (property.isArray()) { // or fallback to adding propertyName:stringValue(s)
-                        for (String s : property.getValue(Type.STRINGS)) {
-                            inputDocument.addField(property.getName(), s);
+                        List<String> value = extractTextValues(property, state);
+                        inputDocument.addField(property.getName(), value);
+                        StringBuilder builder = new StringBuilder();
+                        for (String v : value) {
+                            if (builder.length() > 0) {
+                                builder.append(',');
+                            }
+                            builder.append(v);
                         }
+                        // add sort field
+                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), builder.toString());
+                    } else if (property.isArray()) { // or fallback to adding propertyName:stringValue(s)
+                        Iterable<String> strings = property.getValue(Type.STRINGS);
+                        StringBuilder builder = new StringBuilder();
+                        for (String s : strings) {
+                            inputDocument.addField(property.getName(), s);
+                            if (builder.length() > 0) {
+                                builder.append(',');
+                            }
+                            builder.append(s);
+                        }
+                        // add sort field
+                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), builder.toString());
                     } else {
-                        inputDocument.addField(
-                                property.getName(), property.getValue(Type.STRING));
+                        String value = property.getValue(Type.STRING);
+                        inputDocument.addField(property.getName(), value);
+                        // add sort field
+                        inputDocument.addField(getSortingField(property.getType().tag(), property.getName()), value);
                     }
                 }
             }
         }
         return inputDocument;
+    }
+
+    private String getSortingField(int tag, String s) {
+//        switch (tag) {
+//            case PropertyType.LONG:
+//                return s+"_long_sort";
+//            case PropertyType.DATE:
+//                return s+"_date_sort";
+//            case PropertyType.DOUBLE:
+//                return s+"_double_sort";
+//            case PropertyType.STRING:
+//                return s+"_string_sort";
+//            default:
+                return s+"_string_sort";
+//        }
     }
 
     private List<String> extractTextValues(

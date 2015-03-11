@@ -18,10 +18,15 @@ package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.NodeAggregator;
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -48,8 +53,10 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
 
     private final NodeAggregator aggregator;
 
-    public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider,
-                                  NodeAggregator nodeAggregator) {
+    private final Map<NodeState, LMSEstimator> estimators = new WeakHashMap<NodeState, LMSEstimator>();
+
+    public SolrQueryIndexProvider(@Nonnull SolrServerProvider solrServerProvider, @Nonnull OakSolrConfigurationProvider oakSolrConfigurationProvider,
+                                  @Nullable NodeAggregator nodeAggregator) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
         this.aggregator = nodeAggregator;
@@ -64,9 +71,6 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     public List<? extends QueryIndex> getQueryIndexes(NodeState nodeState) {
 
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
-        if (solrServerProvider == null || oakSolrConfigurationProvider == null) {
-            return tempIndexes;
-        }
         NodeState definitions = nodeState.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
             NodeState definition = entry.getNodeState();
@@ -74,20 +78,8 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
             if (type != null
                     && SolrQueryIndex.TYPE.equals(type.getValue(Type.STRING))) {
                 try {
-                    SolrServer solrServer = solrServerProvider.getSolrServer();
-                    // the query engine should be returned only if the server is alive, otherwise other indexes should be used
-                    if (solrServer != null && 0 == solrServer.ping().getStatus()) {
-                        tempIndexes.add(new AdvancedSolrQueryIndex(
-                                entry.getName(),
-                                solrServer,
-                                oakSolrConfigurationProvider.getConfiguration(),
-                                aggregator));
-                    }
-                    else {
-                        if (log.isWarnEnabled()) {
-                            log.warn("cannot create Solr query index as SolrServer {} is unreachable", solrServer);
-                        }
-                    }
+                        OakSolrConfiguration configuration = oakSolrConfigurationProvider.getConfiguration();
+                        addQueryIndex(tempIndexes, entry.getName(), solrServerProvider.getSearchingSolrServer(), configuration, definition);
                 } catch (Exception e) {
                     if (log.isErrorEnabled()) {
                         log.error("unable to create Solr query index at " + entry.getName(), e);
@@ -97,6 +89,39 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
             }
         }
         return tempIndexes;
+    }
+
+    private boolean isPersistedConfiguration(NodeState definition) {
+        return definition.hasChildNode("server");
+    }
+
+    private void addQueryIndex(List<QueryIndex> tempIndexes, String name, SolrServer solrServer, OakSolrConfiguration configuration, NodeState definition) {
+        try {
+            // the query engine should be returned only if the server is alive, otherwise other indexes should be used
+            if (solrServer != null && 0 == solrServer.ping().getStatus()) {
+                LMSEstimator estimator;
+                synchronized (estimators) {
+                    estimator = estimators.get(definition);
+                    if (estimator == null) {
+                        estimator = new LMSEstimator();
+                        estimators.put(definition, estimator);
+                    }
+                }
+                tempIndexes.add(new SolrQueryIndex(
+                        name,
+                        solrServer,
+                        configuration,
+                        aggregator, estimator));
+            } else {
+                if (log.isWarnEnabled()) {
+                    log.warn("cannot create Solr query index as SolrServer {} is unreachable", solrServer);
+                }
+            }
+        } catch (Exception e) {
+            if (log.isErrorEnabled()) {
+                log.error("unable to create Solr query index at " + name, e);
+            }
+        }
     }
 
 }

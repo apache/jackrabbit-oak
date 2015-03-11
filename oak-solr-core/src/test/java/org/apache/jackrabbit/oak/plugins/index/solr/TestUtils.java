@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 
 import java.io.File;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.DefaultSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
@@ -89,6 +92,19 @@ public class TestUtils
         return solrServer;
     }
 
+    @CheckForNull
+    @Override
+    public SolrServer getIndexingSolrServer() throws Exception {
+        return solrServer;
+    }
+
+    @CheckForNull
+    @Override
+    public SolrServer getSearchingSolrServer() throws Exception {
+        return solrServer;
+    }
+
+    @Nonnull
     @Override
     public OakSolrConfiguration getConfiguration() {
         return configuration;

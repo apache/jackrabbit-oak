@@ -59,7 +59,7 @@ public class SolrIndexEditorProvider implements IndexEditorProvider {
         if (SolrQueryIndex.TYPE.equals(type)
                 && isConfigurationOk()) {
             try {
-              SolrServer solrServer = solrServerProvider.getSolrServer();
+              SolrServer solrServer = solrServerProvider.getIndexingSolrServer();
               if (solrServer != null) {
                   return new SolrIndexEditor(
                         definition,
