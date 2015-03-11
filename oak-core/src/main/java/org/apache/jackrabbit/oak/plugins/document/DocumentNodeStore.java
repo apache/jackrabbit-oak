@@ -982,7 +982,7 @@ public final class DocumentNodeStore
                 tracker.track(path);
             }
         }
-        if (isNew) {
+        if (isNew && !added.isEmpty()) {
             DocumentNodeState.Children c = new DocumentNodeState.Children();
             Set<String> set = Sets.newTreeSet();
             for (String p : added) {
@@ -1271,7 +1271,7 @@ public final class DocumentNodeStore
         }
         boolean useReadRevision = true;
         // first lookup with read revisions of nodes and without loader
-        String jsop = diffCache.getChanges(base.getRevision(), 
+        String jsop = diffCache.getChanges(base.getRevision(),
                 node.getRevision(), node.getPath(), null);
         if (jsop == null) {
             useReadRevision = false;
