@@ -26,6 +26,12 @@ Query Indices are defined under the `oak:index` node.
 
 ### Compatibility
 
+#### Result Size
+
+For NodeIterator.getSize(), some versions of Jackrabbit 2.x returned the estimated (raw)
+Lucene result set size, including nodes that are not accessible. 
+Oak does not do this; it either returns the correct result size, or -1.
+
 #### Quoting
 
 The query parser is now generally more strict about invalid syntax.
