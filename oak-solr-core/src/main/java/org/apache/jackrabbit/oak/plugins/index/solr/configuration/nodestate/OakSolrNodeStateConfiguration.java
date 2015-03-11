@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -158,7 +159,7 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
                 ignoredProperties.add(ignoredProperty);
             }
         } else {
-            ignoredProperties = Collections.emptyList();
+            ignoredProperties = Arrays.asList(SolrServerConfigurationDefaults.IGNORED_PROPERTIES);
         }
         return ignoredProperties;
     }
