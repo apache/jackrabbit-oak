@@ -247,8 +247,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getIgnoredProperties() {
-                    if (usedProperties != null && usedProperties.length > 0) {
-                        return Arrays.asList(usedProperties);
+                    if (ignoredProperties != null && ignoredProperties.length > 0) {
+                        return Arrays.asList(ignoredProperties);
                     } else {
                         return Collections.emptyList();
                     }
@@ -257,7 +257,11 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 @Nonnull
                 @Override
                 public Collection<String> getUsedProperties() {
-                    return Arrays.asList(usedProperties);
+                    if (usedProperties != null && usedProperties.length > 0) {
+                        return Arrays.asList(usedProperties);
+                    } else {
+                        return Collections.emptyList();
+                    }
                 }
             };
         }
