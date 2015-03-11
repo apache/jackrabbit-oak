@@ -97,8 +97,8 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     @Property(boolValue = DEFAULT_PRIMARY_TYPES_RESTRICTIONS, label = "primary types restrictions")
     private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
 
-    @Property(value = SolrServerConfigurationDefaults.IGNORED_PROPERTIES, label = "ignored properties",
-            unbounded = PropertyUnbounded.ARRAY)
+    @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"},
+            label = "ignored properties", unbounded = PropertyUnbounded.ARRAY)
     private static final String IGNORED_PROPERTIES = "ignored.properties";
 
     @Property(value = {}, label = "used properties",
