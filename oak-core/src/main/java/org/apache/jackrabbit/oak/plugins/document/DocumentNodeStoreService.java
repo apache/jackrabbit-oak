@@ -245,7 +245,14 @@ public class DocumentNodeStoreService {
     /**
      * Revisions older than this time would be garbage collected
      */
-    private static final long DEFAULT_VER_GC_MAX_AGE = TimeUnit.DAYS.toSeconds(1);
+    private static final long DEFAULT_VER_GC_MAX_AGE = 24 * 60 * 60; //TimeUnit.DAYS.toSeconds(1);
+    @Property (longValue = DEFAULT_VER_GC_MAX_AGE,
+            label = "Version GC Max Age (in secs)",
+            description = "Version Garbage Collector (GC) logic will only consider those deleted for GC which " +
+                    "are not accessed recently (currentTime - lastModifiedTime > versionGcMaxAgeInSecs). For " +
+                    "example as per default only those document which have been *marked* deleted 24 hrs ago will be " +
+                    "considered for GC. This also applies how older revision of live document are GC."
+    )
     public static final String PROP_VER_GC_MAX_AGE = "versionGcMaxAgeInSecs";
     private long versionGcMaxAgeInSecs = DEFAULT_VER_GC_MAX_AGE;
 
