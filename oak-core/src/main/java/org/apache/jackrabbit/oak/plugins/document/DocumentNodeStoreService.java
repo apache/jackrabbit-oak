@@ -574,7 +574,11 @@ public class DocumentNodeStoreService {
         RevisionGC revisionGC = new RevisionGC(new Runnable() {
             @Override
             public void run() {
-                store.getVersionGarbageCollector().gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+                try {
+                    store.getVersionGarbageCollector().gc(versionGcMaxAgeInSecs, TimeUnit.SECONDS);
+                } catch (IOException e) {
+                    log.warn("Error occurred while executing the Version Garbage Collector", e);
+                }
             }
         }, executor);
         registrations.add(registerMBean(whiteboard, RevisionGCMBean.class, revisionGC,
