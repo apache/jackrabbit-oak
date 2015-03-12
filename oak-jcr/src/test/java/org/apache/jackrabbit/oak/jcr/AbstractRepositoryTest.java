@@ -61,7 +61,7 @@ public abstract class AbstractRepositoryTest {
     private Session adminSession;
 
     /**
-     * The system property "ns-fixtures" can be used to provide a
+     * The system property "nsfixtures" can be used to provide a
      * whitespace-separated list of fixtures names for which the
      * tests should be run (the default is to use all fixtures).
      */

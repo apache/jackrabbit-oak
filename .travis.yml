@@ -17,8 +17,8 @@ install:  true
 env:
   - PROFILE=pedantic
   - PROFILE=unittesting
-  - PROFILE=integrationTesting FIXTURES="-Dns-fixtures=SEGMENT_MK" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
-  - PROFILE=integrationTesting FIXTURES="-Dns-fixtures=DOCUMENT_MK,DOCUMENT_NS,DOCUMENT_RDB" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
+  - PROFILE=integrationTesting FIXTURES="-Dnsfixtures=SEGMENT_MK" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
+  - PROFILE=integrationTesting FIXTURES="-Dnsfixtures=DOCUMENT_MK,DOCUMENT_NS,DOCUMENT_RDB" SUREFIRE_SKIP="-Dsurefire.skip.ut=true"
 script:   "mvn verify -P${PROFILE} ${FIXTURES} ${SUREFIRE_SKIP}"
 language: java
 jdk:
