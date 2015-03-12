@@ -59,6 +59,7 @@
     <slf4j.version>1.7.6</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.1.0</logback.version>
     <h2.version>1.4.182</h2.version>
+    <findbugs.version>3.0.0</findbugs.version>
 
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -207,7 +208,6 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
-            <version>2.5.3</version>
           </plugin>
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
         <!-- settings only. It has no influence on the Maven build itself. -->
@@ -525,6 +525,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>findbugs-maven-plugin</artifactId>
+            <version>${findbugs.version}</version>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
@@ -634,6 +635,16 @@
       <id>coverage</id>
       <properties>
         <skip.coverage>false</skip.coverage>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>findbugs-jdk6</id>
+      <activation>
+        <jdk>1.6</jdk>
+      </activation>
+      <properties>
+        <findbugs.version>2.5.5</findbugs.version>
       </properties>
     </profile>
   </profiles>
