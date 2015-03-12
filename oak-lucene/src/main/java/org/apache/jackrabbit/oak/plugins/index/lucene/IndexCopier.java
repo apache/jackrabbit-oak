@@ -270,10 +270,22 @@ class IndexCopier implements CopyOnReadStatsMBean {
                     ImmutableSet.copyOf(remote.listAll())
             );
 
-            for (String fileName : filesToBeDeleted){
-                local.deleteFile(fileName);
+            Set<String> failedToDelete = Sets.newHashSet();
+
+            for (String fileName : filesToBeDeleted) {
+                try {
+                    local.deleteFile(fileName);
+                } catch (IOException e) {
+                    failedToDelete.add(fileName);
+                    log.debug("Error occurred while removing deleted file {} from Local {} ", fileName, local, e);
+                }
             }
 
+            log.info("Error occurred while deleting following files from the local index directory [{}]. " +
+                    "This can happen on Windows based system. Attempt would be made to remove them " +
+                    "in next attempt ", local, failedToDelete);
+
+            filesToBeDeleted.removeAll(failedToDelete);
             if(!filesToBeDeleted.isEmpty()) {
                 log.debug("Following files have been removed from Lucene " +
                         "index directory [{}]", filesToBeDeleted);
