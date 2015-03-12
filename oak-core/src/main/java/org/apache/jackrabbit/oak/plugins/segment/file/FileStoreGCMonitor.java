@@ -102,7 +102,7 @@ public class FileStoreGCMonitor implements GCMonitor, GCMonitorMBean, Runnable {
     public void cleaned(long reclaimed, long current) {
         lastCleanup = clock.getTime();
         gcCount.getCounter().addAndGet(1);
-        repositorySize.getCounter().addAndGet(current);
+        repositorySize.getCounter().set(current);
         reclaimedSize.getCounter().addAndGet(reclaimed);
     }
 
