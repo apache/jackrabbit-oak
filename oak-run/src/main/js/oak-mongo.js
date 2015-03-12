@@ -396,10 +396,104 @@ var oak = (function(global){
      * @param {string} path the path of the document.
      * @param {boolean} [verbose=false] if true, the result object will contain a list
      *        of dangling references to previous documents.
+     * @param {boolean} [ignorePathLen=false] whether to ignore a long path and
+     *        still try to read it from MongoDB.
      * @returns {object} the result of the check.
      */
-    api.checkHistory = function(path, verbose) {
-        return checkOrFixHistory(path, false, verbose);
+    api.checkHistory = function(path, verbose, ignorePathLen) {
+        return checkOrFixHistory(path, false, verbose, ignorePathLen);
+    };
+
+    /**
+     * Lists the descendant documents at a given path.
+     *
+     * @memberof oak
+     * @method listDescendants
+     * @param {string} path list the descendants of the document with this path.
+     */
+    api.listDescendants = function(path) {
+        if (path === undefined) {
+            return null;
+        }
+        var numDescendants = 0;
+        print("Listing descendants for "+path);
+        this.forEachChild(path, function(aChild) {
+            print(api.pathFromId(aChild._id));
+            numDescendants++;
+        });
+        print("Found " + numDescendants + " descendants");
+    };
+
+    /**
+     * Lists the children at a given path.
+     *
+     * @memberof oak
+     * @method listChildren
+     * @param {string} path list the children of the document with this path.
+     */
+    api.listChildren = function(path) {
+        if (path === undefined) {
+            return null;
+        }
+        var numChildren = 0;
+        print("Listing children for "+path);
+        var prefix;
+        if (path == "/") {
+            prefix = path;
+        } else {
+            prefix = path + "/";
+        }
+        db.nodes.find({_id: pathFilter(pathDepth(path) + 1, prefix)}).forEach(function(doc) {
+            print(api.pathFromId(doc._id));
+            numChildren++;
+        });
+        print("Found " + numChildren + " children");
+    };
+
+    /**
+     * Same as checkHistory except it goes through ALL descendants as well!
+     *
+     * @memberof oak
+     * @method checkDeepHistory
+     * @param {string} path the path of the document.
+     * @param {boolean} [verbose=false] if true, the result object will contain a list
+     *        of dangling references to previous documents.
+     */
+    api.checkDeepHistory = function(path, verbose) {
+        checkOrFixDeepHistory(path, false, false, verbose);
+    };
+
+    /**
+     * Preparation step which scans through all descendants and prints out
+     * 'fixHistory' for those that need fixing of their 'dangling references'.
+     * <p>
+     * See fixHistory for parameter details.
+     * <p>
+     * Run this command via something as follows:
+     * <p>
+     *  mongo &lt;DBNAME> -eval "load('oak-mongo.js'); oak.prepareDeepHistory('/');" > fix.js
+     *
+     * @memberof oak
+     * @method prepareDeepHistory
+     * @param {string} path the path of a document.
+     * @param {boolean} [verbose=false] if true, the result object will contain a list
+     *        of dangling references to previous documents.
+     */
+    api.prepareDeepHistory = function(path, verbose) {
+        checkOrFixDeepHistory(path, false, true, verbose);
+    };
+
+    /**
+     * Same as fixHistory except it goes through ALL descendants as well!
+     *
+     * @memberof oak
+     * @method fixDeepHistory
+     * @param {string} path the path of the document.
+     * @param {boolean} [verbose=false] if true, the result object will contain a list
+     *        of removed references to previous documents.
+     */
+    api.fixDeepHistory = function(path, verbose) {
+        checkOrFixDeepHistory(path, true, false, verbose);
     };
 
     /**
@@ -415,12 +509,12 @@ var oak = (function(global){
      * @returns {object} the result of the fix.
      */
     api.fixHistory = function(path, verbose) {
-        return checkOrFixHistory(path, true, verbose);
+        return checkOrFixHistory(path, true, verbose, true);
     };
 
     /**
      * Returns the commit value entry for the change with the given revision.
-     * *
+     *
      * @memberof oak
      * @method getCommitValue
      * @param {string} path the path of a document.
@@ -462,7 +556,57 @@ var oak = (function(global){
     };
     
     //~--------------------------------------------------< internal >
-    
+
+    var checkOrFixDeepHistory = function(path, fix, prepare, verbose) {
+        if (prepare) {
+            // not issuing any header at all
+        } else if (fix) {
+            print("Fixing   "+path+" plus all descendants...");
+        } else {
+            print("Checking "+path+" plus all descendants...");
+        }
+        var count = 0;
+        var ignored = 0;
+        var affected = 0;
+        api.forEachChild(path, function(aChild) {
+            var p = api.pathFromId(aChild._id);
+            var result = checkOrFixHistory(p, fix, verbose, true);
+            if (result) {
+                if (prepare) {
+                    var numDangling = result.numPrevLinksDangling;
+                    if (numDangling!=0) {
+                        print("oak.fixHistory('"+p+"');");
+                        affected++;
+                    }
+                } else if (fix) {
+                    var numDangling = result.numPrevLinksRemoved;
+                    if (numDangling!=0) {
+                        print(" - path: "+p+" removed "+numDangling+" dangling previous revisions");
+                        affected++;
+                    }
+                } else {
+                    var numDangling = result.numPrevLinksDangling;
+                    if (numDangling!=0) {
+                        print(" - path: "+p+" has "+numDangling+" dangling previous revisions");
+                        affected++;
+                    }
+                }
+                if (!prepare && (++count%10000==0)) {
+                    print("[checked "+count+" so far ("+affected+" affected, "+ignored+" ignored) ...]");
+                }
+            } else {
+                if (!prepare) {
+                    print(" - could not handle "+p);
+                }
+                ignored++;
+            }
+        });
+        if (!prepare) {
+            print("Total: "+count+" handled, "+affected+" affected, "+ignored+" ignored (path too long)");
+            print("done.");
+        }
+    };
+
     var getRevisionEntry = function (doc, path, revision) {
         var entry = getEntry(doc, "_revisions", revision);
         if (entry) {
@@ -538,12 +682,12 @@ var oak = (function(global){
         return result;
     };
 
-    var checkOrFixHistory = function(path, fix, verbose) {
+    var checkOrFixHistory = function(path, fix, verbose, ignorePathLen) {
         if (path === undefined) {
             print("No path specified");
             return;
         }
-        if (path.length > 165) {
+        if (!ignorePathLen && (path.length > 165)) {
             print("Path too long");
             return;
         }
