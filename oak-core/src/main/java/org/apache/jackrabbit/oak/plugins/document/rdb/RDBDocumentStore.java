@@ -366,7 +366,7 @@ public class RDBDocumentStore implements DocumentStore {
     /**
      * Defines variation in the capabilities of different RDBs.
      */
-    enum DB {
+    protected enum DB {
         DEFAULT("default") {
         },
 
