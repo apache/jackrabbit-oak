@@ -208,16 +208,17 @@ public class StringSort implements Closeable {
         public void close() throws IOException {
             Closer closer = Closer.create();
             try {
-                closer.register(writer);
-                for (CloseableIterator citr : openedIterators) {
-                    closer.register(citr);
-                }
+                //Closing is done in LIFO manner!
                 closer.register(new Closeable() {
                     @Override
                     public void close() throws IOException {
                         FileUtils.deleteDirectory(workDir);
                     }
                 });
+                closer.register(writer);
+                for (CloseableIterator citr : openedIterators) {
+                    closer.register(citr);
+                }
             } finally {
                 closer.close();
             }
