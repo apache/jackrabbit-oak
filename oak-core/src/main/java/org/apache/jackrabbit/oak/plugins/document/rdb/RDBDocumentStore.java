@@ -416,9 +416,15 @@ public class RDBDocumentStore implements DocumentStore {
 
         MSSQL("Microsoft SQL Server") {
             @Override
+            public boolean isPrimaryColumnByteEncoded() {
+                // TODO: we should dynamically detect this
+                return true;
+            }
+
+            @Override
             public String getTableCreationStatement(String tableName) {
                 // see https://issues.apache.org/jira/browse/OAK-2395
-                return ("create table " + tableName + " (ID nvarchar(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
+                return ("create table " + tableName + " (ID varbinary(512) not null primary key, MODIFIED bigint, HASBINARY smallint, DELETEDONCE smallint, MODCOUNT bigint, CMODCOUNT bigint, DSIZE bigint, DATA nvarchar(4000), BDATA varbinary(max))");
             }
 
             @Override
