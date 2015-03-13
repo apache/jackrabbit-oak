@@ -27,6 +27,7 @@ import java.util.TreeMap;
 import java.util.zip.GZIPInputStream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -122,8 +123,9 @@ public class RDBDocumentSerializer {
             }
             appendString(sb, key.getName());
             sb.append(",");
-            if (key.getRevision() != null) {
-                appendString(sb, key.getRevision().toString());
+            Revision rev = key.getRevision();
+            if (rev != null) {
+                appendString(sb, rev.toString());
                 sb.append(",");
             }
             appendValue(sb, op.value);
@@ -226,7 +228,7 @@ public class RDBDocumentSerializer {
                 if (!blobInUse) {
                     throw new DocumentStoreException("did not expect \"blob\" here: " + row.getData());
                 }
-                if (!json.getToken().equals("blob")) {
+                if (!"blob".equals(json.getToken())) {
                     throw new DocumentStoreException("expected string literal \"blob\"");
                 }
             } else {
@@ -329,7 +331,7 @@ public class RDBDocumentSerializer {
         }
     }
 
-    @Nonnull
+    @Nullable
     private static Object readValueFromJson(@Nonnull JsopTokenizer json) {
         switch (json.read()) {
             case JsopReader.NULL:
@@ -349,6 +351,9 @@ public class RDBDocumentSerializer {
                         break;
                     }
                     String k = json.readString();
+                    if (k == null) {
+                        throw new IllegalArgumentException("unexpected null revision");
+                    }
                     json.read(':');
                     map.put(Revision.fromString(k), readValueFromJson(json));
                     json.matches(',');
