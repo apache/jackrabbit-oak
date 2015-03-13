@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
+import java.io.File;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Charsets;
@@ -70,6 +71,24 @@ public class RepositorySidegrade {
         this.copyBinariesByReference = copyBinariesByReference;
     }
 
+    /**
+     * Copies the full content from the source to the target repository.
+     * <p>
+     * The source repository <strong>must not be modified</strong> while
+     * the copy operation is running to avoid an inconsistent copy.
+     * <p>
+     * Note that both the source and the target repository must be closed
+     * during the copy operation as this method requires exclusive access
+     * to the repositories.
+     *
+     * @param source source node store
+     * @param target target node store
+     * @throws RepositoryException if the copy operation fails
+     */
+    public static void copy(NodeStore source, NodeStore target)
+            throws RepositoryException {
+        new RepositorySidegrade(source, target).copy();
+    }
     /**
      * Copies the full content from the source to the target repository.
      * <p>
