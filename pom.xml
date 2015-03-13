@@ -39,6 +39,7 @@
     <module>oak-parent</module>
     <module>oak-commons</module>
     <module>oak-blob</module>
+    <module>oak-blob-cloud</module>
     <module>oak-mk-api</module>
     <module>oak-mk</module>
     <module>oak-mk-remote</module>

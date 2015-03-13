@@ -14,16 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.aws.ext.ds;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.IOException;
 
-import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test {@link CachingDataStore} with S3Backend and local cache Off. It requires
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and local cache Off. It requires
  * to pass aws config file via system property. For e.g.
  * -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 /**
  * Defined Amazon S3 constants.

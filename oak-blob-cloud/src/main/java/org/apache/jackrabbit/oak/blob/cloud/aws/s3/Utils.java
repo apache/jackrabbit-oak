@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -133,7 +133,7 @@ public final class Utils {
      * 
      * @param fileName the properties file name
      * @return the properties
-     * @throws IOException if the file doesn't exist
+     * @throws java.io.IOException if the file doesn't exist
      */
     public static Properties readConfig(String fileName) throws IOException {
         boolean delete = false;
@@ -184,5 +184,4 @@ public final class Utils {
         cc.setMaxErrorRetry(maxErrorRetry);
         return cc;
     }
-
 }

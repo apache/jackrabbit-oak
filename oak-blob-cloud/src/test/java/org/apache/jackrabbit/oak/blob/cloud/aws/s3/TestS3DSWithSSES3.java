@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext.ds;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.aws.ext.S3Constants;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.slf4j.Logger;

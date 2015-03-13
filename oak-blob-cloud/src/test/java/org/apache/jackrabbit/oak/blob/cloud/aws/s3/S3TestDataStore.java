@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.aws.ext.ds;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.util.Properties;
-
 import org.apache.jackrabbit.core.data.Backend;
 
 /**

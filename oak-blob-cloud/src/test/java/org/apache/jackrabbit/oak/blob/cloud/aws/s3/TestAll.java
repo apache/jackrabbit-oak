@@ -15,17 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
-import org.apache.jackrabbit.aws.ext.ds.TestS3Ds;
-import org.apache.jackrabbit.aws.ext.ds.TestS3DSAsyncTouch;
-import org.apache.jackrabbit.aws.ext.ds.TestS3DsCacheOff;
-import org.apache.jackrabbit.aws.ext.ds.TestS3DSWithSSES3;
-import org.apache.jackrabbit.aws.ext.ds.TestS3DSWithSmallCache;
 import org.apache.jackrabbit.core.data.TestCaseBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
