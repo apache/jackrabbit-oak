@@ -102,6 +102,7 @@ public class VersionGarbageCollector {
             throws IOException {
         StringSort docIdsToDelete = new StringSort(overflowToDiskThreshold, NodeDocumentIdComparator.INSTANCE);
         try {
+            stats.collectDeletedDocs.start();
             Iterable<NodeDocument> itr = versionStore.getPossiblyDeletedDocs(oldestRevTimeStamp);
             try {
                 for (NodeDocument doc : itr) {
@@ -120,6 +121,7 @@ public class VersionGarbageCollector {
             } finally {
                 Utils.closeIfCloseable(itr);
             }
+            stats.collectDeletedDocs.stop();
 
             if (docIdsToDelete.isEmpty()){
                 return;
@@ -128,18 +130,25 @@ public class VersionGarbageCollector {
             docIdsToDelete.sort();
             log.info("Proceeding to delete [{}] documents", docIdsToDelete.getSize());
 
-            if (log.isDebugEnabled() && docIdsToDelete.getSize() < 1000) {
-                StringBuilder sb = new StringBuilder("Deleted document with following ids were deleted as part of GC \n");
-                Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, docIdsToDelete.getIds());
-                log.debug(sb.toString());
-            }
-
+            stats.deleteDeletedDocs.start();
             Iterator<List<String>> idListItr = partition(docIdsToDelete.getIds(), DELETE_BATCH_SIZE);
+            int deletedCount = 0;
             while (idListItr.hasNext()) {
-                nodeStore.getDocumentStore().remove(Collection.NODES, idListItr.next());
+                List<String> deletionBatch = idListItr.next();
+                deletedCount += deletionBatch.size();
+
+                if (log.isDebugEnabled()) {
+                    StringBuilder sb = new StringBuilder("Performing batch deletion of documents with following ids. \n");
+                    Joiner.on(StandardSystemProperty.LINE_SEPARATOR.value()).appendTo(sb, deletionBatch);
+                    log.debug(sb.toString());
+                }
+                log.debug("Deleted [{}] documents so far", deletedCount);
+
+                nodeStore.getDocumentStore().remove(Collection.NODES, deletionBatch);
             }
 
             nodeStore.invalidateDocChildrenCache();
+            stats.deleteDeletedDocs.stop();
             stats.deletedDocGCCount += docIdsToDelete.getSize();
         } finally {
             docIdsToDelete.close();
@@ -151,6 +160,8 @@ public class VersionGarbageCollector {
         int deletedDocGCCount;
         int splitDocGCCount;
         int intermediateSplitDocGCCount;
+        final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
 
 
         @Override
@@ -160,6 +171,8 @@ public class VersionGarbageCollector {
                     ", deletedDocGCCount=" + deletedDocGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
+                    ", timeToCollectDeletedDocs=" + collectDeletedDocs +
+                    ", timeTakenToDeleteDocs=" + deleteDeletedDocs +
                     '}';
         }
     }
