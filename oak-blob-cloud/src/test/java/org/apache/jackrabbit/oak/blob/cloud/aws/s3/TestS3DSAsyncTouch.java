@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.aws.ext.ds;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.IOException;
 
@@ -23,23 +23,22 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 /**
- * Test {@link CachingDataStore} with
- * {@link CachingDataStore#setTouchAsync(boolean) set to true. It requires
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with
+ * {@link org.apache.jackrabbit.core.data.CachingDataStore#setTouchAsync(boolean) set to true. It requires
  * to pass aws config file via system property. For e.g.
  * -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
  */
 public class TestS3DSAsyncTouch extends TestS3Ds {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSAsyncTouch.class);  
+    protected static final Logger LOG = LoggerFactory.getLogger(TestS3DSAsyncTouch.class);
     public TestS3DSAsyncTouch() throws IOException {
         config = System.getProperty(CONFIG);
         memoryBackend = false;
         noCache = false;
     }
-    
+
     protected CachingDataStore createDataStore() throws RepositoryException {
         ds = new S3TestDataStore(props);
         ds.setConfig(config);

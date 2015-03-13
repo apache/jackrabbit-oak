@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.util.Properties;
 
@@ -35,7 +35,7 @@ public class S3RequestDecorator {
             this.dataEncryption = dataEncryption.valueOf(props.getProperty(S3Constants.S3_ENCRYPTION));
         }
     }
-    
+
     /**
      * Set encryption in {@link PutObjectRequest}
      */
@@ -77,7 +77,7 @@ public class S3RequestDecorator {
     }
 
     /**
-     * Enum to indicate S3 encryption mode 
+     * Enum to indicate S3 encryption mode
      *
      */
     private enum DataEncryption {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.aws.ext.ds;
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,8 +24,6 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.aws.ext.S3Constants;
-import org.apache.jackrabbit.aws.ext.Utils;
 import org.apache.jackrabbit.core.data.Backend;
 import org.apache.jackrabbit.core.data.CachingDataStore;
 import org.apache.jackrabbit.core.data.TestCaseBase;
@@ -39,7 +37,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
 /**
- * Test {@link CachingDataStore} with S3Backend and local cache on. It requires
+ * Test {@link org.apache.jackrabbit.core.data.CachingDataStore} with S3Backend and local cache on. It requires
  * to pass aws config file via system property. For e.g.
  * -Dconfig=/opt/cq/aws.properties. Sample aws properties located at
  * src/test/resources/aws.properties
@@ -73,10 +71,10 @@ public class TestS3Ds extends TestCaseBase {
             deleteBucket();
             super.tearDown();
         } catch ( Exception ignore ) {
-            
+
         }
     }
-    
+
     protected CachingDataStore createDataStore() throws RepositoryException {
         ds = new S3TestDataStore(props);
         ds.setConfig(config);
@@ -99,18 +97,16 @@ public class TestS3Ds extends TestCaseBase {
         String bucket = ((S3Backend)backend).getBucket();
         deleteBucket(bucket);
     }
-    
     public void deleteBucket(String bucket) throws Exception {
         LOG.info("deleting bucket [" + bucket + "]");
         Properties props = Utils.readConfig(config);
         AmazonS3Client s3service = Utils.openService(props);
         TransferManager tmx = new TransferManager(s3service);
-
         if (s3service.doesBucketExist(bucket)) {
             for (int i = 0; i < 4; i++) {
                 tmx.abortMultipartUploads(bucket, startTime);
                 ObjectListing prevObjectListing = s3service.listObjects(bucket);
-                while (prevObjectListing != null) {
+                while (prevObjectListing != null ) {
                     List<DeleteObjectsRequest.KeyVersion> deleteList = new ArrayList<DeleteObjectsRequest.KeyVersion>();
                     for (S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                         deleteList.add(new DeleteObjectsRequest.KeyVersion(
@@ -128,12 +124,11 @@ public class TestS3Ds extends TestCaseBase {
             }
             s3service.deleteBucket(bucket);
             LOG.info("bucket [ " + bucket + "] deleted");
-
         } else {
             LOG.info("bucket [" + bucket + "] doesn't exists");
         }
-        tmx.shutdownNow();
-        s3service.shutdown();
+            tmx.shutdownNow();
+            s3service.shutdown();
     }
 
 }

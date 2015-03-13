@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.aws.ext.ds;
-
+package org.apache.jackrabbit.oak.blob.cloud.aws.s3;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,10 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.jackrabbit.aws.ext.S3Constants;
-import org.apache.jackrabbit.aws.ext.S3RequestDecorator;
-import org.apache.jackrabbit.aws.ext.Utils;
 import org.apache.jackrabbit.core.data.AsyncTouchCallback;
 import org.apache.jackrabbit.core.data.AsyncTouchResult;
 import org.apache.jackrabbit.core.data.AsyncUploadCallback;
@@ -89,9 +84,8 @@ public class S3Backend implements Backend {
     private Properties properties;
 
     private Date startTime;
-    
-    private ThreadPoolExecutor asyncWriteExecuter;
 
+    private ThreadPoolExecutor asyncWriteExecuter;
     private S3RequestDecorator s3ReqDecorator;
 
     /**
@@ -132,7 +126,6 @@ public class S3Backend implements Backend {
             LOG.debug("init");
             this.store = store;
             s3ReqDecorator = new S3RequestDecorator(prop);
-
             s3service = Utils.openService(prop);
             if (bucket == null || "".equals(bucket.trim())) {
                 bucket = prop.getProperty(S3Constants.S3_BUCKET);
@@ -146,14 +139,14 @@ public class S3Backend implements Backend {
             } else {
                 s3Region = Region.fromValue(region);
             }
-            
+
             if (!s3service.doesBucketExist(bucket)) {
                 s3service.createBucket(bucket, s3Region);
                 LOG.info("Created bucket [{}] in [{}] ", bucket, region);
             } else {
                 LOG.info("Using bucket [{}] in [{}] ", bucket, region);
             }
-           
+
             int writeThreads = 10;
             String writeThreadsStr = prop.getProperty(S3Constants.S3_WRITE_THREADS);
             if (writeThreadsStr != null) {
@@ -163,14 +156,14 @@ public class S3Backend implements Backend {
             tmx = new TransferManager(s3service,
                 (ThreadPoolExecutor) Executors.newFixedThreadPool(writeThreads,
                     new NamedThreadFactory("s3-transfer-manager-worker")));
-            
+
             int asyncWritePoolSize = 10;
             String maxConnsStr = prop.getProperty(S3Constants.S3_MAX_CONNS);
             if (maxConnsStr != null) {
                 asyncWritePoolSize = Integer.parseInt(maxConnsStr)
                     - writeThreads;
             }
-            
+
             asyncWriteExecuter = (ThreadPoolExecutor) Executors.newFixedThreadPool(
                 asyncWritePoolSize, new NamedThreadFactory("s3-write-worker"));
             String renameKeyProp = prop.getProperty(S3Constants.S3_RENAME_KEYS);
@@ -299,7 +292,7 @@ public class S3Backend implements Backend {
             retVal, (System.currentTimeMillis() - start) });
         return retVal;
     }
-    
+
     @Override
     public void touchAsync(final DataIdentifier identifier,
             final long minModifiedDate, final AsyncTouchCallback callback)
@@ -528,7 +521,7 @@ public class S3Backend implements Backend {
                         //  order is important here
                         && s3service.getObjectMetadata(bucket,
                             s3ObjSumm.getKey()).getLastModified().getTime() < min) {
-                       
+
 
                         LOG.debug("add id [{}] to delete lists",
                             s3ObjSumm.getKey());
@@ -659,7 +652,7 @@ public class S3Backend implements Backend {
                             identifier);
                     } else {
                         up.waitForUploadResult();
-                        LOG.debug("synchronous upload to identifier [{}] completed.", identifier); 
+                        LOG.debug("synchronous upload to identifier [{}] completed.", identifier);
                         if (callback != null) {
                             callback.onSuccess(new AsyncUploadResult(
                                 identifier, file));
@@ -670,7 +663,7 @@ public class S3Backend implements Backend {
                     asyncUpRes.setException(e2);
                     if (callback != null) {
                         callback.onAbort(asyncUpRes);
-                    } 
+                    }
                     throw new DataStoreException("Could not upload " + key, e2);
                 }
             }
@@ -795,7 +788,7 @@ public class S3Backend implements Backend {
         }
         return key.substring(0, 4) + key.substring(5);
     }
-    
+
 
     /**
      * The class renames object key in S3 in a thread.
@@ -820,6 +813,7 @@ public class S3Backend implements Backend {
                     LOG.error(" Exception in renaming [{}] to [{}] ",
                         new Object[] { ie, oldKey, newS3Key });
                 }
+
             } finally {
                 if (contextClassLoader != null) {
                     Thread.currentThread().setContextClassLoader(
@@ -843,7 +837,7 @@ public class S3Backend implements Backend {
         private DataIdentifier identifier;
 
         private AsyncUploadCallback callback;
-        
+
         private Upload upload;
 
         public S3UploadProgressListener(Upload upload, DataIdentifier identifier, File file,
@@ -878,9 +872,9 @@ public class S3Backend implements Backend {
             }
         }
     }
-    
+
     /**
-     * This class implements {@link Runnable} interface to upload {@link File}
+     * This class implements {@link Runnable} interface to upload {@link java.io.File}
      * to S3 asynchronously.
      */
     private class AsyncUploadJob implements Runnable {
@@ -909,4 +903,6 @@ public class S3Backend implements Backend {
 
         }
     }
+
+
 }
