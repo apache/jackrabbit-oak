@@ -275,6 +275,12 @@ See [Solr Index](lucene.html) for details.
 The `NodeTypeIndex` implements a `QueryIndex` using `PropertyIndexLookup`s on `jcr:primaryType` `jcr:mixinTypes` to evaluate a node type restriction on the filter.
 The cost for this index is the sum of the costs of the `PropertyIndexLookup` for queries on `jcr:primaryType` and `jcr:mixinTypes`.
 
+### Temporarily Disabling an Index
+
+To temporarily disable an index (for example for testing), set the index type to "undefined".
+Please note that while the index type is not set, the index is not updated, so if you enable it again,
+it might not be correct. This is specially important for synchronous indexes.
+
 ### The Ordered Index
 
 NOTE: This index type has been deprecated. 
