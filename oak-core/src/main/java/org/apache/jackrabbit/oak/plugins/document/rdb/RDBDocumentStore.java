@@ -49,6 +49,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 
+
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -833,13 +834,13 @@ public class RDBDocumentStore implements DocumentStore {
 
                 int retries = maxRetries;
                 while (!success && retries > 0) {
-                    long lastmodcount = (Long) oldDoc.get(MODCOUNT);
+                    long lastmodcount = modcountOf(oldDoc);
                     success = updateDocument(collection, doc, update, lastmodcount);
                     if (!success) {
                         retries -= 1;
                         oldDoc = readDocumentCached(collection, update.getId(), Integer.MAX_VALUE);
                         if (oldDoc != null) {
-                            long newmodcount = (Long) oldDoc.get(MODCOUNT);
+                            long newmodcount = modcountOf(oldDoc);
                             if (lastmodcount == newmodcount) {
                                 // cached copy did not change so it probably was
                                 // updated by a different instance, get a fresh one
@@ -924,14 +925,16 @@ public class RDBDocumentStore implements DocumentStore {
                 }
                 if (success) {
                     for (Entry<String, NodeDocument> entry : cachedDocs.entrySet()) {
-                        if (entry.getValue() == null) {
+                        T oldDoc = (T) (entry.getValue());
+                        if (oldDoc == null) {
                             // make sure concurrently loaded document is
                             // invalidated
                             nodesCache.invalidate(new StringValue(entry.getKey()));
                         } else {
-                            T oldDoc = (T) (entry.getValue());
-                            T newDoc = applyChanges(collection, (T) (entry.getValue()), update, true);
-                            applyToCache((NodeDocument) oldDoc, (NodeDocument) newDoc);
+                            T newDoc = applyChanges(collection, oldDoc, update, true);
+                            if (newDoc != null) {
+                                applyToCache((NodeDocument) oldDoc, (NodeDocument) newDoc);
+                            }
                         }
                     }
                 } else {
@@ -998,8 +1001,8 @@ public class RDBDocumentStore implements DocumentStore {
         String tableName = getTable(collection);
         try {
             long lastmodcount = -1;
-            if (cachedDoc != null && cachedDoc.getModCount() != null) {
-                lastmodcount = cachedDoc.getModCount().longValue();
+            if (cachedDoc != null) {
+                lastmodcount = modcountOf(cachedDoc);
             }
             connection = this.ch.getROConnection();
             RDBRow row = dbRead(connection, tableName, id, lastmodcount);
@@ -1570,6 +1573,20 @@ public class RDBDocumentStore implements DocumentStore {
         return doc == null ? NodeDocument.NULL : doc;
     }
 
+    @Nonnull
+    private static String idOf(@Nonnull Document doc) {
+        String id = doc.getId();
+        if (id == null) {
+            throw new IllegalArgumentException("non-null ID expected");
+        }
+        return id;
+    }
+
+    private static long modcountOf(@Nonnull Document doc) {
+        Number n = doc.getModCount();
+        return n != null ? n.longValue() : -1;
+    }
+
     /**
      * Adds a document to the {@link #nodesCache} iff there is no document in
      * the cache with the document key. This method does not acquire a lock from
@@ -1592,7 +1609,7 @@ public class RDBDocumentStore implements DocumentStore {
         // meantime. That is, use get() with a Callable,
         // which is only used when the document isn't there
         try {
-            CacheValue key = new StringValue(doc.getId());
+            CacheValue key = new StringValue(idOf(doc));
             for (;;) {
                 NodeDocument cached = nodesCache.get(key, new Callable<NodeDocument>() {
                     @Override
@@ -1624,7 +1641,7 @@ public class RDBDocumentStore implements DocumentStore {
             // loading it into the cache -> return now
             return;
         } else {
-            CacheValue key = new StringValue(newDoc.getId());
+            CacheValue key = new StringValue(idOf(newDoc));
             // this is an update (oldDoc != null)
             if (Objects.equal(cached.getModCount(), oldDoc.getModCount())) {
                 nodesCache.put(key, newDoc);
@@ -1641,7 +1658,7 @@ public class RDBDocumentStore implements DocumentStore {
 
     private <T extends Document> void addToCache(Collection<T> collection, T doc) {
         if (collection == Collection.NODES) {
-            Lock lock = getAndLock(doc.getId());
+            Lock lock = getAndLock(idOf(doc));
             try {
                 addToCache((NodeDocument) doc);
             } finally {

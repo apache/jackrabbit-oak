@@ -24,7 +24,6 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Locale;
 import java.util.logging.Logger;
 
 import javax.sql.DataSource;

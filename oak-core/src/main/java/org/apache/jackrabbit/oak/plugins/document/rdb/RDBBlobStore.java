@@ -38,8 +38,6 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.blob.CachingBlobStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.DB;
-import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.FETCHFIRSTSYNTAX;
 import org.apache.jackrabbit.oak.spi.blob.AbstractBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
